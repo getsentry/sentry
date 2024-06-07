@@ -6,6 +6,7 @@ import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   isCustomMetric,
   isSpanDuration,
@@ -98,6 +99,44 @@ function useMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
   }, [metrics]);
 }
 
+const SEARCH_OPTIONS: Fuse.IFuseOptions<any> = {
+  keys: ['searchText'],
+  threshold: 0.2,
+  ignoreLocation: true,
+  includeScore: false,
+  includeMatches: false,
+};
+
+function useFilteredMRIs(
+  metricsMeta: MetricMeta[],
+  inputValue: string,
+  mriMode: boolean
+) {
+  const searchEntries = useMemo(() => {
+    return metricsMeta.map(metric => {
+      return {
+        value: metric.mri,
+        searchText: mriMode
+          ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
+            `${getReadableMetricType(metric.type)}${metric.mri}`
+          : // enable search in the full formatted string
+            formatMRI(metric.mri),
+      };
+    });
+  }, [metricsMeta, mriMode]);
+
+  const search = useFuzzySearch(searchEntries, SEARCH_OPTIONS);
+
+  return useMemo(() => {
+    if (!search || !inputValue) {
+      return new Set(metricsMeta.map(metric => metric.mri));
+    }
+
+    const results = search.search(inputValue);
+    return new Set(results.map(result => result.item.value));
+  }, [inputValue, metricsMeta, search]);
+}
+
 export const MRISelect = memo(function MRISelect({
   projects: projectIds,
   onChange,
@@ -109,8 +148,17 @@ export const MRISelect = memo(function MRISelect({
 }: MRISelectProps) {
   const {projects} = useProjects();
   const mriMode = useMriMode();
+  const [inputValue, setInputValue] = useState('');
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
+  const filteredMRIs = useFilteredMRIs(metricsMeta, inputValue, mriMode);
+
+  const handleFilterOption = useCallback(
+    (option: ComboBoxOption<MRI>) => {
+      return filteredMRIs.has(option.value);
+    },
+    [filteredMRIs]
+  );
 
   const selectedProjects = useMemo(
     () =>
@@ -174,11 +222,6 @@ export const MRISelect = memo(function MRISelect({
           label: mriMode
             ? metric.mri
             : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
-          textValue: mriMode
-            ? // enable search by mri, name, unit (millisecond), type (c:), and readable type (counter)
-              `${metric.mri}${getReadableMetricType(metric.type)}`
-            : // enable search in the full formatted string
-              formatMRI(metric.mri),
           value: metric.mri,
           details:
             metric.projectIds.length > 0 ? (
@@ -199,18 +242,20 @@ export const MRISelect = memo(function MRISelect({
   return (
     <MetricComboBox
       aria-label={t('Metric')}
-      placeholder={t('Select a metric')}
-      loadingMessage={t('Loading metrics...')}
-      sizeLimit={100}
-      size="md"
-      menuSize="sm"
+      filterOption={handleFilterOption}
+      growingInput
       isLoading={isLoading}
+      loadingMessage={t('Loading metrics...')}
+      menuSize="sm"
+      menuWidth="450px"
+      onChange={handleMRIChange}
+      onInputChange={setInputValue}
       onOpenChange={onOpenMenu}
       options={mriOptions}
+      placeholder={t('Select a metric')}
+      size="md"
+      sizeLimit={100}
       value={value}
-      onChange={handleMRIChange}
-      growingInput
-      menuWidth="450px"
     />
   );
 });
@@ -219,7 +264,7 @@ const CustomMetricInfoText = styled('span')`
   color: ${p => p.theme.subText};
 `;
 
-const MetricComboBox = styled(ComboBox)`
+const MetricComboBox = styled(ComboBox<MRI>)`
   min-width: 200px;
   max-width: min(500px, 100%);
 `;
