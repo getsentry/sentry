@@ -148,7 +148,7 @@ class BaseRequestParser(abc.ABC):
                     "region_silo_error",
                     extra={"path": self.request.path, "region": region.name, "error": e},
                 )
-                raise
+                raise SiloClientError(e)
 
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]
@@ -178,6 +178,7 @@ class BaseRequestParser(abc.ABC):
                     )
                     region_to_response_map[region.name] = RegionResult(error=e)
                 else:
+
                     region_to_response_map[region.name] = RegionResult(response=region_response)
 
         if len(region_to_response_map) == 0:
