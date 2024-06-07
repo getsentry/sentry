@@ -905,8 +905,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def __init__(
         self,
         environment_ids=None,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         search_filters=None,
         collapse=None,
         expand=None,
