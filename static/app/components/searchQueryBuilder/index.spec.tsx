@@ -691,7 +691,6 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit value for filter: assigned'})
       );
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       const groups = within(screen.getByRole('listbox')).getAllByRole('group');
 

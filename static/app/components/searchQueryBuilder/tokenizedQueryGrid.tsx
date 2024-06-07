@@ -118,7 +118,7 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
 }
 
 const SearchQueryGridWrapper = styled('div')`
-  padding: ${space(0.75)} 48px ${space(0.75)} 32px;
+  padding: ${space(0.75)} 34px ${space(0.75)} 32px;
   display: flex;
   align-items: stretch;
   row-gap: ${space(0.5)};
