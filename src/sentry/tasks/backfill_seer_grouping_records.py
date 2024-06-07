@@ -145,8 +145,16 @@ def backfill_seer_grouping_records(
         )
         return
 
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row = [
+        group_id
+        for group_id in groups_to_backfill_with_no_embedding_has_snuba_row
+        if group_id in group_hashes_dict
+    ]
+
     seer_response = send_group_and_stacktrace_to_seer(
-        project, groups_to_backfill_with_no_embedding_has_snuba_row, nodestore_results
+        project,
+        groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+        nodestore_results,
     )
     if not seer_response.get("success"):
         logger.info(
@@ -158,7 +166,7 @@ def backfill_seer_grouping_records(
     update_groups(
         project,
         seer_response,
-        groups_to_backfill_with_no_embedding_has_snuba_row,
+        groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
         group_hashes_dict,
         dry_run,
     )

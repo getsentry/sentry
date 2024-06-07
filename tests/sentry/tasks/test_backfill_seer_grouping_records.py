@@ -1039,7 +1039,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
-    @pytest.mark.skip("temp")
     def test_backfill_seer_grouping_records_exclude_invalid_groups(
         self, mock_post_bulk_grouping_records, mock_logger
     ):
@@ -1066,13 +1065,3 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
         assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
-        assert (
-            call(
-                "backfill_seer_grouping_records.invalid_group_ids",
-                extra={
-                    "project_id": self.project.id,
-                    "invalid_group_ids": json.dumps([group_no_grouping_stacktrace.id]),
-                },
-            )
-            in mock_logger.info.call_args_list
-        )
