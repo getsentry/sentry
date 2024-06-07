@@ -32,6 +32,6 @@ class ImageBlockBuilder(BlockSlackMessageBuilder, IssueAlertImageBuilder):
                 return self.get_image_block(
                     url=image_url,
                     title=self.group.title,
-                    alt=IMAGE_ALT.get(self.group.issue_category),
+                    alt=IMAGE_ALT.get(self.group.issue_type, "issue chart"),
                 )
         return None
