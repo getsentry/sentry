@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping, Sequence
+from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from confluent_kafka import KafkaError
@@ -51,7 +52,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool,
         group_states: GroupStates | None = None,
     ) -> MutableMapping[str, str]:
@@ -112,7 +113,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
         **kwargs: Any,
