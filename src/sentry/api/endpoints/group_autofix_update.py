@@ -4,6 +4,7 @@ import logging
 
 import requests
 from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
@@ -32,14 +33,23 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
         if not request.data:
             return Response(status=400, data={"error": "Need a body with a run_id and payload"})
 
+        user = request.user
+        if isinstance(user, AnonymousUser):
+            return Response(
+                status=401,
+                data={"error": "You must be authenticated to use this endpoint"},
+            )
+
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
             json={
                 **request.data,
-                "invoking_user": {
-                    "id": request.user.id,
-                    "display_name": request.user.get_display_name(),
-                },
+                "invoking_user": (
+                    {
+                        "id": user,
+                        "display_name": user.get_display_name(),
+                    }
+                ),
             },
             headers={"content-type": "application/json;charset=utf-8"},
         )
