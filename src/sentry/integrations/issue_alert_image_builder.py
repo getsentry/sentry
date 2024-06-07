@@ -7,10 +7,7 @@ from django.core.cache import cache
 from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartType
-from sentry.integrations.slack.message_builder.time_utils import (
-    get_approx_start_time,
-    get_relative_time,
-)
+from sentry.integrations.time_utils import get_approx_start_time, get_relative_time
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import (
     PerformanceP95EndpointRegressionGroupType,
@@ -30,6 +27,7 @@ logger = logging.getLogger("sentry.chartcuterie")
 locks = LockManager(
     build_instance_from_options_of_type(LockBackend, settings.SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS)
 )
+DEFAULT_CHART_SIZE = {"width": 600, "height": 200}
 
 
 class IssueAlertImageBuilder:
@@ -111,6 +109,7 @@ class IssueAlertImageBuilder:
                 "evidenceData": event.occurrence.evidence_data,
                 "percentileData": resp.data["p95(transaction.duration)"]["data"],
             },
+            size=DEFAULT_CHART_SIZE,
         )
 
     def _get_function_regression_image_url(self) -> str | None:
@@ -148,4 +147,5 @@ class IssueAlertImageBuilder:
                 "evidenceData": evidence_data,
                 "rawResponse": resp.data,
             },
+            size=DEFAULT_CHART_SIZE,
         )
