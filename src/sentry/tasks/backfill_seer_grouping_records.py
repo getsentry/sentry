@@ -256,7 +256,25 @@ def backfill_seer_grouping_records(
 
         if response.get("success"):
             groups_with_neighbor = response["groups_with_neighbor"]
-            groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
+            groups = Group.objects.filter(
+                project_id=project.id,
+                id__in=[
+                    group_stacktrace_data["group_id"] for group_stacktrace_data in data["data"]
+                ],
+            )
+
+            # Temporary debug logging
+            groups_ids_from_data = [group.id for group in groups]
+            for group_id in group_id_batch_filtered:
+                if group_id not in groups_ids_from_data:
+                    logger.info(
+                        "backfill_seer_grouping_records.group_missing_from_data",
+                        extra={
+                            "project_id": project.id,
+                            "group_id": group_id,
+                        },
+                    )
+
             for group in groups:
                 seer_similarity: dict[str, Any] = {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
