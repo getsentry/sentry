@@ -31,7 +31,7 @@ export default function EventReplay({event, group, projectSlug}: Props) {
   const replayId = getReplayIdFromEvent(event);
 
   if (!hasReplaysFeature || fetchingHasSentReplays) {
-    return false;
+    return null;
   }
 
   const platform = group?.project.platform ?? group?.platform ?? 'other';
