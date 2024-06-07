@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {cloneElement, Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
@@ -33,7 +33,12 @@ export function SpanDescriptionCell({
       return rawDescription;
     }
 
-    return formatter.toSimpleMarkup(rawDescription);
+    return (
+      formatter
+        .toSimpleMarkup(rawDescription)
+        // Since the order of the tokens will never change, it's safe to assign the index as the key
+        .map((e, i) => cloneElement(e, {key: i}))
+    );
   }, [moduleName, rawDescription]);
 
   if (!rawDescription) {
