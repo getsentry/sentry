@@ -194,7 +194,7 @@ function renderBodyCell(
 
       return (
         <TableCellContainer>
-          <Link to={target}>{dataRow[column.key] || t('(unnamed span)')}</Link>
+          <Link to={target}>{dataRow[column.key] || '\u2014'}</Link>
         </TableCellContainer>
       );
     }
