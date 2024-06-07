@@ -256,10 +256,14 @@ class SeatAssignmentResult:
     """
     Can the seat assignment be made?
     """
-    reason: str | None = None
+    reason: str = ""
     """
     The human readable reason the assignment can be made or not.
     """
+
+    def __post_init__(self) -> None:
+        if not self.assignable and not self.reason:
+            raise ValueError("`reason` must be specified when not assignable")
 
 
 def index_data_category(event_type: str | None, organization) -> DataCategory:
