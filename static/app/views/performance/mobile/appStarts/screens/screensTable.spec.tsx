@@ -54,10 +54,10 @@ describe('AppStartScreens', () => {
 
     expect(screen.getByRole('columnheader', {name: 'Screen'})).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', {name: 'Cold Start (R1)'})
+      screen.getByRole('columnheader', {name: 'Avg Cold Start (R1)'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', {name: 'Cold Start (R2)'})
+      screen.getByRole('columnheader', {name: 'Avg Cold Start (R2)'})
     ).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Change'})).toBeInTheDocument();
     expect(
