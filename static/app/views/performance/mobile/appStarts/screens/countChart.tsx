@@ -115,9 +115,12 @@ export function CountChart({chartHeight}: Props) {
 
   const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
 
+  const chartTitle =
+    appStartType === COLD_START_TYPE ? t('Cold Start Count') : t('Warm Start Count');
+
   return (
     <MiniChartPanel
-      title={t('Count')}
+      title={chartTitle}
       subtitle={
         primaryRelease
           ? t(
