@@ -10,7 +10,7 @@ interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   preferredPolarity?: Polarity;
 }
 
-type Polarity = '+' | '-' | '';
+export type Polarity = '+' | '-' | '';
 
 type Rating = 'good' | 'bad' | 'neutral';
 

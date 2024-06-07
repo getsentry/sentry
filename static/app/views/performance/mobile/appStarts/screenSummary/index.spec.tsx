@@ -132,6 +132,8 @@ describe('Screen Summary', function () {
         const blockEl = screen.getByRole('heading', {name: block.header}).closest('div');
         await within(blockEl!).findByText(block.value);
       }
+
+      expect(screen.getByText('-50%')).toHaveAttribute('data-rating', 'good');
     });
   });
 });
