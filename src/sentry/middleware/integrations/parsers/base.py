@@ -148,7 +148,7 @@ class BaseRequestParser(abc.ABC):
                     "region_silo_error",
                     extra={"path": self.request.path, "region": region.name, "error": e},
                 )
-                raise
+                raise IntegrationMiddlewareException(e)
 
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]
