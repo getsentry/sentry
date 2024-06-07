@@ -52,6 +52,10 @@ class FeatureError(Exception):
     pass
 
 
+class NoNodestoreDataError(Exception):
+    pass
+
+
 class GroupEventRow(TypedDict):
     event_id: str
     group_id: int
@@ -62,6 +66,7 @@ class GroupStacktraceData(TypedDict):
     stacktrace_list: list[str]
 
 
+@sentry_sdk.tracing.trace
 def initialize_backfill(project_id, last_processed_index, dry_run):
     logger.info(
         "backfill_seer_grouping_records.start",
@@ -86,6 +91,7 @@ def initialize_backfill(project_id, last_processed_index, dry_run):
     return project, redis_client, last_processed_index
 
 
+@sentry_sdk.tracing.trace
 def get_current_batch_groups_from_postgres(project, last_processed_index, batch_size):
     group_id_data = (
         Group.objects.filter(
@@ -132,6 +138,7 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
     return group_id_batch_filtered, batch_end_index, len(group_id_data)
 
 
+@sentry_sdk.tracing.trace
 def get_data_from_snuba(project, group_id_batch_filtered):
     # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
     events_entity = Entity("events", alias="events")
@@ -178,6 +185,114 @@ def get_data_from_snuba(project, group_id_batch_filtered):
             snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
     return snuba_results
+
+
+@sentry_sdk.tracing.trace
+def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
+    group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
+    if snuba_results and snuba_results[0].get("data"):
+        rows: list[GroupEventRow] = [
+            snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
+        ]
+
+        # Log if any group does not have any events in snuba and skip it
+        if len(rows) != len(group_id_batch_filtered):
+            row_group_ids = {row["group_id"] for row in rows}
+            for group_id in group_id_batch_all:
+                if group_id not in row_group_ids:
+                    logger.info(
+                        "tasks.backfill_seer_grouping_records.no_snuba_event",
+                        extra={
+                            "organization_id": project.organization.id,
+                            "project_id": project.id,
+                            "group_id": group_id,
+                        },
+                    )
+                    group_id_batch_filtered.remove(group_id)
+
+        nodestore_data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
+
+        # If nodestore returns no data
+        if nodestore_data["data"] == [] and nodestore_data["stacktrace_list"] == []:
+            logger.info(
+                "tasks.backfill_seer_grouping_records.no_data",
+                extra={
+                    "project_id": project.id,
+                    "group_id_batch": json.dumps(group_id_batch_filtered),
+                },
+            )
+            raise NoNodestoreDataError("No data found in nodestore")
+
+        group_hashes_dict = {
+            group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
+            for group_stacktrace_data in nodestore_data["data"]
+        }
+        return nodestore_data, group_hashes_dict
+
+
+@sentry_sdk.tracing.trace
+def send_group_and_stacktrace_to_seer(project, group_id_batch_filtered, nodestore_results):
+    seer_response = post_bulk_grouping_records(
+        CreateGroupingRecordsRequest(
+            group_id_list=group_id_batch_filtered,
+            data=nodestore_results["data"],
+            stacktrace_list=nodestore_results["stacktrace_list"],
+        )
+    )
+    return seer_response
+
+
+@sentry_sdk.tracing.trace
+def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_dict, dry_run):
+    groups_with_neighbor = seer_response["groups_with_neighbor"]
+    groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
+    for group in groups:
+        seer_similarity: dict[str, Any] = {
+            "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+            "request_hash": group_hashes_dict[group.id],
+        }
+        if str(group.id) in groups_with_neighbor:
+            logger.info(
+                "backfill_seer_grouping_records.found_neighbor",
+                extra={
+                    "project_id": project.id,
+                    "group_id": group.id,
+                },
+            )
+            # TODO: remove this try catch once the helper is made
+            try:
+                seer_similarity["results"] = [
+                    asdict(
+                        SeerSimilarIssueData.from_raw(
+                            project.id, groups_with_neighbor[str(group.id)]
+                        )
+                    )
+                ]
+            # TODO: if we reach this exception, we need to delete the record from seer or this will always happen
+            # we should not update the similarity data for this group cause we'd want to try again once we delete it
+            except (IncompleteSeerDataError, SimilarGroupNotFoundError):
+                logger.exception(
+                    "tasks.backfill_seer_grouping_records.invalid_parent_group",
+                    extra={
+                        "project_id": project.id,
+                        "group_id": group.id,
+                        "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
+                    },
+                )
+                seer_similarity = {}
+
+        if seer_similarity:
+            if group.data.get("metadata"):
+                group.data["metadata"]["seer_similarity"] = seer_similarity
+            else:
+                group.data["metadata"] = {"seer_similarity": seer_similarity}
+
+    if not dry_run:
+        num_updated = Group.objects.bulk_update(groups, ["data"])
+        logger.info(
+            "backfill_seer_grouping_records.bulk_update",
+            extra={"project_id": project.id, "num_updated": num_updated},
+        )
 
 
 @instrumented_task(
@@ -229,156 +344,50 @@ def backfill_seer_grouping_records(
         length_group_id_batch_unfiltered,
     ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
 
+    last_group_id = group_id_batch_filtered[-1]
     snuba_results = get_data_from_snuba(project, group_id_batch_filtered)
 
-    group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
-    if snuba_results and snuba_results[0].get("data"):
-        rows: list[GroupEventRow] = [
-            snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
-        ]
-
-        # Log if any group does not have any events in snuba and skip it
-        if len(rows) != len(group_id_batch_filtered):
-            row_group_ids = {row["group_id"] for row in rows}
-            for group_id in group_id_batch_all:
-                if group_id not in row_group_ids:
-                    logger.info(
-                        "tasks.backfill_seer_grouping_records.no_snuba_event",
-                        extra={
-                            "organization_id": project.organization.id,
-                            "project_id": project_id,
-                            "group_id": group_id,
-                        },
-                    )
-                    group_id_batch_filtered.remove(group_id)
-
-        data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
-
-        # If nodestore returns no data
-        if data["data"] == [] and data["stacktrace_list"] == []:
-            logger.info(
-                "tasks.backfill_seer_grouping_records.no_data",
-                extra={
-                    "project_id": project.id,
-                    "group_id_batch": json.dumps(group_id_batch_filtered),
-                },
-            )
-            call_next_backfill(
-                batch_end_index,
-                project_id,
-                redis_client,
-                length_group_id_batch_unfiltered,
-                group_id_batch_all[-1],
-                dry_run,
-            )
-            return
-
-        group_hashes_dict = {
-            group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
-            for group_stacktrace_data in data["data"]
-        }
-
-        with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
-            response = post_bulk_grouping_records(
-                CreateGroupingRecordsRequest(
-                    group_id_list=group_id_batch_filtered,
-                    data=data["data"],
-                    stacktrace_list=data["stacktrace_list"],
-                )
-            )
-
-        #####
-        #
-        # #### UPDATE GROUPS
-
-        if response.get("success"):
-            groups_with_neighbor = response["groups_with_neighbor"]
-            groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
-            for group in groups:
-                seer_similarity: dict[str, Any] = {
-                    "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                    "request_hash": group_hashes_dict[group.id],
-                }
-                if str(group.id) in groups_with_neighbor:
-                    logger.info(
-                        "backfill_seer_grouping_records.found_neighbor",
-                        extra={
-                            "project_id": project_id,
-                            "group_id": group.id,
-                        },
-                    )
-                    # TODO: remove this try catch once the helper is made
-                    try:
-                        seer_similarity["results"] = [
-                            asdict(
-                                SeerSimilarIssueData.from_raw(
-                                    project_id, groups_with_neighbor[str(group.id)]
-                                )
-                            )
-                        ]
-                    # TODO: if we reach this exception, we need to delete the record from seer or this will always happen
-                    # we should not update the similarity data for this group cause we'd want to try again once we delete it
-                    except (IncompleteSeerDataError, SimilarGroupNotFoundError):
-                        logger.exception(
-                            "tasks.backfill_seer_grouping_records.invalid_parent_group",
-                            extra={
-                                "project_id": project_id,
-                                "group_id": group.id,
-                                "parent_hash": groups_with_neighbor[str(group.id)]["parent_hash"],
-                            },
-                        )
-                        seer_similarity = {}
-
-                if seer_similarity:
-                    if group.data.get("metadata"):
-                        group.data["metadata"]["seer_similarity"] = seer_similarity
-                    else:
-                        group.data["metadata"] = {"seer_similarity": seer_similarity}
-
-            if not dry_run:
-                num_updated = Group.objects.bulk_update(groups, ["data"])
-                logger.info(
-                    "backfill_seer_grouping_records.bulk_update",
-                    extra={"project_id": project.id, "num_updated": num_updated},
-                )
-
-            logger.info(
-                "about to call next backfill",
-                extra={
-                    "project_id": project_id,
-                },
-            )
-            call_next_backfill(
-                batch_end_index,
-                project_id,
-                redis_client,
-                length_group_id_batch_unfiltered,
-                group_id_batch_all[-1],
-                dry_run,
-            )
-        else:
-            # If seer is down, we should stop
-            logger.info(
-                "backfill_seer_bulk_insert_returned_invald_result",
-                extra={"project_id": project.id},
-            )
-    else:
-        logger.info(
-            "backfill_seer_snuba_returned_empty_result",
-            extra={
-                "project_id": project.id,
-                "snuba_result": json.dumps(snuba_results),
-                "group_id_batch": json.dumps(group_id_batch_all),
-            },
+    try:
+        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+            project, snuba_results, group_id_batch_filtered
         )
+    except NoNodestoreDataError:
         call_next_backfill(
             batch_end_index,
             project_id,
             redis_client,
             length_group_id_batch_unfiltered,
-            group_id_batch_all[-1],
+            last_group_id,
             dry_run,
         )
+        return
+
+    seer_response = send_group_and_stacktrace_to_seer(
+        project, group_id_batch_filtered, nodestore_results
+    )
+    if not seer_response.get("success"):
+        logger.info(
+            "backfill_seer_grouping_records.seer_down",
+            extra={"project_id": project.id},
+        )
+        return
+
+    update_groups(project, seer_response, group_id_batch_filtered, group_hashes_dict, dry_run)
+
+    logger.info(
+        "about to call next backfill",
+        extra={
+            "project_id": project_id,
+        },
+    )
+    call_next_backfill(
+        batch_end_index,
+        project_id,
+        redis_client,
+        length_group_id_batch_unfiltered,
+        last_group_id,
+        dry_run,
+    )
 
 
 def lookup_group_data_stacktrace_bulk_with_fallback(
@@ -462,39 +471,36 @@ def lookup_group_data_stacktrace_bulk(
     stacktrace_strings = []
     bulk_event_ids = set()
     invalid_event_ids = set()
-    with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
-        for node_id, data in bulk_data.items():
-            if node_id in node_id_to_group_data:
-                event_id, group_id = (
-                    node_id_to_group_data[node_id][0],
-                    node_id_to_group_data[node_id][1],
-                )
-                event = Event(
-                    event_id=event_id, project_id=project_id, group_id=group_id, data=data
-                )
-                if event and event.data and event.data.get("exception"):
-                    grouping_info = get_grouping_info(None, project=project, event=event)
-                    stacktrace_string = get_stacktrace_string(grouping_info)
-                    if stacktrace_string == "":
-                        invalid_event_ids.add(event_id)
-                        continue
-                    primary_hash = event.get_primary_hash()
-                    if not primary_hash:
-                        invalid_event_ids.add(event_id)
-                        continue
-
-                    group_data.append(
-                        CreateGroupingRecordData(
-                            group_id=group_id,
-                            project_id=project_id,
-                            message=event.title,
-                            hash=primary_hash,
-                        )
-                    )
-                    stacktrace_strings.append(stacktrace_string)
-                    bulk_event_ids.add(event_id)
-                else:
+    for node_id, data in bulk_data.items():
+        if node_id in node_id_to_group_data:
+            event_id, group_id = (
+                node_id_to_group_data[node_id][0],
+                node_id_to_group_data[node_id][1],
+            )
+            event = Event(event_id=event_id, project_id=project_id, group_id=group_id, data=data)
+            if event and event.data and event.data.get("exception"):
+                grouping_info = get_grouping_info(None, project=project, event=event)
+                stacktrace_string = get_stacktrace_string(grouping_info)
+                if stacktrace_string == "":
                     invalid_event_ids.add(event_id)
+                    continue
+                primary_hash = event.get_primary_hash()
+                if not primary_hash:
+                    invalid_event_ids.add(event_id)
+                    continue
+
+                group_data.append(
+                    CreateGroupingRecordData(
+                        group_id=group_id,
+                        project_id=project_id,
+                        message=event.title,
+                        hash=primary_hash,
+                    )
+                )
+                stacktrace_strings.append(stacktrace_string)
+                bulk_event_ids.add(event_id)
+            else:
+                invalid_event_ids.add(event_id)
 
     metrics.gauge(
         f"{BACKFILL_NAME}._lookup_event_bulk.hit_ratio",
