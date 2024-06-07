@@ -411,7 +411,7 @@ class ReleaseHealthBackend(Service):
 
     def get_changed_project_release_model_adoptions(
         self,
-        project_ids: Sequence[ProjectId],
+        project_ids: Iterable[int],
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
         """
