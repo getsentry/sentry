@@ -322,7 +322,7 @@ class RedisTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[TSDBKey, list[tuple[float, int]]]:
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -339,7 +339,7 @@ class RedisTSDB(BaseTSDB):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-        _series: list[datetime] = [to_datetime(item) for item in series]
+        _series = [to_datetime(item) for item in series]
 
         results = []
         cluster, _ = self.get_cluster(environment_id)
@@ -349,9 +349,11 @@ class RedisTSDB(BaseTSDB):
                     hash_key, hash_field = self.make_counter_key(
                         model, rollup, timestamp, key, environment_id
                     )
-                    results.append((timestamp.timestamp(), key, client.hget(hash_key, hash_field)))
+                    results.append(
+                        (int(timestamp.timestamp()), key, client.hget(hash_key, hash_field))
+                    )
 
-        results_by_key: dict[TSDBKey, dict[float, int]] = defaultdict(dict)
+        results_by_key: dict[TSDBKey, dict[int, int]] = defaultdict(dict)
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count.value or 0)
 

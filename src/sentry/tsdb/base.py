@@ -425,7 +425,7 @@ class BaseTSDB(Service):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[TSDBKey, list[tuple[float, int]]]:
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
 
