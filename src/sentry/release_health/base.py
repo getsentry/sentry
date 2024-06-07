@@ -472,8 +472,8 @@ class ReleaseHealthBackend(Service):
     def get_num_sessions_per_project(
         self,
         project_ids: Sequence[ProjectId],
-        start: datetime,
-        end: datetime,
+        start: datetime | None,
+        end: datetime | None,
         environment_ids: Sequence[int] | None = None,
         rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:
