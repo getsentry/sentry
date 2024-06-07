@@ -2,6 +2,7 @@ from unittest.mock import patch
 
 import sentry.hybridcloud.rpc.services.caching as caching_module
 from sentry.models.authenticator import Authenticator
+from sentry.models.authidentity import AuthIdentity
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
@@ -10,6 +11,7 @@ from sentry.models.useremail import UserEmail
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -161,19 +163,21 @@ class UserDetailsTest(TestCase):
 
 
 @control_silo_test
-class UserMergeToTest(TestCase, HybridCloudTestMixin):
+class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
     def test_simple(self):
-        from_user = self.create_user("foo@example.com")
-        UserEmail.objects.create_or_update(
-            user=from_user, email=from_user.email, values={"is_verified": True}
-        )
-        to_user = self.create_user("bar@example.com")
-        UserEmail.objects.create_or_update(
-            user=to_user, email=to_user.email, values={"is_verified": True}
-        )
-        auth1 = Authenticator.objects.create(user=from_user, type=1)
-        auth2 = Authenticator.objects.create(user=to_user, type=1)
-        auth3 = Authenticator.objects.create(user=to_user, type=2)
+        from_user = self.create_exhaustive_user("foo@example.com")
+        self.create_exhaustive_api_keys_for_user(from_user)
+        to_user = self.create_exhaustive_user("bar@example.com")
+        self.create_exhaustive_api_keys_for_user(to_user)
+
+        org = self.create_organization(name="my-org")
+        proj = self.create_project(name="my-proj", organization=org)
+        self.create_exhaustive_organization_auth(from_user, org, proj)
+
+        Authenticator.objects.get(user=from_user, type=1)
+        to_auth_dup = Authenticator.objects.get(user=to_user, type=1)
+        from_auth_uniq = Authenticator.objects.create(user=from_user, type=2)
+        to_auth_uniq = Authenticator.objects.create(user=to_user, type=3)
 
         from_user.merge_to(to_user)
 
@@ -185,15 +189,17 @@ class UserMergeToTest(TestCase, HybridCloudTestMixin):
         assert UserEmail.objects.filter(
             user=to_user, email=to_user.email, is_verified=True
         ).exists()
-
         assert UserEmail.objects.filter(
             user=to_user, email=from_user.email, is_verified=True
         ).exists()
 
-        assert Authenticator.objects.filter(user=to_user, id=auth2.id).exists()
-        assert Authenticator.objects.filter(user=to_user, id=auth3.id).exists()
-        # dupe shouldn't get merged
-        assert Authenticator.objects.filter(user=from_user, id=auth1.id).exists()
+        # dupes shouldn't get merged.
+        assert Authenticator.objects.filter(user=to_user, id=to_auth_dup.id).exists()
+        assert Authenticator.objects.filter(user=to_user, id=from_auth_uniq.id).exists()
+        assert Authenticator.objects.filter(user=to_user, id=to_auth_uniq.id).exists()
+
+        assert AuthIdentity.objects.filter(user=to_user).count() == 1
+        assert not AuthIdentity.objects.filter(user=from_user).exists()
 
     def test_duplicate_memberships(self):
         from_user = self.create_user("foo@example.com")
