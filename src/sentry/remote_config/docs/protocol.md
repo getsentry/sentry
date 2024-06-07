@@ -6,7 +6,7 @@ Host: https://o1300299.ingest.us.sentry.io
 
 @cmanallen
 
-## Configuration [/api/<project_id>/configuration/]
+## Configuration [/api/0/remote-config/projects/<project_id>/]
 
 - Parameters
 
