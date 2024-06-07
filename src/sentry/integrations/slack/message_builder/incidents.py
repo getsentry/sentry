@@ -53,14 +53,17 @@ class SlackIncidentsMessageBuilder(BlockSlackMessageBuilder):
             self.notification_uuid,
             referrer="metric_alert_slack",
         )
-
         blocks = [
             self.get_markdown_block(text=f"{data['text']}\n{get_started_at(data['ts'])}"),
         ]
 
         # TODO rebase after migration PR is merged and change this to self.action.description
-        if self.action.target_identifier and features.has(
-            "organizations:slack-metric-alert-description", self.incident.organization
+        if (
+            self.action.target_identifier
+            and features.has(
+                "organizations:slack-metric-alert-description", self.incident.organization
+            )
+            and not self.new_status == IncidentStatus.CLOSED
         ):
             description = self.get_markdown_block(text=f"*Notes*: {self.action.target_identifier}")
             blocks.append(description)
