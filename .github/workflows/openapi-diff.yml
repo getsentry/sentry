@@ -62,17 +62,17 @@ jobs:
           mkdir schemas
           sentry rpcschema > rpc_method_schema.json
 
-      - name: Compare RPC schema with oasdiff
-        uses: oasdiff/oasdiff-action/breaking@fc826b9f0d21b85b085842521c7a8cc445412c08 # v0.0.19
-        id: oasdiff
+      - name: Output comparison of RPC schema
+        uses: oasdiff/oasdiff-action/breaking@a2ff6682b27d175162a74c09ace8771bd3d512f8 # A few commits after v0.0.19 to get fixes
         if: steps.changes.outputs.api_docs == 'true'
         with:
           base: sentry-api-schema/rpc_method_schema.json
           revision: ./rpc_method_schema.json
-          fail-on-diff: true
 
       - name: Output RPC schema differences and fail
-        if: failure() || steps.oasdiff.outputs.breaking
-        run: |
-          echo ${{ steps.oasdiff.outputs.breaking }}
-          exit 1
+        uses: oasdiff/oasdiff-action/breaking@a2ff6682b27d175162a74c09ace8771bd3d512f8 # A few commits after v0.0.19 to get fixes
+        if: steps.changes.outputs.api_docs == 'true'
+        with:
+          base: sentry-api-schema/rpc_method_schema.json
+          revision: ./rpc_method_schema.json
+          fail-on: WARN
