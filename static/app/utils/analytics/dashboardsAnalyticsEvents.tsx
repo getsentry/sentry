@@ -32,6 +32,8 @@ export type DashboardsEventParameters = {
   'dashboards2.edit.cancel': {};
   'dashboards2.edit.complete': {};
   'dashboards2.edit.start': {};
+  'dashboards2.filter.cancel': {};
+  'dashboards2.filter.save': {};
   'dashboards_manage.change_sort': {
     sort: string;
   };
@@ -58,6 +60,15 @@ export type DashboardsEventParameters = {
     widget_type: string;
   };
   'dashboards_views.query_selector.selected': {
+    widget_type: string;
+  };
+  'dashboards_views.widget.delete': {
+    widget_type: string;
+  };
+  'dashboards_views.widget.duplicate': {
+    widget_type: string;
+  };
+  'dashboards_views.widget.edit': {
     widget_type: string;
   };
   'dashboards_views.widget_library.add_widget': {
@@ -109,10 +120,15 @@ export const dashboardsEventMap: Record<DashboardsEventKey, string | null> = {
   'dashboards2.edit.cancel': 'Dashboards2: Edit cancel',
   'dashboards2.edit.complete': 'Dashboards2: Edit complete',
   'dashboards2.edit.start': 'Dashboards2: Edit start',
+  'dashboards2.filter.save': 'Dashboards2: Filter bar save',
+  'dashboards2.filter.cancel': 'Dashboards2: Filter bar cancel',
   'dashboards_views.query_selector.opened':
     'Dashboards2: Query Selector opened for Widget',
   'dashboards_views.query_selector.selected':
     'Dashboards2: Query selected in Query Selector',
+  'dashboards_views.widget.edit': 'Dashboards2: dashboard widget edited',
+  'dashboards_views.widget.duplicate': 'Dashboards2: dashboard widget duplicated',
+  'dashboards_views.widget.delete': 'Dashboards2: dashboard widget deleted',
   'dashboards_views.open_in_discover.opened': 'Dashboards2: Widget Opened In Discover',
   'dashboards_views.widget_library.add_widget':
     'Dashboards2: Title of prebuilt widget added',

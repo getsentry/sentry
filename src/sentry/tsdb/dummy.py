@@ -37,7 +37,7 @@ class DummyTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[TSDBKey, list[tuple[float, int]]]:
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
         _, series = self.get_optimal_rollup_series(start, end, rollup)
         return {k: [(ts, 0) for ts in series] for k in keys}

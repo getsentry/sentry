@@ -16,7 +16,7 @@ SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 logger = logging.getLogger(__name__)
 
 
-def track_response_data(response: SlackResponse, error: str | None = None) -> None:
+def track_response_data(response: SlackResponse, method: str, error: str | None = None) -> None:
     is_ok = response.get("ok", False)
     code = response.status_code
 
@@ -30,20 +30,21 @@ def track_response_data(response: SlackResponse, error: str | None = None) -> No
         "integration": "slack",
         "status_string": str(code),
         "error": error,
+        "method": method,
     }
     logger.info("integration.http_response", extra=extra)
 
 
-def wrapper(method):
+def wrapper(method: FunctionType):
     @wraps(method)
     def wrapped(*args, **kwargs):
         try:
             response = method(*args, **kwargs)
             if isinstance(response, SlackResponse):
-                track_response_data(response=response)
+                track_response_data(response=response, method=method.__name__)
         except SlackApiError as e:
             if e.response:
-                track_response_data(response=e.response, error=str(e))
+                track_response_data(response=e.response, error=str(e), method=method.__name__)
             else:
                 logger.info("slack_sdk.missing_error_response", extra={"error": str(e)})
             raise

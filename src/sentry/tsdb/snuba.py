@@ -716,7 +716,7 @@ class SnubaTSDB(BaseTSDB):
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[TSDBKey, list[tuple[float, int]]]:
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         model_query_settings = self.model_query_settings.get(model)
         assert model_query_settings is not None, f"Unsupported TSDBModel: {model.name}"
 

@@ -5,17 +5,16 @@ import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  FilterKeySection,
+  FocusOverride,
+} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
 import {replaceTokenWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {
-  getKeyLabel,
-  useShiftFocusToChild,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {useShiftFocusToChild} from 'sentry/components/searchQueryBuilder/utils';
 import {
   type ParseResultToken,
   Token,
@@ -24,7 +23,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
@@ -39,8 +38,6 @@ type SearchQueryBuilderInputInternalProps = {
   tabIndex: number;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
 };
-
-const PROMOTED_SECTIONS = [FieldKind.FIELD];
 
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');
@@ -102,45 +99,27 @@ function replaceAliasedFilterKeys(value: string, aliasToKeyMap: Record<string, s
   return value;
 }
 
-function getItemsBySection(allKeys: Tag[]) {
-  const itemsBySection = allKeys.reduce<{
-    [section: string]: Array<SelectOptionWithKey<string>>;
-  }>((acc, tag) => {
-    const fieldDefinition = getFieldDefinition(tag.key);
+function getItemsBySection(filterKeySections: FilterKeySection[]) {
+  return filterKeySections.map(section => {
+    return {
+      key: section.value,
+      value: section.value,
+      title: section.label,
+      options: section.children.map(tag => {
+        const fieldDefinition = getFieldDefinition(tag.key);
 
-    const section = tag.kind ?? fieldDefinition?.kind ?? t('other');
-    const item = {
-      label: getKeyLabel(tag),
-      key: getEscapedKey(tag.key),
-      value: tag.key,
-      textValue: tag.key,
-      hideCheck: true,
-      showDetailsInOverlay: true,
-      details: fieldDefinition?.desc ? <KeyDescription tag={tag} /> : null,
-    };
-
-    if (acc[section]) {
-      acc[section].push(item);
-    } else {
-      acc[section] = [item];
-    }
-
-    return acc;
-  }, {});
-
-  return [
-    ...PROMOTED_SECTIONS.filter(section => section in itemsBySection).map(section => {
-      return {
-        title: section,
-        children: itemsBySection[section],
-      };
-    }),
-    ...Object.entries(itemsBySection)
-      .filter(([section]) => !PROMOTED_SECTIONS.includes(section as FieldKind))
-      .map(([section, children]) => {
-        return {title: section, children};
+        return {
+          key: getEscapedKey(tag.key),
+          label: tag.key,
+          value: tag.key,
+          textValue: tag.key,
+          hideCheck: true,
+          showDetailsInOverlay: true,
+          details: fieldDefinition?.desc ? <KeyDescription tag={tag} /> : null,
+        };
       }),
-  ];
+    };
+  });
 }
 
 function countPreviousItemsOfType({
@@ -227,17 +206,14 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {query, keys, dispatch, onSearch} = useSearchQueryBuilder();
+  const {query, keys, filterKeySections, dispatch, onSearch} = useSearchQueryBuilder();
   const aliasToKeyMap = useMemo(() => {
     return Object.fromEntries(Object.values(keys).map(key => [key.alias, key.key]));
   }, [keys]);
-  const allKeys = useMemo(() => {
-    return Object.values(keys).sort((a, b) =>
-      getKeyLabel(a).localeCompare(getKeyLabel(b))
-    );
-  }, [keys]);
-  const sections = useMemo(() => getItemsBySection(allKeys), [allKeys]);
-  const items = useMemo(() => sections.flatMap(section => section.children), [sections]);
+  const sections = useMemo(
+    () => getItemsBySection(filterKeySections),
+    [filterKeySections]
+  );
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -292,7 +268,7 @@ function SearchQueryBuilderInputInternal({
 
   return (
     <SearchQueryBuilderCombobox
-      items={items}
+      items={sections}
       onOptionSelected={value => {
         dispatch({
           type: 'UPDATE_FREE_TEXT',
@@ -354,16 +330,17 @@ function SearchQueryBuilderInputInternal({
       tabIndex={tabIndex}
       maxOptions={50}
       onPaste={onPaste}
+      displayTabbedMenu={inputValue.length === 0}
     >
-      {sections.map(({title, children}) => (
-        <Section title={title} key={title}>
-          {children.map(child => (
+      {section => (
+        <Section title={section.title} key={section.key}>
+          {section.options.map(child => (
             <Item {...child} key={child.key}>
               {child.label}
             </Item>
           ))}
         </Section>
-      ))}
+      )}
     </SearchQueryBuilderCombobox>
   );
 }
@@ -398,16 +375,22 @@ const Row = styled('div')`
   display: flex;
   align-items: stretch;
   height: 24px;
+
+  &:last-child {
+    flex-grow: 1;
+  }
 `;
 
 const GridCell = styled('div')`
   display: flex;
   align-items: stretch;
   height: 100%;
+  width: 100%;
 
   input {
     padding: 0 ${space(0.5)};
     min-width: 9px;
+    width: 100%;
   }
 `;
 
