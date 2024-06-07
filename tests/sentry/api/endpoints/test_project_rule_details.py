@@ -177,6 +177,64 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
 
+    def test_with_assigned_to_team_filter(self):
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {
+                "targetType": "Team",
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetIdentifier": self.team.id,
+            },
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert (
+            response.data["filters"][0]["name"] == f"The issue is assigned to team {self.team.slug}"
+        )
+
+    def test_with_assigned_to_user_filter(self):
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {
+                "targetType": "Member",
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetIdentifier": self.user.id,
+            },
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert (
+            response.data["filters"][0]["name"] == f"The issue is assigned to {self.user.username}"
+        )
+
     @responses.activate
     def test_neglected_rule(self):
         now = datetime.now(UTC)
