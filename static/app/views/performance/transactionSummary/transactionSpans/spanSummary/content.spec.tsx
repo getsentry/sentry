@@ -282,45 +282,6 @@ describe('Performance > Transaction Spans > Span Summary', function () {
   });
 
   it('renders the charts', async () => {
-    avgDurationChartMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      method: 'GET',
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-duration-chart',
-        }),
-      ],
-      body: {
-        data: [],
-      },
-    });
-
-    spanThroughputChartMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      method: 'GET',
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-throughput-chart',
-        }),
-      ],
-      body: {
-        data: [],
-      },
-    });
-
-    transactionThroughputChartMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events-stats/',
-      method: 'GET',
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.performance.span-summary-transaction-throughput-chart',
-        }),
-      ],
-      body: {
-        data: [],
-      },
-    });
-
     render(
       <SpanSummary
         spanSlug={{group: 'aaaaaaaa', op: 'db'}}
