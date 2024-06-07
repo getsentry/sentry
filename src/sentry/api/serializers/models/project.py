@@ -687,14 +687,19 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             deploys_by_project = self.get_deploys_by_project(item_list)
 
         for item in item_list:
+            # check if the project is in LPQ for any platform
+            symbolication_degraded = False
+            for platform in ["native", "js", "jvm"]:
+                if realtime_metrics.is_lpq_project(platform, project_id=item.id):
+                    symbolication_degraded = True
+                    break
+
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            attrs[item]["symbolication_degraded"] = realtime_metrics.is_lpq_project(
-                project_id=item.id
-            )
+            attrs[item]["symbolication_degraded"] = symbolication_degraded
 
         return attrs
 

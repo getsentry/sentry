@@ -16,9 +16,9 @@ class RealtimeMetricsStore(Service):
         """
         raise NotImplementedError
 
-    def record_project_duration(self, project_id: int, duration: float) -> None:
+    def record_project_duration(self, platform: str, project_id: int, duration: float) -> None:
         """
-        Records the duration of a symbolication request for the given project_id.
+        Records the duration of a symbolication request for the given project_id and platform.
 
         The duration (from the start of the symbolication request)
         should be recorded at regular intervals *as the event is being processed*.
@@ -46,8 +46,9 @@ class RealtimeMetricsStore(Service):
         """
         raise NotImplementedError
 
-    def is_lpq_project(self, project_id: int) -> bool:
+    def is_lpq_project(self, platform: str, project_id: int) -> bool:
         """
-        Checks whether the given project is currently using the low priority queue.
+        Checks whether the given project is currently using the low priority queue for
+        the given platform.
         """
         raise NotImplementedError
