@@ -107,4 +107,4 @@ const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const emptyValue = <EmptyValueContainer>{t('(unnamed span)')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>;
