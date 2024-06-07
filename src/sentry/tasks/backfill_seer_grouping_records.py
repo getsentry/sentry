@@ -220,6 +220,10 @@ def backfill_seer_grouping_records(
                     group_id_batch_filtered.remove(group_id)
 
         data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
+        logger.info(
+            "backfill_seer_grouping_records.data",
+            extra={"project_id": project_id, "data": json.dumps(data)},
+        )
 
         # If nodestore returns no data
         if data["data"] == [] and data["stacktrace_list"] == []:
@@ -442,7 +446,7 @@ def lookup_group_data_stacktrace_bulk(
     group_data = []
     stacktrace_strings = []
     bulk_event_ids = set()
-    invalid_event_ids = set()
+    invalid_event_ids, invalid_event_group_ids = set(), set()
     with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
         for node_id, data in bulk_data.items():
             if node_id in node_id_to_group_data:
@@ -458,10 +462,12 @@ def lookup_group_data_stacktrace_bulk(
                     stacktrace_string = get_stacktrace_string(grouping_info)
                     if stacktrace_string == "":
                         invalid_event_ids.add(event_id)
+                        invalid_event_group_ids.add(group_id)
                         continue
                     primary_hash = event.get_primary_hash()
                     if not primary_hash:
                         invalid_event_ids.add(event_id)
+                        invalid_event_group_ids.add(group_id)
                         continue
 
                     group_data.append(
@@ -476,11 +482,20 @@ def lookup_group_data_stacktrace_bulk(
                     bulk_event_ids.add(event_id)
                 else:
                     invalid_event_ids.add(event_id)
+                    invalid_event_group_ids.add(group_id)
 
     metrics.gauge(
         f"{BACKFILL_NAME}._lookup_event_bulk.hit_ratio",
         round(len(bulk_data.items()) / len(rows)) * 100,
         sample_rate=1.0,
+    )
+
+    logger.info(
+        "backfill_seer_grouping_records.invalid_event_ids",
+        extra={
+            "project_id": project_id,
+            "invalid_event_group_ids": json.dumps(invalid_event_group_ids),
+        },
     )
 
     return (
