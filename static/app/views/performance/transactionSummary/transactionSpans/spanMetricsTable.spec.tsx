@@ -42,14 +42,13 @@ describe('SuspectSpansTable', () => {
 
     expect(mockRequest).toHaveBeenCalled();
 
-    const tableHeaders = await screen.findAllByTestId('grid-head-cell');
-    const [
+    const {
       opHeader,
       descriptionHeader,
       throughputHeader,
       avgDurationHeader,
       timeSpentHeader,
-    ] = tableHeaders;
+    } = await findTableHeaders();
 
     expect(opHeader).toHaveTextContent('Span Operation');
     expect(descriptionHeader).toHaveTextContent('Span Description');
@@ -57,9 +56,8 @@ describe('SuspectSpansTable', () => {
     expect(avgDurationHeader).toHaveTextContent('Avg Duration');
     expect(timeSpentHeader).toHaveTextContent('Time Spent');
 
-    const bodyCells = await screen.findAllByTestId('grid-body-cell');
-    const [opCell, descriptionCell, throughputCell, avgDurationCell, timeSpentCell] =
-      bodyCells;
+    const {opCell, descriptionCell, throughputCell, avgDurationCell, timeSpentCell} =
+      await findFirstRowCells();
 
     expect(opCell).toHaveTextContent('db');
     expect(descriptionCell).toHaveTextContent('SELECT thing FROM my_cool_db');
@@ -67,4 +65,68 @@ describe('SuspectSpansTable', () => {
     expect(avgDurationCell).toHaveTextContent('30.90s');
     expect(timeSpentCell).toHaveTextContent('2.04wk');
   });
+
+  it('should handle the case when there is no span grouping', async () => {
+    const {organization, project} = initializeData();
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            'span.op': 'db',
+            'spm()': 5000,
+            'sum(span.self_time)': 12346071121.5044901,
+            'avg(span.duration)': 30900.700924083318,
+          },
+        ],
+      },
+    });
+
+    render(<SpanMetricsTable transactionName="Test Transaction" project={project} />);
+
+    await waitFor(() =>
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
+    );
+
+    expect(mockRequest).toHaveBeenCalled();
+    const {opCell, descriptionCell} = await findFirstRowCells();
+
+    expect(opCell).toHaveTextContent('db');
+    expect(descriptionCell).toHaveTextContent('\u2014');
+  });
 });
+
+async function findTableHeaders() {
+  const tableHeaders = await screen.findAllByTestId('grid-head-cell');
+  const [
+    opHeader,
+    descriptionHeader,
+    throughputHeader,
+    avgDurationHeader,
+    timeSpentHeader,
+  ] = tableHeaders;
+
+  return {
+    opHeader,
+    descriptionHeader,
+    throughputHeader,
+    avgDurationHeader,
+    timeSpentHeader,
+  };
+}
+
+async function findFirstRowCells() {
+  const bodyCells = await screen.findAllByTestId('grid-body-cell');
+  const [opCell, descriptionCell, throughputCell, avgDurationCell, timeSpentCell] =
+    bodyCells;
+
+  return {
+    opCell,
+    descriptionCell,
+    throughputCell,
+    avgDurationCell,
+    timeSpentCell,
+  };
+}
