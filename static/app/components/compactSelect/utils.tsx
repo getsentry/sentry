@@ -101,15 +101,18 @@ export function getDisabledOptions<Value extends SelectKey>(
 export function getHiddenOptions<Value extends SelectKey>(
   items: SelectOptionOrSection<Value>[],
   search: string,
-  limit: number = Infinity
+  limit: number = Infinity,
+  filterOption?: (opt: SelectOption<Value>, search: string) => boolean
 ): Set<Value> {
   //
   // First, filter options using `search` value
   //
-  const filterOption = (opt: SelectOption<Value>) =>
-    `${opt.label ?? ''}${opt.textValue ?? ''}`
-      .toLowerCase()
-      .includes(search.toLowerCase());
+  const _filterOption =
+    filterOption ??
+    ((opt: SelectOption<Value>) =>
+      `${opt.label ?? ''}${opt.textValue ?? ''}`
+        .toLowerCase()
+        .includes(search.toLowerCase()));
 
   const hiddenOptionsSet = new Set<Value>();
   const remainingItems = items
@@ -117,7 +120,7 @@ export function getHiddenOptions<Value extends SelectKey>(
       if ('options' in item) {
         const filteredOptions = item.options
           .map(opt => {
-            if (filterOption(opt)) {
+            if (_filterOption(opt, search)) {
               return opt;
             }
 
@@ -129,7 +132,7 @@ export function getHiddenOptions<Value extends SelectKey>(
         return filteredOptions.length > 0 ? {...item, options: filteredOptions} : null;
       }
 
-      if (filterOption(item)) {
+      if (_filterOption(item, search)) {
         return item;
       }
 
