@@ -439,7 +439,6 @@ module = [
     "sentry.testutils.helpers.slack",
     "sentry.tsdb.dummy",
     "sentry.tsdb.inmemory",
-    "sentry.types.integrations",
     "sentry.utils.auth",
     "sentry.utils.committers",
     "sentry.utils.services",
