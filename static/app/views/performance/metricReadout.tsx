@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {PercentChange} from 'sentry/components/percentChange';
+import {PercentChange, type Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import {
@@ -39,6 +39,7 @@ interface Props {
   value: ReactText | undefined;
   align?: 'left' | 'right';
   isLoading?: boolean;
+  preferredPolarity?: Polarity;
   tooltip?: React.ReactNode;
 }
 
@@ -50,7 +51,14 @@ export function MetricReadout(props: Props) {
   );
 }
 
-function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Props) {
+function ReadoutContent({
+  unit,
+  value,
+  tooltip,
+  align = 'right',
+  isLoading,
+  preferredPolarity,
+}: Props) {
   if (isLoading) {
     return (
       <LoadingContainer align={align}>
@@ -138,6 +146,7 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
         <PercentChange
           value={typeof value === 'string' ? parseFloat(value) : value}
           minimumValue={MINIMUM_PERCENTAGE_VALUE}
+          preferredPolarity={preferredPolarity}
         />
       </NumberContainer>
     );

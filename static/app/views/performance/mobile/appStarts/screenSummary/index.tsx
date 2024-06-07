@@ -143,6 +143,7 @@ export function ScreenSummary() {
                     unit: 'percent_change',
                     title: t('Change'),
                     dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
+                    preferredPolarity: '-',
                   },
                   {
                     unit: 'count',

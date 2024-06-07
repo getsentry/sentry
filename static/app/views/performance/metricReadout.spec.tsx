@@ -94,6 +94,25 @@ describe('MetricReadout', function () {
       expect(screen.getByRole('heading', {name: '% Difference'})).toBeInTheDocument();
       expect(screen.getByText('+5.52%')).toBeInTheDocument();
     });
+
+    it('respects preferred negative polarity', () => {
+      render(
+        <MetricReadout
+          title="% Difference"
+          unit="percent_change"
+          value={0.0552}
+          preferredPolarity="-"
+        />
+      );
+
+      expect(screen.getByText('+5.52%')).toHaveAttribute('data-rating', 'bad');
+    });
+
+    it('respects preferred default polarity', () => {
+      render(<MetricReadout title="% Difference" unit="percent_change" value={0.0552} />);
+
+      expect(screen.getByText('+5.52%')).toHaveAttribute('data-rating', 'good');
+    });
   });
 
   it('renders counts', () => {

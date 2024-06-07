@@ -2,6 +2,7 @@ import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import type {Polarity} from 'sentry/components/percentChange';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -21,6 +22,7 @@ interface BlockProps {
   title: string;
   unit: ComponentProps<typeof MetricReadout>['unit'];
   allowZero?: boolean;
+  preferredPolarity?: Polarity;
 }
 
 export function MetricsRibbon({
@@ -80,7 +82,7 @@ export function MetricsRibbon({
 
   return (
     <BlockContainer>
-      {blocks.map(({title, dataKey, unit}) => (
+      {blocks.map(({title, dataKey, unit, preferredPolarity}) => (
         <MetricsBlock
           key={title}
           title={title}
@@ -88,6 +90,7 @@ export function MetricsRibbon({
           dataKey={dataKey}
           data={data}
           isLoading={isLoading}
+          preferredPolarity={preferredPolarity}
         />
       ))}
     </BlockContainer>
@@ -101,6 +104,7 @@ function MetricsBlock({
   dataKey,
   isLoading,
   allowZero,
+  preferredPolarity,
 }: {
   isLoading: boolean;
   title: string;
@@ -121,6 +125,7 @@ function MetricsBlock({
       value={hasData ? value : undefined}
       isLoading={isLoading}
       unit={unit}
+      preferredPolarity={preferredPolarity}
     />
   );
 }
