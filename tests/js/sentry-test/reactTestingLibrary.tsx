@@ -99,7 +99,27 @@ function render(
     router,
   });
 
-  return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
+  const renderResult = rtl.render(<AllTheProviders>{ui}</AllTheProviders>, rtlOptions);
+
+  /**
+   * Rerender the componeent.
+   *
+   * New context providers values may be passed in the options
+   */
+  function rerender(rerenderUi: React.ReactElement, providers?: ProviderOptions) {
+    const ReRenderProvider =
+      providers === undefined ||
+      (providers?.organization === organization && providers?.router === router)
+        ? AllTheProviders
+        : makeAllTheProviders({
+            organization,
+            router,
+          });
+
+    return renderResult.rerender(<ReRenderProvider>{rerenderUi}</ReRenderProvider>);
+  }
+
+  return {...renderResult, rerender};
 }
 
 /**
