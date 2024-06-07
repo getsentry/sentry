@@ -140,11 +140,11 @@ export function ScreenLoadSpansTable({
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
   };
