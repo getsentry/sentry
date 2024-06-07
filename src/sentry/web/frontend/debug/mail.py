@@ -25,7 +25,7 @@ from django.views.generic import View
 
 from sentry import eventstore
 from sentry.constants import LOG_LEVELS
-from sentry.digests.notifications import build_digest
+from sentry.digests.notifications import DigestInfo, _build_digest_impl
 from sentry.digests.types import Notification, Record
 from sentry.digests.utils import get_digest_metadata
 from sentry.event_manager import EventManager, get_event_type
@@ -501,19 +501,15 @@ def digest(request):
     rules = {
         i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
     }
-    state: dict[str, Any] = {
-        "project": project,
-        "groups": {},
-        "rules": rules,
-        "event_counts": {},
-        "user_counts": {},
-    }
+    groups = {}
+    event_counts = {}
+    user_counts = {}
     records = []
     group_generator = make_group_generator(random, project)
     notification_uuid = str(uuid.uuid4())
     for _ in range(random.randint(1, 30)):
         group = next(group_generator)
-        state["groups"][group.id] = group
+        groups[group.id] = group
 
         offset = timedelta(seconds=0)
         for _ in range(random.randint(1, 10)):
@@ -539,17 +535,15 @@ def digest(request):
                     event.event_id,
                     Notification(
                         event,
-                        random.sample(
-                            list(state["rules"].keys()), random.randint(1, len(state["rules"]))
-                        ),
+                        random.sample(list(rules.keys()), random.randint(1, len(rules))),
                         notification_uuid,
                     ),
                     event.datetime.timestamp(),
                 )
             )
 
-            state["event_counts"][group.id] = random.randint(10, 10000)
-            state["user_counts"][group.id] = random.randint(10, 10000)
+            event_counts[group.id] = random.randint(10, 10000)
+            user_counts[group.id] = random.randint(10, 10000)
 
     # add in performance issues
     for i in range(random.randint(1, 3)):
@@ -563,18 +557,16 @@ def digest(request):
                 perf_event.event_id,
                 Notification(
                     perf_event,
-                    random.sample(
-                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
-                    ),
+                    random.sample(list(rules.keys()), random.randint(1, len(rules))),
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
-        state["groups"][perf_group.id] = perf_group
-        state["event_counts"][perf_group.id] = random.randint(10, 10000)
-        state["user_counts"][perf_group.id] = random.randint(10, 10000)
+        groups[perf_group.id] = perf_group
+        event_counts[perf_group.id] = random.randint(10, 10000)
+        user_counts[perf_group.id] = random.randint(10, 10000)
 
     # add in generic issues
     for i in range(random.randint(1, 3)):
@@ -587,22 +579,23 @@ def digest(request):
                 generic_event.event_id,
                 Notification(
                     generic_event,
-                    random.sample(
-                        list(state["rules"].keys()), random.randint(1, len(state["rules"]))
-                    ),
+                    random.sample(list(rules.keys()), random.randint(1, len(rules))),
                     notification_uuid,
                 ),
                 # this is required for acceptance tests to pass as the EventManager won't accept a timestamp in the past
                 datetime(2016, 6, 22, 16, 16, 0, tzinfo=timezone.utc).timestamp(),
             )
         )
-        state["groups"][generic_group.id] = generic_group
-        state["event_counts"][generic_group.id] = random.randint(10, 10000)
-        state["user_counts"][generic_group.id] = random.randint(10, 10000)
+        groups[generic_group.id] = generic_group
+        event_counts[generic_group.id] = random.randint(10, 10000)
+        user_counts[generic_group.id] = random.randint(10, 10000)
 
-    digest, _ = build_digest(project, records, state)
-    assert digest is not None
-    start, end, counts = get_digest_metadata(digest)
+    digest = DigestInfo(
+        digest=_build_digest_impl(records, groups, rules, event_counts, user_counts),
+        event_counts=event_counts,
+        user_counts=user_counts,
+    )
+    start, end, counts = get_digest_metadata(digest.digest)
 
     rule_details = get_rules(list(rules.values()), org, project)
     context = DigestNotification.build_context(digest, project, org, rule_details, 1337)
