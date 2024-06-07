@@ -93,6 +93,7 @@ export function SamplesTables({transactionName}) {
             setSampleType(value);
           }}
           defaultValue={SPANS}
+          aria-label={t('Sample Type Selection')}
         >
           <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
           <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>

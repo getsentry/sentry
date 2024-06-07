@@ -147,24 +147,6 @@ class DatabaseBackedAppService(AppService):
 
         return action_list
 
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: list[int],
-        sentry_app_ids: list[int],
-        type: str,
-        group_by: str = "sentry_app_id",
-    ) -> Mapping[str, Any]:
-        return {
-            str(k): v
-            for k, v in SentryAppInstallation.objects.get_related_sentry_app_components(
-                organization_ids=organization_ids,
-                sentry_app_ids=sentry_app_ids,
-                type=type,
-                group_by=group_by,
-            ).items()
-        }
-
     def get_component_contexts(
         self, *, filter: SentryAppInstallationFilterArgs, component_type: str
     ) -> list[RpcSentryAppComponentContext]:

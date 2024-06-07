@@ -3,10 +3,11 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
+from django.db.models import Model
 from redis.client import StrictRedis
 from rest_framework import status
 from rest_framework.exceptions import APIException
@@ -15,42 +16,56 @@ from sentry.db.postgres.transactions import enforce_constraints
 from sentry.types.region import RegionContextError, get_local_region
 
 if TYPE_CHECKING:
-    from sentry.db.models.base import Model
+    from sentry.db.models.base import Model as BaseModel
 
 _TTL = timedelta(minutes=5)
+
+_snowflake_models: set[str] = set()
+
+ModelT = TypeVar("ModelT", bound=Model)
+
+
+def snowflake_id_model(model_class: type[ModelT]) -> type[ModelT]:
+    """
+    Decorator to register a model as using snowflake ids
+    This decorator informs safety and model consistency checks.
+    """
+    name = f"{model_class.__module__}.{model_class.__name__}"
+    _snowflake_models.add(name)
+
+    return model_class
+
+
+def uses_snowflake_id(model_class: type[ModelT]) -> bool:
+    """
+    Check if a model class has been annotated as a snowflake id model
+    """
+    name = f"{model_class.__module__}.{model_class.__name__}"
+    return name in _snowflake_models
+
+
+def save_with_snowflake_id(
+    instance: BaseModel, snowflake_redis_key: str, save_callback: Callable[[], object]
+) -> None:
+    assert uses_snowflake_id(
+        instance.__class__
+    ), "Only models decorated with uses_snowflake_id can be saved with save_with_snowflake_id()"
+
+    for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
+        if not instance.id:
+            instance.id = generate_snowflake_id(snowflake_redis_key)
+        try:
+            with enforce_constraints(transaction.atomic(using=router.db_for_write(type(instance)))):
+                save_callback()
+            return
+        except IntegrityError:
+            instance.id = None  # type: ignore[assignment]  # see typeddjango/django-stubs#2014
+    raise MaxSnowflakeRetryError
 
 
 class MaxSnowflakeRetryError(APIException):
     status_code = status.HTTP_409_CONFLICT
     default_detail = "Max allowed ID retry reached. Please try again in a second"
-
-
-def _snowflake_inst_is_model(inst: object) -> Model:
-    # this is an unsound hack to make the mixin typing work
-    # ideally the mixin should just be a function
-    from sentry.db.models.base import Model
-
-    if not isinstance(inst, Model):
-        raise TypeError(f"expected SnowflakeIdMixin to be mixed into Model, got {type(inst)}")
-    else:
-        return inst
-
-
-class SnowflakeIdMixin:
-    def save_with_snowflake_id(
-        self, snowflake_redis_key: str, save_callback: Callable[[], object]
-    ) -> None:
-        inst = _snowflake_inst_is_model(self)
-        for _ in range(settings.MAX_REDIS_SNOWFLAKE_RETRY_COUNTER):
-            if not inst.id:
-                inst.id = generate_snowflake_id(snowflake_redis_key)
-            try:
-                with enforce_constraints(transaction.atomic(using=router.db_for_write(type(inst)))):
-                    save_callback()
-                return
-            except IntegrityError:
-                inst.id = None  # type: ignore[assignment]  # see typeddjango/django-stubs#2014
-        raise MaxSnowflakeRetryError
 
 
 @dataclass(frozen=True, eq=True)

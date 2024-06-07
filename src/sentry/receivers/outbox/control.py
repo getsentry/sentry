@@ -22,7 +22,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.app.service import get_installation
+from sentry.services.hybrid_cloud.app.service import get_by_application_id, get_installation
 from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 
@@ -59,6 +59,11 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
     install_map: dict[int, list[int]] = defaultdict(list)
     for row in install_query:
         install_map[row["organization_id"]].append(row["id"])
+
+    # Clear application_id cache
+    region_caching_service.clear_key(
+        key=get_by_application_id.key_from(sentry_app.application_id), region_name=region_name
+    )
 
     # Limit our operations to the region this outbox is for.
     # This could be a single query if we use raw_sql.
