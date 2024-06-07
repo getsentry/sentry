@@ -93,10 +93,10 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 query_kwargs["actor"] = request.user
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
-                results = search.backend.query(**query_kwargs)
+                results_cursor = search.backend.query(**query_kwargs)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
-            results = list(results)
+            results = list(results_cursor)
             span.set_data("result_length", len(results))
             context = serialize(
                 results,
