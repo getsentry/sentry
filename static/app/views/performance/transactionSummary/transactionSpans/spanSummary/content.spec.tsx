@@ -258,8 +258,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         transactionName="transaction"
         organization={organization}
         project={undefined}
-      />,
-      {organization}
+      />
     );
 
     expect(headerDataMock).toHaveBeenCalled();
@@ -288,8 +287,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         transactionName="transaction"
         organization={organization}
         project={project}
-      />,
-      {organization}
+      />
     );
 
     expect(avgDurationChartMock).toHaveBeenCalled();
