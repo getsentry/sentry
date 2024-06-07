@@ -56,6 +56,10 @@ class NoNodestoreDataError(Exception):
     pass
 
 
+class NoMoreGroupsToBackfillError(Exception):
+    pass
+
+
 class GroupEventRow(TypedDict):
     event_id: str
     group_id: int
@@ -64,6 +68,106 @@ class GroupEventRow(TypedDict):
 class GroupStacktraceData(TypedDict):
     data: list[CreateGroupingRecordData]
     stacktrace_list: list[str]
+
+
+@instrumented_task(
+    name="sentry.tasks.backfill_seer_grouping_records",
+    queue="default",
+    max_retries=0,
+    silo_mode=SiloMode.REGION,
+    soft_time_limit=60 * 15,
+    time_limit=60 * 15 + 5,
+)
+def backfill_seer_grouping_records(
+    project_id: int,
+    last_processed_index: int | None,
+    dry_run: bool = False,
+    only_delete=False,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """
+    Task to backfill seer grouping_records table.
+    Pass in last_processed_index = None if calling for the first time. This function will spawn
+    child tasks that will pass the last_processed_index
+    """
+
+    try:
+        project, redis_client, last_processed_index = initialize_backfill(
+            project_id, last_processed_index, dry_run
+        )
+    except FeatureError:
+        logger.info(
+            "backfill_seer_grouping_records.no_feature",
+            extra={"project_id": project_id},
+        )
+        return
+
+    if only_delete:
+        delete_seer_grouping_records(project.id, redis_client)
+        logger.info(
+            "backfill_seer_grouping_records.deleted_all_records",
+            extra={"project_id": project.id},
+        )
+        return
+
+    batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
+
+    try:
+        (
+            groups_to_backfill_with_no_embedding,
+            batch_end_index,
+            total_groups_to_backfill_length,
+        ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
+    except NoMoreGroupsToBackfillError:
+        return
+
+    last_group_id = groups_to_backfill_with_no_embedding[-1]
+    snuba_results = get_data_from_snuba(project, groups_to_backfill_with_no_embedding)
+
+    try:
+        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+            project, snuba_results, groups_to_backfill_with_no_embedding
+        )
+    except NoNodestoreDataError:
+        call_next_backfill(
+            batch_end_index,
+            project_id,
+            redis_client,
+            total_groups_to_backfill_length,
+            last_group_id,
+            dry_run,
+        )
+        return
+
+    seer_response = send_group_and_stacktrace_to_seer(
+        project, groups_to_backfill_with_no_embedding, nodestore_results
+    )
+    if not seer_response.get("success"):
+        logger.info(
+            "backfill_seer_grouping_records.seer_down",
+            extra={"project_id": project.id},
+        )
+        return
+
+    update_groups(
+        project, seer_response, groups_to_backfill_with_no_embedding, group_hashes_dict, dry_run
+    )
+
+    logger.info(
+        "about to call next backfill",
+        extra={
+            "project_id": project_id,
+        },
+    )
+    call_next_backfill(
+        batch_end_index,
+        project_id,
+        redis_client,
+        total_groups_to_backfill_length,
+        last_group_id,
+        dry_run,
+    )
 
 
 @sentry_sdk.tracing.trace
@@ -93,7 +197,7 @@ def initialize_backfill(project_id, last_processed_index, dry_run):
 
 @sentry_sdk.tracing.trace
 def get_current_batch_groups_from_postgres(project, last_processed_index, batch_size):
-    group_id_data = (
+    groups_to_backfill_query = (
         Group.objects.filter(
             project_id=project.id,
             type=ErrorGroupType.type_id,
@@ -104,38 +208,46 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
         .values_list("id", "data")
         .order_by("-times_seen", "id")
     )
+    total_groups_to_backfill_length = len(groups_to_backfill_query)
 
-    batch_end_index = min(last_processed_index + batch_size, len(group_id_data))
-    group_id_data_batch = group_id_data[last_processed_index:batch_end_index]
+    batch_end_index = min(last_processed_index + batch_size, total_groups_to_backfill_length)
+    groups_to_backfill_batch = groups_to_backfill_query[last_processed_index:batch_end_index]
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
-            "batch_len": len(group_id_data_batch),
+            "batch_len": len(groups_to_backfill_batch),
             "last_processed_index": last_processed_index,
-            "total_groups_length": len(group_id_data),
+            "total_groups_length": total_groups_to_backfill_length,
         },
     )
 
-    if len(group_id_data_batch) == 0:
+    if len(groups_to_backfill_batch) == 0:
         logger.info(
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
-        return
+        raise NoMoreGroupsToBackfillError("No more groups to backfill")
 
-    group_id_batch_filtered = [
+    groups_to_backfill_with_no_embedding = [
         group_id
-        for (group_id, data) in group_id_data_batch
+        for (group_id, data) in groups_to_backfill_batch
         if get_path(data, "metadata", "seer_similarity", "similarity_model_version") is None
     ]
-    if len(group_id_data_batch) != len(group_id_batch_filtered):
+    if len(groups_to_backfill_batch) != len(groups_to_backfill_with_no_embedding):
         logger.info(
             "backfill_seer_grouping_records.groups_already_had_embedding",
-            extra={"project_id": project.id, "num_groups": len(group_id_batch_filtered)},
+            extra={
+                "project_id": project.id,
+                "num_groups": len(groups_to_backfill_with_no_embedding),
+            },
         )
-    return group_id_batch_filtered, batch_end_index, len(group_id_data)
+    return (
+        groups_to_backfill_with_no_embedding,
+        batch_end_index,
+        total_groups_to_backfill_length,
+    )
 
 
 @sentry_sdk.tracing.trace
@@ -293,101 +405,6 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
             "backfill_seer_grouping_records.bulk_update",
             extra={"project_id": project.id, "num_updated": num_updated},
         )
-
-
-@instrumented_task(
-    name="sentry.tasks.backfill_seer_grouping_records",
-    queue="default",
-    max_retries=0,
-    silo_mode=SiloMode.REGION,
-    soft_time_limit=60 * 15,
-    time_limit=60 * 15 + 5,
-)
-def backfill_seer_grouping_records(
-    project_id: int,
-    last_processed_index: int | None,
-    dry_run: bool = False,
-    only_delete=False,
-    *args: Any,
-    **kwargs: Any,
-) -> None:
-    """
-    Task to backfill seer grouping_records table.
-    Pass in last_processed_index = None if calling for the first time. This function will spawn
-    child tasks that will pass the last_processed_index
-    """
-
-    try:
-        project, redis_client, last_processed_index = initialize_backfill(
-            project_id, last_processed_index, dry_run
-        )
-    except FeatureError:
-        logger.info(
-            "backfill_seer_grouping_records.no_feature",
-            extra={"project_id": project_id},
-        )
-        return
-
-    batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
-
-    if only_delete:
-        delete_seer_grouping_records(project.id, redis_client)
-        logger.info(
-            "backfill_seer_grouping_records.deleted_all_records",
-            extra={"project_id": project.id},
-        )
-        return
-
-    (
-        group_id_batch_filtered,
-        batch_end_index,
-        length_group_id_batch_unfiltered,
-    ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
-
-    last_group_id = group_id_batch_filtered[-1]
-    snuba_results = get_data_from_snuba(project, group_id_batch_filtered)
-
-    try:
-        nodestore_results, group_hashes_dict = get_events_from_nodestore(
-            project, snuba_results, group_id_batch_filtered
-        )
-    except NoNodestoreDataError:
-        call_next_backfill(
-            batch_end_index,
-            project_id,
-            redis_client,
-            length_group_id_batch_unfiltered,
-            last_group_id,
-            dry_run,
-        )
-        return
-
-    seer_response = send_group_and_stacktrace_to_seer(
-        project, group_id_batch_filtered, nodestore_results
-    )
-    if not seer_response.get("success"):
-        logger.info(
-            "backfill_seer_grouping_records.seer_down",
-            extra={"project_id": project.id},
-        )
-        return
-
-    update_groups(project, seer_response, group_id_batch_filtered, group_hashes_dict, dry_run)
-
-    logger.info(
-        "about to call next backfill",
-        extra={
-            "project_id": project_id,
-        },
-    )
-    call_next_backfill(
-        batch_end_index,
-        project_id,
-        redis_client,
-        length_group_id_batch_unfiltered,
-        last_group_id,
-        dry_run,
-    )
 
 
 def lookup_group_data_stacktrace_bulk_with_fallback(
