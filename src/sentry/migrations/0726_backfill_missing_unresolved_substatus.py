@@ -2,7 +2,9 @@
 
 from datetime import timedelta
 
+from django.apps.registry import Apps
 from django.db import migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.utils import timezone
 
 from sentry.new_migrations.migrations import CheckedMigration
@@ -27,13 +29,11 @@ class GroupStatus:
 # End copy
 
 
-def backfill_missing_substatus(apps, schema_editor):
-    now = timezone.now()
+def backfill_missing_substatus(apps: Apps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Group = apps.get_model("sentry", "Group")
     GroupHistory = apps.get_model("sentry", "GroupHistory")
 
-    seven_days_ago = now - timedelta(days=7)
-
+    seven_days_ago = timezone.now() - timedelta(days=7)
     groups = Group.objects.filter(status=GroupStatus.UNRESOLVED, substatus=None)
     group_history = GroupHistory.objects.filter(
         date_added__gte=seven_days_ago, group__in=groups, status=GroupHistoryStatus.REGRESSED
