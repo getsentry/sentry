@@ -13,8 +13,8 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
-class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
-    view = "sentry-api-0-organization-traces"
+class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
+    view: str
 
     def setUp(self):
         super().setUp()
@@ -71,6 +71,10 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             duration=duration,
             **kwargs,
         )
+
+
+class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
+    view = "sentry-api-0-organization-traces"
 
     def create_mock_traces(self):
         project_1 = self.create_project()
@@ -1053,6 +1057,98 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             trace_id_1: {span_ids[2], span_ids[3]},
             trace_id_2: {span_ids[5], span_ids[6]},
         }
+
+
+class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
+    view = "sentry-api-0-organization-traces-stats"
+
+    def test_no_feature(self):
+        query = {
+            "yAxis": ["count()"],
+        }
+
+        response = self.do_request(query, features=[])
+        assert response.status_code == 404, response.data
+
+    def test_no_project(self):
+        query = {
+            "yAxis": ["count()"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 404, response.data
+
+    def test_bad_params_missing_y_axis(self):
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+            }
+        )
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "yAxis": [
+                ErrorDetail(string="This field is required.", code="required"),
+            ],
+        }
+
+    def test_stats(self):
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        timestamp = before_now()
+        timestamp = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        timestamp = timestamp - timedelta(minutes=10)
+
+        self.double_write_segment(
+            project_id=project_1.id,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            timestamp=timestamp,
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+        )
+
+        self.double_write_segment(
+            project_id=project_1.id,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            timestamp=timestamp,
+            transaction="bar",
+            duration=100,
+            exclusive_time=100,
+        )
+
+        self.double_write_segment(
+            project_id=project_2.id,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            timestamp=timestamp,
+            transaction="bar",
+            duration=100,
+            exclusive_time=100,
+        )
+
+        for q in [
+            [f"project:{project_1.slug}"],
+            [
+                f"project:{project_1.slug} transaction:bar",
+                f"project:{project_2.slug} transaction:bar",
+            ],
+        ]:
+            query = {
+                "yAxis": ["count()"],
+                "query": q,
+                "project": [project_1.id],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+        assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
 
 
 @pytest.mark.parametrize(
