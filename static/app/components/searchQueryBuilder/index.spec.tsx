@@ -53,7 +53,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
       {
         key: FieldKey.IS,
         name: 'is',
-        alias: 'status',
+        alias: 'issue.status',
         predefined: true,
       },
     ],
@@ -124,7 +124,18 @@ describe('SearchQueryBuilder', function () {
     it('displays the key alias instead of the actual value', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="is:resolved" />);
 
-      expect(await screen.findByText('status')).toBeInTheDocument();
+      expect(await screen.findByText('issue.status')).toBeInTheDocument();
+    });
+
+    it('displays the key alias when searching for keys', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('issue');
+
+      expect(
+        await screen.findByRole('option', {name: 'issue.status'})
+      ).toBeInTheDocument();
     });
 
     it('when adding a filter by typing, replaces aliased tokens', async function () {
@@ -134,10 +145,10 @@ describe('SearchQueryBuilder', function () {
       );
 
       await userEvent.click(screen.getByRole('grid'));
-      await userEvent.keyboard('status:');
+      await userEvent.keyboard('issue.status:');
 
-      // Component should display alias `status`
-      expect(await screen.findByText('status')).toBeInTheDocument();
+      // Component should display alias `issue.status`
+      expect(await screen.findByText('issue.status')).toBeInTheDocument();
       // Query should use the actual key `is`
       expect(mockOnChange).toHaveBeenCalledWith('is:');
     });
