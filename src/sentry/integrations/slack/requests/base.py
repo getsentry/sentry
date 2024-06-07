@@ -233,18 +233,12 @@ class SlackRequest:
         if self._organization and features.has(
             "organizations:slack-sdk-signature", self._organization
         ):
-            logger.info(
-                "slack.request.verify_signature",
-                extra=log_extra,
-            )
+            logger.info("slack.request.verify_signature", extra=log_extra)
             return SignatureVerifier(signing_secret).is_valid(
                 body=self.request.body, timestamp=timestamp, signature=signature
             )
 
-        logger.info(
-            "slack.request.check_signing_secret",
-            extra=log_extra,
-        )
+        logger.info("slack.request.check_signing_secret", extra=log_extra)
 
         return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
 
