@@ -68,5 +68,4 @@ jobs:
         with:
           base: sentry-api-schema/rpc_method_schema.json
           revision: ./rpc_method_schema.json
-          format: 'text'
           fail-on-diff: true
