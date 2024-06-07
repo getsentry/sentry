@@ -198,7 +198,7 @@ def backfill_seer_grouping_records(
             snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
 
-    group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
+    group_id_batch_all = copy.copy(group_id_batch_filtered)
     if snuba_results and snuba_results[0].get("data"):
         rows: list[GroupEventRow] = [
             snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
@@ -220,10 +220,11 @@ def backfill_seer_grouping_records(
                     group_id_batch_filtered.remove(group_id)
 
         data = lookup_group_data_stacktrace_bulk_with_fallback(project, rows)
-        logger.info(
-            "backfill_seer_grouping_records.data",
-            extra={"project_id": project_id, "data": json.dumps(data)},
+        groups_batch_filtered_valid = Group.objects.filter(
+            project_id=project.id,
+            id__in=[group_stacktrace_data["group_id"] for group_stacktrace_data in data["data"]],
         )
+        group_ids_batch_filtered_valid = [group.id for group in groups_batch_filtered_valid]
 
         # If nodestore returns no data
         if data["data"] == [] and data["stacktrace_list"] == []:
@@ -252,7 +253,7 @@ def backfill_seer_grouping_records(
         with metrics.timer(f"{BACKFILL_NAME}.post_bulk_grouping_records", sample_rate=1.0):
             response = post_bulk_grouping_records(
                 CreateGroupingRecordsRequest(
-                    group_id_list=group_id_batch_filtered,
+                    group_id_list=group_ids_batch_filtered_valid,
                     data=data["data"],
                     stacktrace_list=data["stacktrace_list"],
                 )
@@ -260,26 +261,7 @@ def backfill_seer_grouping_records(
 
         if response.get("success"):
             groups_with_neighbor = response["groups_with_neighbor"]
-            groups = Group.objects.filter(
-                project_id=project.id,
-                id__in=[
-                    group_stacktrace_data["group_id"] for group_stacktrace_data in data["data"]
-                ],
-            )
-
-            # Temporary debug logging
-            groups_ids_from_data = [group.id for group in groups]
-            for group_id in group_id_batch_filtered:
-                if group_id not in groups_ids_from_data:
-                    logger.info(
-                        "backfill_seer_grouping_records.group_missing_from_data",
-                        extra={
-                            "project_id": project.id,
-                            "group_id": group_id,
-                        },
-                    )
-
-            for group in groups:
+            for group in groups_batch_filtered_valid:
                 seer_similarity: dict[str, Any] = {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "request_hash": group_hashes_dict[group.id],
@@ -321,7 +303,7 @@ def backfill_seer_grouping_records(
                         group.data["metadata"] = {"seer_similarity": seer_similarity}
 
             if not dry_run:
-                num_updated = Group.objects.bulk_update(groups, ["data"])
+                num_updated = Group.objects.bulk_update(groups_batch_filtered_valid, ["data"])
                 logger.info(
                     "backfill_seer_grouping_records.bulk_update",
                     extra={"project_id": project.id, "num_updated": num_updated},
@@ -490,11 +472,12 @@ def lookup_group_data_stacktrace_bulk(
         sample_rate=1.0,
     )
 
+    # Log if any groups were filtered out because they were invalid (no stacktrace, grouping info, hash)
     logger.info(
-        "backfill_seer_grouping_records.invalid_event_ids",
+        "backfill_seer_grouping_records.invalid_group_ids",
         extra={
             "project_id": project_id,
-            "invalid_event_group_ids": json.dumps(invalid_event_group_ids),
+            "invalid_group_ids": json.dumps(invalid_event_group_ids),
         },
     )
 
