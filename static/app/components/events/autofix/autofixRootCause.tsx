@@ -53,9 +53,11 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
         | {
             causeId: string;
             fixId: string;
+            isRetry?: boolean;
           }
         | {
             customRootCause: string;
+            isRetry?: boolean;
           }
     ) => {
       return api.requestPromise(`/issues/${groupId}/autofix/update/`, {
@@ -67,6 +69,7 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
                 payload: {
                   type: 'select_root_cause',
                   custom_root_cause: params.customRootCause,
+                  is_retry: params.isRetry,
                 },
               }
             : {
@@ -75,6 +78,7 @@ function useSelectCause({groupId, runId}: {groupId: string; runId: string}) {
                   type: 'select_root_cause',
                   cause_id: params.causeId,
                   fix_id: params.fixId,
+                  is_retry: params.isRetry,
                 },
               },
       });
@@ -235,12 +239,18 @@ function CauseOption({
 }
 
 function SelectedRootCauseOption({
+  groupId,
+  runId,
   selectedCause,
   selectedFix,
 }: {
+  groupId: string;
+  runId: string;
   selectedCause: AutofixRootCauseData;
   selectedFix: AutofixRootCauseSuggestedFix;
 }) {
+  const {isLoading, mutate: handleSelectFix} = useSelectCause({groupId, runId});
+
   return (
     <RootCauseOption selected>
       <Title>{t('Selected Cause: %s', selectedCause.title)}</Title>
@@ -248,6 +258,22 @@ function SelectedRootCauseOption({
       <SuggestedFixWrapper>
         <SuggestedFixHeader>
           <strong>{t('Selected Fix: %s', selectedFix.title)}</strong>
+          <Button
+            size="xs"
+            onClick={() =>
+              handleSelectFix({
+                causeId: selectedCause.id,
+                fixId: selectedFix.id,
+                isRetry: true,
+              })
+            }
+            busy={isLoading}
+            analyticsEventName="Autofix: Root Cause Fix Selected"
+            analyticsEventKey="autofix.root_cause_fix_selected"
+            analyticsParams={{group_id: groupId}}
+          >
+            {t('Try Again')}
+          </Button>
         </SuggestedFixHeader>
         <p>{selectedFix.description}</p>
         {selectedFix.snippet && <SuggestedFixSnippet snippet={selectedFix.snippet} />}
@@ -345,6 +371,8 @@ export function AutofixRootCause({
     return (
       <CausesContainer>
         <SelectedRootCauseOption
+          groupId={groupId}
+          runId={runId}
           selectedFix={selectedFix}
           selectedCause={selectedCause}
         />
