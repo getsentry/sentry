@@ -1,13 +1,12 @@
 import {memo, useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import type Fuse from 'fuse.js';
 
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
-import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
+import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   isCustomMetric,
   isSpanDuration,
