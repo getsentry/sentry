@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
@@ -423,7 +423,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Sequence[EnvironmentName] | None = None,
+        environments: Iterable[str] | None = None,
     ) -> ReleaseSessionsTimeBounds:
 
         projects, org_id = self._get_projects_and_org_id([project_id])
