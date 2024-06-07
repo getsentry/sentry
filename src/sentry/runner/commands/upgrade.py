@@ -112,7 +112,7 @@ def _upgrade(
     help="Skip post migration database initialization.",
 )
 @click.option("--with-nodestore", default=False, is_flag=True, help="Bootstrap nodestore.")
-@click.option("--create-topics", default=False, is_flag=True, help="Create kafka topics.")
+@click.option("--create-kafka-topics", default=False, is_flag=True, help="Create kafka topics.")
 @configuration
 def upgrade(
     verbosity: int,
