@@ -520,7 +520,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.ASSIGNED]: {
     desc: t('Assignee of the issue as a user ID'),

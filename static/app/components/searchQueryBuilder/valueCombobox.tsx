@@ -13,7 +13,12 @@ import {
   formatFilterValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {FilterType, Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+import {
+  FilterType,
+  TermOperator,
+  Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -37,22 +42,56 @@ type SuggestionSectionItem = {
   sectionText: string;
 };
 
+const NUMERIC_REGEX = /^-?\d+(\.\d+)?$/;
+const FILTER_VALUE_NUMERIC = /^-?\d+(\.\d+)?[kmb]?$/i;
+const FILTER_VALUE_INT = /^-?\d+[kmb]?$/i;
+
+function isNumeric(value: string) {
+  return NUMERIC_REGEX.test(value);
+}
+
 function isStringFilterValues(
   tagValues: string[] | SearchGroup[]
 ): tagValues is string[] {
   return typeof tagValues[0] === 'string';
 }
 
-function getPredefinedValues({key}: {key?: Tag}): SuggestionSection[] {
+function getPredefinedValues({
+  key,
+  inputValue,
+}: {
+  inputValue: string;
+  key?: Tag;
+}): SuggestionSection[] {
   if (!key) {
     return [];
   }
 
   const fieldDef = getFieldDefinition(key.key);
 
-  if (!key.values) {
+  if (!key.values?.length) {
     switch (fieldDef?.valueType) {
       // TODO(malwilley): Better duration suggestions
+      case FieldValueType.NUMBER:
+        if (!inputValue) {
+          return [{sectionText: '', suggestions: ['100', '100k', '100m', '100b']}];
+        }
+        if (isNumeric(inputValue)) {
+          return [
+            {
+              sectionText: '',
+              suggestions: [
+                inputValue,
+                `${inputValue}k`,
+                `${inputValue}m`,
+                `${inputValue}b`,
+              ],
+            },
+          ];
+        }
+
+        // TODO(malwilley): signal that the value is invalid
+        return [];
       case FieldValueType.DURATION:
         return [{sectionText: '', suggestions: ['-1d', '-7d', '+14d']}];
       case FieldValueType.BOOLEAN:
@@ -96,6 +135,10 @@ function tokenSupportsMultipleValues(
         FieldValueType.INTEGER,
       ].includes(fieldDef?.valueType ?? FieldValueType.STRING);
     case FilterType.NUMERIC:
+      if (token.operator === TermOperator.DEFAULT) {
+        return true;
+      }
+      return false;
     case FilterType.TEXT_IN:
     case FilterType.NUMERIC_IN:
       return true;
@@ -111,12 +154,36 @@ function getOtherSelectedValues(token: TokenResult<Token.FILTER>): string[] {
         return [];
       }
       return [unescapeTagValue(token.value.value)];
+    case Token.VALUE_NUMBER:
+      return token.value.text ? [token.value.text] : [];
     case Token.VALUE_NUMBER_LIST:
       return token.value.items.map(item => item.value?.text ?? '');
     case Token.VALUE_TEXT_LIST:
       return token.value.items.map(item => unescapeTagValue(item.value?.value ?? ''));
     default:
       return [];
+  }
+}
+
+function cleanFilterValue(key: string, value: string): string {
+  const fieldDef = getFieldDefinition(key);
+  if (!fieldDef) {
+    return value;
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.NUMBER:
+      if (FILTER_VALUE_NUMERIC.test(value)) {
+        return value;
+      }
+      return '';
+    case FieldValueType.INTEGER:
+      if (FILTER_VALUE_INT.test(value)) {
+        return value;
+      }
+      return '';
+    default:
+      return escapeTagValue(value);
   }
 }
 
@@ -131,7 +198,8 @@ function useFilterSuggestions({
 }) {
   const {getTagValues, keys} = useSearchQueryBuilder();
   const key = keys[token.key.text];
-  const shouldFetchValues = key && !key.predefined;
+  const predefinedValues = getPredefinedValues({key, inputValue});
+  const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
 
   // TODO(malwilley): Display error states
@@ -173,8 +241,8 @@ function useFilterSuggestions({
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
     return shouldFetchValues
       ? [{sectionText: '', suggestions: data ?? []}]
-      : getPredefinedValues({key});
-  }, [data, key, shouldFetchValues]);
+      : predefinedValues;
+  }, [data, predefinedValues, shouldFetchValues]);
 
   // Grouped sections for rendering purposes
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
@@ -276,7 +344,10 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleSelectValue = useCallback(
     (value: string) => {
-      if (!value) {
+      const cleanedValue = cleanFilterValue(token.key.text, value);
+
+      // TODO(malwilley): Add visual feedback for invalid values
+      if (!cleanedValue) {
         return;
       }
 
@@ -284,7 +355,7 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'TOGGLE_FILTER_VALUE',
           token: token,
-          value: escapeTagValue(value),
+          value: cleanedValue,
         });
 
         // If toggling off a value, keep focus inside the value
@@ -295,7 +366,7 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token: token.value,
-          value: escapeTagValue(value),
+          value: cleanedValue,
         });
         onCommit();
       }
