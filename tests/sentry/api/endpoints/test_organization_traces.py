@@ -14,6 +14,8 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
+    view: str
+
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
