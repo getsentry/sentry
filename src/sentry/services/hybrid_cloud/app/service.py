@@ -7,6 +7,7 @@ import abc
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
@@ -114,6 +115,16 @@ class AppService(RpcService):
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         pass
 
+    def get_by_application_id(self, *, application_id: int) -> RpcSentryApp | None:
+        """
+        Get a SentryApp by application_id with caching
+
+        Wraps find_service_hook_sentry_app with caching.
+        """
+        if in_random_rollout("sentryapps.get_by_application_id_cached"):
+            return get_by_application_id(application_id)
+        return self.find_service_hook_sentry_app(api_application_id=application_id)
+
     @rpc_method
     @abc.abstractmethod
     def get_custom_alert_rule_actions(
@@ -198,6 +209,11 @@ class AppService(RpcService):
 @back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
 def get_installation(id: int) -> RpcSentryAppInstallation | None:
     return app_service.get_installation_by_id(id=id)
+
+
+@back_with_silo_cache("app_service.get_by_application_id", SiloMode.REGION, RpcSentryApp)
+def get_by_application_id(application_id: int) -> RpcSentryApp | None:
+    return app_service.find_service_hook_sentry_app(api_application_id=application_id)
 
 
 app_service = AppService.create_delegation()
