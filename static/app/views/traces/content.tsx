@@ -31,6 +31,7 @@ import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString'
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 
 import {type Field, FIELDS, SORTS} from './data';
 import {
@@ -45,10 +46,16 @@ import {
   TraceIdRenderer,
   TraceIssuesRenderer,
 } from './fieldRenderers';
+import {TracesChart} from './tracesChart';
 import {TracesSearchBar} from './tracesSearchBar';
-import {getSecondaryNameFromSpan, getStylingSliceName, normalizeTraces} from './utils';
+import {
+  areQueriesEmpty,
+  getSecondaryNameFromSpan,
+  getStylingSliceName,
+  normalizeTraces,
+} from './utils';
 
-const DEFAULT_PER_PAGE = 20;
+const DEFAULT_PER_PAGE = 50;
 
 export function Content() {
   const location = useLocation();
@@ -175,6 +182,10 @@ export function Content() {
         handleSearch={handleSearch}
         handleClearSearch={handleClearSearch}
       />
+
+      <ModuleLayout.Full>
+        <TracesChart />
+      </ModuleLayout.Full>
       <StyledPanel>
         <TracePanelContent>
           <StyledPanelHeader align="left" lightText>
@@ -184,7 +195,7 @@ export function Content() {
             {t('Trace Root')}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
-            {t('Matching Spans')}
+            {areQueriesEmpty(queries) ? t('Total Spans') : t('Matching Spans')}
           </StyledPanelHeader>
           <StyledPanelHeader align="left" lightText>
             {t('Timeline')}
@@ -233,6 +244,10 @@ function TraceRow({
 }) {
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
+  const location = useLocation();
+  const queries = useMemo(() => {
+    return decodeList(location.query.query);
+  }, [location.query.query]);
 
   const setHighlightedSliceName = useMemo(
     () =>
@@ -269,11 +284,15 @@ function TraceRow({
         </Description>
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        {tct('[numerator][space]of[space][denominator]', {
-          numerator: <Count value={trace.matchingSpans} />,
-          denominator: <Count value={trace.numSpans} />,
-          space: <Fragment>&nbsp;</Fragment>,
-        })}
+        {areQueriesEmpty(queries) ? (
+          <Count value={trace.numSpans} />
+        ) : (
+          tct('[numerator][space]of[space][denominator]', {
+            numerator: <Count value={trace.matchingSpans} />,
+            denominator: <Count value={trace.numSpans} />,
+            space: <Fragment>&nbsp;</Fragment>,
+          })
+        )}
       </StyledPanelItem>
       <BreakdownPanelItem
         align="right"
@@ -314,6 +333,11 @@ function SpanTable({
   spans: SpanResult<Field>[];
   trace: TraceResult<Field>;
 }) {
+  const location = useLocation();
+  const queries = useMemo(() => {
+    return decodeList(location.query.query);
+  }, [location.query.query]);
+
   return (
     <SpanTablePanelItem span={7} overflow>
       <StyledPanel>
@@ -341,9 +365,10 @@ function SpanTable({
           ))}
           {spans.length < trace.matchingSpans && (
             <MoreMatchingSpans span={5}>
-              {tct('[more][space]more matching spans can be found in the trace.', {
+              {tct('[more][space]more [matching]spans can be found in the trace.', {
                 more: <Count value={trace.matchingSpans - spans.length} />,
                 space: <Fragment>&nbsp;</Fragment>,
+                matching: areQueriesEmpty(queries) ? '' : 'matching ',
               })}
             </MoreMatchingSpans>
           )}

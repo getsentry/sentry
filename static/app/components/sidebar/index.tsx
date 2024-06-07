@@ -390,7 +390,7 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         label={<GuideAnchor target="traces">{t('Traces')}</GuideAnchor>}
-        to={`/organizations/${organization.slug}/performance/traces/`}
+        to={`/organizations/${organization.slug}/traces/`}
         id="performance-trace-explorer"
         icon={<SubitemDot collapsed />}
         isNew
@@ -546,7 +546,7 @@ function Sidebar() {
       icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
       label={t('Metrics')}
       to={metricsPath}
-      search={location.pathname === normalizeUrl(metricsPath) ? location.search : ''}
+      search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
       id="metrics"
       isBeta
     />
@@ -615,6 +615,7 @@ function Sidebar() {
         icon={<IconGraph />}
         label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
         id="insights"
+        initiallyExpanded={false}
         isNew
         exact={!shouldAccordionFloat}
       >
