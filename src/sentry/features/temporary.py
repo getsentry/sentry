@@ -316,7 +316,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable the transactions backed profiling views
     manager.add("organizations:profiling-using-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable continuous profiling
-    manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Display profile durations on the stats page
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable asking for feedback after project-create when replay is disabled
