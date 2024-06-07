@@ -38,10 +38,10 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
-from sentry.processing import realtime_metrics
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.snuba import discover
+from sentry.tasks.symbolication import should_demote_symbolication
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -690,7 +690,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             # check if the project is in LPQ for any platform
             symbolication_degraded = False
             for platform in ["native", "js", "jvm"]:
-                if realtime_metrics.is_lpq_project(platform, project_id=item.id):
+                if should_demote_symbolication(platform, project_id=item.id):
                     symbolication_degraded = True
                     break
 
