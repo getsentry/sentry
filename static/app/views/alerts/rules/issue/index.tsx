@@ -322,7 +322,17 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      const hasHighPriorityIssueAlerts =
+        this.props.organization.features.includes('default-high-priority-alerts') ||
+        this.props.project.features.includes('high-priority-alerts');
+      if (hasHighPriorityIssueAlerts) {
+        this.handleChange('conditions', [
+          {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
+          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
+        ]);
+      } else {
+        this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      }
     }
   }
 
