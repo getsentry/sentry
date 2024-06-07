@@ -183,6 +183,22 @@ function renderBodyCell(
   project?: Project
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
+    if (column.key === SpanMetricsField.SPAN_OP) {
+      const target = spanDetailsRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        query: location.query,
+        spanSlug: {op: dataRow['span.op'], group: ''},
+        projectID: project?.id,
+      });
+
+      return (
+        <TableCellContainer>
+          <Link to={target}>{dataRow[column.key]}</Link>
+        </TableCellContainer>
+      );
+    }
+
     if (column.key === SpanMetricsField.SPAN_DESCRIPTION) {
       const target = spanDetailsRouteWithQuery({
         orgSlug: organization.slug,
