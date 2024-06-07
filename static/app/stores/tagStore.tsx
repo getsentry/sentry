@@ -56,6 +56,7 @@ const storeConfig: TagStoreDefinition = {
 
     const tagCollection = {
       [FieldKey.IS]: {
+        alias: 'issue.status',
         key: FieldKey.IS,
         name: 'Status',
         values: isSuggestions,
@@ -87,7 +88,7 @@ const storeConfig: TagStoreDefinition = {
           IssueCategory.ERROR,
           IssueCategory.PERFORMANCE,
           IssueCategory.REPLAY,
-          ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
+          IssueCategory.CRON,
         ],
         predefined: true,
       },
@@ -101,16 +102,12 @@ const storeConfig: TagStoreDefinition = {
           IssueType.PERFORMANCE_SLOW_DB_QUERY,
           IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
           IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-          ...(org.features.includes('issue-platform')
-            ? [
-                IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-                IssueType.PROFILE_FILE_IO_MAIN_THREAD,
-                IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
-                IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
-                IssueType.PROFILE_REGEX_MAIN_THREAD,
-                IssueType.PROFILE_FUNCTION_REGRESSION,
-              ]
-            : []),
+          IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+          IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+          IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+          IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+          IssueType.PROFILE_REGEX_MAIN_THREAD,
+          IssueType.PROFILE_FUNCTION_REGRESSION,
         ],
         predefined: true,
       },

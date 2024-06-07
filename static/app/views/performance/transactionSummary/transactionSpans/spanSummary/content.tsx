@@ -111,10 +111,9 @@ function SpanSummaryContent(props: ContentProps) {
   const {data: spanHeaderData} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
-      // TODO: query average duration instead of self time before releasing this
       fields: [
         'span.description',
-        'avg(span.self_time)',
+        'avg(span.duration)',
         'sum(span.self_time)',
         'count()',
       ],
@@ -124,7 +123,7 @@ function SpanSummaryContent(props: ContentProps) {
 
   const description = spanHeaderData[0]?.['span.description'];
   const timeSpent = spanHeaderData[0]?.['sum(span.self_time)'];
-  const avgDuration = spanHeaderData[0]?.['avg(span.self_time)'];
+  const avgDuration = spanHeaderData[0]?.['avg(span.duration)'];
   const spanCount = spanHeaderData[0]?.['count()'];
 
   return (

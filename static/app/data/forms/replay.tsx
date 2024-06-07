@@ -24,6 +24,9 @@ const formGroups: JsonFormObject[] = [
         label: t('Create Hydration Error Issues'),
         help: t('Toggles whether or not to create Session Replay Hydration Error Issues'),
         getData: data => ({options: data}),
+        visible({features}) {
+          return features.has('session-replay-hydration-error-issue-creation');
+        },
       },
     ],
   },

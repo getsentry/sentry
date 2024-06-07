@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {memo, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -7,6 +7,10 @@ import {Button} from 'sentry/components/button';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input, {type InputProps} from 'sentry/components/input';
+import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
+import {EquationSymbol} from 'sentry/components/metrics/equationSymbol';
+import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
+import {getQuerySymbol, QuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION, SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {
@@ -22,6 +26,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {isCustomMetric} from 'sentry/utils/metrics';
+import {hasMetricAlertFeature} from 'sentry/utils/metrics/features';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -31,17 +36,10 @@ import type {
   DashboardMetricsExpression,
   DashboardMetricsQuery,
 } from 'sentry/views/dashboards/metrics/types';
-import {
-  filterEquationsByDisplayType,
-  filterQueriesByDisplayType,
-  getMetricQueryName,
-} from 'sentry/views/dashboards/metrics/utils';
+import {getMetricQueryName} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {EquationSymbol} from 'sentry/views/metrics/equationSymbol';
 import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
-import {QueryBuilder} from 'sentry/views/metrics/queryBuilder';
-import {getQuerySymbol, QuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 interface Props {
   addEquation: () => void;
@@ -55,7 +53,7 @@ interface Props {
   removeQuery: (index: number) => void;
 }
 
-export function Queries({
+export const Queries = memo(function Queries({
   displayType,
   metricQueries,
   metricEquations,
@@ -71,16 +69,6 @@ export function Queries({
   const availableVariables = useMemo(
     () => new Set(metricQueries.map(query => getQuerySymbol(query.id))),
     [metricQueries]
-  );
-
-  const filteredQueries = useMemo(
-    () => filterQueriesByDisplayType(metricQueries, displayType),
-    [metricQueries, displayType]
-  );
-
-  const filteredEquations = useMemo(
-    () => filterEquationsByDisplayType(metricEquations, displayType),
-    [metricEquations, displayType]
   );
 
   const handleEditQueryAlias = useCallback(
@@ -103,34 +91,38 @@ export function Queries({
     [metricEquations, onEquationChange]
   );
 
-  const showQuerySymbols = filteredQueries.length + filteredEquations.length > 1;
-  const visibleExpressions = [...filteredQueries, ...filteredEquations].filter(
+  const showQuerySymbols = metricQueries.length + metricEquations.length > 1;
+  const visibleExpressions = [...metricQueries, ...metricEquations].filter(
     expression => !expression.isHidden
   );
 
   return (
     <ExpressionsWrapper>
-      {filteredQueries.map((query, index) => (
+      {metricQueries.map((query, index) => (
         <ExpressionWrapper key={index}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={query.isHidden}
               onChange={isHidden => onQueryChange({isHidden}, index)}
-              disabled={!query.isHidden && visibleExpressions.length === 1}
+              disabled={
+                (!query.isHidden && visibleExpressions.length === 1) ||
+                displayType === DisplayType.BIG_NUMBER
+              }
+              disabledReason={t('Big Number widgets support only one visible metric')}
               queryId={query.id}
               type={MetricExpressionType.QUERY}
             />
           )}
           <ExpressionFormWrapper>
             <ExpressionFormRowWrapper>
-              <QueryBuilder
+              <WrappedQueryBuilder
                 index={index}
-                onChange={data => onQueryChange(data, index)}
-                metricsQuery={query}
+                onQueryChange={onQueryChange}
+                query={query}
                 projects={selection.projects}
               />
               <QueryContextMenu
-                canRemoveQuery={filteredQueries.length > 1}
+                canRemoveQuery={metricQueries.length > 1}
                 removeQuery={removeQuery}
                 addQuery={addQuery}
                 editAlias={handleEditQueryAlias}
@@ -150,13 +142,17 @@ export function Queries({
           </ExpressionFormWrapper>
         </ExpressionWrapper>
       ))}
-      {filteredEquations.map((equation, index) => (
+      {metricEquations.map((equation, index) => (
         <ExpressionWrapper key={index}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={equation.isHidden}
               onChange={isHidden => onEquationChange({isHidden}, index)}
-              disabled={!equation.isHidden && visibleExpressions.length === 1}
+              disabled={
+                (!equation.isHidden && visibleExpressions.length === 1) ||
+                displayType === DisplayType.BIG_NUMBER
+              }
+              disabledReason={t('Big Number widgets support only one visible metric')}
               queryId={equation.id}
               type={MetricExpressionType.EQUATION}
             />
@@ -185,17 +181,47 @@ export function Queries({
           </ExpressionFormWrapper>
         </ExpressionWrapper>
       ))}
-      {displayType !== DisplayType.BIG_NUMBER && (
-        <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
-          <Button size="sm" icon={<IconAdd isCircled />} onClick={() => addQuery()}>
-            {t('Add metric')}
-          </Button>
+      <ButtonBar addQuerySymbolSpacing={showQuerySymbols}>
+        <Button size="sm" icon={<IconAdd isCircled />} onClick={() => addQuery()}>
+          {t('Add metric')}
+        </Button>
+        {!(displayType === DisplayType.BIG_NUMBER && metricEquations.length > 0) && (
           <Button size="sm" icon={<IconAdd isCircled />} onClick={addEquation}>
             {t('Add equation')}
           </Button>
-        </ButtonBar>
-      )}
+        )}
+      </ButtonBar>
     </ExpressionsWrapper>
+  );
+});
+
+/**
+ * Wrapper for  the QueryBuilder to memoize the onChange handler
+ */
+function WrappedQueryBuilder({
+  index,
+  onQueryChange,
+  projects,
+  query,
+}: {
+  index: number;
+  onQueryChange: (data: Partial<DashboardMetricsQuery>, index: number) => void;
+  projects: number[];
+  query: DashboardMetricsQuery;
+}) {
+  const handleChange = useCallback(
+    (data: Partial<DashboardMetricsQuery>) => {
+      onQueryChange(data, index);
+    },
+    [index, onQueryChange]
+  );
+  return (
+    <QueryBuilder
+      index={index}
+      onChange={handleChange}
+      metricsQuery={query}
+      projects={projects}
+    />
   );
 }
 
@@ -238,8 +264,8 @@ function QueryContextMenu({
     const addAlertItem = {
       leadingItems: [<IconSiren key="icon" />],
       key: 'add-alert',
-      label: t('Create Alert'),
-      disabled: !createAlert,
+      label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
+      disabled: !createAlert || !hasMetricAlertFeature(organization),
       onAction: () => {
         createAlert?.();
       },
@@ -278,13 +304,14 @@ function QueryContextMenu({
       ? [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem, settingsItem]
       : [duplicateQueryItem, aliasItem, addAlertItem, removeQueryItem];
   }, [
-    createAlert,
     metricsQuery.mri,
-    removeQuery,
-    addQuery,
-    editAlias,
+    createAlert,
+    organization,
     canRemoveQuery,
+    addQuery,
     queryIndex,
+    removeQuery,
+    editAlias,
     router,
   ]);
 
@@ -354,9 +381,17 @@ interface QueryToggleProps {
   onChange: (isHidden: boolean) => void;
   queryId: number;
   type: MetricExpressionType;
+  disabledReason?: string;
 }
 
-function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleProps) {
+function QueryToggle({
+  isHidden,
+  queryId,
+  disabled,
+  onChange,
+  type,
+  disabledReason,
+}: QueryToggleProps) {
   const tooltipTitle =
     type === MetricExpressionType.QUERY
       ? isHidden
@@ -368,7 +403,11 @@ function QueryToggle({isHidden, queryId, disabled, onChange, type}: QueryToggleP
 
   return (
     <Tooltip
-      title={!disabled ? tooltipTitle : t('At least one query must be visible')}
+      title={
+        !disabled
+          ? tooltipTitle
+          : disabledReason || t('At least one query must be visible')
+      }
       delay={500}
     >
       {type === MetricExpressionType.QUERY ? (

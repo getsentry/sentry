@@ -178,7 +178,7 @@ class ProguardArtifactReleasesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DebugFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -358,7 +358,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class UnknownDebugFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -372,7 +372,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }
@@ -385,7 +385,7 @@ class AssociateDSymFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "POST": ApiPublishStatus.PRIVATE,
     }

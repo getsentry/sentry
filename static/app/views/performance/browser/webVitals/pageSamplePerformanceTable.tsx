@@ -474,7 +474,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             renderHeadCell,
             renderBodyCell,
           }}
-          location={location}
           minimumColWidth={70}
         />
       )}
@@ -488,7 +487,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             renderHeadCell,
             renderBodyCell,
           }}
-          location={location}
           minimumColWidth={70}
         />
       )}

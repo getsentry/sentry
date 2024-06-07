@@ -12,6 +12,7 @@ from sentry.integrations.discord.requests.base import DiscordRequest, DiscordReq
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.parsers.base import (
     BaseRequestParser,
     create_async_request_payload,
@@ -20,7 +21,6 @@ from sentry.middleware.integrations.tasks import convert_to_async_discord_respon
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
 from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 

@@ -155,7 +155,7 @@ def get_condition_group_results(
             unique_condition.environment_id,
             comparison_type,
         )
-        condition_group_results[unique_condition] = result
+        condition_group_results[unique_condition] = result or {}
     return condition_group_results
 
 
@@ -404,7 +404,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 for callback, futures in activate_downstream_actions(
                     rule, groupevent, notification_uuid, rule_fire_history
                 ).values():
-                    safe_execute(callback, groupevent, futures, _with_transaction=False)
+                    safe_execute(callback, groupevent, futures)
 
     # Step 8: Clean up Redis buffer data
     hashes_to_delete = [

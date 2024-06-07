@@ -40,7 +40,7 @@ class EventStorageTest(TestCase):
         event = Event(project_id=self.project.id, event_id="a" * 32)
         event2 = Event(project_id=self.project.id, event_id="b" * 32)
         assert event.data._node_data is None
-        self.eventstorage.bind_nodes([event, event2], "data")
+        self.eventstorage.bind_nodes([event, event2])
         assert event.data._node_data is not None
         assert event.data["user"]["id"] == "user1"
 

@@ -85,6 +85,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "go",
     "go-echo",
     "go-fasthttp",
+    "go-fiber",
     "go-gin",
     "go-http",
     "go-iris",
@@ -409,7 +410,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
     def get_members_as_rpc_users(self) -> Iterable[RpcUser]:
         member_ids = self.member_set.values_list("user_id", flat=True)
-        return user_service.get_many(filter=dict(user_ids=list(member_ids)))
+        return user_service.get_many_by_id(ids=list(member_ids))
 
     def get_audit_log_data(self):
         return {

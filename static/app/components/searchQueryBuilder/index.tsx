@@ -9,25 +9,23 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
-import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {
-  collapseTextTokens,
-  INTERFACE_TYPE_LOCALSTORAGE_KEY,
-} from 'sentry/components/searchQueryBuilder/utils';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
-import {IconClose, IconSearch, IconSync} from 'sentry/icons';
+  type FilterKeySection,
+  QueryInterfaceType,
+} from 'sentry/components/searchQueryBuilder/types';
+import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
+import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 
 interface SearchQueryBuilderProps {
+  filterKeySections: FilterKeySection[];
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
   initialQuery: string;
-  supportedKeys: TagCollection;
   className?: string;
   label?: string;
   onBlur?: (query: string) => void;
@@ -39,43 +37,23 @@ interface SearchQueryBuilderProps {
    * Called when the user presses enter
    */
   onSearch?: (query: string) => void;
+  queryInterface?: QueryInterfaceType;
 }
 
 function ActionButtons() {
-  const {parsedQuery, dispatch} = useSearchQueryBuilder();
-  const [queryInterface, setQueryInterface] = useSyncedLocalStorageState(
-    INTERFACE_TYPE_LOCALSTORAGE_KEY,
-    QueryInterfaceType.TOKENIZED
-  );
-
-  const interfaceToggleText =
-    queryInterface === QueryInterfaceType.TEXT
-      ? t('Switch to tokenized search')
-      : t('Switch to plain text');
+  const {dispatch, onSearch} = useSearchQueryBuilder();
 
   return (
     <ButtonsWrapper>
-      <ActionButton
-        title={!parsedQuery ? t('Search query parsing failed') : interfaceToggleText}
-        aria-label={interfaceToggleText}
-        size="zero"
-        icon={<IconSync />}
-        borderless
-        onClick={() =>
-          setQueryInterface(
-            queryInterface === QueryInterfaceType.TEXT
-              ? QueryInterfaceType.TOKENIZED
-              : QueryInterfaceType.TEXT
-          )
-        }
-        disabled={!parsedQuery}
-      />
       <ActionButton
         aria-label={t('Clear search query')}
         size="zero"
         icon={<IconClose />}
         borderless
-        onClick={() => dispatch({type: 'CLEAR'})}
+        onClick={() => {
+          dispatch({type: 'CLEAR'});
+          onSearch?.('');
+        }}
       />
     </ButtonsWrapper>
   );
@@ -85,22 +63,16 @@ export function SearchQueryBuilder({
   className,
   label,
   initialQuery,
-  supportedKeys,
+  filterKeySections,
   getTagValues,
   onChange,
   onSearch,
   onBlur,
+  queryInterface = QueryInterfaceType.TOKENIZED,
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
-  const [queryInterface] = useSyncedLocalStorageState(
-    INTERFACE_TYPE_LOCALSTORAGE_KEY,
-    QueryInterfaceType.TOKENIZED
-  );
 
-  const parsedQuery = useMemo(
-    () => collapseTextTokens(parseSearch(state.query || ' ', {flattenParenGroups: true})),
-    [state.query]
-  );
+  const parsedQuery = useMemo(() => parseQueryBuilderValue(state.query), [state.query]);
 
   useEffectAfterFirstRender(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
@@ -111,15 +83,23 @@ export function SearchQueryBuilder({
   }, [onChange, state.query]);
 
   const contextValue = useMemo(() => {
+    const allKeys = filterKeySections.reduce((acc, section) => {
+      for (const tag of section.children) {
+        acc[tag.key] = tag;
+      }
+      return acc;
+    }, {});
+
     return {
       ...state,
       parsedQuery,
-      keys: supportedKeys,
+      filterKeySections,
+      keys: allKeys,
       getTagValues,
       dispatch,
       onSearch,
     };
-  }, [state, parsedQuery, supportedKeys, getTagValues, dispatch, onSearch]);
+  }, [state, parsedQuery, filterKeySections, getTagValues, dispatch, onSearch]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>

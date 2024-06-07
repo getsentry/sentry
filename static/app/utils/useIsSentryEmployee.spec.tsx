@@ -8,17 +8,19 @@ import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
 describe('useIsSentryEmployee', () => {
   it('should return true if the user is a Sentry employee', () => {
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({
-        emails: [
-          {
-            email: 'jenn@sentry.io',
-            is_verified: true,
-            id: '1',
-          },
-        ],
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          emails: [
+            {
+              email: 'jenn@sentry.io',
+              is_verified: true,
+              id: '1',
+            },
+          ],
+        }),
+      })
+    );
 
     const {result} = renderHook(() => useIsSentryEmployee());
 
@@ -27,17 +29,19 @@ describe('useIsSentryEmployee', () => {
 
   it('should return false if the user is not a Sentry employee', () => {
     // Mock ConfigStore to simulate a non-Sentry employee
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({
-        emails: [
-          {
-            email: 'jenn@not-sentry.com',
-            is_verified: true,
-            id: '1',
-          },
-        ],
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          emails: [
+            {
+              email: 'jenn@not-sentry.com',
+              is_verified: true,
+              id: '1',
+            },
+          ],
+        }),
+      })
+    );
 
     const {result} = renderHook(() => useIsSentryEmployee());
 
@@ -45,17 +49,19 @@ describe('useIsSentryEmployee', () => {
   });
 
   it('should return false if the email is not verified', () => {
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({
-        emails: [
-          {
-            email: 'jenn@sentry.io',
-            is_verified: false,
-            id: '1',
-          },
-        ],
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          emails: [
+            {
+              email: 'jenn@sentry.io',
+              is_verified: false,
+              id: '1',
+            },
+          ],
+        }),
+      })
+    );
 
     const {result} = renderHook(() => useIsSentryEmployee());
 

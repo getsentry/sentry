@@ -116,7 +116,7 @@ class CalculatedHashes:
         if self.hierarchical_hashes:
             event_data["hierarchical_hashes"] = self.hierarchical_hashes
 
-            safe_execute(_write_tree_labels, self.tree_labels, event_data, _with_transaction=False)
+            safe_execute(_write_tree_labels, self.tree_labels, event_data)
 
     @classmethod
     def from_event(cls, event_data: NodeData) -> Optional["CalculatedHashes"]:

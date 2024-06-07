@@ -1935,14 +1935,11 @@ class NotifyingUsersTest(RelocationTaskTestCase):
             ).inserted_identifiers.values()
         )
         assert len(self.imported_orgs) == 1
-        assert (
-            len(
-                ControlImportChunkReplica.objects.get(
-                    import_uuid=self.uuid, model="sentry.user"
-                ).inserted_map
-            )
-            == 2
-        )
+
+        self.imported_users = ControlImportChunkReplica.objects.get(
+            import_uuid=self.uuid, model="sentry.user"
+        ).inserted_map
+        assert len(self.imported_users) == 2
 
     def test_success(
         self,
@@ -1964,6 +1961,38 @@ class NotifyingUsersTest(RelocationTaskTestCase):
             assert sorted(mock_relocation_email.call_args_list[1][0][2]) == self.imported_orgs
             assert "admin@example.com" in email_targets
             assert "member@example.com" in email_targets
+
+            assert fake_message_builder.call_count == 0
+            assert notifying_owner_mock.call_count == 1
+
+            relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+            assert relocation.latest_unclaimed_emails_sent_at is not None
+
+    def test_success_ignore_manually_claimed_users(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            admin: User = User.objects.get(id=self.imported_users["1"], email="admin@example.com")
+            admin.is_unclaimed = False
+            admin.save()
+
+        self.mock_message_builder(fake_message_builder)
+
+        with patch.object(LostPasswordHash, "send_relocate_account_email") as mock_relocation_email:
+            notifying_users(self.uuid)
+
+            # Called once for each user imported that has not been manually claimed. Since we
+            # imported 2 users in `fresh-install.json`, but then manually claimed one at the top of
+            # this test, only one user remains.
+            assert mock_relocation_email.call_count == 1
+            email_targets = [
+                mock_relocation_email.call_args_list[0][0][0].username,
+            ]
+            assert sorted(mock_relocation_email.call_args_list[0][0][2]) == self.imported_orgs
+            assert "member@example.com" in email_targets
+            assert "admin@example.com" not in email_targets
 
             assert fake_message_builder.call_count == 0
             assert notifying_owner_mock.call_count == 1

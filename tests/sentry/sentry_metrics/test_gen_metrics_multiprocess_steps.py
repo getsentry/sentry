@@ -408,12 +408,7 @@ def test_process_messages_default_card_rollout(set_sentry_option: Callable[..., 
 
     outer_message = Message(Value(message_batch, last.committable))
 
-    with set_sentry_option(
-        "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-        1.0,
-    ):
-        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
-
+    new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
     assert len(new_batch.data) == len(message_batch)
 
 

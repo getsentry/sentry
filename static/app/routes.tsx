@@ -548,6 +548,13 @@ function buildRoutes() {
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
       />
+      <Route
+        path="remote-config/"
+        name={t('Remote Config')}
+        component={make(
+          () => import('sentry/views/settings/project/projectRemoteConfig')
+        )}
+      />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectSourceMaps'))}
@@ -1602,9 +1609,6 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
-      <Route path="traces/">
-        <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
-      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1688,6 +1692,14 @@ function buildRoutes() {
         component={make(() => import('sentry/views/performance/transactionDetails'))}
       />
     </Route>
+  );
+
+  const tracesRoutes = (
+    <Route
+      path="/traces/"
+      component={make(() => import('sentry/views/traces'))}
+      withOrgPath
+    />
   );
 
   const userFeedbackRoutes = (
@@ -2074,6 +2086,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {tracesRoutes}
       {insightsRoutes}
       {llmMonitoringRoutes}
       {profilingRoutes}

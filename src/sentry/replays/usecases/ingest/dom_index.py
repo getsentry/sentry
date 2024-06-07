@@ -450,12 +450,13 @@ def _handle_breadcrumb(
             return click
 
     elif category == "replay.hydrate-error":
+        metrics.incr("replay.hydration_error_breadcrumb")
         if replay_event is not None and _should_report_hydration_error_issue(project_id):
             report_hydration_error_issue_with_replay_event(
                 project_id,
                 replay_id,
                 payload["timestamp"],
-                payload["data"].get("url"),
+                payload.get("data", {}).get("url"),
                 replay_event,
             )
 

@@ -49,7 +49,7 @@ describe('AnomaliesTab', function () {
     });
 
     render(<TransactionAnomalies location={initialData.router.location} />, {
-      context: initialData.routerContext,
+      router: initialData.router,
       organization: initialData.organization,
     });
 

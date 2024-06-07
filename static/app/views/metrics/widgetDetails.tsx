@@ -29,7 +29,7 @@ import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
-import {generateTracesRouteWithQuery} from 'sentry/views/performance/traces/utils';
+import {generateTracesRouteWithQuery} from 'sentry/views/traces/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -160,7 +160,7 @@ export function MetricDetails({
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabsAndAction>
           <TabList>
-            <TabList.Item key={Tab.SAMPLES}>
+            <TabList.Item textValue={t('Span Samples')} key={Tab.SAMPLES}>
               <GuideAnchor target="metrics_table" position="top">
                 {t('Span Samples')}
               </GuideAnchor>

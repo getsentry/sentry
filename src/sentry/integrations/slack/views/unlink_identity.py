@@ -3,9 +3,9 @@ from django.db import IntegrityError
 from django.http import Http404, HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 
+from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response

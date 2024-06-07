@@ -274,10 +274,10 @@ describe('Performance > Content', function () {
 
   it('renders basic UI elements', async function () {
     const projects = [ProjectFixture({firstTransactionEvent: true})];
-    const data = initializeData(projects, {});
+    const {router} = initializeData(projects, {});
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -290,10 +290,10 @@ describe('Performance > Content', function () {
       ProjectFixture({id: '1', firstTransactionEvent: false}),
       ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {project: [1]});
+    const {router} = initializeData(projects, {project: [1]});
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -306,10 +306,10 @@ describe('Performance > Content', function () {
       ProjectFixture({id: '1', firstTransactionEvent: false}),
       ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {project: ['-1']});
+    const {router} = initializeData(projects, {project: ['-1']});
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(screen.queryByText('Pinpoint problems')).not.toBeInTheDocument();
@@ -317,10 +317,10 @@ describe('Performance > Content', function () {
 
   it('forwards conditions to transaction summary', async function () {
     const projects = [ProjectFixture({id: '1', firstTransactionEvent: true})];
-    const data = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
+    const {router} = initializeData(projects, {project: ['1'], query: 'sentry:yes'});
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -328,7 +328,7 @@ describe('Performance > Content', function () {
 
     await userEvent.click(link);
 
-    expect(data.router.push).toHaveBeenCalledWith(
+    expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: expect.objectContaining({
           transaction: '/apple/cart',
@@ -339,9 +339,9 @@ describe('Performance > Content', function () {
   });
 
   it('Default period for trends does not call updateDateTime', async function () {
-    const data = initializeTrendsData({query: 'tag:value'}, false);
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    const {router} = initializeTrendsData({query: 'tag:value'}, false);
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -350,13 +350,13 @@ describe('Performance > Content', function () {
   });
 
   it('Navigating to trends does not modify statsPeriod when already set', async function () {
-    const data = initializeTrendsData({
+    const {router} = initializeTrendsData({
       query: `tpm():>0.005 transaction.duration:>10 transaction.duration:<${DEFAULT_MAX_DURATION} api`,
       statsPeriod: '24h',
     });
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
@@ -382,10 +382,10 @@ describe('Performance > Content', function () {
       ProjectFixture({id: '1', firstTransactionEvent: false}),
       ProjectFixture({id: '2', firstTransactionEvent: true}),
     ];
-    const data = initializeData(projects, {view: undefined});
+    const {router} = initializeData(projects, {view: undefined});
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
 
@@ -393,20 +393,20 @@ describe('Performance > Content', function () {
   });
 
   it('Default page (transactions) with trends feature will not update filters if none are set', async function () {
-    const data = initializeTrendsData({view: undefined}, false);
+    const {router} = initializeTrendsData({view: undefined}, false);
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(browserHistory.push).toHaveBeenCalledTimes(0);
   });
 
   it('Tags are replaced with trends default query if navigating to trends', async function () {
-    const data = initializeTrendsData({query: 'device.family:Mac'}, false);
+    const {router} = initializeTrendsData({query: 'device.family:Mac'}, false);
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
@@ -428,10 +428,10 @@ describe('Performance > Content', function () {
       ProjectFixture({id: '1', firstTransactionEvent: false}),
       ProjectFixture({id: '2', firstTransactionEvent: false}),
     ];
-    const data = initializeData(projects, {view: undefined});
+    const {router} = initializeData(projects, {view: undefined});
 
-    render(<WrappedComponent router={data.router} />, {
-      context: data.routerContext,
+    render(<WrappedComponent router={router} />, {
+      router: router,
     });
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();

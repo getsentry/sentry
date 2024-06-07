@@ -38,6 +38,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import unique_db_instance
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
 from sentry.models.avatars import UserAvatar
@@ -47,7 +48,6 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -529,15 +529,21 @@ class User(BaseModel, AbstractBaseUser):
         payload: Mapping[str, Any] | None,
     ) -> None:
         from sentry.hybridcloud.rpc.services.caching import region_caching_service
-        from sentry.services.hybrid_cloud.user.service import get_user
+        from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
+        region_caching_service.clear_key(
+            key=get_many_by_id.key_from(identifier), region_name=region_name
+        )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.rpc.services.caching import region_caching_service
-        from sentry.services.hybrid_cloud.user.service import get_user
+        from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
+        region_caching_service.clear_key(
+            key=get_many_by_id.key_from(self.id), region_name=region_name
+        )
         organization_service.update_region_user(
             user=RpcRegionUser(
                 id=self.id,

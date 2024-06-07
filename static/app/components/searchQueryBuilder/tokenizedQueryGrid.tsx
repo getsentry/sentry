@@ -1,10 +1,12 @@
-import {useRef} from 'react';
+import {useLayoutEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
+import type {ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/boolean';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
@@ -24,10 +26,24 @@ interface GridProps extends AriaGridListOptions<ParseResultToken> {
   items: ParseResultToken[];
 }
 
+function useApplyFocusOverride(state: ListState<ParseResultToken>) {
+  const {focusOverride, dispatch} = useSearchQueryBuilder();
+
+  useLayoutEffect(() => {
+    if (focusOverride && !focusOverride.part) {
+      state.selectionManager.setFocused(true);
+      state.selectionManager.setFocusedKey(focusOverride.itemKey);
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, state.selectionManager]);
+}
+
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
   const state = useListState<ParseResultToken>(props);
   const {gridProps} = useQueryBuilderGrid(props, state, ref);
+
+  useApplyFocusOverride(state);
 
   return (
     <SearchQueryGridWrapper {...gridProps} ref={ref}>
@@ -58,6 +74,15 @@ function Grid(props: GridProps) {
           case Token.R_PAREN:
             return (
               <SearchQueryBuilderParen
+                key={item.key}
+                token={token}
+                item={item}
+                state={state}
+              />
+            );
+          case Token.LOGIC_BOOLEAN:
+            return (
+              <SearchQueryBuilderBoolean
                 key={item.key}
                 token={token}
                 item={item}

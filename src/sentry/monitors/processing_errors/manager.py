@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from datetime import timedelta
 from itertools import chain
@@ -9,19 +10,22 @@ from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
-from sentry import features
+from sentry import analytics, features
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import Monitor
 from sentry.monitors.types import CheckinItem
 from sentry.utils import json, metrics, redis
 
-from .errors import CheckinProcessingError, ProcessingErrorsException
+from .errors import CheckinProcessingError, ProcessingErrorsException, ProcessingErrorType
 
 logger = logging.getLogger(__name__)
 
 MAX_ERRORS_PER_SET = 10
 MONITOR_ERRORS_LIFETIME = timedelta(days=7)
+
+# Sample processing error analytics due to a high volume of processing errors stored
+ANALYTICS_SAMPLING_RATE = 0.01
 
 
 class InvalidProjectError(Exception):
@@ -94,6 +98,30 @@ def _delete_for_entity(entity_identifier: str, uuid: uuid.UUID) -> None:
     pipeline.execute()
 
 
+def _delete_for_entity_by_type(entity_identifier: str, type: ProcessingErrorType) -> None:
+    checkin_errors = _get_for_entities([entity_identifier])
+    redis = _get_cluster()
+    pipeline = redis.pipeline()
+    for checkin_error in checkin_errors:
+        errors = checkin_error.errors
+        if not any(error["type"] == type for error in errors):
+            continue
+
+        # If the processing error only holds this one type of error, remove the whole error
+        if len(errors) == 1:
+            pipeline.zrem(build_set_identifier(entity_identifier), checkin_error.id.hex)
+            pipeline.delete(build_error_identifier(checkin_error.id))
+        # If the processing error has other errors, filter out the matching error and update the redis value
+        else:
+            filtered_errors = list(filter(lambda error: error["type"] != type, errors))
+            new_checkin_error = CheckinProcessingError(filtered_errors, checkin_error.checkin)
+            new_serialized_checkin_error = json.dumps(new_checkin_error.to_dict())
+            error_key = build_error_identifier(checkin_error.id)
+            pipeline.set(error_key, new_serialized_checkin_error, ex=MONITOR_ERRORS_LIFETIME)
+
+    pipeline.execute()
+
+
 def store_error(error: CheckinProcessingError, monitor: Monitor | None):
     entity_identifier = _get_entity_identifier_from_error(error, monitor)
     error_set_key = build_set_identifier(entity_identifier)
@@ -124,6 +152,14 @@ def delete_error(project: Project, uuid: uuid.UUID):
     _delete_for_entity(entity_identifier, uuid)
 
 
+def delete_errors_for_monitor_by_type(monitor: Monitor, type: ProcessingErrorType):
+    _delete_for_entity_by_type(build_monitor_identifier(monitor), type)
+
+
+def delete_errors_for_project_by_type(project: Project, type: ProcessingErrorType):
+    _delete_for_entity_by_type(build_project_identifier(project.id), type)
+
+
 def get_errors_for_monitor(monitor: Monitor) -> list[CheckinProcessingError]:
     return _get_for_entities([build_monitor_identifier(monitor)])
 
@@ -146,6 +182,15 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
                 "sdk_platform": item.message["sdk"],
             },
         )
+
+        if random.random() < ANALYTICS_SAMPLING_RATE:
+            analytics.record(
+                "checkin_processing_error.stored",
+                organization_id=organization.id,
+                project_id=project.id,
+                monitor_slug=item.payload["monitor_slug"],
+                error_types=[process_error["type"] for process_error in error.processing_errors],
+            )
 
         checkin_processing_error = CheckinProcessingError(error.processing_errors, item)
         store_error(checkin_processing_error, error.monitor)

@@ -12,6 +12,7 @@ import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSum
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {TransactionToProfileButton} from 'sentry/components/profiling/transactionToProfileButton';
@@ -29,7 +30,6 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {
@@ -229,7 +229,9 @@ function NewTraceDetailsSpanDetail(props: SpanDetailProps) {
     }
 
     const transactionName = event.title;
-    const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+    const hasNewSpansUIFlag =
+      organization.features.includes('performance-spans-new-ui') &&
+      organization.features.includes('insights-initial-modules');
 
     // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
     const groupHash = hasNewSpansUIFlag
