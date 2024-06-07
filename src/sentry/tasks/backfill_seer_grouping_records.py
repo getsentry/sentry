@@ -198,7 +198,7 @@ def backfill_seer_grouping_records(
             snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
 
-    group_id_batch_all = copy.copy(group_id_batch_filtered)
+    group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
     if snuba_results and snuba_results[0].get("data"):
         rows: list[GroupEventRow] = [
             snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
