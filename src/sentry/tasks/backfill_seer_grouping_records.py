@@ -48,6 +48,10 @@ BULK_DELETE_METADATA_CHUNK_SIZE = 100
 logger = logging.getLogger(__name__)
 
 
+class FeatureError(Exception):
+    pass
+
+
 class GroupEventRow(TypedDict):
     event_id: str
     group_id: int
@@ -58,27 +62,7 @@ class GroupStacktraceData(TypedDict):
     stacktrace_list: list[str]
 
 
-@instrumented_task(
-    name="sentry.tasks.backfill_seer_grouping_records",
-    queue="default",
-    max_retries=0,
-    silo_mode=SiloMode.REGION,
-    soft_time_limit=60 * 15,
-    time_limit=60 * 15 + 5,
-)
-def backfill_seer_grouping_records(
-    project_id: int,
-    last_processed_index: int | None,
-    dry_run: bool = False,
-    only_delete=False,
-    *args: Any,
-    **kwargs: Any,
-) -> None:
-    """
-    Task to backfill seer grouping_records table.
-    Pass in last_processed_index = None if calling for the first time. This function will spawn
-    child tasks that will pass the last_processed_index
-    """
+def initialize_backfill(project_id, last_processed_index, dry_run):
     logger.info(
         "backfill_seer_grouping_records.start",
         extra={
@@ -93,21 +77,16 @@ def backfill_seer_grouping_records(
             "backfill_seer_grouping_records.no_feature",
             extra={"project_id": project.id},
         )
-        return
+        raise FeatureError("Project does not have feature")
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     if last_processed_index is None:
         last_processed_index = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
+    return project, redis_client, last_processed_index
 
-    if only_delete:
-        delete_seer_grouping_records(project.id, redis_client)
-        logger.info(
-            "backfill_seer_grouping_records.deleted_all_records",
-            extra={"project_id": project.id},
-        )
-        return
 
+def get_current_batch_groups_from_postgres(project, last_processed_index, batch_size):
     group_id_data = (
         Group.objects.filter(
             project_id=project.id,
@@ -120,7 +99,6 @@ def backfill_seer_grouping_records(
         .order_by("-times_seen", "id")
     )
 
-    batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
     batch_end_index = min(last_processed_index + batch_size, len(group_id_data))
     group_id_data_batch = group_id_data[last_processed_index:batch_end_index]
 
@@ -151,11 +129,13 @@ def backfill_seer_grouping_records(
             "backfill_seer_grouping_records.groups_already_had_embedding",
             extra={"project_id": project.id, "num_groups": len(group_id_batch_filtered)},
         )
+    return group_id_batch_filtered, batch_end_index, len(group_id_data)
 
-    events_entity = Entity("events", alias="events")
-    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
+def get_data_from_snuba(project, group_id_batch_filtered):
     # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
+    events_entity = Entity("events", alias="events")
+
     snuba_requests = []
     for group_id in group_id_batch_filtered:
         group = Group.objects.get(id=group_id)
@@ -197,6 +177,59 @@ def backfill_seer_grouping_records(
         snuba_results = bulk_snuba_queries(
             snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
+    return snuba_results
+
+
+@instrumented_task(
+    name="sentry.tasks.backfill_seer_grouping_records",
+    queue="default",
+    max_retries=0,
+    silo_mode=SiloMode.REGION,
+    soft_time_limit=60 * 15,
+    time_limit=60 * 15 + 5,
+)
+def backfill_seer_grouping_records(
+    project_id: int,
+    last_processed_index: int | None,
+    dry_run: bool = False,
+    only_delete=False,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """
+    Task to backfill seer grouping_records table.
+    Pass in last_processed_index = None if calling for the first time. This function will spawn
+    child tasks that will pass the last_processed_index
+    """
+
+    try:
+        project, redis_client, last_processed_index = initialize_backfill(
+            project_id, last_processed_index, dry_run
+        )
+    except FeatureError:
+        logger.info(
+            "backfill_seer_grouping_records.no_feature",
+            extra={"project_id": project_id},
+        )
+        return
+
+    batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
+
+    if only_delete:
+        delete_seer_grouping_records(project.id, redis_client)
+        logger.info(
+            "backfill_seer_grouping_records.deleted_all_records",
+            extra={"project_id": project.id},
+        )
+        return
+
+    (
+        group_id_batch_filtered,
+        batch_end_index,
+        length_group_id_batch_unfiltered,
+    ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
+
+    snuba_results = get_data_from_snuba(project, group_id_batch_filtered)
 
     group_id_batch_all = copy.deepcopy(group_id_batch_filtered)
     if snuba_results and snuba_results[0].get("data"):
@@ -234,7 +267,7 @@ def backfill_seer_grouping_records(
                 batch_end_index,
                 project_id,
                 redis_client,
-                len(group_id_data),
+                length_group_id_batch_unfiltered,
                 group_id_batch_all[-1],
                 dry_run,
             )
@@ -253,6 +286,10 @@ def backfill_seer_grouping_records(
                     stacktrace_list=data["stacktrace_list"],
                 )
             )
+
+        #####
+        #
+        # #### UPDATE GROUPS
 
         if response.get("success"):
             groups_with_neighbor = response["groups_with_neighbor"]
@@ -315,7 +352,7 @@ def backfill_seer_grouping_records(
                 batch_end_index,
                 project_id,
                 redis_client,
-                len(group_id_data),
+                length_group_id_batch_unfiltered,
                 group_id_batch_all[-1],
                 dry_run,
             )
@@ -338,7 +375,7 @@ def backfill_seer_grouping_records(
             batch_end_index,
             project_id,
             redis_client,
-            len(group_id_data),
+            length_group_id_batch_unfiltered,
             group_id_batch_all[-1],
             dry_run,
         )
