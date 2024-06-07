@@ -11,7 +11,7 @@ import pydantic
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
 
 if TYPE_CHECKING:
@@ -87,12 +87,14 @@ class SiloCacheBackedCallable(Generic[_R]):
         version: int
         if isinstance(value, str):
             try:
+                metrics.incr("hybridcloud.caching.one.cached", tags={"base_key": self.base_key})
                 return self.type_(**json.loads(value))
             except (pydantic.ValidationError, JSONDecodeError, TypeError):
                 version = yield from _delete_cache(key, self.silo_mode)
         else:
             version = value
 
+        metrics.incr("hybridcloud.caching.one.rpc", tags={"base_key": self.base_key})
         r = self.cb(i)
         if r is not None:
             _consume_generator(_set_cache(key, r.json(), version, self.timeout))
@@ -170,8 +172,16 @@ class SiloCacheManyBackedCallable(Generic[_R]):
             if version is not None:
                 missing[object_id] = version
 
+        missing_keys = list(missing.keys())
+        metrics.incr(
+            "hybridcloud.caching.many.rpc", len(missing_keys), tags={"base_key": self.base_key}
+        )
+        metrics.incr(
+            "hybridcloud.caching.many.cached", len(found), tags={"base_key": self.base_key}
+        )
+
         # This result could have different order than missing_object_ids, or have gaps
-        cb_result = self.cb(list(missing.keys()))
+        cb_result = self.cb(missing_keys)
         for record in cb_result:
             # TODO(hybridcloud) The types/interfaces don't make reading this attribute safe.
             # We rely on a convention of records having `id` for now. In the future
