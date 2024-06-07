@@ -225,6 +225,13 @@ def backfill_seer_grouping_records(
             id__in=[group_stacktrace_data["group_id"] for group_stacktrace_data in data["data"]],
         )
         group_ids_batch_filtered_valid = [group.id for group in groups_batch_filtered_valid]
+        logger.info(
+            "tasks.backfill_seer_grouping_records.group_ids_batch_filtered_valid",
+            extra={
+                "project_id": project.id,
+                "group_ids_batch_filtered_valid": json.dumps(group_ids_batch_filtered_valid),
+            },
+        )
 
         # If nodestore returns no data
         if data["data"] == [] and data["stacktrace_list"] == []:
