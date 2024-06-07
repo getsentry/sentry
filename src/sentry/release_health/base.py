@@ -6,7 +6,8 @@ from datetime import datetime
 from enum import Enum
 from typing import TYPE_CHECKING, Any, Literal, TypedDict, TypeVar, Union
 
-# from sentry.models.organization import Organization
+from typing_extensions import TypeIs
+
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
@@ -111,6 +112,10 @@ StatsPeriod = Literal[
 ]
 
 OverviewStat = Literal["users", "sessions"]
+
+
+def is_overview_stat(s: str) -> TypeIs[OverviewStat]:
+    return s in ("users", "sessions")
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
