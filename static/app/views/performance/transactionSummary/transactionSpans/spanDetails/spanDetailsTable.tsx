@@ -27,6 +27,7 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
 
 type TableColumnKeys =
   | 'id'
@@ -245,8 +246,9 @@ export function SpanDurationBar(props: SpanDurationBarProps) {
     <DurationBar>
       <div style={{width: toPercent(widthPercentage)}}>
         <Tooltip
-          title={tct('[percentage] of the transaction', {
+          title={tct('[percentage] of the transaction ([duration])', {
             percentage: formatPercentage(widthPercentage),
+            duration: formatTraceDuration(transactionDuration),
           })}
           containerDisplayMode="block"
         >
