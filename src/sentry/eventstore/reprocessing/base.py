@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
@@ -25,7 +24,7 @@ class ReprocessingStore(Service):
         pass
 
     def event_count_for_hashes(
-        self, project_id: int, group_id: int, old_primary_hashes: Sequence[str]
+        self, project_id: int, group_id: int, old_primary_hashes: set[str]
     ) -> int:
         raise NotImplementedError()
 
@@ -46,7 +45,7 @@ class ReprocessingStore(Service):
         self,
         project_id: int,
         group_id: int,
-        event_id: str,
+        event_id: int,
         date_val: datetime,
         old_primary_hash: str,
     ) -> None:
