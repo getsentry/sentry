@@ -93,7 +93,7 @@ export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
   [YAxis.SLOW_FRAME_RATE]: t('Slow Frame Rate'),
   [YAxis.FROZEN_FRAME_RATE]: t('Frozen Frame Rate'),
   [YAxis.THROUGHPUT]: t('Throughput'),
-  [YAxis.COUNT]: t('Count'),
+  [YAxis.COUNT]: t('Total Count'),
   [YAxis.SLOW_FRAMES]: t('Slow Frames'),
   [YAxis.FROZEN_FRAMES]: t('Frozen Frames'),
   [YAxis.FRAMES_DELAY]: t('Frames Delay'),

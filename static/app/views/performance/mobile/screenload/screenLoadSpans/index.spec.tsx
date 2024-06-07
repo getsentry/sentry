@@ -325,11 +325,11 @@ describe('Screen Summary', function () {
       });
 
       const blocks = [
-        {header: 'TTID (R1)', value: '1.00s'},
-        {header: 'TTID (R2)', value: '2.00s'},
-        {header: 'TTFD (R1)', value: '3.00s'},
-        {header: 'TTFD (R2)', value: '4.00s'},
-        {header: 'Count', value: '20'},
+        {header: 'Avg TTID (R1)', value: '1.00s'},
+        {header: 'Avg TTID (R2)', value: '2.00s'},
+        {header: 'Avg TTFD (R1)', value: '3.00s'},
+        {header: 'Avg TTFD (R2)', value: '4.00s'},
+        {header: 'Total Count', value: '20'},
       ];
 
       for (const block of blocks) {
