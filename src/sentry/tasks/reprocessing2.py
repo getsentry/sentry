@@ -145,7 +145,7 @@ def reprocess_group(
 @retry
 def handle_remaining_events(
     project_id: int,
-    new_group_id: str,
+    new_group_id: int,
     remaining_events: str,
     # TODO(markus): Should be mandatory arguments.
     event_ids_redis_key: str | None = None,
