@@ -6,7 +6,9 @@
 from abc import abstractmethod
 from typing import Any
 
+from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache
+from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache_many
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
@@ -114,6 +116,20 @@ class UserService(RpcService):
         :param is_verified: Whether the user's emails need to be verified.
         """
 
+    def get_many_by_id(self, *, ids: list[int]) -> list[RpcUser]:
+        """
+        Get many users by id.
+
+        Will use region local cache to minimize network overhead.
+        Cache keys in regions will be expired as users are updated via outbox receivers.
+
+        :param ids: A list of user ids to fetch
+        """
+        if in_random_rollout("user.get_many_by_id.rollout"):
+            metrics.incr("user_service.get_many_by_id.fetch", len(ids))
+            return get_many_by_id(ids)
+        return self.get_many(filter={"user_ids": ids})
+
     @rpc_method
     @abstractmethod
     def get_by_username(
@@ -193,7 +209,6 @@ class UserService(RpcService):
 
         :param user_id: The user to fetch
         """
-        metrics.incr("user_service.get_user.call")
         return get_user(user_id)
 
     @rpc_method
@@ -313,11 +328,16 @@ class UserService(RpcService):
 
 @back_with_silo_cache("user_service.get_user", SiloMode.REGION, RpcUser)
 def get_user(user_id: int) -> RpcUser | None:
-    metrics.incr("user_service.get_user.rpc_call")
-    users = user_service.get_many(filter=dict(user_ids=[user_id]))
+    users = user_service.get_many(filter={"user_ids": [user_id]})
     if len(users) > 0:
         return users[0]
     return None
+
+
+@back_with_silo_cache_many("user_service.get_many_by_id", SiloMode.REGION, RpcUser)
+def get_many_by_id(ids: list[int]) -> list[RpcUser]:
+    metrics.incr("user_service.get_many_by_id.fetch_rpc", len(ids))
+    return user_service.get_many(filter={"user_ids": ids})
 
 
 user_service = UserService.create_delegation()

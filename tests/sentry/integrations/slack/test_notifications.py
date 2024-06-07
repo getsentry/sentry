@@ -5,10 +5,10 @@ import orjson
 import responses
 
 from sentry.integrations.slack.notifications import send_notification_as_slack
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import DummyNotification
-from sentry.types.integrations import ExternalProviders
 
 
 def additional_attachment_generator_block_kit(integration, organization):

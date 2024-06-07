@@ -70,7 +70,7 @@ interface Props {
 }
 
 export default function FeedbackSearch({className, style}: Props) {
-  const projectIdStrings = usePageFilters().selection.projects?.map(String);
+  const projectIds = usePageFilters().selection.projects;
   const {pathname, query} = useLocation();
   const organization = useOrganization();
   const tags = useTags();
@@ -89,7 +89,7 @@ export default function FeedbackSearch({className, style}: Props) {
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIdStrings,
+        projectIds: projectIds?.map(String),
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
         () => {
@@ -97,13 +97,14 @@ export default function FeedbackSearch({className, style}: Props) {
         }
       );
     },
-    [api, organization.slug, projectIdStrings]
+    [api, organization.slug, projectIds]
   );
 
   return (
     <SearchContainer className={className} style={style}>
       <SmartSearchBar
         hasRecentSearches
+        projectIds={projectIds}
         placeholder={t('Search Feedback')}
         organization={organization}
         onGetTagValues={getTagValues}

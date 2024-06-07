@@ -52,6 +52,10 @@ EXTERNAL_PROVIDERS_REVERSE = {
     ExternalProviderEnum.CUSTOM: ExternalProviders.CUSTOM,
 }
 
+
+EXTERNAL_PROVIDERS_REVERSE_VALUES = {k.value: v for k, v in EXTERNAL_PROVIDERS_REVERSE.items()}
+
+
 EXTERNAL_PROVIDERS = {
     ExternalProviders.EMAIL: ExternalProviderEnum.EMAIL.value,
     ExternalProviders.SLACK: ExternalProviderEnum.SLACK.value,

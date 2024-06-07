@@ -268,8 +268,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             slug=sentry_app.slug, organization=org2, user=self.superuser
         )
 
-        getmany_response = app_service.get_many(
-            filter=dict(app_ids=[sentry_app.id], organization_id=self.organization.id)
+        get_context_response = app_service.get_component_contexts(
+            filter=dict(app_ids=[sentry_app.id], organization_id=self.organization.id),
+            component_type="alert-rule-action",
         )
 
         rule = self.create_alert_rule()
@@ -298,16 +299,17 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             status=200,
         )
         with self.feature("organizations:incidents"):
-            with mock.patch.object(app_service, "get_many") as mock_get_many:
-                mock_get_many.return_value = getmany_response
+            with mock.patch.object(app_service, "get_component_contexts") as mock_get:
+                mock_get.return_value = get_context_response
                 resp = self.get_response(self.organization.slug, rule.id)
 
-                assert mock_get_many.call_count == 1
-                mock_get_many.assert_called_with(
+                assert mock_get.call_count == 1
+                mock_get.assert_called_with(
                     filter={
                         "app_ids": [sentry_app.id],
                         "organization_id": self.organization.id,
                     },
+                    component_type="alert-rule-action",
                 )
 
         assert resp.status_code == 200

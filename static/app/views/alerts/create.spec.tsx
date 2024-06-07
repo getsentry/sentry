@@ -218,6 +218,15 @@ describe('ProjectAlertsCreate', function () {
         });
       });
 
+      await waitFor(() => {
+        expect(trackAnalytics).toHaveBeenCalledWith('edit_alert_rule.delete_row', {
+          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+          organization,
+          project_id: '2',
+          type: 'conditions',
+        });
+      });
+
       await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
