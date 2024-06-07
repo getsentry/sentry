@@ -47,6 +47,7 @@ class PagerDutyClient(ApiClient):
             custom_details = serialize(data, None, ExternalEventSerializer())
             summary = custom_details["message"][:1024] or custom_details["title"]
             link_params = {"referrer": "pagerduty_integration"}
+            client_url = group.get_absolute_url(params=link_params)
             if notification_uuid:
                 link_params["notification_uuid"] = notification_uuid
 
@@ -65,10 +66,10 @@ class PagerDutyClient(ApiClient):
                     "custom_details": custom_details,
                 },
                 "client": "sentry",
-                "client_url": group.get_absolute_url(params=link_params),
+                "client_url": client_url,
                 "links": [
                     {
-                        "href": group.get_absolute_url(params=link_params),
+                        "href": client_url,
                         "text": "View Sentry Issue Details",
                     }
                 ],
