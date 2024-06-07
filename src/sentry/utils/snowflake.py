@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypeVar
 
 from django.conf import settings
 from django.db import IntegrityError, router, transaction
@@ -22,8 +22,10 @@ _TTL = timedelta(minutes=5)
 
 _snowflake_models: set[str] = set()
 
+ModelT = TypeVar("ModelT", bound=Model)
 
-def snowflake_id_model(model_class: type[Model]) -> object:
+
+def snowflake_id_model(model_class: type[ModelT]) -> type[ModelT]:
     """
     Decorator to register a model as using snowflake ids
     This decorator informs safety and model consistency checks.
@@ -34,7 +36,7 @@ def snowflake_id_model(model_class: type[Model]) -> object:
     return model_class
 
 
-def uses_snowflake_id(model_class: type[Model]) -> bool:
+def uses_snowflake_id(model_class: type[ModelT]) -> bool:
     """
     Check if a model class has been annotated as a snowflake id model
     """
