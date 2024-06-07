@@ -125,37 +125,14 @@ def backfill_seer_grouping_records(
 
     snuba_results = get_data_from_snuba(project, groups_to_backfill_with_no_embedding)
 
-    if not snuba_results or not snuba_results[0].get("data"):
-        logger.info(
-            "tasks.backfill_seer_grouping_records.results",
-            extra={
-                "project_id": project.id,
-                "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
-            },
-        )
-        return
-    snuba_results: list[GroupEventRow] = [
-        snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
-    ]
-
-    groups_to_backfill_with_no_embedding_has_snuba_row = []
-    row_group_ids = {row["group_id"] for row in snuba_results}
-    for group_id in groups_to_backfill_with_no_embedding:
-        if group_id in row_group_ids:
-            groups_to_backfill_with_no_embedding_has_snuba_row.append(group_id)
-        else:
-            logger.info(
-                "tasks.backfill_seer_grouping_records.no_snuba_event",
-                extra={
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "group_id": group_id,
-                },
-            )
+    (
+        filtered_snuba_results,
+        groups_to_backfill_with_no_embedding_has_snuba_row,
+    ) = filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project)
 
     try:
         nodestore_results, group_hashes_dict = get_events_from_nodestore(
-            project, snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+            project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
         )
     except NoNodestoreDataError:
         call_next_backfill(
@@ -200,6 +177,37 @@ def backfill_seer_grouping_records(
         last_group_id,
         dry_run,
     )
+
+
+def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project):
+    if not snuba_results or not snuba_results[0].get("data"):
+        logger.info(
+            "tasks.backfill_seer_grouping_records.results",
+            extra={
+                "project_id": project.id,
+                "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
+            },
+        )
+        return
+    filtered_snuba_results: list[GroupEventRow] = [
+        snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
+    ]
+
+    groups_to_backfill_with_no_embedding_has_snuba_row = []
+    row_group_ids = {row["group_id"] for row in filtered_snuba_results}
+    for group_id in groups_to_backfill_with_no_embedding:
+        if group_id in row_group_ids:
+            groups_to_backfill_with_no_embedding_has_snuba_row.append(group_id)
+        else:
+            logger.info(
+                "tasks.backfill_seer_grouping_records.no_snuba_event",
+                extra={
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
+                    "group_id": group_id,
+                },
+            )
+    return filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
 
 
 @sentry_sdk.tracing.trace
