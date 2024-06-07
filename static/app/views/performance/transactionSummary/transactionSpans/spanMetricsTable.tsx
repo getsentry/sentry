@@ -201,7 +201,7 @@ function renderBodyCell(
 
     if (column.key === SpanMetricsField.SPAN_DESCRIPTION) {
       if (!dataRow['span.group']) {
-        return '\u2014';
+        return <TableCellContainer>{'\u2014'}</TableCellContainer>;
       }
 
       const target = spanDetailsRouteWithQuery({
