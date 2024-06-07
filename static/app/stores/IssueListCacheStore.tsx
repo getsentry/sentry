@@ -3,7 +3,7 @@ import {createStore} from 'reflux';
 
 import type {Group} from 'sentry/types/group';
 
-import type {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 /**
  * The type here doesn't really matter it just needs to be compared via isEqual
@@ -33,16 +33,11 @@ interface IssueListCacheState {
   params: LooseParamsType;
 }
 
-interface InternalDefinition {
-  state: IssueListCacheState | null;
-}
-
 // 30 seconds
 const CACHE_EXPIRATION = 30 * 1000;
 
 interface IssueListCacheStoreDefinition
-  extends CommonStoreDefinition<IssueListCache | null>,
-    InternalDefinition {
+  extends StrictStoreDefinition<IssueListCacheState | null> {
   getFromCache(params: LooseParamsType): IssueListCache | null;
   reset(): void;
   save(params: LooseParamsType, data: IssueListCache): void;
@@ -78,7 +73,7 @@ const storeConfig: IssueListCacheStoreDefinition = {
   },
 
   getState() {
-    return this.state?.cache ?? null;
+    return this.state;
   },
 };
 
