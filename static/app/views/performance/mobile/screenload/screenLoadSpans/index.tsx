@@ -119,22 +119,22 @@ function ScreenLoadSpans() {
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                    title: t('AVG TTID (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                    title: t('AVG TTID (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                    title: t('AVG TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                    title: t('AVG TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: 'count',
