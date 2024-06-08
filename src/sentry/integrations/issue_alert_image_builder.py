@@ -6,7 +6,7 @@ from django.core.cache import cache
 
 from sentry.api import client
 from sentry.charts import backend as charts
-from sentry.charts.types import ChartType
+from sentry.charts.types import ChartSize, ChartType
 from sentry.integrations.time_utils import get_approx_start_time, get_relative_time
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.issues.grouptype import (
@@ -27,7 +27,7 @@ logger = logging.getLogger("sentry.chartcuterie")
 locks = LockManager(
     build_instance_from_options_of_type(LockBackend, settings.SENTRY_DEFAULT_LOCKS_BACKEND_OPTIONS)
 )
-DEFAULT_CHART_SIZE = {"width": 600, "height": 200}
+DEFAULT_CHART_SIZE = ChartSize(width=600, height=200)
 
 
 class IssueAlertImageBuilder:
