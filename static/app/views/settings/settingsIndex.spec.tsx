@@ -1,13 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
-import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as OrgActions from 'sentry/actionCreators/organizations';
 import ConfigStore from 'sentry/stores/configStore';
 import type {Organization as TOrganization} from 'sentry/types';
 import SettingsIndex from 'sentry/views/settings/settingsIndex';
+
+import {BreadcrumbProvider} from './components/settingsBreadcrumb/context';
 
 describe('SettingsIndex', function () {
   const props = {
@@ -21,17 +22,17 @@ describe('SettingsIndex', function () {
 
   it('renders', function () {
     render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <SettingsIndex {...props} organization={OrganizationFixture()} />
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
   });
 
   it('has loading when there is no organization', function () {
     render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <SettingsIndex {...props} organization={null} />
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -41,9 +42,9 @@ describe('SettingsIndex', function () {
     ConfigStore.set('isSelfHosted', true);
 
     render(
-      <BreadcrumbContextProvider>
+      <BreadcrumbProvider>
         <SettingsIndex {...props} organization={OrganizationFixture()} />
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     const formLink = screen.getByText('Community Forums');
@@ -73,16 +74,16 @@ describe('SettingsIndex', function () {
 
     it('fetches org details for SidebarDropdown', async function () {
       const {rerender} = render(
-        <BreadcrumbContextProvider>
+        <BreadcrumbProvider>
           <SettingsIndex {...props} params={{}} organization={null} />
-        </BreadcrumbContextProvider>
+        </BreadcrumbProvider>
       );
 
       // org from index endpoint, no `access` info
       rerender(
-        <BreadcrumbContextProvider>
+        <BreadcrumbProvider>
           <SettingsIndex {...props} organization={organization} />
-        </BreadcrumbContextProvider>
+        </BreadcrumbProvider>
       );
 
       await waitFor(() => expect(orgApi).toHaveBeenCalledTimes(1));
@@ -94,16 +95,16 @@ describe('SettingsIndex', function () {
 
     it('does not fetch org details for SidebarDropdown', function () {
       const {rerender} = render(
-        <BreadcrumbContextProvider>
+        <BreadcrumbProvider>
           <SettingsIndex {...props} params={{}} organization={null} />
-        </BreadcrumbContextProvider>
+        </BreadcrumbProvider>
       );
 
       // org already has details
       rerender(
-        <BreadcrumbContextProvider>
+        <BreadcrumbProvider>
           <SettingsIndex {...props} organization={OrganizationFixture()} />
-        </BreadcrumbContextProvider>
+        </BreadcrumbProvider>
       );
 
       expect(spy).not.toHaveBeenCalledWith();

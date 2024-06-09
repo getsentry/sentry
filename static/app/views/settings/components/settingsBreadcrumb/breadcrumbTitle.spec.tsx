@@ -1,8 +1,8 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {BreadcrumbContextProvider} from 'sentry-test/providers/breadcrumbContextProvider';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import BreadcrumbTitle from './breadcrumbTitle';
+import {BreadcrumbProvider} from './context';
 import SettingsBreadcrumb from '.';
 
 jest.unmock('sentry/utils/recreateRoute');
@@ -22,10 +22,10 @@ describe('BreadcrumbTitle', function () {
     } as any);
 
     render(
-      <BreadcrumbContextProvider routes={testRoutes}>
+      <BreadcrumbProvider>
         <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
-      </BreadcrumbContextProvider>,
+      </BreadcrumbProvider>,
       {router}
     );
 
@@ -45,11 +45,11 @@ describe('BreadcrumbTitle', function () {
     let upOneRoutes = testRoutes.slice(0, -1);
 
     const {rerender} = render(
-      <BreadcrumbContextProvider routes={testRoutes}>
+      <BreadcrumbProvider>
         <SettingsBreadcrumb routes={testRoutes} params={{}} route={{}} />
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
         <BreadcrumbTitle routes={testRoutes} title="Last Title" />
-      </BreadcrumbContextProvider>,
+      </BreadcrumbProvider>,
       {router}
     );
 
@@ -64,10 +64,10 @@ describe('BreadcrumbTitle', function () {
 
     // Simulate navigating up a level, trimming the last title
     rerender(
-      <BreadcrumbContextProvider routes={upOneRoutes}>
+      <BreadcrumbProvider>
         <SettingsBreadcrumb routes={upOneRoutes} params={{}} route={{}} />
         <BreadcrumbTitle routes={upOneRoutes} title="Second Title" />
-      </BreadcrumbContextProvider>
+      </BreadcrumbProvider>
     );
 
     const crumbsNext = screen.getAllByRole('link');
