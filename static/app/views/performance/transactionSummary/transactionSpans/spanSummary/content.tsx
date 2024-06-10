@@ -148,7 +148,7 @@ function parseSpanHeaderData(data: Partial<SpanMetricsResponse>[]) {
     return undefined;
   }
 
-  if (data.length === 1) {
+  if (data.length <= 1) {
     return {
       description: data[0]?.['span.description'],
       timeSpent: data[0]?.['sum(span.self_time)'],
