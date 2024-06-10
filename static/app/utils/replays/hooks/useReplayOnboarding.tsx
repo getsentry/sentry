@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect} from 'react';
 
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
@@ -6,13 +6,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
-
-export function useHasOrganizationSentAnyReplayEvents() {
-  const {projects, fetching} = useProjects();
-  const hasOrgSentReplays = useMemo(() => projects.some(p => p.hasReplays), [projects]);
-  return {hasOrgSentReplays, fetching};
-}
 
 export function useHaveSelectedProjectsSentAnyReplayEvents() {
   const {hasField: hasSentOneReplay, fetching} =
