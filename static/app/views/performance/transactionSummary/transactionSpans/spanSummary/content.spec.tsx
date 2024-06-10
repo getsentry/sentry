@@ -265,21 +265,15 @@ describe('SpanSummaryPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-    const headerContainerOp = await screen.findByTestId('operation-name');
-    const headerContainerDescription = await screen.findByTestId(
-      'header-span-description'
-    );
-    const avgDuration = await screen.findByTestId('header-avg-duration');
-    const timeSpent = await screen.findByTestId('header-total-time-spent');
-    const totalSpanCount = await screen.findByTestId('total-span-count');
-
-    expect(headerContainerOp).toHaveTextContent('db');
-    expect(headerContainerDescription).toHaveTextContent(
+    expect(await screen.findByTestId('operation-name')).toHaveTextContent('db');
+    expect(await screen.findByTestId('header-span-description')).toHaveTextContent(
       'SELECT thing FROM my_cool_db WHERE value = %s'
     );
-    expect(avgDuration).toHaveTextContent('1.74ms');
-    expect(timeSpent).toHaveTextContent('2.43mo');
-    expect(totalSpanCount).toHaveTextContent('3.6b spans');
+    expect(await screen.findByTestId('header-avg-duration')).toHaveTextContent('1.74ms');
+    expect(await screen.findByTestId('header-total-time-spent')).toHaveTextContent(
+      '2.43mo'
+    );
+    expect(await screen.findByTestId('total-span-count')).toHaveTextContent('3.6b spans');
   });
 
   it('renders the charts', async () => {
