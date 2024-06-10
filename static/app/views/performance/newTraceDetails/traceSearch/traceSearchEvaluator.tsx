@@ -484,13 +484,11 @@ function resolveValueFromKey(
       // If the value can be accessed directly, do so,
       // else check if the key is an entity key, sanitize it and try direct access again.
       // @TODO support deep nested keys with dot notation
-      // console.log('here', token, key, value[key]);
       if (
         key === 'has' &&
         token.type === Token.FILTER &&
         token.value.type === Token.VALUE_TEXT
       ) {
-        // console.log(token.value.value);
         switch (token.value.text) {
           case 'error':
           case 'errors': {
