@@ -20,14 +20,14 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(
-    event: Event, project: Project, primary_hashes: CalculatedHashes
-) -> bool:
+def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
     """
     # TODO: Implement rate limits, kill switches, other flags, etc
+
+    project = event.project
 
     has_either_seer_grouping_feature = features.has(
         "projects:similarity-embeddings-metadata", project
