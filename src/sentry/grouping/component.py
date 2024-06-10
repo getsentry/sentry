@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Sequence
+from collections.abc import Generator, Iterator, Sequence
 from typing import Any
 
 from sentry.grouping.utils import hash_from_values
@@ -85,13 +85,15 @@ class GroupingComponent:
             return " ".join(items[-1])
         return self.name or "others"
 
-    def get_subcomponent(self, id: int, only_contributing: bool = False) -> Any | None:
+    def get_subcomponent(
+        self, id: str, only_contributing: bool = False
+    ) -> str | GroupingComponent | None:
         """Looks up a subcomponent by the id and returns the first or `None`."""
         return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
 
     def iter_subcomponents(
-        self, id: int, recursive: bool = False, only_contributing: bool = False
-    ) -> Generator[GroupingComponent, None, None]:
+        self, id: str, recursive: bool = False, only_contributing: bool = False
+    ) -> Iterator[str | GroupingComponent | None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
             if isinstance(value, GroupingComponent):
