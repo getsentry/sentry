@@ -66,6 +66,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the cron job to auto-enable codecov integrations.
     manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable new breadcrumbs UX
+    manager.add("organizations:breadcrumbs-update", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enables getting commit sha from git blame for codecov.
     manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Disables legacy cron ingest endpoints
