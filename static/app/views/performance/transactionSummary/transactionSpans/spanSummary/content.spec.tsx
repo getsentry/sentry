@@ -263,6 +263,8 @@ describe('SpanSummaryPage', function () {
 
     expect(headerDataMock).toHaveBeenCalled();
 
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
     const headerContainerOp = await screen.findByTestId('operation-name');
     const headerContainerDescription = await screen.findByTestId(
       'header-span-description'
@@ -294,11 +296,11 @@ describe('SpanSummaryPage', function () {
     expect(spanThroughputChartMock).toHaveBeenCalled();
     expect(transactionThroughputChartMock).toHaveBeenCalled();
 
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
     const chartHeaders = await screen.findAllByTestId('chart-panel-header');
     expect(chartHeaders[0]).toHaveTextContent('Average Duration');
     expect(chartHeaders[1]).toHaveTextContent('Span Throughput');
     expect(chartHeaders[2]).toHaveTextContent('Transaction Throughput');
-
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
   });
 });
