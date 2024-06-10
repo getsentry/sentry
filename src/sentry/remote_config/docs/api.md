@@ -44,85 +44,51 @@ Fetch a project's configuration. Responses should be proxied exactly to the SDK.
     }
     ```
 
-## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/]
+## Configurations [/projects/<organization_id_or_slug>/<project_id_or_slug>/configurations/]
 
-### Get Configuration [GET]
+| Field              | Type             | Description                                                                   |
+| ------------------ | ---------------- | ----------------------------------------------------------------------------- |
+| environment        | optional[string] | The environment the configuration is associated with.                         |
+| id                 | string           | A server generted unique identifier.                                          |
+| name               | optional[string] | A custom name distinguishing the configuration from the default project name. |
+| sample_rate        | number           |                                                                               |
+| traces_sample_rate | number           |                                                                               |
+| version            | number           | The current configuration version. Initialized to 1.                          |
 
-Retrieve the project's configuration.
+### Get Configurations [GET]
 
-**Attributes**
-
-| Column   | Type           | Description                                   |
-| -------- | -------------- | --------------------------------------------- |
-| features | array[Feature] | Custom, user-defined configuration container. |
-| options  | Option         | Sentry SDK options container.                 |
-
-**Feature Object**
-
-| Field | Type   | Description                        |
-| ----- | ------ | ---------------------------------- |
-| key   | string | The name used to lookup a feature. |
-| value | any    | A JSON value.                      |
-
-**Option Object**
-
-| Field              | Type  | Description                                         |
-| ------------------ | ----- | --------------------------------------------------- |
-| sample_rate        | float | Error sample rate. A numeric value between 0 and 1. |
-| traces_sample_rate | float | Trace sample rate. A numeric value between 0 and 1. |
-
-**If an existing configuration exists**
+Retrieve configurations.
 
 - Response 200
 
   ```json
   {
-    "data": {
-      "features": [
-        {
-          "key": "hello",
-          "value": "world"
-        },
-        {
-          "key": "has_access",
-          "value": true
-        }
-      ],
-      "options": {
-        "sample_rate": 1.0,
-        "traces_sample_rate": 0.5
+    "data": [
+      {
+        "environment": null,
+        "id": "0b88ac27a7b444a6baeb312c0493aed5",
+        "name": null,
+        "sample_rate": 0,
+        "traces_sample_rate": 0.75,
+        "version": 1
       }
-    }
+    ]
   }
   ```
 
-**If no existing configuration exists**
+### Create Configuration [POST]
 
-- Response 404
-
-### Set Configuration [POST]
-
-Set the project's configuration.
+Create a new configuration. The version field is ignored on create. Version is initialized to 1.
 
 - Request
 
   ```json
   {
     "data": {
-      "features": [
-        {
-          "key": "hello",
-          "value": "world"
-        },
-        {
-          "key": "has_access",
-          "value": true
-        }
-      ],
-      "options": {
-        "sample_rate": 1.0,
-        "traces_sample_rate": 0.5
-      }
+      "environment": "production",
+      "name": "custom-name",
+      "sample_rate": 1.0,
+      "traces_sample_rate": 0.5
     }
   }
   ```
@@ -132,26 +98,172 @@ Set the project's configuration.
   ```json
   {
     "data": {
-      "features": [
-        {
-          "key": "hello",
-          "value": "world"
-        },
-        {
-          "key": "has_access",
-          "value": true
-        }
-      ],
-      "options": {
-        "sample_rate": 1.0,
-        "traces_sample_rate": 0.5
-      }
+      "id": "0b88ac27a7b444a6baeb312c0493aed5",
+      "environment": "production",
+      "name": "custom-name",
+      "sample_rate": 1.0,
+      "traces_sample_rate": 0.5,
+      "version": 1
+    }
+  }
+  ```
+
+## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/configurations/<configuration_id>/]
+
+### Get Configuration [GET]
+
+Retrieve a configuration.
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "environment": null,
+      "id": "0b88ac27a7b444a6baeb312c0493aed5",
+      "sample_rate": 0,
+      "name": null,
+      "traces_sample_rate": 0.75,
+      "version": 1
+    }
+  }
+  ```
+
+### Update Configuration [PATCH]
+
+Update a configuration. The version attribute is required for all update requests and must match the current server configuration in order to update else an error is returned.
+
+- Request
+
+  ```json
+  {
+    "data": {
+      "sample_rate": 0,
+      "version": 2
+    }
+  }
+  ```
+
+- Response 202
+
+  ```json
+  {
+    "data": {
+      "environment": "production",
+      "id": "0b88ac27a7b444a6baeb312c0493aed5",
+      "name": null,
+      "sample_rate": 0,
+      "traces_sample_rate": 0.5,
+      "version": 2
     }
   }
   ```
 
 ### Delete Configuration [DELETE]
 
-Delete the project's configuration.
+Delete a configuration.
+
+- Response 204
+
+## Features [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/<configuration_id>/features/]
+
+### Get Features [GET]
+
+Retrieve configuration features.
+
+- Response 200
+
+  ```json
+  {
+    "data": [
+      {
+        "description": "A feature description.",
+        "is_enabled": true,
+        "key": "hello",
+        "value": 22.3
+      }
+    ]
+  }
+  ```
+
+### Create Feature [POST]
+
+Create a configuration feature.
+
+- Request
+
+  ```json
+  {
+    "data": {
+      "description": "Another key.",
+      "is_enabled": true,
+      "key": "other",
+      "value": "key"
+    }
+  }
+  ```
+
+- Response 201
+
+  ```json
+  {
+    "data": {
+      "description": "Another key.",
+      "is_enabled": true,
+      "key": "other",
+      "value": "key"
+    }
+  }
+  ```
+
+## Feature [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/<configuration_id>/features/<feature_id>/]
+
+### Get Feature [GET]
+
+Retrieve a configuration feature.
+
+- Response 200
+
+  ```json
+  {
+    "data": {
+      "description": "A feature description.",
+      "is_enabled": true,
+      "key": "hello",
+      "value": 22.3
+    }
+  }
+  ```
+
+### Update Feature [PATCH]
+
+Update a configuration feature.
+
+- Request
+
+  ```json
+  {
+    "data": {
+      "is_enabled": false
+    }
+  }
+  ```
+
+- Response 202
+
+  ```json
+  {
+    "data": {
+      "description": "A feature description.",
+      "is_enabled": false,
+      "key": "hello",
+      "value": 22.3
+    }
+  }
+  ```
+
+### Delete Feature [DELETE]
+
+Delete a configuration feature.
 
 - Response 204
