@@ -1,11 +1,8 @@
-import type {BadgeType} from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 export const MODULE_TITLE = t('Caches');
 export const BASE_URL = 'caches';
-
-export const RELEASE_LEVEL: BadgeType = 'beta';
 
 // NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
 export const releaseLevelAsBadgeProps = {

@@ -1,7 +1,6 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -34,7 +33,6 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
-  RELEASE_LEVEL,
 } from 'sentry/views/performance/cache/settings';
 import {
   isAValidSort,
@@ -198,7 +196,6 @@ export function CacheLandingPage() {
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
             />
-            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
