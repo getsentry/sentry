@@ -599,7 +599,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
             assert resp.status_code == 200, resp.content
             assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
-            activity = Activity.objects.filter(group=self.group).first()
+            activity = Activity.objects.filter(group=self.group)[0]
             assert activity.data == {
                 "assignee": str(user2.id),
                 "assigneeEmail": user2.email,
@@ -634,14 +634,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":red_circle:" in resp.data["blocks"][0]["text"]["text"]
 
         # Assert group assignment activity recorded
-        group_activity = Activity.objects.filter(group=self.group)
-        assert group_activity.first().data == {
+        group_activity = list(Activity.objects.filter(group=self.group))
+        assert group_activity[0].data == {
             "assignee": str(user2.id),
             "assigneeEmail": user2.email,
             "assigneeType": "user",
             "integration": ActivityIntegration.SLACK.value,
         }
-        assert group_activity.last().data == {
+        assert group_activity[-1].data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
             "assigneeType": "team",
@@ -671,14 +671,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
 
         # Assert group assignment activity recorded
-        group_activity = Activity.objects.filter(group=self.group)
-        assert group_activity.first().data == {
+        group_activity = list(Activity.objects.filter(group=self.group))
+        assert group_activity[0].data == {
             "assignee": str(user2.id),
             "assigneeEmail": user2.email,
             "assigneeType": "user",
             "integration": ActivityIntegration.SLACK.value,
         }
-        assert group_activity.last().data == {
+        assert group_activity[-1].data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
             "assigneeType": "team",
@@ -706,14 +706,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assert group assignment activity recorded
-        group_activity = Activity.objects.filter(group=self.group)
-        assert group_activity.first().data == {
+        group_activity = list(Activity.objects.filter(group=self.group))
+        assert group_activity[0].data == {
             "assignee": str(user2.id),
             "assigneeEmail": user2.email,
             "assigneeType": "user",
             "integration": ActivityIntegration.SLACK.value,
         }
-        assert group_activity.last().data == {
+        assert group_activity[-1].data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
             "assigneeType": "team",

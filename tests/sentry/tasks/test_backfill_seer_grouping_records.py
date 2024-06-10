@@ -653,8 +653,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             event.group.times_seen = 2
             event.group.save()
             # Arbitrarily choose a parent group's hash that has times_seen = 5
-            parent_group = Group.objects.filter(times_seen__gt=2).first()
-            parent_group_hash = GroupHash.objects.filter(group_id=parent_group.id).first()
+            parent_group = Group.objects.get(times_seen__gt=2)
+            parent_group_hash = GroupHash.objects.get(group_id=parent_group.id)
             groups_with_neighbor[str(event.group.id)] = RawSeerSimilarIssueData(
                 stacktrace_distance=0.01,
                 message_distance=0.01,
@@ -679,7 +679,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 }
             else:
                 request_hash = GroupHash.objects.get(group_id=group.id).hash
-                parent_group_id = Group.objects.filter(times_seen__gt=2).first().id
+                parent_group_id = Group.objects.get(times_seen__gt=2).id
                 assert group.data["metadata"].get("seer_similarity") == {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "request_hash": request_hash,
@@ -1000,7 +1000,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert last_processed_index == len(groups)
 
         # Assert metadata was not set for groups that is 90 days old
-        old_group = Group.objects.filter(project_id=self.project.id, id=old_group_id).first()
+        old_group = Group.objects.get(project_id=self.project.id, id=old_group_id)
         assert old_group.data["metadata"].get("seer_similarity") is None
 
     @with_feature("projects:similarity-embeddings-backfill")
