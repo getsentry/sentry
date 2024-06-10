@@ -21,6 +21,7 @@ export interface MetricTimeseriesRow {
 interface UseMetricsSeriesOptions<Fields> {
   enabled?: boolean;
   interval?: string;
+  overriddenRoute?: string;
   referrer?: string;
   search?: MutableSearch;
   yAxis?: Fields;
@@ -79,6 +80,7 @@ const useDiscoverSeries = <T extends string[]>(
     initialData: [],
     referrer,
     enabled: options.enabled,
+    overriddenRoute: options.overriddenRoute,
   });
 
   const parsedData = keyBy(

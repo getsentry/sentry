@@ -66,11 +66,13 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
   initialData,
   referrer,
   cursor,
+  overriddenRoute,
 }: {
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
+  overriddenRoute?: string;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -83,7 +85,7 @@ export function useWrappedDiscoverTimeseriesQuery<T>({
     },
     DiscoverQueryProps
   >({
-    route: 'events-stats',
+    route: overriddenRoute ?? 'events-stats',
     eventView,
     location,
     orgSlug: organization.slug,
