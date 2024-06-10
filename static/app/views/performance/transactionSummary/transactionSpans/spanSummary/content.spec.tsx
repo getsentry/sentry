@@ -14,7 +14,7 @@ jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 
-describe('Performance > Transaction Spans > Span Summary', function () {
+describe('SpanSummaryPage', function () {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
 
