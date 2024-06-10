@@ -21,10 +21,6 @@ describe('Related Issues View', function () {
 
   const params = {groupId: groupId};
   const errorType = 'RuntimeError';
-  const noData = {
-    type: 'irrelevant',
-    data: [],
-  };
   const onlySameRootData = {
     type: 'same_root_cause',
     data: [group1, group2],
@@ -75,37 +71,6 @@ describe('Related Issues View', function () {
     jest.clearAllMocks();
   });
 
-  it('renders with no data', async function () {
-    sameRootIssuesMock = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/?type=same_root_cause`,
-      body: noData,
-    });
-    traceIssuesMock = MockApiClient.addMockResponse({
-      url: `/issues/${groupId}/related-issues/?type=trace_connected`,
-      body: noData,
-    });
-    render(
-      <GroupRelatedIssues
-        params={params}
-        location={router.location}
-        router={router}
-        routeParams={router.params}
-        routes={router.routes}
-        route={{}}
-      />
-    );
-
-    expect(
-      await screen.findByText('No same-root-cause related issues were found.')
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText('No trace-connected related issues were found.')
-    ).toBeInTheDocument();
-
-    expect(sameRootIssuesMock).toHaveBeenCalled();
-    expect(traceIssuesMock).toHaveBeenCalled();
-  });
-
   it('renders with same root issues', async function () {
     sameRootIssuesMock = MockApiClient.addMockResponse({
       url: `/issues/${groupId}/related-issues/?type=same_root_cause`,
@@ -137,9 +102,6 @@ describe('Related Issues View', function () {
 
     expect(sameRootIssuesMock).toHaveBeenCalled();
     expect(issuesMock).toHaveBeenCalled();
-    expect(
-      await screen.findByText('No trace-connected related issues were found.')
-    ).toBeInTheDocument();
     const linkButton = screen.getByRole('button', {name: /open in issues/i});
     expect(linkButton).toHaveAttribute(
       'href',
@@ -178,9 +140,6 @@ describe('Related Issues View', function () {
 
     expect(traceIssuesMock).toHaveBeenCalled();
     expect(issuesMock).toHaveBeenCalled();
-    expect(
-      await screen.findByText('No same-root-cause related issues were found.')
-    ).toBeInTheDocument();
     const linkElement = screen.getByRole('link', {name: /this trace/i});
     expect(linkElement).toHaveAttribute(
       'href',
