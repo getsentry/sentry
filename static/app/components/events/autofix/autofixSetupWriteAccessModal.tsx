@@ -49,7 +49,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
       <Fragment>
         <p>
           {tct(
-            'In order to create pull requests, install and grant write access to the [link:Sentry Autofix Github App] for the following repositories:',
+            'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the following repositories:',
             {
               link: (
                 <ExternalLink
@@ -72,7 +72,7 @@ function Content({groupId, closeModal}: {closeModal: () => void; groupId: string
     <Fragment>
       <p>
         {tct(
-          'In order to create pull requests, install and grant write access to the [link:Sentry Autofix Github App] for the relevant repositories.',
+          'In order to create pull requests, install and grant write access to the [link:Sentry Autofix GitHub App] for the relevant repositories.',
           {
             link: (
               <ExternalLink
@@ -93,6 +93,8 @@ export function AutofixSetupWriteAccessModal({
   groupId,
   closeModal,
 }: AutofixSetupWriteAccessModalProps) {
+  const {canCreatePullRequests} = useAutofixSetup({groupId});
+
   return (
     <Fragment>
       <Header closeButton>
@@ -101,18 +103,20 @@ export function AutofixSetupWriteAccessModal({
       <Body>
         <Content groupId={groupId} closeModal={closeModal} />
       </Body>
-      <Footer>
-        <ButtonBar gap={1}>
-          <Button onClick={closeModal}>{t('Later')}</Button>
-          <LinkButton
-            href="https://github.com/apps/sentry-autofix-experimental/installations/new"
-            external
-            priority="primary"
-          >
-            {t('Install the Autofix GitHub App')}
-          </LinkButton>
-        </ButtonBar>
-      </Footer>
+      {!canCreatePullRequests && (
+        <Footer>
+          <ButtonBar gap={1}>
+            <Button onClick={closeModal}>{t('Later')}</Button>
+            <LinkButton
+              href="https://github.com/apps/sentry-autofix-experimental/installations/new"
+              external
+              priority="primary"
+            >
+              {t('Install the Autofix GitHub App')}
+            </LinkButton>
+          </ButtonBar>
+        </Footer>
+      )}
     </Fragment>
   );
 }
