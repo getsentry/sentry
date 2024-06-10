@@ -34,7 +34,7 @@ describe('UpdatedEmptyState', function () {
 
     expect(
       await screen.findByText(
-        'If you have the Django package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django settings.py file'
+        'To configure the Sentry SDK, initialize it in your settings.py file.'
       )
     ).toBeInTheDocument();
 
