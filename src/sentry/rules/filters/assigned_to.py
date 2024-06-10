@@ -65,7 +65,7 @@ class AssignedToFilter(EventFilter):
                 team = Team.objects.get(id=target_identifer)
             except Team.DoesNotExist:
                 return self.label.format(**self.data)
-            return self.label.format(targetType=f"team {team.slug}")
+            return self.label.format(targetType=f"team #{team.slug}")
 
         elif target_type == AssigneeTargetType.MEMBER:
             user = user_service.get_user(user_id=target_identifer)

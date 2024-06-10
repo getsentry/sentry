@@ -203,7 +203,8 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         )
         assert response.data["id"] == str(self.rule.id)
         assert (
-            response.data["filters"][0]["name"] == f"The issue is assigned to team {self.team.slug}"
+            response.data["filters"][0]["name"]
+            == f"The issue is assigned to team #{self.team.slug}"
         )
 
     def test_with_assigned_to_user_filter(self):
