@@ -2,10 +2,10 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {TokenType} from 'sentry/components/metrics/equationInput/syntax/types';
 import {Tooltip} from 'sentry/components/tooltip';
-import {TokenType} from 'sentry/views/metrics/formulaParser/types';
 
-import grammar from './formulaFormatting.pegjs';
+import grammar from './equationFormatting.pegjs';
 
 const operatorTokens = new Set([
   TokenType.PLUS,

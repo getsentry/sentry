@@ -1,5 +1,8 @@
-import {joinTokens, parseFormula} from 'sentry/views/metrics/formulaParser/parser';
-import {TokenType} from 'sentry/views/metrics/formulaParser/types';
+import {
+  joinTokens,
+  parseFormula,
+} from 'sentry/components/metrics/equationInput/syntax/parser';
+import {TokenType} from 'sentry/components/metrics/equationInput/syntax/types';
 
 const complexFormula = '2 / ((foo + 3) * c - (3 / 5))';
 const complexTokenList = [

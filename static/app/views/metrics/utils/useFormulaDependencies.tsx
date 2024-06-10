@@ -1,5 +1,10 @@
 import {useCallback, useMemo} from 'react';
 
+import {parseFormula} from 'sentry/components/metrics/equationInput/syntax/parser';
+import {
+  type TokenList,
+  TokenType,
+} from 'sentry/components/metrics/equationInput/syntax/types';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {
@@ -8,8 +13,6 @@ import {
   type MetricsQueryWidget,
 } from 'sentry/utils/metrics/types';
 import {useMetricsContext} from 'sentry/views/metrics/context';
-import {parseFormula} from 'sentry/views/metrics/formulaParser/parser';
-import {type TokenList, TokenType} from 'sentry/views/metrics/formulaParser/types';
 
 interface FormulaDependencies {
   dependencies: MetricsQueryWidget[];
