@@ -96,24 +96,6 @@ export function formatBytesBase2(bytes: number, fixPoints: number | false = 1): 
   );
 }
 
-export function getShortCommitHash(hash: string): string {
-  if (hash.match(/^[a-f0-9]{40}$/)) {
-    hash = hash.substring(0, 7);
-  }
-  return hash;
-}
-
-export function parseRepo<T>(repo: T): T {
-  if (typeof repo === 'string') {
-    const re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
-    const match = repo.match(re);
-    const parsedRepo = match ? match[1] : repo;
-    return parsedRepo as any;
-  }
-
-  return repo;
-}
-
 /**
  * Converts a multi-line textarea input value into an array,
  * eliminating empty lines
