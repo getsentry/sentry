@@ -2,18 +2,27 @@ import type {ComponentProps} from 'react';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 interface Props {
   clearSpansTableCursor?: boolean;
+  moduleName?: ModuleName;
   size?: ComponentProps<typeof CompactSelect>['size'];
 }
 
-export function DeviceClassSelector({size = 'xs', clearSpansTableCursor}: Props) {
+export function DeviceClassSelector({
+  size = 'xs',
+  clearSpansTableCursor,
+  moduleName = ModuleName.OTHER,
+}: Props) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const value = decodeScalar(location.query['device.class']) ?? '';
 
@@ -32,6 +41,17 @@ export function DeviceClassSelector({size = 'xs', clearSpansTableCursor}: Props)
       value={value}
       options={options ?? []}
       onChange={newValue => {
+        if (moduleName === ModuleName.APP_START) {
+          trackAnalytics('insight.app_start.spans.filter_by_device_class', {
+            organization,
+            filter: newValue.value,
+          });
+        } else if (moduleName === ModuleName.SCREEN_LOAD) {
+          trackAnalytics('insight.screen_load.spans.filter_by_device_class', {
+            organization,
+            filter: newValue.value,
+          });
+        }
         browserHistory.push({
           ...location,
           query: {
