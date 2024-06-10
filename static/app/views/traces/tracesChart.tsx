@@ -43,6 +43,7 @@ export function TracesChart({}: Props) {
   );
 
   const seriesData = spanIndexedCountSeries.data?.['count()'];
+  seriesData.z = 1; // TODO:: This shouldn't be required, but we're putting this in for now to avoid split lines being shown on top of the chart data :).
 
   return (
     <ChartContainer>
