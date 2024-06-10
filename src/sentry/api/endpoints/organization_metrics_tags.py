@@ -19,7 +19,6 @@ from sentry.snuba.metrics import (
     MetricDoesNotExistInIndexer,
     Tag,
     get_all_tags,
-    get_mri,
 )
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 
@@ -46,11 +45,20 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         if len(metric_names) != 1:
             raise BadRequest(message="Please provide a single metric to query its tags.")
 
+        metric_name = metric_names[0]
+        if not is_mri(metric_name):
+            raise BadRequest(message="Please provide a valid MRI to query a metric's tags.")
+
         try:
-            metric_name = metric_names[0]
-            # If metric_name is a valid MRI, use the snuba meta table for tags.
-            # If metric_name corresponds to some legacy type of metric, use the old get_all_tags functionality
-            if is_mri(metric_name):
+            if metric_name.startswith("e:"):
+                # If metric_name starts with "e:", and therefore is a derived metric, use the old get_all_tags functionality
+                # This branch should be deleted eventually.
+                sentry_sdk.capture_message("organization_metrics_tags.non-mri-metric-name")
+                formatted_tags = get_all_tags(
+                    projects, [metric_name], use_case_id=get_use_case_id(request)
+                )
+
+            else:
                 tags = get_tag_keys(
                     organization=organization,
                     projects=projects,
@@ -59,11 +67,6 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
                 )
                 tags.append("project")
                 formatted_tags: Sequence[Tag] = [Tag(key=tag) for tag in set(tags)]
-
-            else:
-                sentry_sdk.capture_message("organization_metrics_tags.non-mri-metric-name")
-                mri = get_mri(metric_name)
-                formatted_tags = get_all_tags(projects, [mri], use_case_id=get_use_case_id(request))
 
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))

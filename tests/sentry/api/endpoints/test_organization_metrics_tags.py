@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics import SessionMetricKey, TransactionMRI
+from sentry.snuba.metrics import SessionMRI, TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -134,8 +134,8 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert (
-            response.data["detail"]
-            == "Failed to parse 'foo.bar'. The metric name must belong to a public metric."
+            response.data["detail"]["message"]
+            == "Please provide a valid MRI to query a metric's tags."
         )
 
     def test_metric_tags_metric_does_not_have_data(self):
@@ -145,8 +145,8 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert (
-            response.json()["detail"]
-            == "Failed to parse 'foo.bar'. The metric name must belong to a public metric."
+            response.json()["detail"]["message"]
+            == "Please provide a valid MRI to query a metric's tags."
         )
 
     def test_derived_metric_tags(self):
@@ -160,7 +160,7 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         )
         response = self.get_success_response(
             self.organization.slug,
-            metric=["session.crash_free_rate"],
+            metric=[SessionMRI.CRASH_FREE_RATE.value],
         )
         assert response.status_code == 200
         assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
@@ -185,23 +185,6 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
             == "Please provide a single metric to query its tags."
         )
 
-    def test_composite_derived_metrics(self):
-        for minute in range(4):
-            self.store_session(
-                self.build_session(
-                    project_id=self.project.id,
-                    started=(time.time() // 60 - minute) * 60,
-                    status="ok",
-                    release="foobar@2.0",
-                    errors=2,
-                )
-            )
-        response = self.get_success_response(
-            self.organization.slug,
-            metric=[SessionMetricKey.HEALTHY.value],
-        )
-        assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
-
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     @patch("sentry.snuba.metrics.datasource.get_derived_metrics")
     def test_incorrectly_setup_derived_metric(self, mocked_derived_metrics):
@@ -221,8 +204,8 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         )
         assert response.status_code == 400
         assert (
-            response.json()["detail"]
-            == "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
+            response.json()["detail"]["message"]
+            == "Please provide a valid MRI to query a metric's tags."
         )
 
     def test_metric_tags_with_gauge(self):
