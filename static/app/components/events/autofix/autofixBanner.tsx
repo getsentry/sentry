@@ -118,14 +118,14 @@ export function AutofixBanner({
             {t('Sit back and let Autofix find potential root causes and fixes')}
           </SubTitle>
         </div>
-        <ContextArea>
+        <ButtonGroup>
           <AutofixBannerContent
             groupId={groupId}
             projectId={projectId}
             triggerAutofix={triggerAutofix}
             hasSuccessfulSetup={hasSuccessfulSetup}
           />
-        </ContextArea>
+        </ButtonGroup>
         {isSentryEmployee && hasSuccessfulSetup && (
           <PiiMessage>
             {t(
@@ -168,7 +168,7 @@ const SubTitle = styled('p')`
   margin: ${space(1)} 0;
 `;
 
-const ContextArea = styled('div')`
+const ButtonGroup = styled('div')`
   display: flex;
   gap: ${space(1)};
   margin-top: ${space(1)};
