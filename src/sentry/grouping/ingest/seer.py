@@ -36,14 +36,6 @@ def should_call_seer_for_grouping(
     if not has_either_seer_grouping_feature:
         return False
 
-    # TODO: In our context, this can never happen. There are other scenarios in which `variants` can
-    # be `None`, but where we'll be using this (during ingestion) it's not possible. This check is
-    # primarily to satisfy mypy. Once we get rid of hierarchical hashing, we'll be able to
-    # make `variants` required in `CalculatedHashes`, meaning we can remove this check. (See note in
-    # `CalculatedHashes` class definition.)
-    if primary_hashes.variants is None:
-        raise Exception("Primary hashes missing variants data")
-
     fingerprint_variant = primary_hashes.variants.get(
         "custom-fingerprint"
     ) or primary_hashes.variants.get("built-in-fingerprint")
@@ -149,14 +141,6 @@ def get_seer_similar_issues(
     Will also return `None` for the neighboring group if the `projects:similarity-embeddings-grouping`
     feature flag is off.
     """
-
-    # TODO: In our context, this can never happen. There are other scenarios in which `variants` can
-    # be `None`, but where we'll be using this (during ingestion) it's not possible. This check is
-    # primarily to satisfy mypy. Once we get rid of hierarchical hashing, we'll be able to
-    # make `variants` required in `CalculatedHashes`, meaning we can remove this check. (See note in
-    # `CalculatedHashes` class definition.)
-    if primary_hashes.variants is None:
-        raise Exception("Primary hashes missing variants data")
 
     event_hash = primary_hashes.hashes[0]
     stacktrace_string = get_stacktrace_string(

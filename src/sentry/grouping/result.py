@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Optional, TypedDict
 
 from sentry.db.models import NodeData
@@ -98,8 +98,8 @@ def _write_tree_labels(tree_labels: Sequence[TreeLabel | None], event_data: Node
 @dataclass(frozen=True)
 class CalculatedHashes:
     hashes: list[str]
-    hierarchical_hashes: list[str]
-    tree_labels: list[TreeLabel | None]
+    hierarchical_hashes: list[str] = field(default_factory=list)
+    tree_labels: list[TreeLabel | None] = field(default_factory=list)
     # `variants` will never be `None` when the `CalculatedHashes` instance is created as part of
     # event grouping, but it has to be typed including `None` because we use the `CalculatedHashes`
     # container in other places where we don't have the variants data
@@ -108,7 +108,7 @@ class CalculatedHashes:
     # `CalculatedHashes` to wrap `hashes` - meaning we don't need a wrapper at all, and can save use
     # of `CalculatedHashes` for times when we know the variants are there (so we can make them
     # required in the type)
-    variants: dict[str, BaseVariant] | None = None
+    variants: dict[str, BaseVariant] = field(default_factory=dict)
 
     def write_to_event(self, event_data: NodeData) -> None:
         event_data["hashes"] = self.hashes
