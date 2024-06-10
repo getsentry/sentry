@@ -20,6 +20,12 @@ class NotificationSettingProvider(NotificationSettingBase):
                 "scope_type",
                 "scope_identifier",
                 "user_id",
+                "provider",
+                "type",
+            ),
+            (
+                "scope_type",
+                "scope_identifier",
                 "team_id",
                 "provider",
                 "type",
