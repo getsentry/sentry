@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import orjson
 import requests
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -42,15 +43,17 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
 
         response = requests.post(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
-            json={
-                **request.data,
-                "invoking_user": (
-                    {
-                        "id": user.id,
-                        "display_name": user.get_display_name(),
-                    }
-                ),
-            },
+            data=orjson.dumps(
+                {
+                    **request.data,
+                    "invoking_user": (
+                        {
+                            "id": user.id,
+                            "display_name": user.get_display_name(),
+                        }
+                    ),
+                }
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 
