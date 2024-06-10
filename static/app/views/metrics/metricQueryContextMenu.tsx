@@ -244,6 +244,7 @@ export function useCreateDashboardWidget(
         widgetAsQueryParams,
         location: router.location,
         actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
+        allowCreateNewDashboard: false,
       });
   }, [metricsQuery, selection, displayType, organization, router]);
 }
