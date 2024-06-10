@@ -1,6 +1,7 @@
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -93,35 +94,38 @@ export const getAlertWizardCategories = (org: Organization) => {
       options: ['issues', 'num_errors', 'users_experiencing_errors'],
     },
   ];
-  if (org.features.includes('crash-rate-alerts')) {
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  if (!isSelfHostedErrorsOnly) {
+    if (org.features.includes('crash-rate-alerts')) {
+      result.push({
+        categoryHeading: t('Sessions'),
+        options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
+      });
+    }
     result.push({
-      categoryHeading: t('Sessions'),
-      options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
+      categoryHeading: t('Performance'),
+      options: [
+        'throughput',
+        'trans_duration',
+        'apdex',
+        'failure_rate',
+        'lcp',
+        'fid',
+        'cls',
+        ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
+      ],
+    });
+    if (org.features.includes('ai-analytics')) {
+      result.push({
+        categoryHeading: LLM_MONITORING_MODULE_TITLE,
+        options: ['llm_tokens', 'llm_cost'],
+      });
+    }
+    result.push({
+      categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
+      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
     });
   }
-  result.push({
-    categoryHeading: t('Performance'),
-    options: [
-      'throughput',
-      'trans_duration',
-      'apdex',
-      'failure_rate',
-      'lcp',
-      'fid',
-      'cls',
-      ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
-    ],
-  });
-  if (org.features.includes('ai-analytics')) {
-    result.push({
-      categoryHeading: LLM_MONITORING_MODULE_TITLE,
-      options: ['llm_tokens', 'llm_cost'],
-    });
-  }
-  result.push({
-    categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
-    options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
-  });
   return result;
 };
 
