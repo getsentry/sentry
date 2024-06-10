@@ -148,7 +148,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
         installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         )
 
         test_cases = [
@@ -182,7 +182,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
         installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -208,7 +208,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
         installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         )
 
         with assume_test_silo_mode(SiloMode.REGION):
@@ -339,7 +339,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         integration = Integration.objects.get(provider="vsts")
 
         fields = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         ).get_organization_config()
 
         assert [field["name"] for field in fields] == [
@@ -354,12 +354,12 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
         installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         )
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        identity = Identity.objects.get(id=installation.default_identity.id)
         identity.data["expires"] = 1566851050
         identity.save()
 
@@ -513,7 +513,7 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        identity = Identity.objects.get(id=installation.default_identity.id)
         identity.data["expires"] = 1566851050
         identity.save()
 

@@ -245,16 +245,14 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             id=monitor_environment.id, status=MonitorStatus.ERROR
         )
 
-        missed_checkin = MonitorCheckIn.objects.filter(
+        missed_checkin = MonitorCheckIn.objects.get(
             monitor_environment=monitor_environment.id,
             status=CheckInStatus.MISSED,
         )
 
-        assert missed_checkin.exists()
-        missed_checkin = missed_checkin[0]
-
         # Missed checkins are back-dated to when the checkin was expected to
         # happen. In this case the expected_time is equal to the date_added.
+        assert monitor_environment.last_checkin is not None
         checkin_date = monitor_environment.last_checkin + timedelta(minutes=10)
         checkin_date = checkin_date.replace(second=0, microsecond=0)
 
@@ -429,14 +427,10 @@ class MonitorClockTasksCheckMissingTest(TestCase):
 
         # Missed check-in is created at the time it should have happened, NOT
         # at the most recent expected check in time, that slot was missed.
-        missed_checkin = (
-            MonitorCheckIn.objects.filter(
-                monitor_environment=monitor_environment.id,
-                status=CheckInStatus.MISSED,
-            )
-            .order_by("-date_added")
-            .first()
-        )
+        missed_checkin = MonitorCheckIn.objects.filter(
+            monitor_environment=monitor_environment.id,
+            status=CheckInStatus.MISSED,
+        ).order_by("-date_added")[0]
         assert missed_checkin.date_added == ts + timedelta(minutes=1)
 
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")

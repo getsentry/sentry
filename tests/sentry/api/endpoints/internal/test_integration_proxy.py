@@ -70,9 +70,9 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
         self.integration = self.create_integration(
             self.organization, external_id="example:1", provider="example"
         )
-        self.org_integration = OrganizationIntegration.objects.filter(
+        self.org_integration = OrganizationIntegration.objects.get(
             integration_id=self.integration.id
-        ).first()
+        )
 
         self.valid_header_kwargs = self.create_request_headers(
             integration_id=self.org_integration.id, signature_path=self.proxy_path
@@ -82,7 +82,7 @@ class InternalIntegrationProxyEndpointTest(APITestCase):
     def create_request_headers(
         self,
         signature_path,
-        integration_id: str | None = None,
+        integration_id: int | None = None,
         request_body=b"",
         base_url="https://example.com/api",
     ):
