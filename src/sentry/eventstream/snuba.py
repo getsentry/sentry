@@ -89,7 +89,7 @@ class SnubaProtocolEventStream(EventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool,
         group_states: GroupStates | None = None,
     ) -> MutableMapping[str, str]:
@@ -105,7 +105,7 @@ class SnubaProtocolEventStream(EventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
         **kwargs: Any,
@@ -210,11 +210,9 @@ class SnubaProtocolEventStream(EventStream):
             event_type=event_type,
         )
 
-    def start_delete_groups(
-        self, project_id: int, group_ids: Sequence[int]
-    ) -> Mapping[str, Any] | None:
+    def start_delete_groups(self, project_id: int, group_ids: Sequence[int]) -> Mapping[str, Any]:
         if not group_ids:
-            return None
+            raise ValueError("expected groups to delete!")
 
         state = {
             "transaction_id": uuid4().hex,
@@ -239,9 +237,9 @@ class SnubaProtocolEventStream(EventStream):
 
     def start_merge(
         self, project_id: int, previous_group_ids: Sequence[int], new_group_id: int
-    ) -> Mapping[str, Any] | None:
+    ) -> dict[str, Any]:
         if not previous_group_ids:
-            return None
+            raise ValueError("expected groups to merge!")
 
         state = {
             "transaction_id": uuid4().hex,
@@ -288,9 +286,9 @@ class SnubaProtocolEventStream(EventStream):
             state_copy["project_id"], "end_unmerge", extra_data=(state_copy,), asynchronous=False
         )
 
-    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any] | None:
+    def start_delete_tag(self, project_id: int, tag: str) -> Mapping[str, Any]:
         if not tag:
-            return None
+            raise ValueError("expected tag")
 
         state = {
             "transaction_id": uuid4().hex,
@@ -454,7 +452,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         is_regression: bool,
         is_new_group_environment: bool,
         primary_hash: str | None,
-        received_timestamp: float,
+        received_timestamp: float | datetime,
         skip_consume: bool = False,
         group_states: GroupStates | None = None,
         **kwargs: Any,

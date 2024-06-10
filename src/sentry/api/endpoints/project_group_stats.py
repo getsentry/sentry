@@ -34,11 +34,11 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         except Environment.DoesNotExist:
             raise ResourceDoesNotExist
 
-        group_ids = request.GET.getlist("id")
-        if not group_ids:
+        group_id_strs = request.GET.getlist("id")
+        if not group_id_strs:
             return Response(status=204)
 
-        group_list = Group.objects.filter(project=project, id__in=group_ids)
+        group_list = Group.objects.filter(project=project, id__in=group_id_strs)
         group_ids = [g.id for g in group_list]
 
         if not group_ids:

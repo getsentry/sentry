@@ -4,8 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
+from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.types.integrations import ExternalProviders
 
 
 class RpcExternalActor(RpcModel):

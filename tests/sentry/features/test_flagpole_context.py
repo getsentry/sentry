@@ -1,7 +1,7 @@
 import pytest
 from django.contrib.auth.models import AnonymousUser
 
-from flagpole.sentry_flagpole_context import (
+from sentry.features.flagpole_context import (
     InvalidContextDataException,
     SentryContextData,
     get_sentry_flagpole_context_builder,

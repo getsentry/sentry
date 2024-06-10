@@ -1416,7 +1416,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `Monitor` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = Monitor.objects.filter().first()
+        colliding = Monitor.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1449,7 +1449,7 @@ class CollisionTests(ImportTestCase):
         # Take note of the `OrgAuthToken` that was created by the exhaustive organization - this is
         # the one we'll be importing.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding = OrgAuthToken.objects.filter().first()
+            colliding = OrgAuthToken.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1497,7 +1497,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `ProjectKey` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = ProjectKey.objects.filter().first()
+        colliding = ProjectKey.objects.all()[0]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1539,10 +1539,10 @@ class CollisionTests(ImportTestCase):
 
             # Take note of the `QuerySubscription` that was created by the exhaustive organization -
             # this is the one we'll be importing.
-            colliding_snuba_query = SnubaQuery.objects.all().first()
-            colliding_query_subscription = QuerySubscription.objects.filter(
+            colliding_snuba_query = SnubaQuery.objects.all()[0]
+            colliding_query_subscription = QuerySubscription.objects.get(
                 snuba_query=colliding_snuba_query
-            ).first()
+            )
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1616,16 +1616,16 @@ class CollisionTests(ImportTestCase):
         self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
+        colliding_option = Option.objects.get()
+        colliding_relay = Relay.objects.get()
+        colliding_relay_usage = RelayUsage.objects.get()
 
         old_relay_public_key = colliding_relay.public_key
         old_relay_usage_public_key = colliding_relay_usage.public_key
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
+            colliding_control_option = ControlOption.objects.get()
+            colliding_user_role = UserRole.objects.get()
             old_user_role_permissions = colliding_user_role.permissions
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1696,7 +1696,7 @@ class CollisionTests(ImportTestCase):
                 assert ControlOption.objects.count() == 1
                 assert ControlOption.objects.filter(value__exact="b").exists()
 
-                actual_user_role = UserRole.objects.first()
+                actual_user_role = UserRole.objects.get()
                 assert len(actual_user_role.permissions) == len(old_user_role_permissions)
                 for i, actual_permission in enumerate(actual_user_role.permissions):
                     assert actual_permission == old_user_role_permissions[i]
@@ -1712,13 +1712,13 @@ class CollisionTests(ImportTestCase):
         self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
+        colliding_option = Option.objects.get()
+        colliding_relay = Relay.objects.get()
+        colliding_relay_usage = RelayUsage.objects.get()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
+            colliding_control_option = ControlOption.objects.get()
+            colliding_user_role = UserRole.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1789,7 +1789,7 @@ class CollisionTests(ImportTestCase):
                 assert ControlOption.objects.filter(value__exact="z").exists()
 
                 assert UserRole.objects.count() == 1
-                actual_user_role = UserRole.objects.first()
+                actual_user_role = UserRole.objects.get()
                 assert len(actual_user_role.permissions) == 1
                 assert actual_user_role.permissions[0] == "other.admin"
 

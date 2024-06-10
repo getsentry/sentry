@@ -19,6 +19,7 @@ import type {Series} from 'sentry/components/metrics/chart/types';
 import {useFocusArea} from 'sentry/components/metrics/chart/useFocusArea';
 import {useMetricChartSamples} from 'sentry/components/metrics/chart/useMetricChartSamples';
 import {useReleaseSeries} from 'sentry/components/metrics/chart/useMetricReleases';
+import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -57,7 +58,6 @@ import {
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useRouter from 'sentry/utils/useRouter';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';

@@ -16,6 +16,7 @@ from sentry.digests.utils import (
     should_get_personalized_digests,
 )
 from sentry.eventstore.models import Event
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.notify import notify
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, UnsubscribeContext
@@ -32,7 +33,6 @@ from sentry.notifications.utils.digest import (
     should_send_as_alert_notification,
 )
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

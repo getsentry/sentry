@@ -6,7 +6,7 @@ import type {Organization} from 'sentry/types/organization';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
-import type {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -16,13 +16,11 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
   return acc;
 }, {});
 
-interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
+interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
   getIssueAttributes(org: Organization): TagCollection;
   getIssueTags(org: Organization): TagCollection;
-  init(): void;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
-  state: TagCollection;
 }
 
 const storeConfig: TagStoreDefinition = {
@@ -88,7 +86,7 @@ const storeConfig: TagStoreDefinition = {
           IssueCategory.ERROR,
           IssueCategory.PERFORMANCE,
           IssueCategory.REPLAY,
-          ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
+          IssueCategory.CRON,
         ],
         predefined: true,
       },
@@ -102,16 +100,12 @@ const storeConfig: TagStoreDefinition = {
           IssueType.PERFORMANCE_SLOW_DB_QUERY,
           IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
           IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-          ...(org.features.includes('issue-platform')
-            ? [
-                IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-                IssueType.PROFILE_FILE_IO_MAIN_THREAD,
-                IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
-                IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
-                IssueType.PROFILE_REGEX_MAIN_THREAD,
-                IssueType.PROFILE_FUNCTION_REGRESSION,
-              ]
-            : []),
+          IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+          IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+          IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+          IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+          IssueType.PROFILE_REGEX_MAIN_THREAD,
+          IssueType.PROFILE_FUNCTION_REGRESSION,
         ],
         predefined: true,
       },
@@ -208,7 +202,7 @@ const storeConfig: TagStoreDefinition = {
     // assign to this.state directly, but there is a change someone may
     // be relying on referential equality somewhere in the codebase and
     // we dont want to risk breaking that.
-    const newState = {};
+    const newState: TagCollection = {};
 
     for (let i = 0; i < data.length; i++) {
       const tag = data[i];

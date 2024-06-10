@@ -49,7 +49,7 @@ from sentry.utils.colors import get_hashed_color
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.user import User
@@ -215,8 +215,9 @@ class ProjectManager(BaseManager["Project"]):
         return sorted(project_list, key=lambda x: x.name.lower())
 
 
+@snowflake_id_model
 @region_silo_model
-class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
+class Project(Model, PendingDeletionMixin, OptionMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -348,8 +349,10 @@ class Project(Model, PendingDeletionMixin, OptionMixin, SnowflakeIdMixin):
 
         if SENTRY_USE_SNOWFLAKE:
             snowflake_redis_key = "project_snowflake_key"
-            self.save_with_snowflake_id(
-                snowflake_redis_key, lambda: super(Project, self).save(*args, **kwargs)
+            save_with_snowflake_id(
+                instance=self,
+                snowflake_redis_key=snowflake_redis_key,
+                save_callback=lambda: super(Project, self).save(*args, **kwargs),
             )
         else:
             super().save(*args, **kwargs)

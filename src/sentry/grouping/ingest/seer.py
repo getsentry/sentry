@@ -10,7 +10,11 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
-from sentry.seer.similarity.utils import event_content_is_seer_eligible, get_stacktrace_string
+from sentry.seer.similarity.utils import (
+    event_content_is_seer_eligible,
+    filter_null_from_event_title,
+    get_stacktrace_string,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.events.grouping")
@@ -163,7 +167,7 @@ def get_seer_similar_issues(
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
-        "message": event.title,
+        "message": filter_null_from_event_title(event.title),
         "k": num_neighbors,
     }
 

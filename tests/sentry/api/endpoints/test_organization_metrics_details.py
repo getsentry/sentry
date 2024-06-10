@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from typing import Literal
 from unittest.mock import patch
 
 import pytest
 
+from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseID,
     UseCaseIDAPIAccess,
@@ -183,7 +187,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         block_metric("s:custom/user@none", [project_1])
         block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
 
-        metrics = (
+        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
             ("s:custom/user@none", "set", project_1),
             ("s:custom/user@none", "set", project_2),
             ("c:custom/clicks@none", "counter", project_1),
@@ -194,7 +198,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,  # type: ignore[arg-type]
+                entity,
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),
@@ -306,3 +310,10 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "min",
             "sum",
         ]
+
+    def test_metrics_details_when_organization_has_no_projects(self):
+        organization_without_projects = self.create_organization()
+        self.create_member(user=self.user, organization=organization_without_projects)
+        response = self.get_response(organization_without_projects.slug)
+        assert response.status_code == 404
+        assert response.data["detail"] == "You must supply at least one project to see its metrics"
