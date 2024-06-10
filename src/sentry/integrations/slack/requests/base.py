@@ -6,14 +6,11 @@ from typing import Any
 
 from rest_framework import status as status_
 from rest_framework.request import Request
-from slack_sdk.signature import SignatureVerifier
 
-from sentry import features, options
+from sentry import options
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.identity.model import RpcIdentityProvider
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.safe import get_path
@@ -67,7 +64,6 @@ class SlackRequest:
         self._provider: RpcIdentityProvider | None = None
         self._user: RpcUser | None = None
         self._data: MutableMapping[str, Any] = {}
-        self._organization: RpcOrganizationSummary | None = None  # temporary, used for FF check
 
     def validate(self) -> None:
         """
@@ -111,15 +107,6 @@ class SlackRequest:
         self._provider = context.identity_provider
         self._identity = context.identity
         self._user = context.user
-
-        if context.integration:
-            org_integrations = integration_service.get_organization_integrations(
-                integration_id=context.integration.id, status=0
-            )
-            if org_integrations:
-                self._organization = organization_service.get_org_by_id(
-                    id=org_integrations[0].organization_id
-                )
 
     @property
     def integration(self) -> RpcIntegration:
@@ -224,21 +211,6 @@ class SlackRequest:
         timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
         if not (signature and timestamp):
             return False
-
-        log_extra = {
-            "organization_id": self._organization.id if self._organization else None,
-            "integration_id": self._integration.id if self._integration else None,
-        }
-
-        if self._organization and features.has(
-            "organizations:slack-sdk-signature", self._organization
-        ):
-            logger.info("slack.request.verify_signature", extra=log_extra)
-            return SignatureVerifier(signing_secret).is_valid(
-                body=self.request.body, timestamp=timestamp, signature=signature
-            )
-
-        logger.info("slack.request.check_signing_secret", extra=log_extra)
 
         return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
 
