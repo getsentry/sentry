@@ -359,18 +359,18 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
 
     group_data = []
     stacktrace_strings = []
+    invalid_event_group_ids = []
     bulk_event_ids = set()
-    invalid_event_ids = set()
     for group_id, event in nodestore_events.items():
         if event and event.data and event.data.get("exception"):
             grouping_info = get_grouping_info(None, project=project, event=event)
             stacktrace_string = get_stacktrace_string(grouping_info)
             if stacktrace_string == "":
-                invalid_event_ids.add(event.event_id)
+                invalid_event_group_ids.append(group_id)
                 continue
             primary_hash = event.get_primary_hash()
             if not primary_hash:
-                invalid_event_ids.add(event.event_id)
+                invalid_event_group_ids.append(group_id)
                 continue
 
             group_data.append(
@@ -384,14 +384,19 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
             stacktrace_strings.append(stacktrace_string)
             bulk_event_ids.add(event.event_id)
         else:
-            pass
-            # TODO
-            # invalid_event_ids.add(event.event_id)
+            invalid_event_group_ids.append(group_id)
 
     group_hashes_dict = {
         group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
         for group_stacktrace_data in group_data
     }
+    logger.info(
+        "backfill_seer_grouping_records.invalid_group_ids",
+        extra={
+            "project_id": project.id,
+            "invalid_group_ids": invalid_event_group_ids,
+        },
+    )
     return (
         GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
         group_hashes_dict,
@@ -549,7 +554,7 @@ def _retry_operation(operation, *args, retries, delay, **kwargs):
                 raise
 
 
-def lookup_event(project_id: int, event_id: str, _id: int) -> Event:
+def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
