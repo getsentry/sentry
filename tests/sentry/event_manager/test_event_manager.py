@@ -151,7 +151,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.platform == "python"
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
-    def test_dupe_message_id(self, eventstream_insert) -> None:  # type: ignore[no-untyped-def]
+    def test_dupe_message_id(self, eventstream_insert: mock.MagicMock) -> None:
         # Saves the latest event to nodestore and eventstream
         project_id = self.project.id
         event_id = "a" * 32
@@ -224,7 +224,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    def test_unresolves_group(self, send_robust: Any) -> None:
+    def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -248,7 +248,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert send_robust.called
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
-    def test_does_not_unresolve_group(self, plugin_is_regression: Any) -> None:
+    def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1.
         plugin_is_regression.return_value = False
@@ -279,7 +279,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_marks_as_unresolved_with_new_release(
-        self, plugin_is_regression: Any, mock_send_activity_notifications_delay: Any
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
     ) -> None:
         plugin_is_regression.return_value = True
 
@@ -351,7 +353,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_that_release_in_latest_activity_prior_to_regression_is_not_overridden(
-        self, plugin_is_regression: Any, mock_send_activity_notifications_delay: Any
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
     ) -> None:
         """
         Test that ensures in the case where a regression occurs, the release prior to the latest
@@ -411,7 +415,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_current_release_version_in_latest_activity_prior_to_regression_is_not_overridden(
-        self, plugin_is_regression: Any, mock_send_activity_notifications_delay: Any
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
     ) -> None:
         """
         Test that ensures in the case where a regression occurs, the release prior to the latest
@@ -470,7 +476,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_resolved_in_release_regression_activity_follows_semver(
-        self, plugin_is_regression: Any
+        self, plugin_is_regression: mock.MagicMock
     ) -> None:
         """
         Issue was marked resolved in 1.0.0, regression occurred in 2.0.0.
@@ -718,9 +724,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_marks_as_unresolved_with_new_release_with_integration(
         self,
-        plugin_is_regression: Any,
-        mock_send_activity_notifications_delay: Any,
-        mock_sync_status_outbound: Any,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
+        mock_sync_status_outbound: mock.MagicMock,
     ) -> None:
         plugin_is_regression.return_value = True
 
@@ -829,7 +835,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_mark_as_unresolved_with_pending_commit(
-        self, plugin_is_regression: Any, mock_send_activity_notifications_delay: Any
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
     ) -> None:
         plugin_is_regression.return_value = True
 
@@ -867,7 +875,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_mark_as_unresolved_with_released_commit(
-        self, plugin_is_regression: Any, mock_send_activity_notifications_delay: Any
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
     ) -> None:
         plugin_is_regression.return_value = True
 
@@ -906,7 +916,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     @mock.patch("sentry.models.Group.is_resolved")
-    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: Any) -> None:
+    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
         ts = time() - 100
         mock_is_resolved.return_value = False
         manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
@@ -1103,7 +1113,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(project.id)
         assert event.group is not None
 
-        def query(model: Any, key: int, **kwargs: Any) -> int:
+        def query(model: TSDBModel, key: int, **kwargs: Any) -> int:
             return tsdb.backend.get_sums(
                 model,
                 [key],
@@ -1259,7 +1269,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert None not in event.tags
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
-    def test_group_environment(self, eventstream_insert: Any) -> None:
+    def test_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
         release_version = "1.0"
 
         def save_event() -> Event:
@@ -3221,7 +3231,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
-        self, mocked_invalidate: Any
+        self, mocked_invalidate: mock.MagicMock
     ) -> None:
         self.make_release_transaction(
             release_version=self.release.version,
@@ -3466,7 +3476,7 @@ example_error_event = {
 )
 @django_db_all
 def test_cogs_event_manager(
-    default_project: Any, event_data: Mapping[str, Any], expected_type: str
+    default_project: int, event_data: Mapping[str, Any], expected_type: str
 ) -> None:
     storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
     broker = LocalBroker(storage)
