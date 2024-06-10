@@ -496,6 +496,7 @@ const StyledPositionWrapper = styled(PositionWrapper, {
 
 const StyledOverlay = styled(Overlay)`
   max-height: 400px;
+  min-width: 200px;
   width: 300px;
   max-width: min-content;
   overflow-y: auto;
