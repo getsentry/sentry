@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.metrics import TransactionMRI
+from sentry.snuba.metrics import SessionMetricKey, TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from tests.sentry.api.endpoints.test_organization_metrics import MOCKED_DERIVED_METRICS
@@ -198,7 +198,7 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
             )
         response = self.get_success_response(
             self.organization.slug,
-            metric=["session.healthy"],
+            metric=[SessionMetricKey.HEALTHY.value],
         )
         assert response.data == [{"key": "environment"}, {"key": "release"}, {"key": "project"}]
 
@@ -224,3 +224,38 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
             response.json()["detail"]
             == "Failed to parse 'crash_free_fake'. The metric name must belong to a public metric."
         )
+
+    def test_metric_tags_with_gauge(self):
+        mri = "g:custom/page_load@millisecond"
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "gauge",
+            mri,
+            {"transaction": "/hello", "release": "1.0", "environment": "prod"},
+            int(self.now().timestamp()),
+            10,
+            UseCaseID.CUSTOM,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+            useCase="custom",
+        )
+        assert len(response.data) == 4
+
+    def test_metric_not_in_indexer(self):
+        mri = "c:custom/sentry_metric@none"
+        response = self.get_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+            useCase="custom",
+        )
+        assert (
+            response.json()["detail"]
+            == "The specified metric was not found: c:custom/sentry_metric@none"
+        )
+        assert response.status_code == 404

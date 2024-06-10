@@ -13,6 +13,7 @@ from sentry.sentry_metrics.querying.metadata.tags import get_tag_keys
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import (
     DerivedMetricParseException,
+    MetricDoesNotExistException,
     MetricDoesNotExistInIndexer,
     get_all_tags,
     get_mri,
@@ -64,7 +65,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
 
-        except MetricDoesNotExistInIndexer:
-            raise NotFound(f"One of the specified metrics was not found: {metric_names}")
+        except (MetricDoesNotExistInIndexer, MetricDoesNotExistException):
+            raise NotFound(f"The specified metric was not found: {metric_name}")
 
         return Response(formatted_tags, status=200)
