@@ -109,7 +109,7 @@ function replaceFocusedWordWithFilter(
  * replaceAliasedFilterKeys('foo issue: bar', {'status': 'is'}) => 'foo is: bar'
  */
 function replaceAliasedFilterKeys(value: string, aliasToKeyMap: Record<string, string>) {
-  const key = value.match(/(\w+):/);
+  const key = value.match(/(\S+):/);
   const matchedKey = key?.[1];
   if (matchedKey && aliasToKeyMap[matchedKey]) {
     const actualKey = aliasToKeyMap[matchedKey];
@@ -134,7 +134,7 @@ function getItemsBySection(filterKeySections: FilterKeySection[]) {
 
         return {
           key: getEscapedKey(tag.key),
-          label: tag.key,
+          label: tag.alias ?? tag.key,
           value: tag.key,
           textValue: tag.key,
           hideCheck: true,
