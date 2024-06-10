@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -33,7 +32,6 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
-  RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -89,7 +87,6 @@ function QueuesLandingPage() {
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
             />
-            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>

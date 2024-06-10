@@ -1,6 +1,9 @@
-import type {Token, TokenList} from 'sentry/views/metrics/formulaParser/types';
+import type {
+  Token,
+  TokenList,
+} from 'sentry/components/metrics/equationInput/syntax/types';
 
-import grammar from './formula.pegjs';
+import grammar from './equation.pegjs';
 
 type TokenTree = Array<Token | TokenTree>;
 

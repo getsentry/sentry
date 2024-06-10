@@ -3,12 +3,18 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import Input, {inputStyles} from 'sentry/components/input';
+import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
+import {
+  joinTokens,
+  parseFormula,
+} from 'sentry/components/metrics/equationInput/syntax/parser';
+import {
+  type TokenList,
+  TokenType,
+} from 'sentry/components/metrics/equationInput/syntax/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
-import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
-import {joinTokens, parseFormula} from 'sentry/views/metrics/formulaParser/parser';
-import {type TokenList, TokenType} from 'sentry/views/metrics/formulaParser/types';
 
 interface EquationInputProps
   extends Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> {

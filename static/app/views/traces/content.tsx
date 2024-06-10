@@ -222,7 +222,14 @@ export function Content() {
           {isEmpty && (
             <StyledPanelItem span={7} overflow>
               <EmptyStateWarning withIcon>
-                <div>{t('No traces available')}</div>
+                <EmptyStateText size="fontSizeExtraLarge">
+                  {t('No results found')}
+                </EmptyStateText>
+                <EmptyStateText size="fontSizeMedium">
+                  {t('There are no traces that match the conditions above.')}
+                  <br />
+                  {t('Try adjusting your filters starting with your time range.')}
+                </EmptyStateText>
               </EmptyStateWarning>
             </StyledPanelItem>
           )}
@@ -567,6 +574,11 @@ const SpanPanelContent = styled('div')`
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
   white-space: nowrap;
   justify-content: ${p => (p.align === 'left' ? 'flex-start' : 'flex-end')};
+`;
+
+const EmptyStateText = styled('div')<{size: 'fontSizeExtraLarge' | 'fontSizeMedium'}>`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme[p.size]};
 `;
 
 const Description = styled('div')`

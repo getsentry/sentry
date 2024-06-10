@@ -23,7 +23,7 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
-import {getFieldDefinition} from 'sentry/utils/fields';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
@@ -53,6 +53,27 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
   return value;
 }
 
+function getInitialFilterText(key: string) {
+  const fieldDef = getFieldDefinition(key);
+
+  if (!fieldDef) {
+    return `${key}:`;
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.BOOLEAN:
+      return `${key}:true`;
+    case FieldValueType.INTEGER:
+    case FieldValueType.NUMBER:
+      return `${key}:>100`;
+    case FieldValueType.DATE:
+      return `${key}:-24h`;
+    case FieldValueType.STRING:
+    default:
+      return `${key}:`;
+  }
+}
+
 /**
  * Replaces the focused word (at cursorPosition) with the selected filter key.
  *
@@ -72,7 +93,7 @@ function replaceFocusedWordWithFilter(
     if (characterCount >= cursorPosition) {
       return (
         value.slice(0, characterCount - word.length - 1).trim() +
-        ` ${key}: ` +
+        ` ${getInitialFilterText(key)} ` +
         value.slice(characterCount).trim()
       ).trim();
     }
@@ -88,11 +109,14 @@ function replaceFocusedWordWithFilter(
  * replaceAliasedFilterKeys('foo issue: bar', {'status': 'is'}) => 'foo is: bar'
  */
 function replaceAliasedFilterKeys(value: string, aliasToKeyMap: Record<string, string>) {
-  const key = value.match(/(\w+):/);
+  const key = value.match(/(\S+):/);
   const matchedKey = key?.[1];
   if (matchedKey && aliasToKeyMap[matchedKey]) {
     const actualKey = aliasToKeyMap[matchedKey];
-    const replacedValue = value.replace(`${matchedKey}:`, `${actualKey}:`);
+    const replacedValue = value.replace(
+      `${matchedKey}:`,
+      getInitialFilterText(actualKey)
+    );
     return replacedValue;
   }
 
@@ -110,7 +134,7 @@ function getItemsBySection(filterKeySections: FilterKeySection[]) {
 
         return {
           key: getEscapedKey(tag.key),
-          label: tag.key,
+          label: tag.alias ?? tag.key,
           value: tag.key,
           textValue: tag.key,
           hideCheck: true,
@@ -375,16 +399,22 @@ const Row = styled('div')`
   display: flex;
   align-items: stretch;
   height: 24px;
+
+  &:last-child {
+    flex-grow: 1;
+  }
 `;
 
 const GridCell = styled('div')`
   display: flex;
   align-items: stretch;
   height: 100%;
+  width: 100%;
 
   input {
     padding: 0 ${space(0.5)};
     min-width: 9px;
+    width: 100%;
   }
 `;
 

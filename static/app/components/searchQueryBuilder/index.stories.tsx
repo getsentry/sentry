@@ -13,7 +13,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
     value: FieldKind.FIELD,
     label: 'Category 1',
     children: [
-      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD, predefined: true},
+      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
       {
         key: FieldKey.ASSIGNED,
         name: 'Assigned To',

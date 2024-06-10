@@ -413,7 +413,6 @@ def send_group_and_stacktrace_to_seer(project, group_id_batch_filtered, nodestor
     )
     return seer_response
 
-
 @sentry_sdk.tracing.trace
 def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_dict, dry_run):
     groups_with_neighbor = seer_response["groups_with_neighbor"]

@@ -499,12 +499,6 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register(
-    "slack.sdk-web-client",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1455,24 +1449,6 @@ register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 register(

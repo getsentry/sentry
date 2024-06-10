@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import type {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 type Preferences = {
   /**
@@ -9,18 +9,15 @@ type Preferences = {
   collapsed?: boolean;
 };
 
-interface PreferenceStoreDefinition extends CommonStoreDefinition<Preferences> {
-  getInitialState(): Preferences;
-
+interface PreferenceStoreDefinition extends StrictStoreDefinition<Preferences> {
   hideSidebar(): void;
   loadInitialState(prefs: Preferences): void;
-  prefs: Preferences;
   reset(): void;
   showSidebar(): void;
 }
 
 const storeConfig: PreferenceStoreDefinition = {
-  prefs: {},
+  state: {},
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -29,31 +26,27 @@ const storeConfig: PreferenceStoreDefinition = {
     this.reset();
   },
 
-  getInitialState() {
-    return this.prefs;
-  },
-
   reset() {
-    this.prefs = {collapsed: false};
+    this.state = {collapsed: false};
   },
 
   loadInitialState(prefs) {
-    this.prefs = {...prefs};
-    this.trigger(this.prefs);
+    this.state = {...prefs};
+    this.trigger(this.state);
   },
 
   hideSidebar() {
-    this.prefs = {...this.prefs, collapsed: true};
-    this.trigger(this.prefs);
+    this.state = {...this.state, collapsed: true};
+    this.trigger(this.state);
   },
 
   showSidebar() {
-    this.prefs = {...this.prefs, collapsed: false};
-    this.trigger(this.prefs);
+    this.state = {...this.state, collapsed: false};
+    this.trigger(this.state);
   },
 
   getState() {
-    return this.prefs;
+    return this.state;
   },
 };
 

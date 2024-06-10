@@ -401,7 +401,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     e => {
       e.stopPropagation();
       inputProps.onClick?.(e);
-      state.open();
+      state.toggle();
     },
     [inputProps, state]
   );
@@ -466,6 +466,7 @@ const Wrapper = styled('div')`
   display: flex;
   align-items: stretch;
   height: 100%;
+  width: 100%;
 `;
 
 const UnstyledInput = styled(GrowingInput)`
@@ -490,12 +491,13 @@ const UnstyledInput = styled(GrowingInput)`
 const StyledPositionWrapper = styled(PositionWrapper, {
   shouldForwardProp: prop => isPropValid(prop),
 })<{visible?: boolean}>`
-  min-width: 100%;
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
 const StyledOverlay = styled(Overlay)`
   max-height: 400px;
+  width: 300px;
+  max-width: min-content;
   overflow-y: auto;
 `;
 
@@ -504,6 +506,7 @@ const SectionedOverlay = styled(Overlay)`
   display: grid;
   grid-template-columns: 120px 240px;
   height: 400px;
+  width: 360px;
 `;
 
 const SectionedListBoxPane = styled('div')`

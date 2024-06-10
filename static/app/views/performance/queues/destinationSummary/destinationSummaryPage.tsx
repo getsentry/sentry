@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -27,7 +26,7 @@ import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinati
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
-import {DESTINATION_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/queues/settings';
+import {DESTINATION_TITLE} from 'sentry/views/performance/queues/settings';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
@@ -59,10 +58,7 @@ function DestinationSummaryPage() {
             ]}
           />
 
-          <Layout.Title>
-            {destination}
-            <FeatureBadge type={RELEASE_LEVEL} />
-          </Layout.Title>
+          <Layout.Title>{destination}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>

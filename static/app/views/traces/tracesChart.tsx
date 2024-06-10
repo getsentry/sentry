@@ -3,7 +3,8 @@ import styled from '@emotion/styled';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {RateUnit} from 'sentry/utils/discover/fields';
+import {formatRate} from 'sentry/utils/formatters';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -36,12 +37,12 @@ export function TracesChart({}: Props) {
       ),
       yAxis: ['count()'],
       interval: getInterval(pageFilters.selection.datetime, 'metrics'),
+      overriddenRoute: 'traces-stats',
     },
-    'testing.test'
+    'api.trace-explorer.stats'
   );
 
   const seriesData = spanIndexedCountSeries.data?.['count()'];
-  seriesData.z = 1; // TODO:: This shouldn't be required, but we're putting this in for now to avoid split lines being shown on top of the chart data :).
 
   return (
     <ChartContainer>
@@ -62,8 +63,9 @@ export function TracesChart({}: Props) {
           type={ChartType.AREA}
           aggregateOutputFormat="number"
           tooltipFormatterOptions={{
-            valueFormatter: value => formatAbbreviatedNumber(value),
+            valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
           }}
+          preserveIncompletePoints
         />
       </ChartPanel>
     </ChartContainer>
