@@ -109,7 +109,7 @@ class EntitySubscriptionTestCase(TestCase):
             )
 
     def test_get_entity_subscription_for_metrics_dataset_for_users_with_metrics_layer(self) -> None:
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             use_case_id = UseCaseID.SESSIONS
 
@@ -240,7 +240,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_metrics_dataset_for_sessions_with_metrics_layer(
         self,
     ) -> None:
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             use_case_id = UseCaseID.SESSIONS
             aggregate = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
@@ -397,7 +397,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_for_performance_metrics_dataset_with_metrics_layer(
         self,
     ) -> None:
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             aggregate = "percentile(transaction.duration,.95)"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -457,7 +457,7 @@ class EntitySubscriptionTestCase(TestCase):
         mri = "d:custom/sentry.process_profile.track_outcome@second"
         indexer.record(use_case_id=UseCaseID.CUSTOM, org_id=self.organization.id, string=mri)
 
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             aggregate = f"max({mri})"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -512,7 +512,7 @@ class EntitySubscriptionTestCase(TestCase):
     def test_get_entity_subscription_with_multiple_entities_with_metrics_layer(
         self,
     ) -> None:
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             aggregate = "percentile(transaction.duration,.95)"
             entity_subscription = get_entity_subscription(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -821,7 +821,7 @@ class GetEntityKeyFromSnubaQueryTest(TestCase):
                 )
 
             if supported_with_metrics_layer:
-                with Feature("organizations:use-metrics-layer-in-alerts"):
+                with Feature("organizations:custom-metrics"):
                     assert expected_entity_key == get_entity_key_from_snuba_query(
                         snuba_query, self.organization.id, self.project.id
                     )
