@@ -418,6 +418,21 @@ describe('TraceSearchEvaluator', () => {
         expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
         expect(cb.mock.calls[0][0][2]).toBe(null);
       });
+      it.each(['profile', 'profiles'])('%s (profile on transaction)', async key => {
+        const tree = makeTree([
+          makeTransaction({
+            profile_id: 'profile',
+          }),
+          makeTransaction({errors: []}),
+        ]);
+
+        const cb = jest.fn();
+        search(`has:${key}`, tree, cb);
+        await waitFor(() => expect(cb).toHaveBeenCalled());
+        expect(cb.mock.calls[0][0][1].size).toBe(1);
+        expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+        expect(cb.mock.calls[0][0][2]).toBe(null);
+      });
     });
   });
 });
