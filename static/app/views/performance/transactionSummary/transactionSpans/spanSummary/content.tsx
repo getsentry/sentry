@@ -110,13 +110,17 @@ function SpanSummaryContent(props: ContentProps) {
   const {data: spanHeaderData} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
-      fields: [
-        'span.description',
-        'avg(span.duration)',
-        'sum(span.self_time)',
-        'count()',
-      ],
+      fields: ['span.description', 'sum(span.self_time)', 'count()'],
       sorts: [{field: 'sum(span.self_time)', kind: 'desc'}],
+    },
+    SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA
+  );
+
+  // Average span duration must be queried for separately, since it could get broken up into multiple groups if used in the first query
+  const {data: avgDurationData} = useSpanMetrics(
+    {
+      search: MutableSearch.fromQueryObject(filters),
+      fields: ['avg(span.duration)'],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA
   );
@@ -129,7 +133,7 @@ function SpanSummaryContent(props: ContentProps) {
       <SpanSummaryHeader
         spanOp={spanOp}
         spanDescription={parsedData?.description}
-        avgDuration={parsedData?.avgDuration}
+        avgDuration={avgDurationData[0]?.['avg(span.duration)']}
         timeSpent={parsedData?.timeSpent}
         spanCount={parsedData?.spanCount}
       />
@@ -148,41 +152,20 @@ function parseSpanHeaderData(data: Partial<SpanMetricsResponse>[]) {
     return {
       description: data[0]?.['span.description'],
       timeSpent: data[0]?.['sum(span.self_time)'],
-      avgDuration: data[0]?.['avg(span.duration)'],
       spanCount: data[0]?.['count()'],
     };
   }
 
-  return data.reduce(
-    (
-      acc: {
-        avgDuration: number;
-        description: undefined;
-        spanCount: number;
-        timeSpent: number;
-      },
-      datum,
-      index
-    ) => {
-      const timeSpent = datum['sum(span.self_time)'] ?? 0;
-      const avgDuration = datum['avg(span.duration)'] ?? 0;
-      const spanCount = datum['count()'] ?? 0;
+  const cumulativeData = {
+    description: undefined,
+    timeSpent: 0,
+    spanCount: 0,
+  };
 
-      acc.timeSpent += timeSpent;
-      acc.avgDuration += avgDuration;
-      acc.spanCount += spanCount;
+  data.forEach(datum => {
+    cumulativeData.timeSpent += datum['sum(span.self_time)'] ?? 0;
+    cumulativeData.spanCount += datum['count()'] ?? 0;
+  });
 
-      if (index === data.length - 1) {
-        acc.avgDuration / data.length;
-      }
-
-      return acc;
-    },
-    {
-      description: undefined,
-      timeSpent: 0,
-      avgDuration: 0,
-      spanCount: 0,
-    }
-  );
+  return cumulativeData;
 }
