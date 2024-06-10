@@ -306,3 +306,10 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "min",
             "sum",
         ]
+
+    def test_metrics_details_when_organization_has_no_projects(self):
+        organization_without_projects = self.create_organization()
+        self.create_member(user=self.user, organization=organization_without_projects)
+        response = self.get_response(organization_without_projects.slug)
+        assert response.status_code == 404
+        assert response.data["detail"] == "You must supply at least one project to see its metrics"
