@@ -50,12 +50,4 @@ def is_response_error(resp) -> bool:
 
 
 def get_redis_key(sentryapp: SentryApp | RpcSentryApp, org_id):
-    from sentry.services.hybrid_cloud.app.service import app_service
-
-    installation = app_service.get_installation(
-        sentry_app_id=sentryapp.id,
-        organization_id=org_id,
-    )
-    if installation:
-        return f"sentry-app-error:{installation.uuid}"
-    return ""
+    return f"sentry-app-error:{sentryapp.id}:{org_id}"
