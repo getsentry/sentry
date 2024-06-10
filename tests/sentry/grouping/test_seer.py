@@ -51,8 +51,6 @@ class ShouldCallSeerTest(TestCase):
         )
         self.primary_hashes = CalculatedHashes(
             hashes=["04152013090820131121201212312012"],
-            hierarchical_hashes=[],
-            tree_labels=[],
             variants={"default": FallbackVariant()},
         )
 
@@ -138,14 +136,10 @@ class ShouldCallSeerTest(TestCase):
     def test_returns_false_if_event_has_custom_fingerprint(self):
         custom_fingerprint_hashes = CalculatedHashes(
             hashes=["04152013090820131121201212312012"],
-            hierarchical_hashes=[],
-            tree_labels=[],
             variants={"custom-fingerprint": CustomFingerprintVariant(["maisey"])},
         )
         built_in_fingerprint_hashes = CalculatedHashes(
             hashes=["04152013090820131121201212312012"],
-            hierarchical_hashes=[],
-            tree_labels=[],
             variants={"built-in-fingerprint": BuiltInFingerprintVariant(["charlie"])},
         )
 
@@ -169,12 +163,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             event_id="11212012123120120415201309082013",
             data={"message": "Adopt don't shop"},
         )
-        self.new_event_hashes = CalculatedHashes(
-            hashes=["20130809201315042012311220122111"],
-            hierarchical_hashes=[],
-            tree_labels=[],
-            variants={},
-        )
+        self.new_event_hashes = CalculatedHashes(["20130809201315042012311220122111"])
 
     @with_feature({"projects:similarity-embeddings-grouping": False})
     def test_returns_metadata_but_no_group_if_seer_grouping_flag_off(self):
