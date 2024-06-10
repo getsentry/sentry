@@ -85,7 +85,7 @@ class ProcessDelayedAlertConditionsTest(
             id="EventUniqueUserFrequencyCondition",
         )
         event_frequency_percent_condition = self.create_event_frequency_condition(
-            interval="5m", id="EventFrequencyPercentCondition"
+            interval="5m", id="EventFrequencyPercentCondition", value=1.0
         )
         self.now = datetime.now(UTC)
 
