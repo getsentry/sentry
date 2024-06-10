@@ -34,7 +34,7 @@ export function MetricsApiChangeAlert() {
         'There are upcoming changes to the Metrics API that may affect your usage. Read the [link:FAQs] for more details.',
         {
           link: (
-            <ExternalLink href="https://help.sentry.io/product-features/other/metrics-beta-faqs/" />
+            <ExternalLink href="https://sentry.zendesk.com/hc/en-us/articles/26369339769883-Upcoming-API-Changes-to-Metrics" />
           ),
         }
       )}
