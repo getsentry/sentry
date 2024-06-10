@@ -93,7 +93,7 @@ def test_is_lpq_gradual(store: RedisRealtimeMetricsStore) -> None:
             store.record_project_duration(SymbolicatorPlatform.native, 17, used)
             frozen_datetime.shift(delta)
         assert store.is_lpq_project(SymbolicatorPlatform.native, 17)
-        assert not store.is_lpq_project("js", 17)
+        assert not store.is_lpq_project(SymbolicatorPlatform.js, 17)
 
 
 def test_not_lpq_spike(store: RedisRealtimeMetricsStore) -> None:
