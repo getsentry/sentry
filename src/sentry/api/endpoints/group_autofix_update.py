@@ -46,7 +46,7 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
                 **request.data,
                 "invoking_user": (
                     {
-                        "id": user,
+                        "id": user.id,
                         "display_name": user.get_display_name(),
                     }
                 ),
