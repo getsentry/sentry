@@ -548,8 +548,8 @@ def _retry_operation(operation, *args, retries, delay, **kwargs):
             else:
                 raise
 
-def lookup_event(project_id: int, event_id: str, 
-                 _id: int) -> Event:
+
+def lookup_event(project_id: int, event_id: str, _id: int) -> Event:
     data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")
