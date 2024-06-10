@@ -54,7 +54,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
                 # If metric_name starts with "e:", and therefore is a derived metric, use the old get_all_tags functionality
                 # This branch should be deleted eventually.
                 sentry_sdk.capture_message("organization_metrics_tags.non-mri-metric-name")
-                formatted_tags = get_all_tags(
+                formatted_tags: Sequence[Tag] = get_all_tags(
                     projects, [metric_name], use_case_id=get_use_case_id(request)
                 )
 
@@ -66,7 +66,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
                     mri=metric_name,
                 )
                 tags.append("project")
-                formatted_tags: Sequence[Tag] = [Tag(key=tag) for tag in set(tags)]
+                formatted_tags = [Tag(key=tag) for tag in set(tags)]
 
         except (InvalidParams, DerivedMetricParseException) as exc:
             raise (ParseError(detail=str(exc)))
