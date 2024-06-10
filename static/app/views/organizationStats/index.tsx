@@ -252,6 +252,9 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       if (DATA_CATEGORY_INFO.profileDuration.plural === opt.value) {
         return organization.features.includes('continuous-profiling-stats');
       }
+      if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
+        return !organization.features.includes('continuous-profiling-stats');
+      }
       return true;
     });
 
