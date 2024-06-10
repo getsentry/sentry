@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type Props = {

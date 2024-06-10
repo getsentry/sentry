@@ -1,5 +1,5 @@
 import {t, tct} from 'sentry/locale';
-import {formatBytesBase2} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

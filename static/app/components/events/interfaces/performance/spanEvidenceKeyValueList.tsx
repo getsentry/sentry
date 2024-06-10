@@ -29,7 +29,7 @@ import {
   IssueType,
   isTransactionBased,
 } from 'sentry/types';
-import {formatBytesBase2} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import toRoundedPercent from 'sentry/utils/number/toRoundedPercent';
 import {safeURL} from 'sentry/utils/url/safeURL';

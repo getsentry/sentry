@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import Alert from 'sentry/components/alert';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase2} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
