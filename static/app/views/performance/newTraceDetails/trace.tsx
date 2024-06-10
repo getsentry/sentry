@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {
   TraceError,
   TracePerformanceIssue,
@@ -28,7 +29,6 @@ import {clamp} from 'sentry/utils/profiling/colors/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
 import {
   useVirtualizedList,
   type VirtualizedRow,
