@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import sentry_sdk
 from rest_framework.exceptions import NotFound, ParseError
 from rest_framework.request import Request
@@ -15,6 +17,7 @@ from sentry.snuba.metrics import (
     DerivedMetricParseException,
     MetricDoesNotExistException,
     MetricDoesNotExistInIndexer,
+    Tag,
     get_all_tags,
     get_mri,
 )
@@ -55,7 +58,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
                     mri=metric_name,
                 )
                 tags.append("project")
-                formatted_tags = [{"key": tag} for tag in set(tags)]
+                formatted_tags: Sequence[Tag] = [Tag(key=tag) for tag in set(tags)]
 
             else:
                 sentry_sdk.capture_message("organization_metrics_tags.non-mri-metric-name")
