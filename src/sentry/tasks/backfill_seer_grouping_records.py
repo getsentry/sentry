@@ -349,10 +349,9 @@ def get_data_from_snuba(project, group_id_batch_filtered):
 
 @sentry_sdk.tracing.trace
 def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
-    nodestore_data = lookup_group_data_stacktrace_bulk_with_fallback(project, snuba_results)
-
+    nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results)
     # If nodestore returns no data
-    if nodestore_data["data"] == [] and nodestore_data["stacktrace_list"] == []:
+    if len(nodestore_events) == 0:
         logger.info(
             "tasks.backfill_seer_grouping_records.no_data",
             extra={
@@ -362,11 +361,45 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
         )
         raise NoNodestoreDataError("No data found in nodestore")
 
+    group_data = []
+    stacktrace_strings = []
+    bulk_event_ids = set()
+    invalid_event_ids = set()
+    for group_id, event in nodestore_events.items():
+        if event and event.data and event.data.get("exception"):
+            grouping_info = get_grouping_info(None, project=project, event=event)
+            stacktrace_string = get_stacktrace_string(grouping_info)
+            if stacktrace_string == "":
+                invalid_event_ids.add(event.event_id)
+                continue
+            primary_hash = event.get_primary_hash()
+            if not primary_hash:
+                invalid_event_ids.add(event.event_id)
+                continue
+
+            group_data.append(
+                CreateGroupingRecordData(
+                    group_id=group_id,
+                    project_id=project.id,
+                    message=event.title,
+                    hash=primary_hash,
+                )
+            )
+            stacktrace_strings.append(stacktrace_string)
+            bulk_event_ids.add(event.event_id)
+        else:
+            pass
+            # TODO
+            # invalid_event_ids.add(event.event_id)
+
     group_hashes_dict = {
         group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
-        for group_stacktrace_data in nodestore_data["data"]
+        for group_stacktrace_data in group_data
     }
-    return nodestore_data, group_hashes_dict
+    return (
+        GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
+        group_hashes_dict,
+    )
 
 
 @sentry_sdk.tracing.trace
@@ -434,51 +467,10 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
         )
 
 
-def lookup_group_data_stacktrace_bulk_with_fallback(
-    project: Project, rows: list[GroupEventRow]
-) -> GroupStacktraceData:
-    (
-        bulk_event_ids,
-        invalid_event_ids,
-        bulk_group_data_stacktraces,
-    ) = lookup_group_data_stacktrace_bulk(project, rows)
-    for row in rows:
-        event_id, group_id = row["event_id"], row["group_id"]
-        if event_id not in bulk_event_ids and event_id not in invalid_event_ids:
-            try:
-                group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-                    project, event_id, int(group_id)
-                )
-                if group_data and stacktrace_string:
-                    bulk_group_data_stacktraces["data"].append(group_data)
-                    bulk_group_data_stacktraces["stacktrace_list"].append(stacktrace_string)
-            except EventLookupError:
-                extra = {
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "group_id": group_id,
-                    "event_id": event_id,
-                }
-                logger.exception(
-                    "tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra
-                )
-                continue
-            except KeyError:
-                extra = {
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "group_id": group_id,
-                }
-                logger.exception("tasks.backfill_seer_grouping_records.no_group_hash", extra=extra)
-                continue
-
-    return bulk_group_data_stacktraces
-
-
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)
 def lookup_group_data_stacktrace_bulk(
     project: Project, rows: list[GroupEventRow]
-) -> tuple[set[str], set[str], GroupStacktraceData]:
+) -> dict[int, Event]:
     project_id = project.id
     node_id_to_group_data = {
         Event.generate_node_id(project_id, event_id=row["event_id"]): (
@@ -488,33 +480,28 @@ def lookup_group_data_stacktrace_bulk(
         for row in rows
     }
 
-    try:
-        bulk_data = nodestore.backend.get_multi(list(node_id_to_group_data.keys()))
-    except (ServiceUnavailable, DeadlineExceeded):
-        time.sleep(2)
-        try:
-            bulk_data = nodestore.backend.get_multi(list(node_id_to_group_data.keys()))
-        except (ServiceUnavailable, DeadlineExceeded):
-            time.sleep(4)
-            try:
-                bulk_data = nodestore.backend.get_multi(list(node_id_to_group_data.keys()))
-            except (ServiceUnavailable, DeadlineExceeded) as e:
-                extra = {
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "group_data": json.dumps(rows),
-                    "error": e.message,
-                }
-                logger.exception(
-                    "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
-                    extra=extra,
-                )
-                raise
+    groups_to_event = {}
 
-    group_data = []
-    stacktrace_strings = []
-    bulk_event_ids = set()
-    invalid_event_ids = set()
+    try:
+        bulk_data = _retry_operation(
+            nodestore.backend.get_multi,
+            list(node_id_to_group_data.keys()),
+            retries=3,
+            delay=2,
+        )
+    except (ServiceUnavailable, DeadlineExceeded) as e:
+        extra = {
+            "organization_id": project.organization.id,
+            "project_id": project.id,
+            "group_data": json.dumps(rows),
+            "error": e.message,
+        }
+        logger.exception(
+            "tasks.backfill_seer_grouping_records.bulk_event_lookup_exception",
+            extra=extra,
+        )
+        raise
+
     for node_id, data in bulk_data.items():
         if node_id in node_id_to_group_data:
             event_id, group_id = (
@@ -522,29 +509,29 @@ def lookup_group_data_stacktrace_bulk(
                 node_id_to_group_data[node_id][1],
             )
             event = Event(event_id=event_id, project_id=project_id, group_id=group_id, data=data)
-            if event and event.data and event.data.get("exception"):
-                grouping_info = get_grouping_info(None, project=project, event=event)
-                stacktrace_string = get_stacktrace_string(grouping_info)
-                if stacktrace_string == "":
-                    invalid_event_ids.add(event_id)
-                    continue
-                primary_hash = event.get_primary_hash()
-                if not primary_hash:
-                    invalid_event_ids.add(event_id)
-                    continue
+            groups_to_event[group_id] = event
 
-                group_data.append(
-                    CreateGroupingRecordData(
-                        group_id=group_id,
-                        project_id=project_id,
-                        message=event.title,
-                        hash=primary_hash,
-                    )
-                )
-                stacktrace_strings.append(stacktrace_string)
-                bulk_event_ids.add(event_id)
-            else:
-                invalid_event_ids.add(event_id)
+    # look up individually any that may have failed during bulk lookup
+    for node_id, (event_id, group_id) in node_id_to_group_data.items():
+        if node_id not in bulk_data:
+            data = _retry_operation(
+                nodestore.backend.get,
+                Event.generate_node_id(project_id, event_id),
+                retries=3,
+                delay=2,
+            )
+            if data is None:
+                extra = {
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
+                    "group_id": group_id,
+                    "event_id": event_id,
+                }
+                logger.error("tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra)
+                continue
+            event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
+            event.data = data
+            groups_to_event[group_id] = event
 
     metrics.gauge(
         f"{BACKFILL_NAME}._lookup_event_bulk.hit_ratio",
@@ -552,63 +539,18 @@ def lookup_group_data_stacktrace_bulk(
         sample_rate=1.0,
     )
 
-    return (
-        bulk_event_ids,
-        invalid_event_ids,
-        GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
-    )
+    return groups_to_event
 
 
-@metrics.wraps(f"{BACKFILL_NAME}.lookup_event_single")
-def lookup_group_data_stacktrace_single(
-    project: Project, event_id: str, group_id: int
-) -> tuple[CreateGroupingRecordData | None, str]:
-    project_id = project.id
-    try:
-        event = lookup_event(project_id=project_id, event_id=event_id, group_id=group_id)
-    except (ServiceUnavailable, DeadlineExceeded):
-        time.sleep(2)
+def _retry_operation(operation, *args, retries, delay, **kwargs):
+    for attempt in range(retries):
         try:
-            event = lookup_event(project_id=project_id, event_id=event_id, group_id=group_id)
+            return operation(*args, **kwargs)
         except (ServiceUnavailable, DeadlineExceeded):
-            time.sleep(4)
-            try:
-                event = lookup_event(project_id=project_id, event_id=event_id, group_id=group_id)
-            except (ServiceUnavailable, DeadlineExceeded) as e:
-                extra = {
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "group_id": group_id,
-                    "event_id": event_id,
-                    "error": e.message,
-                }
-                logger.exception(
-                    "tasks.backfill_seer_grouping_records.event_lookup_exception", extra=extra
-                )
+            if attempt < retries - 1:
+                time.sleep(delay * (2**attempt))
+            else:
                 raise
-
-    if event and event.data and event.data.get("exception"):
-        with sentry_sdk.start_transaction(op="embeddings_grouping.get_latest_event"):
-            grouping_info = get_grouping_info(None, project=project, event=event)
-        stacktrace_string = get_stacktrace_string(grouping_info)
-        primary_hash = event.get_primary_hash()
-        if not primary_hash:
-            group_data = None
-        else:
-            group_data = (
-                CreateGroupingRecordData(
-                    group_id=group_id,
-                    hash=primary_hash,
-                    project_id=project_id,
-                    message=event.title,
-                )
-                if stacktrace_string != ""
-                else None
-            )
-
-        return (group_data, stacktrace_string)
-
-    return (None, "")
 
 
 def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
