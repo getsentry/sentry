@@ -92,7 +92,7 @@ server.listen(3000, "127.0.0.1");`,
   'python-django': {
     install: t('Use the following command to install our Python Django SDK'),
     installCode: "pip install --upgrade 'sentry-sdk[django]'",
-    configure: t('To configure the Sentry SDK, initialize it in your settings.py file:'),
+    configure: t('To configure the Sentry SDK, initialize it in your settings.py file.'),
     configureCode: dsn => `import sentry_sdk
 
 sentry_sdk.init(
