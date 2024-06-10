@@ -49,6 +49,7 @@ class TestGetNotificationMessageToSend(TestCase):
         assert result == "admin@localhost archived BAR-1"
 
 
+@mock.patch("sentry.integrations.slack.service")
 class TestNotifyAllThreadsForActivity(TestCase):
     def setUp(self) -> None:
         self.service = SlackService.default()
@@ -93,36 +94,43 @@ class TestNotifyAllThreadsForActivity(TestCase):
                 metadata={"access_token": "xoxb-access-token"},
             )
 
-    def test_none_group(self):
+    def test_none_group(self, mock_logger):
         self.activity.update(group=None)
-        assert self.service.notify_all_threads_for_activity(activity=self.activity) is None
+        self.service.notify_all_threads_for_activity(activity=self.activity)
+        assert mock_logger.info.called_with("no group associated on the activity, nothing to do")
 
-    def test_none_user_id(self):
+    def test_none_user_id(self, mock_logger):
         self.activity.update(user_id=None)
-        assert self.service.notify_all_threads_for_activity(activity=self.activity) is None
+        self.service.notify_all_threads_for_activity(activity=self.activity)
+        assert mock_logger.info.called_with("no user associated on the activity, nothing to do")
 
-    def test_disabled_option(self):
+    def test_disabled_option(self, mock_logger):
         OrganizationOption.objects.set_value(
             self.organization, "sentry:issue_alerts_thread_flag", False
         )
-        assert self.service.notify_all_threads_for_activity(activity=self.activity) is None
+        self.service.notify_all_threads_for_activity(activity=self.activity)
+        assert mock_logger.info.called_with("feature is turned off for this organization")
 
-    def test_no_message_to_send(self):
+    def test_no_message_to_send(self, mock_logger):
         # unsupported activity
         self.activity.update(type=ActivityType.FIRST_SEEN.value)
-        assert self.service.notify_all_threads_for_activity(activity=self.activity) is None
+        self.service.notify_all_threads_for_activity(activity=self.activity)
+        assert mock_logger.info.called_with("notification to send is invalid")
 
-    def test_no_integration(self):
+    def test_no_integration(self, mock_logger):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration.delete()
-        assert self.service.notify_all_threads_for_activity(activity=self.activity) is None
-
-    def test_no_parent_notification(self):
-        self.parent_notification.delete()
-        assert self.service.notify_all_threads_for_activity(activity=self.activity) is None
+        self.service.notify_all_threads_for_activity(activity=self.activity)
+        assert mock_logger.info.called_with("no integration found for activity")
 
     @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
-    def test_calls_handle_parent_notification(self, mock_handle):
+    def test_no_parent_notification(self, mock_handle, mock_logger):
+        self.parent_notification.delete()
+        self.service.notify_all_threads_for_activity(activity=self.activity)
+        assert not mock_handle.called
+
+    @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
+    def test_calls_handle_parent_notification(self, mock_handle, mock_logger):
         parent_notification = IssueAlertNotificationMessage.from_model(
             instance=self.parent_notification
         )
@@ -136,7 +144,7 @@ class TestNotifyAllThreadsForActivity(TestCase):
 
     @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
     @with_feature("organizations:slack-sdk-activity-threads")
-    def test_calls_handle_parent_notification_sdk_client(self, mock_handle):
+    def test_calls_handle_parent_notification_sdk_client(self, mock_handle, mock_logger):
         parent_notification = IssueAlertNotificationMessage.from_model(
             instance=self.parent_notification
         )
