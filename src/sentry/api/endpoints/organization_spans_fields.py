@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -12,15 +12,25 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.models.organization import Organization
 from sentry.search.events.builder import SpansIndexedQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
 
 
+class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
+    def get_snuba_dataclass(
+        self, request: Request, organization: Organization, check_global_views: bool = True
+    ) -> tuple[SnubaParams, dict[str, Any]]:
+        # Disables the global views check so that this endpoint is allowed to do
+        # cross project queries if requested.
+        return super().get_snuba_dataclass(request, organization, check_global_views=False)
+
+
 @region_silo_endpoint
-class OrganizationSpansFieldsEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -82,7 +92,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationEventsV2EndpointBase):
 
 
 @region_silo_endpoint
-class OrganizationSpansFieldValuesEndpoint(OrganizationEventsV2EndpointBase):
+class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
