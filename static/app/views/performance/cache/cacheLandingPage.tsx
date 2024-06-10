@@ -12,6 +12,7 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   DismissId,
@@ -22,6 +23,7 @@ import {
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
@@ -68,6 +70,7 @@ const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 
 export function CacheLandingPage() {
   const location = useLocation();
+  const organization = useOrganization();
   const {setPageInfo, pageAlert} = usePageAlert();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
@@ -144,6 +147,15 @@ export function CacheLandingPage() {
     MutableSearch.fromQueryObject(BASE_FILTERS),
     Referrer.LANDING_CACHE_ONBOARDING
   );
+
+  useEffect(() => {
+    if (!isHasDataLoading) {
+      trackAnalytics('insight.page_loads.cache', {
+        organization,
+        has_data: hasData,
+      });
+    }
+  }, [organization, hasData, isHasDataLoading]);
 
   useEffect(() => {
     const hasMissingDataError =

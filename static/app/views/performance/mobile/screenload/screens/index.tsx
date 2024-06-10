@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -34,6 +35,7 @@ import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/scre
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
+import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
@@ -250,6 +252,20 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     enabled: !topTransactionsLoading,
     referrer: 'api.starfish.mobile-screen-bar-chart',
   });
+
+  const {hasData, isLoading: isHasDataLoading} = useHasData(
+    new MutableSearch('transaction.op:ui.load'),
+    'api.performance.mobile.landing-screen-load-onboarding'
+  );
+
+  useEffect(() => {
+    if (!isHasDataLoading) {
+      trackAnalytics('insight.page_loads.screen_load', {
+        organization,
+        has_data: hasData,
+      });
+    }
+  }, [organization, hasData, isHasDataLoading]);
 
   if (isReleasesLoading) {
     return (

@@ -1,4 +1,4 @@
-import React, {Fragment, useState} from 'react';
+import React, {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import moment from 'moment';
@@ -19,6 +19,8 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,6 +42,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function WebVitalsLandingPage() {
@@ -72,6 +75,22 @@ export function WebVitalsLandingPage() {
 
   const fidDeprecationTimestampString =
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
+
+  const {hasData, isLoading: isHasDataLoading} = useHasData(
+    new MutableSearch(
+      'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]'
+    ),
+    'api.performance.vital.landing-vital-onboarding'
+  );
+
+  useEffect(() => {
+    if (!isHasDataLoading) {
+      trackAnalytics('insight.page_loads.vital', {
+        organization,
+        has_data: hasData,
+      });
+    }
+  }, [organization, hasData, isHasDataLoading]);
 
   const crumbs = useModuleBreadcrumbs('vital');
 
