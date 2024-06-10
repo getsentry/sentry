@@ -22,7 +22,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
     value: FieldKind.FIELD,
     label: 'Category 1',
     children: [
-      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD, predefined: true},
+      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
       {
         key: FieldKey.ASSIGNED,
         name: 'Assigned To',
@@ -55,6 +55,11 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
         name: 'is',
         alias: 'status',
         predefined: true,
+      },
+      {
+        key: FieldKey.TIMES_SEEN,
+        name: 'timesSeen',
+        kind: FieldKind.FIELD,
       },
     ],
   },
@@ -313,12 +318,12 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       // Clicking the "+14d" option should update the value
-      await userEvent.click(screen.getByRole('option', {name: '+14d'}));
-      expect(screen.getByRole('row', {name: 'age:+14d'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: '-14d'}));
+      expect(screen.getByRole('row', {name: 'age:-14d'})).toBeInTheDocument();
       expect(
         within(
           screen.getByRole('button', {name: 'Edit value for filter: age'})
-        ).getByText('+14d')
+        ).getByText('-14d')
       ).toBeInTheDocument();
     });
 
@@ -714,6 +719,51 @@ describe('SearchQueryBuilder', function () {
       expect(
         within(groups[2]).getByRole('option', {name: 'person2@sentry.io'})
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('filter types', function () {
+    describe('numeric', function () {
+      it('new numeric filters start with a value', async function () {
+        render(<SearchQueryBuilder {...defaultProps} />);
+        await userEvent.click(screen.getByRole('grid'));
+        await userEvent.keyboard('time{ArrowDown}{Enter}');
+
+        // Should start with the > operator and a value of 100
+        expect(
+          await screen.findByRole('row', {name: 'timesSeen:>100'})
+        ).toBeInTheDocument();
+      });
+
+      it('does not allow invalid values', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>100" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a numeric value
+        expect(screen.getByRole('row', {name: 'timesSeen:>100'})).toBeInTheDocument();
+
+        await userEvent.keyboard('{Backspace}7k{Enter}');
+
+        // Should accept "7k" as a valid value
+        expect(
+          await screen.findByRole('row', {name: 'timesSeen:>7k'})
+        ).toBeInTheDocument();
+      });
+
+      it('can change the operator', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>100k" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: timesSeen'})
+        );
+        await userEvent.click(screen.getByRole('menuitemradio', {name: '<='}));
+
+        expect(
+          await screen.findByRole('row', {name: 'timesSeen:<=100k'})
+        ).toBeInTheDocument();
+      });
     });
   });
 });

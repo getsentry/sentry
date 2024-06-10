@@ -275,7 +275,7 @@ export function stringifyToken(token: TokenResult<Token>) {
       return `[${textListItems.join(',')}]`;
     case Token.VALUE_NUMBER_LIST:
       const numberListItems = token.items
-        .map(item => (item.value ? item.value.value + item.value.unit : ''))
+        .map(item => (item.value ? item.value.value + (item.value.unit ?? '') : ''))
         .filter(str => str.length > 0);
       return `[${numberListItems.join(',')}]`;
     case Token.KEY_SIMPLE:
@@ -297,7 +297,7 @@ export function stringifyToken(token: TokenResult<Token>) {
     case Token.VALUE_RELATIVE_DATE:
     case Token.VALUE_SIZE:
     case Token.VALUE_NUMBER:
-      return token.value;
+      return token.text;
     default:
       return '';
   }

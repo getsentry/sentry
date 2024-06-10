@@ -72,7 +72,20 @@ export function SearchQueryBuilder({
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
-  const parsedQuery = useMemo(() => parseQueryBuilderValue(state.query), [state.query]);
+  const keys = useMemo(
+    () =>
+      filterKeySections.reduce((acc, section) => {
+        for (const tag of section.children) {
+          acc[tag.key] = tag;
+        }
+        return acc;
+      }, {}),
+    [filterKeySections]
+  );
+  const parsedQuery = useMemo(
+    () => parseQueryBuilderValue(state.query, {keys}),
+    [keys, state.query]
+  );
 
   useEffectAfterFirstRender(() => {
     dispatch({type: 'UPDATE_QUERY', query: initialQuery});
@@ -83,23 +96,16 @@ export function SearchQueryBuilder({
   }, [onChange, state.query]);
 
   const contextValue = useMemo(() => {
-    const allKeys = filterKeySections.reduce((acc, section) => {
-      for (const tag of section.children) {
-        acc[tag.key] = tag;
-      }
-      return acc;
-    }, {});
-
     return {
       ...state,
       parsedQuery,
       filterKeySections,
-      keys: allKeys,
+      keys,
       getTagValues,
       dispatch,
       onSearch,
     };
-  }, [state, parsedQuery, filterKeySections, getTagValues, dispatch, onSearch]);
+  }, [state, parsedQuery, filterKeySections, keys, getTagValues, dispatch, onSearch]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
