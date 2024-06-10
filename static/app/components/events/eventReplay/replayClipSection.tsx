@@ -55,7 +55,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   const replayUrl = baseUrl ? `${baseUrl}replays/${location.search}/` : '';
   const seeAllReplaysButton = replayUrl ? (
     <LinkButton
-      size="sm"
+      size="xs"
       to={replayUrl}
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
