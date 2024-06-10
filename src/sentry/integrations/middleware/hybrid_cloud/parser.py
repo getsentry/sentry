@@ -22,6 +22,7 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
@@ -83,7 +84,7 @@ class BaseRequestParser(abc.ABC):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             metrics.incr(
                 self._METRIC_FAILURE_KEY + ".silo_error",
-                tags={"path": self.request.path, "silo": SiloMode.get_current_mode()},
+                tags={"path": self.request.path, "silo": SiloMode.get_current_mode().value},
             )
             logger.error(
                 "ensure_control_silo_error",
@@ -139,13 +140,23 @@ class BaseRequestParser(abc.ABC):
                     tags={"path": self.request.path, "region": region.name},
                 )
                 return http_response
+            except ApiError as e:
+                metrics.incr(
+                    self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error.api_retry_error",
+                    tags={"path": self.request.path, "region": region.name, "error": str(e)},
+                )
+                logger.exception(
+                    ".proxy_request_to_region_error.api_retry_error",
+                    extra={"path": self.request.path, "region": region.name, "error": e},
+                )
+                raise
             except Exception as e:
                 metrics.incr(
                     self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error",
                     tags={"path": self.request.path, "region": region.name, "error": str(e)},
                 )
                 logger.exception(
-                    "region_silo_error",
+                    "proxy_request_to_region_error",
                     extra={"path": self.request.path, "region": region.name, "error": e},
                 )
                 raise IntegrationMiddlewareException(e)
@@ -181,14 +192,15 @@ class BaseRequestParser(abc.ABC):
                     region_to_response_map[region.name] = RegionResult(response=region_response)
 
         if len(region_to_response_map) == 0:
+            region_names = ", ".join(region.name for region in regions)
             metrics.incr(
                 self._METRIC_FAILURE_KEY + ".no_region_response",
                 sample_rate=1.0,
-                tags={"path": self.request.path, "regions": [region.name for region in regions]},
+                tags={"path": self.request.path, "regions": region_names},
             )
             logger.error(
                 "region_no_response",
-                extra={"path": self.request.path, "regions": [region.name for region in regions]},
+                extra={"path": self.request.path, "regions": region_names},
             )
             return region_to_response_map
 
@@ -307,13 +319,15 @@ class BaseRequestParser(abc.ABC):
             result for result in response_map.values() if result.response is not None
         ]
         if len(successful_responses) == 0:
-            error_map = {region: result.error for region, result in response_map.items()}
+            error_map_str = ", ".join(
+                f"{region}: {result.error}" for region, result in response_map.items()
+            )
             metrics.incr(
                 self._METRIC_FAILURE_KEY + ".get_response_from_all_regions_error",
                 sample_rate=1.0,
-                tags={"path": self.request.path, "errors": error_map},
+                tags={"path": self.request.path, "errors": error_map_str},
             )
-            raise SiloClientError("No successful region responses", error_map)
+            raise SiloClientError("No successful region responses", error_map_str)
         return successful_responses[0].response
 
     # Required Overrides
