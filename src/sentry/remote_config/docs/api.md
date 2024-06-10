@@ -6,6 +6,44 @@ Host: https://sentry.io/api/0
 
 @cmanallen
 
+## Configuration Proxy [/remote-config/projects/<project_id>/]
+
+Temporary configuration proxy resource.
+
+### Get Configuration [GET]
+
+Fetch a project's configuration. Responses should be proxied exactly to the SDK.
+
+- Response 200
+
+  - Headers
+
+    Cache-Control: public, max-age=3600
+    Content-Type: application/json
+    ETag: a7966bf58e23583c9a5a4059383ff850
+
+  - Body
+
+    ```json
+    {
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
+      "options": {
+        "sample_rate": 1.0,
+        "traces_sample_rate": 0.5
+      },
+      "version": 1
+    }
+    ```
+
 ## Configuration [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/]
 
 ### Get Configuration [GET]
@@ -117,41 +155,3 @@ Set the project's configuration.
 Delete the project's configuration.
 
 - Response 204
-
-## Configuration Proxy [/remote-config/projects/<project_id>/]
-
-Temporary configuration proxy resource.
-
-### Get Configuration [GET]
-
-Fetch a project's configuration. Responses should be proxied exactly to the SDK.
-
-- Response 200
-
-  - Headers
-
-    Cache-Control: public, max-age=3600
-    Content-Type: application/json
-    ETag: a7966bf58e23583c9a5a4059383ff850
-
-  - Body
-
-    ```json
-    {
-      "features": [
-        {
-          "key": "hello",
-          "value": "world"
-        },
-        {
-          "key": "has_access",
-          "value": true
-        }
-      ],
-      "options": {
-        "sample_rate": 1.0,
-        "traces_sample_rate": 0.5
-      },
-      "version": 1
-    }
-    ```
