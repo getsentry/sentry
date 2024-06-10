@@ -38,7 +38,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import xfail_if_not_postgres
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.utils import json
-from sentry.utils.snuba import SENTRY_SNUBA_MAP, SnubaError
+from sentry.utils.snuba import SENTRY_SNUBA_MAP
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -2400,10 +2400,7 @@ class EventsSnubaSearchTestCases(EventsDatasetTestSetup):
         # searched on without returning type errors and other schema related
         # issues.
         def test_query(query):
-            try:
-                self.make_query(search_filter_query=query)
-            except SnubaError as e:
-                self.fail(f"Query {query} errored. Error info: {e}")  # type:ignore[attr-defined]
+            self.make_query(search_filter_query=query)
 
         for key in SENTRY_SNUBA_MAP:
             if key in ["project.id", "issue.id", "performance.issue_ids", "status"]:
