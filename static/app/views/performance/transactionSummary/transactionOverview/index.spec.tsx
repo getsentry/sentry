@@ -26,7 +26,6 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
   TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -71,7 +70,6 @@ function initializeData({
 }
 
 function TestComponent({
-  router,
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
   router: InjectedRouter<Record<string, string>, any>;
@@ -82,14 +80,12 @@ function TestComponent({
 
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <RouteContext.Provider value={{router, ...router}}>
-        <MetricsCardinalityProvider
-          organization={props.organization}
-          location={props.location}
-        >
-          <TransactionSummary {...props} />
-        </MetricsCardinalityProvider>
-      </RouteContext.Provider>
+      <MetricsCardinalityProvider
+        organization={props.organization}
+        location={props.location}
+      >
+        <TransactionSummary {...props} />
+      </MetricsCardinalityProvider>
     </QueryClientProvider>
   );
 }
