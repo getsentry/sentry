@@ -10,6 +10,10 @@ Host: https://sentry.io/api/0
 
 Temporary configuration proxy resource.
 
+- Parameters
+  - environment (optional, string) - The environment to scope the configuration by.
+  - name (optional, string) - An explicit name to scope the configuration by.
+
 ### Get Configuration [GET]
 
 Fetch a project's configuration. Responses should be proxied exactly to the SDK.
