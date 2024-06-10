@@ -143,18 +143,6 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: list[int],
-        sentry_app_ids: list[int],
-        type: str,
-        group_by: str = "sentry_app_id",
-    ) -> Mapping[str, Any]:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
     def get_component_contexts(
         self, *, filter: SentryAppInstallationFilterArgs, component_type: str
     ) -> list[RpcSentryAppComponentContext]:

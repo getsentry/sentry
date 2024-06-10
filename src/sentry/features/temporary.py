@@ -173,8 +173,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:metric-alert-load-shedding", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable threshold period in metric alert rule builder
     manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enables the ability to block metrics.
-    manager.add("organizations:metrics-blocking", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the search bar for metrics samples list
     manager.add("organizations:metrics-samples-list-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable Session Stats down to a minute resolution
@@ -316,7 +314,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable the transactions backed profiling views
     manager.add("organizations:profiling-using-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable continuous profiling
-    manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:continuous-profiling", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Display profile durations on the stats page
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable asking for feedback after project-create when replay is disabled
@@ -476,8 +474,6 @@ def register_temporary_features(manager: FeatureManager):
     # Sanitize transaction names in the ingestion pipeline. # Deprecated
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable the metrics layer for alerts queries.
-    manager.add("organizations:use-metrics-layer-in-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable User Feedback v2 ingest
     manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Use ReplayClipPreview inside the User Feedback Details panel
