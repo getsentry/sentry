@@ -43,7 +43,7 @@ function LoadMemberAvatar({
   const {members, fetching} = useMembers({ids});
   const user = members.find(u => u.id === userId);
 
-  if (fetching) {
+  if (fetching || !user) {
     const size = `${props.size}px`;
     return <Placeholder shape="circle" width={size} height={size} />;
   }
