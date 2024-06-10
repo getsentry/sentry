@@ -529,6 +529,7 @@ module = [
     "sentry.buffer.*",
     "sentry.build.*",
     "sentry.eventstore.reprocessing.redis",
+    "sentry.eventtypes.error",
     "sentry.grouping.parameterization",
     "sentry.hybridcloud",
     "sentry.hybridcloud.migrations.*",
