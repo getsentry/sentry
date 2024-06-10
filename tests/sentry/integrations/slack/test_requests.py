@@ -1,4 +1,5 @@
 from unittest import mock
+from unittest.mock import patch
 from urllib.parse import urlencode
 
 import orjson
@@ -12,6 +13,7 @@ from sentry.integrations.slack.requests.event import SlackEventRequest
 from sentry.integrations.slack.utils import set_signing_secret
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -36,6 +38,22 @@ class SlackRequestTest(TestCase):
     @cached_property
     def slack_request(self):
         return SlackRequest(self.request)
+
+    def test_validate(self):
+        self.create_integration(
+            organization=self.organization, external_id="T001", provider="slack"
+        )
+        self.slack_request.validate()
+
+    @with_feature("organizations:slack-sdk-signature")
+    @patch("slack_sdk.signature.SignatureVerifier.is_valid")
+    def test_validate_using_sdk(self, mock_verify):
+        self.create_integration(
+            organization=self.organization, external_id="T001", provider="slack"
+        )
+        self.slack_request.validate()
+
+        mock_verify.assert_called()
 
     def test_exposes_data(self):
         assert self.slack_request.data["type"] == "foo"
