@@ -111,9 +111,6 @@ export function AutofixBanner({
 
   return (
     <Wrapper>
-      <IllustrationContainer>
-        <Background src={bannerImage} />
-      </IllustrationContainer>
       <Body>
         <div>
           <Title>{t('Try Autofix')}</Title>
@@ -130,21 +127,22 @@ export function AutofixBanner({
           />
         </ContextArea>
         {isSentryEmployee && hasSuccessfulSetup && (
-          <Fragment>
-            <Separator />
-            <PiiMessage>
-              {t(
-                'By clicking the button above, you confirm that there is no PII in this event.'
-              )}
-            </PiiMessage>
-          </Fragment>
+          <PiiMessage>
+            {t(
+              'By clicking the button above, you confirm that there is no PII in this event.'
+            )}
+          </PiiMessage>
         )}
       </Body>
+      <IllustrationContainer>
+        <Background src={bannerImage} />
+      </IllustrationContainer>
     </Wrapper>
   );
 }
 
 const Wrapper = styled(Panel)`
+  display: flex;
   margin-bottom: 0;
   background: linear-gradient(
     269.35deg,
@@ -154,11 +152,10 @@ const Wrapper = styled(Panel)`
 `;
 
 const Body = styled(PanelBody)`
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
   padding: ${space(2)} ${space(3)};
-
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    max-width: calc(100% - 400px);
-  }
 `;
 
 const Title = styled('div')`
@@ -183,11 +180,8 @@ const IllustrationContainer = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     display: block;
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    top: 0;
-    width: 400px;
+    width: 300px;
+    height: 140px;
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   }
 `;
@@ -196,15 +190,10 @@ const Background = styled('img')`
   max-width: 100%;
 `;
 
-const Separator = styled('hr')`
-  margin-top: ${space(2)};
-  margin-bottom: ${space(1)};
-  border-color: ${p => p.theme.translucentBorder};
-`;
-
 const PiiMessage = styled('p')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+  margin-top: ${space(1.5)};
 `;
 
 const RowStack = styled('div')`
