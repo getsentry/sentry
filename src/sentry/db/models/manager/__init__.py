@@ -8,7 +8,7 @@ from sentry.utils.hashlib import md5_text
 
 __all__ = ("BaseManager", "BaseQuerySet", "OptionManager", "M", "Value", "ValidateFunction")
 
-M = TypeVar("M", bound=Model)
+M = TypeVar("M", bound=Model, covariant=True)
 Value = Any
 ValidateFunction = Callable[[Value], bool]
 
