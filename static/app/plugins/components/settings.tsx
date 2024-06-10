@@ -7,12 +7,12 @@ import Form from 'sentry/components/deprecatedforms/form';
 import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
-import {parseRepo} from 'sentry/parseRepo';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
 import type {Plugin} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {parseRepo} from 'sentry/utils/git/parseRepo';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
