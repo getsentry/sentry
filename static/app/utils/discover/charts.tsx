@@ -9,13 +9,14 @@ import getDuration from 'sentry/utils/duration/getDuration';
 import {
   DAY,
   formatAbbreviatedNumber,
-  formatPercentage,
   formatRate,
   HOUR,
   MINUTE,
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
+
+import {formatPercentage} from '../number/formatPercentage';
 
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
