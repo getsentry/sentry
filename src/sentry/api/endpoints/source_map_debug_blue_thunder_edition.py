@@ -46,8 +46,6 @@ NO_DEBUG_ID_SDKS = {
     "sentry.javascript.capacitor",
     "sentry.javascript.wasm",
     "sentry.javascript.cordova",
-    "sentry.javascript.nextjs",
-    "sentry.javascript.sveltekit",
 }
 
 # This number will equate to an upper bound of file lookups/downloads
@@ -643,6 +641,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.react",
             "sentry.javascript.react-native",
             "sentry.javascript.remix",
+            "sentry.javascript.solid",
             "sentry.javascript.svelte",
             "sentry.javascript.sveltekit",
             "sentry.javascript.vue",
