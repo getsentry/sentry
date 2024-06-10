@@ -631,9 +631,8 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
         assert mock_generate_code_mappings.call_count == 1
-        code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
-        assert code_mapping.exists()
-        assert code_mapping.first().automatically_generated is True
+        code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
+        assert code_mapping.automatically_generated is True
 
     def test_skips_not_supported_platforms(self):
         data = self.generate_data([{}], platform="elixir")
@@ -689,9 +688,8 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         assert mock_identify_stacktraces.call_count == 1
         assert mock_get_trees_for_org.call_count == 1
         assert mock_generate_code_mappings.call_count == 1
-        code_mapping = RepositoryProjectPathConfig.objects.filter(project_id=self.project.id)
-        assert code_mapping.exists()
-        assert code_mapping.first().automatically_generated is False
+        code_mapping = RepositoryProjectPathConfig.objects.get(project_id=self.project.id)
+        assert code_mapping.automatically_generated is False
         assert mock_logger.info.call_count == 1
 
     @responses.activate
@@ -704,7 +702,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
                 repo_name: RepoTree(Repo(repo_name, "master"), ["src/sentry/models/release.py"])
             }
             derive_code_mappings(self.project.id, self.test_data)
-            code_mapping = RepositoryProjectPathConfig.objects.all().first()
+            code_mapping = RepositoryProjectPathConfig.objects.get()
             # sentry/models/release.py -> models/release.py -> src/sentry/models/release.py
             assert code_mapping.stack_root == "sentry/"
             assert code_mapping.source_root == "src/sentry/"
@@ -719,7 +717,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
                 repo_name: RepoTree(Repo(repo_name, "master"), ["sentry/models/release.py"])
             }
             derive_code_mappings(self.project.id, self.test_data)
-            code_mapping = RepositoryProjectPathConfig.objects.all().first()
+            code_mapping = RepositoryProjectPathConfig.objects.get()
 
             assert code_mapping.stack_root == ""
             assert code_mapping.source_root == ""
