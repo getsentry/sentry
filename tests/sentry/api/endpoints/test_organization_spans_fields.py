@@ -14,12 +14,16 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, features=None, **kwargs):
+        # setup another project so there are >1 project in the org
+        self.create_project()
+
+    def do_request(self, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                query,
                 format="json",
                 **kwargs,
             )
@@ -47,10 +51,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 exclusive_time=100,
                 tags={tag: tag},
             )
-        query = {
-            "project": [self.project.id],
-        }
-        response = self.do_request(query=query)
+        response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == [
             {"key": "bar", "name": "Bar"},
@@ -65,6 +66,9 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
     def setUp(self):
         super().setUp()
         self.login_as(user=self.user)
+
+        # setup another project so there are >1 project in the org
+        self.create_project()
 
     def do_request(self, key: str, query=None, features=None, **kwargs):
         if features is None:
@@ -105,10 +109,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 tags={"tag": tag},
             )
 
-        query = {
-            "project": [self.project.id],
-        }
-        response = self.do_request("tag", query=query)
+        response = self.do_request("tag")
         assert response.status_code == 200, response.data
         assert response.data == [
             {
@@ -156,7 +157,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
         with override_options({"performance.spans-tags-values.search": True}):
             for key in ["tag", "transaction"]:
                 query = {
-                    "project": [self.project.id],
                     "query": "b",
                 }
                 response = self.do_request(key, query=query)
@@ -215,9 +215,6 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             "replay.id",
             "replay_id",
         ]:
-            query = {
-                "project": [self.project.id],
-            }
-            response = self.do_request(key, query=query)
+            response = self.do_request(key)
             assert response.status_code == 200, response.data
             assert response.data == [], key
