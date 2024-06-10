@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from enum import Enum
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
@@ -82,7 +82,7 @@ class RegressionGroup(Model):
 
 def get_regression_groups(
     regression_type: RegressionType, pairs: Sequence[tuple[int, str]], active: bool | None = None
-) -> Sequence[RegressionGroup]:
+) -> QuerySet[RegressionGroup]:
     conditions = Q()
     for project_id, fingerprint in pairs:
         conditions |= Q(project_id=project_id, fingerprint=fingerprint)

@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import hashlib
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 from django.db import connections, models, router, transaction
 from django.db.models import Q
@@ -140,7 +142,7 @@ class CustomDynamicSamplingRule(Model):
         condition: Any,
         organization_id: int,
         project_ids: Sequence[int],
-    ) -> Optional["CustomDynamicSamplingRule"]:
+    ) -> CustomDynamicSamplingRule | None:
         """
         Returns an active rule for the given condition and organization if it exists otherwise None
 
@@ -168,7 +170,7 @@ class CustomDynamicSamplingRule(Model):
         sample_rate: float,
         query: str,
         created_by_id: int | None = None,
-    ) -> "CustomDynamicSamplingRule":
+    ) -> CustomDynamicSamplingRule:
         from sentry.models.organization import Organization
         from sentry.models.project import Project
 
@@ -271,8 +273,8 @@ class CustomDynamicSamplingRule(Model):
 
     @staticmethod
     def get_project_rules(
-        project: "Project",
-    ) -> Sequence["CustomDynamicSamplingRule"]:
+        project: Project,
+    ) -> Sequence[CustomDynamicSamplingRule]:
         """
         Returns all active project rules
         """
@@ -294,8 +296,7 @@ class CustomDynamicSamplingRule(Model):
             start_date__lt=now,
         )[: MAX_CUSTOM_RULES_PER_PROJECT + 1]
 
-        rules = project_rules.union(org_rules)[: MAX_CUSTOM_RULES_PER_PROJECT + 1]
-        rules = list(rules)
+        rules = list(project_rules.union(org_rules)[: MAX_CUSTOM_RULES_PER_PROJECT + 1])
 
         if len(rules) > MAX_CUSTOM_RULES_PER_PROJECT:
             metrics.incr("dynamic_sampling.custom_rules.overflow")
@@ -312,7 +313,7 @@ class CustomDynamicSamplingRule(Model):
         ).update(is_active=False)
 
     @staticmethod
-    def num_active_rules_for_project(project: "Project") -> int:
+    def num_active_rules_for_project(project: Project) -> int:
         """
         Returns the number of active rules for the given project
         """
@@ -337,9 +338,7 @@ class CustomDynamicSamplingRule(Model):
         return num_proj_rules + num_org_rules
 
     @staticmethod
-    def per_project_limit_reached(
-        projects: Sequence["Project"], organization: "Organization"
-    ) -> bool:
+    def per_project_limit_reached(projects: Sequence[Project], organization: Organization) -> bool:
         """
         Returns True if the rule limit is reached for any of the given projects (or all
         the projects in the organization if org level rule)
