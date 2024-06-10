@@ -49,7 +49,7 @@ Fetch a project's configuration. Responses should be proxied exactly to the SDK.
 | Field              | Type             | Description                                                                   |
 | ------------------ | ---------------- | ----------------------------------------------------------------------------- |
 | environment        | optional[string] | The environment the configuration is associated with.                         |
-| id                 | string           | A server generted unique identifier.                                          |
+| id                 | string           | A server generated unique identifier.                                          |
 | name               | optional[string] | A custom name distinguishing the configuration from the default project name. |
 | sample_rate        | number           |                                                                               |
 | traces_sample_rate | number           |                                                                               |
