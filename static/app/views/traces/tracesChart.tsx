@@ -64,6 +64,7 @@ export function TracesChart({}: Props) {
           tooltipFormatterOptions={{
             valueFormatter: value => formatAbbreviatedNumber(value),
           }}
+          preserveIncompletePoints
         />
       </ChartPanel>
     </ChartContainer>
