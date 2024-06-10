@@ -790,8 +790,7 @@ class PullRequestEventWebhook(APITestCase):
         assert mock_metrics.incr.call_count == 0
 
     def assert_group_link(self, group, pr):
-        link = GroupLink.objects.all().first()
-        assert link
+        link = GroupLink.objects.get()
         assert link.group_id == group.id
         assert link.linked_id == pr.id
         assert link.linked_type == GroupLink.LinkedType.pull_request
