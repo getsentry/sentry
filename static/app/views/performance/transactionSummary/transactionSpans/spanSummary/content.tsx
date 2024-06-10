@@ -17,7 +17,10 @@ import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/trans
 import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {
+  SpanMetricsQueryFilters,
+  SpanMetricsResponse,
+} from 'sentry/views/starfish/types';
 
 import Tab from '../../tabs';
 
@@ -113,27 +116,73 @@ function SpanSummaryContent(props: ContentProps) {
         'sum(span.self_time)',
         'count()',
       ],
+      sorts: [{field: 'sum(span.self_time)', kind: 'desc'}],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA
   );
 
-  const description = spanHeaderData[0]?.['span.description'];
-  const timeSpent = spanHeaderData[0]?.['sum(span.self_time)'];
-  const avgDuration = spanHeaderData[0]?.['avg(span.duration)'];
-  const spanCount = spanHeaderData[0]?.['count()'];
+  const parsedData = parseSpanHeaderData(spanHeaderData);
 
   return (
     <Fragment>
       <SpanSummaryControls />
       <SpanSummaryHeader
         spanOp={spanOp}
-        spanDescription={description}
-        avgDuration={avgDuration}
-        timeSpent={timeSpent}
-        spanCount={spanCount}
+        spanDescription={parsedData?.description}
+        avgDuration={parsedData?.avgDuration}
+        timeSpent={parsedData?.timeSpent}
+        spanCount={parsedData?.spanCount}
       />
       <SpanSummaryCharts />
       <SpanSummaryTable project={project} />
     </Fragment>
+  );
+}
+
+function parseSpanHeaderData(data: Partial<SpanMetricsResponse>[]) {
+  if (!data) {
+    return undefined;
+  }
+
+  if (data.length === 1) {
+    return {
+      description: data[0]?.['span.description'],
+      timeSpent: data[0]?.['sum(span.self_time)'],
+      avgDuration: data[0]?.['avg(span.duration)'],
+      spanCount: data[0]?.['count()'],
+    };
+  }
+
+  return data.reduce(
+    (
+      acc: {
+        avgDuration: number;
+        description: undefined;
+        spanCount: number;
+        timeSpent: number;
+      },
+      datum,
+      index
+    ) => {
+      const timeSpent = datum['sum(span.self_time)'] ?? 0;
+      const avgDuration = datum['avg(span.duration)'] ?? 0;
+      const spanCount = datum['count()'] ?? 0;
+
+      acc.timeSpent += timeSpent;
+      acc.avgDuration += avgDuration;
+      acc.spanCount += spanCount;
+
+      if (index === data.length - 1) {
+        acc.avgDuration / data.length;
+      }
+
+      return acc;
+    },
+    {
+      description: undefined,
+      timeSpent: 0,
+      avgDuration: 0,
+      spanCount: 0,
+    }
   );
 }
