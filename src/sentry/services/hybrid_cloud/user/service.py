@@ -6,7 +6,6 @@
 from abc import abstractmethod
 from typing import Any
 
-from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache
 from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache_many
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -27,7 +26,6 @@ from sentry.services.hybrid_cloud.user.model import (
     UserIdEmailArgs,
 )
 from sentry.silo.base import SiloMode
-from sentry.utils import metrics
 
 
 class UserService(RpcService):
@@ -125,10 +123,7 @@ class UserService(RpcService):
 
         :param ids: A list of user ids to fetch
         """
-        if in_random_rollout("user.get_many_by_id.rollout"):
-            metrics.incr("user_service.get_many_by_id.fetch", len(ids))
-            return get_many_by_id(ids)
-        return self.get_many(filter={"user_ids": ids})
+        return get_many_by_id(ids)
 
     @rpc_method
     @abstractmethod
@@ -336,7 +331,6 @@ def get_user(user_id: int) -> RpcUser | None:
 
 @back_with_silo_cache_many("user_service.get_many_by_id", SiloMode.REGION, RpcUser)
 def get_many_by_id(ids: list[int]) -> list[RpcUser]:
-    metrics.incr("user_service.get_many_by_id.fetch_rpc", len(ids))
     return user_service.get_many(filter={"user_ids": ids})
 
 
