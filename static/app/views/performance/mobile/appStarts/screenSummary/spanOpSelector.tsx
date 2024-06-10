@@ -1,12 +1,14 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import type {NewQuery} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
@@ -34,6 +36,7 @@ type Props = {
 
 export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
   const location = useLocation();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
   const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
@@ -100,6 +103,11 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
       value={value}
       options={options ?? []}
       onChange={newValue => {
+        trackAnalytics('insight.app_start.spans.filter_by_operation', {
+          organization,
+          filter: newValue.value as string,
+        });
+
         browserHistory.push({
           ...location,
           query: {

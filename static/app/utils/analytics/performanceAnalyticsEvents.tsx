@@ -1,3 +1,6 @@
+// This file contains the analytic events for the performance landing page.
+// The analytic events for the insights modules are stored separately in
+// analytics/insightAnalyticsEvents.tsx
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {Organization, PlatformKey} from 'sentry/types';
 
