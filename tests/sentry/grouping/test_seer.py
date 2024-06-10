@@ -68,7 +68,7 @@ class ShouldCallSeerTest(TestCase):
                 }
             ):
                 assert (
-                    should_call_seer_for_grouping(self.event, self.project, self.primary_hashes)
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
                 ), f"Case ({metadata_flag}, {grouping_flag}) failed."
 
@@ -80,7 +80,7 @@ class ShouldCallSeerTest(TestCase):
                 return_value=content_eligibility,
             ):
                 assert (
-                    should_call_seer_for_grouping(self.event, self.project, self.primary_hashes)
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
                 )
 
@@ -89,7 +89,7 @@ class ShouldCallSeerTest(TestCase):
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
                 assert (
-                    should_call_seer_for_grouping(self.event, self.project, self.primary_hashes)
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
                 )
 
@@ -98,7 +98,7 @@ class ShouldCallSeerTest(TestCase):
         for killswitch_enabled, expected_result in [(True, False), (False, True)]:
             with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
                 assert (
-                    should_call_seer_for_grouping(self.event, self.project, self.primary_hashes)
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
                 )
 
@@ -112,7 +112,7 @@ class ShouldCallSeerTest(TestCase):
                 ),
             ):
                 assert (
-                    should_call_seer_for_grouping(self.event, self.project, self.primary_hashes)
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
                 )
 
@@ -128,7 +128,7 @@ class ShouldCallSeerTest(TestCase):
                 ),
             ):
                 assert (
-                    should_call_seer_for_grouping(self.event, self.project, self.primary_hashes)
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
                 )
 
@@ -144,15 +144,9 @@ class ShouldCallSeerTest(TestCase):
         )
 
         # `self.primary_hashes` has only a `FallbackVariant`
-        assert should_call_seer_for_grouping(self.event, self.project, self.primary_hashes) is True
-        assert (
-            should_call_seer_for_grouping(self.event, self.project, custom_fingerprint_hashes)
-            is False
-        )
-        assert (
-            should_call_seer_for_grouping(self.event, self.project, built_in_fingerprint_hashes)
-            is False
-        )
+        assert should_call_seer_for_grouping(self.event, self.primary_hashes) is True
+        assert should_call_seer_for_grouping(self.event, custom_fingerprint_hashes) is False
+        assert should_call_seer_for_grouping(self.event, built_in_fingerprint_hashes) is False
 
 
 class GetSeerSimilarIssuesTest(TestCase):
