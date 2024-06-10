@@ -34,7 +34,7 @@ type Props = ModalRenderProps & AddToDashboardModalProps;
 
 const MISSING_NAME_MESSAGE = t('You need to name your dashboard');
 
-function CreateDashboardFromScratchpadModal({
+function CreateDashboardFromMetricsModal({
   Header,
   Body,
   Footer,
@@ -206,7 +206,7 @@ function CreateDashboardFromScratchpadModal({
   );
 }
 
-export default CreateDashboardFromScratchpadModal;
+export default CreateDashboardFromMetricsModal;
 
 const Wrapper = styled('div')`
   display: grid;
