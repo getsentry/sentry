@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from typing import Any
 
 import orjson
 import sentry_sdk
@@ -58,7 +59,7 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
-    attachment = SlackIncidentsMessageBuilder(
+    attachment: Any = SlackIncidentsMessageBuilder(
         incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = str(attachment["text"])
