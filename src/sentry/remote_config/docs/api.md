@@ -121,8 +121,8 @@ Retrieve a configuration.
     "data": {
       "environment": null,
       "id": "0b88ac27a7b444a6baeb312c0493aed5",
-      "sample_rate": 0,
       "name": null,
+      "sample_rate": 0,
       "traces_sample_rate": 0.75,
       "version": 1
     }
