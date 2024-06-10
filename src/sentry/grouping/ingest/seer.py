@@ -25,7 +25,6 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
     """
-    # TODO: Implement rate limits, kill switches, other flags, etc
 
     project = event.project
 
