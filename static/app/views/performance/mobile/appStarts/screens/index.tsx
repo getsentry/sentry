@@ -1,4 +1,3 @@
-import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,7 +7,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,7 +31,7 @@ import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
-import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
@@ -160,19 +158,11 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     referrer: 'api.starfish.mobile-startup-bar-chart',
   });
 
-  const {hasData, isLoading: isHasDataLoading} = useHasData(
+  useHasDataTrackAnalytics(
     new MutableSearch('span.op:[app.start.cold,app.start.warm]'),
-    'api.performance.mobile.landing-app-startup-onboarding'
+    'api.performance.mobile.landing-app-startup-onboarding',
+    'insight.page_loads.app_start'
   );
-
-  useEffect(() => {
-    if (!isHasDataLoading) {
-      trackAnalytics('insight.page_loads.app_start', {
-        organization,
-        has_data: hasData,
-      });
-    }
-  }, [organization, hasData, isHasDataLoading]);
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (

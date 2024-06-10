@@ -12,7 +12,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   DismissId,
@@ -23,7 +22,6 @@ import {
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
@@ -45,6 +43,7 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
@@ -70,7 +69,6 @@ const CACHE_ERROR_MESSAGE = 'Column cache.hit was not found in metrics indexer';
 
 export function CacheLandingPage() {
   const location = useLocation();
-  const organization = useOrganization();
   const {setPageInfo, pageAlert} = usePageAlert();
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_SORT]);
@@ -148,14 +146,11 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_ONBOARDING
   );
 
-  useEffect(() => {
-    if (!isHasDataLoading) {
-      trackAnalytics('insight.page_loads.cache', {
-        organization,
-        has_data: hasData,
-      });
-    }
-  }, [organization, hasData, isHasDataLoading]);
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    Referrer.LANDING_CACHE_ONBOARDING,
+    'insight.page_loads.cache'
+  );
 
   useEffect(() => {
     const hasMissingDataError =

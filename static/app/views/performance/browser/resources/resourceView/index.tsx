@@ -26,7 +26,7 @@ import {
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {getResourceTypeFilter} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
-import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
@@ -54,7 +54,6 @@ type Option = {
 function ResourceView() {
   const filters = useResourceModuleFilters();
   const sort = useResourceSort();
-  const organization = useOrganization();
 
   const spanTimeChartsFilters: ModuleFilters = {
     'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
@@ -63,21 +62,13 @@ function ResourceView() {
 
   const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
 
-  const {hasData, isLoading: isHasDataLoading} = useHasData(
+  useHasDataTrackAnalytics(
     MutableSearch.fromQueryObject({
       'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
     }),
-    Referrer.LANDING_RESOURCE_ONBOARDING
+    Referrer.LANDING_RESOURCE_ONBOARDING,
+    'insight.page_loads.assets'
   );
-
-  useEffect(() => {
-    if (!isHasDataLoading) {
-      trackAnalytics('insight.page_loads.assets', {
-        organization,
-        has_data: hasData,
-      });
-    }
-  }, [organization, hasData, isHasDataLoading]);
 
   return (
     <Fragment>

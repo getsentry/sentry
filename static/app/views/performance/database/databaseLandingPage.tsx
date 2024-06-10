@@ -1,4 +1,4 @@
-import React, {Fragment, useEffect} from 'react';
+import React, {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -14,7 +14,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -35,7 +34,7 @@ import {useSelectedDurationAggregate} from 'sentry/views/performance/database/us
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
-import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -128,19 +127,11 @@ export function DatabaseLandingPage() {
     'api.starfish.span-landing-page-metrics-chart'
   );
 
-  const {hasData, isLoading: isHasDataLoading} = useHasData(
+  useHasDataTrackAnalytics(
     MutableSearch.fromQueryObject(BASE_FILTERS),
-    'api.performance.database.landing-database-onboarding'
+    'api.performance.database.landing-database-onboarding',
+    'insight.page_loads.db'
   );
-
-  useEffect(() => {
-    if (!isHasDataLoading) {
-      trackAnalytics('insight.page_loads.db', {
-        organization,
-        has_data: hasData,
-      });
-    }
-  }, [organization, hasData, isHasDataLoading]);
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;

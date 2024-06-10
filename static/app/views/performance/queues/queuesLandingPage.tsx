@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -13,18 +13,16 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
-import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
@@ -46,7 +44,6 @@ const DEFAULT_SORT = {
 
 function QueuesLandingPage() {
   const location = useLocation();
-  const organization = useOrganization();
 
   const query = useLocationQuery({
     fields: {
@@ -77,21 +74,13 @@ function QueuesLandingPage() {
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
 
-  const crumbs = useModuleBreadcrumbs('queue');
-
-  const {hasData, isLoading: isHasDataLoading} = useHasData(
+  useHasDataTrackAnalytics(
     new MutableSearch(DEFAULT_QUERY_FILTER),
-    Referrer.QUEUES_LANDING_ONBOARDING
+    Referrer.QUEUES_LANDING_ONBOARDING,
+    'insight.page_loads.queue'
   );
 
-  useEffect(() => {
-    if (!isHasDataLoading) {
-      trackAnalytics('insight.page_loads.queue', {
-        organization,
-        has_data: hasData,
-      });
-    }
-  }, [organization, hasData, isHasDataLoading]);
+  const crumbs = useModuleBreadcrumbs('queue');
 
   return (
     <Fragment>
