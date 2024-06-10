@@ -84,6 +84,7 @@ class BaseRequestParser(abc.ABC):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
             metrics.incr(
                 self._METRIC_FAILURE_KEY + ".silo_error",
+                sample_rate=1.0,
                 tags={"path": self.request.path, "silo": SiloMode.get_current_mode().value},
             )
             logger.error(
@@ -137,12 +138,14 @@ class BaseRequestParser(abc.ABC):
                 http_response = region_client.proxy_request(incoming_request=self.request)
                 metrics.incr(
                     self._METRIC_SUCCESS_KEY + ".proxy_request_to_region_success",
+                    sample_rate=1.0,
                     tags={"path": self.request.path, "region": region.name},
                 )
                 return http_response
             except ApiError as e:
                 metrics.incr(
                     self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error.api_retry_error",
+                    sample_rate=1.0,
                     tags={"path": self.request.path, "region": region.name, "error": str(e)},
                 )
                 logger.exception(
@@ -153,6 +156,7 @@ class BaseRequestParser(abc.ABC):
             except Exception as e:
                 metrics.incr(
                     self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error",
+                    sample_rate=1.0,
                     tags={"path": self.request.path, "region": region.name, "error": str(e)},
                 )
                 logger.exception(
