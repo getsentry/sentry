@@ -230,10 +230,6 @@ def initialize_backfill(project_id, last_processed_index, dry_run):
     )
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-backfill", project):
-        logger.info(
-            "backfill_seer_grouping_records.no_feature",
-            extra={"project_id": project.id},
-        )
         raise FeatureError("Project does not have feature")
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
