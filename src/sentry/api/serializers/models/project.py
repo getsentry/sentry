@@ -27,6 +27,7 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
+from sentry.lang.native.symbolicator import SymbolicatorPlatform
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
@@ -38,10 +39,10 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
-from sentry.processing import realtime_metrics
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.snuba import discover
+from sentry.tasks.symbolication import should_demote_symbolication
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -692,8 +693,10 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            attrs[item]["symbolication_degraded"] = realtime_metrics.is_lpq_project(
-                project_id=item.id
+            # check if the project is in LPQ for any platform
+            attrs[item]["symbolication_degraded"] = any(
+                should_demote_symbolication(platform, project_id=item.id)
+                for platform in SymbolicatorPlatform
             )
 
         return attrs
