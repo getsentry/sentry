@@ -38,7 +38,7 @@ from sentry.sentry_metrics.utils import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
-from sentry.snuba.metrics.utils import to_intervals
+from sentry.snuba.metrics.utils import MetricDoesNotExistException, to_intervals
 from sentry.utils import metrics
 from sentry.utils.snuba import bulk_snuba_queries
 
@@ -569,7 +569,7 @@ def _query_meta_table(
         column_name = "tag_key"
         metric_id = resolve_weak(use_case_id, org_id, mri)
         if metric_id == -1:
-            raise InvalidParams(f"Unknown metric: {mri}")
+            raise MetricDoesNotExistException(f"Unknown metric: {mri}")
         extra_condition = Condition(Column("metric_id"), Op.EQ, metric_id)
     else:
         column_name = "metric_id"
