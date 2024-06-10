@@ -173,7 +173,7 @@ class IdentityManager(BaseManager["Identity"]):
         """
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
-        identity_model = query.first()
+        identity_model = query.get()
         logger.info(
             "updated-identity",
             extra={
