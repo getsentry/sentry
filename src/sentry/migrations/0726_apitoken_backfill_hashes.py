@@ -2,6 +2,7 @@
 
 import hashlib
 import logging
+from enum import IntEnum
 
 from django.db import migrations, router
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
@@ -24,13 +25,47 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
 
         from django.conf import settings
 
-        from sentry.models.outbox import OutboxCategory, OutboxScope
         from sentry.services.hybrid_cloud.util import control_silo_function
         from sentry.silo.base import SiloMode
         from sentry.silo.safety import unguarded_write
     except ImportError:
         logger.exception("Cannot execute migration. Required symbols could not be imported")
         return
+
+    # copied from src/sentry/models/outbox.py
+    class OutboxCategory(IntEnum):
+        USER_UPDATE = 0
+        UNUSED_TWO = 4
+        UNUSUED_THREE = 13
+        UNUSED_ONE = 19
+        AUTH_IDENTITY_UPDATE = 25
+        API_TOKEN_UPDATE = 32
+
+    # copied from src/sentry/models/outbox.py
+    _outbox_categories_for_scope: dict[int, set[OutboxCategory]] = {}
+    _used_categories: set[OutboxCategory] = set()
+
+    # copied from src/sentry/models/outbox.py
+    def scope_categories(enum_value: int, categories: set[OutboxCategory]) -> int:
+        _outbox_categories_for_scope[enum_value] = categories
+        inter = _used_categories.intersection(categories)
+        assert not inter, f"OutboxCategories {inter} were already registered to a different scope"
+        _used_categories.update(categories)
+        return enum_value
+
+    # copied from src/sentry/models/outbox.py
+    class OutboxScope(IntEnum):
+        USER_SCOPE = scope_categories(
+            1,
+            {
+                OutboxCategory.USER_UPDATE,
+                OutboxCategory.API_TOKEN_UPDATE,
+                OutboxCategory.UNUSED_ONE,
+                OutboxCategory.UNUSED_TWO,
+                OutboxCategory.UNUSUED_THREE,
+                OutboxCategory.AUTH_IDENTITY_UPDATE,
+            },
+        )
 
     @control_silo_function
     def _find_orgs_for_user(user_id: int) -> set[int]:
@@ -43,7 +78,6 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
 
     @control_silo_function
     def find_regions_for_orgs(org_ids: Container[int]) -> set[str]:
-
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return {settings.SENTRY_MONOLITH_REGION}
         else:
