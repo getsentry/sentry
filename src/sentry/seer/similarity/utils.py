@@ -97,3 +97,10 @@ def event_content_is_seer_eligible(event: Event) -> bool:
         return False
 
     return True
+
+
+def filter_null_from_event_title(title: str) -> str:
+    """
+    Filter out null bytes from event title so that it can be saved in records table.
+    """
+    return title.replace("\x00", "")

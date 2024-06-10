@@ -31,7 +31,7 @@ from sentry.seer.similarity.types import (
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
 )
-from sentry.seer.similarity.utils import get_stacktrace_string
+from sentry.seer.similarity.utils import filter_null_from_event_title, get_stacktrace_string
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -463,7 +463,7 @@ def lookup_group_data_stacktrace_bulk(
                         CreateGroupingRecordData(
                             group_id=group_id,
                             project_id=project_id,
-                            message=event.title,
+                            message=filter_null_from_event_title(event.title),
                             hash=primary_hash,
                         )
                     )
@@ -536,7 +536,7 @@ def lookup_group_data_stacktrace_single(
                     group_id=group_id,
                     hash=primary_hash,
                     project_id=project_id,
-                    message=event.title,
+                    message=filter_null_from_event_title(event.title),
                 )
                 if stacktrace_string != ""
                 else None
