@@ -1,24 +1,39 @@
+from typing import TypedDict
+
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
 from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
 
 
+class SnubaTrace(TypedDict):
+    span_op: str
+    span_description: str
+    id: str
+    is_transaction: bool
+    start_ts: float
+    finish_ts: float
+
+
+@region_silo_endpoint
 class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def query_trace_data(self, params, trace_id):
+    @sentry_sdk.tracing.trace
+    def query_trace_data(self, params: ParamsType, trace_id: str) -> list[SnubaTrace]:
         builder = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -34,8 +49,27 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
             orderby="precise.start_ts",
             limit=10_000,
         )
-        result = builder.run_query(referrer=Referrer.API_SPANS_TRACE_VIEW.value)
-        sentry_sdk.set_measurement("spans_trace.result_count", len(result["data"]))
+        query_result = builder.run_query(referrer=Referrer.API_SPANS_TRACE_VIEW.value)
+        result: list[SnubaTrace] = []
+        measurement_transaction_count = 0
+        for row in query_result:
+            result.append(
+                {
+                    "span_op": row["span.op"],
+                    "span_description": row["span.description"],
+                    "id": row["id"],
+                    "is_transaction": row["is_transaction"] == 1,
+                    "start_ts": row["precise.start_ts"],
+                    "finish_ts": row["precise.finish_ts"],
+                }
+            )
+            if row["is_transaction"] == 1:
+                measurement_transaction_count += 1
+        sentry_sdk.set_measurement("spans_trace.count.transactions", measurement_transaction_count)
+        sentry_sdk.set_measurement("spans_trace.count.spans", len(result))
+        sentry_sdk.set_measurement(
+            "spans_trace.count.non_transactions", len(result) - measurement_transaction_count
+        )
         return result
 
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
