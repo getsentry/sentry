@@ -1,6 +1,9 @@
-from sentry.grouping.utils import hash_from_values
+from __future__ import annotations
 
-DEFAULT_HINTS = {"salt": "a static salt"}
+from collections.abc import Generator, Sequence
+from typing import Any
+
+from sentry.grouping.utils import hash_from_values
 
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
@@ -17,17 +20,18 @@ KNOWN_MAJOR_COMPONENT_NAMES = {
 }
 
 
-def _calculate_contributes(values):
+def _calculate_contributes(values: Sequence[str | GroupingComponent]) -> bool:
     for value in values or ():
         if not isinstance(value, GroupingComponent) or value.contributes:
             return True
     return False
 
 
-def calculate_tree_label(values):
+def calculate_tree_label(values: Sequence[str | GroupingComponent]) -> str | None:
     for value in values or ():
         if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
             return value.tree_label
+    return None
 
 
 class GroupingComponent:
@@ -37,44 +41,35 @@ class GroupingComponent:
 
     def __init__(
         self,
-        id,
-        hint=None,
-        contributes=None,
-        values=None,
-        variant_provider=False,
-        tree_label=None,
-        is_prefix_frame=None,
-        is_sentinel_frame=None,
+        id: str,
+        hint: str | None = None,
+        contributes: bool | None = False,
+        values: Sequence[str | GroupingComponent] | None = None,
+        variant_provider: bool = False,
+        tree_label: str | None = None,
+        is_prefix_frame: bool | None = None,
+        is_sentinel_frame: bool | None = None,
     ):
         self.id = id
 
         # Default values
-        self.hint = DEFAULT_HINTS.get(id)
-        self.contributes = None
+        self.hint = hint
+        self.contributes = contributes
         self.variant_provider = variant_provider
-        self.values = []
-        self.tree_label = None
-        self.is_prefix_frame = False
-        self.is_sentinel_frame = False
-
-        self.update(
-            hint=hint,
-            contributes=contributes,
-            values=values,
-            tree_label=tree_label,
-            is_prefix_frame=is_prefix_frame,
-            is_sentinel_frame=is_sentinel_frame,
-        )
+        self.values = values or []
+        self.tree_label = tree_label
+        self.is_prefix_frame = is_prefix_frame
+        self.is_sentinel_frame = is_sentinel_frame
 
     @property
-    def name(self):
+    def name(self) -> str | None:
         return KNOWN_MAJOR_COMPONENT_NAMES.get(self.id)
 
     @property
-    def description(self):
+    def description(self) -> str:
         items = []
 
-        def _walk_components(c, stack):
+        def _walk_components(c: GroupingComponent, stack: list[str | None]) -> None:
             stack.append(c.name)
             for value in c.values:
                 if isinstance(value, GroupingComponent) and value.contributes:
@@ -90,11 +85,13 @@ class GroupingComponent:
             return " ".join(items[-1])
         return self.name or "others"
 
-    def get_subcomponent(self, id, only_contributing=False):
+    def get_subcomponent(self, id: int, only_contributing: bool = False) -> Any | None:
         """Looks up a subcomponent by the id and returns the first or `None`."""
         return next(self.iter_subcomponents(id=id, only_contributing=only_contributing), None)
 
-    def iter_subcomponents(self, id, recursive=False, only_contributing=False):
+    def iter_subcomponents(
+        self, id: int, recursive: bool = False, only_contributing: bool = False
+    ) -> Generator[GroupingComponent, None, None]:
         """Finds all subcomponents matching an id, optionally recursively."""
         for value in self.values:
             if isinstance(value, GroupingComponent):
@@ -106,16 +103,17 @@ class GroupingComponent:
                     yield from value.iter_subcomponents(
                         id, recursive=True, only_contributing=only_contributing
                     )
+        yield from ()  # yield an empty generator
 
     def update(
         self,
-        hint=None,
-        contributes=None,
-        values=None,
-        tree_label=None,
-        is_prefix_frame=None,
-        is_sentinel_frame=None,
-    ):
+        hint: str | None = None,
+        contributes: bool | None = None,
+        values: Sequence[str | GroupingComponent] | None = None,
+        tree_label: str | None = None,
+        is_prefix_frame: bool | None = None,
+        is_sentinel_frame: bool | None = None,
+    ) -> None:
         """Updates an already existing component with new values."""
         if hint is not None:
             self.hint = hint
@@ -134,14 +132,14 @@ class GroupingComponent:
         if is_sentinel_frame is not None:
             self.is_sentinel_frame = is_sentinel_frame
 
-    def shallow_copy(self):
+    def shallow_copy(self) -> GroupingComponent:
         """Creates a shallow copy."""
         rv = object.__new__(self.__class__)
         rv.__dict__.update(self.__dict__)
         rv.values = list(self.values)
         return rv
 
-    def iter_values(self):
+    def iter_values(self) -> Generator[str | GroupingComponent | None, None, None]:
         """Recursively walks the component and flattens it into a list of
         values.
         """
@@ -151,15 +149,17 @@ class GroupingComponent:
                     yield from value.iter_values()
                 else:
                     yield value
+        yield from ()  # yield an empty generator
 
-    def get_hash(self):
+    def get_hash(self) -> str | None:
         """Returns the hash of the values if it contributes."""
         if self.contributes:
             return hash_from_values(self.iter_values())
+        return None
 
-    def as_dict(self):
+    def as_dict(self) -> dict[str, Any]:
         """Converts the component tree into a dictionary."""
-        rv = {
+        rv: dict[str, Any] = {
             "id": self.id,
             "name": self.name,
             "contributes": self.contributes,
@@ -170,11 +170,11 @@ class GroupingComponent:
             if isinstance(value, GroupingComponent):
                 rv["values"].append(value.as_dict())
             else:
-                # this basically assumes that a value is only a primitive
-                # and never an object or list.  This should be okay
+                # This basically assumes that a value is only a primitive
+                # and never an object or list. This should be okay
                 # because we verify this.
                 rv["values"].append(value)
         return rv
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"GroupingComponent({self.id!r}, hint={self.hint!r}, contributes={self.contributes!r}, values={self.values!r})"
