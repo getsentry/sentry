@@ -41,13 +41,12 @@ from sentry.utils.urls import non_standard_url_join
 MIN_JS_SDK_VERSION_FOR_DEBUG_IDS = "7.56.0"
 MIN_REACT_NATIVE_SDK_VERSION_FOR_DEBUG_IDS = "5.11.1"
 MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS = "4.6.0"
+MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS = "8.0.0"
 
 NO_DEBUG_ID_SDKS = {
     "sentry.javascript.capacitor",
     "sentry.javascript.wasm",
     "sentry.javascript.cordova",
-    "sentry.javascript.nextjs",
-    "sentry.javascript.sveltekit",
 }
 
 # This number will equate to an upper bound of file lookups/downloads
@@ -643,6 +642,7 @@ def get_sdk_debug_id_support(event_data):
             "sentry.javascript.react",
             "sentry.javascript.react-native",
             "sentry.javascript.remix",
+            "sentry.javascript.solid",
             "sentry.javascript.svelte",
             "sentry.javascript.sveltekit",
             "sentry.javascript.vue",
@@ -672,6 +672,14 @@ def get_sdk_debug_id_support(event_data):
             if Version(sdk_version) >= Version(MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS)
             else "needs-upgrade",
             MIN_ELECTRON_SDK_VERSION_FOR_DEBUG_IDS,
+        )
+
+    if sdk_name == "sentry.javascript.nextjs" or sdk_name == "sentry.javascript.sveltekit":
+        return (
+            "full"
+            if Version(sdk_version) >= Version(MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS)
+            else "needs-upgrade",
+            MIN_NEXTJS_AND_SVELTEKIT_SDK_VERSION_FOR_DEBUG_IDS,
         )
 
     return (
