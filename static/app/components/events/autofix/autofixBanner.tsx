@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import bannerBackground from 'sentry-images/spot/ai-suggestion-banner-background.svg';
+import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
 import bannerSentaur from 'sentry-images/spot/ai-suggestion-banner-sentaur.svg';
 import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
@@ -114,7 +114,7 @@ export function AutofixBanner({
   return (
     <Wrapper>
       <IllustrationContainer>
-        <Background src={bannerBackground} />
+        <Background src={bannerImage} />
         <Stars src={bannerStars} />
         <Sentaur src={bannerSentaur} />
       </IllustrationContainer>
