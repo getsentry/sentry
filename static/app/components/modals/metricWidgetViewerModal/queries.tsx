@@ -8,6 +8,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Input, {type InputProps} from 'sentry/components/input';
 import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
+import {EquationInput} from 'sentry/components/metrics/equationInput';
 import {EquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {QueryBuilder} from 'sentry/components/metrics/queryBuilder';
 import {getQuerySymbol, QuerySymbol} from 'sentry/components/metrics/querySymbol';
@@ -38,7 +39,6 @@ import type {
 } from 'sentry/views/dashboards/metrics/types';
 import {getMetricQueryName} from 'sentry/views/dashboards/metrics/utils';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {EquationInput} from 'sentry/views/metrics/formulaInput';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 
 interface Props {
