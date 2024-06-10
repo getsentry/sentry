@@ -59,6 +59,7 @@ const useAutofixUserInstruction = (groupId: string, runId: string) => {
     },
     onError: () => {
       addErrorMessage(t('Something went wrong when responding to autofix.'));
+      setIsSubmitting(false);
     },
   });
 
@@ -88,7 +89,7 @@ export function AutofixInputField({groupId, runId}: {groupId: string; runId: str
         <Button
           onClick={sendInstruction}
           icon={isSubmitting && <ProcessingStatusIndicator size={18} mini hideMessage />}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !instruction}
         >
           {t('Send')}
         </Button>
