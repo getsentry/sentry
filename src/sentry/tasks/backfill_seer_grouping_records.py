@@ -30,7 +30,7 @@ from sentry.seer.similarity.types import (
     SeerSimilarIssueData,
     SimilarGroupNotFoundError,
 )
-from sentry.seer.similarity.utils import get_stacktrace_string
+from sentry.seer.similarity.utils import filter_null_from_event_title, get_stacktrace_string
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -377,7 +377,7 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
                 CreateGroupingRecordData(
                     group_id=group_id,
                     project_id=project.id,
-                    message=event.title,
+                    message=filter_null_from_event_title(event.title),
                     hash=primary_hash,
                 )
             )
@@ -548,8 +548,8 @@ def _retry_operation(operation, *args, retries, delay, **kwargs):
             else:
                 raise
 
-
-def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
+def lookup_event(project_id: int, event_id: str, 
+                 _id: int) -> Event:
     data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:
         raise EventLookupError(f"Failed to lookup event({event_id}) for project_id({project_id})")

@@ -574,6 +574,7 @@ function BaseGroupRow({
                             }
                             loading={assigneeLoading}
                             chevronDirection={isOpen ? 'up' : 'down'}
+                            isTooltipDisabled={isOpen}
                           />
                         </StyledDropdownButton>
                       )
