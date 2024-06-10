@@ -1343,9 +1343,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
         group = event.group
         assert group is not None
-        assert group.data.get("type") == "default"
-        assert group.data.get("metadata")
-        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
+        assert group.data["type"] == "default"
+        assert group.data["metadata"]["title"] == "foo bar"
 
     def test_message_event_type(self) -> None:
         manager = EventManager(
@@ -1362,9 +1361,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
         group = event.group
         assert group is not None
-        assert group.data.get("type") == "default"
-        assert group.data.get("metadata")
-        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
+        assert group.data["type"] == "default"
+        assert group.data["metadata"]["title"] == "foo bar"
 
     def test_error_event_type(self) -> None:
         manager = EventManager(
@@ -1514,10 +1512,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         )
         manager.normalize()
         event = manager.save(self.project.id)
+        assert event.group is not None
 
-        assert (sdk_metadata := event.group.data.get("metadata").get("sdk"))  # type: ignore[union-attr]
-        assert sdk_metadata.get("name") == "sentry-native-unity"
-        assert sdk_metadata.get("name_normalized") == "sentry.native.unity"
+        sdk_metadata = event.group.data["metadata"]["sdk"]
+        assert sdk_metadata["name"] == "sentry-native-unity"
+        assert sdk_metadata["name_normalized"] == "sentry.native.unity"
 
     def test_no_message(self) -> None:
         # test that the message is handled gracefully
