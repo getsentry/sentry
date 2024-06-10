@@ -3,6 +3,7 @@ from urllib.parse import urljoin
 
 from requests import RequestException
 
+from sentry.lang.native.symbolicator import SymbolicatorPlatform
 from sentry.net.http import Session
 
 from . import base
@@ -19,10 +20,12 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
         self.target = target
         self.session = Session()
 
-    def record_project_duration(self, platform: str, project_id: int, duration: float) -> None:
+    def record_project_duration(
+        self, platform: SymbolicatorPlatform, project_id: int, duration: float
+    ) -> None:
         url = urljoin(self.target, "/record_spending")
         request = {
-            "config_name": f"symbolication-{platform}",
+            "config_name": f"symbolication-{platform.value}",
             "project_id": project_id,
             "spent": duration,
         }
@@ -35,10 +38,10 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
         except RequestException:
             pass
 
-    def is_lpq_project(self, platform: str, project_id: int) -> bool:
+    def is_lpq_project(self, platform: SymbolicatorPlatform, project_id: int) -> bool:
         url = urljoin(self.target, "/exceeds_budget")
         request = {
-            "config_name": f"symbolication-{platform}",
+            "config_name": f"symbolication-{platform.value}",
             "project_id": project_id,
         }
         try:

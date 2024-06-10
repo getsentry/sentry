@@ -27,6 +27,7 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
+from sentry.lang.native.symbolicator import SymbolicatorPlatform
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
@@ -695,7 +696,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             # check if the project is in LPQ for any platform
             attrs[item]["symbolication_degraded"] = any(
                 should_demote_symbolication(platform, project_id=item.id)
-                for platform in ["native", "js", "jvm"]
+                for platform in SymbolicatorPlatform
             )
 
         return attrs

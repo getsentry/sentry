@@ -33,7 +33,9 @@ info_logger = logging.getLogger("sentry.symbolication")
 SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 
 
-def should_demote_symbolication(platform: str, project_id: int, emit_metrics=True) -> bool:
+def should_demote_symbolication(
+    platform: SymbolicatorPlatform, project_id: int, emit_metrics=True
+) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
 
@@ -155,7 +157,7 @@ def _do_symbolicate_event(
     if queue_switches >= SYMBOLICATOR_MAX_QUEUE_SWITCHES:
         metrics.incr("tasks.store.symbolicate_event.low_priority.max_queue_switches", sample_rate=1)
     else:
-        should_be_low_priority = should_demote_symbolication(task_kind.platform.value, project_id)
+        should_be_low_priority = should_demote_symbolication(task_kind.platform, project_id)
 
         if task_kind.is_low_priority != should_be_low_priority:
             metrics.incr("tasks.store.symbolicate_event.low_priority.wrong_queue", sample_rate=1)
@@ -239,7 +241,7 @@ def _do_symbolicate_event(
                     # the same even considering sampling of metrics.
                     recorded_duration = symbolication_duration / submission_ratio
                     realtime_metrics.record_project_duration(
-                        task_kind.platform.value, project_id, recorded_duration
+                        task_kind.platform, project_id, recorded_duration
                     )
                 except Exception as e:
                     sentry_sdk.capture_exception(e)

@@ -182,7 +182,7 @@ def _do_preprocess_event(
         ):
             reprocessing2.backup_unprocessed_event(data=original_data)
 
-            is_low_priority = should_demote_symbolication(first_platform.value, project_id)
+            is_low_priority = should_demote_symbolication(first_platform, project_id)
             submit_symbolicate(
                 SymbolicatorTaskKind(
                     platform=first_platform,
