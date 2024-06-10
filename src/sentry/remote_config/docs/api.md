@@ -98,8 +98,8 @@ Create a new configuration. The version field is ignored on create. Version is i
   ```json
   {
     "data": {
-      "id": "0b88ac27a7b444a6baeb312c0493aed5",
       "environment": "production",
+      "id": "0b88ac27a7b444a6baeb312c0493aed5",
       "name": "custom-name",
       "sample_rate": 1.0,
       "traces_sample_rate": 0.5,
