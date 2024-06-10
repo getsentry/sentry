@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -12,7 +12,7 @@ import {
 } from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import SplitDiff from 'sentry/components/splitDiff';
-import {TabList} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -23,17 +23,21 @@ interface Props {
   leftTimestamp: number;
   replay: null | ReplayReader;
   rightTimestamp: number;
+  defaultTab?: DiffType;
 }
 
-enum Tab {
+export enum DiffType {
   VISUAL = 'visual',
   HTML = 'html',
 }
 
-export default function ReplayDiff({leftTimestamp, replay, rightTimestamp}: Props) {
+export default function ReplayDiff({
+  defaultTab = DiffType.VISUAL,
+  leftTimestamp,
+  replay,
+  rightTimestamp,
+}: Props) {
   const fetching = false;
-
-  const [activeTab, setActiveTab] = useState<Tab>(Tab.HTML);
 
   const [leftBody, setLeftBody] = useState(null);
   const [rightBody, setRightBody] = useState(null);
@@ -48,7 +52,7 @@ export default function ReplayDiff({leftTimestamp, replay, rightTimestamp}: Prop
   const isSameTimestamp = leftBody && rightBody && leftBody === rightBody;
 
   return (
-    <Fragment>
+    <Tabs<DiffType> defaultValue={defaultTab}>
       {isSameTimestamp ? (
         <Alert type="warning" showIcon>
           {t(
@@ -58,70 +62,61 @@ export default function ReplayDiff({leftTimestamp, replay, rightTimestamp}: Prop
       ) : null}
 
       <Flex gap={space(1)} column>
-        <TabList
-          selectedKey={activeTab}
-          onSelectionChange={tab => setActiveTab(tab as Tab)}
-        >
-          <TabList.Item key={Tab.HTML}>{t('Html Diff')}</TabList.Item>
-          <TabList.Item key={Tab.VISUAL}>{t('Visual Diff')}</TabList.Item>
+        <TabList>
+          <TabList.Item key={DiffType.VISUAL}>{t('Visual Diff')}</TabList.Item>
+          <TabList.Item key={DiffType.HTML}>{t('Html Diff')}</TabList.Item>
         </TabList>
 
-        <Flex
-          gap={space(2)}
-          column
-          style={{
-            // Using css to hide since the splitdiff uses the html from the iframes
-            // TODO: This causes a bit of a flash when switching tabs
-            display: activeTab === Tab.VISUAL ? undefined : 'none',
-          }}
-        >
-          <DiffHeader>
-            <Flex flex="1" align="center">
-              {t('Before Hydration')}
+        <TabPanels>
+          <TabPanels.Item key={DiffType.VISUAL}>
+            <Flex gap={space(2)} column>
+              <DiffHeader>
+                <Flex flex="1" align="center">
+                  {t('Before Hydration')}
+                </Flex>
+                <Flex flex="1" align="center">
+                  {t('After Hydration')}
+                </Flex>
+              </DiffHeader>
+              <ReplayGrid>
+                <ReplayContextProvider
+                  analyticsContext="replay_comparison_modal_left"
+                  initialTimeOffsetMs={{offsetMs: startOffset}}
+                  isFetching={fetching}
+                  prefsStrategy={StaticReplayPreferences}
+                  replay={replay}
+                >
+                  <ComparisonSideWrapper id="leftSide">
+                    <ReplaySide
+                      selector="#leftSide iframe"
+                      expectedTime={startOffset}
+                      onLoad={setLeftBody}
+                    />
+                  </ComparisonSideWrapper>
+                </ReplayContextProvider>
+                <ReplayContextProvider
+                  analyticsContext="replay_comparison_modal_right"
+                  initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}
+                  isFetching={fetching}
+                  prefsStrategy={StaticReplayPreferences}
+                  replay={replay}
+                >
+                  <ComparisonSideWrapper id="rightSide">
+                    {rightTimestamp > 0 ? (
+                      <ReplaySide
+                        selector="#rightSide iframe"
+                        expectedTime={rightTimestamp + 1}
+                        onLoad={setRightBody}
+                      />
+                    ) : (
+                      <div />
+                    )}
+                  </ComparisonSideWrapper>
+                </ReplayContextProvider>
+              </ReplayGrid>
             </Flex>
-            <Flex flex="1" align="center">
-              {t('After Hydration')}
-            </Flex>
-          </DiffHeader>
-          <ReplayGrid>
-            <ReplayContextProvider
-              analyticsContext="replay_comparison_modal_left"
-              initialTimeOffsetMs={{offsetMs: startOffset}}
-              isFetching={fetching}
-              prefsStrategy={StaticReplayPreferences}
-              replay={replay}
-            >
-              <ComparisonSideWrapper id="leftSide">
-                <ReplaySide
-                  selector="#leftSide iframe"
-                  expectedTime={startOffset}
-                  onLoad={setLeftBody}
-                />
-              </ComparisonSideWrapper>
-            </ReplayContextProvider>
-            <ReplayContextProvider
-              analyticsContext="replay_comparison_modal_right"
-              initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}
-              isFetching={fetching}
-              prefsStrategy={StaticReplayPreferences}
-              replay={replay}
-            >
-              <ComparisonSideWrapper id="rightSide">
-                {rightTimestamp > 0 ? (
-                  <ReplaySide
-                    selector="#rightSide iframe"
-                    expectedTime={rightTimestamp + 1}
-                    onLoad={setRightBody}
-                  />
-                ) : (
-                  <div />
-                )}
-              </ComparisonSideWrapper>
-            </ReplayContextProvider>
-          </ReplayGrid>
-        </Flex>
-        {activeTab === Tab.HTML ? (
-          <Fragment>
+          </TabPanels.Item>
+          <TabPanels.Item key={DiffType.HTML}>
             <DiffHeader>
               <Flex flex="1" align="center">
                 {t('Before Hydration')}
@@ -147,10 +142,10 @@ export default function ReplayDiff({leftTimestamp, replay, rightTimestamp}: Prop
             <SplitDiffScrollWrapper>
               <SplitDiff base={leftBody ?? ''} target={rightBody ?? ''} type="words" />
             </SplitDiffScrollWrapper>
-          </Fragment>
-        ) : null}
+          </TabPanels.Item>
+        </TabPanels>
       </Flex>
-    </Fragment>
+    </Tabs>
   );
 }
 
