@@ -19,7 +19,7 @@ class CacheVersionBase(Model):
             cls.objects.create_or_update(
                 key=key, defaults=dict(version=1), values=dict(version=F("version") + 1)
             )
-            return cls.objects.filter(key=key).values("version").first()["version"]
+            return cls.objects.get(key=key).version
 
     @classmethod
     def get_versions(cls, keys: list[str]) -> list[int]:
