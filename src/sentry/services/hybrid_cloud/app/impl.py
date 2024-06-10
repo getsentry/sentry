@@ -79,18 +79,6 @@ class DatabaseBackedAppService(AppService):
         except SentryAppInstallation.DoesNotExist:
             return None
 
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        try:
-            install = SentryAppInstallation.objects.get(
-                organization_id=organization_id,
-                sentry_app_id=sentry_app_id,
-            )
-            return serialize_sentry_app_installation(install)
-        except SentryAppInstallation.DoesNotExist:
-            return None
-
     def get_sentry_app_by_slug(self, *, slug: str) -> RpcSentryApp | None:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)
