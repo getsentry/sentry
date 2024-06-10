@@ -3127,10 +3127,10 @@
     fflate "^0.4.4"
     mitt "^3.0.0"
 
-"@sentry/babel-plugin-component-annotate@^2.16.1":
-  version "2.16.1"
-  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.16.1.tgz#da3bf4ec1c1dc68a97d6a7e27bd710001d6b07fb"
-  integrity sha512-pJka66URsqQbk6hTs9H1XFpUeI0xxuqLYf9Dy5pRGNHSJMtfv91U+CaYSWt03aRRMGDXMduh62zAAY7Wf0HO+A==
+"@sentry/babel-plugin-component-annotate@^2.18.0":
+  version "2.18.0"
+  resolved "https://registry.yarnpkg.com/@sentry/babel-plugin-component-annotate/-/babel-plugin-component-annotate-2.18.0.tgz#3bee98f94945643b0762ceed1f6cca60db52bdbd"
+  integrity sha512-9L4RbhS3WNtc/SokIhc0dwgcvs78YSQPakZejsrIgnzLzCi8mS6PeT+BY0+QCtsXxjd1egM8hqcJeB0lukBkXA==
 
 "@sentry/browser@8.8.0":
   version "8.8.0"
