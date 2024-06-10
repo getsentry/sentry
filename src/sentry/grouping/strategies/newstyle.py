@@ -680,7 +680,7 @@ def single_exception(
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
-    interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
+    interface: ChainedException, event: Event, context: GroupingContext, **meta: dict[str, Any]
 ) -> ReturnedVariants:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
