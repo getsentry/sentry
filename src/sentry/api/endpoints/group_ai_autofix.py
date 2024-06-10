@@ -210,7 +210,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
         autofix_state = self._call_get_autofix_state(group.id)
 
         if autofix_state:
-            user_ids = autofix_state["actor_ids"]
+            user_ids = autofix_state.get("actor_ids", [])
             if user_ids:
                 users = user_service.serialize_many(
                     filter={"user_ids": user_ids, "organization_id": request.organization.id},
