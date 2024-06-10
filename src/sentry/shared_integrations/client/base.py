@@ -395,7 +395,7 @@ class BaseApiClient(TrackResponseMixin):
             if is_response_error(response):
                 buffer.record_error()
         if buffer.is_integration_broken():
-            disable_integration(buffer)
+            disable_integration(buffer, redis_key, self.integration_id)
 
     def record_error(self, error: Exception):
         redis_key = self._get_redis_key()
@@ -407,4 +407,4 @@ class BaseApiClient(TrackResponseMixin):
         else:
             buffer.record_error()
         if buffer.is_integration_broken():
-            disable_integration(buffer)
+            disable_integration(buffer, redis_key, self.integration_id)

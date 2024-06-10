@@ -471,21 +471,19 @@ class IntegrationInstallation:
 
 
 def is_response_success(resp) -> bool:
-    if resp.status_code:
-        if resp.status_code < 300:
-            return True
+    if resp.status_code and resp.status_code < 300:
+        return True
     return False
 
 
 def is_response_error(resp) -> bool:
-    if resp.status_code:
-        if resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500:
-            return True
-    return False
+    if not resp.status_code:
+        return False
+    return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
 
 
 def disable_integration(
-    buffer: IntegrationRequestBuffer, redis_key: str, integration_id: int
+    buffer: IntegrationRequestBuffer, redis_key: str, integration_id: int | None = None
 ) -> None:
     from sentry.services.hybrid_cloud.integration import integration_service
 
@@ -493,7 +491,7 @@ def disable_integration(
     rpc_integration = result.integration
     rpc_org_integrations = result.organization_integrations
     if rpc_integration and rpc_integration.status == ObjectStatus.DISABLED:
-        return
+        return None
 
     org = None
     if len(rpc_org_integrations) > 0:
@@ -509,18 +507,10 @@ def disable_integration(
         "integration_id": integration_id,
         "buffer_record": buffer._get_all_from_buffer(),
     }
-    if len(rpc_org_integrations) == 0 and rpc_integration is None:
-        extra["provider"] = "unknown"
-        extra["organization_id"] = "unknown"
-    elif len(rpc_org_integrations) == 0:
-        extra["provider"] = rpc_integration.provider
-        extra["organization_id"] = "unknown"
-    elif rpc_integration is None:
-        extra["provider"] = "unknown"
-        extra["organization_id"] = rpc_org_integrations[0].organization_id
-    else:
-        extra["provider"] = rpc_integration.provider
-        extra["organization_id"] = rpc_org_integrations[0].organization_id
+    extra["provider"] = "unknown" if rpc_integration is None else rpc_integration.provider
+    extra["organization_id"] = (
+        "unknown" if len(rpc_org_integrations) == 0 else rpc_org_integrations[0].organization_id
+    )
 
     logger.info(
         "integration.disabled",
@@ -546,4 +536,4 @@ def disable_integration(
             event=audit_log.get_event_id("INTEGRATION_DISABLED"),
             data={"provider": rpc_integration.provider},
         )
-    return
+    return None
