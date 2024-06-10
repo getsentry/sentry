@@ -215,7 +215,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     if isinstance(response_data, dict):
                         ts = response_data.get("ts")
 
-                    self.logger.info("slack.issue-alert.ts", extra={"ts": ts})
+                    self.logger.info("slack.issue_alert.ts", extra={"ts": ts})
 
                     new_notification_message_object.message_identifier = (
                         str(ts) if ts is not None else None

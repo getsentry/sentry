@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any
 
 import orjson
 import sentry_sdk
+from slack_sdk.errors import SlackApiError
 
 from sentry import features
 from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
@@ -18,6 +18,7 @@ from sentry.integrations.repository.metric_alert import (
 )
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.services.hybrid_cloud.integration import integration_service
@@ -57,16 +58,16 @@ def send_incident_alert_notification(
             sentry_sdk.capture_exception(e)
 
     channel = action.target_identifier
-    attachment: Any = SlackIncidentsMessageBuilder(
+    attachment = SlackIncidentsMessageBuilder(
         incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
-    text = attachment["text"]
+    text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
-
+    json_blocks = orjson.dumps([blocks]).decode()
     payload = {
         "channel": channel,
         "text": text,
-        "attachments": orjson.dumps([blocks]).decode(),
+        "attachments": json_blocks,
         # Prevent duplicate unfurl
         # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
         "unfurl_links": False,
@@ -97,6 +98,8 @@ def send_incident_alert_notification(
         trigger_action_id=action.id,
     )
 
+    reply_broadcast = False
+    thread_ts = None
     # If a parent notification exists for this rule and action, then we can reply in a thread
     if parent_notification_message is not None:
         # Make sure we track that this reply will be in relation to the parent row
@@ -111,40 +114,78 @@ def send_incident_alert_notification(
         if incident.status == IncidentStatus.CRITICAL.value:
             payload["reply_broadcast"] = True
 
-    client = SlackClient(integration_id=integration.id)
     success = False
-    try:
-        response = client.post("/chat.postMessage", data=payload, timeout=5)
-        # response should include a "ts" key that represents the unique identifier for the message
-        # referenced at https://api.slack.com/methods/chat.postMessage#examples
-    except ApiError as e:
-        # Record the error code and details from the exception
-        new_notification_message_object.error_code = e.code
-        new_notification_message_object.error_details = {
-            "url": e.url,
-            "host": e.host,
-            "path": e.path,
-            "data": e.json if e.json else e.text,
-        }
-        logger.info("rule.fail.slack_post", exc_info=True)
-    else:
-        success = True
-        # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
-        # on a successful message
-        ts = None
-        # This is a workaround for typing, and the dynamic nature of the return value
-        if isinstance(response, BaseApiResponse):
-            ts = response.json.get("ts")
-        elif isinstance(response, MappingApiResponse):
-            ts = response.get("ts")
-        else:
-            logger.info(
-                "failed to get ts from slack response",
-                extra={
-                    "response_type": type(response).__name__,
-                },
+    if features.has("organizations:slack-sdk-metric-alert", organization):
+        try:
+            sdk_client = SlackSdkClient(integration_id=integration.id)
+            sdk_response = sdk_client.chat_postMessage(
+                blocks=json_blocks,
+                text=text,
+                channel=str(channel),
+                thread_ts=thread_ts,
+                reply_broadcast=reply_broadcast,
             )
-        new_notification_message_object.message_identifier = str(ts) if ts is not None else None
+        except SlackApiError as e:
+            # Record the error code and details from the exception
+            new_notification_message_object.error_code = e.response.status_code
+            new_notification_message_object.error_details = {
+                "msg": str(e),
+                "data": e.response.data,
+                "url": e.response.api_url,
+            }
+
+            log_params = {
+                "error": str(e),
+                "incident_id": incident.id,
+                "incident_status": new_status,
+            }
+            logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
+        else:
+            success = True
+
+            ts = None
+            response_data = sdk_response.data
+            if isinstance(response_data, dict):
+                ts = response_data.get("ts")
+
+            logger.info("slack.metric_alert.ts", extra={"ts": ts})
+
+            new_notification_message_object.message_identifier = str(ts) if ts is not None else None
+
+    else:
+        try:
+            client = SlackClient(integration_id=integration.id)
+            response = client.post("/chat.postMessage", data=payload, timeout=5)
+            # response should include a "ts" key that represents the unique identifier for the message
+            # referenced at https://api.slack.com/methods/chat.postMessage#examples
+        except ApiError as e:
+            # Record the error code and details from the exception
+            new_notification_message_object.error_code = e.code
+            new_notification_message_object.error_details = {
+                "url": e.url,
+                "host": e.host,
+                "path": e.path,
+                "data": e.json if e.json else e.text,
+            }
+            logger.info("rule.fail.slack_post", exc_info=True)
+        else:
+            success = True
+            # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
+            # on a successful message
+            ts = None
+            # This is a workaround for typing, and the dynamic nature of the return value
+            if isinstance(response, BaseApiResponse):
+                ts = response.json.get("ts")
+            elif isinstance(response, MappingApiResponse):
+                ts = response.get("ts")
+            else:
+                logger.info(
+                    "failed to get ts from slack response",
+                    extra={
+                        "response_type": type(response).__name__,
+                    },
+                )
+            new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
     # Save the notification message we just sent with the response id or error we received
     try:
