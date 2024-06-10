@@ -97,6 +97,7 @@ const DEFAULT_DATE_SUGGESTIONS: SuggestionSection[] = [
       {value: '-7d', description: t('Last 7 days')},
       {value: '-14d', description: t('Last 14 days')},
       {value: '-30d', description: t('Last 30 days')},
+      {value: '+1d', description: t('More than 1 day ago')},
     ],
   },
 ];
