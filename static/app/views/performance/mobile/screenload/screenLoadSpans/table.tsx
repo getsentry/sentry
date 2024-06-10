@@ -166,9 +166,9 @@ export function ScreenLoadSpansTable({
       };
 
       return (
-        <Link to={`${pathname}?${qs.stringify(query)}`}>
-          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
