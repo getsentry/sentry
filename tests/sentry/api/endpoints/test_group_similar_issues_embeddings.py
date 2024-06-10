@@ -453,6 +453,28 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
+    @mock.patch("sentry.models.group.Group.get_latest_event")
+    def test_no_latest_event(self, mock_get_latest_event):
+        mock_get_latest_event.return_value = None
+
+        response = self.client.get(
+            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == []
+
+    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.get_stacktrace_string")
+    def test_no_stacktrace_string(self, mock_get_stacktrace_string):
+        mock_get_stacktrace_string.return_value = None
+
+        response = self.client.get(
+            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == []
+
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
