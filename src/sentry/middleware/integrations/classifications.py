@@ -15,8 +15,8 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
+    from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
     from sentry.middleware.integrations.integration_control import ResponseHandler
-    from sentry.middleware.integrations.parsers.base import BaseRequestParser
 
 
 class BaseClassification(abc.ABC):

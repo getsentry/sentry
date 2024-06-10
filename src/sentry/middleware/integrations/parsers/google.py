@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
 
 logger = logging.getLogger(__name__)

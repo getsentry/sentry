@@ -7,7 +7,7 @@ from pytest import raises
 from rest_framework import status
 
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.testutils.cases import TestCase

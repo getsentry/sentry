@@ -9,13 +9,13 @@ import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.msteams.webhook import (
     MsTeamsEvents,
     MsTeamsWebhookEndpoint,
     MsTeamsWebhookMixin,
 )
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
