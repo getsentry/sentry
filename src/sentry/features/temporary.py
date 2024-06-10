@@ -173,8 +173,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:metric-alert-load-shedding", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable threshold period in metric alert rule builder
     manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enables the ability to block metrics.
-    manager.add("organizations:metrics-blocking", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the search bar for metrics samples list
     manager.add("organizations:metrics-samples-list-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable Session Stats down to a minute resolution

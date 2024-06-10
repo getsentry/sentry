@@ -318,11 +318,10 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
 
     metrics_config["cardinalityLimits"] = cardinality_limits
 
-    if features.has("organizations:metrics-blocking", project.organization):
-        metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
-        timeout.check()
-        if metrics_blocking_state is not None:
-            metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
+    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+    timeout.check()
+    if metrics_blocking_state is not None:
+        metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 
