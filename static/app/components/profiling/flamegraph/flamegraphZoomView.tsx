@@ -57,11 +57,20 @@ function isHighlightingAllOccurrences(
 
 function makeSourceCodeLink(frame: FlamegraphFrame['frame']): string | undefined {
   const path = frame.path || frame.file;
-  const lineComponents = [frame.line, frame.column]
+  const lineComponents = (
+    typeof frame.line === 'number' && typeof frame.column === 'number'
+      ? [frame.line, frame.column]
+      : typeof frame.line === 'number'
+        ? [frame.line]
+        : // We assume that a column without a line is not a valid source location
+          []
+  )
     .filter(n => n !== undefined)
     .join(':');
+
   return path + (lineComponents ? `:${lineComponents}` : '');
 }
+
 interface FlamegraphZoomViewProps {
   canvasBounds: Rect;
   canvasPoolManager: CanvasPoolManager;
