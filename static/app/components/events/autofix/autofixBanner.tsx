@@ -2,8 +2,6 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
-import bannerSentaur from 'sentry-images/spot/ai-suggestion-banner-sentaur.svg';
-import bannerStars from 'sentry-images/spot/ai-suggestion-banner-stars.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
@@ -115,8 +113,6 @@ export function AutofixBanner({
     <Wrapper>
       <IllustrationContainer>
         <Background src={bannerImage} />
-        <Stars src={bannerStars} />
-        <Sentaur src={bannerSentaur} />
       </IllustrationContainer>
       <Body>
         <div>
@@ -192,32 +188,12 @@ const IllustrationContainer = styled('div')`
     right: 0;
     top: 0;
     width: 400px;
-    overflow: hidden;
     border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
   }
 `;
 
-const Sentaur = styled('img')`
-  height: 110px;
-  position: absolute;
-  bottom: 0;
-  right: 185px;
-  z-index: 1;
-`;
-
 const Background = styled('img')`
-  position: absolute;
-  bottom: 0;
-  right: 0;
   max-width: 100%;
-`;
-
-const Stars = styled('img')`
-  pointer-events: none;
-  position: absolute;
-  right: -120px;
-  bottom: 40px;
-  height: 90px;
 `;
 
 const Separator = styled('hr')`
