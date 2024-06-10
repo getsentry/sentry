@@ -135,7 +135,7 @@ export function AutofixBanner({
         )}
       </Body>
       <IllustrationContainer>
-        <Background src={bannerImage} />
+        <Illustration src={bannerImage} />
       </IllustrationContainer>
     </Wrapper>
   );
@@ -154,7 +154,7 @@ const Wrapper = styled(Panel)`
 const Body = styled(PanelBody)`
   display: flex;
   flex-direction: column;
-  flex-grow: 1;
+  flex-grow: 2;
   padding: ${space(2)} ${space(3)};
 `;
 
@@ -179,15 +179,13 @@ const IllustrationContainer = styled('div')`
   pointer-events: none;
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    display: block;
-    width: 300px;
-    height: 140px;
-    border-radius: 0 ${p => p.theme.borderRadius} ${p => p.theme.borderRadius} 0;
+    display: flex;
+    align-items: flex-end;
   }
 `;
 
-const Background = styled('img')`
-  max-width: 100%;
+const Illustration = styled('img')`
+  height: 140px;
 `;
 
 const PiiMessage = styled('p')`
