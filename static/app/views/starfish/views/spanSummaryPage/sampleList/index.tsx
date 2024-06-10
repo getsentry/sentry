@@ -271,7 +271,7 @@ const HeaderContainer = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: 50px 1fr;
+    grid-template-columns: auto 1fr;
   }
 `;
 
