@@ -66,12 +66,12 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
         latest_event = group.get_latest_event()
         stacktrace_string = ""
-        if latest_event.data.get("exception"):
+        if latest_event and latest_event.data.get("exception"):
             grouping_info = get_grouping_info(None, project=group.project, event=latest_event)
             stacktrace_string = get_stacktrace_string(grouping_info)
 
-        if stacktrace_string == "":
-            return Response([])  # No exception, stacktrace or in-app frames
+        if stacktrace_string == "" or not latest_event:
+            return Response([])  # No exception, stacktrace or in-app frames, or event
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
             "hash": latest_event.get_primary_hash(),
