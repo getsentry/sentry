@@ -34,7 +34,9 @@ describe('SuspectSpansTable', () => {
       },
     });
 
-    render(<SpanMetricsTable transactionName="Test Transaction" project={project} />);
+    render(
+      <SpanMetricsTable transactionName="Test Transaction" project={project} query={''} />
+    );
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
@@ -84,7 +86,9 @@ describe('SuspectSpansTable', () => {
       },
     });
 
-    render(<SpanMetricsTable transactionName="Test Transaction" project={project} />);
+    render(
+      <SpanMetricsTable transactionName="Test Transaction" project={project} query={''} />
+    );
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
