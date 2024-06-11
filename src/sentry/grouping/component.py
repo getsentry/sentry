@@ -29,11 +29,13 @@ def _calculate_contributes(values: Sequence[str | GroupingComponent]) -> bool:
     return False
 
 
-def calculate_tree_label(values: Sequence[str | GroupingComponent]) -> str | None:
+def calculate_tree_label(
+    values: Sequence[str | GroupingComponent],
+) -> dict[str, str | GroupingComponent | None] | None:
     for value in values or ():
         if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
             return value.tree_label
-    return None
+    return {}
 
 
 class GroupingComponent:
@@ -48,7 +50,7 @@ class GroupingComponent:
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
         variant_provider: bool = False,
-        tree_label: str | None = None,
+        tree_label: dict[str, str | GroupingComponent | None] | None = None,
         is_prefix_frame: bool = False,
         is_sentinel_frame: bool = False,
     ):
@@ -123,7 +125,7 @@ class GroupingComponent:
         hint: str | None = None,
         contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
-        tree_label: str | None = None,
+        tree_label: dict[str, str | GroupingComponent | None] | None = None,
         is_prefix_frame: bool | None = None,
         is_sentinel_frame: bool | None = None,
     ) -> None:
