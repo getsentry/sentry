@@ -2032,6 +2032,7 @@ const TraceStylingWrapper = styled('div')`
     transition: none;
     font-size: ${p => p.theme.fontSizeSmall};
     transform: translateZ(0);
+    contain: content;
 
     --row-background-odd: ${p => p.theme.translucentSurface100};
     --row-background-hover: ${p => p.theme.translucentSurface100};

@@ -122,11 +122,11 @@ export class VirtualizedViewManager {
     [];
 
   // Holds the span to px matrix so we dont keep recalculating it
-  span_to_px: mat3 = mat3.create();
+  span_to_px: number = 0;
   row_depth_padding: number = 22;
 
   // Smallest of time that can be displayed across the entire view.
-  private readonly MAX_ZOOM_PRECISION = 1;
+  private readonly MAX_ZOOM_PRECISION_MS = 1;
   private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
 
@@ -536,9 +536,8 @@ export class VirtualizedViewManager {
   }
 
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
-    const left_percentage = cursor.x / this.trace_physical_space.width;
-    const left_view = left_percentage * this.trace_view.width;
-
+    const left_view =
+      (cursor.x / this.trace_physical_space.width) * this.trace_view.width;
     return [this.trace_view.x + left_view, 0];
   }
 
@@ -647,10 +646,10 @@ export class VirtualizedViewManager {
     let final_width = space[1];
     const distance_width = this.trace_view.width - space[1];
 
-    if (space[1] < this.MAX_ZOOM_PRECISION) {
-      distance_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
-      final_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
-      final_width = this.MAX_ZOOM_PRECISION;
+    if (space[1] < this.MAX_ZOOM_PRECISION_MS) {
+      distance_x -= this.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
+      final_x -= this.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
+      final_width = this.MAX_ZOOM_PRECISION_MS;
     }
 
     const start_x = this.trace_view.x;
@@ -778,7 +777,7 @@ export class VirtualizedViewManager {
 
     this.trace_view.width = clamp(
       width,
-      this.MAX_ZOOM_PRECISION,
+      this.MAX_ZOOM_PRECISION_MS,
       this.trace_space.width - this.trace_view.x
     );
     this.trace_view.x = clamp(
@@ -1103,14 +1102,11 @@ export class VirtualizedViewManager {
   }
 
   recomputeSpanToPxMatrix() {
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
+    const spaceToView = this.trace_space.width / this.trace_view.width;
+    const viewToPhysical = this.trace_physical_space.width / this.trace_space.width;
+    const spaceToPhysical = spaceToView * viewToPhysical;
 
-    this.span_to_px = mat3.multiply(
-      this.span_to_px,
-      traceViewToSpace,
-      tracePhysicalToView
-    );
+    this.span_to_px = spaceToPhysical;
   }
 
   computeRelativeLeftPositionFromOrigin(
@@ -1146,12 +1142,15 @@ export class VirtualizedViewManager {
     space: [number, number]
   ): [number, number, number, number, number, number] {
     const spaceToView = this.trace_space.width / this.trace_view.width;
-    const viewToPhysical = this.trace_physical_space.width / this.trace_view.width;
+    const viewToPhysical = this.trace_physical_space.width / this.trace_space.width;
     const spaceToPhysical = spaceToView * viewToPhysical;
 
-    this.span_matrix[0] = space[1] * spaceToPhysical;
+    this.span_matrix[0] = Math.max(
+      this.MAX_ZOOM_PRECISION_MS,
+      space[1] * spaceToPhysical
+    );
     this.span_matrix[4] =
-      (space[0] - this.to_origin) * spaceToPhysical - this.trace_view.x * viewToPhysical;
+      (space[0] - this.trace_view.x - this.to_origin) * spaceToPhysical;
 
     return this.span_matrix;
   }
@@ -1164,7 +1163,7 @@ export class VirtualizedViewManager {
   }
 
   computeTransformXFromTimestamp(timestamp: number): number {
-    return (timestamp - this.to_origin - this.trace_view.x) / this.span_to_px[0];
+    return (timestamp - this.to_origin - this.trace_view.x) * this.span_to_px;
   }
 
   computeSpanTextPlacement(
@@ -1184,7 +1183,7 @@ export class VirtualizedViewManager {
 
     const has_icons = has_profiles || has_error_icons;
 
-    const node_width = span_space[1] / this.span_to_px[0];
+    const node_width = span_space[1] * this.span_to_px;
     const TEXT_PADDING = 2;
     // This is inaccurate in the case of left anchored text. In order to determine a true overlap, we would need to compute
     // the distance between the min timestamp of an icon and beginning of the span. Once we determine the distance, we can compute
@@ -1259,7 +1258,7 @@ export class VirtualizedViewManager {
       return text_left ? [1, window_left] : [1, window_right];
     }
 
-    const full_span_px_width = span_space[1] / this.span_to_px[0];
+    const full_span_px_width = span_space[1] * this.span_to_px;
 
     if (text_left) {
       // While we have space on the left, place the text there
@@ -1268,7 +1267,7 @@ export class VirtualizedViewManager {
       }
 
       const distance = span_right - this.trace_view.left;
-      const visible_width = distance / this.span_to_px[0] - TEXT_PADDING;
+      const visible_width = distance * this.span_to_px - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
@@ -1294,7 +1293,7 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < width
+        space_right * this.span_to_px < width
       ) {
         return [1, right_inside];
       }
@@ -1304,8 +1303,7 @@ export class VirtualizedViewManager {
     // If text fits inside the span
     if (full_span_px_width > width) {
       const distance = span_right - this.trace_view.right;
-      const visible_width =
-        (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
+      const visible_width = (span_space[1] - distance) * this.span_to_px - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
@@ -1332,7 +1330,7 @@ export class VirtualizedViewManager {
     });
 
     // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
-    const error_margin = 60 * this.span_to_px[0];
+    const error_margin = 60 * this.span_to_px;
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const span = this.span_bars[i];
