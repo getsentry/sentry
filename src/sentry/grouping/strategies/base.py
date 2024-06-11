@@ -111,7 +111,7 @@ class GroupingContext:
 
     def get_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> GroupingComponent | ReturnedVariants:
+    ) -> ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
@@ -127,7 +127,7 @@ class GroupingContext:
 
         if self["variant"] is not None:
             assert len(rv) == 1
-            return rv[self["variant"]]
+            return {"only_one_variant": rv[self["variant"]]}
 
         return rv
 

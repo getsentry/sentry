@@ -523,15 +523,15 @@ def _single_stacktrace_variant(
 
     frames = stacktrace.frames
 
-    values: list[GroupingComponent] = []
+    values = []
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
-            frame_component = context.get_grouping_component(frame, event=event, **meta)
-            # We cannot call update (or later .contributes) unless we are GroupingComponent
-            assert isinstance(frame_component, GroupingComponent)
+            frame_component = context.get_grouping_component(frame, event=event, **meta)[
+                "only_one_variant"
+            ]
 
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
@@ -731,7 +731,7 @@ def chained_exception(
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, GroupingComponent | dict[str, GroupingComponent]],
+    exception_components: dict[int, dict[str, GroupingComponent]],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
