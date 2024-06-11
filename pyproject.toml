@@ -602,6 +602,7 @@ module = [
     "sentry.services.hybrid_cloud.user_option.*",
     "sentry.services.hybrid_cloud.util",
     "sentry.snuba.metrics.extraction",
+    "sentry.tasks.beacon",
     "sentry.tasks.commit_context",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",

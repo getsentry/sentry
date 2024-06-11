@@ -365,7 +365,7 @@ class QueryDefinition:
 def run_outcomes_query_totals(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
 ) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
@@ -386,7 +386,7 @@ def run_outcomes_query_totals(
 def run_outcomes_query_timeseries(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
     referrer: str = "outcomes.timeseries",
 ) -> ResultSet:
     """
