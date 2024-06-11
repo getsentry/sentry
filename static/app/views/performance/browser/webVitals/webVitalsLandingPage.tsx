@@ -15,6 +15,7 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -174,6 +175,32 @@ export function WebVitalsLandingPage() {
                 />
               </WebVitalMetersContainer>
               <PagePerformanceTable />
+              <PagesTooltipContainer>
+                <Tooltip
+                  title={
+                    <div>
+                      <div>
+                        {tct(
+                          'If your instrumented pages are not appearing in the table below, you may be missing necessary web vitals in your page loads due to unsupported browsers or missing instrumentation. Find out what browsers are supported here [link:here].',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/web-vitals-concepts/#browser-support" />
+                            ),
+                          }
+                        )}
+                      </div>
+                      <br />
+                      <div>
+                        {t(
+                          'It is recommended to keep your javascript sdk updated to the latest version for the best webvitals support.'
+                        )}
+                      </div>
+                    </div>
+                  }
+                >
+                  <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
+                </Tooltip>
+              </PagesTooltipContainer>
             </Fragment>
           )}
         </Layout.Main>
@@ -235,4 +262,14 @@ export const DismissButton = styled(Button)`
 
 export const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
+`;
+
+export const PagesTooltip = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
+  text-decoration: underline dotted ${p => p.theme.gray300};
+`;
+
+export const PagesTooltipContainer = styled('div')`
+  display: flex;
 `;
