@@ -53,7 +53,7 @@ class GroupingComponent:
         self.id = id
 
         # Default values
-        self.hint = hint
+        self.hint = hint or "a static salt"
         self.contributes = contributes
         self.variant_provider = variant_provider
         self.values = values or []
