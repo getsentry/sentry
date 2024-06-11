@@ -120,7 +120,6 @@ function PageFiltersContainer({
   // This happens when we mount the container.
   useEffect(() => {
     if (!projectsLoaded) {
-      // doInitialization();
       return;
     }
 
