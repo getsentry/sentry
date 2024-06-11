@@ -2165,7 +2165,7 @@ class MetricArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Sequence[str] | None = None,
+        allowed_columns: Sequence[str] | set[str] | None = None,
         allow_custom_measurements: bool | None = True,
         validate_only: bool | None = True,
         allow_mri: bool = True,
