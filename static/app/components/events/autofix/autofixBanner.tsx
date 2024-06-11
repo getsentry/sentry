@@ -13,7 +13,7 @@ import {useAutofixCodebaseIndexing} from 'sentry/components/events/autofix/useAu
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 
@@ -116,7 +116,16 @@ export function AutofixBanner({
         <div>
           <Title>
             {t('Try Autofix')}
-            <FeatureBadge type="experimental" />
+            <FeatureBadge
+              type="experimental"
+              title={tct(
+                'This feature is experimental. Try it out and let us know your feedback at [email:autofix@sentry.io].',
+                {
+                  email: <a href="mailto:autofix@sentry.io" />,
+                }
+              )}
+              tooltipProps={{isHoverable: true}}
+            />
           </Title>
           <SubTitle>
             {t('Sit back and let Autofix find potential root causes and fixes')}
