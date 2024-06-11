@@ -199,7 +199,7 @@ interface MetricsTableProps {
 
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
-  const {hasAccess} = useAccess({access: ['project:write']});
+  const {hasAccess} = useAccess({access: ['project:write'], project});
   const cardinalityLimit =
     project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
 
