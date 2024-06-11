@@ -622,13 +622,19 @@ def _query_meta_table(
     for result in results:
         indexed_ids.extend([row[column_name] for row in result["data"]])
 
+    # When the meta tables were added, it was discovered that some metrics were missing, because they did not have any
+    # tag set, which was something that the ingestion system assumed to be true. To alleviate this, an empty tag with
+    # tag_key=0 was added to those metrics during ingestion, leading to a tag_key that cannot be reverse-resolved. In order
+    # to prevent this from causing issues, we check if the id is larger than zero.
     resolved_ids = bulk_reverse_resolve(use_case_id, org_id, indexed_ids)
     # Group by project ID
     grouped_results: dict[int, list[str]] = {}
     for result in results:
         for row in result["data"]:
-            mri = resolved_ids[row[column_name]]
-            grouped_results.setdefault(row["project_id"], list()).append(mri)
+            indexed_id = row[column_name]
+            if indexed_id > 0:
+                mri = resolved_ids[indexed_id]
+                grouped_results.setdefault(row["project_id"], list()).append(mri)
 
     return grouped_results
 
