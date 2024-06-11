@@ -13,10 +13,6 @@ ValidContextTypes = TypeVar(
 EvaluationContextDict = dict[str, ValidContextTypes]
 
 
-class InvalidIdentityFieldException(Exception):
-    pass
-
-
 class EvaluationContext:
     """
     Prepared by the application and passed to flagpole to evaluate
@@ -29,28 +25,20 @@ class EvaluationContext:
 
     def __init__(self, data: EvaluationContextDict, identity_fields: set[str] | None = None):
         self.__data = deepcopy(data)
-
-        if identity_fields is None:
-            # If no list of identity fields is provided, use all properties of
-            # the context.
-            self.__identity_fields = set(self.__data.keys())
-        else:
-            self.__identity_fields = deepcopy(identity_fields)
-            self.__validate_identity_fields()
-
+        self.__set_identity_fields(identity_fields)
         self.__id = self.__generate_id()
 
-    def __validate_identity_fields(self):
-        invalid_identity_fields = []
+    def __set_identity_fields(self, identity_fields: set[str] | None = None):
+        trimmed_id_fields = set()
+        if identity_fields is not None:
+            for field in identity_fields:
+                if field in self.__data:
+                    trimmed_id_fields.add(field)
 
-        for field in self.__identity_fields:
-            if field not in self.__data:
-                invalid_identity_fields.append(field)
+        if not trimmed_id_fields:
+            trimmed_id_fields.update(self.__data.keys())
 
-        if invalid_identity_fields:
-            raise InvalidIdentityFieldException(
-                f"One or more invalid identity fields specified: {invalid_identity_fields}"
-            )
+        self.__identity_fields = trimmed_id_fields
 
     def __generate_id(self) -> int:
         """
