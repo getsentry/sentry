@@ -65,7 +65,7 @@ export function TracesChart({}: Props) {
   return (
     <ChartContainer>
       <ChartPanel
-        title={areQueriesEmpty(queries) ? t('Total Spans') : t('All Matching Spans')}
+        title={areQueriesEmpty(queries) ? t('All Spans') : t('All Matching Spans')}
       >
         <Chart
           height={CHART_HEIGHT}
