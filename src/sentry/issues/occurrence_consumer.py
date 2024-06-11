@@ -418,7 +418,7 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     if len(status_changes) > 1:
         items = [
             item for item in items if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
-        ] + status_changes[-1]
+        ] + status_changes[-1:]
 
     for item in items:
         cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"
