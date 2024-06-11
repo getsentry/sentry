@@ -5,7 +5,6 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-from django.core.cache import cache
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
 from sentry.issues.escalating import manage_issue_states
@@ -168,36 +167,12 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     return {"status_change": data}
 
 
-PROCESS_STATUS_CHANGE_MESSAGE_DUPE_KEY_TTL = 1  # seconds
-
-
 def process_status_change_message(
     message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
 ) -> Group | None:
     with metrics.timer("occurrence_consumer._process_message.status_change._get_kwargs"):
         kwargs = _get_status_change_kwargs(message)
     status_change_data = kwargs["status_change"]
-
-    cache_key = f"process_status_change_message:{status_change_data['project_id']}:{status_change_data['fingerprint']}{status_change_data['new_status']}{status_change_data['new_substatus']}"
-
-    if cache.get(cache_key):
-        metrics.incr(
-            "occurrence_ingest.status_change.messages.skipped_by_cache",
-            sample_rate=1.0,
-            tags={"new_status": status_change_data["new_status"]},
-        )
-        logger.info(
-            "occurrence_ingest.status_change.messages.skipped_by_cache",
-            extra={
-                "fingerprint": status_change_data["fingerprint"],
-                "new_status": status_change_data["new_status"],
-                "new_substatus": status_change_data["new_substatus"],
-                "project_id": status_change_data["project_id"],
-            },
-        )
-        return None
-    else:
-        cache.set(cache_key, True, PROCESS_STATUS_CHANGE_MESSAGE_DUPE_KEY_TTL)
 
     metrics.incr(
         "occurrence_ingest.status_change.messages",
