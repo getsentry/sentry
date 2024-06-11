@@ -71,6 +71,7 @@ def wrapper(method: FunctionType, integration_id):
         try:
             response = method(*args, **kwargs)
             track_response_data(response=response, method=method.__name__)
+            record_response_for_disabling_integration(response, integration_id)
         except SlackApiError as e:
             if e.response:
                 track_response_data(response=e.response, error=str(e), method=method.__name__)
