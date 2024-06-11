@@ -46,6 +46,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
@@ -509,6 +510,7 @@ function SpanId({
         organization,
         spanId,
         transactionName: transaction,
+        referrer: TraceViewReferrers.METRICS,
       })
     : undefined;
 
@@ -660,21 +662,25 @@ function TraceId({
   timestamp?: DateString;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const {selection} = usePageFilters();
   const stringOrNumberTimestamp =
     timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
 
-  const target = getTraceDetailsUrl(
+  const target = getTraceDetailsUrl({
     organization,
-    traceId,
-    {
+    traceSlug: traceId,
+    dateSelection: {
       start: selection.datetime.start,
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    stringOrNumberTimestamp,
-    eventId
-  );
+    timestamp: stringOrNumberTimestamp,
+    eventId,
+    location,
+    referrer: TraceViewReferrers.METRICS,
+  });
+
   return (
     <Container>
       <Link

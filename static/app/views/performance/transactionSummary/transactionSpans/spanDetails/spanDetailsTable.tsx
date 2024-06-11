@@ -28,6 +28,7 @@ import type {
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
+import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type TableColumnKeys =
   | 'id'
@@ -169,6 +170,7 @@ function renderBodyCellWithMeta(
         organization,
         spanId: worstSpan.id,
         transactionName: transactionName,
+        referrer: TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;

@@ -15,6 +15,8 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 import type {AggregateSpanType, ParsedTraceType} from './types';
 
@@ -49,8 +51,15 @@ function renderSpanSamples(
         projectSlug: project.slug,
         eventId: transaction,
         timestamp,
-        location,
+        location: {
+          ...location,
+          query: {
+            ...location.query,
+            tab: Tab.AGGREGATE_WATERFALL,
+          },
+        },
         spanId: span,
+        referrer: TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY,
       })}
     >{`${span}${index < aggSpan.samples.length - 1 ? ', ' : ''}`}</Link>
   ));

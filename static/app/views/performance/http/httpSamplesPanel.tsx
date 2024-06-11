@@ -59,6 +59,8 @@ import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDat
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
+import {TraceViewReferrers} from '../newTraceDetails/traceMetadataHeader';
+
 export function HTTPSamplesPanel() {
   const router = useRouter();
   const location = useLocation();
@@ -509,6 +511,7 @@ export function HTTPSamplesPanel() {
                     },
                     units: {},
                   }}
+                  referrer={TraceViewReferrers.REQUESTS_MODULE}
                 />
               </ModuleLayout.Full>
 

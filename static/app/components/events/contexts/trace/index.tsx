@@ -62,7 +62,6 @@ export function getUnknownTraceContextData({data, meta}: Pick<Props, 'data' | 'm
 export function TraceEventContext({event, data, meta: propsMeta}: Props) {
   const organization = useOrganization();
   const meta = propsMeta ?? getContextMeta(event, 'trace');
-
   const knownData = getKnownTraceContextData({data, event, meta, organization});
   const knownStructuredData = getKnownStructuredData(knownData, meta);
   const unknownData = getUnknownTraceContextData({data, meta});

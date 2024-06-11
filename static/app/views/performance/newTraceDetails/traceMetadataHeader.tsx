@@ -1,5 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
+import type {Location} from 'history';
 
+import type {Crumb} from 'sentry/components/breadcrumbs';
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -9,8 +12,9 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import Breadcrumb from '../breadcrumb';
+import Tab from '../transactionSummary/tabs';
 
 interface TraceMetadataHeaderProps {
   organization: Organization;
@@ -20,15 +24,311 @@ interface TraceMetadataHeaderProps {
   traceSlug: string;
 }
 
+export enum TraceViewReferrers {
+  TRACES = 'traces',
+  METRICS = 'metrics',
+  DISCOVER = 'discover',
+  REQUESTS_MODULE = 'requests_module',
+  QUERIES_MODULE = 'queries_module',
+  ASSETS_MODULE = 'assets_module',
+  APP_STARTS_MODULE = 'app_starts_module',
+  SCREEN_LOADS_MODULE = 'screen_loads_module',
+  WEB_VITALS_MODULE = 'web_vitals_module',
+  CACHES_MODULE = 'caches_module',
+  QUEUES_MODULE = 'queues_module',
+  PERFORMANCE_TRANSACTION_SUMMARY = 'performance_transaction_summary',
+  ISSUE_DETAILS = 'issue_details',
+}
+
+function getBreadCrumbTarget(
+  path: string,
+  query: Location['query'],
+  organization: Organization
+) {
+  return {
+    pathname: normalizeUrl(`/organizations/${organization.slug}/${path}`),
+    query: query,
+  };
+}
+
+function getTraceViewBreadcrumbs(
+  organization: Organization,
+  location: Location
+): Crumb[] {
+  const crumbs: Crumb[] = [];
+
+  switch (location.query.referrer) {
+    case TraceViewReferrers.TRACES:
+      crumbs.push({
+        label: t('Traces'),
+        to: getBreadCrumbTarget(`traces`, location.query, organization),
+      });
+      break;
+    case TraceViewReferrers.METRICS:
+      crumbs.push({
+        label: t('Metrics'),
+        to: getBreadCrumbTarget(`metrics`, location.query, organization),
+      });
+      break;
+    case TraceViewReferrers.DISCOVER:
+      crumbs.push({
+        label: t('Discover'),
+        to: getBreadCrumbTarget(`discover/homepage`, location.query, organization),
+      });
+      break;
+    case TraceViewReferrers.REQUESTS_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('Requests'),
+        to: getBreadCrumbTarget(`insights/http/`, location.query, organization),
+      });
+
+      crumbs.push({
+        label: t('Domain Summary'),
+        to: getBreadCrumbTarget(`insights/http/domains/`, location.query, organization),
+      });
+      break;
+    case TraceViewReferrers.QUERIES_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('Queries'),
+        to: getBreadCrumbTarget(`insights/database`, location.query, organization),
+      });
+
+      if (location.query.groupId) {
+        crumbs.push({
+          label: t('Query Summary'),
+          to: getBreadCrumbTarget(
+            `insights/database/spans/span/${location.query.groupId}`,
+            location.query,
+            organization
+          ),
+        });
+      } else {
+        crumbs.push({
+          label: t('Query Summary'),
+        });
+      }
+      break;
+    case TraceViewReferrers.ASSETS_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('Assets'),
+        to: getBreadCrumbTarget(`insights/browser/assets`, location.query, organization),
+      });
+
+      if (location.query.groupId) {
+        crumbs.push({
+          label: t('Asset Summary'),
+          to: getBreadCrumbTarget(
+            `insights/browser/assets/spans/span/${location.query.groupId}`,
+            location.query,
+            organization
+          ),
+        });
+      } else {
+        crumbs.push({
+          label: t('Asset Summary'),
+        });
+      }
+      break;
+    case TraceViewReferrers.APP_STARTS_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('App Starts'),
+        to: getBreadCrumbTarget(
+          `insights/mobile/app-startup`,
+          location.query,
+          organization
+        ),
+      });
+
+      crumbs.push({
+        label: t('Screen Summary'),
+        to: getBreadCrumbTarget(
+          `mobile/app-startup/spans/`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    case TraceViewReferrers.SCREEN_LOADS_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('Screen Loads'),
+        to: getBreadCrumbTarget(`insights/mobile/screens`, location.query, organization),
+      });
+
+      crumbs.push({
+        label: t('Screen Summary'),
+        to: getBreadCrumbTarget(
+          `insights/mobile/screens/spans`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    case TraceViewReferrers.WEB_VITALS_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('Web Vitals'),
+        to: getBreadCrumbTarget(
+          `insights/browser/pageloads`,
+          location.query,
+          organization
+        ),
+      });
+
+      crumbs.push({
+        label: t('Page Overview'),
+        to: getBreadCrumbTarget(
+          `insights/browser/pageloads/overview`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    case TraceViewReferrers.CACHES_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('Caches'),
+        to: getBreadCrumbTarget(`insights/caches`, location.query, organization),
+      });
+      break;
+    case TraceViewReferrers.QUEUES_MODULE:
+      crumbs.push({
+        label: t('Insights'),
+      });
+
+      crumbs.push({
+        label: t('Queues'),
+        to: getBreadCrumbTarget(`insights/queues`, location.query, organization),
+      });
+
+      crumbs.push({
+        label: t('Destination Summary'),
+        to: getBreadCrumbTarget(
+          `insights/queues/destination`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    case TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY:
+      crumbs.push({
+        label: t('Performance'),
+        to: getBreadCrumbTarget(`performance`, location.query, organization),
+      });
+
+      if (location.query.tab) {
+        switch (location.query.tab) {
+          case Tab.EVENTS:
+            crumbs.push({
+              label: t('All Events'),
+              to: getBreadCrumbTarget(
+                `performance/summary/events`,
+                location.query,
+                organization
+              ),
+            });
+            break;
+          case Tab.TAGS:
+            crumbs.push({
+              label: t('Tags'),
+              to: getBreadCrumbTarget(
+                `performance/summary/tags`,
+                location.query,
+                organization
+              ),
+            });
+            break;
+          case Tab.SPANS:
+            crumbs.push({
+              label: t('Spans'),
+              to: getBreadCrumbTarget(
+                `performance/summary/spans`,
+                location.query,
+                organization
+              ),
+            });
+
+            const {spanSlug} = location.query;
+            if (spanSlug) {
+              crumbs.push({
+                label: t('Span Summary'),
+                to: getBreadCrumbTarget(
+                  `performance/summary/spans/${spanSlug}`,
+                  location.query,
+                  organization
+                ),
+              });
+            }
+            break;
+          case Tab.AGGREGATE_WATERFALL:
+            crumbs.push({
+              label: t('Transaction Summary'),
+              to: getBreadCrumbTarget(
+                `performance/summary/aggregateWaterfall`,
+                location.query,
+                organization
+              ),
+            });
+            break;
+          default:
+            break;
+        }
+      }
+      break;
+    case TraceViewReferrers.ISSUE_DETAILS:
+      crumbs.push({
+        label: t('Issues'),
+        to: getBreadCrumbTarget(`issues`, location.query, organization),
+      });
+
+      if (location.query.groupId) {
+        crumbs.push({
+          label: t('Issue Details'),
+          to: getBreadCrumbTarget(
+            `issues/${location.query.groupId}`,
+            location.query,
+            organization
+          ),
+        });
+      }
+      break;
+    default:
+      break;
+  }
+  crumbs.push({
+    label: t('Trace View'),
+  });
+
+  return crumbs;
+}
+
 export function TraceMetadataHeader(props: TraceMetadataHeaderProps) {
   const location = useLocation();
-
-  const breadcrumbTransaction = useMemo(() => {
-    return {
-      project: props.projectID ?? '',
-      name: props.title ?? '',
-    };
-  }, [props.projectID, props.title]);
 
   const trackOpenInDiscover = useCallback(() => {
     trackAnalytics('performance_views.trace_view.open_in_discover', {
@@ -39,12 +339,7 @@ export function TraceMetadataHeader(props: TraceMetadataHeaderProps) {
   return (
     <Layout.Header>
       <Layout.HeaderContent>
-        <Breadcrumb
-          organization={props.organization}
-          location={location}
-          transaction={breadcrumbTransaction}
-          traceSlug={props.traceSlug}
-        />
+        <Breadcrumbs crumbs={getTraceViewBreadcrumbs(props.organization, location)} />
       </Layout.HeaderContent>
       <Layout.HeaderActions>
         <ButtonBar gap={1}>
