@@ -50,6 +50,10 @@ function NotificationSettingsByEntity({
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedValue, setSelectedValue] = useState<Value | null>(null);
 
+  if (!organizations || organizations.length === 0) {
+    return <div>No organizations available</div>;
+  }
+
   const customerDomain = ConfigStore.get('customerDomain');
   const orgFromSubdomain = organizations.find(
     ({slug}) => slug === customerDomain?.subdomain
@@ -78,6 +82,14 @@ function NotificationSettingsByEntity({
         query: {
           all_projects: '1',
           collapse: ['latestDeploys', 'unusedFeatures'],
+        },
+      },
+    ],
+    {enabled: !!orgSlug}
+  );
+
+  // Rest of the component logic...
+}
         },
       },
     ],
