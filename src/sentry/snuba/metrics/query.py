@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Literal, Union
 
+from django.db.models import QuerySet
 from snuba_sdk import Column, Direction, Granularity, Limit, Offset, Op
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -171,7 +172,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     skip_orderby_validation: bool = False
 
     @cached_property
-    def projects(self) -> list[Project]:
+    def projects(self) -> QuerySet[Project]:
         return Project.objects.filter(id__in=self.project_ids)
 
     @cached_property
