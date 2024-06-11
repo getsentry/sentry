@@ -144,11 +144,11 @@ function SpanSummaryContent(props: ContentProps) {
 }
 
 function parseSpanHeaderData(data: Partial<SpanMetricsResponse>[]) {
-  if (!data) {
+  if (!data || data.length === 0) {
     return undefined;
   }
 
-  if (data.length <= 1) {
+  if (data.length === 1) {
     return {
       description: data[0]?.['span.description'],
       timeSpent: data[0]?.['sum(span.self_time)'],
