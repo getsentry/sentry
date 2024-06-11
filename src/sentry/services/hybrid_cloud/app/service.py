@@ -95,13 +95,6 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         pass
 
