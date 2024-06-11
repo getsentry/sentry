@@ -88,6 +88,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
+    description: str
 
 
 @register(AlertRule)
@@ -299,7 +300,7 @@ class AlertRuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
             "activations": attrs.get("activations", None),
-            "description": obj.description,
+            "description": obj.description if obj.description is not None else "",
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

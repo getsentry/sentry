@@ -628,13 +628,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         alert_rule = self.alert_rule
         # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        description = "yeehaw"
         serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["description"] = description
 
-        serialized_alert_rule["description"] = "yeehaw"
         resp = self.get_success_response(
             self.organization.slug, alert_rule.id, **serialized_alert_rule
         )
-        assert alert_rule.description == resp.data.get("description")
+        assert description == resp.data.get("description")
 
     def test_delete_action(self):
         self.create_member(
