@@ -178,14 +178,14 @@ const IllustrationContainer = styled('div')`
   display: none;
   pointer-events: none;
 
-  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+  @media (min-width: ${p => p.theme.breakpoints.large}) {
     display: flex;
     align-items: flex-end;
   }
 `;
 
 const Illustration = styled('img')`
-  height: 140px;
+  height: 110px;
 `;
 
 const PiiMessage = styled('p')`
