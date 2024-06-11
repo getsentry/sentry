@@ -10,11 +10,11 @@ import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Props = {
-  avgDuration: number;
-  spanCount: number;
-  spanDescription: string;
-  spanOp: string;
-  timeSpent: number;
+  avgDuration: number | undefined;
+  spanCount: number | undefined;
+  spanDescription: string | undefined;
+  spanOp: string | undefined;
+  timeSpent: number | undefined;
 };
 
 export default function SpanSummaryHeader(props: Props) {
@@ -29,7 +29,9 @@ export default function SpanSummaryHeader(props: Props) {
             {spanDescription ? spanDescription : emptyValue}
           </SpanLabelContainer>
         </SectionBody>
-        <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
+        <SectionSubtext data-test-id="operation-name">
+          {spanOp ? spanOp : emptyValue}
+        </SectionSubtext>
       </HeaderInfo>
 
       <HeaderInfo data-test-id="header-avg-duration">
