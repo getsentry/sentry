@@ -1,7 +1,13 @@
 import {createStore} from 'reflux';
 
+import {ItemType, type SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types/group';
+import {
+  getIssueTitleFromType,
+  IssueCategory,
+  IssueType,
+  PriorityLevel,
+} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
@@ -106,7 +112,15 @@ const storeConfig: TagStoreDefinition = {
           IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
           IssueType.PROFILE_REGEX_MAIN_THREAD,
           IssueType.PROFILE_FUNCTION_REGRESSION,
-        ],
+        ].map(value => ({
+          icon: null,
+          title: value,
+          name: value,
+          documentation: getIssueTitleFromType(value),
+          value,
+          type: ItemType.TAG_VALUE,
+          children: [],
+        })) as SearchGroup[],
         predefined: true,
       },
       [FieldKey.LAST_SEEN]: {
