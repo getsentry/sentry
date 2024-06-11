@@ -17,11 +17,8 @@ import {
   RateUnit,
   SizeUnit,
 } from 'sentry/utils/discover/fields';
-import {
-  formatAbbreviatedNumber,
-  formatPercentage,
-  formatRate,
-} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 type Unit =

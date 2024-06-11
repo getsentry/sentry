@@ -11,7 +11,8 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage, formatRate} from 'sentry/utils/formatters';
+import {formatRate} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 type RawDataRow<K extends string> = Record<K, any>;
 

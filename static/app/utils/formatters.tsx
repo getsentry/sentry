@@ -1,5 +1,3 @@
-import round from 'lodash/round';
-
 import {t} from 'sentry/locale';
 import type {CommitAuthor, User} from 'sentry/types';
 import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
@@ -38,31 +36,10 @@ export const NANOSECOND = 0.000001;
 export {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 
 /**
- * Format a value between 0 and 1 as a percentage
+ * @deprecated Import directly from `sentry/utils/number/formatPercentage` instead.
+ * biome-ignore lint/performance/noBarrelFile: Temporary for getsentry
  */
-export function formatPercentage(
-  value: number,
-  places: number = 2,
-  options: {
-    minimumValue?: number;
-  } = {}
-) {
-  if (value === 0) {
-    return '0%';
-  }
-
-  const minimumValue = options.minimumValue ?? 0;
-
-  if (Math.abs(value) <= minimumValue) {
-    return `<${minimumValue * 100}%`;
-  }
-
-  return (
-    round(value * 100, places).toLocaleString(undefined, {
-      maximumFractionDigits: places,
-    }) + '%'
-  );
-}
+export {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 const numberFormatSteps = [
   [1_000_000_000, 'b'],
