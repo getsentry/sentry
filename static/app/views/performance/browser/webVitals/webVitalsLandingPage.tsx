@@ -77,6 +77,7 @@ export function WebVitalsLandingPage() {
 
   useHasDataTrackAnalytics(
     new MutableSearch(
+      // TODO: check for all possible WebVital data sources
       'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]'
     ),
     'api.performance.vital.vital-landing',
