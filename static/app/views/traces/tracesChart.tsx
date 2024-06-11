@@ -27,7 +27,7 @@ export function TracesChart({}: Props) {
     return decodeList(location.query.query);
   }, [location.query.query]);
 
-  const firstCountSeries = useTraceCountSeries(queries[0]);
+  const firstCountSeries = useTraceCountSeries(queries[0] ?? ''); // Always provide query string for first query.
   const secondCountSeries = useTraceCountSeries(queries[1]);
   const thirdCountSeries = useTraceCountSeries(queries[2]);
 
@@ -106,6 +106,7 @@ const useTraceCountSeries = (query: string | null) => {
       yAxis: ['count()'],
       interval: getInterval(pageFilters.selection.datetime, 'metrics'),
       overriddenRoute: 'traces-stats',
+      enabled: query !== null && query !== undefined,
     },
     'api.trace-explorer.stats'
   );
