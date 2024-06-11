@@ -21,6 +21,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
@@ -144,6 +145,10 @@ export function PageOverview() {
       <Tabs
         value={tab}
         onChange={value => {
+          trackAnalytics('insight.vital.overview.toggle_tab', {
+            organization,
+            tab: value,
+          });
           browserHistory.push({
             ...location,
             query: {
@@ -167,7 +172,15 @@ export function PageOverview() {
             <ButtonBar gap={1}>
               <FeedbackWidgetButton />
               {transactionSummaryTarget && (
-                <LinkButton to={transactionSummaryTarget} size="sm">
+                <LinkButton
+                  to={transactionSummaryTarget}
+                  onClick={() => {
+                    trackAnalytics('insight.vital.overview.open_transaction_summary', {
+                      organization,
+                    });
+                  }}
+                  size="sm"
+                >
                   {t('View Transaction Summary')}
                 </LinkButton>
               )}

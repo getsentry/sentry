@@ -9,7 +9,9 @@ import OpsBreakdown from 'sentry/components/events/opsBreakdown';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {LandingDisplayField} from 'sentry/views/performance/browser/webVitals/pageOverview';
 
 type Props = {
@@ -19,6 +21,8 @@ type Props = {
 
 export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Props) {
   const location = useLocation();
+  const organization = useOrganization();
+
   // Pageload transactions don't seem to store http.method, so don't include one here
   const {waterfallModel, event, isLoading} =
     useSpanWaterfallModelFromTransaction(transaction);
@@ -57,6 +61,11 @@ export function MiniAggregateWaterfall({transaction, aggregateSpansLocation}: Pr
         aria-label={t('View Full Waterfall')}
         size="sm"
         to={AggregateSpanWaterfallLocation}
+        onClick={() => {
+          trackAnalytics('insight.vital.overview.open_full_waterfall', {
+            organization,
+          });
+        }}
       >
         {t('View Full Waterfall')}
       </LinkButton>
