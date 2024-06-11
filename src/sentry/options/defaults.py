@@ -2559,3 +2559,11 @@ register(
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enable orjson in the occurrence_consumer.process_[message|batch]
+register(
+    "issues.occurrence_consumer.use_orjson",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

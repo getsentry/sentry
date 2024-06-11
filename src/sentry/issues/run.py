@@ -14,6 +14,7 @@ from arroyo.processing.strategies.batching import BatchStep, ValuesBatch
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
+from sentry import options
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
 logger = logging.getLogger(__name__)
@@ -92,12 +93,20 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
+
+    import orjson
+
     from sentry.issues.occurrence_consumer import _process_message
     from sentry.utils import json, metrics
 
+    if options.get("issues.occurrence_consumer.use_orjson"):
+        json_loads = orjson.loads
+    else:
+        json_loads = functools.partial(json.loads, use_rapid_json=True)
+
     try:
         with metrics.timer("occurrence_consumer.process_message"):
-            payload = json.loads(message.payload.value, use_rapid_json=True)
+            payload = json_loads(message.payload.value)
             _process_message(payload)
     except Exception:
         logger.exception("failed to process message payload")
