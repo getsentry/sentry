@@ -218,7 +218,7 @@ def recording_post_processor(
     if len(segment_bytes) >= 4_000_000:
         logger.info(
             # Logging to the sentry.replays.slow_click namespace because
-            # its the only one configured to use BigQuery at the moment.
+            # it's the only one configured to use BigQuery at the moment.
             #
             # NOTE: Needs an ops request if we want to create a new dataset.
             "sentry.replays.slow_click",
