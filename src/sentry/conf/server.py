@@ -1770,7 +1770,7 @@ SENTRY_ENDPOINT: str | None = None
 SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
-# `organizations:org-subdomains` feature.
+# `organizations:org-ingest-subdomains` feature.
 SENTRY_ORG_SUBDOMAIN_TEMPLATE = "o{organization_id}.ingest"
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
