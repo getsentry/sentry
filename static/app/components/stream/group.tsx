@@ -24,7 +24,6 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import GroupChart from 'sentry/components/stream/groupChart';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -94,8 +93,8 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
-  const selectedGroups = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroups[group.id];
+  const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroupMap.get(group.id) ?? false;
 
   const onChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
@@ -497,24 +496,15 @@ function BaseGroupRow({
 
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
-          {organization.features.includes('issue-stream-new-events-graph') ? (
-            <GroupStatusChart
-              hideZeros
-              loading={!defined(groupStats)}
-              stats={groupStats}
-              secondaryStats={groupSecondaryStats}
-              showSecondaryPoints={showSecondaryPoints}
-              groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-              showMarkLine
-            />
-          ) : (
-            <GroupChart
-              stats={groupStats}
-              secondaryStats={groupSecondaryStats}
-              showSecondaryPoints={showSecondaryPoints}
-              showMarkLine
-            />
-          )}
+          <GroupStatusChart
+            hideZeros
+            loading={!defined(groupStats)}
+            stats={groupStats}
+            secondaryStats={groupSecondaryStats}
+            showSecondaryPoints={showSecondaryPoints}
+            groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
+            showMarkLine
+          />
         </ChartWrapper>
       )}
       {displayReprocessingLayout ? (
@@ -522,15 +512,7 @@ function BaseGroupRow({
       ) : (
         <Fragment>
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper
-              leftMargin={
-                organization.features.includes('issue-stream-new-events-graph')
-                  ? space(0)
-                  : space(2)
-              }
-            >
-              {groupCount}
-            </EventCountsWrapper>
+            <EventCountsWrapper leftMargin={space(0)}>{groupCount}</EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
@@ -553,33 +535,26 @@ function BaseGroupRow({
                   handleAssigneeChange(assignedActor)
                 }
                 onClear={() => handleAssigneeChange(null)}
-                trigger={
-                  organization.features.includes(
-                    'issue-stream-new-assignee-dropdown-trigger'
-                  )
-                    ? (props, isOpen) => (
-                        <StyledDropdownButton
-                          {...props}
-                          borderless
-                          aria-label={t('Modify issue assignee')}
-                          size="zero"
-                        >
-                          <AssigneeBadge
-                            assignedTo={group.assignedTo ?? undefined}
-                            assignmentReason={
-                              group.owners?.find(owner => {
-                                const [_ownershipType, ownerId] = owner.owner.split(':');
-                                return ownerId === group.assignedTo?.id;
-                              })?.type
-                            }
-                            loading={assigneeLoading}
-                            chevronDirection={isOpen ? 'up' : 'down'}
-                            isTooltipDisabled={isOpen}
-                          />
-                        </StyledDropdownButton>
-                      )
-                    : undefined
-                }
+                trigger={(props, isOpen) => (
+                  <StyledDropdownButton
+                    {...props}
+                    borderless
+                    aria-label={t('Modify issue assignee')}
+                    size="zero"
+                  >
+                    <AssigneeBadge
+                      assignedTo={group.assignedTo ?? undefined}
+                      assignmentReason={
+                        group.owners?.find(owner => {
+                          const [_ownershipType, ownerId] = owner.owner.split(':');
+                          return ownerId === group.assignedTo?.id;
+                        })?.type
+                      }
+                      loading={assigneeLoading}
+                      chevronDirection={isOpen ? 'up' : 'down'}
+                    />
+                  </StyledDropdownButton>
+                )}
               />
             </AssigneeWrapper>
           )}

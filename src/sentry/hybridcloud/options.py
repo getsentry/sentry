@@ -1,5 +1,5 @@
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
-from sentry.utils.types import Bool, Float, Int, Sequence
+from sentry.utils.types import Bool, Int, Sequence
 
 register(
     "outbox_replication.sentry_organizationmember.replication_version",
@@ -159,12 +159,5 @@ register(
     "hybrid_cloud.authentication.disabled_user_shards",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "user.get_many_by_id.rollout",
-    type=Float,
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

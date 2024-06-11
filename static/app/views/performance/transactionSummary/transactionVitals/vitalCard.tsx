@@ -119,15 +119,6 @@ class VitalCard extends Component<Props, State> {
     return {...prevState};
   }
 
-  trackOpenInDiscoverClicked = () => {
-    const {organization} = this.props;
-    const {vitalDetails: vital} = this.props;
-    trackAnalytics('performance_views.vitals.open_in_discover', {
-      organization,
-      vital: vital.slug,
-    });
-  };
-
   trackOpenAllEventsClicked = () => {
     const {organization} = this.props;
     const {vitalDetails: vital} = this.props;
