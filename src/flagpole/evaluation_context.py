@@ -21,7 +21,7 @@ class EvaluationContext:
 
     __data: EvaluationContextDict
     __identity_fields: set[str]
-    id: int
+    __id: int
 
     def __init__(self, data: EvaluationContextDict, identity_fields: set[str] | None = None):
         self.__data = deepcopy(data)
@@ -57,7 +57,7 @@ class EvaluationContext:
         return int.from_bytes(hashed.digest(), byteorder="big")
 
     @property
-    def id(self):
+    def id(self) -> int:
         """
         Guard against context mutation by using this virtual property as a
         getter for the private ID field.
