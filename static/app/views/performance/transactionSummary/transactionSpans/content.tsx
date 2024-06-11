@@ -23,6 +23,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
@@ -202,6 +203,17 @@ function SpansContentV2(props: Props) {
     },
   });
 
+  const supportedTags = useSpanFieldSupportedTags();
+  const mutableSearch = new MutableSearch(query.query);
+  const supportedTagSet = new Set(Object.keys(supportedTags));
+
+  const incompatibleFilterKeys = mutableSearch
+    .getFilterKeys()
+    .filter(key => !supportedTagSet.has(key));
+
+  incompatibleFilterKeys.forEach(key => mutableSearch.removeFilter(key));
+  const initialQuery = mutableSearch.formatString();
+
   function handleChange(key: string) {
     return function (value: string | undefined) {
       ANALYTICS_VALUES[key]?.(organization, value);
@@ -225,8 +237,6 @@ function SpansContentV2(props: Props) {
     };
   }
 
-  const supportedTags = useSpanFieldSupportedTags();
-
   return (
     <Layout.Main fullWidth>
       <FilterActions>
@@ -247,7 +257,7 @@ function SpansContentV2(props: Props) {
         <StyledSearchBar
           organization={organization}
           projectIds={eventView.project}
-          query={query.query}
+          query={initialQuery}
           fields={eventView.fields}
           placeholder={t('Search for span attributes')}
           supportedTags={supportedTags}
@@ -257,7 +267,11 @@ function SpansContentV2(props: Props) {
         />
       </FilterActions>
 
-      <SpanMetricsTable project={project} transactionName={transactionName} />
+      <SpanMetricsTable
+        project={project}
+        transactionName={transactionName}
+        query={initialQuery}
+      />
     </Layout.Main>
   );
 }
