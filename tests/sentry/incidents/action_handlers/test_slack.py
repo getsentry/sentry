@@ -1,13 +1,18 @@
 from unittest.mock import patch
 from urllib.parse import parse_qs
 
+import orjson
 import responses
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
+from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.incidents.models.incident import IncidentStatus
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.models.notificationmessage import NotificationMessage
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
 from . import FireTest
@@ -48,6 +53,7 @@ class SlackActionHandlerTest(FireTest):
             target_type=AlertRuleTriggerAction.TargetType.SPECIFIC,
             integration=self.integration,
         )
+        self.alert_rule = self.create_alert_rule()
 
     @responses.activate
     def run_test(self, incident, method, chart_url=None):
@@ -62,8 +68,9 @@ class SlackActionHandlerTest(FireTest):
         )
         handler = SlackActionHandler(self.action, incident, self.project)
         metric_value = 1000
+        status = IncidentStatus(incident.status)
         with self.tasks():
-            getattr(handler, method)(metric_value, IncidentStatus(incident.status))
+            getattr(handler, method)(metric_value, status)
         data = parse_qs(responses.calls[0].request.body)
         assert data["channel"] == [self.channel_id]
         slack_body = SlackIncidentsMessageBuilder(
@@ -78,8 +85,72 @@ class SlackActionHandlerTest(FireTest):
     def test_fire_metric_alert(self):
         self.run_fire_test()
 
-    def test_resolve_metric_alert(self):
-        self.run_fire_test("resolve")
+        assert NotificationMessage.objects.all().count() == 1
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-metric-alert")
+    def test_fire_metric_alert_sdk(self, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
+        handler = SlackActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        status = IncidentStatus(incident.status)
+        with self.tasks():
+            getattr(handler, "fire")(metric_value, status)
+
+        assert NotificationMessage.objects.all().count() == 1
+
+    @with_feature("organizations:slack-sdk-metric-alert")
+    def test_fire_metric_alert_sdk_error(self):
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
+        handler = SlackActionHandler(self.action, incident, self.project)
+        metric_value = 1000
+        status = IncidentStatus(incident.status)
+        with self.tasks():
+            getattr(handler, "fire")(metric_value, status)
+
+        assert NotificationMessage.objects.all().count() == 1
+        msg = NotificationMessage.objects.all()[0]
+        assert msg.error_code == 200
+        assert msg.error_details["data"] == {"ok": False, "error": "invalid_auth"}
+
+    def test_resolve_metric_alert_no_threading(self):
+        OrganizationOption.objects.set_value(
+            self.organization, "sentry:metric_alerts_thread_flag", False
+        )
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
+        update_incident_status(
+            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
+        )
+
+        self.run_test(incident, "resolve")
+
+        # we still save the message even if threading is disabled
+        assert NotificationMessage.objects.all().count() == 1
+
+    def test_resolve_metric_alert_with_threading(self):
+        incident = self.create_incident(
+            alert_rule=self.alert_rule, status=IncidentStatus.CLOSED.value
+        )
+        msg = NotificationMessage.objects.create(incident=incident, trigger_action=self.action)
+        update_incident_status(
+            incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
+        )
+        self.run_test(incident, "resolve")
+        assert (
+            NotificationMessage.objects.filter(parent_notification_message_id=msg.id).count() == 1
+        )
 
     def test_fire_metric_alert_with_chart(self):
         self.run_fire_test(chart_url="chart-url")
