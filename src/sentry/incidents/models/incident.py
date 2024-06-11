@@ -173,6 +173,11 @@ class Incident(Model):
     An Incident represents the overarching period during an AlertRule's "unhealthy" state.
     An AlertRule can have multiple IncidentTriggers during an Incident (ie. Critical -> Warning -> Critical)
     but if it has been resolved, will end the Incident.
+
+    An AlertRule may have multiple Incidents that correlate with different subscriptions.
+    TODO:
+    - Add support for multiple subscriptions
+    - UI should be able to handle multiple active incidents
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -299,6 +304,10 @@ class IncidentActivityType(Enum):
 
 @region_silo_model
 class IncidentActivity(Model):
+    """
+    An IncidentActivity is a record of a change that occurred in an Incident. This could be a status change,
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident")
@@ -329,6 +338,11 @@ class IncidentActivity(Model):
 
 @region_silo_model
 class IncidentSubscription(Model):
+    """
+    IncidentSubscription is a record of a user being subscribed to an incident.
+    Not to be confused with a snuba QuerySubscription
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
