@@ -229,7 +229,7 @@ class PushEventWebhookTest(APITestCase):
             organization_id=project.organization.id,
             external_id="35129377",
             provider="integrations:github",
-            name="baxterthehacker/public-repo",
+            name="baxterthehacker/repo",
         )
 
         self._setup_repo_test(project)
@@ -267,6 +267,7 @@ class PushEventWebhookTest(APITestCase):
 
         repo.refresh_from_db()
         assert set(repo.languages) == {"python", "javascript"}
+        assert repo.name == "baxterthehacker/public-repo"
 
     @responses.activate
     @patch("sentry.integrations.github.webhook.metrics")
