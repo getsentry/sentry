@@ -210,10 +210,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         extra=log_params,
                     )
                 else:
-                    ts = None
-                    response_data = sdk_response.data
-                    if isinstance(response_data, dict):
-                        ts = response_data.get("ts")
+                    ts = sdk_response.get("ts")
 
                     self.logger.info("slack.issue_alert.ts", extra={"ts": ts})
 

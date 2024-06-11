@@ -143,11 +143,7 @@ def send_incident_alert_notification(
             logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         else:
             success = True
-
-            ts = None
-            response_data = sdk_response.data
-            if isinstance(response_data, dict):
-                ts = response_data.get("ts")
+            ts = sdk_response.get("ts")
 
             logger.info("slack.metric_alert.ts", extra={"ts": ts})
 
