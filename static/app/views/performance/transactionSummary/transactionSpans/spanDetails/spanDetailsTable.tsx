@@ -21,7 +21,7 @@ import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
   ExampleTransaction,
