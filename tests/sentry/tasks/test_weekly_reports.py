@@ -172,7 +172,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             )
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
-    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_deliver_reports_respects_settings(
         self, mock_send_email, mock_prepare_template_context
     ):
@@ -190,12 +190,13 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         self._set_option_value("always")
         OrganizationReportBatch(ctx, batch_id).deliver_reports()
         assert mock_send_email.call_count == 1
-        mock_send_email.assert_called_once_with(
-            template_ctx=template_context[0].get("context"),
-            user_id=template_context[0].get("user_id"),
-        )
+        send_email_kwargs = mock_send_email.call_args.kwargs
+        assert send_email_kwargs["template_ctx"] == template_context[0].get("context")
+        assert send_email_kwargs["user_id"] == template_context[0].get("user_id")
+        assert send_email_kwargs["organization_id"] == self.organization.id
+        assert send_email_kwargs["batch_id"] == batch_id
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_member_disabled(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
         with unguarded_write(using=router.db_for_write(Project)):
@@ -207,7 +208,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         OrganizationReportBatch(ctx, self._dummy_batch_id).deliver_reports()
         assert mock_send_email.call_count == 0
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_user_inactive(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
         with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
@@ -217,7 +218,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         OrganizationReportBatch(ctx, self._dummy_batch_id).deliver_reports()
         assert mock_send_email.call_count == 0
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_invited_member(self, mock_send_email):
         ctx = OrganizationReportContext(0, 0, self.organization)
         # create a member without a user
@@ -616,9 +617,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         with mock.patch(
             "sentry.tasks.summaries.weekly_reports.prepare_template_context",
             side_effect=ValueError("oh no!"),
-        ), mock.patch(
-            "sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email"
-        ) as mock_send_email:
+        ), mock.patch("sentry.tasks.summaries.weekly_reports.send_email") as mock_send_email:
             with pytest.raises(Exception):
                 prepare_organization_report(
                     self.now.timestamp(), ONE_DAY * 7, self.organization.id, batch_id
@@ -781,7 +780,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             "transaction_count": 3,
         }
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_empty_report(self, mock_send_email):
         # date is out of range
         ten_days_ago = self.now - timedelta(days=10)
@@ -997,7 +996,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
     @mock.patch("sentry.tasks.summaries.weekly_reports.logger")
     @mock.patch("sentry.tasks.summaries.weekly_reports.prepare_template_context")
-    @mock.patch("sentry.tasks.summaries.weekly_reports.OrganizationReportBatch.send_email")
+    @mock.patch("sentry.tasks.summaries.weekly_reports.send_email")
     def test_duplicate_detection(self, mock_send_email, mock_prepare_template_context, mock_logger):
         ctx = OrganizationReportContext(0, 0, self.organization)
         template_context = prepare_template_context(ctx, [self.user.id])

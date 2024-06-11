@@ -292,44 +292,15 @@ class OrganizationReportBatch:
         user_id: int | None = user_template_context.get("user_id")
         if template_context and user_id:
             with self._check_for_duplicate_delivery(user_id):
-                self.send_email(template_ctx=template_context, user_id=user_id)
-
-    def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
-        message = MessageBuilder(
-            subject=f"Weekly Report for {self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
-            template="sentry/emails/reports/body.txt",
-            html_template="sentry/emails/reports/body.html",
-            type="report.organization",
-            context=template_ctx,
-            headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
-        )
-        if self.dry_run:
-            return
-
-        if self.email_override:
-            message.send(to=(self.email_override,))
-        else:
-            analytics.record(
-                "weekly_report.sent",
-                user_id=user_id,
-                organization_id=self.ctx.organization.id,
-                notification_uuid=template_ctx["notification_uuid"],
-                user_project_count=template_ctx["user_project_count"],
-            )
-
-            # TODO see if we can use the UUID to track if the email was sent or not
-            logger.info(
-                "weekly_report.send_email",
-                extra={
-                    "batch_id": self.batch_id,
-                    "organization": self.ctx.organization.id,
-                    "uuid": template_ctx["notification_uuid"],
-                    "user_id": user_id,
-                },
-            )
-
-            message.add_users((user_id,))
-            message.send_async()
+                send_email(
+                    template_ctx=template_context,
+                    organization_id=self.ctx.organization.id,
+                    batch_id=self.batch_id,
+                    user_id=user_id,
+                    title=f"{self.ctx.organization.name}: {date_format(self.ctx.start)} - {date_format(self.ctx.end)}",
+                    dry_run=self.dry_run,
+                    email_override=self.email_override,
+                )
 
     @contextmanager
     def _check_for_duplicate_delivery(self, user_id: int) -> Generator[None, None, None]:
@@ -366,6 +337,60 @@ class OrganizationReportBatch:
             # The `cluster.incr` operation is atomic, so if concurrent duplicates are
             # happening, this should reliably detect them after the fact.
             log_error("weekly_report.delivery_record.concurrent_detected")
+
+
+@instrumented_task(
+    name="sentry.tasks.summaries.weekly_reports.send_email",
+    queue="reports.prepare",
+    max_retries=5,
+    acks_late=True,
+    silo_mode=SiloMode.REGION,
+)
+@retry
+def send_email(
+    template_ctx: Mapping[str, Any],
+    organization_id: int,
+    batch_id: uuid.UUID,
+    user_id: int,
+    title: str,
+    dry_run: bool = False,
+    email_override: str | None = None,
+) -> None:
+    message = MessageBuilder(
+        subject=f"Weekly Report for {title}",
+        template="sentry/emails/reports/body.txt",
+        html_template="sentry/emails/reports/body.html",
+        type="report.organization",
+        context=template_ctx,
+        headers={"X-SMTPAPI": json.dumps({"category": "organization_weekly_report"})},
+    )
+    if dry_run:
+        return
+
+    if email_override:
+        message.send(to=(email_override,))
+    else:
+        analytics.record(
+            "weekly_report.sent",
+            user_id=user_id,
+            organization_id=organization_id,
+            notification_uuid=template_ctx["notification_uuid"],
+            user_project_count=template_ctx["user_project_count"],
+        )
+
+        # TODO see if we can use the UUID to track if the email was sent or not
+        logger.info(
+            "weekly_report.send_email",
+            extra={
+                "batch_id": batch_id,
+                "organization": organization_id,
+                "uuid": template_ctx["notification_uuid"],
+                "user_id": user_id,
+            },
+        )
+
+        message.add_users((user_id,))
+        message.send_async()
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
