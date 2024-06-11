@@ -1104,7 +1104,7 @@ export class VirtualizedViewManager {
 
   recomputeSpanToPxMatrix() {
     const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
+    const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
 
     this.span_to_px = mat3.multiply(
       this.span_to_px,
@@ -1145,11 +1145,13 @@ export class VirtualizedViewManager {
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
-    const scale = space[1] / this.trace_view.width;
-    this.span_matrix[0] = Math.max(scale, this.span_to_px[0] / this.trace_view.width);
+    const spaceToView = this.trace_space.width / this.trace_view.width;
+    const viewToPhysical = this.trace_physical_space.width / this.trace_view.width;
+    const spaceToPhysical = spaceToView * viewToPhysical;
+
+    this.span_matrix[0] = space[1] * spaceToPhysical;
     this.span_matrix[4] =
-      (space[0] - this.to_origin) / this.span_to_px[0] -
-      this.trace_view.x / this.span_to_px[0];
+      (space[0] - this.to_origin) * spaceToPhysical - this.trace_view.x * viewToPhysical;
 
     return this.span_matrix;
   }

@@ -2298,7 +2298,7 @@ const TraceStylingWrapper = styled('div')`
   .TraceBar {
     position: absolute;
     height: 16px;
-    width: 100%;
+    width: 1px;
     background-color: black;
     transform-origin: left center;
 
