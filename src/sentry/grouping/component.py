@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Iterator, Sequence
+from collections.abc import Generator, Iterable, Iterator, Sequence
 from typing import Any
 
 from sentry.grouping.utils import hash_from_values
@@ -30,7 +30,7 @@ def _calculate_contributes(values: Sequence[str | GroupingComponent]) -> bool:
 
 
 def calculate_tree_label(
-    values: Sequence[str | GroupingComponent],
+    values: Iterable[str | GroupingComponent],
 ) -> dict[str, str | GroupingComponent | None] | None:
     for value in values or ():
         if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
