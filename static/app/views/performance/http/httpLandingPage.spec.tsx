@@ -75,7 +75,7 @@ describe('HTTPLandingPage', function () {
       method: 'GET',
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.performance.http.landing-domains-onboarding',
+          referrer: 'api.performance.http.landing-domains',
         }),
       ],
       body: {

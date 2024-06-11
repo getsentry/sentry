@@ -184,7 +184,7 @@ const setupMockRequests = (organization: DetailedOrganization) => {
     method: 'GET',
     match: [
       MockApiClient.matchQuery({
-        referrer: 'api.performance.resource.landing-resource-onboarding',
+        referrer: 'api.performance.resource.resource-landing',
       }),
     ],
     body: {
