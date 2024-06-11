@@ -214,8 +214,8 @@ class RegressionDetector(ABC):
             request = {
                 "data": data,
                 "sort": "-trend_percentage()",
-                "min_change()": cls.min_change,
-                # "trend_percentage()": 0.5,  # require a minimum 50% increase
+                "min_change": cls.min_change,
+                # "trend_percentage": 0.5,  # require a minimum 50% increase
                 # "validate_tail_hours": 6,
                 # Disable the fall back to use the midpoint as the breakpoint
                 # which was originally intended to detect a gradual regression
