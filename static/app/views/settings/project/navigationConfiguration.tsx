@@ -1,3 +1,4 @@
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -142,6 +143,7 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/remote-config/`,
+          badge: () => <FeatureBadge type="experimental" />,
           title: t('Remote Config'),
           description: t("View and manage the project's Remote Configuration"),
           show: organization?.features.includes('remote-config'),
