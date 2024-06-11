@@ -65,6 +65,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "weeklyAvg",
         "totalThisWeek",
         "latestIncident",
+        "description",
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
