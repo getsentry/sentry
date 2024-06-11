@@ -377,7 +377,6 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
     batch = message.payload
 
     occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
-    status_change_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)
@@ -391,18 +390,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
         # group by the fingerprint, there should only be one of them
         partition_key: str = payload["fingerprint"][0] if payload["fingerprint"] else ""
 
-        payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
-        match payload_type:
-            case PayloadType.STATUS_CHANGE.value:
-                status_change_mapping[partition_key].append(payload)
-            case PayloadType.OCCURRENCE.value:
-                occcurrence_mapping[partition_key].append(payload)
-            case _:
-                metrics.incr(
-                    "occurrence_consumer._process_batch.dropped_invalid_payload_type",
-                    sample_rate=1.0,
-                    tags={"payload_type": payload_type},
-                )
+        occcurrence_mapping[partition_key].append(payload)
 
     # Number of occurrences that are being processed in this batch
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_count", len(batch))
@@ -411,16 +399,10 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
     # Submit occurrences & status changes for processing
     with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
-        occurrence_futures = [
+        futures = [
             worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
         ]
-        status_change_futures = [
-            worker.submit(process_occurrence_group, group[-1])
-            for group in status_change_mapping.values()
-        ]
-
-        wait(occurrence_futures)
-        wait(status_change_futures)
+        wait(futures)
 
 
 def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
@@ -428,6 +410,16 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     Process a group of related occurrences (all part of the same group)
     completely serially.
     """
+
+    status_changes = [
+        item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
+    ]
+
+    if len(status_changes) > 1:
+        items = [
+            item for item in items if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
+        ] + status_changes[-1]
+
     for item in items:
         cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"
         if cache.get(cache_key):
