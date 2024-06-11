@@ -731,7 +731,7 @@ def chained_exception(
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, dict[str, GroupingComponent]],
+    exception_components: dict[int, ReturnedVariants],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
@@ -888,8 +888,9 @@ def _filtered_threads(
 
     rv = {}
 
-    variants = context.get_grouping_component(stacktrace, event=event, **meta)
-    for name, stacktrace_component in variants.items():
+    for name, stacktrace_component in context.get_grouping_component(
+        stacktrace, event=event, **meta
+    ).items():
         rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
 
     return rv
