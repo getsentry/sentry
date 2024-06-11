@@ -824,10 +824,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
     @with_feature("organizations:slack-metric-alert-description")
     def test_description_in_notification(self):
-        alert_rule = self.create_alert_rule()
+        alert_rule = self.create_alert_rule(description="yeehaw")
         incident = self.create_incident(alert_rule=alert_rule, status=2)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        # TODO pass description after rebase
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
@@ -861,7 +860,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
                     "type": "section",
                     "text": {
                         "type": "mrkdwn",
-                        "text": f"*Notes*: {action.target_identifier}",
+                        "text": f"*Notes*: {alert_rule.description}",
                     },
                 },
             ],

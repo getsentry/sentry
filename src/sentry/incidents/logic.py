@@ -513,6 +513,7 @@ def create_alert_rule(
     comparison_delta: int | None = None,
     monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
+    description: str | None = None,
     **kwargs,
 ):
     """
@@ -579,6 +580,7 @@ def create_alert_rule(
             comparison_delta=comparison_delta,
             owner=owner,
             monitor_type=monitor_type.value,
+            description=description,
         )
 
         if user:
