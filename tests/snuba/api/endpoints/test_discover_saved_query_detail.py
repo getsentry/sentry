@@ -476,6 +476,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
 
     def test_visit_query(self):
         last_visited = self.query.last_visited
+        assert last_visited is not None
         assert self.query.visits == 1
 
         with self.feature("organizations:discover-query"):
@@ -485,6 +486,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
 
         query = DiscoverSavedQuery.objects.get(id=self.query.id)
         assert query.visits == 2
+        assert query.last_visited is not None
         assert query.last_visited > last_visited
 
     def test_visit_query_no_access(self):

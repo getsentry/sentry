@@ -24,7 +24,7 @@ class TestPreparerIssueLink(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
-            ).project_set.first()
+            ).project_set.get()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
@@ -111,7 +111,7 @@ class TestPreparerStacktraceLink(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
-            ).project_set.first()
+            ).project_set.get()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug

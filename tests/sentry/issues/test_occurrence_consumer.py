@@ -186,7 +186,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.LOW
 
     @with_feature("projects:issue-priority")
@@ -204,7 +204,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         occurrence = result[0]
         assert occurrence is not None
         assert mock_get_severity_score.call_count == 0
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
 
@@ -215,7 +215,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assignee = GroupAssignee.objects.get(group=group)
         assert assignee.user_id == self.user.id
 
@@ -226,7 +226,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assignee = GroupAssignee.objects.get(group=group)
         assert assignee.team_id == self.team.id
 
@@ -238,7 +238,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         with pytest.raises(GroupAssignee.DoesNotExist):
             GroupAssignee.objects.get(group=group)
 
