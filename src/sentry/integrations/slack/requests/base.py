@@ -117,7 +117,7 @@ class SlackRequest:
                 integration_id=context.integration.id, status=0
             )
             if org_integrations:
-                self._organization = organization_service.get_org_by_id(
+                self._organization = organization_service.get(
                     id=org_integrations[0].organization_id
                 )
 

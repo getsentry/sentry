@@ -71,7 +71,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);
-  const {hasAccess} = useAccess({access: ['project:write']});
+  const {hasAccess} = useAccess({access: ['project:write'], project});
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');

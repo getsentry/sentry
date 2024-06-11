@@ -98,8 +98,8 @@ function processTokenResults(tokens: TokenResult<Token>[]): ProcessedTokenResult
   return withImplicitAnd;
 }
 
-function isBooleanOR(token: ProcessedTokenResult): boolean {
-  return token?.type === Token.LOGIC_BOOLEAN && token?.value === BooleanOperator.OR;
+function isBooleanAND(token: ProcessedTokenResult): boolean {
+  return token?.type === Token.LOGIC_BOOLEAN && token?.value === BooleanOperator.AND;
 }
 
 // https://en.wikipedia.org/wiki/Shunting_yard_algorithm
@@ -113,13 +113,14 @@ export function toPostFix(tokens: TokenResult<Token>[]): ProcessedTokenResult[] 
     switch (token.type) {
       case Token.LOGIC_BOOLEAN: {
         while (
-          // Establishes higher precedence for OR operators.
-          // Whenever the current stack top operator is an OR,
+          // Establishes higher precedence for AND operators.
+          // Whenever the current operator is an OR and the top of the stack is an AND,
+          // we need to pop the AND operator from the stack and push it to the output.
           stack.length > 0 &&
-          token.value === BooleanOperator.AND &&
+          token.value === BooleanOperator.OR &&
           stack[stack.length - 1].type === Token.LOGIC_BOOLEAN &&
           stack[stack.length - 1].type !== 'L_PAREN' &&
-          isBooleanOR(stack[stack.length - 1])
+          isBooleanAND(stack[stack.length - 1])
         ) {
           result.push(stack.pop()!);
         }

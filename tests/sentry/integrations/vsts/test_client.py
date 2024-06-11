@@ -45,7 +45,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         # Make a request with expired token
         integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         ).get_client(base_url=self.vsts_base_url).get_projects()
 
         # Second to last request, before the Projects request, was to refresh
@@ -92,7 +92,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         # Make a request
 
         integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         ).get_client(base_url=self.vsts_base_url).get_projects()
         assert len(responses.calls) == 1
         assert (
@@ -126,7 +126,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         projects = (
             integration.get_installation(
-                integration.organizationintegration_set.first().organization_id
+                integration.organizationintegration_set.get().organization_id
             )
             .get_client(base_url=self.vsts_base_url)
             .get_projects()
@@ -159,7 +159,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             )
 
         client = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         ).get_client(base_url=self.vsts_base_url)
 
         responses.calls.reset()
@@ -216,7 +216,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             )
 
         client = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         ).get_client(base_url=self.vsts_base_url)
 
         path = "src/sentry/integrations/vsts/client.py"
@@ -251,7 +251,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             )
 
         client = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         ).get_client(base_url=self.vsts_base_url)
 
         path = "src/sentry/integrations/vsts/client.py"
@@ -268,7 +268,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         self.assert_installation()
         integration = Integration.objects.get(provider="vsts")
         installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
+            integration.organizationintegration_set.get().organization_id
         )
         with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(

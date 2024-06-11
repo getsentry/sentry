@@ -14,6 +14,7 @@ import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -118,7 +119,10 @@ function BreadcrumbItem({
                   (frame.data.mutations.next?.timestamp ?? 0) -
                   (replay?.getReplay().started_at.getTime() ?? 0)
                 }
-              />
+                size="xs"
+              >
+                {t('Open Hydration Diff')}
+              </OpenReplayComparisonButton>
             </div>
           ) : null}
 

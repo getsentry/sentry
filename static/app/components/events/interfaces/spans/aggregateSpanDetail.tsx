@@ -4,11 +4,12 @@ import type {Location} from 'history';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {AggregateEventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {
   QuickTraceEvent,
   TraceErrorOrIssue,

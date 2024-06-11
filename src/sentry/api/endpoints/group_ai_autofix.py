@@ -19,6 +19,7 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.group import Group
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
@@ -207,5 +208,17 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
     def get(self, request: Request, group: Group) -> Response:
         autofix_state = self._call_get_autofix_state(group.id)
+
+        if autofix_state:
+            user_ids = autofix_state.get("actor_ids", [])
+            if user_ids:
+                users = user_service.serialize_many(
+                    filter={"user_ids": user_ids, "organization_id": request.organization.id},
+                    as_user=request.user,
+                )
+
+                users_map = {user["id"]: user for user in users}
+
+                autofix_state["users"] = users_map
 
         return Response({"autofix": autofix_state})

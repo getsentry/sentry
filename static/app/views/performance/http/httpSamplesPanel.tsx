@@ -321,26 +321,24 @@ export function HTTPSamplesPanel() {
                   tooltip={project.slug}
                 />
               )}
-              <TitleContainer>
-                <Title>
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                        {
-                          project: query.project,
-                          transaction: query.transaction,
-                        }
-                      )}`
-                    )}
-                  >
-                    {query.transaction &&
-                    query.transactionMethod &&
-                    !query.transaction.startsWith(query.transactionMethod)
-                      ? `${query.transactionMethod} ${query.transaction}`
-                      : query.transaction}
-                  </Link>
-                </Title>
-              </TitleContainer>
+              <Title>
+                <Link
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                      {
+                        project: query.project,
+                        transaction: query.transaction,
+                      }
+                    )}`
+                  )}
+                >
+                  {query.transaction &&
+                  query.transactionMethod &&
+                  !query.transaction.startsWith(query.transactionMethod)
+                    ? `${query.transactionMethod} ${query.transaction}`
+                    : query.transaction}
+                </Link>
+              </Title>
             </HeaderContainer>
           </ModuleLayout.Full>
 
@@ -606,26 +604,23 @@ const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
   },
 ];
 
+// TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx
 const HeaderContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const MetricsRibbon = styled('div')`

@@ -20,14 +20,14 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
   ExampleTransaction,
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
 import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type TableColumnKeys =

@@ -469,8 +469,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 status=ObjectStatus.DISABLED
             )
 
-        rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([rule]))
+        grammar_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        ProjectOwnership.objects.create(
+            project_id=self.project.id, schema=dump_schema([grammar_rule])
+        )
 
         event = self.store_event(
             data={

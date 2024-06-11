@@ -16,7 +16,7 @@ export default function ChartPanel({title, children, button, subtitle}: Props) {
     <PanelWithNoPadding>
       <PanelBody>
         {title && (
-          <Header>
+          <Header data-test-id="chart-panel-header">
             {title && (
               <ChartLabel>
                 {typeof title === 'string' ? (

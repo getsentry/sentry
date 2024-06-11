@@ -26,8 +26,9 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {DeviceClassSelector} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
 import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 type Props = {
   columnNameMap: Record<string, string>;
@@ -180,7 +181,9 @@ export function EventSamplesTable({
     <Fragment>
       {!footerAlignedPagination && (
         <Header>
-          {showDeviceClassSelector && <DeviceClassSelector />}
+          {showDeviceClassSelector && (
+            <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+          )}
 
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
         </Header>

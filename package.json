@@ -68,7 +68,7 @@
     "@tanstack/react-query": "^4.29.7",
     "@tanstack/react-query-devtools": "^4.36.1",
     "@types/color": "^3.0.3",
-    "@types/diff": "5.0.2",
+    "@types/diff": "5.2.1",
     "@types/dompurify": "^3.0.5",
     "@types/invariant": "^2.2.35",
     "@types/jest": "29.5.12",
@@ -106,7 +106,7 @@
     "cronstrue": "^2.50.0",
     "css-loader": "^7.1.1",
     "css-minimizer-webpack-plugin": "^6.0.0",
-    "diff": "5.1.0",
+    "diff": "5.2.0",
     "dompurify": "^3.1.5",
     "downsample": "1.4.0",
     "echarts": "5.4.0",
@@ -261,7 +261,9 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": ["current node"]
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "extends": ".volta.json"

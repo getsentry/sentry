@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 interface Props extends React.HTMLAttributes<HTMLSpanElement> {
   value: number;

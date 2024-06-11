@@ -47,7 +47,6 @@ type Props = {
   transactionName: string;
   onClose?: () => void;
   referrer?: string;
-  spanDescription?: string;
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -57,7 +56,6 @@ export function SampleList({
   moduleName,
   transactionName,
   transactionMethod,
-  spanDescription,
   onClose,
   transactionRoute = '/performance/summary/',
   referrer,
@@ -193,12 +191,9 @@ export function SampleList({
               tooltip={project.slug}
             />
           )}
-          <TitleContainer>
-            {spanDescription && <SpanDescription>{spanDescription}</SpanDescription>}
-            <Title>
-              <Link to={link}>{label}</Link>
-            </Title>
-          </TitleContainer>
+          <Title>
+            <Link to={link}>{label}</Link>
+          </Title>
         </HeaderContainer>
         <PageAlert />
 
@@ -275,31 +270,19 @@ const HeaderContainer = styled('div')`
 
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
-`;
-
-const SpanDescription = styled('div')`
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 35vw;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`

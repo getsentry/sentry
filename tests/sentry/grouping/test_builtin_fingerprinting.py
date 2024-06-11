@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -461,7 +464,7 @@ class BuiltInFingerprintingTest(TestCase):
     def setUp(self):
         super().setUp()
         self.project = self.create_project()
-        self.chunkload_error_trace = {
+        self.chunkload_error_trace: dict[str, Any] = {
             "fingerprint": ["my-route", "{{ default }}"],
             "exception": {
                 "values": [
@@ -486,7 +489,7 @@ class BuiltInFingerprintingTest(TestCase):
             "platform": "javascript",
             "sdk": {"name": "sentry.javascript.nextjs", "version": "1.2.3"},
         }
-        self.hydration_error_trace = {
+        self.hydration_error_trace: dict[str, Any] = {
             "fingerprint": ["my-route", "{{ default }}"],
             "message": "Text content does not match server-rendered HTML.",
             "platform": "javascript",
@@ -543,7 +546,7 @@ class BuiltInFingerprintingTest(TestCase):
         """
         ChunkLoadError rule based on value should apply even if error is not ChunkLoadError type.
         """
-        self.chunkload_error_trace["exception"]["values"][0]["type"] = "chunky"  # type: ignore[index]
+        self.chunkload_error_trace["exception"]["values"][0]["type"] = "chunky"
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
         assert event.data["fingerprint"] == ["chunkloaderror"]
@@ -558,7 +561,7 @@ class BuiltInFingerprintingTest(TestCase):
         """
         Built-in ChunkLoadError rule should also apply event if SDK is not sentry.javascript.nextjs.
         """
-        self.chunkload_error_trace["sdk"]["name"] = "sentry.javascript.react"  # type: ignore[index]
+        self.chunkload_error_trace["sdk"]["name"] = "sentry.javascript.react"
 
         event = self._get_event_for_trace(stacktrace=self.chunkload_error_trace)
 
@@ -618,7 +621,7 @@ class BuiltInFingerprintingTest(TestCase):
             data=self.hydration_error_trace, project_id=self.project
         )
         data_transaction_text = self.hydration_error_trace.copy()
-        data_transaction_text["tags"]["transaction"] = "/text/"  # type: ignore[index]
+        data_transaction_text["tags"]["transaction"] = "/text/"
         event_transaction_text = self.store_event(
             data=data_transaction_text, project_id=self.project
         )
@@ -661,7 +664,7 @@ class BuiltInFingerprintingTest(TestCase):
         """
 
         data_transaction_no_tx = self.hydration_error_trace
-        del data_transaction_no_tx["tags"]["transaction"]  # type: ignore[attr-defined]
+        del data_transaction_no_tx["tags"]["transaction"]
         event_transaction_no_tx = self.store_event(
             data=data_transaction_no_tx, project_id=self.project
         )
