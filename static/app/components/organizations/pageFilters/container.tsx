@@ -186,7 +186,7 @@ function PageFiltersContainer({
   }, [location.query]);
 
   // Wait for global selection to be ready before rendering children
-  // TODO: Not waiting for projects to be readly but initalizing the correct page filters
+  // TODO: Not waiting for projects to be ready but initializing the correct page filters
   // would speed up orgs with tons of projects
   if (!isReady) {
     return (
