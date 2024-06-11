@@ -3381,7 +3381,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-notes",
     "sentry-api-0-group-note-details",
     "sentry-api-0-group-hashes",
-    "sentry-api-0-group-hashes-split",
     "sentry-api-0-group-reprocessing",
     "sentry-api-0-group-stats",
     "sentry-api-0-group-tags",
