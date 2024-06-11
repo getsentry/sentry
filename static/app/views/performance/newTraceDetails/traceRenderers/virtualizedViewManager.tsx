@@ -1303,7 +1303,6 @@ export class VirtualizedViewManager {
     return [0, right_outside];
   }
 
-  last_indicator_width = 0;
   draw(options: {list?: number; span_list?: number} = {}) {
     const list_width = options.list ?? this.columns.list.width;
     const span_list_width = options.span_list ?? this.columns.span_list.width;
@@ -1429,8 +1428,6 @@ export class VirtualizedViewManager {
       entry.ref.style.opacity = '1';
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
-
-    this.updateIndicatorContainerOffset();
     this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
@@ -1513,19 +1510,6 @@ export class VirtualizedViewManager {
     const placement = this.computeTransformXFromTimestamp(indicator.timestamp);
     indicator.ref.style.opacity = '1';
     indicator.ref.style.transform = `translateX(${placement}px)`;
-  }
-
-  updateIndicatorContainerOffset() {
-    if (!this.indicator_container) {
-      return;
-    }
-
-    const correction =
-      (this.scrollbar_width / this.container_physical_space.width) *
-      this.columns.span_list.width;
-    this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
-    this.indicator_container.style.width =
-      (this.columns.span_list.width - correction) * 100 + '%';
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
@@ -1612,6 +1596,7 @@ export class VirtualizedViewManager {
       );
       this.last_list_column_width = options.list_width;
     }
+
     if (this.last_span_column_width !== options.span_list_width) {
       container.style.setProperty(
         '--span-column-width',
@@ -1627,11 +1612,7 @@ export class VirtualizedViewManager {
         options.span_list_width;
       this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
       const new_indicator_container_width = options.span_list_width - correction;
-
-      if (this.last_indicator_width !== new_indicator_container_width) {
-        this.indicator_container.style.width = new_indicator_container_width * 100 + '%';
-        this.last_indicator_width = new_indicator_container_width;
-      }
+      this.indicator_container.style.width = new_indicator_container_width * 100 + '%';
     }
 
     const dividerPosition =
