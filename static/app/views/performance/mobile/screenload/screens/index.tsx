@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -38,7 +39,7 @@ import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 export enum YAxis {
@@ -355,6 +356,11 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
       <StyledSearchBar
         eventView={tableEventView}
         onSearch={search => {
+          trackAnalytics('insight.general.search', {
+            organization,
+            query: search,
+            source: ModuleName.SCREEN_LOAD,
+          });
           router.push({
             pathname: router.location.pathname,
             query: {
