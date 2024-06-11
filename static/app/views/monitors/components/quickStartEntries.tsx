@@ -152,7 +152,7 @@ export function PHPCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 
   const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
-$checkInId = \Sentry\captureCheckIn(
+$checkInId = \\Sentry\\captureCheckIn(
     slug: '${slug}',
     status: CheckInStatus::inProgress()
 );
@@ -160,14 +160,14 @@ $checkInId = \Sentry\captureCheckIn(
 // Execute your scheduled task here...
 
 // 🟢 Notify Sentry your job has completed successfully:
-\Sentry\captureCheckIn(
+\\Sentry\\captureCheckIn(
     slug: '${slug}',
     status: CheckInStatus::ok(),
     checkInId: $checkInId,
 );`;
 
   const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
-\Sentry\captureCheckIn(
+\\Sentry\\captureCheckIn(
     slug: '${slug}',
     status: CheckInStatus::error()
     checkInId: $checkInId,
