@@ -20,7 +20,7 @@ def _send_message_to_slack_channel(
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
-    has_sdk_flag: bool,
+    has_sdk_flag: bool | None = False,
 ) -> None:
     if has_sdk_flag:
         sdk_client = SlackSdkClient(integration_id=integration_id)

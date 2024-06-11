@@ -319,3 +319,40 @@ class SlackTasksTest(TestCase):
             )
         data = parse_qs(responses.calls[0].request.body)
         assert data == {"key": ["val"]}
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @responses.activate
+    def test_post_message_success_sdk(self, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        with self.tasks():
+            post_message.apply_async(
+                kwargs={
+                    "integration_id": self.integration.id,
+                    "payload": {"key": ["val"]},
+                    "log_error_message": "my_message",
+                    "log_params": {"log_key": "log_value"},
+                    "has_sdk_flag": True,
+                }
+            )
+        data = parse_qs(responses.calls[0].request.body)
+        assert data == {"key": ["val"]}
+
+    @responses.activate
+    def test_post_message_failure_sdk(self):
+        with self.tasks():
+            post_message.apply_async(
+                kwargs={
+                    "integration_id": self.integration.id,
+                    "payload": {"key": ["val"]},
+                    "log_error_message": "my_message",
+                    "log_params": {"log_key": "log_value"},
+                    "has_sdk_flag": True,
+                }
+            )
+        data = parse_qs(responses.calls[0].request.body)
+        assert data == {"key": ["val"]}
