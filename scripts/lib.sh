@@ -34,6 +34,21 @@ require() {
     command -v "$1" >/dev/null 2>&1
 }
 
+configure-sentry-cli() {
+    if [ -f "${venv_name}/bin/sentry-cli" ]; then
+        return 0
+    elif [ -f "${venv_name}/bin/pip" ]; then
+        pip-install sentry-cli
+    else
+        cat <<EOF
+${red}${bold}
+ERROR: sentry-cli could not be installed, please run "devenv sync".
+${reset}
+EOF
+        return 1
+    fi
+}
+
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
