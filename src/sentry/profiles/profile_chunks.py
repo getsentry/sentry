@@ -19,8 +19,8 @@ def get_chunk_ids(
             Column("chunk_id"),
         ],
         where=[
-            Condition(Column("start_timestamp"), Op.GTE, params.get("start")),
-            Condition(Column("end_timestamp"), Op.LT, params.get("end")),
+            Condition(Column("end_timestamp"), Op.GTE, params.get("start")),
+            Condition(Column("start_timestamp"), Op.LT, params.get("end")),
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("profiler_id"), Op.EQ, profiler_id),
         ],
