@@ -10,6 +10,7 @@ import {
   updateProjects,
 } from 'sentry/actionCreators/pageFilters';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/components/sidebar/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -119,6 +120,7 @@ function PageFiltersContainer({
   // This happens when we mount the container.
   useEffect(() => {
     if (!projectsLoaded) {
+      // doInitialization();
       return;
     }
 
@@ -185,8 +187,14 @@ function PageFiltersContainer({
   }, [location.query]);
 
   // Wait for global selection to be ready before rendering children
+  // TODO: Not waiting for projects to be readly but initalizing the correct page filters
+  // would speed up orgs with tons of projects
   if (!isReady) {
-    return <Layout.Page withPadding />;
+    return (
+      <Layout.Page withPadding>
+        <LoadingIndicator />
+      </Layout.Page>
+    );
   }
 
   return <Fragment>{children}</Fragment>;
