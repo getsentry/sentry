@@ -3072,15 +3072,21 @@ SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 # This value is already adjusted according to the
 # `symbolicate-event.low-priority.metrics.submission-rate` option.
 SENTRY_LPQ_OPTIONS = {
-    # This is the per-project budget in per-second "symbolication time budget".
+    # These are the per-project budget in per-second "symbolication time budget".
+    # There is one budget for each of the symbolication platforms: native, js, and jvm.
+    # The "project_budget" value exists for backward compatibility.
     #
-    # This has been arbitrarily chosen as `5.0` for now, which means an average of:
+    # This has been arbitrarily chosen as `5.0` for native and js, which means an average of:
     # -  1x 5-second event per second, or
     # -  5x 1-second events per second, or
     # - 10x 0.5-second events per second
     #
+    # For jvm events we use a higher budget of `7.5`.
     # Cost increases quadratically with symbolication time.
-    "project_budget": 5.0
+    "project_budget": 5.0,
+    "project_budget_native": 5.0,
+    "project_budget_js": 5.0,
+    "project_budget_jvm": 7.5,
 }
 
 # XXX(meredith): Temporary metrics indexer

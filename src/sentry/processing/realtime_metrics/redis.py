@@ -128,7 +128,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         # the counts in redis are in ms resolution.
         average_used = total_sum / total_time_window / 1000
-        budget = settings.SENTRY_LPQ_OPTIONS["project_budget"]
+        budget = (
+            settings.SENTRY_LPQ_OPTIONS.get(f"project_budget_{platform.value}")
+            or settings.SENTRY_LPQ_OPTIONS["project_budget"]
+        )
         new_is_lpq = average_used > budget
 
         if new_is_lpq:
