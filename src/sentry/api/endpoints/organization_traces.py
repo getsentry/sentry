@@ -1228,6 +1228,9 @@ class TraceStatsExecutor:
         elif len(trace_conditions) > 1:
             query.where.append(BooleanCondition(op=BooleanOp.OR, conditions=trace_conditions))
 
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
+
         return query
 
 
