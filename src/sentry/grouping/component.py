@@ -45,7 +45,7 @@ class GroupingComponent:
         self,
         id: str,
         hint: str | None = None,
-        contributes: bool | None = False,
+        contributes: bool | None = None,
         values: Sequence[str | GroupingComponent] | None = None,
         variant_provider: bool = False,
         tree_label: str | None = None,
