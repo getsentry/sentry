@@ -21,8 +21,8 @@ type Props = {
   project: Project;
 };
 
-// This section provides users with resources and maybe solutions on how to resolve an issue
-export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
+// This section provides users with resources and possible solutions on how to resolve an issue
+export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
 
@@ -50,8 +50,8 @@ export function ResourcesAndMaybeSolutions({event, project, group}: Props) {
 
   return (
     <Wrapper
-      type="resources-and-maybe-solutions"
-      title={t('Resources and Maybe Solutions')}
+      type="resources-and-possible-solutions"
+      title={t('Resources and Possible Solutions')}
       configResources={!!config.resources}
     >
       <Content>
