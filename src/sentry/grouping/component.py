@@ -56,10 +56,10 @@ class GroupingComponent:
 
         # Default values
         self.hint = DEFAULT_HINTS.get(id)
-        self.contributes = None
+        self.contributes: bool | None = None
         self.variant_provider = variant_provider
-        self.values = []
-        self.tree_label = None
+        self.values: Sequence[str | GroupingComponent] = []
+        self.tree_label: str | None = None
         self.is_prefix_frame = False
         self.is_sentinel_frame = False
 
