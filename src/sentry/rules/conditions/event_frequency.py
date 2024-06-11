@@ -62,7 +62,7 @@ class EventFrequencyConditionData(GenericCondition):
     """
 
     # Either the count or percentage.
-    value: int
+    value: int | float
     # The interval to compare the value against such as 5m, 1h, 3w, etc.
     # e.g. # of issues is more than {value} in {interval}.
     interval: str
