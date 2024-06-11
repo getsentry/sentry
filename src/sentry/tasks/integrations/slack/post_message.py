@@ -56,7 +56,7 @@ def post_message(
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
-    has_sdk_flag: bool,
+    has_sdk_flag: bool | None = False,
 ) -> None:
     _send_message_to_slack_channel(
         integration_id=integration_id,
