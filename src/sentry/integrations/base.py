@@ -470,13 +470,13 @@ class IntegrationInstallation:
         pass
 
 
-def is_response_success(resp) -> bool:
+def is_response_success(resp: Any) -> bool:
     if resp.status_code and resp.status_code < 300:
         return True
     return False
 
 
-def is_response_error(resp) -> bool:
+def is_response_error(resp: Any) -> bool:
     if not resp.status_code:
         return False
     return resp.status_code >= 400 and resp.status_code != 429 and resp.status_code < 500
