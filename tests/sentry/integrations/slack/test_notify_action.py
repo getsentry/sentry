@@ -82,7 +82,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and notes fix this @colleen in notification"
+            == 'Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] and notes "fix this @colleen" in notification'
         )
 
     def test_render_label_without_integration(self):
@@ -99,10 +99,7 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
         label = rule.render_label()
-        assert (
-            label
-            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] and notes  in notification"
-        )
+        assert label == "Send a notification to the [removed] Slack workspace to #my-channel"
 
     @responses.activate
     def test_valid_bot_channel_selected(self):
