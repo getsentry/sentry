@@ -58,6 +58,10 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     return True
 
 
+# TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
+# combined with some other value). To the extent to which we're then using this function to decide
+# whether or not to call Seer, this means that the calculations giving rise to the default part of
+# the value never involve Seer input. In the long run, we probably want to change that.
 def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) -> bool:
     fingerprint = event.data.get("fingerprint", [])
 
@@ -65,6 +69,10 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
         # No custom fingerprinting at all
         if len(fingerprint) == 1:
             return False
+
+        # Hybrid fingerprinting ({{ default }} + some other value(s))
+        else:
+            return True
 
     # Fully customized fingerprint (from either us or the user)
     fingerprint_variant = primary_hashes.variants.get(
