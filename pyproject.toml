@@ -249,7 +249,6 @@ module = [
     "sentry.grouping.fingerprinting",
     "sentry.grouping.strategies.hierarchical",
     "sentry.grouping.strategies.legacy",
-    "sentry.grouping.strategies.newstyle",
     "sentry.identity.bitbucket.provider",
     "sentry.identity.github_enterprise.provider",
     "sentry.identity.gitlab.provider",

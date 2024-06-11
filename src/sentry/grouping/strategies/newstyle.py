@@ -523,13 +523,14 @@ def _single_stacktrace_variant(
 
     frames = stacktrace.frames
 
-    values: list[GroupingComponent] = []
+    values = []
     prev_frame = None
     frames_for_filtering = []
     for frame in frames:
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
-            frame_component = context.get_grouping_component(frame, event=event, **meta)
+            frame_component = context.get_single_grouping_component(frame, event=event, **meta)
+
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
@@ -728,7 +729,7 @@ def chained_exception(
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, GroupingComponent],
+    exception_components: dict[int, ReturnedVariants],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
@@ -791,11 +792,12 @@ def filter_exceptions_for_exception_groups(
             yield from get_first_path(children[0])
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
-    top_level_exceptions = sorted(
-        get_top_level_exceptions(exception_tree[0].exception),
-        key=lambda exception: str(exception.type),
-        reverse=True,
-    )
+    if exception_tree[0].exception:
+        top_level_exceptions = sorted(
+            get_top_level_exceptions(exception_tree[0].exception),
+            key=lambda exception: str(exception.type),
+            reverse=True,
+        )
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [
@@ -823,7 +825,8 @@ def filter_exceptions_for_exception_groups(
     # one of each top-level exception that is _not_ the root is overly complicated.
     # Also, it's more likely the stack trace of the root exception will be more meaningful
     # than one of an inner exception group.
-    distinct_top_level_exceptions.append(exception_tree[0].exception)
+    if exception_tree[0].exception:
+        distinct_top_level_exceptions.append(exception_tree[0].exception)
     return distinct_top_level_exceptions
 
 
