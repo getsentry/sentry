@@ -241,18 +241,22 @@ const feedbackOnboarding: OnboardingConfig = {
         },
       ],
       additionalInfo: (
-        <Fragment>
-          {tct(
-            'Alert: The User Feedback integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
-            {
-              sentryClient: <code />,
-              instrumentation: <code />,
-            }
-          )}
-          {crashReportCallout({
-            link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#crash-report-modal',
-          })}
-        </Fragment>
+        <AdditionalInfoWrapper>
+          <div>
+            {tct(
+              'Alert: The User Feedback integration must be added to your [sentryClient:sentry.client.config.js] file. Adding it to any server-side configuration files (like [instrumentation:instrumentation.ts]) will break your build because the Replay integration depends on Browser APIs.',
+              {
+                sentryClient: <code />,
+                instrumentation: <code />,
+              }
+            )}
+          </div>
+          <div>
+            {crashReportCallout({
+              link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/user-feedback/#crash-report-modal',
+            })}
+          </div>
+        </AdditionalInfoWrapper>
       ),
     },
   ],
@@ -297,4 +301,10 @@ const DSNText = styled('div')`
 const ManualSetupTitle = styled('p')`
   font-size: ${p => p.theme.fontSizeLarge};
   font-weight: ${p => p.theme.fontWeightBold};
+`;
+
+const AdditionalInfoWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(2)};
 `;
