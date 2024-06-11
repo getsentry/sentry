@@ -466,7 +466,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.get_stacktrace_string")
     def test_no_stacktrace_string(self, mock_get_stacktrace_string):
-        mock_get_stacktrace_string.return_value = None
+        mock_get_stacktrace_string.return_value = ""
 
         response = self.client.get(
             f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
