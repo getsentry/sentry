@@ -687,18 +687,16 @@ def single_exception(
 
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
-    interface: ChainedException, event: Event, context: GroupingContext, **meta: dict[str, Any]
-) -> GroupingComponent | ReturnedVariants:
+    interface: ChainedException, event: Event, context: GroupingContext, **meta: Any
+) -> ReturnedVariants:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
     # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
-    exception_components: dict[int, GroupingComponent | ReturnedVariants] = {
+    exception_components = {
         id(exception): context.get_grouping_component(exception, event=event, **meta)
         for exception in all_exceptions
     }
-    # error: Parameterized generics cannot be used with class or instance checks  [misc]
-    assert isinstance(exception_components, dict[int, GroupingComponent])  # type: ignore[misc]
 
     # Filter the exceptions according to rules for handling exception groups.
     try:
@@ -737,7 +735,7 @@ def chained_exception(
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, ReturnedVariants],
+    exception_components: dict[int, GroupingComponent | dict[str, GroupingComponent]],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
