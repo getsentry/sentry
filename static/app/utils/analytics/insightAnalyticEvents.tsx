@@ -61,7 +61,7 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
   'insight.general.search': 'Insights: search in modules',
   'insight.general.select_action_value': 'Insights: select actionSelector dropdown value',
   'insight.general.select_domain_value': 'Insights: select domainSelector dropdown value',
-  'insight.general.table_paginate': 'Insights: paginate',
+  'insight.general.table_paginate': 'Insights: paginate table',
   'insight.general.table_sort': 'Insights: sort table',
   'insight.screen_load.spans.filter_by_device_class':
     'Insights: Screen Loads - filter device class',
