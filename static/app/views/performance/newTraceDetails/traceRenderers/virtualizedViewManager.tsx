@@ -808,6 +808,7 @@ export class VirtualizedViewManager {
       this.timers.onFovChange = null;
     }, 500);
   }
+
   onNewMaxRowWidth(max) {
     this.syncHorizontalScrollbar(max);
   }
@@ -1125,6 +1126,7 @@ export class VirtualizedViewManager {
       }
       return;
     }
+
     const tracePhysicalToView = this.trace_physical_space.between(this.trace_view);
     const time_at_100 =
       tracePhysicalToView[0] * (100 * window.devicePixelRatio) +
@@ -1141,6 +1143,12 @@ export class VirtualizedViewManager {
   computeSpanCSSMatrixTransform(
     space: [number, number]
   ): [number, number, number, number, number, number] {
+    if (this.trace_space.width === 0) {
+      this.span_matrix[0] = this.trace_physical_space.width;
+      this.span_matrix[4] = 0;
+      return this.span_matrix;
+    }
+
     const spaceToView = this.trace_space.width / this.trace_view.width;
     const viewToPhysical = this.trace_physical_space.width / this.trace_space.width;
     const spaceToPhysical = spaceToView * viewToPhysical;
@@ -1467,7 +1475,7 @@ export class VirtualizedViewManager {
   drawSpanBar(span_bar: this['span_bars'][0]) {
     if (!span_bar) return;
 
-    const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
+    const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
     const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
     span_bar.ref.style.setProperty(
