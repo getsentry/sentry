@@ -71,7 +71,6 @@ class CamelSnakeModelSerializer(ModelSerializer):
     def __init__(self, instance=None, data=empty, **kwargs):
         if data is not empty:
             data = convert_dict_key_case(data, camel_to_snake_case)
-
         super().__init__(instance=instance, data=data, **kwargs)
 
     @property
