@@ -8,7 +8,7 @@ import type {Organization, Project} from 'sentry/types';
 import type {AggregateEventTransaction} from 'sentry/types/event';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {
   QuickTraceEvent,
   TraceErrorOrIssue,

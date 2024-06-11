@@ -25,7 +25,7 @@ export default function SpanSummaryHeader(props: Props) {
       <HeaderInfo data-test-id="header-operation-name">
         <StyledSectionHeading>{t('Span')}</StyledSectionHeading>
         <SectionBody>
-          <SpanLabelContainer>
+          <SpanLabelContainer data-test-id="header-span-description">
             {spanDescription ? spanDescription : emptyValue}
           </SpanLabelContainer>
         </SectionBody>
@@ -43,7 +43,7 @@ export default function SpanSummaryHeader(props: Props) {
         </NumericSectionWrapper>
       </HeaderInfo>
 
-      <HeaderInfo data-test-id="header-total-exclusive-time">
+      <HeaderInfo data-test-id="header-total-time-spent">
         <StyledSectionHeading>{DataTitles.timeSpent}</StyledSectionHeading>
         <NumericSectionWrapper>
           <SectionBody>
@@ -53,7 +53,7 @@ export default function SpanSummaryHeader(props: Props) {
               '\u2014'
             )}
           </SectionBody>
-          <SectionSubtext>
+          <SectionSubtext data-test-id="total-span-count">
             {defined(spanCount)
               ? tct('[spanCount] spans', {spanCount: <Count value={spanCount} />})
               : '\u2014'}
@@ -107,4 +107,4 @@ const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const emptyValue = <EmptyValueContainer>{t('(unnamed span)')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>;

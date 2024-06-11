@@ -242,3 +242,41 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
             == "The specified metric was not found: c:custom/sentry_metric@none"
         )
         assert response.status_code == 404
+
+    def test_metric_without_tags_does_not_cause_issues(self):
+        mri = TransactionMRI.SPAN_DURATION.value
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "distribution",
+            mri,
+            {"transaction": "/hello", "release": "1.0", "environment": "prod"},
+            int(self.now().timestamp()),
+            10,
+            UseCaseID.SPANS,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+        )
+        assert len(response.data) == 4
+
+        self.store_metric(
+            self.project.organization.id,
+            self.project.id,
+            "distribution",
+            mri,
+            {},
+            int(self.now().timestamp()),
+            10,
+            UseCaseID.SPANS,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            metric=[mri],
+            project=self.project.id,
+        )
+        assert len(response.data) == 4

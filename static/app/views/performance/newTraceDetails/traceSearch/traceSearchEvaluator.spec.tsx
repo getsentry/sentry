@@ -141,9 +141,7 @@ describe('TraceSearchEvaluator', () => {
     ]);
 
     const cb = jest.fn();
-    // @TODO check if this makes sense with some users. We might only want to do this only if we have a set of parens.
     search(
-      // (transaction.op:operation OR transaction.op:other) AND transaction:something
       'transaction.op:operation AND transaction:something OR transaction.op:other',
       tree,
       cb
@@ -151,8 +149,11 @@ describe('TraceSearchEvaluator', () => {
     await waitFor(() => {
       expect(cb).toHaveBeenCalled();
     });
-    expect(cb.mock.calls[0][0][1].size).toBe(1);
-    expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+    expect(cb.mock.calls[0][0][1].size).toBe(2);
+    expect(cb.mock.calls[0][0][0]).toEqual([
+      {index: 0, value: tree.list[0]},
+      {index: 1, value: tree.list[1]},
+    ]);
     expect(cb.mock.calls[0][0][2]).toBe(null);
   });
 
