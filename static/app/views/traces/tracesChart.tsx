@@ -27,7 +27,7 @@ export function TracesChart({}: Props) {
     return decodeList(location.query.query);
   }, [location.query.query]);
 
-  const firstCountSeries = useTraceCountSeries(queries[0] ?? ''); // Always provide query string for first query.
+  const firstCountSeries = useTraceCountSeries(queries[0] ?? ''); // Always provide query string to visualize at least some spans when landing on the page.
   const secondCountSeries = useTraceCountSeries(queries[1]);
   const thirdCountSeries = useTraceCountSeries(queries[2]);
 
