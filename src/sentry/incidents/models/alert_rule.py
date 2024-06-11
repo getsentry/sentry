@@ -268,6 +268,7 @@ class AlertRule(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS.value)
+    description = models.CharField(max_length=1000, null=True)
 
     class Meta:
         app_label = "sentry"

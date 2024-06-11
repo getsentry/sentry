@@ -477,7 +477,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 "interval": "1h",
-                "value": 100,
+                "value": 100.0,
                 "comparisonType": "count",
             }
         ]
@@ -566,7 +566,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
             "interval": "1h",
-            "value": 101,
+            "value": 101.0,
             "comparisonType": "count",
         }
         response = self.get_error_response(
