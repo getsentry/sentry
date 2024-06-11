@@ -621,6 +621,27 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
+    it('when focus is in a filter segment, backspace first focuses the filter then deletes it', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Focus into search (cursor be at end of the query)
+      screen
+        .getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        .focus();
+
+      // Pressing backspace once should focus the token
+      await userEvent.keyboard('{backspace}');
+      expect(screen.queryByRole('row', {name: 'browser.name:firefox'})).toHaveFocus();
+
+      // Pressing backspace again should remove the token
+      await userEvent.keyboard('{backspace}');
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+    });
+
     it('has a single tab stop', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />

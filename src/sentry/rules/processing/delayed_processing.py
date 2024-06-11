@@ -177,7 +177,7 @@ def get_rules_to_fire(
                 )
                 results = condition_group_results.get(unique_condition, {})
                 if results:
-                    target_value = int(str(slow_condition.get("value")))
+                    target_value = float(str(slow_condition.get("value")))
                     if results[group_id] > target_value:
                         if action_match == "any":
                             rules_to_fire[alert_rule].add(group_id)

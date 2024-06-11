@@ -523,20 +523,20 @@ const HeaderContainer = styled('div')`
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
 const TitleContainer = styled('div')`
   width: 100%;
-  position: relative;
-  height: 40px;
+  overflow: hidden;
 `;
 
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
+  overflow: inherit;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const MetricsRibbonContainer = styled('div')`

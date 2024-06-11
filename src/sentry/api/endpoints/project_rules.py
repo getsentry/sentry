@@ -325,12 +325,12 @@ A list of triggers that determine when the rule fires. See below for a list of p
 ```
 
 **The issue affects more than `value` percent of sessions in `interval`**
-- `value` - An integer from 0 to 100
+- `value` - A float
 - `interval` - Valid values are `5m`, `10m`, `30m`, and `1h` (`m` for minutes, `h` for hours).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
-    "value": 50,
+    "value": 50.0,
     "interval": "10m"
 }
 ```

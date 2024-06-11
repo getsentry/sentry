@@ -20,14 +20,13 @@ from sentry.utils import metrics
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(
-    event: Event, project: Project, primary_hashes: CalculatedHashes
-) -> bool:
+def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
     """
-    # TODO: Implement rate limits, kill switches, other flags, etc
+
+    project = event.project
 
     has_either_seer_grouping_feature = features.has(
         "projects:similarity-embeddings-metadata", project
@@ -35,14 +34,6 @@ def should_call_seer_for_grouping(
 
     if not has_either_seer_grouping_feature:
         return False
-
-    # TODO: In our context, this can never happen. There are other scenarios in which `variants` can
-    # be `None`, but where we'll be using this (during ingestion) it's not possible. This check is
-    # primarily to satisfy mypy. Once we get rid of hierarchical hashing, we'll be able to
-    # make `variants` required in `CalculatedHashes`, meaning we can remove this check. (See note in
-    # `CalculatedHashes` class definition.)
-    if primary_hashes.variants is None:
-        raise Exception("Primary hashes missing variants data")
 
     fingerprint_variant = primary_hashes.variants.get(
         "custom-fingerprint"
@@ -55,8 +46,15 @@ def should_call_seer_for_grouping(
     if not event_content_is_seer_eligible(event):
         return False
 
-    # The circuit breaker check which might naturally also go here (along with its killswitch and
-    # ratelimiting friends) instead happens in the `with_circuit_breaker` helper used where
+    # **Do not add any new checks after this.** The rate limit check MUST remain the last of all the
+    # checks.
+    #
+    # (Checking the rate limit for calling Seer also increments the counter of how many times we've
+    # tried to call it, and if we fail any of the other checks, it shouldn't count as an attempt.
+    # Thus we only want to run the rate limit check if every other check has already succeeded.)
+    #
+    # Note: The circuit breaker check which might naturally be here alongside its killswitch
+    # and rate limiting friends instead happens in the `with_circuit_breaker` helper used where
     # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
     # errors arising from that call.)
     if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
@@ -149,14 +147,6 @@ def get_seer_similar_issues(
     Will also return `None` for the neighboring group if the `projects:similarity-embeddings-grouping`
     feature flag is off.
     """
-
-    # TODO: In our context, this can never happen. There are other scenarios in which `variants` can
-    # be `None`, but where we'll be using this (during ingestion) it's not possible. This check is
-    # primarily to satisfy mypy. Once we get rid of hierarchical hashing, we'll be able to
-    # make `variants` required in `CalculatedHashes`, meaning we can remove this check. (See note in
-    # `CalculatedHashes` class definition.)
-    if primary_hashes.variants is None:
-        raise Exception("Primary hashes missing variants data")
 
     event_hash = primary_hashes.hashes[0]
     stacktrace_string = get_stacktrace_string(

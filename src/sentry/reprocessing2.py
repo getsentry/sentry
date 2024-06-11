@@ -81,7 +81,7 @@ instead of group deletion is:
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Literal, overload
@@ -144,7 +144,7 @@ class CannotReprocess(Exception):
         Exception.__init__(self, reason)
 
 
-def backup_unprocessed_event(data: dict[str, Any]) -> None:
+def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
@@ -477,7 +477,7 @@ def pop_batched_events_from_redis(key: str) -> tuple[list[str], datetime | None,
 
 
 @overload
-def mark_event_reprocessed(data: dict[str, Any], *, num_events: int = 1) -> None:
+def mark_event_reprocessed(data: MutableMapping[str, Any], *, num_events: int = 1) -> None:
     ...
 
 
@@ -487,7 +487,7 @@ def mark_event_reprocessed(*, group_id: int, project_id: int, num_events: int = 
 
 
 def mark_event_reprocessed(
-    data: dict[str, Any] | None = None,
+    data: MutableMapping[str, Any] | None = None,
     *,
     group_id: int | None = None,
     project_id: int | None = None,
