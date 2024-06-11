@@ -13,14 +13,68 @@ ValidContextTypes = TypeVar(
 EvaluationContextDict = dict[str, ValidContextTypes]
 
 
+class InvalidIdentityFieldException(Exception):
+    pass
+
+
 class EvaluationContext:
     """
     Prepared by the application and passed to flagpole to evaluate
     feature conditions.
     """
 
-    def __init__(self, data: EvaluationContextDict):
+    __data: EvaluationContextDict
+    __identity_fields: set[str]
+    id: int
+
+    def __init__(self, data: EvaluationContextDict, identity_fields: set[str] | None = None):
         self.__data = deepcopy(data)
+
+        if identity_fields is None:
+            # If no list of identity fields is provided, use all properties of
+            # the context.
+            self.__identity_fields = set(self.__data.keys())
+        else:
+            self.__identity_fields = deepcopy(identity_fields)
+            self.__validate_identity_fields()
+
+        self.__id = self.__generate_id()
+
+    def __validate_identity_fields(self):
+        invalid_identity_fields = []
+
+        for field in self.__identity_fields:
+            if field not in self.__data:
+                invalid_identity_fields.append(field)
+
+        if invalid_identity_fields:
+            raise InvalidIdentityFieldException(
+                f"One or more invalid identity fields specified: {invalid_identity_fields}"
+            )
+
+    def __generate_id(self) -> int:
+        """
+        Generates and return a hashed identifier for this context
+
+        The identifier should be stable for a given context contents.
+        Identifiers are used to determine rollout groups deterministically
+        and consistently.
+        """
+        keys = list(self.__identity_fields)
+        vector = []
+        for key in sorted(keys):
+            vector.append(key)
+            vector.append(str(self.__data[key]))
+        hashed = hashlib.sha1(":".join(vector).encode("utf8"))
+        return int.from_bytes(hashed.digest(), byteorder="big")
+
+    @property
+    def id(self):
+        """
+        Guard against context mutation by using this virtual property as a
+        getter for the private ID field.
+        """
+        return self.__id
 
     def get(self, key: str) -> Any:
         return self.__data.get(key)
@@ -30,22 +84,6 @@ class EvaluationContext:
 
     def size(self) -> int:
         return len(self.__data)
-
-    def id(self) -> int:
-        """
-        Return a hashed identifier for this context
-
-        The identifier should be stable for a given context contents.
-        Identifiers are used to determine rollout groups deterministically
-        and consistently.
-        """
-        keys = self.__data.keys()
-        vector = []
-        for key in sorted(keys):
-            vector.append(key)
-            vector.append(str(self.__data[key]))
-        hashed = hashlib.sha1(":".join(vector).encode("utf8"))
-        return int.from_bytes(hashed.digest(), byteorder="big")
 
 
 T_CONTEXT_DATA = TypeVar("T_CONTEXT_DATA")
@@ -61,20 +99,27 @@ class ContextBuilder(Generic[T_CONTEXT_DATA]):
     >>> from flagpole import ContextBuilder, Feature
     >>> builder = ContextBuilder().add_context_transformer(lambda _dict: dict(foo="bar"))
     >>> feature = Feature.from_feature_dictionary(name="foo", feature_dictionary=dict(), context=builder)
-    >>> feature.match(dict())
+    >>> feature.match(EvaluationContext(dict()))
     """
 
     context_transformers: list[Callable[[T_CONTEXT_DATA], EvaluationContextDict]]
     exception_handler: Callable[[Exception], Any] | None
+    identity_fields: set[str]
 
     def __init__(self):
         self.context_transformers = []
         self.exception_handler = None
+        self.identity_fields = set()
 
     def add_context_transformer(
-        self, context_transformer: Callable[[T_CONTEXT_DATA], EvaluationContextDict]
+        self,
+        context_transformer: Callable[[T_CONTEXT_DATA], EvaluationContextDict],
+        identity_fields: list[str] | None = None,
     ) -> ContextBuilder[T_CONTEXT_DATA]:
         self.context_transformers.append(context_transformer)
+        if identity_fields is not None:
+            self.identity_fields.update(identity_fields)
+
         return self
 
     def add_exception_handler(

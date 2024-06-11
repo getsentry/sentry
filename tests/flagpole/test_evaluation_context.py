@@ -3,11 +3,52 @@ from typing import Any
 
 import pytest
 
-from flagpole.evaluation_context import ContextBuilder, EvaluationContextDict
+from flagpole.evaluation_context import (
+    ContextBuilder,
+    EvaluationContext,
+    EvaluationContextDict,
+    InvalidIdentityFieldException,
+)
 
 
 class TestEvaluationContext:
-    pass
+    # Identity fields tests are mainly upholding that our hashing strategy does
+    # not change in the future, and that we calculate the id using the correct
+    # context values and keys in order.
+    def test_adds_identity_fields(self):
+        eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo"})
+        expected_id = 484477975355580460928302712356218993825269143262
+        assert eval_context.id == expected_id
+
+        eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo", "baz"})
+        expected_id = 1249805218608667754842212156585681631068251083301
+
+        assert eval_context.id == expected_id
+
+    def test_no_identity_fields_included(self):
+        eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"})
+        expected_id = 1249805218608667754842212156585681631068251083301
+        assert eval_context.id == expected_id
+
+        eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo", "test": "property"})
+        expected_id = 1395427532315258482176540981434194664973697472186
+        assert eval_context.id == expected_id
+
+    def test_invalid_identity_fields_included(self):
+        with pytest.raises(InvalidIdentityFieldException) as exc:
+            EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo", "whoops"})
+
+        exc.match("One or more invalid identity fields specified: \\['whoops'\\]")
+
+    def test_get_has_data(self):
+        eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo"})
+
+        assert eval_context.has("foo") is True
+        assert eval_context.get("foo") == "bar"
+        assert eval_context.has("baz") is True
+        assert eval_context.get("baz") == "barfoo"
+        assert eval_context.has("bar") is False
+        assert eval_context.get("bar") is None
 
 
 @dataclass
