@@ -630,10 +630,6 @@ def single_exception(
             "app": GroupingComponent(id="stacktrace"),
         }
 
-    # We can't call items() unless we are a dictionary
-    # error: Parameterized generics cannot be used with class or instance checks  [misc]
-    assert isinstance(stacktrace_variants, ReturnedVariants)  # type: ignore[misc]
-
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
@@ -893,8 +889,6 @@ def _filtered_threads(
     rv = {}
 
     variants = context.get_grouping_component(stacktrace, event=event, **meta)
-    # error: Parameterized generics cannot be used with class or instance checks  [misc]
-    assert isinstance(variants, ReturnedVariants)  # type: ignore[misc]
     for name, stacktrace_component in variants.items():
         rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
 
