@@ -1,9 +1,9 @@
 import {useCallback, useSyncExternalStore} from 'react';
 import type {Store} from 'reflux';
 
-import type {StrictStoreDefinition} from './types';
-
-interface LegacyStoreShape extends Pick<Store, 'listen'>, StrictStoreDefinition<any> {}
+interface LegacyStoreShape extends Pick<Store, 'listen'> {
+  getState(): any;
+}
 
 /**
  * Returns the state of a reflux store. Automatically unsubscribes when destroyed
@@ -25,5 +25,5 @@ export function useLegacyStore<T extends LegacyStoreShape>(
     [store]
   );
 
-  return useSyncExternalStore(listener, store.getState) as ReturnType<T['getState']>;
+  return useSyncExternalStore(listener, store.getState);
 }
