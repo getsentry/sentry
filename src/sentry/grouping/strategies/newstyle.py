@@ -720,7 +720,7 @@ def chained_exception(
         rv[name] = GroupingComponent(
             id="chained-exception",
             values=component_list,
-            tree_label=calculate_tree_label(list(reversed(component_list))),
+            tree_label=calculate_tree_label(reversed(component_list)),
         )
 
     return rv
