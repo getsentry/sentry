@@ -693,6 +693,7 @@ def update_alert_rule(
     event_types=None,
     comparison_delta=NOT_SET,
     monitor_type: AlertRuleMonitorType | None = None,
+    description: str | None = None,
     **kwargs,
 ):
     """
@@ -720,12 +721,15 @@ def update_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param description: An optional str that will be rendered in the notification
     :return: The updated `AlertRule`
     """
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
+    if description:
+        updated_fields["description"] = description
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:
