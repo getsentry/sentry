@@ -2,10 +2,10 @@ import type {CSSProperties} from 'react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import Checkbox from 'sentry/components/checkbox';
 import {Flex} from 'sentry/components/container/flex';
 import IssueTrackingSignals from 'sentry/components/feedback/list/issueTrackingSignals';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
@@ -106,10 +106,11 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style}: Props) {
 
       <BottomGrid style={{gridArea: 'bottom'}}>
         <Row justify="flex-start" gap={space(0.75)}>
-          <StyledProjectAvatar
+          <StyledProjectBadge
             project={feedbackItem.project}
-            size={12}
-            title={feedbackItem.project.slug}
+            avatarSize={16}
+            hideName
+            avatarProps={{hasTooltip: false}}
           />
           <TextOverflow>{feedbackItem.shortId}</TextOverflow>
         </Row>
@@ -200,7 +201,7 @@ const BottomGrid = styled('div')`
   overflow: hidden;
 `;
 
-const StyledProjectAvatar = styled(ProjectAvatar)`
+const StyledProjectBadge = styled(ProjectBadge)`
   && img {
     box-shadow: none;
   }
