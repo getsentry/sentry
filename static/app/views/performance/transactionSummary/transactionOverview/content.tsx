@@ -330,6 +330,10 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
+  const hasNewSpansUIFlag =
+    organization.features.includes('performance-spans-new-ui') &&
+    organization.features.includes('insights-initial-modules');
+
   return (
     <Fragment>
       <Layout.Main>
@@ -399,18 +403,21 @@ function SummaryContent({
           />
         </PerformanceAtScaleContextProvider>
 
-        <SuspectSpans
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          totals={
-            defined(totalValues?.['count()'])
-              ? {'count()': totalValues!['count()']}
-              : null
-          }
-          projectId={projectId}
-          transactionName={transactionName}
-        />
+        {hasNewSpansUIFlag ? null : (
+          <SuspectSpans
+            location={location}
+            organization={organization}
+            eventView={eventView}
+            totals={
+              defined(totalValues?.['count()'])
+                ? {'count()': totalValues!['count()']}
+                : null
+            }
+            projectId={projectId}
+            transactionName={transactionName}
+          />
+        )}
+
         <TagExplorer
           eventView={eventView}
           organization={organization}
