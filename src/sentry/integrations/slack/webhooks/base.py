@@ -19,9 +19,11 @@ UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
 ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
 
+import logging
+
 from sentry.utils import metrics
 
-from ..utils import logger
+logger = logging.getLogger(__name__)
 
 
 class SlackDMEndpoint(Endpoint, abc.ABC):
