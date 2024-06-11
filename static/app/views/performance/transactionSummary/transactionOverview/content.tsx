@@ -403,7 +403,7 @@ function SummaryContent({
           />
         </PerformanceAtScaleContextProvider>
 
-        {hasNewSpansUIFlag && (
+        {!hasNewSpansUIFlag && (
           <SuspectSpans
             location={location}
             organization={organization}
