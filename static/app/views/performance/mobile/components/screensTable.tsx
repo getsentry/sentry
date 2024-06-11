@@ -9,6 +9,7 @@ import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable'
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
@@ -17,6 +18,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
+import type {ModuleName} from 'sentry/views/starfish/types';
 
 type Props = {
   columnNameMap: Record<string, string>;
@@ -30,6 +32,7 @@ type Props = {
     column: GridColumn<string>,
     row: TableDataRow
   ) => React.ReactNode;
+  moduleName?: ModuleName;
 };
 
 export function ScreensTable({
@@ -41,6 +44,7 @@ export function ScreensTable({
   columnOrder,
   defaultSort,
   customBodyCellRenderer,
+  moduleName,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -133,7 +137,18 @@ export function ScreensTable({
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} />
+      <Pagination
+        pageLinks={pageLinks}
+        paginationAnalyticsEvent={(direction: string) => {
+          if (moduleName !== undefined) {
+            trackAnalytics('insight.general.table_paginate', {
+              organization,
+              source: moduleName,
+              direction,
+            });
+          }
+        }}
+      />
     </Fragment>
   );
 }

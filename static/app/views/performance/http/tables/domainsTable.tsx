@@ -17,7 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DomainCell} from 'sentry/views/performance/http/tables/domainCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
+import {ModuleName, type SpanMetricsResponse} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
@@ -123,11 +123,6 @@ export function DomainsTable({response, sort}: Props) {
   const organization = useOrganization();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
-    trackAnalytics('insight.general.table_paginate', {
-      organization,
-      source: 'http_domains',
-      direction: 'p',
-    });
     browserHistory.push({
       pathname,
       query: {...query, [QueryParameterNames.DOMAINS_CURSOR]: newCursor},
@@ -164,7 +159,17 @@ export function DomainsTable({response, sort}: Props) {
             renderBodyCell(column, row, meta, location, organization),
         }}
       />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.HTTP,
+            direction,
+          });
+        }}
+      />
     </VisuallyCompleteWithData>
   );
 }

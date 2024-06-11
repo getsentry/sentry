@@ -24,7 +24,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
@@ -193,6 +193,7 @@ export function SpanOperationTable({
         },
       ]}
       customBodyCellRenderer={renderBodyCell}
+      moduleName={ModuleName.MOBILE_UI}
     />
   );
 }

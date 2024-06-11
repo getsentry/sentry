@@ -17,6 +17,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 type Props = {
   data: TableData | undefined;
@@ -136,6 +137,7 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         },
       ]}
       customBodyCellRenderer={renderBodyCell}
+      moduleName={ModuleName.MOBILE_UI}
     />
   );
 }
