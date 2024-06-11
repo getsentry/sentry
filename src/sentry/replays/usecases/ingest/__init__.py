@@ -215,6 +215,22 @@ def recording_post_processor(
     replay_event_bytes: bytes | None,
     transaction: Span,
 ) -> None:
+    if len(segment_bytes) >= 4_000_000:
+        logger.info(
+            # Logging to the sentry.replays.slow_click namespace because
+            # its the only one configured to use BigQuery at the moment.
+            #
+            # NOTE: Needs an ops request if we want to create a new dataset.
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "oversized_segment",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(segment_bytes),
+            },
+        )
+
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)
