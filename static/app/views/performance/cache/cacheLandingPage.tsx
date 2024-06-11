@@ -43,6 +43,7 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
@@ -143,6 +144,12 @@ export function CacheLandingPage() {
   const {hasData, isLoading: isHasDataLoading} = useHasData(
     MutableSearch.fromQueryObject(BASE_FILTERS),
     Referrer.LANDING_CACHE_ONBOARDING
+  );
+
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    Referrer.LANDING_CACHE_ONBOARDING,
+    'insight.page_loads.cache'
   );
 
   useEffect(() => {

@@ -70,6 +70,22 @@ describe('HTTPLandingPage', function () {
       body: [ProjectFixture({name: 'frontend'}), ProjectFixture({name: 'backend'})],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-domains',
+        }),
+      ],
+      body: {
+        data: [{'count()': 43374}],
+        meta: {
+          fields: {'count()': 'integer'},
+        },
+      },
+    });
+
     spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',

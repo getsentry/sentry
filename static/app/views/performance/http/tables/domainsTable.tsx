@@ -6,6 +6,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -122,6 +123,11 @@ export function DomainsTable({response, sort}: Props) {
   const organization = useOrganization();
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
+    trackAnalytics('insight.general.table_paginate', {
+      organization,
+      source: 'http_domains',
+      direction: 'p',
+    });
     browserHistory.push({
       pathname,
       query: {...query, [QueryParameterNames.DOMAINS_CURSOR]: newCursor},

@@ -19,6 +19,7 @@ import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,6 +41,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function WebVitalsLandingPage() {
@@ -72,6 +74,15 @@ export function WebVitalsLandingPage() {
 
   const fidDeprecationTimestampString =
     moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
+
+  useHasDataTrackAnalytics(
+    new MutableSearch(
+      // TODO: check for all possible WebVital data sources
+      'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]'
+    ),
+    'api.performance.vital.vital-landing',
+    'insight.page_loads.vital'
+  );
 
   const crumbs = useModuleBreadcrumbs('vital');
 

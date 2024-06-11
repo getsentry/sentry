@@ -182,6 +182,22 @@ const setupMockRequests = (organization: DetailedOrganization) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     method: 'GET',
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.performance.resource.resource-landing',
+      }),
+    ],
+    body: {
+      data: [{'count()': 43374}],
+      meta: {
+        fields: {'count()': 'integer'},
+      },
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    method: 'GET',
     match: [MockApiClient.matchQuery({referrer: 'api.starfish.get-span-domains'})],
     body: {
       data: [{'span.domain': ['*.sentry-cdn.com'], count: 1}],

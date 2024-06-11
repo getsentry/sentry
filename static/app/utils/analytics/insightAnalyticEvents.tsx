@@ -18,6 +18,15 @@ export type InsightEventParameters = {
     field: string;
     source: string;
   };
+  'insight.page_loads.ai': {has_data: boolean};
+  'insight.page_loads.app_start': {has_data: boolean};
+  'insight.page_loads.assets': {has_data: boolean};
+  'insight.page_loads.cache': {has_data: boolean};
+  'insight.page_loads.db': {has_data: boolean};
+  'insight.page_loads.http': {has_data: boolean};
+  'insight.page_loads.queue': {has_data: boolean};
+  'insight.page_loads.screen_load': {has_data: boolean};
+  'insight.page_loads.vital': {has_data: boolean};
   'insight.screen_load.spans.filter_by_device_class': {filter: string};
   'insight.screen_load.spans.filter_by_operation': {filter: string};
   'insight.vital.overview.open_full_waterfall': {};
@@ -30,6 +39,15 @@ export type InsightEventParameters = {
 export type InsightEventKey = keyof InsightEventParameters;
 
 export const insightEventMap: Record<InsightEventKey, string | null> = {
+  'insight.page_loads.ai': 'Insights: AI Page Load',
+  'insight.page_loads.app_start': 'Insights: App Start Page Load',
+  'insight.page_loads.assets': 'Insights: Assets Page Load',
+  'insight.page_loads.cache': 'Insights: Cache Page Load',
+  'insight.page_loads.db': 'Insights: DB Page Load',
+  'insight.page_loads.http': 'Insights: HTTP Page Load',
+  'insight.page_loads.queue': 'Insights: Queue Page Load',
+  'insight.page_loads.screen_load': 'Insights: Screen Load Page Load',
+  'insight.page_loads.vital': 'Insights: Vital Page Load',
   'insight.app_start.select_start_type': 'Insights: App Start - select app start type',
   'insight.app_start.spans.filter_by_device_class':
     'Insights: App Start - filter device class',

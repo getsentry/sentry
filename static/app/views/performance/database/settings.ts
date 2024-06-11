@@ -9,10 +9,15 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {Aggregate} from 'sentry/views/starfish/types';
+import {type Aggregate, ModuleName} from 'sentry/views/starfish/types';
 
 export const MODULE_TITLE = t('Queries');
 export const BASE_URL = 'database';
+
+export const BASE_FILTERS = {
+  'span.module': ModuleName.DB,
+  has: 'span.description',
+};
 
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',

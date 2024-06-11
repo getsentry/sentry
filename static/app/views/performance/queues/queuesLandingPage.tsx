@@ -35,6 +35,7 @@ import {
   MODULE_TITLE,
   ONBOARDING_CONTENT,
 } from 'sentry/views/performance/queues/settings';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
@@ -81,6 +82,12 @@ function QueuesLandingPage() {
   const wildCardDestinationFilter = query.destination
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
+
+  useHasDataTrackAnalytics(
+    new MutableSearch(DEFAULT_QUERY_FILTER),
+    Referrer.QUEUES_LANDING_ONBOARDING,
+    'insight.page_loads.queue'
+  );
 
   const crumbs = useModuleBreadcrumbs('queue');
 
