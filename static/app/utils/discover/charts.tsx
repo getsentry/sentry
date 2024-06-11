@@ -3,7 +3,8 @@ import type {LegendComponentOption} from 'echarts';
 
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {defined, formatBytesBase2} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {
