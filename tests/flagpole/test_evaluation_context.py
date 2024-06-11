@@ -11,6 +11,9 @@ class TestEvaluationContext:
     # not change in the future, and that we calculate the id using the correct
     # context values and keys in order.
     def test_adds_identity_fields(self):
+        eval_context = EvaluationContext({}, set())
+        assert eval_context.id == 1245845410931227995499360226027473197403882391305
+
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"}, {"foo"})
         expected_id = 484477975355580460928302712356218993825269143262
         assert eval_context.id == expected_id
@@ -30,6 +33,9 @@ class TestEvaluationContext:
         assert eval_context.id == expected_id
 
     def test_no_identity_fields_included(self):
+        eval_context = EvaluationContext({})
+        assert eval_context.id == 1245845410931227995499360226027473197403882391305
+
         eval_context = EvaluationContext({"foo": "bar", "baz": "barfoo"})
         expected_id = 1249805218608667754842212156585681631068251083301
         assert eval_context.id == expected_id
@@ -129,3 +135,36 @@ class TestContextBuilder:
 
         with pytest.raises(Exception):
             context_builder.add_exception_handler(lambda _exc: None)
+
+    # This is nearly identical to the evaluation context around identity fields,
+    # just to ensure we compile and pass the correct list
+    def test_identity_fields_passing(self):
+        def transformer_with_data(_data: ContextData) -> dict[str, Any]:
+            return dict(foo="bar", baz="barfoo")
+
+        eval_context = ContextBuilder[ContextData]().build(ContextData(baz=2))
+
+        # This should be empty dictionary, empty identity fields list
+        assert eval_context.id == 1245845410931227995499360226027473197403882391305
+
+        eval_context = (
+            ContextBuilder[ContextData]()
+            .add_context_transformer(transformer_with_data, ["foo"])
+            .build(ContextData(baz=2))
+        )
+
+        expected_context_id = 484477975355580460928302712356218993825269143262
+        assert eval_context.id == expected_context_id
+
+        # The full identity_fields list passed into the context should be
+        # ["foo", "baz", "whoops"], but "whoops" will be filtered out by the
+        # context since the field does not exist in the context dict.
+        eval_context = (
+            ContextBuilder[ContextData]()
+            .add_context_transformer(transformer_with_data, ["foo"])
+            .add_context_transformer(transformer_with_data, ["baz", "whoops"])
+            .build(ContextData(baz=2))
+        )
+
+        expected_context_id = 1249805218608667754842212156585681631068251083301
+        assert eval_context.id == expected_context_id

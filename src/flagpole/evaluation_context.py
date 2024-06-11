@@ -92,12 +92,12 @@ class ContextBuilder(Generic[T_CONTEXT_DATA]):
 
     context_transformers: list[Callable[[T_CONTEXT_DATA], EvaluationContextDict]]
     exception_handler: Callable[[Exception], Any] | None
-    identity_fields: set[str]
+    __identity_fields: set[str]
 
     def __init__(self):
         self.context_transformers = []
         self.exception_handler = None
-        self.identity_fields = set()
+        self.__identity_fields = set()
 
     def add_context_transformer(
         self,
@@ -106,7 +106,7 @@ class ContextBuilder(Generic[T_CONTEXT_DATA]):
     ) -> ContextBuilder[T_CONTEXT_DATA]:
         self.context_transformers.append(context_transformer)
         if identity_fields is not None:
-            self.identity_fields.update(identity_fields)
+            self.__identity_fields.update(identity_fields)
 
         return self
 
@@ -140,4 +140,4 @@ class ContextBuilder(Generic[T_CONTEXT_DATA]):
                 else:
                     raise
 
-        return EvaluationContext(context_data)
+        return EvaluationContext(context_data, self.__identity_fields)
