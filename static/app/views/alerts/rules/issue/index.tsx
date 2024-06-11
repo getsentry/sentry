@@ -325,7 +325,11 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       const hasHighPriorityIssueAlerts =
         this.props.organization.features.includes('default-high-priority-alerts') ||
         this.props.project.features.includes('high-priority-alerts');
-      if (hasHighPriorityIssueAlerts) {
+      const isValidPlatform =
+        this.props.project.platform?.startsWith('javascript') ||
+        this.props.project.platform?.startsWith('python');
+
+      if (hasHighPriorityIssueAlerts && isValidPlatform) {
         this.handleChange('conditions', [
           {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
           {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
