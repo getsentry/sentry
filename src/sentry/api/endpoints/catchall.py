@@ -2,7 +2,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
-from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.api.base import Endpoint, all_silo_endpoint, allow_cors_options
 
 
 @all_silo_endpoint
@@ -10,6 +10,7 @@ class CatchallEndpoint(Endpoint):
     permission_classes = ()
 
     @csrf_exempt
+    @allow_cors_options
     def dispatch(self, request: Request, *args, **kwargs) -> HttpResponse:
         """
         This endpoint handles routes that did not match
