@@ -46,13 +46,12 @@ export function TracesChart({}: Props) {
     secondQueryData.color = CHART_PALETTE[2][1];
     thirdQueryData.color = CHART_PALETTE[2][2];
 
-    firstQueryData.seriesName = queries[0];
+    firstQueryData.seriesName = queries[0] || t('All spans');
     secondQueryData.seriesName = queries[1];
     thirdQueryData.seriesName = queries[2];
 
-    if (queries[0]) {
-      data.push(firstQueryData);
-    }
+    data.push(firstQueryData);
+
     if (queries[1]) {
       data.push(secondQueryData);
     }
