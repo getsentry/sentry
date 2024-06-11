@@ -94,8 +94,8 @@ function GroupCheckbox({
   group: Group;
   displayReprocessingLayout?: boolean;
 }) {
-  const selectedGroups = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroups[group.id];
+  const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroupMap.get(group.id) ?? false;
 
   const onChange = useCallback(
     (evt: React.ChangeEvent<HTMLInputElement>) => {
