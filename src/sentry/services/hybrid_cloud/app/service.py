@@ -7,7 +7,6 @@ import abc
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.features.rollout import in_random_rollout
 from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
@@ -95,13 +94,6 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         pass
 
@@ -121,9 +113,7 @@ class AppService(RpcService):
 
         Wraps find_service_hook_sentry_app with caching.
         """
-        if in_random_rollout("sentryapps.get_by_application_id_cached"):
-            return get_by_application_id(application_id)
-        return self.find_service_hook_sentry_app(api_application_id=application_id)
+        return get_by_application_id(application_id)
 
     @rpc_method
     @abc.abstractmethod

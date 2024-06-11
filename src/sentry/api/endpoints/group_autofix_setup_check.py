@@ -103,9 +103,13 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         org: Organization = request.organization
         has_gen_ai_consent = org.get_option("sentry:gen_ai_consent", False)
 
-        integration_check = get_autofix_integration_setup_problems(
-            organization=org, project=group.project
-        )
+        integration_check = None
+        # This check is to skip using the GitHub integration for Autofix in s4s.
+        # As we only use the github integration to get the code mappings, we can skip this check if the repos are hardcoded.
+        if not settings.SEER_AUTOFIX_FORCE_USE_REPOS:
+            integration_check = get_autofix_integration_setup_problems(
+                organization=org, project=group.project
+            )
 
         repos = get_repos_and_access(group.project)
         write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)

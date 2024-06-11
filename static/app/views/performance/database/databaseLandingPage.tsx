@@ -14,6 +14,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -61,6 +62,11 @@ export function DatabaseLandingPage() {
   }
 
   const handleSearch = (newQuery: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newQuery,
+      source: ModuleName.DB,
+    });
     browserHistory.push({
       ...location,
       query: {
