@@ -60,6 +60,7 @@ class IncidentSeen(Model):
 
 class IncidentManager(BaseManager["Incident"]):
     CACHE_KEY = "incidents:active:%s:%s"
+    SUB_CACHE_KEY = "incidents:active:%s:%s:%s"
 
     def fetch_for_organization(self, organization, projects):
         return self.filter(organization=organization, projects__in=projects).distinct()
@@ -67,7 +68,7 @@ class IncidentManager(BaseManager["Incident"]):
     @classmethod
     def _build_active_incident_cache_key(cls, alert_rule_id, project_id, subscription_id):
         if subscription_id:
-            return cls.CACHE_KEY % (alert_rule_id, project_id, subscription_id)
+            return cls.SUB_CACHE_KEY % (alert_rule_id, project_id, subscription_id)
         return cls.CACHE_KEY % (alert_rule_id, project_id)
 
     def get_active_incident(self, alert_rule, project, subscription=None):
