@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from collections.abc import MutableMapping
 from datetime import timedelta
 from typing import Any
 
@@ -46,7 +49,7 @@ class EventProcessingStore(Service):
         return key
 
     @sentry_sdk.tracing.trace
-    def get(self, key: str, unprocessed: bool = False) -> Event | None:
+    def get(self, key: str, unprocessed: bool = False) -> MutableMapping[str, Any] | None:
         if unprocessed:
             key = self.__get_unprocessed_key(key)
         return self.inner.get(key)
