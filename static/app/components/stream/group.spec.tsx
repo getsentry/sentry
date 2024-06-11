@@ -137,4 +137,17 @@ describe('StreamGroup', function () {
     // skipHover - Prevent stacktrace preview from being rendered
     await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
   });
+
+  it('can select row', async function () {
+    const {router, organization} = initializeOrg();
+    render(<StreamGroup id="1337" query="is:unresolved" />, {router, organization});
+
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
+    const checkbox = screen.getByRole('checkbox', {name: 'Select Issue'});
+    expect(checkbox).not.toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
 });
