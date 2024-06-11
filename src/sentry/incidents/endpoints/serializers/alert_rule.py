@@ -65,7 +65,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "weeklyAvg",
         "totalThisWeek",
         "latestIncident",
-        "description",
+        "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
