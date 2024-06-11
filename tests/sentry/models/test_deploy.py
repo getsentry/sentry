@@ -22,6 +22,7 @@ class DeployNotifyTest(TestCase):
 
         # make sure activity has been created
         record = Activity.objects.get(type=ActivityType.DEPLOY.value, project=project)
+        assert record.ident is not None
         assert release.version.startswith(record.ident)
 
     def test_already_notified(self):

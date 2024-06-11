@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from django.db import IntegrityError, router, transaction
+from django.db.models import QuerySet
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
@@ -69,7 +70,7 @@ class TestControlOrganizationProvisioningBase(TestCase):
 
     def get_slug_reservations_for_organization(
         self, organization_id: int
-    ) -> list[OrganizationSlugReservation]:
+    ) -> QuerySet[OrganizationSlugReservation]:
         with assume_test_silo_mode(SiloMode.CONTROL):
             return OrganizationSlugReservation.objects.filter(organization_id=organization_id)
 

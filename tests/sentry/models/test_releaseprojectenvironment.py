@@ -152,8 +152,5 @@ class GetOrCreateTest(TestCase):
                 assert rpe
                 assert wrapped_subscribe_project.call_count == 1
 
-                queryset = QuerySubscription.objects.filter(project=self.project)
-                assert queryset.exists()
-
-                sub = queryset.first()
+                sub = QuerySubscription.objects.get(project=self.project)
                 assert sub.subscription_id is not None

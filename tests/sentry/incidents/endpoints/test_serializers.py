@@ -500,8 +500,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
         serializer.save()
-        assert len(list(AlertRule.objects.filter(name="Aun1qu3n4m3"))) == 1
-        alert_rule = AlertRule.objects.filter(name="Aun1qu3n4m3").first()
+        alert_rule = AlertRule.objects.get(name="Aun1qu3n4m3")
         assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_invalid_metric_field(self):

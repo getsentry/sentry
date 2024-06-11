@@ -79,9 +79,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
-        incident_trigger = (
-            IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
-        )
+        incident_trigger = IncidentTrigger.objects.get(incident=incident)
         incident_trigger.update(date_modified=now)
 
         # Test the trigger "firing"

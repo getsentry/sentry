@@ -118,8 +118,8 @@ class SecondaryGroupingTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
-        assert group.data.get("type") == "default"
-        assert group.data.get("metadata").get("title") == "foo 123"
+        assert group.data["type"] == "default"
+        assert group.data["metadata"]["title"] == "foo 123"
 
         # After expiry, new events are still assigned to the same group
         project.update_option("sentry:secondary_grouping_expiry", 0)

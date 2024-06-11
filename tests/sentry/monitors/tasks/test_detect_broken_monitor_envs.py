@@ -103,9 +103,8 @@ class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):
         incident = self.create_incident_for_monitor_env(monitor, monitor_environment)
 
         detect_broken_monitor_envs()
-        broken_detections = MonitorEnvBrokenDetection.objects.filter(monitor_incident=incident)
-        assert len(broken_detections) == 1
-        assert broken_detections.first().user_notified_timestamp == now
+        broken_detection = MonitorEnvBrokenDetection.objects.get(monitor_incident=incident)
+        assert broken_detection.user_notified_timestamp == now
         assert builder.call_count == 1
 
         # running the task again shouldn't create duplicates or send additional emails

@@ -158,9 +158,9 @@ class HandleSnubaQueryUpdateTest(TestCase):
 
         assert len(mail.outbox) == 1
         handler = EmailActionHandler(self.action, active_incident().get(), self.project)
-        incident_activity = (
-            IncidentActivity.objects.filter(incident=handler.incident).order_by("-id").first()
-        )
+        incident_activity = IncidentActivity.objects.filter(incident=handler.incident).order_by(
+            "-id"
+        )[0]
         message_builder = handler.build_message(
             generate_incident_trigger_email_context(
                 handler.project,

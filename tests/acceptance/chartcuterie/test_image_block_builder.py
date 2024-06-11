@@ -62,7 +62,7 @@ class TestSlackImageBlockBuilder(
                 timestamp=before_now(minutes=i + 10),
                 project=self.project.id,
             )
-        group = Group.objects.first()
+        group = Group.objects.get()
         group.update(type=PerformanceP95EndpointRegressionGroupType.type_id)
         return group
 
@@ -134,7 +134,7 @@ class TestSlackImageBlockBuilder(
                 timestamp=hour_ago,
             )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         with self.feature(self.features):
             image_block = ImageBlockBuilder(group=group).build_image_block()

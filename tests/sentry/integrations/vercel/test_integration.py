@@ -397,6 +397,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         integration = Integration.objects.get(provider=self.provider.key)
         installation = integration.get_installation(self.organization.id)
         dynamic_display_info = installation.get_dynamic_display_information()
+        assert dynamic_display_info is not None
         instructions = dynamic_display_info["configure_integration"]["instructions"]
         assert len(instructions) == 1
         assert "configure your repositories." in instructions[0]

@@ -131,9 +131,11 @@ class GetRateLimitKeyTest(TestCase):
 
     def test_api_token_replica(self):
         with assume_test_silo_mode_of(ApiToken):
-            token = ApiToken.objects.create(user=self.user, scope_list=["event:read", "org:read"])
+            apitoken = ApiToken.objects.create(
+                user=self.user, scope_list=["event:read", "org:read"]
+            )
         with assume_test_silo_mode_of(ApiTokenReplica):
-            token = ApiTokenReplica.objects.get(apitoken_id=token.id)
+            token = ApiTokenReplica.objects.get(apitoken_id=apitoken.id)
         self.request.auth = token
         self.request.user = self.user
 

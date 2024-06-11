@@ -466,6 +466,8 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token2.application == self.token.application
         assert token2.user == self.token.user
         assert token2.get_scopes() == self.token.get_scopes()
+        assert self.token.expires_at is not None
+        assert token2.expires_at is not None
         assert token2.expires_at > self.token.expires_at
         assert token2.token != self.token.token
         assert token2.refresh_token != self.token.refresh_token

@@ -118,7 +118,7 @@ class TeamProjectsCreateTest(APITestCase):
         )
 
         project = Project.objects.get(id=response.data["id"])
-        rule = Rule.objects.filter(project=project).first()
+        rule = Rule.objects.get(project=project)
 
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value

@@ -47,7 +47,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
         )
 
         response = self.client.post(self.url, data=data, format="json")
-        external_issue = PlatformExternalIssue.objects.first()
+        external_issue = PlatformExternalIssue.objects.get()
 
         assert response.status_code == 200
         assert response.data == {

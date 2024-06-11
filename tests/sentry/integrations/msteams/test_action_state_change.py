@@ -216,7 +216,7 @@ class StatusActionTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert GroupAssignee.objects.filter(group=self.group1, team=self.team).exists()
-        activity = Activity.objects.filter(group=self.group1).first()
+        activity = Activity.objects.get(group=self.group1)
         assert activity.data == {
             "assignee": str(self.team.id),
             "assigneeEmail": None,
@@ -234,7 +234,7 @@ class StatusActionTest(APITestCase):
 
         assert b"Unassign" in responses.calls[0].request.body
         assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
-        activity = Activity.objects.filter(group=self.group1).first()
+        activity = Activity.objects.get(group=self.group1)
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
