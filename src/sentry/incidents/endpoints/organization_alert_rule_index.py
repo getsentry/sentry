@@ -408,11 +408,6 @@ Metric alert rule trigger actions follow the following structure:
         min_value=0,
         help_text="Optional int that represents a trigger condition for when to start monitoring",
     )
-    description = serializers.CharField(
-        required=False,
-        allow_null=True,
-        help_text="An optional description to add to the notification.",
-    )
 
 
 @extend_schema(tags=["Alerts"])
