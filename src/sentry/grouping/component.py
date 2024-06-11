@@ -49,19 +49,19 @@ class GroupingComponent:
         values: Sequence[str | GroupingComponent] | None = None,
         variant_provider: bool = False,
         tree_label: str | None = None,
-        is_prefix_frame: bool | None = None,
-        is_sentinel_frame: bool | None = None,
+        is_prefix_frame: bool = False,
+        is_sentinel_frame: bool = False,
     ):
         self.id = id
 
         # Default values
         self.hint = DEFAULT_HINTS.get(id)
-        self.contributes: bool | None = None
+        self.contributes = contributes
         self.variant_provider = variant_provider
         self.values: Sequence[str | GroupingComponent] = []
-        self.tree_label: str | None = None
-        self.is_prefix_frame = False
-        self.is_sentinel_frame = False
+        self.tree_label = tree_label
+        self.is_prefix_frame = is_prefix_frame
+        self.is_sentinel_frame = is_sentinel_frame
 
         self.update(
             hint=hint,
