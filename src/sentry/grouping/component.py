@@ -5,6 +5,8 @@ from typing import Any
 
 from sentry.grouping.utils import hash_from_values
 
+DEFAULT_HINTS = {"salt": "a static salt"}
+
 # When a component ID appears here it has a human readable name which also
 # makes it a major component.  A major component is described as such for
 # the UI.
@@ -53,13 +55,22 @@ class GroupingComponent:
         self.id = id
 
         # Default values
-        self.hint = hint or "a static salt"
-        self.contributes = contributes
+        self.hint = DEFAULT_HINTS.get(id)
+        self.contributes = None
         self.variant_provider = variant_provider
-        self.values = values or []
-        self.tree_label = tree_label
-        self.is_prefix_frame = is_prefix_frame
-        self.is_sentinel_frame = is_sentinel_frame
+        self.values = []
+        self.tree_label = None
+        self.is_prefix_frame = False
+        self.is_sentinel_frame = False
+
+        self.update(
+            hint=hint,
+            contributes=contributes,
+            values=values,
+            tree_label=tree_label,
+            is_prefix_frame=is_prefix_frame,
+            is_sentinel_frame=is_sentinel_frame,
+        )
 
     @property
     def name(self) -> str | None:
