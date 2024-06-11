@@ -81,6 +81,7 @@ export function AssigneeBadge({
     <Fragment>
       <Placeholder
         shape="circle"
+        testId="unassigned-avatar"
         width={`${AVATAR_SIZE}px`}
         height={`${AVATAR_SIZE}px`}
       />
