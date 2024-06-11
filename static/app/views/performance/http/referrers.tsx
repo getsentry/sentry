@@ -1,5 +1,5 @@
 export enum Referrer {
-  LANDING_DOMAINS_ONBOARDING = 'api.performance.http.landing-domains-onboarding',
+  LANDING_DOMAINS = 'api.performance.http.landing-domains',
   LANDING_DOMAINS_LIST = 'api.performance.http.landing-domains-list',
   LANDING_DURATION_CHART = 'api.performance.http.landing-duration-chart',
   LANDING_RESPONSE_CODE_CHART = 'api.performance.http.landing-response-code-chart',

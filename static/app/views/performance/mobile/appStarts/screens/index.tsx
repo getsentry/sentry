@@ -31,8 +31,8 @@ import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -160,7 +160,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
 
   useHasDataTrackAnalytics(
     new MutableSearch('span.op:[app.start.cold,app.start.warm]'),
-    'api.performance.mobile.landing-app-startup-onboarding',
+    'api.performance.mobile.app-startup-landing',
     'insight.page_loads.app_start'
   );
 

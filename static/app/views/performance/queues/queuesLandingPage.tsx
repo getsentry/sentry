@@ -22,7 +22,6 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
 import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
@@ -34,6 +33,7 @@ import {
   MODULE_TITLE,
   ONBOARDING_CONTENT,
 } from 'sentry/views/performance/queues/settings';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 

@@ -43,7 +43,7 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';

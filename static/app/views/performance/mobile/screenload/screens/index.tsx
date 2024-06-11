@@ -34,8 +34,8 @@ import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/scre
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
@@ -254,7 +254,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
 
   useHasDataTrackAnalytics(
     new MutableSearch('transaction.op:ui.load'),
-    'api.performance.mobile.landing-screen-load-onboarding',
+    'api.performance.mobile.screen-load-landing',
     'insight.page_loads.screen_load'
   );
 

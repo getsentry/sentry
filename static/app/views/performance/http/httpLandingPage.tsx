@@ -35,7 +35,7 @@ import {
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -142,7 +142,7 @@ export function HTTPLandingPage() {
 
   useHasDataTrackAnalytics(
     MutableSearch.fromQueryObject(BASE_FILTERS),
-    Referrer.LANDING_DOMAINS_ONBOARDING,
+    Referrer.LANDING_DOMAINS,
     'insight.page_loads.http'
   );
 

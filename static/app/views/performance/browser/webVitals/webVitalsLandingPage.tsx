@@ -41,7 +41,7 @@ import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/u
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/onboarding/useHasDataTrackAnalytics';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function WebVitalsLandingPage() {
@@ -79,7 +79,7 @@ export function WebVitalsLandingPage() {
     new MutableSearch(
       'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]'
     ),
-    'api.performance.vital.landing-vital-onboarding',
+    'api.performance.vital.vital-landing',
     'insight.page_loads.vital'
   );
 
