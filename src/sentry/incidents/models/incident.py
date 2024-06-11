@@ -65,23 +65,33 @@ class IncidentManager(BaseManager["Incident"]):
         return self.filter(organization=organization, projects__in=projects).distinct()
 
     @classmethod
-    def _build_active_incident_cache_key(cls, alert_rule_id, project_id):
+    def _build_active_incident_cache_key(cls, alert_rule_id, project_id, subscription_id):
+        if subscription_id:
+            return cls.CACHE_KEY % (alert_rule_id, project_id, subscription_id)
         return cls.CACHE_KEY % (alert_rule_id, project_id)
 
-    def get_active_incident(self, alert_rule, project):
-        cache_key = self._build_active_incident_cache_key(alert_rule.id, project.id)
+    def get_active_incident(self, alert_rule, project, subscription=None):
+        """
+        fetches the latest incident for a given alert rule and project (and subscription) that is not closed
+        """
+        cache_key = self._build_active_incident_cache_key(
+            alert_rule_id=alert_rule.id,
+            project_id=project.id,
+            subscription_id=(subscription.id if subscription else None),
+        )
         incident = cache.get(cache_key)
         if incident is None:
             try:
-                incident = (
-                    Incident.objects.filter(
-                        type=IncidentType.ALERT_TRIGGERED.value,
-                        alert_rule=alert_rule,
-                        projects=project,
-                    )
-                    .exclude(status=IncidentStatus.CLOSED.value)
-                    .order_by("-date_added")[0]
+                incident_query = Incident.objects.filter(
+                    type=IncidentType.ALERT_TRIGGERED.value,
+                    alert_rule=alert_rule,
+                    projects=project,
                 )
+                if subscription:
+                    incident_query = incident_query.filter(subscription=subscription)
+                incident = incident_query.exclude(status=IncidentStatus.CLOSED.value).order_by(
+                    "-date_added"
+                )[0]
             except IndexError:
                 # Set this to False so that we can have a negative cache as well.
                 incident = False
@@ -176,7 +186,6 @@ class Incident(Model):
 
     An AlertRule may have multiple Incidents that correlate with different subscriptions.
     TODO:
-    - Add support for multiple subscriptions
     - UI should be able to handle multiple active incidents
     """
 
