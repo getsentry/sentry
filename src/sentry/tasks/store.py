@@ -27,7 +27,7 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
+from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -145,7 +145,6 @@ def _do_preprocess_event(
         return
 
     original_data = data
-    data = CanonicalKeyDict(data)
     project_id = data["project"]
     set_current_event_project(project_id)
 
@@ -328,8 +327,6 @@ def do_process_event(
         )
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
-
-    data = CanonicalKeyDict(data)
 
     project_id = data["project"]
     set_current_event_project(project_id)
@@ -573,9 +570,6 @@ def _do_save_event(
             event_type = data.get("type") or "none"
 
     with metrics.global_tags(event_type=event_type):
-        if data is not None:
-            data = CanonicalKeyDict(data)
-
         if event_id is None and data is not None:
             event_id = data["event_id"]
 
