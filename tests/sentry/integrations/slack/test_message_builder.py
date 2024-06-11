@@ -846,7 +846,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
             )
             + f"?alert={incident.identifier}&referrer=metric_alert_slack"
         )
-        # TODO change assertion in description after rebase
         assert SlackIncidentsMessageBuilder(action, incident, IncidentStatus.CRITICAL).build() == {
             "blocks": [
                 {

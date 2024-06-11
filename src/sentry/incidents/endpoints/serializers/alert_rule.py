@@ -270,7 +270,6 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
-
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
@@ -299,6 +298,7 @@ class AlertRuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
             "activations": attrs.get("activations", None),
+            "description": obj.description,
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj
