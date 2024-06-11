@@ -16,8 +16,7 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
-
-import {formatPercentage} from '../number/formatPercentage';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.

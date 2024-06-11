@@ -43,6 +43,7 @@ import {getShortEventId} from 'sentry/utils/events';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {isUrl} from 'sentry/utils/string/isUrl';
@@ -58,7 +59,6 @@ import {ResponseStatusCodeCell} from 'sentry/views/starfish/components/tableCell
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
-import {formatPercentage} from '../number/formatPercentage';
 import {decodeScalar} from '../queryString';
 
 import ArrayValue from './arrayValue';
