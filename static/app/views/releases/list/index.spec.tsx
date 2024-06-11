@@ -124,7 +124,8 @@ describe('ReleasesList', () => {
     expect(within(items.at(0)!).getByText('1.0.0')).toBeInTheDocument();
     expect(within(items.at(0)!).getByText('Adoption')).toBeInTheDocument();
     expect(within(items.at(1)!).getByText('1.0.1')).toBeInTheDocument();
-    expect(within(items.at(1)!).getByText('0%')).toBeInTheDocument();
+    // Crash free rate loads separately
+    expect(await within(items.at(1)!).findByText('0%')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('af4f231ec9a8')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('Project Name')).toBeInTheDocument();
   });

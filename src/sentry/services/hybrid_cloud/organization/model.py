@@ -262,8 +262,8 @@ class RpcOrganization(RpcOrganizationSummary):
             owners = OrganizationMember.objects.filter(
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
-        return user_service.get_many(
-            filter={"user_ids": [owner_id for owner_id in owners if owner_id is not None]}
+        return user_service.get_many_by_id(
+            ids=[owner_id for owner_id in owners if owner_id is not None]
         )
 
     @property

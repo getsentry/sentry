@@ -1,3 +1,4 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs
 from uuid import uuid4
 
@@ -5,6 +6,7 @@ import orjson
 import responses
 
 from sentry.integrations.slack import SlackNotifyServiceAction
+from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo.base import SiloMode
@@ -18,6 +20,10 @@ class TestInit(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def setUp(self) -> None:
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization = self.create_organization(id=1, owner=self.user)
+            self.project = self.create_project(organization=self.organization)
+
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.integration = self.create_integration(
                 organization=self.organization,
@@ -90,6 +96,45 @@ class TestInit(RuleTestCase):
         assert (
             blocks[0]["text"]["text"]
             == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
+        )
+
+        assert NotificationMessage.objects.all().count() == 0
+
+    @with_feature("organizations:slack-sdk-issue-alert-action")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    def test_after_using_sdk(self, mock_metrics, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        rule = self.get_rule(data=self.action_data)
+        results = list(rule.after(event=self.event))
+        assert len(results) == 1
+
+        results[0].callback(self.event, futures=[])
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": True, "status": 200}
+        )
+
+        assert NotificationMessage.objects.all().count() == 0
+
+    @with_feature("organizations:slack-sdk-issue-alert-action")
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    def test_after_using_sdk_error(self, mock_metrics):
+        # tests error flow because we're actually trying to POST
+
+        rule = self.get_rule(data=self.action_data)
+        results = list(rule.after(event=self.event))
+        assert len(results) == 1
+
+        results[0].callback(self.event, futures=[])
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": False, "status": 200}
         )
 
         assert NotificationMessage.objects.all().count() == 0
@@ -168,4 +213,32 @@ class TestInit(RuleTestCase):
         assert NotificationMessage.objects.all().count() == 2
         assert (
             NotificationMessage.objects.filter(parent_notification_message_id=msg.id).count() == 1
+        )
+
+    @with_feature("organizations:slack-sdk-issue-alert-action")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    def test_send_confirmation_using_sdk(self, mock_metrics, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+        rule = self.get_rule(data=self.action_data)
+        rule.send_confirmation_notification(self.rule, new=False)
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": True, "status": 200}
+        )
+
+    @with_feature("organizations:slack-sdk-issue-alert-action")
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    def test_send_confirmation_using_sdk_error(self, mock_metrics):
+        # tests error flow because we're actually trying to POST
+
+        rule = self.get_rule(data=self.action_data)
+        rule.send_confirmation_notification(self.rule, new=False)
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": False, "status": 200}
         )

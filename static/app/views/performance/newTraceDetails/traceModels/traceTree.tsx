@@ -10,7 +10,7 @@ import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
-  TracePerformanceIssue,
+  TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -24,8 +24,8 @@ import {
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {getStylingSliceName} from '../../../traces/utils';
 import {isRootTransaction} from '../../traceDetails/utils';
-import {getStylingSliceName} from '../../traces/utils';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -124,6 +124,7 @@ export declare namespace TraceTree {
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+  type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string; space: [number, number]};
 
   interface MissingInstrumentationSpan {
@@ -832,7 +833,7 @@ export class TraceTree {
       let groupMatchCount = 0;
 
       const errors: TraceErrorType[] = [];
-      const performance_issues: TracePerformanceIssue[] = [];
+      const performance_issues: TraceTree.TracePerformanceIssue[] = [];
 
       let start = head.value.start_timestamp;
       let end = head.value.timestamp;
@@ -1521,7 +1522,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   };
 
   errors: Set<TraceErrorType> = new Set<TraceErrorType>();
-  performance_issues: Set<TracePerformanceIssue> = new Set<TracePerformanceIssue>();
+  performance_issues: Set<TraceTree.TracePerformanceIssue> =
+    new Set<TraceTree.TracePerformanceIssue>();
   profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
@@ -2257,7 +2259,7 @@ function getRelatedSpanErrorsFromTransaction(
 function getRelatedPerformanceIssuesFromTransaction(
   span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
-): TracePerformanceIssue[] {
+): TraceTree.TracePerformanceIssue[] {
   if (!node || !node.value || !isTransactionNode(node)) {
     return [];
   }
@@ -2266,7 +2268,7 @@ function getRelatedPerformanceIssuesFromTransaction(
     return [];
   }
 
-  const performanceIssues: TracePerformanceIssue[] = [];
+  const performanceIssues: TraceTree.TracePerformanceIssue[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
     for (const s of perfIssue.span) {

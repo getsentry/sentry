@@ -9,21 +9,23 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
-import {QueryInterfaceType} from 'sentry/components/searchQueryBuilder/types';
+import {
+  type FilterKeySection,
+  QueryInterfaceType,
+} from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {collapseTextTokens} from 'sentry/components/searchQueryBuilder/utils';
-import {parseSearch} from 'sentry/components/searchSyntax/parser';
+import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 interface SearchQueryBuilderProps {
+  filterKeySections: FilterKeySection[];
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
   initialQuery: string;
-  supportedKeys: TagCollection;
   className?: string;
   label?: string;
   onBlur?: (query: string) => void;
@@ -39,7 +41,7 @@ interface SearchQueryBuilderProps {
 }
 
 function ActionButtons() {
-  const {dispatch} = useSearchQueryBuilder();
+  const {dispatch, onSearch} = useSearchQueryBuilder();
 
   return (
     <ButtonsWrapper>
@@ -48,7 +50,10 @@ function ActionButtons() {
         size="zero"
         icon={<IconClose />}
         borderless
-        onClick={() => dispatch({type: 'CLEAR'})}
+        onClick={() => {
+          dispatch({type: 'CLEAR'});
+          onSearch?.('');
+        }}
       />
     </ButtonsWrapper>
   );
@@ -58,7 +63,7 @@ export function SearchQueryBuilder({
   className,
   label,
   initialQuery,
-  supportedKeys,
+  filterKeySections,
   getTagValues,
   onChange,
   onSearch,
@@ -67,9 +72,19 @@ export function SearchQueryBuilder({
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
+  const keys = useMemo(
+    () =>
+      filterKeySections.reduce((acc, section) => {
+        for (const tag of section.children) {
+          acc[tag.key] = tag;
+        }
+        return acc;
+      }, {}),
+    [filterKeySections]
+  );
   const parsedQuery = useMemo(
-    () => collapseTextTokens(parseSearch(state.query || ' ', {flattenParenGroups: true})),
-    [state.query]
+    () => parseQueryBuilderValue(state.query, {keys}),
+    [keys, state.query]
   );
 
   useEffectAfterFirstRender(() => {
@@ -84,12 +99,13 @@ export function SearchQueryBuilder({
     return {
       ...state,
       parsedQuery,
-      keys: supportedKeys,
+      filterKeySections,
+      keys,
       getTagValues,
       dispatch,
       onSearch,
     };
-  }, [state, parsedQuery, supportedKeys, getTagValues, dispatch, onSearch]);
+  }, [state, parsedQuery, filterKeySections, keys, getTagValues, dispatch, onSearch]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>

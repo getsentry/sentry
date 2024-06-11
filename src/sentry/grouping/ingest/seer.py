@@ -10,19 +10,23 @@ from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
-from sentry.seer.similarity.utils import event_content_is_seer_eligible, get_stacktrace_string
+from sentry.seer.similarity.utils import (
+    event_content_is_seer_eligible,
+    filter_null_from_event_title,
+    get_stacktrace_string,
+)
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.events.grouping")
 
 
-def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
+def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes) -> bool:
     """
     Use event content, feature flags, rate limits, killswitches, seer health, etc. to determine
     whether a call to Seer should be made.
     """
-    # TODO: Implement rate limits, kill switches, other flags, etc
-    # TODO: Return False if the event has a custom fingerprint (check for both client- and server-side fingerprints)
+
+    project = event.project
 
     has_either_seer_grouping_feature = features.has(
         "projects:similarity-embeddings-metadata", project
@@ -31,9 +35,28 @@ def should_call_seer_for_grouping(event: Event, project: Project) -> bool:
     if not has_either_seer_grouping_feature:
         return False
 
+    fingerprint_variant = primary_hashes.variants.get(
+        "custom-fingerprint"
+    ) or primary_hashes.variants.get("built-in-fingerprint")
+    # If there's non-default fingerprint (whether from the user or from us), it should *always*
+    # contribute, but can't hurt to cover our bases
+    if fingerprint_variant and fingerprint_variant.contributes:
+        return False
+
     if not event_content_is_seer_eligible(event):
         return False
 
+    # **Do not add any new checks after this.** The rate limit check MUST remain the last of all the
+    # checks.
+    #
+    # (Checking the rate limit for calling Seer also increments the counter of how many times we've
+    # tried to call it, and if we fail any of the other checks, it shouldn't count as an attempt.
+    # Thus we only want to run the rate limit check if every other check has already succeeded.)
+    #
+    # Note: The circuit breaker check which might naturally be here alongside its killswitch
+    # and rate limiting friends instead happens in the `with_circuit_breaker` helper used where
+    # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
+    # errors arising from that call.)
     if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
         return False
 
@@ -125,14 +148,6 @@ def get_seer_similar_issues(
     feature flag is off.
     """
 
-    # TODO: In our context, this can never happen. There are other scenarios in which `variants` can
-    # be `None`, but where we'll be using this (during ingestion) it's not possible. This check is
-    # primarily to satisfy mypy. Once we get rid of hierarchical hashing, we'll be able to
-    # make `variants` required in `CalculatedHashes`, meaning we can remove this check. (See note in
-    # `CalculatedHashes` class definition.)
-    if primary_hashes.variants is None:
-        raise Exception("Primary hashes missing variants data")
-
     event_hash = primary_hashes.hashes[0]
     stacktrace_string = get_stacktrace_string(
         get_grouping_info_from_variants(primary_hashes.variants)
@@ -142,7 +157,7 @@ def get_seer_similar_issues(
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
-        "message": event.title,
+        "message": filter_null_from_event_title(event.title),
         "k": num_neighbors,
     }
 

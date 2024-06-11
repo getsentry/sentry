@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 import uuid
 from datetime import timedelta
 from itertools import chain
@@ -9,7 +10,7 @@ from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
-from sentry import features
+from sentry import analytics, features
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import Monitor
@@ -22,6 +23,9 @@ logger = logging.getLogger(__name__)
 
 MAX_ERRORS_PER_SET = 10
 MONITOR_ERRORS_LIFETIME = timedelta(days=7)
+
+# Sample processing error analytics due to a high volume of processing errors stored
+ANALYTICS_SAMPLING_RATE = 0.01
 
 
 class InvalidProjectError(Exception):
@@ -178,6 +182,15 @@ def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException
                 "sdk_platform": item.message["sdk"],
             },
         )
+
+        if random.random() < ANALYTICS_SAMPLING_RATE:
+            analytics.record(
+                "checkin_processing_error.stored",
+                organization_id=organization.id,
+                project_id=project.id,
+                monitor_slug=item.payload["monitor_slug"],
+                error_types=[process_error["type"] for process_error in error.processing_errors],
+            )
 
         checkin_processing_error = CheckinProcessingError(error.processing_errors, item)
         store_error(checkin_processing_error, error.monitor)

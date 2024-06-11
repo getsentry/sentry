@@ -6,6 +6,7 @@ import type {ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/boolean';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
@@ -30,6 +31,7 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 
   useLayoutEffect(() => {
     if (focusOverride && !focusOverride.part) {
+      state.selectionManager.setFocused(true);
       state.selectionManager.setFocusedKey(focusOverride.itemKey);
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
@@ -78,6 +80,15 @@ function Grid(props: GridProps) {
                 state={state}
               />
             );
+          case Token.LOGIC_BOOLEAN:
+            return (
+              <SearchQueryBuilderBoolean
+                key={item.key}
+                token={token}
+                item={item}
+                state={state}
+              />
+            );
           // TODO(malwilley): Add other token types
           default:
             return null;
@@ -107,7 +118,7 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
 }
 
 const SearchQueryGridWrapper = styled('div')`
-  padding: ${space(0.75)} 48px ${space(0.75)} 32px;
+  padding: ${space(0.75)} 34px ${space(0.75)} 32px;
   display: flex;
   align-items: stretch;
   row-gap: ${space(0.5)};

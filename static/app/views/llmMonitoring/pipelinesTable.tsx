@@ -209,7 +209,6 @@ export function PipelinesTable() {
             renderBodyCell: (column, row) =>
               renderBodyCell(moduleURL, column, row, meta, location, organization),
           }}
-          location={location}
         />
         <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
       </Container>

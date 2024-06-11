@@ -206,7 +206,9 @@ class CheckinProcessErrorsManagerTest(TestCase):
 
 
 class HandleProcessingErrorsTest(TestCase):
-    def test(self):
+    @mock.patch("sentry.monitors.processing_errors.manager.ANALYTICS_SAMPLING_RATE", 1.0)
+    @mock.patch("sentry.analytics.record")
+    def test(self, mock_record):
         monitor = self.create_monitor()
         exception = ProcessingErrorsException(
             [{"type": ProcessingErrorType.CHECKIN_INVALID_GUID}],
@@ -224,8 +226,17 @@ class HandleProcessingErrorsTest(TestCase):
             handle_processing_errors(
                 build_checkin_item(
                     message_overrides={"project_id": self.project.id},
+                    payload_overrides={"monitor_slug": monitor.slug},
                 ),
                 exception,
             )
         errors = get_errors_for_monitor(monitor)
         assert len(errors) == 1
+
+        mock_record.assert_called_with(
+            "checkin_processing_error.stored",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            monitor_slug=monitor.slug,
+            error_types=[ProcessingErrorType.CHECKIN_INVALID_GUID],
+        )

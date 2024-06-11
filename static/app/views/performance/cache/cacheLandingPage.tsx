@@ -1,7 +1,6 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -34,7 +33,6 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
-  RELEASE_LEVEL,
 } from 'sentry/views/performance/cache/settings';
 import {
   isAValidSort,
@@ -45,6 +43,7 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
@@ -58,7 +57,7 @@ const {CACHE_ITEM_SIZE} = SpanMetricsField;
 const SDK_UPDATE_ALERT = (
   <Fragment>
     {t(
-      `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. `
+      `If you're noticing missing cache data, try updating to the latest SDK or ensure spans are manually instrumented with the right attributes. To learn more, `
     )}
     <ExternalLink href={`${MODULE_DOC_LINK}#instrumentation`}>
       {t('Read the Docs')}
@@ -78,9 +77,9 @@ export function CacheLandingPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.TRANSACTIONS_CURSOR]);
 
   const {
-    isLoading: isCacheHitRateLoading,
-    data: cacheHitRateData,
-    error: cacheHitRateError,
+    isLoading: isCacheMissRateLoading,
+    data: cacheMissRateData,
+    error: cacheMissRateError,
   } = useSpanMetricsSeries(
     {
       yAxis: [`${CACHE_MISS_RATE}()`],
@@ -147,9 +146,15 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_ONBOARDING
   );
 
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    Referrer.LANDING_CACHE_ONBOARDING,
+    'insight.page_loads.cache'
+  );
+
   useEffect(() => {
     const hasMissingDataError =
-      cacheHitRateError?.message === CACHE_ERROR_MESSAGE ||
+      cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
 
     if (onboardingProject || isHasDataLoading || !hasData) {
@@ -162,7 +167,7 @@ export function CacheLandingPage() {
       }
     }
   }, [
-    cacheHitRateError?.message,
+    cacheMissRateError?.message,
     transactionsListError?.message,
     setPageInfo,
     hasData,
@@ -198,7 +203,6 @@ export function CacheLandingPage() {
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
             />
-            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
@@ -228,10 +232,10 @@ export function CacheLandingPage() {
                 <CacheHitMissChart
                   series={{
                     seriesName: DataTitles[`${CACHE_MISS_RATE}()`],
-                    data: cacheHitRateData[`${CACHE_MISS_RATE}()`]?.data,
+                    data: cacheMissRateData[`${CACHE_MISS_RATE}()`]?.data,
                   }}
-                  isLoading={isCacheHitRateLoading}
-                  error={cacheHitRateError}
+                  isLoading={isCacheMissRateLoading}
+                  error={cacheMissRateError}
                 />
               </ModuleLayout.Half>
               <ModuleLayout.Half>

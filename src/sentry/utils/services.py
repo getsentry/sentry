@@ -3,18 +3,19 @@ from __future__ import annotations
 import functools
 import hashlib
 import inspect
-import itertools
 import logging
 import threading
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, TypeVar
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, TypeVar
 
-from django.utils.functional import LazyObject, empty
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.utils import metrics, warnings
 from sentry.utils.concurrent import Executor, FutureSet, ThreadedExecutor, TimedFuture
+
+# TODO: adjust modules to import from new location -- the weird `as` syntax is for mypy
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper as LazyServiceWrapper  # noqa: F401
+from sentry.utils.lazy_service_wrapper import Service as Service
 
 from .imports import import_string
 from .types import AnyCallable
@@ -22,101 +23,6 @@ from .types import AnyCallable
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-
-class Service:
-    __all__: Iterable[str] = ()
-
-    def validate(self) -> None:
-        """
-        Validates the settings for this backend (i.e. such as proper connection
-        info).
-
-        Raise ``InvalidConfiguration`` if there is a configuration error.
-        """
-
-    def setup(self) -> None:
-        """
-        Initialize this service.
-        """
-
-
-if TYPE_CHECKING:
-    Proxied = TypeVar("Proxied", bound=Service)
-else:
-    Proxied = object
-
-
-class LazyServiceWrapper(LazyObject, Proxied):
-    """
-    Lazyily instantiates a standard Sentry service class.
-
-    >>> LazyServiceWrapper(BaseClass, 'path.to.import.Backend', {})
-
-    Provides an ``expose`` method for dumping public APIs to a context, such as
-    module locals:
-
-    >>> service = LazyServiceWrapper(...)
-    >>> service.expose(locals())
-    """
-
-    def __init__(
-        self,
-        backend_base: type[Proxied],
-        backend_path: str,
-        options: Mapping[str, Any],
-        dangerous: Sequence[type[Service]] | None = (),
-        metrics_path: str | None = None,
-    ):
-        super().__init__()
-        self.__dict__.update(
-            {
-                "_backend": backend_path,
-                "_options": options,
-                "_base": backend_base,
-                "_dangerous": dangerous,
-                "_metrics_path": metrics_path,
-            }
-        )
-
-    def __getattr__(self, name: str) -> Any:
-        if self._wrapped is empty:
-            self._setup()
-
-        attr = getattr(self._wrapped, name)
-
-        # If we want to wrap in metrics, we need to make sure it's some callable,
-        # and within our list of exposed attributes. Then we can safely wrap
-        # in our metrics decorator.
-        if self._metrics_path and callable(attr) and name in self._base.__all__:
-            return metrics.wraps(
-                self._metrics_path, instance=name, tags={"backend": self._backend}
-            )(attr)
-
-        return attr
-
-    def _setup(self) -> None:
-        backend = import_string(self._backend)
-        assert issubclass(backend, Service)
-        if backend in self._dangerous:
-            warnings.warn(
-                warnings.UnsupportedBackend(
-                    "The {!r} backend for {} is not recommended "
-                    "for production use.".format(self._backend, self._base)
-                )
-            )
-        instance = backend(**self._options)
-        self._wrapped = instance
-
-    def expose(self, context: MutableMapping[str, Any]) -> None:
-        base = self._base
-        base_instance = base()
-        for key in itertools.chain(base.__all__, ("validate", "setup")):
-            if inspect.isroutine(getattr(base_instance, key)):
-                context[key] = (lambda f: lambda *a, **k: getattr(self, f)(*a, **k))(key)
-            else:
-                context[key] = getattr(base_instance, key)
-
 
 CallableT = TypeVar("CallableT", bound=Callable[..., object])
 

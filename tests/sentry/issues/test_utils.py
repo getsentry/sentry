@@ -20,7 +20,11 @@ from sentry.testutils.helpers.datetime import iso_format
 
 
 class OccurrenceTestMixin:
-    def assert_occurrences_identical(self, o1: IssueOccurrence, o2: IssueOccurrence) -> None:
+    def assert_occurrences_identical(
+        self, o1: IssueOccurrence | None, o2: IssueOccurrence | None
+    ) -> None:
+        assert o1 is not None
+        assert o2 is not None
         assert o1.id == o2.id
         assert o1.event_id == o2.event_id
         assert o1.fingerprint == o2.fingerprint

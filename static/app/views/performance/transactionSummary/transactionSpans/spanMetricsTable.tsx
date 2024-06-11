@@ -54,7 +54,7 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: SpanMetricsField.SPAN_DESCRIPTION,
-    name: t('Span Name'),
+    name: t('Span Description'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -169,7 +169,6 @@ export default function SpanMetricsTable(props: Props) {
               project
             ),
           }}
-          location={location}
         />
       </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -184,7 +183,27 @@ function renderBodyCell(
   project?: Project
 ) {
   return function (column: Column, dataRow: DataRow): React.ReactNode {
+    if (column.key === SpanMetricsField.SPAN_OP) {
+      const target = spanDetailsRouteWithQuery({
+        orgSlug: organization.slug,
+        transaction: transactionName,
+        query: location.query,
+        spanSlug: {op: dataRow['span.op'], group: ''},
+        projectID: project?.id,
+      });
+
+      return (
+        <TableCellContainer>
+          <Link to={target}>{dataRow[column.key]}</Link>
+        </TableCellContainer>
+      );
+    }
+
     if (column.key === SpanMetricsField.SPAN_DESCRIPTION) {
+      if (!dataRow['span.group']) {
+        return <TableCellContainer>{'\u2014'}</TableCellContainer>;
+      }
+
       const target = spanDetailsRouteWithQuery({
         orgSlug: organization.slug,
         transaction: transactionName,
@@ -195,7 +214,7 @@ function renderBodyCell(
 
       return (
         <TableCellContainer>
-          <Link to={target}>{dataRow[column.key] || t('(unnamed span)')}</Link>
+          <Link to={target}>{dataRow[column.key]}</Link>
         </TableCellContainer>
       );
     }

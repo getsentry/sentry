@@ -21,7 +21,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {
   TableData,
   TableDataRow,
@@ -462,7 +462,6 @@ export class TagExplorer extends Component<Props> {
                   renderBodyCell: this.renderBodyCellWithData(this.props) as any,
                   onResizeColumn: this.handleResizeColumn as any,
                 }}
-                location={location}
               />
             </Fragment>
           );

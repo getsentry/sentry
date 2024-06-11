@@ -3,13 +3,13 @@ from urllib.parse import parse_qs
 import orjson
 import responses
 
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.integration_nudge import (
     MESSAGE_LIBRARY,
     IntegrationNudgeNotification,
 )
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
-from sentry.types.integrations import ExternalProviders
 
 SEED = 0
 

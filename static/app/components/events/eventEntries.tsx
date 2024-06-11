@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -19,7 +21,6 @@ import type {
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {isNotSharedOrganization} from 'sentry/types/utils';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
-import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
@@ -209,6 +210,7 @@ export function Entries({
         beforeReplayEntries.map((entry, entryIdx) => (
           <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
         ))}
+      {!isShare && <EventHydrationDiff {...eventEntryProps} />}
       {!isShare && <EventReplay {...eventEntryProps} />}
       {afterReplayEntries.map((entry, entryIdx) => {
         if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {

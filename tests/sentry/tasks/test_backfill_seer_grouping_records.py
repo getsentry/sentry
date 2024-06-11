@@ -9,27 +9,23 @@ from unittest.mock import ANY, call, patch
 import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
-from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query, Request
+from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.grouping_info import get_grouping_info
+from sentry.eventstore.models import Event
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
-from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.backfill_seer_grouping_records import (
-    GroupStacktraceData,
     backfill_seer_grouping_records,
+    get_events_from_nodestore,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
-    lookup_group_data_stacktrace_bulk_with_fallback,
-    lookup_group_data_stacktrace_single,
     make_backfill_redis_key,
-    single_query_event_per_group,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -164,89 +160,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with pytest.raises(EventLookupError):
             lookup_event(self.project.id, "1000000", 1000000)
 
-    def test_lookup_group_data_stacktrace_single_success(self):
-        """Test successful group data and stacktrace lookup"""
-        event = self.event
-        hash = self.group_hashes[event.group.id]
-        group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id
-        )
-        expected_group_data = CreateGroupingRecordData(
-            group_id=event.group.id,
-            hash=hash,
-            project_id=self.project.id,
-            message=event.title,
-        )
-        assert group_data == expected_group_data
-        assert stacktrace_string == EXCEPTION_STACKTRACE_STRING
-
-    @patch("time.sleep", return_value=None)
-    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_event")
-    def test_lookup_group_data_stacktrace_single_exceptions(
-        self, mock_lookup_event, mock_logger, mock_sleep
-    ):
-        """
-        Test when ServiceUnavailable and DeadlineExceeded exceptions occur, that we stop the
-        backfill
-        """
-        exceptions = [
-            ServiceUnavailable(message="Service Unavailable"),
-            DeadlineExceeded(message="Deadline Exceeded"),
-        ]
-        event = self.event
-
-        for exception in exceptions:
-            mock_lookup_event.side_effect = exception
-            with pytest.raises(Exception):
-                lookup_group_data_stacktrace_single(
-                    self.project,
-                    event.event_id,
-                    event.group_id,
-                )
-                mock_logger.exception.assert_called_with(
-                    "tasks.backfill_seer_grouping_records.event_lookup_exception",
-                    extra={
-                        "organization_id": self.project.organization.id,
-                        "project_id": self.project.id,
-                        "group_id": event.group.id,
-                        "event_id": event.event_id,
-                        "error": exception.message,
-                    },
-                )
-
-    def test_lookup_group_data_stacktrace_single_not_stacktrace_grouping(self):
-        """Test that no data is returned if the group did not use the stacktrace to determine grouping"""
-        # Create an event that is grouped by fingerprint
-        event = self.store_event(
-            data={"exception": EXCEPTION, "title": "title", "fingerprint": ["1"]},
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-        group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id
-        )
-        assert (group_data, stacktrace_string) == (None, "")
-
-    def test_lookup_group_data_stacktrace_single_no_stacktrace(self):
-        """Test that no data is returned if the event has no stacktrace"""
-        event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
-        group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id
-        )
-        assert (group_data, stacktrace_string) == (None, "")
-
     @patch("sentry.tasks.backfill_seer_grouping_records.metrics")
     def test_lookup_group_data_stacktrace_bulk_success(self, mock_metrics):
         """Test successful bulk group data and stacktrace lookup"""
         rows, events = self.bulk_rows, self.bulk_events
-        (
-            bulk_event_ids,
-            invalid_event_ids,
-            bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
+        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
+        )
 
-        expected_event_ids = {event.event_id for event in events}
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -260,10 +181,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(5)
         ]
-        assert bulk_event_ids == expected_event_ids
-        assert invalid_event_ids == set()
-        assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+        assert nodestore_results["data"] == expected_group_data
+        assert nodestore_results["stacktrace_list"] == expected_stacktraces
         mock_metrics.gauge.assert_called_with(
             "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
         )
@@ -317,11 +236,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
-        (
-            bulk_event_ids,
-            invalid_event_ids,
-            bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
+        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, group_ids
+        )
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -335,10 +252,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
-        assert bulk_event_ids == {event.event_id for event in events}
-        assert invalid_event_ids == {event.event_id}
-        assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+        # assert bulk_event_ids == {event.event_id for event in events}
+        # assert invalid_event_ids == {event.event_id}
+        assert nodestore_results["data"] == expected_group_data
+        assert nodestore_results["stacktrace_list"] == expected_stacktraces
 
     def test_lookup_group_data_stacktrace_bulk_no_stacktrace_exception(self):
         """
@@ -355,11 +272,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
-        (
-            bulk_event_ids,
-            invalid_event_ids,
-            bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, group_ids
+        )
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -373,8 +288,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
-        assert bulk_event_ids == {event.event_id for event in events}
-        assert invalid_event_ids == {event.event_id}
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
@@ -385,8 +298,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             self.bulk_events,
             self.group_hashes,
         )
-        bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
         )
 
         expected_group_data = [
@@ -405,9 +318,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
-    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk")
+    @patch("sentry.nodestore.backend.get_multi")
     def test_lookup_group_data_stacktrace_bulk_with_fallback_use_single_fallback(
-        self, mock_lookup_group_data_stacktrace_bulk
+        self, mock_get_multi
     ):
         """
         Test bulk lookup with fallback returns data for all events, where two events use single
@@ -415,28 +328,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         # Purposely exclude two events from being included in the bulk lookup response, so that the fallback is used
         events_missing_two = self.bulk_events[:-2]
-        group_data, stacktrace_strings = [], []
-        for event in events_missing_two:
-            grouping_info = get_grouping_info(None, project=self.project, event=event)
-            stacktrace_string = get_stacktrace_string(grouping_info)
-            group_data.append(
-                CreateGroupingRecordData(
-                    group_id=event.group.id,
-                    hash=self.group_hashes[event.group.id],
-                    project_id=self.project.id,
-                    message=event.title,
-                )
-            )
-            stacktrace_strings.append(stacktrace_string)
-        mock_lookup_group_data_stacktrace_bulk.return_value = (
-            {event.event_id for event in events_missing_two},
-            set(),
-            GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
-        )
+        mock_get_multi.return_value = {
+            Event.generate_node_id(self.project.id, event_id=event.event_id): event.data
+            for event in events_missing_two
+        }
 
         rows, hashes = self.bulk_rows, self.group_hashes
-        bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
         )
 
         events = self.bulk_events
@@ -469,8 +368,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Purposely change the event id of the last row to one that does not exist
         rows[-1]["event_id"] = 10000
 
-        bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
         )
 
         events = self.bulk_events[:-1]
@@ -489,7 +388,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        mock_logger.exception.assert_called_with(
+        mock_logger.error.assert_called_with(
             "tasks.backfill_seer_grouping_records.event_lookup_error",
             extra={
                 "organization_id": self.project.organization.id,
@@ -498,16 +397,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "event_id": 10000,
             },
         )
-
-    def test_single_query_event_per_group(self):
-        """
-        Test that all groups are queried when queried individually.
-        """
-        group_ids = [group.id for group in Group.objects.filter(project_id=self.project.id)]
-        group_event_rows = single_query_event_per_group(group_ids, self.project.id)
-        group_ids_results = [row["group_id"] for row in group_event_rows]
-        for group_id in group_ids:
-            assert group_id in group_ids_results
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -664,8 +553,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             event.group.times_seen = 2
             event.group.save()
             # Arbitrarily choose a parent group's hash that has times_seen = 5
-            parent_group = Group.objects.filter(times_seen__gt=2).first()
-            parent_group_hash = GroupHash.objects.filter(group_id=parent_group.id).first()
+            parent_group = Group.objects.get(times_seen__gt=2)
+            parent_group_hash = GroupHash.objects.get(group_id=parent_group.id)
             groups_with_neighbor[str(event.group.id)] = RawSeerSimilarIssueData(
                 stacktrace_distance=0.01,
                 message_distance=0.01,
@@ -690,7 +579,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 }
             else:
                 request_hash = GroupHash.objects.get(group_id=group.id).hash
-                parent_group_id = Group.objects.filter(times_seen__gt=2).first().id
+                parent_group_id = Group.objects.get(times_seen__gt=2).id
                 assert group.data["metadata"].get("seer_similarity") == {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "request_hash": request_hash,
@@ -909,40 +798,47 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         # Mock snuba response to purposefully exclude the first group
-        group_ids_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
-        group_id_batch = [group.id for group in group_ids_minus_first]
-        time_now = datetime.now()
+        groups_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
+        group_id_batch = [group.id for group in groups_minus_first]
         events_entity = Entity("events", alias="events")
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Function("max", [Column("event_id")], "event_id"),
-            ],
-            groupby=[Column("group_id")],
-            where=[
-                Condition(Column("project_id"), Op.EQ, self.project.id),
-                Condition(Column("group_id"), Op.IN, group_id_batch),
-                Condition(
-                    Column("timestamp", entity=events_entity), Op.GTE, time_now - timedelta(days=90)
-                ),
-                Condition(Column("timestamp", entity=events_entity), Op.LT, time_now),
-            ],
-            orderby=[OrderBy(Column("group_id"), Direction.ASC)],
-        )
-
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
-        )
+        snuba_requests = []
+        for group_id in group_id_batch:
+            group = Group.objects.get(id=group_id)
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, self.project.id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        group.last_seen - timedelta(days=10),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        group.last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
 
         result = bulk_snuba_queries(
-            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
         mock_snuba_queries.return_value = result
 
@@ -1004,24 +900,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert last_processed_index == len(groups)
 
         # Assert metadata was not set for groups that is 90 days old
-        old_group = Group.objects.filter(project_id=self.project.id, id=old_group_id).first()
+        old_group = Group.objects.get(project_id=self.project.id, id=old_group_id)
         assert old_group.data["metadata"].get("seer_similarity") is None
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    @patch(
-        "sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk_with_fallback"
-    )
+    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk")
     @patch("sentry.tasks.backfill_seer_grouping_records.call_next_backfill")
     def test_backfill_seer_grouping_records_empty_nodestore(
         self,
         mock_call_next_backfill,
-        mock_lookup_group_data_stacktrace_bulk_with_fallback,
+        mock_lookup_group_data_stacktrace_bulk,
         mock_logger,
     ):
-        mock_lookup_group_data_stacktrace_bulk_with_fallback.return_value = GroupStacktraceData(
-            data=[], stacktrace_list=[]
-        )
+        mock_lookup_group_data_stacktrace_bulk.return_value = []
 
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
@@ -1041,49 +933,31 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         )
 
     @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
-    def test_backfill_seer_grouping_records_groups_1_million_times_seen(
-        self, mock_post_bulk_grouping_records
+    def test_backfill_seer_grouping_records_exclude_invalid_groups(
+        self, mock_post_bulk_grouping_records, mock_logger
     ):
-        """
-        Test that groups where times_seen >= 1 million are queried individually
-        """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
-        # Create groups with over 1 million event counts
-        function_names = [f"new_function_{str(i)}" for i in range(5)]
-        type_names = [f"NewError{str(i)}" for i in range(5)]
-        value_names = ["error with value" for _ in range(5)]
-        groups_high_event_count = []
-        group_hashes_high_event_count = {}
-        for i in range(5):
-            data = {
-                "exception": self.create_exception_values(
-                    function_names[i], type_names[i], value_names[i]
-                ),
-                "title": "title",
-                "timestamp": iso_format(before_now(seconds=10)),
-            }
-            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
-            event.group.times_seen = 1000000
-            event.group.save()
-            groups_high_event_count.append(event.group.id)
-            group_hash = GroupHash.objects.get(group_id=event.group.id).hash
-            group_hashes_high_event_count.update({event.group.id: group_hash})
+        # Add one event where the stacktrace is not used for grouping
+        event = self.store_event(
+            data={"exception": EXCEPTION, "title": "title", "fingerprint": ["2"]},
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        event.group.times_seen = 5
+        event.group.save()
 
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
 
-        for group in Group.objects.filter(project_id=self.project.id):
+        groups = Group.objects.filter(project_id=self.project.id).exclude(id=event.group.id)
+        for group in groups:
             assert group.data["metadata"].get("seer_similarity") == {
                 "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id]
-                if group.id in self.group_hashes
-                else group_hashes_high_event_count[group.id],
+                "request_hash": self.group_hashes[group.id],
             }
 
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
-        assert last_processed_index == len(
-            Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
-        )
+        group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
+        assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None

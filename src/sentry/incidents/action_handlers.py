@@ -16,6 +16,7 @@ from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
+from sentry.integrations.types import ExternalProviders
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
@@ -25,7 +26,6 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.email import MessageBuilder, get_email_addresses
 
 
@@ -171,7 +171,7 @@ class EmailActionHandler(ActionHandler):
         notification_uuid: str | None = None,
     ) -> None:
         targets = [(user_id, email) for user_id, email in self.get_targets()]
-        users = user_service.get_many(filter={"user_ids": [user_id for user_id, _ in targets]})
+        users = user_service.get_many_by_id(ids=[user_id for user_id, _ in targets])
         for index, (user_id, email) in enumerate(targets):
             user = users[index]
             email_context = generate_incident_trigger_email_context(

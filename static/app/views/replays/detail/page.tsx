@@ -81,7 +81,7 @@ export default function Page({
 
       <ButtonActionsWrapper>
         {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
-        <ConfigureReplayCard />
+        {isVideoReplay ? null : <ConfigureReplayCard />}
         <DropdownMenu
           position="bottom-end"
           triggerProps={{

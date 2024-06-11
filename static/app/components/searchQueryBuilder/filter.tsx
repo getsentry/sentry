@@ -99,25 +99,13 @@ function FilterOperator({token, state, item}: SearchQueryTokenProps) {
   );
 }
 
-function FilterKey({token, state, item}: SearchQueryTokenProps) {
+function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
   const {keys} = useSearchQueryBuilder();
   const key = token.key.text;
   const tag = keys[key];
   const label = tag ? getKeyLabel(tag) : key;
 
-  const filterButtonProps = useFilterButtonProps({state, item});
-  // TODO(malwilley): Add edit functionality
-
-  return (
-    <KeyButton
-      aria-label={t('Edit filter key: %s', label)}
-      onClick={() => {}}
-      {...filterButtonProps}
-    >
-      <InteractionStateLayer />
-      {label}
-    </KeyButton>
-  );
+  return <KeyLabel>{label}</KeyLabel>;
 }
 
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
@@ -223,7 +211,13 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault();
       e.stopPropagation();
-      dispatch({type: 'DELETE_TOKEN', token});
+
+      // Only delete if full filter token is focused, otherwise focus it
+      if (ref.current === document.activeElement) {
+        dispatch({type: 'DELETE_TOKEN', token});
+      } else {
+        ref.current?.focus();
+      }
     }
   };
 
@@ -242,8 +236,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       ref={ref}
       {...modifiedRowProps}
     >
-      <BaseTokenPart {...gridCellProps}>
-        <FilterKey token={token} state={state} item={item} />
+      <BaseTokenPart>
+        <FilterKey token={token} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
         <FilterOperator token={token} state={state} item={item} />
@@ -291,7 +285,9 @@ const UnstyledButton = styled('button')`
   }
 `;
 
-const KeyButton = styled(UnstyledButton)`
+const KeyLabel = styled('div')`
+  display: flex;
+  align-items: center;
   padding: 0 ${space(0.5)} 0 ${space(0.75)};
   border-radius: 3px 0 0 3px;
   border-right: 1px solid transparent;

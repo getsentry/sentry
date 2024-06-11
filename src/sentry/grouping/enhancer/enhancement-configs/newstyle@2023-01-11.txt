@@ -86,6 +86,14 @@ family:javascript module:**/packages/flutter/** -app
 # sentry-dart SDK frames are not in app
 stack.abs_path:package:sentry/** -app -group
 stack.abs_path:package:sentry_flutter/** -app -group
+# other sentry-dart packages that are non in app
+stack.abs_path:package:sentry_logging/** -app -group
+stack.abs_path:package:sentry_dio/** -app -group
+stack.abs_path:package:sentry_file/** -app -group
+stack.abs_path:package:sentry_hive/** -app -group
+stack.abs_path:package:sentry_isar/** -app -group
+stack.abs_path:package:sentry_sqflite/** -app -group
+stack.abs_path:package:sentry_drift/** -app -group
 
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system

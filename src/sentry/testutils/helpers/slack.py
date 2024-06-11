@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, quote
 import responses
 
 from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
@@ -12,7 +13,6 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
 
 

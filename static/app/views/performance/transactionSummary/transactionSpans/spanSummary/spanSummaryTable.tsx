@@ -7,10 +7,13 @@ import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Pagination, {type CursorHandler} from 'sentry/components/pagination';
 import {ROW_HEIGHT, ROW_PADDING} from 'sentry/components/performance/waterfall/constants';
+import PerformanceDuration from 'sentry/components/performanceDuration';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import EventView, {type MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
@@ -224,7 +227,6 @@ export default function SpanSummaryTable(props: Props) {
               isTxnDurationDataLoading || isTxnDurationError
             ),
           }}
-          location={location}
         />
       </VisuallyCompleteWithData>
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
@@ -246,7 +248,20 @@ function renderBodyCell(
 
     if (column.key === SpanIndexedField.SPAN_DURATION) {
       if (isTxnDurationDataLoading) {
-        return <SpanDurationBarLoading />;
+        return <EmptySpanDurationBar />;
+      }
+
+      if (!transactionDuration) {
+        return (
+          <EmptySpanDurationBar>
+            <Tooltip
+              title={t('Transaction duration unknown')}
+              containerDisplayMode="block"
+            >
+              <PerformanceDuration abbreviation milliseconds={spanDuration} />
+            </Tooltip>
+          </EmptySpanDurationBar>
+        );
       }
 
       return (
@@ -259,6 +274,10 @@ function renderBodyCell(
     }
 
     if (column.key === SpanIndexedField.ID) {
+      if (!defined(span_id)) {
+        return null;
+      }
+
       return (
         <SpanIdCell
           moduleName={ModuleName.OTHER}
@@ -278,11 +297,18 @@ function renderBodyCell(
   };
 }
 
-const SpanDurationBarLoading = styled('div')`
+const EmptySpanDurationBar = styled('div')`
   height: ${ROW_HEIGHT - 2 * ROW_PADDING}px;
   width: 100%;
   position: relative;
   display: flex;
+  align-items: center;
   top: ${space(0.5)};
   background-color: ${p => p.theme.gray100};
+  padding-left: ${space(1)};
+
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 `;

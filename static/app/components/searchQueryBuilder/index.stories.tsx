@@ -3,47 +3,58 @@ import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
-import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 
-const SUPPORTED_KEYS: TagCollection = {
-  [FieldKey.AGE]: {
-    key: FieldKey.AGE,
-    name: 'Age',
-    kind: FieldKind.FIELD,
-    predefined: true,
-  },
-  [FieldKey.ASSIGNED]: {
-    key: FieldKey.ASSIGNED,
-    name: 'Assigned To',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: [
+const FITLER_KEY_SECTIONS: FilterKeySection[] = [
+  {
+    value: FieldKind.FIELD,
+    label: 'Category 1',
+    children: [
+      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
       {
-        title: 'Suggested',
-        type: 'header',
-        icon: null,
-        children: [{value: 'me'}, {value: 'unassigned'}],
+        key: FieldKey.ASSIGNED,
+        name: 'Assigned To',
+        kind: FieldKind.FIELD,
+        predefined: true,
+        values: [
+          {
+            title: 'Suggested',
+            type: 'header',
+            icon: null,
+            children: [{value: 'me'}, {value: 'unassigned'}],
+          },
+          {
+            title: 'All',
+            type: 'header',
+            icon: null,
+            children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+          },
+        ],
       },
       {
-        title: 'All',
-        type: 'header',
-        icon: null,
-        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+        key: FieldKey.BROWSER_NAME,
+        name: 'Browser Name',
+        kind: FieldKind.FIELD,
+        predefined: true,
+        values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
       },
     ],
   },
-  [FieldKey.BROWSER_NAME]: {
-    key: FieldKey.BROWSER_NAME,
-    name: 'Browser Name',
-    kind: FieldKind.FIELD,
-    predefined: true,
-    values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+  {
+    value: FieldKind.TAG,
+    label: 'Category 2',
+    children: [
+      {
+        key: 'custom_tag_name',
+        name: 'Custom_Tag_Name',
+        values: ['tag value one', 'tag value two', 'tag value three'],
+      },
+    ],
   },
-  custom_tag_name: {key: 'custom_tag_name', name: 'Custom_Tag_Name', kind: FieldKind.TAG},
-};
+];
 
 const getTagValues = (): Promise<string[]> => {
   return new Promise(resolve => {
@@ -61,7 +72,7 @@ export default storyBook(SearchQueryBuilder, story => {
         <MinHeightSizingWindow>
           <SearchQueryBuilder
             initialQuery="browser.name:Firefox assigned:me custom_tag_name:123"
-            supportedKeys={SUPPORTED_KEYS}
+            filterKeySections={FITLER_KEY_SECTIONS}
             getTagValues={getTagValues}
           />
         </MinHeightSizingWindow>
@@ -72,4 +83,5 @@ export default storyBook(SearchQueryBuilder, story => {
 
 const MinHeightSizingWindow = styled(SizingWindow)`
   min-height: 500px;
+  align-items: flex-start;
 `;

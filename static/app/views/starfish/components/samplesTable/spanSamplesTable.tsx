@@ -209,7 +209,6 @@ export function SpanSamplesTable({
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location}
     />
   );
 }

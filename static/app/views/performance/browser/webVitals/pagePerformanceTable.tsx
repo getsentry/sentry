@@ -15,6 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
@@ -23,6 +24,7 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
@@ -31,6 +33,7 @@ import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/web
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {SORTABLE_FIELDS} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -59,6 +62,7 @@ const DEFAULT_SORT: Sort = {
 
 export function PagePerformanceTable() {
   const location = useLocation();
+  const organization = useOrganization();
   const {projects} = useProjects();
 
   const columnOrder = COLUMN_ORDER;
@@ -283,6 +287,11 @@ export function PagePerformanceTable() {
   }
 
   const handleSearch = (newQuery: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newQuery,
+      source: ModuleName.VITAL,
+    });
     browserHistory.push({
       ...location,
       query: {
@@ -336,7 +345,6 @@ export function PagePerformanceTable() {
             renderHeadCell,
             renderBodyCell,
           }}
-          location={location}
         />
       </GridContainer>
     </span>
