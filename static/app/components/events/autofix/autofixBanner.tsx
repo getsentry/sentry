@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import bannerImage from 'sentry-images/spot/ai-suggestion-banner.svg';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Button} from 'sentry/components/button';
 import {AutofixInstructionsModal} from 'sentry/components/events/autofix/autofixInstructionsModal';
 import {AutofixSetupModal} from 'sentry/components/events/autofix/autofixSetupModal';
@@ -113,7 +114,10 @@ export function AutofixBanner({
     <Wrapper>
       <Body>
         <div>
-          <Title>{t('Try Autofix')}</Title>
+          <Title>
+            {t('Try Autofix')}
+            <FeatureBadge type="experimental" />
+          </Title>
           <SubTitle>
             {t('Sit back and let Autofix find potential root causes and fixes')}
           </SubTitle>
