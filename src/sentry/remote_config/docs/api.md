@@ -182,6 +182,7 @@ Retrieve configuration features.
     "data": [
       {
         "description": "A feature description.",
+        "id": "59d105e1872d4280b5206015d68e95a8",
         "is_enabled": true,
         "key": "hello",
         "value": 22.3
@@ -213,6 +214,7 @@ Create a configuration feature.
   {
     "data": {
       "description": "Another key.",
+      "id": "59d105e1872d4280b5206015d68e95a8",
       "is_enabled": true,
       "key": "other",
       "value": "key"
@@ -232,6 +234,7 @@ Retrieve a configuration feature.
   {
     "data": {
       "description": "A feature description.",
+      "id": "59d105e1872d4280b5206015d68e95a8",
       "is_enabled": true,
       "key": "hello",
       "value": 22.3
@@ -259,6 +262,7 @@ Update a configuration feature.
   {
     "data": {
       "description": "A feature description.",
+      "id": "59d105e1872d4280b5206015d68e95a8",
       "is_enabled": false,
       "key": "hello",
       "value": 22.3
