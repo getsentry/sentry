@@ -53,7 +53,7 @@ export default function FeedbackSetupPanel() {
 
 const NoMarginPanel = styled(Panel)`
   max-height: 100%;
-  overflow: scroll;
+  overflow: hidden;
   margin: 0;
 `;
 
