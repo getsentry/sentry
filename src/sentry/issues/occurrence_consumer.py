@@ -377,6 +377,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
     batch = message.payload
 
     occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
+    status_change_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
 
     for item in batch:
         assert isinstance(item, BrokerValue)
@@ -386,21 +387,40 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
+
         # group by the fingerprint, there should only be one of them
         partition_key: str = payload["fingerprint"][0] if payload["fingerprint"] else ""
-        occcurrence_mapping[partition_key].append(payload)
+
+        payload_type = message.get("payload_type", PayloadType.OCCURRENCE.value)
+        match payload_type:
+            case PayloadType.STATUS_CHANGE.value:
+                status_change_mapping[partition_key].append(payload)
+            case PayloadType.OCCURRENCE.value:
+                occcurrence_mapping[partition_key].append(payload)
+            case _:
+                metrics.incr(
+                    "occurrence_consumer._process_batch.dropped_invalid_payload_type",
+                    sample_rate=1.0,
+                    tags={"payload_type": payload_type},
+                )
 
     # Number of occurrences that are being processed in this batch
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_count", len(batch))
 
     # Number of groups we've collected to be processed in parallel
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
-    # Submit occurrences for processing
+    # Submit occurrences & status changes for processing
     with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
-        futures = [
+        occurrence_futures = [
             worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
         ]
-        wait(futures)
+        status_change_futures = [
+            worker.submit(process_occurrence_group, group[-1])
+            for group in status_change_mapping.values()
+        ]
+
+        wait(occurrence_futures)
+        wait(status_change_futures)
 
 
 def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
