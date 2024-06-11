@@ -102,7 +102,7 @@ def normalize_sdk_tag(tag: str) -> str:
     return tag
 
 
-def normalized_sdk_tag_from_event(event: Mapping[str, Any]) -> str:
+def normalized_sdk_tag_from_event(data: Mapping[str, Any]) -> str:
     """
      Normalize tags coming from SDKs to more manageable canonical form, by:
 
@@ -116,7 +116,7 @@ def normalized_sdk_tag_from_event(event: Mapping[str, Any]) -> str:
     the ones interesinting to us as granual as possible.
     """
     try:
-        return normalize_sdk_tag((event.get("sdk") or {}).get("name") or "other")
+        return normalize_sdk_tag((data.get("sdk") or {}).get("name") or "other")
     except Exception:
         logger.warning("failed to get SDK name", exc_info=True)
         return "other"
