@@ -11,7 +11,12 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
+import {parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  type FocusedMetricsSeries,
+  MetricExpressionType,
+  type SortState,
+} from 'sentry/utils/metrics/types';
 import {
   type MetricsQueryApiQueryParams,
   useMetricsQuery,
@@ -128,8 +133,18 @@ export function MetricVisualization({
   interval,
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
+  const hasSetMetric = useMemo(
+    () =>
+      expressions.some(
+        expression =>
+          expression.type === MetricExpressionType.QUERY &&
+          parseMRI(expression.mri)!.type === 's'
+      ),
+    [expressions]
+  );
   const {interval: validatedInterval} = useMetricsIntervalOptions({
     interval,
+    hasSetMetric,
     datetime: selection.datetime,
     onIntervalChange: EMPTY_FN,
   });
