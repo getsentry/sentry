@@ -13,11 +13,13 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
@@ -34,6 +36,7 @@ import {
   ONBOARDING_CONTENT,
 } from 'sentry/views/performance/queues/settings';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const DEFAULT_SORT = {
@@ -43,6 +46,7 @@ const DEFAULT_SORT = {
 
 function QueuesLandingPage() {
   const location = useLocation();
+  const organization = useOrganization();
 
   const query = useLocationQuery({
     fields: {
@@ -57,6 +61,11 @@ function QueuesLandingPage() {
       .at(0) ?? DEFAULT_SORT;
 
   const handleSearch = (newDestination: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newDestination,
+      source: ModuleName.QUEUE,
+    });
     browserHistory.push({
       ...location,
       query: {

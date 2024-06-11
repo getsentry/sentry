@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -33,7 +34,7 @@ import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPla
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
@@ -220,6 +221,11 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
       <StyledSearchBar
         eventView={tableEventView}
         onSearch={search => {
+          trackAnalytics('insight.general.search', {
+            organization,
+            query: search,
+            source: ModuleName.APP_START,
+          });
           router.push({
             pathname: router.location.pathname,
             query: {
