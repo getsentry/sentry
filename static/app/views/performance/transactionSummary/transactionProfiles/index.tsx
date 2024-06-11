@@ -1,6 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -86,8 +87,18 @@ function Profiles(): React.ReactElement {
     [location]
   );
 
-  const profileFilters = useProfileFilters({query: '', selection});
+  const profilingUsingTransactions = organization.features.includes(
+    'profiling-using-transactions'
+  );
+
+  const profileFilters = useProfileFilters({
+    query: '',
+    selection,
+    disabled: profilingUsingTransactions,
+  });
+
   const transaction = decodeScalar(location.query.transaction);
+
   return (
     <PageLayout
       location={location}
@@ -104,16 +115,27 @@ function Profiles(): React.ReactElement {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <SmartSearchBar
-                organization={organization}
-                projectIds={projects.projects.map(p => parseInt(p.id, 10))}
-                hasRecentSearches
-                searchSource="profile_landing"
-                supportedTags={profileFilters}
-                query={query.formatString()}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
+              {profilingUsingTransactions ? (
+                <SearchBar
+                  searchSource="profile_landing"
+                  organization={organization}
+                  projectIds={projects.projects.map(p => parseInt(p.id, 10))}
+                  query={query.formatString()}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              ) : (
+                <SmartSearchBar
+                  organization={organization}
+                  hasRecentSearches
+                  projectIds={projects.projects.map(p => parseInt(p.id, 10))}
+                  searchSource="profile_landing"
+                  supportedTags={profileFilters}
+                  query={query.formatString()}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              )}
             </FilterActions>
             <ProfileEventsTable
               columns={fields}
