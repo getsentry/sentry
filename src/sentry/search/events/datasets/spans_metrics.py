@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
@@ -16,6 +17,11 @@ from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
+
+
+class Args(TypedDict):
+    scope: str
+    column: str
 
 
 class SpansMetricsDatasetConfig(DatasetConfig):
@@ -728,18 +734,11 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self.total_span_duration = results["data"][0][get_function_alias(f"sum({column})")]
         return Function("toFloat64", [self.total_span_duration], alias)
 
-    def _resolve_time_spent_percentage(
-        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
-    ) -> SelectType:
-        scope = args["scope"]
-        column = args["column"]
-        assert isinstance(scope, str) and isinstance(
-            column, str
-        ), f"scope: {scope} - column: {column}"
+    def _resolve_time_spent_percentage(self, args: Args, alias: str) -> SelectType:
         total_time = self._resolve_total_span_duration(
-            constants.TOTAL_SPAN_DURATION_ALIAS, scope, column
+            constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"], args["column"]
         )
-        metric_id = self.resolve_metric(column)
+        metric_id = self.resolve_metric(args["column"])
 
         return function_aliases.resolve_division(
             Function(
