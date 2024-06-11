@@ -2,7 +2,7 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DashboardDetail from 'sentry/views/dashboards/detail';
@@ -339,7 +339,7 @@ describe('OrgDashboards', () => {
       </OrgDashboards>
     );
 
-    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+    await act(tick);
     expect(browserHistory.replace).toHaveBeenCalledTimes(1);
   });
 });
