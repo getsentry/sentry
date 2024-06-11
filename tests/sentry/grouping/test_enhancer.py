@@ -476,7 +476,7 @@ def test_sentinel_and_prefix(action, type):
     enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 
     frames = [{"function": "foo"}]
-    component = GroupingComponent(id=None)
+    component = GroupingComponent(id="foo")
     assert not getattr(component, f"is_{type}_frame")
     frame_components = [component]
 

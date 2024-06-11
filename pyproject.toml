@@ -528,6 +528,7 @@ module = [
     "sentry.build.*",
     "sentry.eventstore.reprocessing.redis",
     "sentry.eventtypes.error",
+    "sentry.grouping.component",
     "sentry.grouping.parameterization",
     "sentry.hybridcloud",
     "sentry.hybridcloud.migrations.*",
