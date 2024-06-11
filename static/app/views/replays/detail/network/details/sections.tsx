@@ -8,7 +8,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   NetworkMetaWarning,
   ReplayNetworkRequestOrResponse,

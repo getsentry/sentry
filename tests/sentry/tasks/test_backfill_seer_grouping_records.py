@@ -12,22 +12,19 @@ from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
-from sentry.grouping.grouping_info import get_grouping_info
+from sentry.eventstore.models import Event
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
-from sentry.seer.similarity.utils import get_stacktrace_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.backfill_seer_grouping_records import (
-    GroupStacktraceData,
     backfill_seer_grouping_records,
+    get_events_from_nodestore,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
-    lookup_group_data_stacktrace_bulk_with_fallback,
-    lookup_group_data_stacktrace_single,
     make_backfill_redis_key,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -163,89 +160,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with pytest.raises(EventLookupError):
             lookup_event(self.project.id, "1000000", 1000000)
 
-    def test_lookup_group_data_stacktrace_single_success(self):
-        """Test successful group data and stacktrace lookup"""
-        event = self.event
-        hash = self.group_hashes[event.group.id]
-        group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id
-        )
-        expected_group_data = CreateGroupingRecordData(
-            group_id=event.group.id,
-            hash=hash,
-            project_id=self.project.id,
-            message=event.title,
-        )
-        assert group_data == expected_group_data
-        assert stacktrace_string == EXCEPTION_STACKTRACE_STRING
-
-    @patch("time.sleep", return_value=None)
-    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_event")
-    def test_lookup_group_data_stacktrace_single_exceptions(
-        self, mock_lookup_event, mock_logger, mock_sleep
-    ):
-        """
-        Test when ServiceUnavailable and DeadlineExceeded exceptions occur, that we stop the
-        backfill
-        """
-        exceptions = [
-            ServiceUnavailable(message="Service Unavailable"),
-            DeadlineExceeded(message="Deadline Exceeded"),
-        ]
-        event = self.event
-
-        for exception in exceptions:
-            mock_lookup_event.side_effect = exception
-            with pytest.raises(Exception):
-                lookup_group_data_stacktrace_single(
-                    self.project,
-                    event.event_id,
-                    event.group_id,
-                )
-                mock_logger.exception.assert_called_with(
-                    "tasks.backfill_seer_grouping_records.event_lookup_exception",
-                    extra={
-                        "organization_id": self.project.organization.id,
-                        "project_id": self.project.id,
-                        "group_id": event.group.id,
-                        "event_id": event.event_id,
-                        "error": exception.message,
-                    },
-                )
-
-    def test_lookup_group_data_stacktrace_single_not_stacktrace_grouping(self):
-        """Test that no data is returned if the group did not use the stacktrace to determine grouping"""
-        # Create an event that is grouped by fingerprint
-        event = self.store_event(
-            data={"exception": EXCEPTION, "title": "title", "fingerprint": ["1"]},
-            project_id=self.project.id,
-            assert_no_errors=False,
-        )
-        group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id
-        )
-        assert (group_data, stacktrace_string) == (None, "")
-
-    def test_lookup_group_data_stacktrace_single_no_stacktrace(self):
-        """Test that no data is returned if the event has no stacktrace"""
-        event = self.store_event(data={}, project_id=self.project.id, assert_no_errors=False)
-        group_data, stacktrace_string = lookup_group_data_stacktrace_single(
-            self.project, event.event_id, event.group_id
-        )
-        assert (group_data, stacktrace_string) == (None, "")
-
     @patch("sentry.tasks.backfill_seer_grouping_records.metrics")
     def test_lookup_group_data_stacktrace_bulk_success(self, mock_metrics):
         """Test successful bulk group data and stacktrace lookup"""
         rows, events = self.bulk_rows, self.bulk_events
-        (
-            bulk_event_ids,
-            invalid_event_ids,
-            bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
+        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
+        )
 
-        expected_event_ids = {event.event_id for event in events}
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -259,10 +181,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(5)
         ]
-        assert bulk_event_ids == expected_event_ids
-        assert invalid_event_ids == set()
-        assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+        assert nodestore_results["data"] == expected_group_data
+        assert nodestore_results["stacktrace_list"] == expected_stacktraces
         mock_metrics.gauge.assert_called_with(
             "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
         )
@@ -316,11 +236,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
-        (
-            bulk_event_ids,
-            invalid_event_ids,
-            bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
+        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, group_ids
+        )
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -334,10 +252,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
-        assert bulk_event_ids == {event.event_id for event in events}
-        assert invalid_event_ids == {event.event_id}
-        assert bulk_group_data_stacktraces["data"] == expected_group_data
-        assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
+        # assert bulk_event_ids == {event.event_id for event in events}
+        # assert invalid_event_ids == {event.event_id}
+        assert nodestore_results["data"] == expected_group_data
+        assert nodestore_results["stacktrace_list"] == expected_stacktraces
 
     def test_lookup_group_data_stacktrace_bulk_no_stacktrace_exception(self):
         """
@@ -354,11 +272,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
-        (
-            bulk_event_ids,
-            invalid_event_ids,
-            bulk_group_data_stacktraces,
-        ) = lookup_group_data_stacktrace_bulk(self.project, rows)
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, group_ids
+        )
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -372,8 +288,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
-        assert bulk_event_ids == {event.event_id for event in events}
-        assert invalid_event_ids == {event.event_id}
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
@@ -384,8 +298,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             self.bulk_events,
             self.group_hashes,
         )
-        bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
         )
 
         expected_group_data = [
@@ -404,9 +318,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
 
-    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk")
+    @patch("sentry.nodestore.backend.get_multi")
     def test_lookup_group_data_stacktrace_bulk_with_fallback_use_single_fallback(
-        self, mock_lookup_group_data_stacktrace_bulk
+        self, mock_get_multi
     ):
         """
         Test bulk lookup with fallback returns data for all events, where two events use single
@@ -414,28 +328,14 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         """
         # Purposely exclude two events from being included in the bulk lookup response, so that the fallback is used
         events_missing_two = self.bulk_events[:-2]
-        group_data, stacktrace_strings = [], []
-        for event in events_missing_two:
-            grouping_info = get_grouping_info(None, project=self.project, event=event)
-            stacktrace_string = get_stacktrace_string(grouping_info)
-            group_data.append(
-                CreateGroupingRecordData(
-                    group_id=event.group.id,
-                    hash=self.group_hashes[event.group.id],
-                    project_id=self.project.id,
-                    message=event.title,
-                )
-            )
-            stacktrace_strings.append(stacktrace_string)
-        mock_lookup_group_data_stacktrace_bulk.return_value = (
-            {event.event_id for event in events_missing_two},
-            set(),
-            GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
-        )
+        mock_get_multi.return_value = {
+            Event.generate_node_id(self.project.id, event_id=event.event_id): event.data
+            for event in events_missing_two
+        }
 
         rows, hashes = self.bulk_rows, self.group_hashes
-        bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
         )
 
         events = self.bulk_events
@@ -468,8 +368,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Purposely change the event id of the last row to one that does not exist
         rows[-1]["event_id"] = 10000
 
-        bulk_group_data_stacktraces = lookup_group_data_stacktrace_bulk_with_fallback(
-            self.project, rows
+        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
         )
 
         events = self.bulk_events[:-1]
@@ -488,7 +388,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
         assert bulk_group_data_stacktraces["stacktrace_list"] == expected_stacktraces
-        mock_logger.exception.assert_called_with(
+        mock_logger.error.assert_called_with(
             "tasks.backfill_seer_grouping_records.event_lookup_error",
             extra={
                 "organization_id": self.project.organization.id,
@@ -653,8 +553,8 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             event.group.times_seen = 2
             event.group.save()
             # Arbitrarily choose a parent group's hash that has times_seen = 5
-            parent_group = Group.objects.filter(times_seen__gt=2).first()
-            parent_group_hash = GroupHash.objects.filter(group_id=parent_group.id).first()
+            parent_group = Group.objects.get(times_seen__gt=2)
+            parent_group_hash = GroupHash.objects.get(group_id=parent_group.id)
             groups_with_neighbor[str(event.group.id)] = RawSeerSimilarIssueData(
                 stacktrace_distance=0.01,
                 message_distance=0.01,
@@ -679,7 +579,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 }
             else:
                 request_hash = GroupHash.objects.get(group_id=group.id).hash
-                parent_group_id = Group.objects.filter(times_seen__gt=2).first().id
+                parent_group_id = Group.objects.get(times_seen__gt=2).id
                 assert group.data["metadata"].get("seer_similarity") == {
                     "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
                     "request_hash": request_hash,
@@ -1000,24 +900,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert last_processed_index == len(groups)
 
         # Assert metadata was not set for groups that is 90 days old
-        old_group = Group.objects.filter(project_id=self.project.id, id=old_group_id).first()
+        old_group = Group.objects.get(project_id=self.project.id, id=old_group_id)
         assert old_group.data["metadata"].get("seer_similarity") is None
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    @patch(
-        "sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk_with_fallback"
-    )
+    @patch("sentry.tasks.backfill_seer_grouping_records.lookup_group_data_stacktrace_bulk")
     @patch("sentry.tasks.backfill_seer_grouping_records.call_next_backfill")
     def test_backfill_seer_grouping_records_empty_nodestore(
         self,
         mock_call_next_backfill,
-        mock_lookup_group_data_stacktrace_bulk_with_fallback,
+        mock_lookup_group_data_stacktrace_bulk,
         mock_logger,
     ):
-        mock_lookup_group_data_stacktrace_bulk_with_fallback.return_value = GroupStacktraceData(
-            data=[], stacktrace_list=[]
-        )
+        mock_lookup_group_data_stacktrace_bulk.return_value = []
 
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
@@ -1065,13 +961,3 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
         assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
-        assert (
-            call(
-                "backfill_seer_grouping_records.invalid_group_ids",
-                extra={
-                    "project_id": self.project.id,
-                    "invalid_group_ids": json.dumps([group_no_grouping_stacktrace.id]),
-                },
-            )
-            in mock_logger.info.call_args_list
-        )

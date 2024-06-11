@@ -19,6 +19,8 @@ type GuidedStepInfo = {
   installCode: string;
   configure?: string;
   configureCode?: (dsn: string) => string;
+  importInst?: string;
+  importInstCode?: string;
   sourcemaps?: string;
   sourcemapsCode?: string;
   verify?: string;
@@ -34,19 +36,41 @@ const GuidedStepsMap: Partial<Record<PlatformKey, GuidedStepInfo>> = {
   },
   node: {
     install: t('Add the Sentry Node SDK as a dependency'),
-    installCode: 'npm install --save @sentry/node',
+    installCode: 'npm install --save @sentry/node @sentry/profiling-node',
     configure: t(
-      "Initialize Sentry as early as possible in your application's lifecycle"
+      "Initialize Sentry as early as possible in your application's lifecycle. To initialize the SDK before everything else, create an external file called `instrument.js/mjs`."
     ),
     configureCode:
-      dsn => `// You can also use ESM 'import * as Sentry from "@sentry/node"' instead of 'require'
+      dsn => `// Import with 'import * as Sentry from "@sentry/node"' if you are using ESM
 const Sentry = require("@sentry/node");
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 
 Sentry.init({
   dsn: "${dsn}",
+  integrations: [
+    nodeProfilingIntegration(),
+  ],
   // Performance Monitoring
   tracesSampleRate: 1.0, //  Capture 100% of the transactions
+
+  // Set sampling rate for profiling - this is relative to tracesSampleRate
+  profilesSampleRate: 1.0,
 });`,
+    importInst: t(
+      'You need to require or import the instrument.js file before requiring any other modules in your application'
+    ),
+    importInstCode: `// IMPORTANT: Make sure to import 'instrument.js' at the top of your file.
+// If you're using ECMAScript Modules (ESM) syntax, use 'import "./instrument.js";'
+require("./instrument.js");
+
+// All other imports below
+const { createServer } = require("node:http");
+
+const server = createServer((req, res) => {
+  // server code
+});
+
+server.listen(3000, "127.0.0.1");`,
     sourcemaps: t(
       'Automatically upload your source maps to enable readable stack traces for Errors.'
     ),
@@ -68,15 +92,18 @@ Sentry.init({
   'python-django': {
     install: t('Use the following command to install our Python Django SDK'),
     installCode: "pip install --upgrade 'sentry-sdk[django]'",
-    configure: t(
-      'If you have the Django package in your dependencies, the Django integration will be enabled automatically when you initialize the Sentry SDK. Initialize the Sentry SDK in your Django settings.py file'
-    ),
-    configureCode: dsn => `# settings.py
-import sentry_sdk
+    configure: t('To configure the Sentry SDK, initialize it in your settings.py file.'),
+    configureCode: dsn => `import sentry_sdk
 
 sentry_sdk.init(
   dsn="${dsn}",
-  enable_tracing=True
+  # Set traces_sample_rate to 1.0 to capture 100%
+  # of transactions for performance monitoring.
+  traces_sample_rate=1.0,
+  # Set profiles_sample_rate to 1.0 to profile 100%
+  # of sampled transactions.
+  # We recommend adjusting this value in production.
+  profiles_sample_rate=1.0,
 )`,
     verify: t(
       'Add this intentional error to your application to test that everything is working right away.'
@@ -133,9 +160,11 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const {
     install,
     configure,
+    importInst,
     verify,
     installCode,
     configureCode,
+    importInstCode,
     verifyCode,
     sourcemaps,
     sourcemapsCode,
@@ -191,6 +220,29 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                     {configureCode && (
                       <StyledCodeSnippet language={language}>
                         {configureCode(dsn)}
+                      </StyledCodeSnippet>
+                    )}
+                  </div>
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                    <GuidedSteps.NextButton size="md" />
+                  </GuidedSteps.ButtonWrapper>
+                </div>
+              </GuidedSteps.Step>
+            ) : (
+              <Fragment />
+            )}
+            {importInst ? (
+              <GuidedSteps.Step
+                stepKey="import-inst-sentry"
+                title={t('Import Instrumentation')}
+              >
+                <div>
+                  <div>
+                    {importInst}
+                    {importInstCode && (
+                      <StyledCodeSnippet language={language}>
+                        {importInstCode}
                       </StyledCodeSnippet>
                     )}
                   </div>

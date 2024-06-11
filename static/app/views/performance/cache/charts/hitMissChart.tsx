@@ -1,5 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';

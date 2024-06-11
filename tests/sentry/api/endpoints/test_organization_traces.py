@@ -1091,6 +1091,19 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             ],
         }
 
+    def test_span_duration_filter(self):
+        for q in [
+            ["span.duration:>100"],
+        ]:
+            query = {
+                "yAxis": ["count()"],
+                "query": q,
+                "project": [self.project.id],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
     def test_stats(self):
         project_1 = self.create_project()
         project_2 = self.create_project()
