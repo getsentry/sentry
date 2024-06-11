@@ -35,12 +35,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     if not has_either_seer_grouping_feature:
         return False
 
-    fingerprint_variant = primary_hashes.variants.get(
-        "custom-fingerprint"
-    ) or primary_hashes.variants.get("built-in-fingerprint")
-    # If there's non-default fingerprint (whether from the user or from us), it should *always*
-    # contribute, but can't hurt to cover our bases
-    if fingerprint_variant and fingerprint_variant.contributes:
+    if _has_customized_fingerprint(event, primary_hashes):
         return False
 
     if not event_content_is_seer_eligible(event):
@@ -61,6 +56,25 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
         return False
 
     return True
+
+
+def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) -> bool:
+    fingerprint = event.data.get("fingerprint", [])
+
+    if "{{ default }}" in fingerprint:
+        # No custom fingerprinting at all
+        if len(fingerprint) == 1:
+            return False
+
+    # Fully customized fingerprint (from either us or the user)
+    fingerprint_variant = primary_hashes.variants.get(
+        "custom-fingerprint"
+    ) or primary_hashes.variants.get("built-in-fingerprint")
+
+    if fingerprint_variant:
+        return True
+
+    return False
 
 
 def _killswitch_enabled(event: Event, project: Project) -> bool:
