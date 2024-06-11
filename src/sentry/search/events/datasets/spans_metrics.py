@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
+from typing import TypedDict
 
 import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier, Op, OrderBy
@@ -16,6 +17,11 @@ from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI
 from sentry.snuba.referrer import Referrer
+
+
+class Args(TypedDict):
+    scope: str
+    column: str
 
 
 class SpansMetricsDatasetConfig(DatasetConfig):
@@ -728,9 +734,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         self.total_span_duration = results["data"][0][get_function_alias(f"sum({column})")]
         return Function("toFloat64", [self.total_span_duration], alias)
 
-    def _resolve_time_spent_percentage(
-        self, args: Mapping[str, str | Column | SelectType | int | float], alias: str
-    ) -> SelectType:
+    def _resolve_time_spent_percentage(self, args: Args, alias: str) -> SelectType:
         total_time = self._resolve_total_span_duration(
             constants.TOTAL_SPAN_DURATION_ALIAS, args["scope"], args["column"]
         )
@@ -1041,10 +1045,17 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         condition: str,
         alias: str | None = None,
     ) -> SelectType:
+        timestamp = args["timestamp"]
         if condition == "greater":
-            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+            assert isinstance(self.builder.params.end, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.end: {self.builder.params.end} - timestamp: {timestamp}"
+            interval = (self.builder.params.end - timestamp).total_seconds()
         elif condition == "less":
-            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+            assert isinstance(self.builder.params.start, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.start: {self.builder.params.start} - timestamp: {timestamp}"
+            interval = (timestamp - self.builder.params.start).total_seconds()
         else:
             raise InvalidSearchQuery(f"Unsupported condition for epm: {condition}")
 
@@ -1086,6 +1097,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         condition: str,
         alias: str | None = None,
     ) -> SelectType:
+        column = args["column"]
+        assert isinstance(column, str), f"column: {column}"
         conditional_aggregate = Function(
             "avgIf",
             [
@@ -1097,7 +1110,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "equals",
                             [
                                 Column("metric_id"),
-                                self.resolve_metric(args["column"]),
+                                self.resolve_metric(column),
                             ],
                         ),
                         Function(condition, [Column("timestamp"), args["timestamp"]]),
@@ -1120,6 +1133,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None = None,
     ) -> SelectType:
+        op = args["op"]
+        assert isinstance(op, str), f"op: {op}"
         return self._resolve_count_if(
             Function(
                 "equals",
@@ -1132,7 +1147,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                 "equals",
                 [
                     self.builder.column("span.op"),
-                    self.builder.resolve_tag_value(args["op"]),
+                    self.builder.resolve_tag_value(op),
                 ],
             ),
             alias,
