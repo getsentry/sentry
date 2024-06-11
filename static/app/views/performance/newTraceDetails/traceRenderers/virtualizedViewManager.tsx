@@ -1430,7 +1430,6 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
-    this.updateIndicatorContainerOffset();
     this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
@@ -1513,19 +1512,6 @@ export class VirtualizedViewManager {
     const placement = this.computeTransformXFromTimestamp(indicator.timestamp);
     indicator.ref.style.opacity = '1';
     indicator.ref.style.transform = `translateX(${placement}px)`;
-  }
-
-  updateIndicatorContainerOffset() {
-    if (!this.indicator_container) {
-      return;
-    }
-
-    const correction =
-      (this.scrollbar_width / this.container_physical_space.width) *
-      this.columns.span_list.width;
-    this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
-    this.indicator_container.style.width =
-      (this.columns.span_list.width - correction) * 100 + '%';
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
@@ -1625,7 +1611,7 @@ export class VirtualizedViewManager {
       const correction =
         (this.scrollbar_width / this.container_physical_space.width) *
         options.span_list_width;
-      this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
       const new_indicator_container_width = options.span_list_width - correction;
 
       if (this.last_indicator_width !== new_indicator_container_width) {
