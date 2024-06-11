@@ -456,9 +456,10 @@ A list of filters that determine if a rule fires after the necessary conditions 
 }
 ```
 """,
-        actions=serializers.ListField(
-            child=RuleNodeField(type="action/event"),
-            help_text="""
+    )
+    actions = serializers.ListField(
+        child=RuleNodeField(type="action/event"),
+        help_text="""
 A list of actions that take place when all required conditions and filters for the rule are met. See below for a list of possible actions.
 
 **Send a notification to Suggested Assignees**
@@ -661,7 +662,6 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 """,
-        ),
     )
 
 
