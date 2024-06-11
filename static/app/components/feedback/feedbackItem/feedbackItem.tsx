@@ -28,7 +28,9 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const url = eventData?.tags.find(tag => tag.key === 'url');
+  const url =
+    eventData?.contexts.feedback?.url ??
+    eventData?.tags.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
 
   const overflowRef = useRef<HTMLDivElement>(null);
@@ -52,15 +54,15 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
             <UrlWrapper>
-              {eventData?.tags ? (
+              {eventData?.contexts.feedback || eventData?.tags ? (
                 url ? (
                   <ExternalLink
                     onClick={e => {
                       e.preventDefault();
-                      openNavigateToExternalLinkModal({linkText: url.value});
+                      openNavigateToExternalLinkModal({linkText: url});
                     }}
                   >
-                    {url.value}
+                    {url}
                   </ExternalLink>
                 ) : (
                   t('URL not found')
