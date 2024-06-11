@@ -81,7 +81,15 @@ class MetricsQueryBuilder(QueryBuilder):
 
     organization_column: str = "organization_id"
 
-    column_remapping = {}
+    column_remapping = {
+        # This MetricsQueryBuilder is only used for transaction metrics.
+        # So `message` is mapped to `transaction` but subclasses of this
+        # should be mindful of this and override this value appropriately.
+        #
+        # Note: This really shouldn't be in the parent class at all, and
+        # should live strictly in child classes.
+        "message": "transaction",
+    }
     default_metric_tags = constants.DEFAULT_METRIC_TAGS
 
     def __init__(
