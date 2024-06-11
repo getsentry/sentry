@@ -33,6 +33,7 @@ import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
@@ -157,6 +158,12 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     enabled: !topTransactionsLoading,
     referrer: 'api.starfish.mobile-startup-bar-chart',
   });
+
+  useHasDataTrackAnalytics(
+    new MutableSearch('span.op:[app.start.cold,app.start.warm]'),
+    'api.performance.mobile.app-startup-landing',
+    'insight.page_loads.app_start'
+  );
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
