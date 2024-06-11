@@ -872,7 +872,6 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule, status=2)
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
-        # TODO pass description after rebase
         action = self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )

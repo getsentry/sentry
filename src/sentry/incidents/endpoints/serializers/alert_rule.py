@@ -270,6 +270,7 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
+
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
             "name": obj.name,
