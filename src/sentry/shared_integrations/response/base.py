@@ -3,12 +3,12 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+import orjson
 import requests
 from django.utils.functional import cached_property
 from requests import Response
 
 from sentry.shared_integrations.exceptions import UnsupportedResponseType
-from sentry.utils import json
 
 
 class BaseApiResponse:
@@ -77,8 +77,8 @@ class BaseApiResponse:
         # to decode it anyways
         if "application/json" not in response.headers.get("Content-Type", ""):
             try:
-                data = json.loads(response.text)
-            except (TypeError, ValueError):
+                data = orjson.loads(response.text)
+            except (orjson.JSONDecodeError, TypeError, ValueError):
                 if allow_text:
                     return TextApiResponse(response.text, response.headers, response.status_code)
                 raise UnsupportedResponseType(
@@ -87,7 +87,7 @@ class BaseApiResponse:
         elif response.text == "":
             return TextApiResponse(response.text, response.headers, response.status_code)
         else:
-            data = json.loads(response.text)
+            data = orjson.loads(response.text)
 
         if isinstance(data, dict):
             return MappingApiResponse(data, response.headers, response.status_code)

@@ -1,3 +1,4 @@
+import datetime
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -53,6 +54,34 @@ class BaseApiClientTest(TestCase):
         TestClient().get("https://example.com/get")
         assert get_response.call_count == 1
         assert put_response.call_count == 1
+
+    @responses.activate
+    @patch.object(BaseApiClient, "finalize_request", side_effect=lambda req: req)
+    def test_shared_get_request(self, mock_finalize_request):
+        # Ensure finalize_request is called before all requests
+        get_response = responses.add(responses.GET, "https://example.com/get", json={})
+        assert not mock_finalize_request.called
+        assert get_response.call_count == 0
+
+        # This should make a request.
+        self.api_client.get_cached("https://example.com/get")
+        assert mock_finalize_request.called
+        assert get_response.call_count == 1
+
+        # Since params are included in cache generation, this should also increase the call count.
+        shared_params = {
+            "some": "param",
+            "date": datetime.datetime.now(tz=datetime.UTC),
+            1: "value-with-non-string-key",
+        }
+        self.api_client.get_cached("https://example.com/get", params=shared_params)
+        assert mock_finalize_request.called
+        assert get_response.call_count == 2
+
+        # Making a new request with exact params should not increment call count.
+        self.api_client.get_cached("https://example.com/get", params=shared_params)
+        assert mock_finalize_request.called
+        assert get_response.call_count == 2
 
     @responses.activate
     def test__request_prepared_request(self):
