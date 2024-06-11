@@ -530,6 +530,9 @@ def _single_stacktrace_variant(
         with context:
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
             frame_component = context.get_grouping_component(frame, event=event, **meta)
+            # We cannot call update (or later .contributes) unless we are GroupingComponent
+            assert isinstance(frame_component, GroupingComponent)
+
         if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
@@ -627,6 +630,10 @@ def single_exception(
             "app": GroupingComponent(id="stacktrace"),
         }
 
+    # We can't call items() unless we are a dictionary
+    # error: Parameterized generics cannot be used with class or instance checks  [misc]
+    assert isinstance(stacktrace_variants, ReturnedVariants)  # type: ignore[misc]
+
     rv = {}
 
     for variant, stacktrace_component in stacktrace_variants.items():
@@ -681,15 +688,17 @@ def single_exception(
 @strategy(ids=["chained-exception:v1"], interface=ChainedException, score=2000)
 def chained_exception(
     interface: ChainedException, event: Event, context: GroupingContext, **meta: dict[str, Any]
-) -> ReturnedVariants:
+) -> GroupingComponent | ReturnedVariants:
     # Get all the exceptions to consider.
     all_exceptions = interface.exceptions()
 
     # Get the grouping components for all exceptions up front, as we'll need them in a few places and only want to compute them once.
-    exception_components = {
+    exception_components: dict[int, GroupingComponent | ReturnedVariants] = {
         id(exception): context.get_grouping_component(exception, event=event, **meta)
         for exception in all_exceptions
     }
+    # error: Parameterized generics cannot be used with class or instance checks  [misc]
+    assert isinstance(exception_components, dict[int, GroupingComponent])  # type: ignore[misc]
 
     # Filter the exceptions according to rules for handling exception groups.
     try:
@@ -719,7 +728,7 @@ def chained_exception(
         rv[name] = GroupingComponent(
             id="chained-exception",
             values=component_list,
-            tree_label=calculate_tree_label(reversed(component_list)),
+            tree_label=calculate_tree_label(list(reversed(component_list))),
         )
 
     return rv
@@ -728,7 +737,7 @@ def chained_exception(
 # See https://github.com/getsentry/rfcs/blob/main/text/0079-exception-groups.md#sentry-issue-grouping
 def filter_exceptions_for_exception_groups(
     exceptions: list[SingleException],
-    exception_components: dict[int, GroupingComponent],
+    exception_components: dict[int, ReturnedVariants],
     event: Event,
 ) -> list[SingleException]:
     # This function only filters exceptions if there are at least two exceptions.
@@ -791,11 +800,12 @@ def filter_exceptions_for_exception_groups(
             yield from get_first_path(children[0])
 
     # Traverse the tree recursively from the root exception to get all "top-level exceptions" and sort for consistency.
-    top_level_exceptions = sorted(
-        get_top_level_exceptions(exception_tree[0].exception),
-        key=lambda exception: str(exception.type),
-        reverse=True,
-    )
+    if exception_tree[0].exception:
+        top_level_exceptions = sorted(
+            get_top_level_exceptions(exception_tree[0].exception),
+            key=lambda exception: str(exception.type),
+            reverse=True,
+        )
 
     # Figure out the distinct top-level exceptions, grouping by the hash of the grouping component values.
     distinct_top_level_exceptions = [
@@ -823,7 +833,8 @@ def filter_exceptions_for_exception_groups(
     # one of each top-level exception that is _not_ the root is overly complicated.
     # Also, it's more likely the stack trace of the root exception will be more meaningful
     # than one of an inner exception group.
-    distinct_top_level_exceptions.append(exception_tree[0].exception)
+    if exception_tree[0].exception:
+        distinct_top_level_exceptions.append(exception_tree[0].exception)
     return distinct_top_level_exceptions
 
 
@@ -883,9 +894,10 @@ def _filtered_threads(
 
     rv = {}
 
-    for name, stacktrace_component in context.get_grouping_component(
-        stacktrace, event=event, **meta
-    ).items():
+    variants = context.get_grouping_component(stacktrace, event=event, **meta)
+    # error: Parameterized generics cannot be used with class or instance checks  [misc]
+    assert isinstance(variants, ReturnedVariants)  # type: ignore[misc]
+    for name, stacktrace_component in variants.items():
         rv[name] = GroupingComponent(id="threads", values=[stacktrace_component])
 
     return rv
