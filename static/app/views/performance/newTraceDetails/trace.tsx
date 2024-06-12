@@ -2246,6 +2246,17 @@ const TraceStylingWrapper = styled('div')`
           fill: ${p => p.theme.white};
         }
       }
+
+      &.error {
+        color: ${p => p.theme.red300};
+
+        .TraceChildrenCountWrapper {
+          button {
+            color: ${p => p.theme.white};
+            background-color: ${p => p.theme.red300};
+          }
+        }
+      }
     }
   }
 
