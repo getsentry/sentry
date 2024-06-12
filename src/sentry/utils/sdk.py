@@ -285,7 +285,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(
         sentry4sentry=sdk_options.pop("dsn", None),
         sentry_saas=sdk_options.pop("relay_dsn", None),
-        experimental=sdk_options.pop("experimental_dsn", None),
     )
 
     return sdk_options, dsns
