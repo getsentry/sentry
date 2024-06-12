@@ -57,11 +57,16 @@ function GroupHeaderTabs({
   project,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
+  const location = useLocation();
 
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
+
+  // omit `sort` param from the URLs because it persists from the issues list,
+  // which can cause the tab content rendering to break
+  const queryParams = omit(location.query, ['sort']);
 
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
@@ -91,7 +96,7 @@ function GroupHeaderTabs({
         key={Tab.ACTIVITY}
         textValue={t('Activity')}
         disabled={disabledTabs.includes(Tab.ACTIVITY)}
-        to={`${baseUrl}activity/${location.search}`}
+        to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
         <IconBadge>
@@ -104,7 +109,7 @@ function GroupHeaderTabs({
         textValue={t('User Feedback')}
         hidden={!issueTypeConfig.userFeedback.enabled}
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
-        to={`${baseUrl}feedback/${location.search}`}
+        to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
         {t('User Feedback')} <Badge text={group.userReportCount} />
       </TabList.Item>
@@ -112,7 +117,7 @@ function GroupHeaderTabs({
         key={Tab.ATTACHMENTS}
         hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
         disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-        to={`${baseUrl}attachments/${location.search}`}
+        to={{pathname: `${baseUrl}attachments/`, query: queryParams}}
       >
         {t('Attachments')}
       </TabList.Item>
@@ -120,7 +125,7 @@ function GroupHeaderTabs({
         key={Tab.TAGS}
         hidden={!issueTypeConfig.tags.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
-        to={`${baseUrl}tags/${location.search}`}
+        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
       >
         {t('Tags')}
       </TabList.Item>
@@ -138,7 +143,7 @@ function GroupHeaderTabs({
         key={Tab.MERGED}
         hidden={!issueTypeConfig.mergedIssues.enabled}
         disabled={disabledTabs.includes(Tab.MERGED)}
-        to={`${baseUrl}merged/${location.search}`}
+        to={{pathname: `${baseUrl}merged/`, query: queryParams}}
       >
         {t('Merged Issues')}
       </TabList.Item>
@@ -146,7 +151,7 @@ function GroupHeaderTabs({
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
-        to={`${baseUrl}similar/${location.search}`}
+        to={{pathname: `${baseUrl}similar/`, query: queryParams}}
       >
         {t('Similar Issues')}
       </TabList.Item>
@@ -154,7 +159,7 @@ function GroupHeaderTabs({
         key={Tab.REPLAYS}
         textValue={t('Replays')}
         hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
-        to={`${baseUrl}replays/${location.search}`}
+        to={{pathname: `${baseUrl}replays/`, query: queryParams}}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
