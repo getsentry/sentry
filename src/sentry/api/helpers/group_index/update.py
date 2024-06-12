@@ -315,10 +315,7 @@ def update_groups(
                 .order_by("-sort")[0]
             )
             activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
-            activity_data = {
-                # no version yet
-                "version": ""
-            }
+            activity_data = {"version": ""}
 
             serialized_user = user_service.serialize_many(
                 filter=dict(user_ids=[user.id]), as_user=user

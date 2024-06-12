@@ -71,6 +71,4 @@ class StatusDetailsValidator(serializers.Serializer):
                 .order_by("-sort")[0]
             )
         except IndexError:
-            raise serializers.ValidationError(
-                "No release data present in the system to form a basis for 'Next Release'"
-            )
+            raise serializers.ValidationError("No release data present in the system.'")
