@@ -551,12 +551,13 @@ export function SearchQueryBuilderValueCombobox({
       if (
         e.key === 'Backspace' &&
         e.currentTarget.selectionStart === 0 &&
-        e.currentTarget.selectionEnd === 0
+        e.currentTarget.selectionEnd === 0 &&
+        canSelectMultipleValues
       ) {
         dispatch({type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE', token});
       }
     },
-    [dispatch, token]
+    [canSelectMultipleValues, dispatch, token]
   );
 
   // Clicking anywhere in the value editing area should focus the input

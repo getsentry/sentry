@@ -72,6 +72,10 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
 
         # Hybrid fingerprinting ({{ default }} + some other value(s))
         else:
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                tags={"call_made": False, "blocker": "hybrid-fingerprint"},
+            )
             return True
 
     # Fully customized fingerprint (from either us or the user)
@@ -80,6 +84,10 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
     ) or primary_hashes.variants.get("built-in-fingerprint")
 
     if fingerprint_variant:
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            tags={"call_made": False, "blocker": fingerprint_variant.type},
+        )
         return True
 
     return False
@@ -98,6 +106,10 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
             extra=logger_extra,
         )
         metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            tags={"call_made": False, "blocker": "global-killswitch"},
+        )
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
@@ -106,6 +118,10 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
             extra=logger_extra,
         )
         metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            tags={"call_made": False, "blocker": "similarity-killswitch"},
+        )
         return True
 
     return False
@@ -132,6 +148,10 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
             "grouping.similarity.global_ratelimit_hit",
             tags={"limit_per_sec": global_limit_per_sec},
         )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            tags={"call_made": False, "blocker": "global-rate-limit"},
+        )
 
         return True
 
@@ -144,6 +164,10 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         metrics.incr(
             "grouping.similarity.project_ratelimit_hit",
             tags={"limit_per_sec": project_limit_per_sec},
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            tags={"call_made": False, "blocker": "project-rate-limit"},
         )
 
         return True
