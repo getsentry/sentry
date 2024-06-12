@@ -1522,6 +1522,9 @@ def _save_aggregate(
 
                         metrics.incr(
                             "grouping.similarity.did_call_seer",
+                            # TODO: Consider lowering this (in all the spots this metric is
+                            # collected) once we roll Seer grouping out more widely
+                            sample_rate=1.0,
                             tags={"call_made": True, "blocker": "none"},
                         )
 
@@ -1533,6 +1536,7 @@ def _save_aggregate(
                         # (also below)? Right now they just fall into the `new_group` bucket.
                         metrics.incr(
                             "grouping.similarity.did_call_seer",
+                            sample_rate=1.0,
                             tags={"call_made": False, "blocker": "circuit-breaker"},
                         )
 
@@ -1540,6 +1544,7 @@ def _save_aggregate(
                     except Exception as e:
                         metrics.incr(
                             "grouping.similarity.did_call_seer",
+                            sample_rate=1.0,
                             tags={"call_made": True, "blocker": "none"},
                         )
                         sentry_sdk.capture_exception(
