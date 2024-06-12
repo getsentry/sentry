@@ -19,6 +19,11 @@ function easeOutSine(x: number): number {
   return Math.sin((x * Math.PI) / 2);
 }
 
+function inverseScale(scale: number, precision: number = 1e8): number {
+  const n = Math.round((1 / scale) * precision) / precision;
+  return isNaN(n) ? 1 : n;
+}
+
 function getHorizontalDelta(x: number, y: number): number {
   if (x >= 0 && y >= 0) {
     return Math.max(x, y);
@@ -443,11 +448,10 @@ export class VirtualizedViewManager {
 
       const span_transform = this.computeSpanCSSMatrixTransform(space);
       ref.style.transform = `matrix(${span_transform.join(',')}`;
-      const inverseScale = Math.round((1 / span_transform[0]) * 1e8) / 1e8;
       ref.style.setProperty(
         '--inverse-span-scale',
         // @ts-expect-error this is a number
-        isNaN(inverseScale) ? 1 : inverseScale
+        inverseScale(span_transform[0])
       );
     }
   }
@@ -1477,11 +1481,10 @@ export class VirtualizedViewManager {
 
     const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-    const inverseScale = Math.round((1 / span_transform[0]) * 1e8) / 1e8;
     span_bar.ref.style.setProperty(
       '--inverse-span-scale',
       // @ts-expect-error we set number value type on purpose
-      isNaN(inverseScale) ? 1 : inverseScale
+      inverseScale(span_transform[0])
     );
   }
 
@@ -1674,11 +1677,10 @@ export class VirtualizedViewManager {
       if (invisible_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
         invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-        const inverseScale = Math.round((1 / span_transform[0]) * 1e8) / 1e8;
         invisible_bar.ref.style.setProperty(
           '--inverse-span-scale',
           // @ts-expect-error we set number value type on purpose
-          isNaN(inverseScale) ? 1 : inverseScale
+          inverseScale(span_transform[0])
         );
       }
 
