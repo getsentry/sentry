@@ -1,5 +1,6 @@
-import {getMetricsWithDuplicateNames} from 'sentry/components/metrics/mriSelect';
 import type {MetricMeta} from 'sentry/types/metrics';
+
+import {getMetricsWithDuplicateNames} from '.';
 
 function createMetricMeta(name: string, unit: string): MetricMeta {
   return {

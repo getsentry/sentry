@@ -19,7 +19,8 @@ import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useProjects from 'sentry/utils/useProjects';
-import {MetricListItemDetails} from 'sentry/views/metrics/metricListItemDetails';
+
+import {MetricListItemDetails} from './metricListItemDetails';
 
 type MRISelectProps = {
   isLoading: boolean;
