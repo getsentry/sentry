@@ -90,7 +90,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
             if matching_organizations_qs.count() > 1:
                 raise PreProvisionCheckException("Multiple conflicting organizations found")
 
-            matching_org: Organization = matching_organizations_qs.first()
+            matching_org = matching_organizations_qs.get()
 
             try:
                 provisioning_user_is_org_owner = (

@@ -333,7 +333,7 @@ class DatabaseBackedUserService(UserService):
 
         def base_query(self, select_related: bool = True) -> QuerySet[User]:
             if not select_related:
-                return User.objects
+                return User.objects.all()
 
             return User.objects.extra(
                 select={

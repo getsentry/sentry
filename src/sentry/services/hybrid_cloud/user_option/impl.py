@@ -57,7 +57,7 @@ class DatabaseBackedUserOptionService(UserOptionService):
         FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, RpcUserOption, None]
     ):
         def base_query(self, select_related: bool = True) -> QuerySet[UserOption]:
-            return UserOption.objects
+            return UserOption.objects.all()
 
         def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], str | None]:
             return self._filter_has_any_key_validator("user_ids")

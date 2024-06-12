@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Self
+from typing import Any
 
 from django.db import models
 from django.http import HttpRequest
@@ -79,7 +79,7 @@ class WebhookPayload(Model):
         identifier: int | str,
         request: HttpRequest,
         integration_id: int | None = None,
-    ) -> Self:
+    ) -> WebhookPayload:
         metrics.incr("hybridcloud.deliver_webhooks.saved")
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",

@@ -24,7 +24,9 @@ from sentry.signals import project_created
 class DatabaseBackedProjectService(ProjectService):
     def get_by_id(self, *, organization_id: int, id: int) -> RpcProject | None:
         try:
-            project = Project.objects.get_from_cache(id=id, organization=organization_id)
+            project: Project | None = Project.objects.get_from_cache(
+                id=id, organization=organization_id
+            )
         except ValueError:
             project = Project.objects.filter(id=id, organization=organization_id).first()
         except Project.DoesNotExist:

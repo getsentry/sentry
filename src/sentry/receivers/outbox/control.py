@@ -57,8 +57,8 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
     )
     # There isn't a constraint on org : sentryapp so we have to handle lists
     install_map: dict[int, list[int]] = defaultdict(list)
-    for row in install_query:
-        install_map[row["organization_id"]].append(row["id"])
+    for install_row in install_query:
+        install_map[install_row["organization_id"]].append(install_row["id"])
 
     # Clear application_id cache
     region_caching_service.clear_key(
@@ -70,8 +70,8 @@ def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds:
     region_query = OrganizationMapping.objects.filter(
         organization_id__in=list(install_map.keys()), region_name=region_name
     ).values("organization_id")
-    for row in region_query:
-        installs = install_map[row["organization_id"]]
+    for region_row in region_query:
+        installs = install_map[region_row["organization_id"]]
         for install_id in installs:
             region_caching_service.clear_key(
                 key=get_installation.key_from(install_id), region_name=region_name
