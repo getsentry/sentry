@@ -1,5 +1,6 @@
 from copy import deepcopy
 from datetime import UTC, datetime
+from typing import DefaultDict
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -35,7 +36,7 @@ class ProcessDelayedAlertConditionsTest(
         fingerprint,
         environment=None,
         user: bool = True,
-        tags: list[str] | None = None,
+        tags: list[list[str]] | None = None,
     ) -> Event:
         data = {
             "timestamp": iso_format(timestamp),
@@ -207,7 +208,7 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition2],
             environment_id=env3.id,
         )
-        rules_to_groups = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
+        rules_to_groups: DefaultDict[int, set[int]] = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
         orig_rules_to_groups = deepcopy(rules_to_groups)
         get_condition_groups([rule_1, rule_2], rules_to_groups)
         assert orig_rules_to_groups == rules_to_groups
@@ -220,7 +221,7 @@ class ProcessDelayedAlertConditionsTest(
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0], project_ids[0][1])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[self.rule1, self.rule2],
             group__in=[self.group1, self.group2],
@@ -234,7 +235,7 @@ class ProcessDelayedAlertConditionsTest(
         assert (self.rule2.id, self.group2.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-        apply_delayed(project_ids[1][0], project_ids[1][1])
+        apply_delayed(project_ids[1][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[self.rule3, self.rule4],
             group__in=[self.group3, self.group4],
@@ -279,7 +280,7 @@ class ProcessDelayedAlertConditionsTest(
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0], project_ids[0][1])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[self.rule1, rule5],
             group__in=[self.group1, group5],
@@ -312,7 +313,7 @@ class ProcessDelayedAlertConditionsTest(
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0], project_ids[0][1])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[rule5],
             group__in=[self.group1, group5],
@@ -342,7 +343,7 @@ class ProcessDelayedAlertConditionsTest(
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0], project_ids[0][1])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[self.rule1, rule5],
             group__in=[self.group1, group5],
@@ -373,7 +374,7 @@ class ProcessDelayedAlertConditionsTest(
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0], project_ids[0][1])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[self.rule1, diff_interval_rule],
             group__in=[self.group1, group5],
@@ -405,7 +406,7 @@ class ProcessDelayedAlertConditionsTest(
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0], project_ids[0][1])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[self.rule1, diff_env_rule],
             group__in=[self.group1, group5],
@@ -442,7 +443,7 @@ class ProcessDelayedAlertConditionsTest(
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0], project_ids[0][1])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
             rule__in=[self.rule1, no_fire_rule],
             group__in=[self.group1, group5],
