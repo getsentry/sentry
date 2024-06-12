@@ -4,6 +4,7 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
+from sentry.models.savedsearch import SortOptions
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -11,6 +12,7 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 def backfill_groupsearchviews_with_pinned_searches(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    PRIORITIZED_QUERY = "is:unresolved issue.priority:[high, medium]"
     GroupSearchView = apps.get_model("sentry", "GroupSearchView")
     SavedSearch = apps.get_model("sentry", "SavedSearch")
 
@@ -24,6 +26,16 @@ def backfill_groupsearchviews_with_pinned_searches(
                 "name": "Default Search",
                 "query": pinned_search.query,
                 "query_sort": pinned_search.sort,
+            },
+        )
+        GroupSearchView.objects.create(
+            organization=pinned_search.organization,
+            user_id=pinned_search.owner_id,
+            position=1,
+            defaults={
+                "Name": "Prioritized",
+                "query": PRIORITIZED_QUERY,
+                "query_sort": SortOptions.DATE,
             },
         )
 
@@ -41,10 +53,10 @@ class Migration(CheckedMigration):
     #   is a schema change, it's completely safe to run the operation after the code has deployed.
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
-    is_post_deployment = False
+    is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0725_create_sentry_groupsearchview_table"),
+        ("sentry", "0727_add_description_alertrule"),
     ]
 
     operations = [
