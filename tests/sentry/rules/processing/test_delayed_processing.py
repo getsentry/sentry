@@ -208,8 +208,8 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=env3.id,
         )
         rules_to_groups = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
-        orig_rules_to_groups = deepcopy(rules_to_groups)  # type: ignore[misc]
-        get_condition_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[misc]
+        orig_rules_to_groups = deepcopy(rules_to_groups)  # type: ignore[arg-type]
+        get_condition_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[arg-type]
         assert orig_rules_to_groups == rules_to_groups
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
