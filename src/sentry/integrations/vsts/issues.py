@@ -198,7 +198,7 @@ class VstsIssueSync(IssueSyncMixin):
             "metadata": {"display_name": "{}#{}".format(project_name, created_item["id"])},
         }
 
-    def get_issue(self, issue_id: str, **kwargs: Any) -> Mapping[str, Any]:
+    def get_issue(self, issue_id: int, **kwargs: Any) -> Mapping[str, Any]:
         client = self.get_client(base_url=self.instance)
         work_item = client.get_work_item(issue_id)
         return {
@@ -338,7 +338,7 @@ class VstsIssueSync(IssueSyncMixin):
     def get_issue_display_name(self, external_issue: "ExternalIssue") -> str:
         return (external_issue.metadata or {}).get("display_name", "")
 
-    def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> Response:
+    def create_comment(self, issue_id: int, user_id: int, group_note: Activity) -> Response:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
         return self.get_client(base_url=self.instance).update_work_item(

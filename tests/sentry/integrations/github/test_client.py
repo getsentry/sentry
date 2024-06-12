@@ -26,6 +26,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.cache import cache
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
@@ -59,9 +60,9 @@ class GitHubAppsClientTest(TestCase):
             external_id=123,
             integration_id=self.integration.id,
         )
-        install = self.integration.get_installation(organization_id=self.organization.id)
-        assert isinstance(install, GitHubIntegration)
-        self.install = install
+        self.install = get_installation_of_type(
+            GitHubIntegration, self.integration, self.organization.id
+        )
         self.github_client = self.install.get_client()
 
     @responses.activate
@@ -419,22 +420,22 @@ class GithubProxyClientTest(TestCase):
             # Regular API requests should use access tokens
             token = self.gh_client._get_token(prepared_request=access_token_request)
             self.integration.refresh_from_db()
-            assert mock_jwt.called
-            assert mock_refresh_token.called
+            assert mock_jwt.call_count == 1
+            assert mock_refresh_token.call_count == 1
             assert token == self.access_token == self.integration.metadata["access_token"]
 
             # If the access token isn't expired, don't refresh it with an API call
             mock_refresh_token.reset_mock()
             mock_jwt.reset_mock()
             token = self.gh_client._get_token(prepared_request=access_token_request)
-            assert not mock_refresh_token.called
-            assert not mock_jwt.called
+            assert mock_refresh_token.call_count == 0
+            assert mock_jwt.call_count == 0
             assert token == self.access_token == self.integration.metadata["access_token"]
 
             # Meta, app-installation requests should use jwts
             token = self.gh_client._get_token(prepared_request=jwt_request)
-            assert mock_jwt.called
-            assert not mock_refresh_token.called
+            assert mock_jwt.call_count == 1
+            assert mock_refresh_token.call_count == 0
             assert token == self.jwt
 
     @responses.activate
@@ -663,7 +664,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             },
         )
 
-        self.github_client.integration = None
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
 
@@ -713,7 +713,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
                 "message": "Not found",
             },
         )
-        self.github_client.integration = None
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
         with pytest.raises(Exception):
@@ -746,7 +745,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
                 buffer.record_success()
-        self.github_client.integration = None
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
         assert buffer.is_integration_broken() is False
@@ -771,7 +769,6 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         for i in reversed(range(10)):
             with freeze_time(now - timedelta(days=i)):
                 buffer.record_error()
-        self.github_client.integration = None
         assert self.integration.status == ObjectStatus.ACTIVE
         with pytest.raises(Exception):
             self.github_client.get_blame_for_files([self.file], extra={})
@@ -1363,18 +1360,24 @@ class GitHubClientFileBlameResponseTest(GitHubClientFileBlameBase):
                 ),
             ],
         )
-        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        cached_1 = self.github_client.check_cache(cache_key)
+        assert isinstance(cached_1, dict)
+        assert cached_1["data"] == self.data
         # Calling a second time should work
         response = self.github_client.get_blame_for_files(
             [self.file1, self.file2, self.file3], extra={}
         )
-        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        cached_2 = self.github_client.check_cache(cache_key)
+        assert isinstance(cached_2, dict)
+        assert cached_2["data"] == self.data
         # Calling again after the cache has been cleared should still work
         cache.delete(cache_key)
         response = self.github_client.get_blame_for_files(
             [self.file1, self.file2, self.file3], extra={}
         )
-        assert self.github_client.check_cache(cache_key)["data"] == self.data
+        cached_3 = self.github_client.check_cache(cache_key)
+        assert isinstance(cached_3, dict)
+        assert cached_3["data"] == self.data
         assert (
             self.github_client.get_blame_for_files([self.file1, self.file2], extra={}) != response
         )

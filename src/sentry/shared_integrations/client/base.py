@@ -329,7 +329,7 @@ class BaseApiClient(TrackResponseMixin):
             query = json.dumps(kwargs.get("params"))
 
         key = self.get_cache_key(path, query, data)
-        result: BaseApiResponseX | None = self.check_cache(key)
+        result = self.check_cache(key)
         if result is None:
             cache_time = kwargs.pop("cache_time", None) or self.cache_time
             result = self.request(method, path, *args, **kwargs)
