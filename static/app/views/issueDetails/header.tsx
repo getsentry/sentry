@@ -47,6 +47,7 @@ type Props = {
 interface GroupHeaderTabsProps extends Pick<Props, 'baseUrl' | 'group' | 'project'> {
   disabledTabs: Tab[];
   eventRoute: LocationDescriptor;
+  replayRoute: LocationDescriptor;
 }
 
 function GroupHeaderTabs({
@@ -55,6 +56,7 @@ function GroupHeaderTabs({
   eventRoute,
   group,
   project,
+  replayRoute,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
 
@@ -154,7 +156,7 @@ function GroupHeaderTabs({
         key={Tab.REPLAYS}
         textValue={t('Replays')}
         hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
-        to={`${baseUrl}replays/${location.search}`}
+        to={replayRoute}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
@@ -206,6 +208,14 @@ function GroupHeader({
     return {
       pathname: `${baseUrl}events/`,
       query: searchTermWithoutQuery,
+    };
+  }, [location, baseUrl]);
+
+  const replayRoute = useMemo(() => {
+    const searchTermWithoutSort = omit(location.query, ['sort']);
+    return {
+      pathname: `${baseUrl}replays/`,
+      query: searchTermWithoutSort,
     };
   }, [location, baseUrl]);
 
@@ -315,7 +325,9 @@ function GroupHeader({
         <HeaderRow className="hidden-sm hidden-md hidden-lg">
           <EnvironmentPageFilter position="bottom-end" />
         </HeaderRow>
-        <GroupHeaderTabs {...{baseUrl, disabledTabs, eventRoute, group, project}} />
+        <GroupHeaderTabs
+          {...{baseUrl, disabledTabs, eventRoute, group, project, replayRoute}}
+        />
       </div>
     </Layout.Header>
   );
