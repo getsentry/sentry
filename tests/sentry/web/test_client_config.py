@@ -16,6 +16,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.features import Feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.region import get_test_env_directory
 from sentry.testutils.requests import (
@@ -123,6 +125,27 @@ def test_client_config_deleted_user():
     result = get_client_config(request)
     assert result["isAuthenticated"] is False
     assert result["user"] is None
+
+
+@no_silo_test
+@django_db_all
+def test_client_config_features():
+    request, user = make_user_request_from_org()
+    request.user = user
+    result = get_client_config(request)
+
+    assert "features" in result
+    assert "organizations:create" in result["features"]
+    assert "system:multi-region" not in result["features"]
+
+    with override_options({"auth.allow-registration": True}), Feature(
+        {"auth:register": True, "system:multi-region": True}
+    ):
+        result = get_client_config(request)
+
+        assert "features" in result
+        assert "system:multi-region" in result["features"]
+        assert "auth:register" in result["features"]
 
 
 @no_silo_test
