@@ -64,18 +64,6 @@ class FeatureError(Exception):
     pass
 
 
-class NoNodestoreDataError(Exception):
-    pass
-
-
-class NoSnubaDataError(Exception):
-    pass
-
-
-class NoMoreGroupsToBackfillError(Exception):
-    pass
-
-
 class GroupEventRow(TypedDict):
     event_id: str
     group_id: int
@@ -147,6 +135,7 @@ def backfill_seer_grouping_records(
 
     last_group_id = groups_to_backfill_with_no_embedding[-1]
 
+    # Run single snuba query per group for high event counts, otherwise run bulk query
     snuba_results_high_count = get_data_from_snuba_single_group_query(
         project, group_id_last_seen_no_embeddings_high_count
     )
@@ -154,27 +143,15 @@ def backfill_seer_grouping_records(
         project, group_id_last_seen_no_embeddings_low_count
     )
 
-    try:
-        (
-            filtered_snuba_results,
-            groups_to_backfill_with_no_embedding_has_snuba_row,
-        ) = filter_snuba_results(
-            snuba_results_high_count,
-            snuba_results_low_count,
-            groups_to_backfill_with_no_embedding,
-            project,
-        )
-    except NoSnubaDataError:
-        call_next_backfill(
-            batch_end_index,
-            project_id,
-            redis_client,
-            total_groups_to_backfill_length,
-            last_group_id,
-            dry_run,
-        )
-        return
-
+    (
+        filtered_snuba_results,
+        groups_to_backfill_with_no_embedding_has_snuba_row,
+    ) = filter_snuba_results(
+        snuba_results_high_count,
+        snuba_results_low_count,
+        groups_to_backfill_with_no_embedding,
+        project,
+    )
     if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:
         call_next_backfill(
             batch_end_index,
@@ -255,7 +232,7 @@ def filter_snuba_results(
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
             },
         )
-        raise NoSnubaDataError("No data found in snuba")
+        return [], []
 
     filtered_snuba_results: list[GroupEventRow] = [
         snuba_result_high_count["data"][0]
@@ -353,7 +330,7 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
     }
     group_id_last_seen_no_embeddings_low_count = {
         group_id: last_seen
-        for (group_id, _, times_seen, last_seen) in groups_to_backfill_batch
+        for (group_id, _, _, last_seen) in groups_to_backfill_batch
         if group_id not in group_id_last_seen_no_embeddings_high_count
     }
 
