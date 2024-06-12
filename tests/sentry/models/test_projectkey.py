@@ -151,7 +151,15 @@ class ProjectKeyTest(TestCase):
 
     @override_settings(SENTRY_REGION="us")
     def test_get_dsn_org_subdomain_and_multiregion(self):
+        # Ensure compatibility with old flag.
         with self.feature("organizations:org-subdomains"):
+            key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
+            host = f"o{key.project.organization_id}.ingest." + (
+                "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
+            )
+            assert key.dsn_private == f"http://abc:xyz@{host}/{self.project.id}"
+
+        with self.feature("organizations:org-ingest-subdomains"):
             key = self.model(project_id=self.project.id, public_key="abc", secret_key="xyz")
             host = f"o{key.project.organization_id}.ingest." + (
                 "us.testserver" if SiloMode.get_current_mode() == SiloMode.REGION else "testserver"
