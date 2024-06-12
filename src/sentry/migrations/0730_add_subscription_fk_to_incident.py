@@ -35,7 +35,9 @@ def _backfill_incident_subscription(
                 extra={
                     "incident_id": incident.id,
                     "snuba_query_id": snuba_query.id,
-                    "subscription_ids": [subscription.id for subscription in subscriptions],
+                    "subscription_ids": [
+                        subscription.id for subscription in subscriptions if len(subscriptions) > 0
+                    ],
                 },
             )
             continue

@@ -123,9 +123,9 @@ class IncidentManager(BaseManager["Incident"]):
     @classmethod
     def clear_active_incident_project_cache(cls, instance, **kwargs):
         # instance is an IncidentProject
-        subscription_id = instance.incident.subscription_id
         project_id = instance.project_id
-        if subscription_id:
+        if instance.incident.subscription:
+            subscription_id = instance.incident.subscription_id
             key = cls._build_active_incident_cache_key(
                 instance.incident.alert_rule_id, project_id, subscription_id
             )
