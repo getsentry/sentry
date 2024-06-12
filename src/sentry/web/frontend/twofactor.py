@@ -192,9 +192,9 @@ class TwoFactorAuthView(BaseView):
                     content_type="text/plain",
                     status=429,
                 )
+
         elif "challenge" in request.POST:
             challenge = json.loads(request.POST["challenge"])
-
         form = TwoFactorForm()
 
         # If an OTP response was supplied, we try to make it pass.
@@ -207,18 +207,10 @@ class TwoFactorAuthView(BaseView):
 
         #  If a challenge and response exists, validate
         if challenge:
-            if response := request.POST.get("response"):
+            response = request.POST.get("response")
+            if response:
                 response = json.loads(response)
-
-                # TODO(schew2381): Eventually check state in if statement
-                if state := request.POST.get("state"):
-                    state = json.loads(state)
-                else:
-                    # state may be an empty string, so we want to explicitly set
-                    # it to None before passing to validate_response
-                    state = None
-
-                if interface.validate_response(request, challenge, response, state):
+                if interface.validate_response(request, challenge, response):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 

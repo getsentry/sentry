@@ -241,18 +241,6 @@ register(
     type=Bool,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "u2f.skip-session-cookie.ga-rollout",
-    default=False,
-    type=Bool,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "u2f.skip-session-cookie-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Recovery Codes
 register(
@@ -1770,12 +1758,6 @@ register(
     "performance.spans-tags-values.max",
     type=Int,
     default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "performance.spans-tags-values.search",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
