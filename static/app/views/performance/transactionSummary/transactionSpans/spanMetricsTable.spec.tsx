@@ -13,7 +13,7 @@ const initializeData = () => {
   return data;
 };
 
-describe('SuspectSpansTable', () => {
+describe('SpanMetricsTable', () => {
   it('should render the table and rows of data', async () => {
     const {organization, project} = initializeData();
 
@@ -100,6 +100,58 @@ describe('SuspectSpansTable', () => {
     expect(opCell).toHaveTextContent('db');
     expect(descriptionCell).toHaveTextContent('\u2014');
   });
+
+  // it('should not accept invalid tags in the search query', () => {
+  //   const {organization, project} = initializeData();
+
+  //   const mockRequest = MockApiClient.addMockResponse({
+  //     url: `/organizations/${organization.slug}/events/`,
+  //     method: 'GET',
+  //     body: {
+  //       data: [
+  //         {
+  //           'span.op': 'db',
+  //           'spm()': 5000,
+  //           'sum(span.self_time)': 12346071121.5044901,
+  //           'avg(span.duration)': 30900.700924083318,
+  //         },
+  //       ],
+  //     },
+  //   });
+
+  //   render(
+  //     <SpanMetricsTable
+  //       transactionName="Test Transaction"
+  //       project={project}
+  //       query={'http.method:POST span.op:db'}
+  //     />
+  //   );
+
+  //   expect(mockRequest).toHaveBeenCalledWith(
+  //     expect.objectContaining({
+  //       method: 'GET',
+  //       query: {
+  //         cursor: undefined,
+  //         dataset: 'spansMetrics',
+  //         environment: [],
+  //         excludeOther: 0,
+  //         field: [],
+  //         interval: '30m',
+  //         orderby: undefined,
+  //         partial: 1,
+  //         per_page: 50,
+  //         project: [],
+  //         query: 'span.op:[cache.get_item,cache.get] project.id:1',
+  //         referrer: 'api.performance.cache.samples-cache-hit-miss-chart',
+  //         statsPeriod: '10d',
+  //         topEvents: undefined,
+  //         yAxis: 'cache_miss_rate()',
+  //       },
+  //     })
+  //   );
+
+  //   screen.debug();
+  // });
 });
 
 async function findTableHeaders() {

@@ -3,7 +3,13 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
@@ -12,10 +18,13 @@ import {
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
-function initializeData({query} = {query: {}}) {
-  const features = ['performance-view'];
+function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
+  const {query, additionalFeatures} = options;
+
+  const defaultFeatures = ['performance-view'];
+
   const organization = OrganizationFixture({
-    features,
+    features: [...defaultFeatures, ...(additionalFeatures ? additionalFeatures : [])],
     projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
@@ -66,6 +75,10 @@ describe('Performance > Transaction Spans', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replay-count/',
       body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/spans/fields/',
+      body: [],
     });
   });
 
@@ -167,6 +180,30 @@ describe('Performance > Transaction Spans', function () {
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
+    });
+  });
+
+  describe('Spans Tab V2', function () {
+    it('does not propagate invalid span search tags from the URL', async function () {
+      const initialData = initializeData({
+        query: {'http.method': 'POST', 'span.op': 'http'},
+        additionalFeatures: [
+          'performance-view',
+          'performance-spans-new-ui',
+          'insights-initial-modules',
+        ],
+      });
+
+      console.dir(initialData.router.location);
+
+      render(<TransactionSpans location={initialData.router.location} />, {
+        router: initialData.router,
+        organization: initialData.organization,
+      });
+
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+      screen.debug();
     });
   });
 });
