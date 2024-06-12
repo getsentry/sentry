@@ -923,10 +923,6 @@ CELERY_QUEUES_REGION = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
-    Queue(
-        "symbolications.compute_low_priority_projects",
-        routing_key="symbolications.compute_low_priority_projects",
-    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
