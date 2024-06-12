@@ -545,15 +545,23 @@ export class VirtualizedViewManager {
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
+
+      // If this is the first zoom event, then read the clientX and offset it from the container element as offset
+      // is relative to the **target element**. In subsequent events, we can use the offsetX property as
+      // the pointer-events are going to be disabled and we will receive the correct offsetX value
+      let offsetX = 0;
       if (!this.timers.onWheelEnd) {
+        offsetX =
+          (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()?.left ?? 0;
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
 
       const scale = 1 - event.deltaY * 0.01 * -1;
+      const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
       const configSpaceCursor = this.getConfigSpaceCursor({
-        x: event.offsetX,
-        y: event.offsetY,
+        x: x,
+        y: 0,
       });
 
       const center = vec2.fromValues(configSpaceCursor[0], 0);
@@ -568,8 +576,12 @@ export class VirtualizedViewManager {
       );
 
       const newView = this.trace_view.transform(centerScaleMatrix);
+
+      // When users zoom in, the matrix will compute a width value that is lower than the min,
+      // which results in the value of x being incorrectly set and the view moving to the right.
+      // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
       this.setTraceView({
-        x: newView[0],
+        x: newView[2] < this.MAX_ZOOM_PRECISION ? this.trace_view.x : newView[0],
         width: newView[2],
       });
       this.draw();
@@ -764,11 +776,15 @@ export class VirtualizedViewManager {
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
-    this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
     this.trace_view.width = clamp(
       width,
       this.MAX_ZOOM_PRECISION,
       this.trace_space.width - this.trace_view.x
+    );
+    this.trace_view.x = clamp(
+      x,
+      0,
+      Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION)
     );
 
     this.recomputeTimelineIntervals();
