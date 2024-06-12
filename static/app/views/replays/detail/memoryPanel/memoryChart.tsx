@@ -38,9 +38,6 @@ export default function MemoryChart({
 }: Props) {
   const theme = useTheme();
   const idRef = useRef(domId('replay-memory-chart-'));
-  const formatTimestampTrim = (start, offset) => {
-    return getFormattedDate(start + offset, 'MMM D hh:mm', {local: false});
-  };
 
   const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
     () => ({
@@ -83,7 +80,7 @@ export default function MemoryChart({
       xAxis: XAxis({
         type: 'time',
         axisLabel: {
-          formatter: (time: number) => formatTimestampTrim(startTimestampMs, time),
+          formatter: (time: number) => formatTime(time),
         },
         theme,
       }),
