@@ -20,12 +20,7 @@ function U2fContainer({className, authenticators, ...props}: Props) {
     <div className={className}>
       {authenticators.map(auth =>
         auth.id === 'u2f' && auth.challenge ? (
-          <U2fSign
-            key={auth.id}
-            {...props}
-            challengeData={auth.challenge}
-            stateData={auth.state}
-          />
+          <U2fSign key={auth.id} {...props} challengeData={auth.challenge} />
         ) : null
       )}
     </div>
