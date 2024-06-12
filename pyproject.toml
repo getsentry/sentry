@@ -572,7 +572,6 @@ module = [
     "sentry.nodestore.django.models",
     "sentry.nodestore.filesystem.backend",
     "sentry.nodestore.models",
-    "sentry.profiles.*",
     "sentry.relay.config.metric_extraction",
     "sentry.reprocessing2",
     "sentry.runner.*",
