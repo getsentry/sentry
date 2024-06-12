@@ -79,6 +79,8 @@ export interface SmsAuthenticator extends BaseAuthenticator {
 export interface U2fAuthenticator extends BaseAuthenticator {
   challenge: ChallengeData;
   id: 'u2f';
+  // This may not be set depending on the option 'u2f.skip-session-cookie-allowlist'
+  state?: StateData;
 }
 export interface RecoveryAuthenticator extends BaseAuthenticator {
   id: 'recovery';
@@ -98,6 +100,11 @@ export type ChallengeData = {
   webAuthnAuthenticationData: string;
   // for WebAuthn register
   webAuthnRegisterData: string;
+};
+
+export type StateData = {
+  challenge: string;
+  user_verification: 'required' | 'preferred' | 'discouraged' | null;
 };
 
 export type EnrolledAuthenticator = {

@@ -5,12 +5,13 @@ import * as cbor from 'cbor-web';
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {ChallengeData} from 'sentry/types';
+import type {ChallengeData, StateData} from 'sentry/types';
 
 type TapParams = {
   challenge: string;
   response: string;
   isSuperuserModal?: boolean;
+  state?: string;
   superuserAccessCategory?: string;
   superuserReason?: string;
 };
@@ -27,6 +28,7 @@ type Props = {
   }: TapParams) => Promise<void>;
   silentIfUnsupported: boolean;
   children?: React.ReactNode;
+  stateData?: StateData;
   style?: React.CSSProperties;
 };
 
@@ -39,6 +41,7 @@ type State = {
   isSafari: boolean;
   isSupported: boolean | null;
   responseElement: HTMLInputElement | null;
+  stateElement: HTMLInputElement | null;
 };
 
 class U2fInterface extends Component<Props, State> {
@@ -49,6 +52,7 @@ class U2fInterface extends Component<Props, State> {
     hasBeenTapped: false,
     deviceFailure: null,
     responseElement: null,
+    stateElement: null,
     isSafari: false,
     failCount: 0,
   };
@@ -116,10 +120,15 @@ class U2fInterface extends Component<Props, State> {
           () => {
             const u2fResponse = this.getU2FResponse(data);
             const challenge = JSON.stringify(this.props.challengeData);
+            const state = JSON.stringify(this.props.stateData);
 
             if (this.state.responseElement) {
               // eslint-disable-next-line react/no-direct-mutation-state
               this.state.responseElement.value = u2fResponse;
+            }
+            if (this.state.stateElement) {
+              // eslint-disable-next-line react/no-direct-mutation-state
+              this.state.stateElement.value = state;
             }
 
             if (!this.props.onTap) {
@@ -245,6 +254,9 @@ class U2fInterface extends Component<Props, State> {
   bindResponseElement: React.RefCallback<HTMLInputElement> = ref =>
     this.setState({responseElement: ref});
 
+  bindStateElement: React.RefCallback<HTMLInputElement> = ref =>
+    this.setState({stateElement: ref});
+
   renderUnsupported() {
     return this.props.silentIfUnsupported ? null : (
       <div className="u2f-box">
@@ -353,6 +365,7 @@ class U2fInterface extends Component<Props, State> {
         </div>
         <input type="hidden" name="challenge" ref={this.bindChallengeElement} />
         <input type="hidden" name="response" ref={this.bindResponseElement} />
+        <input type="hidden" name="state" ref={this.bindStateElement} />
         <div className="inner">{this.renderBody()}</div>
       </div>
     );

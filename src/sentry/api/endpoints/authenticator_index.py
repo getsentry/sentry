@@ -31,11 +31,19 @@ class AuthenticatorIndexEndpoint(Endpoint):
         except LookupError:
             return Response([])
 
-        activation_challenge = interface.activate(request._request).challenge
+        activation_result = interface.activate(request._request)
+        activation_challenge, state = activation_result.challenge, activation_result.state
 
         webAuthnAuthenticationData = b64encode(activation_challenge)
-        challenge = {"webAuthnAuthenticationData": webAuthnAuthenticationData}
 
         # I don't think we currently support multiple interfaces of the same type
         # but just future proofing I guess
-        return Response([{"id": "u2f", "challenge": challenge}])
+        return Response(
+            [
+                {
+                    "id": "u2f",
+                    "challenge": {"webAuthnAuthenticationData": webAuthnAuthenticationData},
+                    "state": state,
+                }
+            ]
+        )
