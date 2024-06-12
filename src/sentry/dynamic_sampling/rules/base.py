@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 import sentry_sdk
 
-from sentry import quotas
+from sentry import features, quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
@@ -12,11 +12,15 @@ from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_e
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
+from sentry.models.dynamicsampling import CUSTOM_RULE_START
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 # These rules types will always be added to the generated rules, irrespectively of the base sample rate.
-ALWAYS_ALLOWED_RULE_TYPES = {RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE, RuleType.CUSTOM_RULE}
+ALWAYS_ALLOWED_RULE_TYPES = {
+    RuleType.BOOST_LOW_VOLUME_PROJECTS_RULE,
+    RuleType.CUSTOM_RULE,
+}
 # This threshold should be in sync with the execution time of the cron job responsible for running the sliding window.
 NEW_MODEL_THRESHOLD_IN_MINUTES = 10
 
@@ -64,7 +68,9 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
     # When using the boosted project sample rate, we want to fall back to the blended sample rate in case there are
     # any issues.
     sample_rate, _ = get_boost_low_volume_projects_sample_rate(
-        org_id=organization.id, project_id=project.id, error_sample_rate_fallback=sample_rate
+        org_id=organization.id,
+        project_id=project.id,
+        error_sample_rate_fallback=sample_rate,
     )
 
     return float(sample_rate)
@@ -95,8 +101,17 @@ def _get_rules_of_enabled_biases(
 
 
 def generate_rules(project: Project) -> list[PolymorphicRule]:
-    organization = project.organization
+    if features.has("organizations:am3-tier", project.organization):
+        return [
+            {
+                "id": CUSTOM_RULE_START,
+                "samplingValue": {"type": "sampleRate", "value": 1.0},
+                "type": "custom",
+                "condition": {"op": "glob", "name": "trace.trace_id", "value": "*"},
+            }
+        ]
 
+    organization = project.organization
     try:
         rules = _get_rules_of_enabled_biases(
             project,

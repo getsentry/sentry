@@ -103,6 +103,8 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:customer-domains": False,
         # Enable the frontend to request from region & control silo domains.
         "organizations:frontend-domainsplit": False,
+        # Enable AM3 tier
+        "organizations:am3-tier": False,
     }
 
     permanent_project_features = {
@@ -120,10 +122,16 @@ def register_permanent_features(manager: FeatureManager):
 
     for org_feature, default in permanent_organization_features.items():
         manager.add(
-            org_feature, OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=default
+            org_feature,
+            OrganizationFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
         )
 
     for project_feature, default in permanent_project_features.items():
         manager.add(
-            project_feature, ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=default
+            project_feature,
+            ProjectFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
         )
