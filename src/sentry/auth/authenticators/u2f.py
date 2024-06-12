@@ -1,6 +1,7 @@
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
+from typing import TypedDict
 from urllib.parse import urlparse
 
 import orjson
@@ -14,15 +15,17 @@ from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
-from fido2.webauthn import PublicKeyCredentialRpEntity
+from fido2.webauthn import PublicKeyCredentialRpEntity, UserVerificationRequirement
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
-from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.auth.authenticators.base import (
+    ActivationChallengeResult,
+    AuthenticatorInterface,
+    EnrollmentStatus,
+)
 from sentry.utils.dates import to_datetime
 from sentry.utils.http import absolute_uri
-
-from .base import ActivationChallengeResult, AuthenticatorInterface
 
 
 def decode_credential_id(device):
@@ -34,6 +37,27 @@ def create_credential_object(registeredKey):
         websafe_decode(registeredKey["keyHandle"]),
         websafe_decode(registeredKey["publicKey"]),
     )
+
+
+def skip_session_cookie(user) -> bool:
+    """
+    This checks two options, the first being whether or not the non-session
+    cookie u2f flow has been GA'd. If not, it falls back to checking the second
+    option which by email specifies for which users the new flow is enabled.
+    """
+    if options.get("u2f.skip-session-cookie.ga-rollout"):
+        return True
+
+    if (email := getattr(user, "email", None)) is None:
+        return False
+    return email in options.get("u2f.skip-session-cookie-allowlist")
+
+
+class U2fInternalState(TypedDict):
+    # A websafe-base64 encoding of the challenge byte string
+    challenge: str
+    # The desired user verification level
+    user_verification: UserVerificationRequirement | None
 
 
 def _get_url_prefix() -> str:
@@ -202,8 +226,14 @@ class U2fInterface(AuthenticatorInterface):
         challenge, state = self.webauthn_authentication_server.authenticate_begin(
             credentials=credentials
         )
-        request.session["webauthn_authentication_state"] = state
-        return ActivationChallengeResult(challenge=cbor.encode(challenge["publicKey"]))
+        skip_setting_cookie = skip_session_cookie(request)
+        if not skip_setting_cookie:
+            request.session["webauthn_authentication_state"] = state
+
+        return ActivationChallengeResult(
+            challenge=cbor.encode(challenge["publicKey"]),
+            state=state if skip_setting_cookie else None,
+        )
 
     def validate_response(self, request: HttpRequest, challenge, response):
         try:
