@@ -73,7 +73,12 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-trace-meta/trace-id/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+    }),
   });
 }
 
