@@ -9,7 +9,6 @@ from unittest.mock import ANY, call, patch
 import pytest
 from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
-from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
@@ -18,10 +17,10 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.backfill import CreateGroupingRecordData
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.referrer import Referrer
 from sentry.tasks.backfill_seer_grouping_records import (
     backfill_seer_grouping_records,
+    get_data_from_snuba_bulk_groups_query,
+    get_data_from_snuba_single_group_query,
     get_events_from_nodestore,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
@@ -33,7 +32,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
-from sentry.utils.snuba import bulk_snuba_queries
 
 EXCEPTION = {
     "values": [
@@ -397,6 +395,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "event_id": 10000,
             },
         )
+
+    def test_get_data_from_snuba_single_group_query(self):
+        """
+        Test that all groups are queried when queried individually.
+        """
+        group_ids_last_seen = {
+            group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
+        }
+        group_event_rows = get_data_from_snuba_single_group_query(self.project, group_ids_last_seen)
+        group_ids_results = [row["data"][0]["group_id"] for row in group_event_rows]
+        for group_id in group_ids_last_seen:
+            assert group_id in group_ids_results
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
@@ -787,10 +797,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.logger")
-    @patch("sentry.tasks.backfill_seer_grouping_records.bulk_snuba_queries")
+    @patch("sentry.tasks.backfill_seer_grouping_records.get_data_from_snuba_bulk_groups_query")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_no_events(
-        self, mock_post_bulk_grouping_records, mock_snuba_queries, mock_logger
+        self,
+        mock_post_bulk_grouping_records,
+        mock_get_data_from_snuba_bulk_groups_query,
+        mock_logger,
     ):
         """
         Test that groups that have no events in snuba are excluded.
@@ -799,48 +812,10 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         # Mock snuba response to purposefully exclude the first group
         groups_minus_first = Group.objects.filter(project_id=self.project.id).order_by("id")[1:]
-        group_id_batch = [group.id for group in groups_minus_first]
-        events_entity = Entity("events", alias="events")
-        snuba_requests = []
-        for group_id in group_id_batch:
-            group = Group.objects.get(id=group_id)
-            query = Query(
-                match=events_entity,
-                select=[
-                    Column("group_id"),
-                    Column("event_id"),
-                ],
-                where=[
-                    Condition(Column("project_id"), Op.EQ, self.project.id),
-                    Condition(Column("group_id"), Op.EQ, group_id),
-                    Condition(
-                        Column("timestamp", entity=events_entity),
-                        Op.GTE,
-                        group.last_seen - timedelta(days=10),
-                    ),
-                    Condition(
-                        Column("timestamp", entity=events_entity),
-                        Op.LT,
-                        group.last_seen + timedelta(minutes=5),
-                    ),
-                ],
-                limit=Limit(1),
-            )
-            request = Request(
-                dataset=Dataset.Events.value,
-                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                query=query,
-                tenant_ids={
-                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                    "cross_org_query": 1,
-                },
-            )
-            snuba_requests.append(request)
-
-        result = bulk_snuba_queries(
-            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        group_id_last_seen_batch = {group.id: group.last_seen for group in groups_minus_first}
+        mock_get_data_from_snuba_bulk_groups_query.return_value = (
+            get_data_from_snuba_bulk_groups_query(self.project, group_id_last_seen_batch)
         )
-        mock_snuba_queries.return_value = result
 
         with TaskRunner():
             backfill_seer_grouping_records(self.project.id, None)
@@ -861,6 +836,48 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 },
             )
             in mock_logger.info.call_args_list
+        )
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.logger")
+    @patch("sentry.tasks.backfill_seer_grouping_records.get_data_from_snuba_single_group_query")
+    @patch("sentry.tasks.backfill_seer_grouping_records.get_data_from_snuba_bulk_groups_query")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    @patch("sentry.tasks.backfill_seer_grouping_records.call_next_backfill")
+    def test_backfill_seer_grouping_records_no_snuba_results(
+        self,
+        mock_call_next_backfill,
+        mock_post_bulk_grouping_records,
+        mock_get_data_from_snuba_bulk_groups_query,
+        mock_get_data_from_snuba_single_group_query,
+        mock_logger,
+    ):
+        """
+        Test that if snuba returns no data, we skip the batch and call the next backfill
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Mock snuba responses to be empty
+        mock_get_data_from_snuba_bulk_groups_query.return_value = []
+        mock_get_data_from_snuba_single_group_query.return_value = []
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        group_ids = [group.id for group in Group.objects.filter(project_id=self.project.id)]
+        groups_len = len(group_ids)
+        assert (
+            call(
+                "tasks.backfill_seer_grouping_records.no_snuba_results",
+                extra={
+                    "project_id": self.project.id,
+                    "group_id_batch": json.dumps(group_ids),
+                },
+            )
+            in mock_logger.info.call_args_list
+        )
+        mock_call_next_backfill.assert_called_with(
+            groups_len, self.project.id, ANY, groups_len, group_ids[-1], False
         )
 
     @with_feature("projects:similarity-embeddings-backfill")
@@ -961,3 +978,52 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
         assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_groups_1_million_times_seen(
+        self, mock_post_bulk_grouping_records
+    ):
+        """
+        Test that groups where times_seen >= 1 million are queried individually using
+        get_data_from_snuba_single_group_query
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        # Create groups with over 1 million event counts
+        function_names = [f"new_function_{str(i)}" for i in range(5)]
+        type_names = [f"NewError{str(i)}" for i in range(5)]
+        value_names = ["error with value" for _ in range(5)]
+        groups_high_event_count = []
+        group_hashes_high_event_count = {}
+        for i in range(5):
+            data = {
+                "exception": self.create_exception_values(
+                    function_names[i], type_names[i], value_names[i]
+                ),
+                "title": "title",
+                "timestamp": iso_format(before_now(seconds=10)),
+            }
+            event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
+            event.group.times_seen = 1000000
+            event.group.save()
+            groups_high_event_count.append(event.group.id)
+            group_hash = GroupHash.objects.get(group_id=event.group.id).hash
+            group_hashes_high_event_count.update({event.group.id: group_hash})
+
+        with TaskRunner():
+            backfill_seer_grouping_records(self.project.id, None)
+
+        for group in Group.objects.filter(project_id=self.project.id):
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id]
+                if group.id in self.group_hashes
+                else group_hashes_high_event_count[group.id],
+            }
+
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
+        assert last_processed_index == len(
+            Group.objects.filter(project_id=self.project.id, times_seen__gt=1)
+        )
