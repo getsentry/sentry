@@ -177,11 +177,12 @@ export function WebVitalsLandingPage() {
               <PagePerformanceTable />
               <PagesTooltipContainer>
                 <Tooltip
+                  isHoverable
                   title={
                     <div>
                       <div>
                         {tct(
-                          'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks here [link:here]',
+                          'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks [link:here].',
                           {
                             link: (
                               <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
