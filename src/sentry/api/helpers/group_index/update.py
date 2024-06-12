@@ -307,7 +307,7 @@ def update_groups(
                     status=400,
                 )
             release = (
-                status_details.get("inNextRelease")
+                status_details.get("inUpcomingRelease")
                 or Release.objects.filter(
                     projects=projects[0], organization_id=projects[0].organization_id
                 )
