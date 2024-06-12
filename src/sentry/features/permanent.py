@@ -1,4 +1,9 @@
-from sentry.features.base import FeatureHandlerStrategy, OrganizationFeature, ProjectFeature
+from sentry.features.base import (
+    FeatureHandlerStrategy,
+    OrganizationFeature,
+    ProjectFeature,
+    SystemFeature,
+)
 from sentry.features.manager import FeatureManager
 
 # XXX: See `features/__init__.py` for documentation on how to use feature flags
@@ -134,3 +139,6 @@ def register_permanent_features(manager: FeatureManager):
         manager.add(
             project_feature, ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=default
         )
+
+    # Enable support for multiple regions, and org slug subdomains.
+    manager.add("system:multi-region", SystemFeature, default=False)
