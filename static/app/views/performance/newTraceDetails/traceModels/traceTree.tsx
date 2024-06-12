@@ -274,6 +274,9 @@ export function makeTraceNodeBarColor(
     return pickBarColor(node.value.op);
   }
   if (isAutogroupedNode(node)) {
+    if (node.errors.size > 0) {
+      return theme.red300;
+    }
     return theme.blue300;
   }
   if (isMissingInstrumentationNode(node)) {
