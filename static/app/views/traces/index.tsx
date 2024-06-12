@@ -3,30 +3,35 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {Content} from './content';
 
+export const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
+
 function TraceExplorerLandingPage() {
   return (
     <Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Traces',
-              },
-            ]}
-          />
           <HeaderContentBar>
-            <Layout.Title>{t('Traces')}</Layout.Title>
+            <Layout.Title>
+              {t('Traces')}
+              <PageHeadingQuestionTooltip
+                docsUrl={TRACE_EXPLORER_DOCS_URL}
+                title={t(
+                  'Traces lets you search for individual spans that make up a trace, linked by a trace id.'
+                )}
+              />
+              <FeatureBadge type="beta" />
+            </Layout.Title>
             <FeedbackWidgetButton />
           </HeaderContentBar>
         </Layout.HeaderContent>
