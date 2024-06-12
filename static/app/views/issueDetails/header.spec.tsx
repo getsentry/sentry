@@ -79,7 +79,10 @@ describe('GroupHeader', () => {
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/merged/');
 
       await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/replays/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/replays/',
+        query: {},
+      });
 
       expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
