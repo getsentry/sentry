@@ -63,6 +63,9 @@ function GroupHeaderTabs({
     statsPeriod: '90d',
   });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
+
+  // omit `sort` param from the URLs because it persists from the issues list,
+  // which can cause the tab content rendering to break
   const queryParams = omit(location.query, ['sort']);
 
   const projectFeatures = new Set(project ? project.features : []);
