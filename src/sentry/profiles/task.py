@@ -115,7 +115,7 @@ def process_profile_task(
     if "event_id" in profile:
         profile_context["profile_id"] = profile["event_id"]
     elif "chunk_id" in profile:
-        profile_context["chunk_id"] = profile["chunk_id"]
+        profile_context["event_id"] = profile["chunk_id"]
 
     sentry_sdk.set_context(
         "profile",
@@ -1006,7 +1006,10 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             elif response.status == 412:
                 metrics.incr(
                     "process_profile.insert_vroom_profile.error",
-                    tags={"platform": profile["platform"], "reason": "duplicate profile"},
+                    tags={
+                        "platform": profile["platform"],
+                        "reason": "duplicate profile",
+                    },
                     sample_rate=1.0,
                 )
                 return False
