@@ -31,6 +31,7 @@ from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.types import ParamsType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -467,7 +468,9 @@ def handle_query_errors() -> Generator[None, None, None]:
 
 
 def update_snuba_params_with_timestamp(
-    request: HttpRequest, params: MutableMapping[str, Any], timestamp_key: str = "timestamp"
+    request: HttpRequest,
+    params: MutableMapping[str, Any] | ParamsType,
+    timestamp_key: str = "timestamp",
 ) -> None:
     """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
     send the timestamp of something in that event or trace and we'll query data near that event only which should be
