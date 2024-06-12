@@ -908,7 +908,8 @@ def threads_variant_processor(
     return remove_non_stacktrace_variants(variants)
 
 
-def react_hydration_error_with_cause(exceptions: list[SingleException]) -> int:
+def react_hydration_error_with_cause(exceptions: list[SingleException]) -> int | None:
+    main_exception_id = None
     # Starting with React 19, hydration errors can contain a cause error which is useful to display
     if (
         exceptions[0].type == "Error"
@@ -916,10 +917,11 @@ def react_hydration_error_with_cause(exceptions: list[SingleException]) -> int:
         == "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary."
         and exceptions[-1].mechanism.source == "cause"
     ):
-        return exceptions[-1].mechanism.exception_id
+        main_exception_id = exceptions[-1].mechanism.exception_id
+    return main_exception_id
 
 
-def determine_main_exception_id(exceptions: list[SingleException]) -> int:
+def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
     MAIN_EXCEPTION_ID_FUNCS = [
         react_hydration_error_with_cause,
     ]

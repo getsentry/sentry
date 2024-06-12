@@ -256,6 +256,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
         assert event.data["metadata"]["value"] == cause_error_value
         assert event.data["metadata"]["type"] == "TypeError"
+        assert event.group is not None
         assert event.group.title == f"TypeError: {cause_error_value}"
 
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
