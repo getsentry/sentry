@@ -7,10 +7,11 @@ export type TracingEventParameters = {
   };
   'trace.trace_layout.drawer_minimize': {};
   'trace.trace_layout.reset_zoom': {};
-  'trace.trace_layout.search_cancel': {};
+  'trace.trace_layout.search_clear': {};
   'trace.trace_layout.search_focus': {};
-  'trace.trace_layout.search_result_jump': {
+  'trace.trace_layout.search_match_navigate': {
     direction: string;
+    interaction: string;
   };
   'trace.trace_layout.show_in_view': {};
   'trace.trace_layout.tab_pin': {};
@@ -60,9 +61,9 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.view_shortcuts': 'Viewed Trace Shortcuts',
   'trace.trace_warning_type': 'Viewed Trace Warning Type',
   'trace.trace_layout.zoom_to_fill': 'Trace Zoom to Fill',
-  'trace.trace_layout.search_cancel': 'Cancel Trace Search',
+  'trace.trace_layout.search_clear': 'Clear Trace Search',
   'trace.trace_layout.view_in_insight_module': 'View Trace Span in Insight Module',
-  'trace.trace_layout.search_result_jump': 'Jumped to Trace Search Result',
+  'trace.trace_layout.search_match_navigate': 'Navigate Trace Search Matches',
   'trace_explorer.add_span_condition': 'Trace Explorer: Add Span Condition',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
   'trace_explorer.open_trace': 'Trace Explorer: Open Trace in Trace Viewer',

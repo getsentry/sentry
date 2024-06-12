@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {
   TraceError,
@@ -606,10 +607,13 @@ function RenderRow(props: {
 
   const onSpanRowDoubleClick = useCallback(
     e => {
+      trackAnalytics('trace.trace_layout.zoom_to_fill', {
+        organization: props.organization,
+      });
       e.stopPropagation();
       props.manager.onZoomIntoSpace(props.node.space!);
     },
-    [props.node, props.manager]
+    [props.node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
