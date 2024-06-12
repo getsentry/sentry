@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 from django.db import connections, router, transaction
@@ -80,7 +80,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
     Provides bulk update and delete methods that respect outbox creation.
     """
 
-    def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> Collection[_RM]:
+    def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> list[_RM]:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_RM, ...] = tuple(objs)
@@ -107,7 +107,9 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-    def bulk_update(self, objs: Iterable[_RM], fields: list[str], *args: Any, **kwds: Any) -> Any:
+    def bulk_update(
+        self, objs: Iterable[_RM], fields: Sequence[str], *args: Any, **kwds: Any
+    ) -> Any:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_RM, ...] = tuple(objs)
@@ -262,7 +264,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
     Provides bulk update and delete methods that respect outbox creation.
     """
 
-    def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> Collection[_CM]:
+    def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> list[_CM]:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_CM, ...] = tuple(objs)
@@ -289,7 +291,9 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-    def bulk_update(self, objs: Iterable[_CM], fields: list[str], *args: Any, **kwds: Any) -> Any:
+    def bulk_update(
+        self, objs: Iterable[_CM], fields: Sequence[str], *args: Any, **kwds: Any
+    ) -> Any:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_CM, ...] = tuple(objs)
