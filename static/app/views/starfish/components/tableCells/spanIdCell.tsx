@@ -16,7 +16,7 @@ interface Props {
   timestamp: string;
   traceId: string;
   transactionId: string;
-  referrer?: string;
+  source?: string;
 }
 
 export function SpanIdCell({
@@ -26,7 +26,7 @@ export function SpanIdCell({
   transactionId,
   spanId,
   timestamp,
-  referrer,
+  source,
   location,
 }: Props) {
   const organization = useOrganization();
@@ -39,7 +39,7 @@ export function SpanIdCell({
       organization,
       location,
       spanId,
-      referrer,
+      source,
     })
   );
 

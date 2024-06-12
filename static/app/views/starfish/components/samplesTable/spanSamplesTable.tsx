@@ -76,7 +76,7 @@ type Props = {
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
-  referrer?: string;
+  source?: string;
 };
 
 export function SpanSamplesTable({
@@ -89,7 +89,7 @@ export function SpanSamplesTable({
   onMouseLeaveSample,
   onMouseOverSample,
   columnOrder,
-  referrer,
+  source,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -129,7 +129,7 @@ export function SpanSamplesTable({
               },
             },
             spanId: row.span_id,
-            referrer,
+            source,
           })}
         >
           {row['transaction.id'].slice(0, 8)}
@@ -160,7 +160,7 @@ export function SpanSamplesTable({
               },
             },
             spanId: row.span_id,
-            referrer,
+            source,
           })}
         >
           {row.span_id}

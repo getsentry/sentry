@@ -40,7 +40,7 @@ import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTr
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
-import {TraceViewReferrers} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 import Tab from '../tabs';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 
@@ -366,7 +366,7 @@ function TagsHeatMap(
                         },
                         organization,
                         transactionName,
-                        referrer: TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY,
+                        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
                       });
 
                       return (

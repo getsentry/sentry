@@ -28,7 +28,7 @@ import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/starfish/types';
 
-import {TraceViewReferrers} from '../performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
 
 import type {SpanResult, TraceResult} from './content';
 import type {Field} from './data';
@@ -287,7 +287,7 @@ export function SpanIdRenderer({
     organization,
     location,
     spanId,
-    referrer: TraceViewReferrers.TRACES,
+    source: TraceViewSources.TRACES,
   });
 
   return <Link to={target}>{getShortEventId(spanId)}</Link>;
@@ -322,7 +322,7 @@ export function TraceIdRenderer({
     timestamp: stringOrNumberTimestamp,
     eventId: transactionId,
     location,
-    referrer: TraceViewReferrers.TRACES,
+    source: TraceViewSources.TRACES,
   });
 
   return (

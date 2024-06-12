@@ -41,7 +41,7 @@ import {generateReplayLink} from 'sentry/views/performance/transactionSummary/ut
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
-import {TraceViewReferrers} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type Column = GridColumnHeader;
 
@@ -210,7 +210,7 @@ export function PageOverviewWebVitalsDetailPanel({
         projectSlug,
         organization,
         location,
-        referrer: TraceViewReferrers.WEB_VITALS_MODULE,
+        source: TraceViewSources.WEB_VITALS_MODULE,
       });
       return (
         <NoOverflow>

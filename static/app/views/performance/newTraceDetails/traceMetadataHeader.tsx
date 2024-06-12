@@ -25,7 +25,7 @@ interface TraceMetadataHeaderProps {
   traceSlug: string;
 }
 
-export enum TraceViewReferrers {
+export const enum TraceViewSources {
   TRACES = 'traces',
   METRICS = 'metrics',
   DISCOVER = 'discover',
@@ -160,7 +160,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
     });
 
     switch (location.query.referrer) {
-      case TraceViewReferrers.REQUESTS_MODULE:
+      case TraceViewSources.REQUESTS_MODULE:
         crumbs.push({
           label: t('Requests'),
           to: getBreadCrumbTarget(`insights/http/`, location.query, organization),
@@ -171,7 +171,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
           to: getBreadCrumbTarget(`insights/http/domains/`, location.query, organization),
         });
         break;
-      case TraceViewReferrers.QUERIES_MODULE:
+      case TraceViewSources.QUERIES_MODULE:
         crumbs.push({
           label: t('Queries'),
           to: getBreadCrumbTarget(`insights/database`, location.query, organization),
@@ -192,7 +192,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
           });
         }
         break;
-      case TraceViewReferrers.ASSETS_MODULE:
+      case TraceViewSources.ASSETS_MODULE:
         crumbs.push({
           label: t('Assets'),
           to: getBreadCrumbTarget(
@@ -217,7 +217,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
           });
         }
         break;
-      case TraceViewReferrers.APP_STARTS_MODULE:
+      case TraceViewSources.APP_STARTS_MODULE:
         crumbs.push({
           label: t('App Starts'),
           to: getBreadCrumbTarget(
@@ -236,7 +236,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
           ),
         });
         break;
-      case TraceViewReferrers.SCREEN_LOADS_MODULE:
+      case TraceViewSources.SCREEN_LOADS_MODULE:
         crumbs.push({
           label: t('Screen Loads'),
           to: getBreadCrumbTarget(
@@ -255,7 +255,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
           ),
         });
         break;
-      case TraceViewReferrers.WEB_VITALS_MODULE:
+      case TraceViewSources.WEB_VITALS_MODULE:
         crumbs.push({
           label: t('Web Vitals'),
           to: getBreadCrumbTarget(
@@ -274,13 +274,13 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
           ),
         });
         break;
-      case TraceViewReferrers.CACHES_MODULE:
+      case TraceViewSources.CACHES_MODULE:
         crumbs.push({
           label: t('Caches'),
           to: getBreadCrumbTarget(`insights/caches`, location.query, organization),
         });
         break;
-      case TraceViewReferrers.QUEUES_MODULE:
+      case TraceViewSources.QUEUES_MODULE:
         crumbs.push({
           label: t('Queues'),
           to: getBreadCrumbTarget(`insights/queues`, location.query, organization),
@@ -312,7 +312,7 @@ function getTraceViewBreadcrumbs(
   location: Location
 ): Crumb[] {
   switch (location.query.referrer) {
-    case TraceViewReferrers.TRACES:
+    case TraceViewSources.TRACES:
       return [
         {
           label: t('Traces'),
@@ -322,7 +322,7 @@ function getTraceViewBreadcrumbs(
           label: t('Trace View'),
         },
       ];
-    case TraceViewReferrers.DISCOVER:
+    case TraceViewSources.DISCOVER:
       return [
         {
           label: t('Discover'),
@@ -332,7 +332,7 @@ function getTraceViewBreadcrumbs(
           label: t('Trace View'),
         },
       ];
-    case TraceViewReferrers.METRICS:
+    case TraceViewSources.METRICS:
       return [
         {
           label: t('Metrics'),
@@ -342,18 +342,18 @@ function getTraceViewBreadcrumbs(
           label: t('Trace View'),
         },
       ];
-    case TraceViewReferrers.ISSUE_DETAILS:
+    case TraceViewSources.ISSUE_DETAILS:
       return getIssuesBreadCrumbs(organization, location);
-    case TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY:
+    case TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY:
       return getPerformanceBreadCrumbs(organization, location);
-    case TraceViewReferrers.REQUESTS_MODULE:
-    case TraceViewReferrers.QUERIES_MODULE:
-    case TraceViewReferrers.ASSETS_MODULE:
-    case TraceViewReferrers.APP_STARTS_MODULE:
-    case TraceViewReferrers.SCREEN_LOADS_MODULE:
-    case TraceViewReferrers.WEB_VITALS_MODULE:
-    case TraceViewReferrers.CACHES_MODULE:
-    case TraceViewReferrers.QUEUES_MODULE:
+    case TraceViewSources.REQUESTS_MODULE:
+    case TraceViewSources.QUERIES_MODULE:
+    case TraceViewSources.ASSETS_MODULE:
+    case TraceViewSources.APP_STARTS_MODULE:
+    case TraceViewSources.SCREEN_LOADS_MODULE:
+    case TraceViewSources.WEB_VITALS_MODULE:
+    case TraceViewSources.CACHES_MODULE:
+    case TraceViewSources.QUEUES_MODULE:
       return getInsightsModuleBreadcrumbs(location, organization);
     default:
       return [{label: t('Trace View')}];

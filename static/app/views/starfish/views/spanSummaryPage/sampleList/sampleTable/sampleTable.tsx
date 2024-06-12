@@ -171,7 +171,7 @@ function SampleTable({
           })}
           isLoading={isLoading}
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
-          referrer={referrer}
+          source={referrer}
         />
       </VisuallyCompleteWithData>
       <Button

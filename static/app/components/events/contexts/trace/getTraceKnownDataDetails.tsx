@@ -1,10 +1,11 @@
+import type {Location} from 'history';
+
 import {LinkButton} from 'sentry/components/button';
 import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {useLocation} from 'sentry/utils/useLocation';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import type {TraceKnownData} from './types';
@@ -13,6 +14,7 @@ import {TraceKnownDataType} from './types';
 type Props = {
   data: TraceKnownData;
   event: Event;
+  location: Location;
   organization: Organization;
   type: TraceKnownDataType;
 };
@@ -22,9 +24,8 @@ export function getTraceKnownDataDetails({
   event,
   organization,
   type,
+  location,
 }: Props): KnownDataDetails {
-  const location = useLocation();
-
   switch (type) {
     case TraceKnownDataType.TRACE_ID: {
       const traceId = data.trace_id || '';

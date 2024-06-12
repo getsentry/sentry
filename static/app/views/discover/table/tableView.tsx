@@ -46,7 +46,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -205,7 +205,7 @@ function TableView(props: TableViewProps) {
           location,
           eventView,
           type: 'discover',
-          referrer: TraceViewReferrers.DISCOVER,
+          source: TraceViewSources.DISCOVER,
         });
       } else {
         const project = dataRow.project || dataRow['project.name'];
@@ -334,7 +334,7 @@ function TableView(props: TableViewProps) {
           location,
           eventView,
           type: 'discover',
-          referrer: TraceViewReferrers.DISCOVER,
+          source: TraceViewSources.DISCOVER,
         });
       } else {
         const project = dataRow.project || dataRow['project.name'];
@@ -390,7 +390,7 @@ function TableView(props: TableViewProps) {
           dateSelection,
           timestamp,
           location,
-          referrer: TraceViewReferrers.DISCOVER,
+          source: TraceViewSources.DISCOVER,
         });
 
         cell = (

@@ -12,7 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {TraceViewReferrers} from '../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
@@ -139,7 +139,7 @@ export function generateTraceLink(dateSelection) {
       dateSelection,
       timestamp: tableRow.timestamp,
       location,
-      referrer: TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY,
+      source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
     });
   };
 }
@@ -160,7 +160,7 @@ export function generateTransactionIdLink(transactionName?: string) {
       organization,
       spanId,
       transactionName,
-      referrer: TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY,
+      source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
     });
   };
 }

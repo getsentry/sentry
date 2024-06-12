@@ -1,3 +1,4 @@
+import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -16,6 +17,7 @@ describe('getTraceKnownDataDetails', function () {
         data: traceMockData,
         organization: OrganizationFixture(),
         event: EventFixture(),
+        location: {query: {}} as Location,
       });
 
       if (!traceKnownData) {

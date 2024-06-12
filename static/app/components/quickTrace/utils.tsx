@@ -136,7 +136,7 @@ export function generateTraceTarget(
   event: Event,
   organization: OrganizationSummary,
   location: Location,
-  referrer?: string
+  source?: string
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
@@ -151,7 +151,7 @@ export function generateTraceTarget(
       timestamp: getEventTimestamp(event),
       eventId: event.eventID,
       location,
-      referrer,
+      source,
     });
   }
 

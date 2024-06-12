@@ -27,7 +27,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
@@ -297,7 +297,7 @@ function renderBodyCell(
               spanSlug: `${spanOp}:${transactionId}`,
             },
           }}
-          referrer={TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY}
+          source={TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY}
         />
       );
     }

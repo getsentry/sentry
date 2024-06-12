@@ -25,7 +25,7 @@ export function getTraceDetailsUrl({
   eventId,
   demo,
   location,
-  referrer,
+  source,
 }: {
   dateSelection;
   location: Location;
@@ -33,7 +33,7 @@ export function getTraceDetailsUrl({
   traceSlug: string;
   demo?: string;
   eventId?: string;
-  referrer?: string;
+  source?: string;
   spanId?: string;
   timestamp?: string | number;
 }): LocationDescriptorObject {
@@ -59,7 +59,7 @@ export function getTraceDetailsUrl({
         timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
         demo,
-        referrer,
+        source,
       },
     };
   }

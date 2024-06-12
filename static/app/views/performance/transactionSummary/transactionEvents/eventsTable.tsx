@@ -35,7 +35,7 @@ import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cell
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 import {COLUMN_TITLES} from '../../data';
-import {TraceViewReferrers} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 import Tab from '../tabs';
 import {
   generateProfileLink,
@@ -176,7 +176,7 @@ class EventsTable extends Component<Props, State> {
             location: locationWithTab,
             organization,
             transactionName: transactionName,
-            referrer: TraceViewReferrers.PERFORMANCE_TRANSACTION_SUMMARY,
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
           });
         } else {
           target = generateTraceLink(transactionName)(

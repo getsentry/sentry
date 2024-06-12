@@ -35,7 +35,7 @@ import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
-import {TraceViewReferrers} from '../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 type Query = {
   transaction: string;
@@ -260,7 +260,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
             moduleName={ModuleName.DB}
             transactionName={transaction}
             transactionMethod={transactionMethod}
-            referrer={TraceViewReferrers.QUERIES_MODULE}
+            referrer={TraceViewSources.QUERIES_MODULE}
           />
         </Layout.Main>
       </Layout.Body>

@@ -52,7 +52,7 @@ export function generateLinkToEventInTraceView({
   transactionName,
   eventView,
   demo,
-  referrer,
+  source,
   type = 'performance',
 }: {
   eventId: string;
@@ -64,7 +64,7 @@ export function generateLinkToEventInTraceView({
   demo?: string;
   eventView?: EventView;
   isHomepage?: boolean;
-  referrer?: string;
+  source?: string;
   spanId?: string;
   transactionName?: string;
   type?: 'performance' | 'discover';
@@ -84,7 +84,7 @@ export function generateLinkToEventInTraceView({
       spanId,
       demo,
       location,
-      referrer,
+      source,
     });
   }
 

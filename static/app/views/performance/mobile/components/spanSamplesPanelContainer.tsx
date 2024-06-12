@@ -33,7 +33,7 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 
-import {TraceViewReferrers} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -186,7 +186,7 @@ export function SpanSamplesContainer({
               organization,
               traceSlug: span.trace,
               timestamp: span.timestamp,
-              referrer: TraceViewReferrers.APP_STARTS_MODULE,
+              source: TraceViewSources.APP_STARTS_MODULE,
             })
           );
         }}
@@ -211,7 +211,7 @@ export function SpanSamplesContainer({
         />
       </Feature>
       <SampleTable
-        referrer={TraceViewReferrers.APP_STARTS_MODULE}
+        referrer={TraceViewSources.APP_STARTS_MODULE}
         spanSearch={spanSearch}
         additionalFilters={additionalFilters}
         highlightedSpanId={highlightedSpanId}

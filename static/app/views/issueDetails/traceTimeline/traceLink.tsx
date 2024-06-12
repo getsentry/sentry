@@ -10,7 +10,7 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceViewReferrers} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 interface TraceLinkProps {
   event: Event;
@@ -29,7 +29,7 @@ export function TraceLink({event}: TraceLinkProps) {
         groupId: event.groupID,
       },
     },
-    TraceViewReferrers.ISSUE_DETAILS
+    TraceViewSources.ISSUE_DETAILS
   );
 
   if (!event.contexts?.trace?.trace_id) {
