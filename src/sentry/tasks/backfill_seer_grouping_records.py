@@ -9,7 +9,18 @@ from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
-from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
 from sentry import features, nodestore, options
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
@@ -43,6 +54,8 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
+HIGH_GROUP_EVENT_COUNT = 1000000
+SNUBA_QUERY_RATELIMIT = 4
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +72,11 @@ class GroupEventRow(TypedDict):
 class GroupStacktraceData(TypedDict):
     data: list[CreateGroupingRecordData]
     stacktrace_list: list[str]
+
+
+class EventGroupSnubaResult(TypedDict):
+    group_id: int
+    event_id: str
 
 
 @instrumented_task(
@@ -106,6 +124,8 @@ def backfill_seer_grouping_records(
 
     (
         groups_to_backfill_with_no_embedding,
+        group_id_last_seen_no_embeddings_high_count,
+        group_id_last_seen_no_embeddings_low_count,
         batch_end_index,
         total_groups_to_backfill_length,
     ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
@@ -115,13 +135,23 @@ def backfill_seer_grouping_records(
 
     last_group_id = groups_to_backfill_with_no_embedding[-1]
 
-    snuba_results = get_data_from_snuba(project, groups_to_backfill_with_no_embedding)
+    # Run single snuba query per group for high event counts, otherwise run bulk query
+    snuba_results_high_count = get_data_from_snuba_single_group_query(
+        project, group_id_last_seen_no_embeddings_high_count
+    )
+    snuba_results_low_count = get_data_from_snuba_bulk_groups_query(
+        project, group_id_last_seen_no_embeddings_low_count
+    )
 
     (
         filtered_snuba_results,
         groups_to_backfill_with_no_embedding_has_snuba_row,
-    ) = filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project)
-
+    ) = filter_snuba_results(
+        snuba_results_high_count,
+        snuba_results_low_count,
+        groups_to_backfill_with_no_embedding,
+        project,
+    )
     if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:
         call_next_backfill(
             batch_end_index,
@@ -189,19 +219,26 @@ def backfill_seer_grouping_records(
     )
 
 
-def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project):
-    if not snuba_results or not snuba_results[0].get("data"):
+def filter_snuba_results(
+    snuba_results_high_count, snuba_results_low_count, groups_to_backfill_with_no_embedding, project
+):
+    if (not snuba_results_low_count or not snuba_results_low_count[0].get("data")) and (
+        not snuba_results_high_count or not snuba_results_high_count[0].get("data")
+    ):
         logger.info(
-            "tasks.backfill_seer_grouping_records.results",
+            "tasks.backfill_seer_grouping_records.no_snuba_results",
             extra={
                 "project_id": project.id,
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
             },
         )
-        return
+        return [], []
+
     filtered_snuba_results: list[GroupEventRow] = [
-        snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
-    ]
+        snuba_result_high_count["data"][0]
+        for snuba_result_high_count in snuba_results_high_count
+        if snuba_result_high_count["data"]
+    ] + snuba_results_low_count[0]["data"]
 
     groups_to_backfill_with_no_embedding_has_snuba_row = []
     row_group_ids = {row["group_id"] for row in filtered_snuba_results}
@@ -251,7 +288,7 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
             last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
         )
         .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
-        .values_list("id", "data")
+        .values_list("id", "data", "times_seen", "last_seen")
         .order_by("-times_seen", "id")
     )
     total_groups_to_backfill_length = len(groups_to_backfill_query)
@@ -282,32 +319,51 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
 
     groups_to_backfill_with_no_embedding = [
         group_id
-        for (group_id, data) in groups_to_backfill_batch
+        for (group_id, data, _, _) in groups_to_backfill_batch
         if get_path(data, "metadata", "seer_similarity", "similarity_model_version") is None
     ]
+    # Separate high/low event count queries
+    group_id_last_seen_no_embeddings_high_count = {
+        group_id: last_seen
+        for (group_id, _, times_seen, last_seen) in groups_to_backfill_batch
+        if group_id in groups_to_backfill_with_no_embedding and times_seen >= HIGH_GROUP_EVENT_COUNT
+    }
+    group_id_last_seen_no_embeddings_low_count = {
+        group_id: last_seen
+        for (group_id, _, _, last_seen) in groups_to_backfill_batch
+        if group_id not in group_id_last_seen_no_embeddings_high_count
+    }
+
     if len(groups_to_backfill_batch) != len(groups_to_backfill_with_no_embedding):
         logger.info(
             "backfill_seer_grouping_records.groups_already_had_embedding",
             extra={
                 "project_id": project.id,
-                "num_groups": len(groups_to_backfill_with_no_embedding),
+                "num_groups": abs(
+                    len(groups_to_backfill_batch) - len(groups_to_backfill_with_no_embedding)
+                ),
             },
         )
+
     return (
         groups_to_backfill_with_no_embedding,
+        group_id_last_seen_no_embeddings_high_count,
+        group_id_last_seen_no_embeddings_low_count,
         batch_end_index,
         total_groups_to_backfill_length,
     )
 
 
 @sentry_sdk.tracing.trace
-def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
-    # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
+def get_data_from_snuba_single_group_query(project, group_id_last_seen_no_embeddings_high_count):
+    """
+    Query events for a group one at a time, running the requests in groups of size SNUBA_QUERY_RATELIMIT.
+    """
     events_entity = Entity("events", alias="events")
 
     snuba_requests = []
-    for group_id in groups_to_backfill_with_no_embedding:
-        group = Group.objects.get(id=group_id)
+    for group_id in group_id_last_seen_no_embeddings_high_count:
+        last_seen = group_id_last_seen_no_embeddings_high_count[group_id]
         query = Query(
             match=events_entity,
             select=[
@@ -320,12 +376,12 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
                 Condition(
                     Column("timestamp", entity=events_entity),
                     Op.GTE,
-                    group.last_seen - timedelta(minutes=5),
+                    last_seen - timedelta(minutes=5),
                 ),
                 Condition(
                     Column("timestamp", entity=events_entity),
                     Op.LT,
-                    group.last_seen + timedelta(minutes=5),
+                    last_seen + timedelta(minutes=5),
                 ),
             ],
             limit=Limit(1),
@@ -342,10 +398,67 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
         )
         snuba_requests.append(request)
 
+    # TODO(jangjodi): batch size == rate limit right now, which is why this works.
+    # Create option to allow for different batch sizes
     with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
         snuba_results = bulk_snuba_queries(
             snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
         )
+    return snuba_results
+
+
+@sentry_sdk.tracing.trace
+def get_data_from_snuba_bulk_groups_query(project, group_id_last_seen_no_embeddings_low_count):
+    """
+    Query events for groups in bulk, using group's last_seen to limit the
+    timestamp of the query.
+    """
+    events_entity = Entity("events", alias="events")
+
+    groups_last_seen = [
+        group_id_last_seen_no_embeddings_low_count[group_id]
+        for group_id in group_id_last_seen_no_embeddings_low_count
+    ]
+    group_ids = [group_id for group_id in group_id_last_seen_no_embeddings_low_count]
+    query = Query(
+        match=events_entity,
+        select=[
+            Column("group_id"),
+            Function("max", [Column("event_id")], "event_id"),
+        ],
+        groupby=[Column("group_id")],
+        where=[
+            Condition(Column("project_id"), Op.EQ, project.id),
+            Condition(Column("group_id"), Op.IN, group_ids),
+            Condition(
+                Column("timestamp", entity=events_entity),
+                Op.GTE,
+                min(groups_last_seen) - timedelta(minutes=5),
+            ),
+            Condition(
+                Column("timestamp", entity=events_entity),
+                Op.LT,
+                max(groups_last_seen) + timedelta(minutes=5),
+            ),
+        ],
+        orderby=[OrderBy(Column("group_id"), Direction.ASC)],
+    )
+
+    request = Request(
+        dataset=Dataset.Events.value,
+        app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+        query=query,
+        tenant_ids={
+            "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+            "cross_org_query": 1,
+        },
+    )
+
+    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+        snuba_results = bulk_snuba_queries(
+            [request], referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+        )
+
     return snuba_results
 
 
