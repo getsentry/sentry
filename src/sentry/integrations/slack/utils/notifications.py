@@ -60,7 +60,7 @@ def send_incident_alert_notification(
 
     channel = action.target_identifier
     attachment: Any = SlackIncidentsMessageBuilder(
-        incident, new_status, metric_value, chart_url, notification_uuid
+        action, incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}

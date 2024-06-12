@@ -33,6 +33,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -185,6 +186,25 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        data = {
+            **self.alert_rule_dict,
+            "description": "yeehaw",
+        }
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.description == resp.data.get("description")
 
     def test_monitor_type_with_condition(self):
         data = {

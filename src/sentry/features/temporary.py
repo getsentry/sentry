@@ -393,6 +393,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Send Slack notifications to threads for Issue Alerts
     manager.add("organizations:slack-thread-issue-alert", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable description field in Slack metric alerts
+    manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable improvements to Slack notifications
     manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Feature flags for migrating to the Slack SDK WebClient

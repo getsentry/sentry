@@ -92,6 +92,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     monitor_type = serializers.IntegerField(required=False, min_value=0)
     activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
+    description = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = AlertRule
@@ -115,6 +116,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "event_types",
             "monitor_type",
             "activation_condition",
+            "description",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
