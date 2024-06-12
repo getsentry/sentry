@@ -117,8 +117,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable tweaks to group title in relation to hierarchical grouping.
     manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable experimental new version of Merged Issues where sub-hashes are shown
-    manager.add("organizations:grouping-tree-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Allows an org to have a larger set of project ownership rules per project
     manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable increased issue_owners rate limit for auto-assignment
