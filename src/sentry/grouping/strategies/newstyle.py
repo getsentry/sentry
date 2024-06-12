@@ -908,13 +908,17 @@ def threads_variant_processor(
     return remove_non_stacktrace_variants(variants)
 
 
-def react_hydration_error_with_cause(exceptions: list[SingleException]) -> int | None:
+def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     main_exception_id = None
-    # Starting with React 19, hydration errors can contain a cause error which is useful to display
+    # Starting with React 19, errors can also contain a cause error which
+    # is useful to display instead of the default message
     if (
         exceptions[0].type == "Error"
         and exceptions[0].value
-        == "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary."
+        in [
+            "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+            "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary.",
+        ]
         and exceptions[-1].mechanism.source == "cause"
     ):
         main_exception_id = exceptions[-1].mechanism.exception_id
@@ -923,7 +927,7 @@ def react_hydration_error_with_cause(exceptions: list[SingleException]) -> int |
 
 def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
     MAIN_EXCEPTION_ID_FUNCS = [
-        react_hydration_error_with_cause,
+        react_error_with_cause,
     ]
     main_exception_id = None
     for func in MAIN_EXCEPTION_ID_FUNCS:
