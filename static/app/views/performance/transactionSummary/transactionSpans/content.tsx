@@ -24,7 +24,6 @@ import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpan
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
@@ -197,14 +196,10 @@ function SpansContentV2(props: Props) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
 
-  const query = useLocationQuery({
-    fields: {
-      query: decodeScalar,
-    },
-  });
+  const query = decodeScalar(location.query.query);
 
   const supportedTags = useSpanFieldSupportedTags();
-  const mutableSearch = new MutableSearch(query.query);
+  const mutableSearch = new MutableSearch(query ?? '');
   const supportedTagSet = new Set(Object.keys(supportedTags));
 
   const incompatibleFilterKeys = mutableSearch

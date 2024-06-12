@@ -186,15 +186,13 @@ describe('Performance > Transaction Spans', function () {
   describe('Spans Tab V2', function () {
     it('does not propagate invalid span search tags from the URL', async function () {
       const initialData = initializeData({
-        query: {'http.method': 'POST', 'span.op': 'http'},
+        query: {query: 'span.op:db http.method:POST span.action:SELECT'},
         additionalFeatures: [
           'performance-view',
           'performance-spans-new-ui',
           'insights-initial-modules',
         ],
       });
-
-      console.dir(initialData.router.location);
 
       render(<TransactionSpans location={initialData.router.location} />, {
         router: initialData.router,
@@ -203,7 +201,13 @@ describe('Performance > Transaction Spans', function () {
 
       await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
-      screen.debug();
+      const searchTokens = await screen.findAllByTestId('filter-token');
+      expect(searchTokens).toHaveLength(2);
+      expect(searchTokens[0]).toHaveTextContent('span.op:db');
+      expect(searchTokens[1]).toHaveTextContent('span.action:SELECT');
+      expect(await screen.findByTestId('smart-search-bar')).not.toHaveTextContent(
+        'http.method:POST'
+      );
     });
   });
 });
