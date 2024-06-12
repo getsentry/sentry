@@ -332,6 +332,8 @@ _IGNORED_METRIC_FIELDS = [
 ]
 _IGNORED_METRIC_CONDITION = [
     "event.type=transaction",
+    "event.type!=error",
+    "event.type!=default",
 ]
 
 # Operators used in ``ComparingRuleCondition``.
