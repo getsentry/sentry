@@ -26,7 +26,7 @@ class SudoView(BaseSudoView):
         except LookupError:
             return False
 
-        challenge, state = interface.activate(request).challenge
+        challenge = interface.activate(request).challenge
 
         if request.method == "POST":
             if "challenge" in request.POST and "response" in request.POST:
