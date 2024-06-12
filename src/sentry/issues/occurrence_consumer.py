@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import nodestore
+from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -411,14 +411,27 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     completely serially.
     """
 
-    status_changes = [
-        item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
-    ]
+    if not items:
+        return
 
-    if len(status_changes) > 1:
-        items = [
-            item for item in items if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
-        ] + status_changes[-1:]
+    project = Project.objects.get_from_cache(id=items[0]["project_id"])
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    if features.has("organizations:occurence-consumer-prune-status-changes", organization):
+        status_changes = [
+            item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
+        ]
+
+        if len(status_changes) > 1:
+            items = [
+                item
+                for item in items
+                if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
+            ] + status_changes[-1:]
+            metrics.incr(
+                "occurrence_consumer.process_occurrence_group.dropped_status_changes",
+                amount=len(status_changes) - 1,
+                sample_rate=1.0,
+            )
 
     for item in items:
         cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"
