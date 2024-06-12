@@ -443,7 +443,7 @@ export class VirtualizedViewManager {
 
       const span_transform = this.computeSpanCSSMatrixTransform(space);
       ref.style.transform = `matrix(${span_transform.join(',')}`;
-      const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+      const inverseScale = Math.round((1 / span_transform[0]) * 1e8) / 1e8;
       ref.style.setProperty(
         '--inverse-span-scale',
         // @ts-expect-error this is a number
@@ -1477,7 +1477,7 @@ export class VirtualizedViewManager {
 
     const span_transform = this.computeSpanCSSMatrixTransform(span_bar.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-    const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+    const inverseScale = Math.round((1 / span_transform[0]) * 1e8) / 1e8;
     span_bar.ref.style.setProperty(
       '--inverse-span-scale',
       // @ts-expect-error we set number value type on purpose
@@ -1674,7 +1674,7 @@ export class VirtualizedViewManager {
       if (invisible_bar) {
         const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
         invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-        const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+        const inverseScale = Math.round((1 / span_transform[0]) * 1e8) / 1e8;
         invisible_bar.ref.style.setProperty(
           '--inverse-span-scale',
           // @ts-expect-error we set number value type on purpose
