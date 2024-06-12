@@ -64,11 +64,11 @@ def send_incident_alert_notification(
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
-    json_blocks = orjson.dumps([blocks]).decode()
+    attachments = orjson.dumps([blocks]).decode()
     payload = {
         "channel": channel,
         "text": text,
-        "attachments": json_blocks,
+        "attachments": attachments,
         # Prevent duplicate unfurl
         # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
         "unfurl_links": False,
@@ -120,7 +120,7 @@ def send_incident_alert_notification(
         try:
             sdk_client = SlackSdkClient(integration_id=integration.id)
             sdk_response = sdk_client.chat_postMessage(
-                blocks=json_blocks,
+                attachments=attachments,
                 text=text,
                 channel=str(channel),
                 thread_ts=thread_ts,
@@ -139,6 +139,7 @@ def send_incident_alert_notification(
                 "error": str(e),
                 "incident_id": incident.id,
                 "incident_status": new_status,
+                "attachments": attachments,
             }
             logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         else:
