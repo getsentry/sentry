@@ -10,11 +10,17 @@ from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
 
-from ..utils import logger, send_slack_response
+from ..utils import send_slack_response
 from . import build_linking_url as base_build_linking_url
 from . import never_cache
 
 SUCCESS_UNLINKED_MESSAGE = "Your Slack identity has been unlinked from your Sentry account."
+
+import logging
+
+from sentry.utils import metrics
+
+logger = logging.getLogger(__name__)
 
 
 def build_unlinking_url(
@@ -35,36 +41,87 @@ class SlackUnlinkIdentityView(BaseView):
     Django view for unlinking user from slack account. Deletes from Identity table.
     """
 
+    _METRICS_SUCCESS_KEY = "sentry.integrations.slack.unlink_identity_view.success"
+    _METRICS_FAILURE_KEY = "sentry.integrations.slack.unlink_identity_view.failure"
+
     @method_decorator(never_cache)
-    def handle(self, request: HttpRequest, signed_params: str) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponse:
         try:
             params = unsign(signed_params)
-        except (SignatureExpired, BadSignature):
+        except (SignatureExpired, BadSignature) as e:
+            logger.warning("dispatch.signature_error", exc_info=e)
+            metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": e}, sample_rate=1.0)
             return render_to_response(
                 "sentry/integrations/slack/expired-link.html",
                 request=request,
             )
+        return super().dispatch(request, params=params)
 
-        organization, integration, idp = get_identity_or_404(
-            ExternalProviders.SLACK,
-            request.user,
-            integration_id=params["integration_id"],
+    def get(self, request: HttpRequest, params: str) -> HttpResponse:
+        method = ".get"
+        try:
+            organization, integration, idp = get_identity_or_404(
+                ExternalProviders.SLACK,
+                request.user,
+                integration_id=params["integration_id"],
+            )
+            logger.info("get_identity_success", extra={"integration_id": params["integration_id"]})
+            metrics.incr(
+                self._METRICS_SUCCESS_KEY + method, tags={"action": "get_identity"}, sample_rate=1.0
+            )
+        except Http404:
+            logger.exception(
+                "get_identity_error", extra={"integration_id": params["integration_id"]}
+            )
+            metrics.incr(
+                self._METRICS_FAILURE_KEY + method, tags={"action": "get_identity"}, sample_rate=1.0
+            )
+            raise
+
+        return render_to_response(
+            "sentry/auth-unlink-identity.html",
+            request=request,
+            context={"organization": organization, "provider": integration.get_provider()},
         )
 
-        if request.method != "POST":
-            return render_to_response(
-                "sentry/auth-unlink-identity.html",
-                request=request,
-                context={"organization": organization, "provider": integration.get_provider()},
+    def post(self, request: HttpRequest, params: str) -> HttpResponse:
+        method = ".post"
+        try:
+            organization, integration, idp = get_identity_or_404(
+                ExternalProviders.SLACK,
+                request.user,
+                integration_id=params["integration_id"],
             )
+            logger.info("get_identity_success", extra={"integration_id": params["integration_id"]})
+            metrics.incr(
+                self._METRICS_SUCCESS_KEY + method, tags={"action": "get_identity"}, sample_rate=1.0
+            )
+        except Http404:
+            logger.exception(
+                "get_identity_error", extra={"integration_id": params["integration_id"]}
+            )
+            metrics.incr(
+                self._METRICS_FAILURE_KEY + method, tags={"action": "get_identity"}, sample_rate=1.0
+            )
+            raise
 
         try:
             Identity.objects.filter(idp_id=idp.id, external_id=params["slack_id"]).delete()
         except IntegrityError:
             logger.exception("slack.unlink.integrity-error")
+            metrics.incr(
+                self._METRICS_FAILURE_KEY + method,
+                tags={"error": "identity.integrity_error"},
+                sample_rate=1.0,
+            )
             raise Http404
 
         send_slack_response(integration, SUCCESS_UNLINKED_MESSAGE, params, command="unlink")
+
+        logger.info("unlink_identity_success", extra={"slack_id": params["slack_id"]})
+        metrics.incr(
+            self._METRICS_SUCCESS_KEY + method, tags={"action": "unlink_identity"}, sample_rate=1.0
+        )
 
         return render_to_response(
             "sentry/integrations/slack/unlinked.html",
