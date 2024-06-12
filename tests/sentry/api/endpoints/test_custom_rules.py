@@ -465,6 +465,20 @@ class TestCustomRuleSerializerWithProjects(TestCase):
                 ],
             },
         ),
+        (
+            "environment:prod hello world !event.type:error",
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "eq", "name": "event.environment", "value": "prod"},
+                    {"op": "glob", "name": "event.transaction", "value": ["*hello world*"]},
+                    {
+                        "op": "not",
+                        "inner": {"op": "eq", "name": "event.tags.event.type", "value": "error"},
+                    },
+                ],
+            },
+        ),
     ],
 )
 def test_get_condition(query, condition):

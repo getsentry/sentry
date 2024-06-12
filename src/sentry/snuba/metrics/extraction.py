@@ -426,9 +426,21 @@ def _check_event_type_transaction(
 
     for token in query:
         if isinstance(token, SearchFilter):
-            if token.key.name == "event.type" and token.value.value == "transaction":
+            if (
+                token.key.name == "event.type"
+                and token.operator == "="
+                and token.value.value == "transaction"
+            ):
                 transaction_filter = True
                 break
+            if (
+                token.key.name == "event.type"
+                and token.operator == "!="
+                and token.value.value != "transaction"
+            ):
+                transaction_filter = True
+                break
+
         elif isinstance(token, ParenExpression):
             contains_transaction = _check_event_type_transaction(
                 token.children, is_top_level_call=False
