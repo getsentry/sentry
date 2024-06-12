@@ -9,17 +9,20 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
+from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer, View
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
+from sentry.models.savedsearch import SortOptions
 
-DEFAULT_VIEWS = [
+DEFAULT_VIEWS: list[View] = [
     {
         "id": "",
         "name": "Prioritized",
         "query": "is:unresolved issue.priority:[high, medium]",
-        "querySort": "date",
+        "querySort": SortOptions.DATE.value,
         "position": 0,
+        "dateCreated": None,
+        "dateUpdated": None,
     }
 ]
 
