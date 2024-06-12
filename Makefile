@@ -20,7 +20,6 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
-setup-git \
 node-version-check \
 install-js-dev \
 install-py-dev :
@@ -37,8 +36,7 @@ devenv-sync:
 
 build-platform-assets \
 direnv-help \
-upgrade-pip \
-setup-git-config :
+upgrade-pip :
 	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
 
 build-js-po: node-version-check

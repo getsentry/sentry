@@ -124,20 +124,17 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            (
-                "git and precommit",
-                # this can't be done in parallel with python dependencies
-                # as multiple pips cannot act on the same venv
-                ("make", "setup-git"),
-            ),
-        ),
-    ):
-        return 1
+    # .venv/bin/pre-commit install --install-hooks -f
+
+    git_config = configparser.ConfigParser()
+    git_config.read(f"{reporoot}/.git/config")
+    git_config["blame"] = {"ignoreRevsFile": ".git-blame-ignore-revs"}
+    git_config["branch"] = {"autosetuprebase": "always"}
+
+    with open(f"{reporoot}/.git/config", "w") as f:
+        git_config.write(f)
+
+    fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
