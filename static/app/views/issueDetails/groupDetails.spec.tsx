@@ -53,7 +53,6 @@ describe('groupDetails', () => {
   };
 
   const defaultInit = initializeOrg<{groupId: string}>({
-    project,
     router: initRouter,
   });
 

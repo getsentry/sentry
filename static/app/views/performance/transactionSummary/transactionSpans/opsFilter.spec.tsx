@@ -25,7 +25,6 @@ function initializeData({query} = {query: {}}) {
         },
       },
     },
-    project: {},
     projects: [],
   });
   return initialData;
