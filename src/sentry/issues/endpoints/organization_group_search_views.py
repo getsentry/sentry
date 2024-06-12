@@ -46,7 +46,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         Retrieve a list of custom views for the current organization member.
         """
         if not features.has("organizations:issue-stream-custom-views", organization):
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
 
