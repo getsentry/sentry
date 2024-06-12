@@ -908,17 +908,19 @@ def threads_variant_processor(
     return remove_non_stacktrace_variants(variants)
 
 
+REACT_ERRORS_WITH_CAUSE = [
+    "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+    "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary.",
+]
+
+
 def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
     main_exception_id = None
     # Starting with React 19, errors can also contain a cause error which
     # is useful to display instead of the default message
     if (
         exceptions[0].type == "Error"
-        and exceptions[0].value
-        in [
-            "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
-            "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary.",
-        ]
+        and exceptions[0].value in REACT_ERRORS_WITH_CAUSE
         and exceptions[-1].mechanism.source == "cause"
     ):
         main_exception_id = exceptions[-1].mechanism.exception_id
