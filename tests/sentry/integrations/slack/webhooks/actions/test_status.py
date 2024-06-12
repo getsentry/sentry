@@ -1038,13 +1038,14 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert (
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in update_data["blocks"][1]["text"]["text"]
-        )
-        assert update_data["blocks"][2]["text"]["text"] == expect_status
-        assert (
             ":white_circle: :chart_with_upwards_trend:" in update_data["blocks"][0]["text"]["text"]
         )
+        assert update_data["blocks"][1]["elements"][0]["text"] == "/books/"
+        assert (
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in update_data["blocks"][2]["text"]["text"]
+        )
+        assert update_data["blocks"][3]["text"]["text"] == expect_status
 
     @responses.activate
     def test_resolve_issue_block_kit_through_unfurl(self):

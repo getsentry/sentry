@@ -106,7 +106,12 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         and block kit is enabled.
         """
         event = self.store_event(
-            data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
+            data={
+                "message": "Hellboy's world",
+                "level": "error",
+                "culprit": "raven.tasks.run_a_test",
+            },
+            project_id=self.project.id,
         )
         group_event = event.for_group(event.groups[0])
 
@@ -122,4 +127,5 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             group_event.project.slug,
             group_event.group,
             "regression_activity-slack",
+            with_culprit=True,
         )

@@ -521,6 +521,12 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_block(title_text)
 
+    def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
+        if isinstance(event_or_group.culprit, str) and event_or_group.culprit != "":
+            return self.get_context_block(event_or_group.culprit)
+        else:
+            return None
+
     def get_text_block(self, text) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
@@ -607,6 +613,9 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                 has_action = True
 
         blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]
+
+        if culprit_block := self.get_culprit_block(obj):
+            blocks.append(culprit_block)
 
         # build up text block
         text = text.lstrip(" ")
