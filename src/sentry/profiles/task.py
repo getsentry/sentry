@@ -952,15 +952,12 @@ def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str)
                     method["data"]["deobfuscation_status"] = "missing"
 
 
-def get_event_id(profile: Profile) -> str | None:
+def get_event_id(profile: Profile) -> str:
     if "chunk_id" in profile:
         return profile["chunk_id"]
     elif "profile_id" in profile:
         return profile["profile_id"]
-    elif "event_id" in profile:
-        return profile["event_id"]
-    else:
-        return None
+    return profile["event_id"]
 
 
 def get_data_category(profile: Profile) -> DataCategory:
