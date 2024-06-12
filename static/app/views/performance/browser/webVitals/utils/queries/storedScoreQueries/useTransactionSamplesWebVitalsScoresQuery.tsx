@@ -50,6 +50,14 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
     sortableFields: filteredSortableFields as unknown as string[],
   });
 
+  const mutableSearch = new MutableSearch([
+    'transaction.op:pageload',
+    'has:measurements.score.total',
+  ]).addStringFilter(`transaction:"${transaction}"`);
+  if (query) {
+    mutableSearch.addStringMultiFilter(query);
+  }
+
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
@@ -73,13 +81,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
           : []),
       ],
       name: 'Web Vitals',
-      query: new MutableSearch([
-        'transaction.op:pageload',
-        'has:measurements.score.total',
-        ...(query ? [query] : []),
-      ])
-        .addStringFilter(`transaction:"${transaction}"`)
-        .formatString(),
+      query: mutableSearch.formatString(),
       orderby: mapWebVitalToOrderBy(orderBy) ?? withProfiles ? '-profile.id' : undefined,
       version: 2,
     },

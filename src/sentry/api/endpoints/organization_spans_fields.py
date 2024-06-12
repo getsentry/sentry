@@ -98,6 +98,40 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     }
     owner = ApiOwner.PERFORMANCE
 
+    def get(self, request: Request, organization, key: str) -> Response:
+        if not features.has(
+            "organizations:performance-trace-explorer", organization, actor=request.user
+        ):
+            return Response(status=404)
+
+        try:
+            snuba_params, params = self.get_snuba_dataclass(request, organization)
+        except NoProjects:
+            return self.paginate(
+                request=request,
+                paginator=SequencePaginator([]),
+            )
+
+        sentry_sdk.set_tag("query.tag_key", key)
+
+        executor = SpanFieldValuesAutocompletionExecutor(
+            params=cast(ParamsType, params),
+            snuba_params=snuba_params,
+            key=key,
+            query=request.GET.get("query"),
+        )
+        tag_values = executor.execute()
+
+        paginator = SequencePaginator([(tag_value.value, tag_value) for tag_value in tag_values])
+
+        return self.paginate(
+            request=request,
+            paginator=paginator,
+            on_results=lambda results: serialize(results, request.user),
+        )
+
+
+class SpanFieldValuesAutocompletionExecutor:
     ID_KEYS = {
         "id",
         "span_id",
@@ -116,45 +150,61 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
     }
     NUMERIC_KEYS = {"span.duration", "span.self_time"}
     TIMESTAMP_KEYS = {"timestamp"}
+    PROJECT_KEYS = {"project", "project.name"}
 
-    def get(self, request: Request, organization, key: str) -> Response:
-        if not features.has(
-            "organizations:performance-trace-explorer", organization, actor=request.user
+    def __init__(
+        self,
+        params: ParamsType,
+        snuba_params: SnubaParams,
+        key: str,
+        query: str | None,
+    ):
+        self.params = params
+        self.snuba_params = snuba_params
+        self.key = key
+        self.query = query
+        self.max_span_tags = options.get("performance.spans-tags-values.max")
+
+    def execute(self) -> list[TagValue]:
+        if (
+            self.key in self.NUMERIC_KEYS
+            or self.key in self.ID_KEYS
+            or self.key in self.TIMESTAMP_KEYS
         ):
-            return Response(status=404)
+            return self.noop_autocomplete_function()
 
-        if key in self.NUMERIC_KEYS or key in self.ID_KEYS or key in self.TIMESTAMP_KEYS:
-            return self.paginate(
-                request=request,
-                paginator=SequencePaginator([]),
+        if self.key in self.PROJECT_KEYS:
+            return self.project_autocomplete_function()
+
+        return self.default_autocomplete_function()
+
+    def noop_autocomplete_function(self) -> list[TagValue]:
+        return []
+
+    def project_autocomplete_function(self) -> list[TagValue]:
+        return [
+            TagValue(
+                key=self.key,
+                value=project.slug,
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
             )
+            for project in self.snuba_params.projects
+            if not self.query or self.query in project.slug
+        ]
 
-        try:
-            snuba_params, params = self.get_snuba_dataclass(request, organization)
-        except NoProjects:
-            return self.paginate(
-                request=request,
-                paginator=SequencePaginator([]),
-            )
-
-        sentry_sdk.set_tag("query.tag_key", key)
-
-        if options.get("performance.spans-tags-values.search"):
-            user_query = request.GET.get("query")
-        else:
-            user_query = None
-
-        max_span_tags = options.get("performance.spans-tags-values.max")
+    def default_autocomplete_function(self) -> list[TagValue]:
 
         with handle_query_errors():
             builder = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
-                params=cast(ParamsType, params),
-                snuba_params=snuba_params,
-                query=f"{key}:*{user_query}*" if user_query else None,
-                selected_columns=[key, "count()", "min(timestamp)", "max(timestamp)"],
+                params=self.params,
+                snuba_params=self.snuba_params,
+                query=f"{self.key}:*{self.query}*" if self.query else None,
+                selected_columns=[self.key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",
-                limit=max_span_tags,
+                limit=self.max_span_tags,
                 sample_rate=options.get("performance.spans-tags-key.sample-rate"),
                 config=QueryBuilderConfig(
                     transform_alias_to_input_format=True,
@@ -162,25 +212,14 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
             )
             results = builder.process_results(builder.run_query(Referrer.API_SPANS_TAG_KEYS.value))
 
-        paginator = SequencePaginator(
-            [
-                (
-                    row[key],
-                    TagValue(
-                        key=key,
-                        value=row[key],
-                        times_seen=row["count()"],
-                        first_seen=row["min(timestamp)"],
-                        last_seen=row["max(timestamp)"],
-                    ),
-                )
-                for row in results["data"]
-                if row[key] is not None
-            ]
-        )
-
-        return self.paginate(
-            request=request,
-            paginator=paginator,
-            on_results=lambda results: serialize(results, request.user),
-        )
+        return [
+            TagValue(
+                key=self.key,
+                value=row[self.key],
+                times_seen=row["count()"],
+                first_seen=row["min(timestamp)"],
+                last_seen=row["max(timestamp)"],
+            )
+            for row in results["data"]
+            if row[self.key] is not None
+        ]

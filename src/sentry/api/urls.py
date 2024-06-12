@@ -340,9 +340,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 )
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
-from .endpoints.organization_auth_provider_send_reminders import (
-    OrganizationAuthProviderSendRemindersEndpoint,
-)
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
@@ -484,6 +481,7 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
 )
+from .endpoints.organization_spans_trace import OrganizationSpansTraceEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -1360,11 +1358,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-auth-providers",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/auth-provider/send-reminders/$",
-        OrganizationAuthProviderSendRemindersEndpoint.as_view(),
-        name="sentry-api-0-organization-auth-provider-send-reminders",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/avatar/$",
         OrganizationAvatarEndpoint.as_view(),
         name="sentry-api-0-organization-avatar",
@@ -1555,6 +1548,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-trace-meta/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         OrganizationEventsTraceMetaEndpoint.as_view(),
         name="sentry-api-0-organization-events-trace-meta",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        OrganizationSpansTraceEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-trace",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/measurements-meta/$",

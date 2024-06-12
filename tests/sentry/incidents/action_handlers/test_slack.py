@@ -74,7 +74,7 @@ class SlackActionHandlerTest(FireTest):
         data = parse_qs(responses.calls[0].request.body)
         assert data["channel"] == [self.channel_id]
         slack_body = SlackIncidentsMessageBuilder(
-            incident, IncidentStatus(incident.status), metric_value, chart_url
+            self.action, incident, IncidentStatus(incident.status), metric_value, chart_url
         ).build()
         assert isinstance(slack_body, dict)
         attachments = json.loads(data["attachments"][0])
