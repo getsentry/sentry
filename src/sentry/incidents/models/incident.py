@@ -127,10 +127,12 @@ class IncidentManager(BaseManager["Incident"]):
         project_id = instance.project_id
         if subscription_id:
             key = cls._build_active_incident_cache_key(
-                instance.alert_rule_id, project_id, subscription_id
+                instance.incident.alert_rule_id, project_id, subscription_id
             )
         else:
-            key = cls._build_active_incident_cache_key(instance.alert_rule_id, project_id, None)
+            key = cls._build_active_incident_cache_key(
+                instance.incident.alert_rule_id, project_id, None
+            )
         cache.delete(key)
         assert cache.get(key) is None
 
