@@ -1,6 +1,5 @@
 from copy import deepcopy
 from datetime import UTC, datetime
-from typing import DefaultDict
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -208,9 +207,9 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition2],
             environment_id=env3.id,
         )
-        rules_to_groups: DefaultDict[int, set[int]] = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
-        orig_rules_to_groups = deepcopy(rules_to_groups)
-        get_condition_groups([rule_1, rule_2], rules_to_groups)
+        rules_to_groups = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
+        orig_rules_to_groups = deepcopy(rules_to_groups)  # type: ignore[misc]
+        get_condition_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[misc]
         assert orig_rules_to_groups == rules_to_groups
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
