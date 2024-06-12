@@ -531,6 +531,15 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('keyboard interactions', function () {
+    beforeEach(() => {
+      // jsdom does not support clipboard API
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: jest.fn().mockResolvedValue(''),
+        },
+      });
+    });
+
     it('can remove a previous token by pressing backspace', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
@@ -797,6 +806,20 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
       ).toHaveFocus();
+    });
+
+    it('can copy selection with ctrl-c', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox foo" />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('{Control>}c{/Control}');
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'browser.name:firefox foo'
+      );
     });
   });
 

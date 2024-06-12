@@ -62,6 +62,7 @@ export function useQueryBuilderGrid(
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      // When there is a selection, the grid will have focus and handle that behavior.
       if (state.selectionManager.selectedKeys.size > 0) {
         switch (e.key) {
           case 'Backspace':
@@ -74,13 +75,9 @@ export function useQueryBuilderGrid(
             }
             break;
           case 'ArrowRight':
-            // e.preventDefault();
-            // e.stopPropagation();
             state.selectionManager.setFocusedKey(state.collection.getLastKey());
             break;
           case 'ArrowLeft':
-            // e.preventDefault();
-            // e.stopPropagation();
             state.selectionManager.setFocusedKey(state.collection.getFirstKey());
             break;
           default:
