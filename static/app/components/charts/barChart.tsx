@@ -20,7 +20,7 @@ export interface BarChartProps extends BaseChartProps {
 }
 
 export function transformToBarSeries({
-  barOpacity = 0.6,
+  barOpacity = 1,
   series,
   stacked,
   hideZeros = false,
