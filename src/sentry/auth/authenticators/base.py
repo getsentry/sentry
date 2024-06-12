@@ -14,6 +14,7 @@ from sentry.utils.otp import TOTP, generate_secret_key
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
+    from sentry.auth.authenticators.u2f import U2fInternalState
     from sentry.models.authenticator import Authenticator
     from sentry.models.user import User
 
@@ -42,8 +43,9 @@ class ActivationMessageResult(ActivationResult):
 class ActivationChallengeResult(ActivationResult):
     type = "challenge"
 
-    def __init__(self, challenge: bytes) -> None:
+    def __init__(self, challenge: bytes, state: U2fInternalState | None = None) -> None:
         self.challenge = challenge
+        self.state = state
 
 
 class EnrollmentStatus(Enum):

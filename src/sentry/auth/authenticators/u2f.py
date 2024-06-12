@@ -1,6 +1,7 @@
 from base64 import urlsafe_b64encode
 from functools import cached_property
 from time import time
+from typing import TypedDict
 from urllib.parse import urlparse
 
 import orjson
@@ -14,7 +15,7 @@ from fido2.client import ClientData
 from fido2.ctap2 import AuthenticatorData, base
 from fido2.server import Fido2Server, U2FFido2Server
 from fido2.utils import websafe_decode
-from fido2.webauthn import PublicKeyCredentialRpEntity
+from fido2.webauthn import PublicKeyCredentialRpEntity, UserVerificationRequirement
 from u2flib_server.model import DeviceRegistration
 
 from sentry import options
@@ -50,6 +51,13 @@ def skip_session_cookie(user) -> bool:
     if (email := getattr(user, "email", None)) is None:
         return False
     return email in options.get("u2f.skip-session-cookie-allowlist")
+
+
+class U2fInternalState(TypedDict):
+    # A websafe-base64 encoding of the challenge byte string
+    challenge: str
+    # The desired user verification level
+    user_verification: UserVerificationRequirement | None
 
 
 def _get_url_prefix() -> str:
