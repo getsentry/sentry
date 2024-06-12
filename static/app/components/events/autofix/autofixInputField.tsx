@@ -85,6 +85,11 @@ export function AutofixInputField({groupId, runId}: {groupId: string; runId: str
           value={instruction}
           onChange={e => setInstruction(e.target.value)}
           disabled={isSubmitting}
+          onKeyDown={e => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              sendInstruction();
+            }
+          }}
         />
         <Button
           onClick={sendInstruction}
