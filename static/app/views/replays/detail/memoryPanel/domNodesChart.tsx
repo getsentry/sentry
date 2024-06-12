@@ -38,6 +38,9 @@ export default function DomNodesChart({
 }: Props) {
   const theme = useTheme();
   const idRef = useRef(domId('replay-dom-nodes-chart-'));
+  const formatTimestampTrim = (start, offset) => {
+    return getFormattedDate(start + offset, 'MMM D hh:mm', {local: false});
+  };
 
   const chartOptions: Omit<AreaChartProps, 'series'> = useMemo(
     () => ({
@@ -81,7 +84,7 @@ export default function DomNodesChart({
       xAxis: XAxis({
         type: 'time',
         axisLabel: {
-          formatter: (time: number) => formatTime(startTimestampMs + time, false),
+          formatter: (time: number) => formatTimestampTrim(startTimestampMs, time),
         },
         theme,
       }),
