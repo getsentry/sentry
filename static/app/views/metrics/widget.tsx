@@ -27,7 +27,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {
   areResultsLimited,

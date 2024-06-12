@@ -12,7 +12,8 @@ import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Frame, MRI} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
+import type {MRI} from 'sentry/types/metrics';
 import type {MetricCodeLocationFrame} from 'sentry/utils/metrics/types';
 import {useMetricCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
 
