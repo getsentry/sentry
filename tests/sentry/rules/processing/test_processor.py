@@ -284,6 +284,49 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
             )
         }
 
+    @with_feature("organizations:process-slow-alerts")
+    def test_delayed_rule_match_any_slow_conditions_match_all_filters(self):
+        """
+        Test that we do not enqueue a rule with slow conditions that fails the filters checks
+        """
+        # has tag foo:bar
+        tag_filter = {
+            "match": "eq",
+            "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+            "key": "foo",
+            "value": "bar",
+        }
+        # message value does not contain 'timed out'
+        attr_filter = {
+            "attribute": "message",
+            "match": "nc",
+            "id": "sentry.rules.filters.event_attribute.EventAttributeFilter",
+            "value": "timed out",
+        }
+        self.rule.update(
+            data={
+                "conditions": [self.event_frequency_condition],
+                "filters": [tag_filter, attr_filter],
+                "action_match": "any",
+                "filter_match": "all",
+                "actions": [EMAIL_ACTION_DATA],
+            },
+        )
+        rp = RuleProcessor(
+            self.group_event,
+            is_new=True,
+            is_regression=True,
+            is_new_group_environment=True,
+            has_reappeared=False,
+        )
+        results = list(rp.apply())
+        assert len(results) == 0
+        # check that it didn't get enqueued
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
+        )
+        assert len(project_ids) == 0
+
     def test_ignored_issue(self):
         self.group_event.group.status = GroupStatus.IGNORED
         self.group_event.group.substatus = None
