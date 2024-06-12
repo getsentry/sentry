@@ -295,8 +295,8 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data["name"] == "New query"
         assert response.data["projects"] == self.project_ids
         assert response.data["range"] == "24h"
-        assert not hasattr(response.data, "start")
-        assert not hasattr(response.data, "end")
+        assert "start" not in response.data
+        assert "end" not in response.data
 
     def test_post_invalid_projects(self):
         with self.feature(self.feature_name):
