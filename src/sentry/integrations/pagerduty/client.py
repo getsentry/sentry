@@ -53,6 +53,8 @@ class PagerDutyClient(ApiClient):
             if severity == PAGERDUTY_DEFAULT_SEVERITY:
                 severity = LEVEL_SEVERITY_MAP[level]
 
+            client_url = group.get_absolute_url(params=link_params)
+
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
@@ -64,9 +66,11 @@ class PagerDutyClient(ApiClient):
                     "component": group.project.slug,
                     "custom_details": custom_details,
                 },
+                "client": "sentry",
+                "client_url": client_url,
                 "links": [
                     {
-                        "href": group.get_absolute_url(params=link_params),
+                        "href": client_url,
                         "text": "View Sentry Issue Details",
                     }
                 ],
