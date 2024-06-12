@@ -75,7 +75,7 @@ class NoSnubaDataError(Exception):
 class NoMoreGroupsToBackfillError(Exception):
     pass
 
-  
+
 class GroupEventRow(TypedDict):
     event_id: str
     group_id: int
