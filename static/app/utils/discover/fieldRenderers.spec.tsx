@@ -1,5 +1,4 @@
 import {ConfigFixture} from 'sentry-fixture/config';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,9 +14,7 @@ describe('getFieldRenderer', function () {
   let location, context, project, organization, data, user;
 
   beforeEach(function () {
-    context = initializeOrg({
-      project: ProjectFixture(),
-    });
+    context = initializeOrg();
     organization = context.organization;
     project = context.project;
     act(() => ProjectsStore.loadInitialData([project]));

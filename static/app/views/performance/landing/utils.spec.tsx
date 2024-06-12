@@ -20,7 +20,6 @@ function initializeData(projects, query = {}) {
       },
     },
     projects,
-    project: projects[0],
   });
   const eventView = EventView.fromLocation(initialData.router.location);
   ProjectsStore.loadInitialData(initialData.organization.projects);

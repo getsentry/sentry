@@ -9,7 +9,6 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 
 const {organization, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
-  project: undefined,
   projects: [
     {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
     {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -134,7 +133,6 @@ describe('EnvironmentPageFilter', function () {
   it('displays a desynced state message', async function () {
     const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       organization: {features: ['global-views', 'open-membership']},
-      project: undefined,
       projects: [
         {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
         {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
