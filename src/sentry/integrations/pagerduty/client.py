@@ -47,13 +47,14 @@ class PagerDutyClient(ApiClient):
             custom_details = serialize(data, None, ExternalEventSerializer())
             summary = custom_details["message"][:1024] or custom_details["title"]
             link_params = {"referrer": "pagerduty_integration"}
-            client_url = group.get_absolute_url(params=link_params)
+            
             if notification_uuid:
                 link_params["notification_uuid"] = notification_uuid
 
             if severity == PAGERDUTY_DEFAULT_SEVERITY:
                 severity = LEVEL_SEVERITY_MAP[level]
 
+            client_url = group.get_absolute_url(params=link_params)
             payload = {
                 "routing_key": self.integration_key,
                 "event_action": "trigger",
