@@ -181,10 +181,10 @@ export function WebVitalsLandingPage() {
                     <div>
                       <div>
                         {tct(
-                          'If your instrumented pages are not appearing in the table below, you may be missing necessary web vitals in your page loads due to unsupported browsers or missing instrumentation. Find out what browsers are supported here [link:here].',
+                          'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks here [link:here]',
                           {
                             link: (
-                              <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/web-vitals-concepts/#browser-support" />
+                              <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
                             ),
                           }
                         )}
@@ -192,7 +192,7 @@ export function WebVitalsLandingPage() {
                       <br />
                       <div>
                         {t(
-                          'It is recommended to keep your javascript sdk updated to the latest version for the best webvitals support.'
+                          'Keep your JavaScript SDK updated to the latest version for the best Web Vitals support.'
                         )}
                       </div>
                     </div>
