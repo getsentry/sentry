@@ -3,6 +3,8 @@ from typing import Any, cast
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from snuba_sdk import Condition, Op
 
 from sentry import features, options
 from sentry.api.api_owners import ApiOwner
@@ -13,7 +15,7 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -151,6 +153,7 @@ class SpanFieldValuesAutocompletionExecutor:
     NUMERIC_KEYS = {"span.duration", "span.self_time"}
     TIMESTAMP_KEYS = {"timestamp"}
     PROJECT_KEYS = {"project", "project.name"}
+    SPAN_STATUS_KEYS = {"span.status"}
 
     def __init__(
         self,
@@ -176,6 +179,9 @@ class SpanFieldValuesAutocompletionExecutor:
         if self.key in self.PROJECT_KEYS:
             return self.project_autocomplete_function()
 
+        if self.key in self.SPAN_STATUS_KEYS:
+            return self.span_status_autocomplete_function()
+
         return self.default_autocomplete_function()
 
     def noop_autocomplete_function(self) -> list[TagValue]:
@@ -194,14 +200,35 @@ class SpanFieldValuesAutocompletionExecutor:
             if not self.query or self.query in project.slug
         ]
 
-    def default_autocomplete_function(self) -> list[TagValue]:
+    def span_status_autocomplete_function(self) -> list[TagValue]:
+        query = self.get_autocomplete_query_base()
 
+        # If the user specified a query, we only want to return
+        # statuses that match their query. So filter down to just
+        # the matching span statuses, and translate to the codes.
+        if self.query:
+            status_codes = [
+                status for status, value in SPAN_STATUS_CODE_TO_NAME.items() if self.query in value
+            ]
+            query.where.append(Condition(query.resolve_column("span.status"), Op.IN, status_codes))
+
+        return self.get_autocomplete_results(query)
+
+    def default_autocomplete_function(self) -> list[TagValue]:
+        query = self.get_autocomplete_query_base()
+
+        if self.query:
+            where, _ = query.resolve_conditions(f"{self.key}:*{self.query}*")
+            query.where.extend(where)
+
+        return self.get_autocomplete_results(query)
+
+    def get_autocomplete_query_base(self) -> QueryBuilder:
         with handle_query_errors():
-            builder = SpansIndexedQueryBuilder(
+            return SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params=self.params,
                 snuba_params=self.snuba_params,
-                query=f"{self.key}:*{self.query}*" if self.query else None,
                 selected_columns=[self.key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",
                 limit=self.max_span_tags,
@@ -210,7 +237,10 @@ class SpanFieldValuesAutocompletionExecutor:
                     transform_alias_to_input_format=True,
                 ),
             )
-            results = builder.process_results(builder.run_query(Referrer.API_SPANS_TAG_KEYS.value))
+
+    def get_autocomplete_results(self, query: QueryBuilder) -> list[TagValue]:
+        with handle_query_errors():
+            results = query.process_results(query.run_query(Referrer.API_SPANS_TAG_KEYS.value))
 
         return [
             TagValue(
