@@ -28,7 +28,7 @@ def _backfill_incident_subscription(
             continue
 
         snuba_query = alert_rule.snuba_query
-        subscriptions = snuba_query.subscriptions
+        subscriptions = list(snuba_query.subscriptions.all())
         if len(subscriptions) == 0 or len(subscriptions) > 1:
             logger.info(
                 "Incident found with no or multiple subscriptions. skipping",

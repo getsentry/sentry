@@ -652,6 +652,7 @@ class SubscriptionProcessor:
                     date_detected=self.last_update,
                     projects=[self.subscription.project],
                     activation=activation,
+                    subscription=self.subscription,
                 )
             # Now create (or update if it already exists) the incident trigger so that
             # we have a record of this trigger firing for this incident
@@ -669,7 +670,6 @@ class SubscriptionProcessor:
                     incident=self.active_incident,
                     alert_rule_trigger=trigger,
                     status=TriggerStatus.ACTIVE.value,
-                    subscription_id=self.subscription.id,
                 )
             self.handle_incident_severity_update()
             self.incident_trigger_map[trigger.id] = incident_trigger
@@ -745,6 +745,10 @@ class SubscriptionProcessor:
 
         # NOTE: all incident_triggers are derived from self.active_incident
         incident = self.active_incident
+        if not incident:
+            # NOTE: resolve incident would have cleared the active incident cache
+            # So fetch the incident if it has
+            incident = Incident.objects.get(id=incident_trigger.incident_id)
 
         incident_activities = IncidentActivity.objects.filter(incident=incident).values_list(
             "value", flat=True
