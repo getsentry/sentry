@@ -8,7 +8,14 @@ from sentry import features, quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
-from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
+from sentry.dynamic_sampling.rules.utils import (
+    GlobCondition,
+    PolymorphicRule,
+    Rule,
+    RuleType,
+    SamplingValue,
+    get_enabled_user_biases,
+)
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
 )
@@ -103,12 +110,12 @@ def _get_rules_of_enabled_biases(
 def generate_rules(project: Project) -> list[PolymorphicRule]:
     if features.has("organizations:am3-tier", project.organization):
         return [
-            {
-                "id": CUSTOM_RULE_START,
-                "samplingValue": {"type": "sampleRate", "value": 1.0},
-                "type": "custom",
-                "condition": {"op": "glob", "name": "trace.trace_id", "value": "*"},
-            }
+            Rule(
+                condition=GlobCondition(name="trace.trace_id", value=["*"]),
+                id=CUSTOM_RULE_START,
+                samplingValue=SamplingValue(type="sampleRate", value=1.0),
+                type=RuleType.CUSTOM_RULE,
+            )
         ]
 
     organization = project.organization
