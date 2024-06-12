@@ -108,28 +108,31 @@ class IncidentManager(BaseManager["Incident"]):
 
     @classmethod
     def clear_active_incident_cache(cls, instance, **kwargs):
+        # instance is an Incident
         for project in instance.projects.all():
-            cache.delete(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
-            assert (
-                cache.get(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
-                is None
-            )
+            subscription = instance.subscription
+            if subscription:
+                key = cls._build_active_incident_cache_key(
+                    instance.alert_rule_id, project.id, subscription.id
+                )
+            else:
+                key = cls._build_active_incident_cache_key(instance.alert_rule_id, project.id, None)
+            cache.delete(key)
+            assert cache.get(key) is None
 
     @classmethod
     def clear_active_incident_project_cache(cls, instance, **kwargs):
-        cache.delete(
-            cls._build_active_incident_cache_key(
-                instance.incident.alert_rule_id, instance.project_id
+        # instance is an IncidentProject
+        subscription_id = instance.incident.subscription_id
+        project_id = instance.project_id
+        if subscription_id:
+            key = cls._build_active_incident_cache_key(
+                instance.alert_rule_id, project_id, subscription_id
             )
-        )
-        assert (
-            cache.get(
-                cls._build_active_incident_cache_key(
-                    instance.incident.alert_rule_id, instance.project_id
-                )
-            )
-            is None
-        )
+        else:
+            key = cls._build_active_incident_cache_key(instance.alert_rule_id, project_id, None)
+        cache.delete(key)
+        assert cache.get(key) is None
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
     def create(self, organization, **kwargs):
