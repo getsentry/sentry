@@ -450,8 +450,7 @@ symbolicate_js_event = make_task_fn(
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
-    # NOTE: Intentionally uses the same queue as `symbolicate_event`.
-    queue="events.symbolicate_event",
+    queue="events.symbolicate_jvm_event",
     task_kind=SymbolicatorTaskKind(
         platform=SymbolicatorPlatform.jvm, is_low_priority=False, is_reprocessing=False
     ),
@@ -474,8 +473,7 @@ symbolicate_js_event_low_priority = make_task_fn(
 )
 symbolicate_jvm_event_low_priority = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event_low_priority",
-    # NOTE: Intentionally uses the same queue as `symbolicate_event_low_priority`.
-    queue="events.symbolicate_event_low_priority",
+    queue="events.symbolicate_jvm_event_low_priority",
     task_kind=SymbolicatorTaskKind(
         platform=SymbolicatorPlatform.jvm, is_low_priority=True, is_reprocessing=False
     ),
