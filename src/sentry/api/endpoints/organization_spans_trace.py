@@ -8,6 +8,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
 from sentry.search.events.builder import SpansIndexedQueryBuilder
@@ -52,7 +53,7 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
         query_result = builder.run_query(referrer=Referrer.API_SPANS_TRACE_VIEW.value)
         result: list[SnubaTrace] = []
         measurement_transaction_count = 0
-        for row in query_result:
+        for row in query_result["data"]:
             result.append(
                 {
                     "span_op": row["span.op"],
@@ -97,9 +98,13 @@ class OrganizationSpansTraceEndpoint(OrganizationEventsV2EndpointBase):
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
-        with handle_query_errors():
-            spans = self.query_trace_data(params, trace_id)
-            if len(spans) == 0:
-                return Response(status=404)
+        def data_fn(offset: int, limit: int) -> list[SnubaTrace]:
+            """API requires pagination even though it doesn't really work yet... ignoring limit and offset for now"""
+            with handle_query_errors():
+                spans = self.query_trace_data(params, trace_id)
+            return spans
 
-        return Response(spans)
+        return self.paginate(
+            request=request,
+            paginator=GenericOffsetPaginator(data_fn=data_fn),
+        )
