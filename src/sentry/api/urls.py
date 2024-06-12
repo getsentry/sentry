@@ -340,9 +340,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 )
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
-from .endpoints.organization_auth_provider_send_reminders import (
-    OrganizationAuthProviderSendRemindersEndpoint,
-)
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
@@ -1358,11 +1355,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/auth-providers/$",
         OrganizationAuthProvidersEndpoint.as_view(),
         name="sentry-api-0-organization-auth-providers",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/auth-provider/send-reminders/$",
-        OrganizationAuthProviderSendRemindersEndpoint.as_view(),
-        name="sentry-api-0-organization-auth-provider-send-reminders",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/avatar/$",

@@ -324,7 +324,6 @@ API_PUBLISH_STATUS_ALLOWLIST_DONT_MODIFY = {
     "/api/0/organizations/{organization_id_or_slug}/audit-logs/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/auth-provider/": {"GET"},
     "/api/0/organizations/{organization_id_or_slug}/auth-providers/": {"GET"},
-    "/api/0/organizations/{organization_id_or_slug}/auth-provider/send-reminders/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/avatar/": {"GET", "PUT"},
     "/api/0/organizations/{organization_id_or_slug}/artifactbundle/assemble/": {"POST"},
     "/api/0/organizations/{organization_id_or_slug}/config/integrations/": {"GET"},

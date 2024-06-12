@@ -1,4 +1,3 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {AuthProvider, Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -44,26 +43,6 @@ class OrganizationAuth extends DeprecatedAsyncView<Props, State> {
   getTitle() {
     return routeTitleGen(t('Auth Settings'), this.props.organization.slug, false);
   }
-
-  /**
-   * TODO(epurkhiser): This does not work right now as we still fallback to the
-   * old SSO auth configuration page
-   */
-  handleSendReminders = (_provider: AuthProvider) => {
-    const {organization} = this.props;
-    this.setState({sendRemindersBusy: true});
-
-    this.api.request(
-      `/organizations/${organization.slug}/auth-provider/send-reminders/`,
-      {
-        method: 'POST',
-        data: {},
-        success: () => addSuccessMessage(t('Sent reminders to members')),
-        error: () => addErrorMessage(t('Failed to send reminders')),
-        complete: () => this.setState({sendRemindersBusy: false}),
-      }
-    );
-  };
 
   /**
    * TODO(epurkhiser): This does not work right now as we still fallback to the
