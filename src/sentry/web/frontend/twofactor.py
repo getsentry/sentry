@@ -192,7 +192,6 @@ class TwoFactorAuthView(BaseView):
                     content_type="text/plain",
                     status=429,
                 )
-
         elif "challenge" in request.POST:
             challenge = json.loads(request.POST["challenge"])
 
@@ -216,7 +215,7 @@ class TwoFactorAuthView(BaseView):
                     state = json.loads(state)
                 else:
                     # state may be an empty string, so we want to explicitly set
-                    # it to None
+                    # it to None before passing to validate_response
                     state = None
 
                 if interface.validate_response(request, challenge, response, state):
