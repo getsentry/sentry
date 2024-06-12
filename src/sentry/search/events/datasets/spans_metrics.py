@@ -202,7 +202,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
-                    default_result_type="duration",
                 ),
                 fields.MetricsFunction(
                     "avg",
@@ -1211,7 +1210,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                             "equals",
                             [
                                 Column("metric_id"),
-                                self.resolve_metric("span.self_time"),
+                                args["metric_id"],
                             ],
                         ),
                         Function(
