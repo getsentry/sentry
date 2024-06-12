@@ -134,14 +134,13 @@ def backfill_seer_grouping_records(
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
-    try:
-        (
-            groups_to_backfill_with_no_embedding,
-            group_id_last_seen_no_embeddings_high_count,
-            group_id_last_seen_no_embeddings_low_count,
-            batch_end_index,
-            total_groups_to_backfill_length,
-        ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
+    (
+        groups_to_backfill_with_no_embedding,
+        group_id_last_seen_no_embeddings_high_count,
+        group_id_last_seen_no_embeddings_low_count,
+        batch_end_index,
+        total_groups_to_backfill_length,
+    ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
 
     if len(groups_to_backfill_with_no_embedding) == 0:
         return
@@ -379,15 +378,15 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
 
 
 @sentry_sdk.tracing.trace
-def get_data_from_snuba_single_group_query(project, group_id_batch_filtered):
+def get_data_from_snuba_single_group_query(project, group_id_last_seen_no_embeddings_high_count):
     """
     Query events for a group one at a time, running the requests in groups of size SNUBA_QUERY_RATELIMIT.
     """
     events_entity = Entity("events", alias="events")
 
     snuba_requests = []
-    for group_id in group_id_batch_filtered:
-        last_seen = group_id_batch_filtered[group_id]
+    for group_id in group_id_last_seen_no_embeddings_high_count:
+        last_seen = group_id_last_seen_no_embeddings_high_count[group_id]
         query = Query(
             match=events_entity,
             select=[
@@ -432,15 +431,18 @@ def get_data_from_snuba_single_group_query(project, group_id_batch_filtered):
 
 
 @sentry_sdk.tracing.trace
-def get_data_from_snuba_bulk_groups_query(project, group_id_batch_filtered):
+def get_data_from_snuba_bulk_groups_query(project, group_id_last_seen_no_embeddings_low_count):
     """
     Query events for groups in bulk, using group's last_seen to limit the
     timestamp of the query.
     """
     events_entity = Entity("events", alias="events")
 
-    groups_last_seen = [group_id_batch_filtered[group_id] for group_id in group_id_batch_filtered]
-    group_ids = [group_id for group_id in group_id_batch_filtered]
+    groups_last_seen = [
+        group_id_last_seen_no_embeddings_low_count[group_id]
+        for group_id in group_id_last_seen_no_embeddings_low_count
+    ]
+    group_ids = [group_id for group_id in group_id_last_seen_no_embeddings_low_count]
     query = Query(
         match=events_entity,
         select=[
