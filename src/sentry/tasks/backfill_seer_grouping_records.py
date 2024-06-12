@@ -357,53 +357,57 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
 @sentry_sdk.tracing.trace
 def get_data_from_snuba_single_group_query(project, group_id_last_seen_no_embeddings_high_count):
     """
-    Query events for a group one at a time, running the requests in groups of size SNUBA_QUERY_RATELIMIT.
+    Query events for a group one at a time, running the requests in chunks of size SNUBA_QUERY_RATELIMIT.
     """
     events_entity = Entity("events", alias="events")
 
-    snuba_requests = []
-    for group_id in group_id_last_seen_no_embeddings_high_count:
-        last_seen = group_id_last_seen_no_embeddings_high_count[group_id]
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Column("event_id"),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("group_id"), Op.EQ, group_id),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.GTE,
-                    last_seen - timedelta(minutes=5),
-                ),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.LT,
-                    last_seen + timedelta(minutes=5),
-                ),
-            ],
-            limit=Limit(1),
-        )
+    snuba_results = []
+    for group_id_chunk in chunked(
+        group_id_last_seen_no_embeddings_high_count, SNUBA_QUERY_RATELIMIT
+    ):
+        snuba_requests = []
+        for group_id in group_id_chunk:
+            last_seen = group_id_last_seen_no_embeddings_high_count[group_id]
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, project.id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        last_seen - timedelta(minutes=5),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
 
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
-        )
-        snuba_requests.append(request)
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
 
-    # TODO(jangjodi): batch size == rate limit right now, which is why this works.
-    # Create option to allow for different batch sizes
-    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-        snuba_results = bulk_snuba_queries(
-            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
-        )
+        with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+            snuba_results_chunk = bulk_snuba_queries(
+                snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            )
+        snuba_results += snuba_results_chunk
+
     return snuba_results
 
 
