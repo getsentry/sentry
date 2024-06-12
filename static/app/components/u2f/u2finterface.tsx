@@ -121,7 +121,9 @@ class U2fInterface extends Component<Props, State> {
           () => {
             const u2fResponse = this.getU2FResponse(data);
             const challenge = JSON.stringify(this.props.challengeData);
-            const stateData = JSON.stringify(this.props.stateData);
+            const stateData = this.props.stateData
+              ? JSON.stringify(this.props.stateData)
+              : this.props.stateData;
 
             if (this.state.responseElement) {
               // eslint-disable-next-line react/no-direct-mutation-state

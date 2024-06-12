@@ -206,13 +206,18 @@ class TwoFactorAuthView(BaseView):
                 return self.perform_signin(request, user, used_interface)
             self.fail_signin(request, user, form)
 
-        #  If a challenge, response, and state exists, validate
+        #  If a challenge and response exists, validate
         if challenge:
             if response := request.POST.get("response"):
                 response = json.loads(response)
 
-                # TODO(schew2381): Eventually check state in if
-                state = json.loads(request.POST.get("state", ""))
+                # TODO(schew2381): Eventually check state in if statement
+                if state := request.POST.get("state"):
+                    state = json.loads(state)
+                else:
+                    # state may be an empty string, so we want to explicitly set
+                    # it to None
+                    state = None
 
                 if interface.validate_response(request, challenge, response, state):
                     return self.perform_signin(request, user, interface)

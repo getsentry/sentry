@@ -45,7 +45,6 @@ def skip_session_cookie(user) -> bool:
     cookie u2f flow has been GA'd. If not, it falls back to checking the second
     option which by email specifies for which users the new flow is enabled.
     """
-    return True
     if options.get("u2f.skip-session-cookie.ga-rollout"):
         return True
 
