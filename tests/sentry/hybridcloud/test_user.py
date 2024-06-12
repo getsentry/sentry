@@ -1,6 +1,5 @@
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test
 
 
@@ -54,7 +53,6 @@ class UserServiceTest(TransactionTestCase):
         assert len(result) == 1
         assert result[0].id == users[0].id
 
-        with override_options({"user.get_many_by_id.rollout": 1.0}):
-            result = user_service.get_many_by_id(ids=target_ids)
-            result_two = user_service.get_many_by_id(ids=target_ids)
-            assert result == result_two
+        result = user_service.get_many_by_id(ids=target_ids)
+        result_two = user_service.get_many_by_id(ids=target_ids)
+        assert result == result_two

@@ -9,6 +9,10 @@ from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
 
+from sentry.integrations.middleware.hybrid_cloud.parser import (
+    BaseRequestParser,
+    create_async_request_payload,
+)
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
@@ -31,8 +35,6 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.region import Region
 from sentry.utils.signing import unsign
-
-from .base import BaseRequestParser, create_async_request_payload
 
 logger = logging.getLogger(__name__)
 

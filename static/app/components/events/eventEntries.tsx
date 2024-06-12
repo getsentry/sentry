@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
@@ -209,6 +210,7 @@ export function Entries({
         beforeReplayEntries.map((entry, entryIdx) => (
           <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
         ))}
+      {!isShare && <EventHydrationDiff {...eventEntryProps} />}
       {!isShare && <EventReplay {...eventEntryProps} />}
       {afterReplayEntries.map((entry, entryIdx) => {
         if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {

@@ -14,6 +14,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -24,6 +25,7 @@ import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
 import {
+  BASE_FILTERS,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
@@ -33,6 +35,7 @@ import {useSelectedDurationAggregate} from 'sentry/views/performance/database/us
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -61,6 +64,11 @@ export function DatabaseLandingPage() {
   }
 
   const handleSearch = (newQuery: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newQuery,
+      source: ModuleName.DB,
+    });
     browserHistory.push({
       ...location,
       query: {
@@ -71,17 +79,13 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const chartFilters = {
-    'span.module': ModuleName.DB,
-    has: 'span.description',
-  };
+  const chartFilters = BASE_FILTERS;
 
   const tableFilters = {
-    'span.module': ModuleName.DB,
+    ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
     'span.description': spanDescription ? `*${spanDescription}*` : undefined,
-    has: 'span.description',
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
@@ -127,6 +131,12 @@ export function DatabaseLandingPage() {
       yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
     },
     'api.starfish.span-landing-page-metrics-chart'
+  );
+
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    'api.performance.database.database-landing',
+    'insight.page_loads.db'
   );
 
   const isCriticalDataLoading =

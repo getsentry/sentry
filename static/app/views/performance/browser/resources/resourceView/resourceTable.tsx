@@ -9,6 +9,7 @@ import Pagination from 'sentry/components/pagination';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -208,7 +209,17 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.RESOURCE,
+            direction,
+          });
+        }}
+      />
     </Fragment>
   );
 }

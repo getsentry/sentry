@@ -56,7 +56,7 @@ def test_audit_log_event_bad_actor_user_id() -> None:
         ).drain_shard()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
-        log = AuditLogEntry.objects.first()
+        log = AuditLogEntry.objects.get()
         assert log.actor_id is None
 
 
@@ -81,7 +81,7 @@ def test_audit_log_event_bad_target_user_id() -> None:
         ).drain_shard()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
-        log = AuditLogEntry.objects.first()
+        log = AuditLogEntry.objects.get()
         assert log.actor_id is None
         assert log.target_user_id is None
 
@@ -112,5 +112,5 @@ def test_user_ip_event() -> None:
         RegionOutbox(shard_scope=OutboxScope.USER_IP_SCOPE, shard_identifier=user.id).drain_shard()
 
     with assume_test_silo_mode(SiloMode.CONTROL):
-        assert UserIP.objects.last().ip_address == "1.0.0.5"
+        assert UserIP.objects.get(ip_address="1.0.0.5")
         assert UserIP.objects.count() == 2

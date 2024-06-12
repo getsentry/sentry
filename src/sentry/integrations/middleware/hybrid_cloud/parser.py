@@ -14,6 +14,7 @@ from rest_framework import status
 
 from sentry.api.base import ONE_DAY
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.integrations.errors import IntegrationMiddlewareException
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
@@ -21,6 +22,7 @@ from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError
 from sentry.types.region import Region, find_regions_for_orgs, get_region_by_name
@@ -54,6 +56,10 @@ class RegionResult:
 class BaseRequestParser(abc.ABC):
     """Base Class for Integration Request Parsers"""
 
+    _METRIC_SUCCESS_KEY = "integrations.middleware.request_parser.success"
+    _METRIC_FAILURE_KEY = "integrations.middleware.request_parser.failure"
+    _METRICS_INFO_KEY = "integrations.middleware.request_parser.info"
+
     @property
     def provider(self) -> str:
         raise NotImplementedError("'provider' property is required by IntegrationClassification")
@@ -76,8 +82,13 @@ class BaseRequestParser(abc.ABC):
 
     def ensure_control_silo(self):
         if SiloMode.get_current_mode() != SiloMode.CONTROL:
+            metrics.incr(
+                self._METRIC_FAILURE_KEY + ".silo_error",
+                sample_rate=1.0,
+                tags={"path": self.request.path, "silo": SiloMode.get_current_mode().value},
+            )
             logger.error(
-                "silo_error",
+                "ensure_control_silo_error",
                 extra={"path": self.request.path, "silo": SiloMode.get_current_mode()},
             )
             raise SiloLimit.AvailabilityError(
@@ -96,7 +107,25 @@ class BaseRequestParser(abc.ABC):
         Used to handle the request directly on the control silo.
         """
         self.ensure_control_silo()
-        return self.response_handler(self.request)
+
+        try:
+            response = self.response_handler(self.request)
+            metrics.incr(
+                self._METRIC_SUCCESS_KEY + ".response_handler_success",
+                sample_rate=1.0,
+                tags={"path": self.request.path},
+            )
+            return response
+        except Exception as e:
+            metrics.incr(
+                self._METRIC_FAILURE_KEY + ".response_handler_error",
+                sample_rate=1.0,
+                tags={"path": self.request.path, "error": str(e)},
+            )
+            logger.exception(
+                "response_handler_error", extra={"path": self.request.path, "error": e}
+            )
+            raise IntegrationMiddlewareException(e)
 
     def get_response_from_region_silo(self, region: Region) -> HttpResponseBase:
         with metrics.timer(
@@ -105,7 +134,36 @@ class BaseRequestParser(abc.ABC):
             sample_rate=1.0,
         ):
             region_client = RegionSiloClient(region, retry=True)
-            return region_client.proxy_request(incoming_request=self.request)
+            try:
+                http_response = region_client.proxy_request(incoming_request=self.request)
+                metrics.incr(
+                    self._METRIC_SUCCESS_KEY + ".proxy_request_to_region_success",
+                    sample_rate=1.0,
+                    tags={"path": self.request.path, "region": region.name},
+                )
+                return http_response
+            except ApiError as e:
+                metrics.incr(
+                    self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error.api_retry_error",
+                    sample_rate=1.0,
+                    tags={"path": self.request.path, "region": region.name, "error": str(e)},
+                )
+                logger.exception(
+                    ".proxy_request_to_region_error.api_retry_error",
+                    extra={"path": self.request.path, "region": region.name, "error": e},
+                )
+                raise
+            except Exception as e:
+                metrics.incr(
+                    self._METRIC_FAILURE_KEY + ".proxy_request_to_region_error",
+                    sample_rate=1.0,
+                    tags={"path": self.request.path, "region": region.name, "error": str(e)},
+                )
+                logger.exception(
+                    "proxy_request_to_region_error",
+                    extra={"path": self.request.path, "region": region.name, "error": e},
+                )
+                raise IntegrationMiddlewareException(e)
 
     def get_responses_from_region_silos(
         self, regions: Sequence[Region]
@@ -129,6 +187,7 @@ class BaseRequestParser(abc.ABC):
                     region_response = future.result()
                 # This will capture errors from this silo and any 4xx/5xx responses from others
                 except Exception as e:
+                    # Metric will be collected by `get_response_from_region_silo`
                     logger.exception(
                         "region_proxy_error", extra={"region": region.name, "error": e}
                     )
@@ -137,9 +196,15 @@ class BaseRequestParser(abc.ABC):
                     region_to_response_map[region.name] = RegionResult(response=region_response)
 
         if len(region_to_response_map) == 0:
+            region_names = ", ".join(region.name for region in regions)
+            metrics.incr(
+                self._METRIC_FAILURE_KEY + ".no_region_response",
+                sample_rate=1.0,
+                tags={"path": self.request.path, "regions": region_names},
+            )
             logger.error(
                 "region_no_response",
-                extra={"path": self.request.path, "regions": [region.name for region in regions]},
+                extra={"path": self.request.path, "regions": region_names},
             )
             return region_to_response_map
 
@@ -199,6 +264,11 @@ class BaseRequestParser(abc.ABC):
             # buckets for the next day.
             cache.set(use_buckets_key, 1, timeout=ONE_DAY)
             use_buckets = True
+            metrics.incr(
+                self._METRICS_INFO_KEY + ".activate_buckets",
+                sample_rate=1.0,
+                tags={"provider": self.provider, "integration_id": integration.id},
+            )
             logger.info(
                 "integrations.parser.activate_buckets",
                 extra={"provider": self.provider, "integration_id": integration.id},
@@ -208,6 +278,11 @@ class BaseRequestParser(abc.ABC):
 
         mailbox_bucket_id = self.mailbox_bucket_id(data)
         if mailbox_bucket_id is None:
+            metrics.incr(
+                self._METRICS_INFO_KEY + ".no_bucket_id",
+                sample_rate=1.0,
+                tags={"provider": self.provider, "integration_id": integration.id},
+            )
             logger.info(
                 "integrations.parser.no_bucket_id",
                 extra={"provider": self.provider, "integration_id": integration.id},
@@ -233,6 +308,11 @@ class BaseRequestParser(abc.ABC):
         if region_result.error is not None:
             # We want to fail loudly so that devs know this error happened on the region silo (for now)
             error = SiloClientError(region_result.error)
+            metrics.incr(
+                self._METRIC_FAILURE_KEY + ".get_response_from_first_region_error",
+                sample_rate=1.0,
+                tags={"path": self.request.path, "error": str(error)},
+            )
             raise SiloClientError(error)
         return region_result.response
 
@@ -243,8 +323,15 @@ class BaseRequestParser(abc.ABC):
             result for result in response_map.values() if result.response is not None
         ]
         if len(successful_responses) == 0:
-            error_map = {region: result.error for region, result in response_map.items()}
-            raise SiloClientError("No successful region responses", error_map)
+            error_map_str = ", ".join(
+                f"{region}: {result.error}" for region, result in response_map.items()
+            )
+            metrics.incr(
+                self._METRIC_FAILURE_KEY + ".get_response_from_all_regions_error",
+                sample_rate=1.0,
+                tags={"path": self.request.path, "errors": error_map_str},
+            )
+            raise SiloClientError("No successful region responses", error_map_str)
         return successful_responses[0].response
 
     # Required Overrides
@@ -276,6 +363,11 @@ class BaseRequestParser(abc.ABC):
         if not integration:
             integration = self.get_integration_from_request()
         if not integration:
+            metrics.incr(
+                self._METRIC_FAILURE_KEY + ".no_integration",
+                sample_rate=1.0,
+                tags={"path": self.request.path},
+            )
             logger.info("%s.no_integration", self.provider, extra={"path": self.request.path})
             raise Integration.DoesNotExist()
         organization_integrations = OrganizationIntegration.objects.filter(
@@ -283,6 +375,11 @@ class BaseRequestParser(abc.ABC):
         )
 
         if organization_integrations.count() == 0:
+            metrics.incr(
+                self._METRIC_FAILURE_KEY + ".no_organization_integrations",
+                sample_rate=1.0,
+                tags={"path": self.request.path},
+            )
             logger.info(
                 "%s.no_organization_integrations", self.provider, extra={"path": self.request.path}
             )

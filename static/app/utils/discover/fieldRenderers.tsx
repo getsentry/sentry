@@ -40,9 +40,10 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatPercentage, formatRate} from 'sentry/utils/formatters';
+import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
 import {isUrl} from 'sentry/utils/string/isUrl';

@@ -262,7 +262,6 @@ from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEnd
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_hashes_split import GroupHashesSplitEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -552,7 +551,6 @@ from .endpoints.project_processingissues import (
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
-    ProjectProfilingFlamegraphEndpoint,
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -705,11 +703,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/hashes/$",
             GroupHashesEndpoint.as_view(),
             name=f"{name_prefix}-group-hashes",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^\/]+)/hashes/split/$",
-            GroupHashesSplitEndpoint.as_view(),
-            name=f"{name_prefix}-group-hashes-split",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/reprocessing/$",
@@ -2749,11 +2742,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-profile",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/flamegraph/$",
-        ProjectProfilingFlamegraphEndpoint.as_view(),
-        name="sentry-api-0-project-profiling-flamegraph",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

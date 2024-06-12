@@ -621,6 +621,27 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
+    it('when focus is in a filter segment, backspace first focuses the filter then deletes it', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Focus into search (cursor be at end of the query)
+      screen
+        .getByRole('button', {name: 'Edit operator for filter: browser.name'})
+        .focus();
+
+      // Pressing backspace once should focus the token
+      await userEvent.keyboard('{backspace}');
+      expect(screen.queryByRole('row', {name: 'browser.name:firefox'})).toHaveFocus();
+
+      // Pressing backspace again should remove the token
+      await userEvent.keyboard('{backspace}');
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+    });
+
     it('has a single tab stop', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
@@ -698,6 +719,28 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
       ).toHaveFocus();
+    });
+
+    it('backspace does nothing when input is empty', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="age:-24h"
+        />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: age'})
+      );
+
+      await userEvent.keyboard('{Backspace}');
+
+      // Input should still have focus, and no changes should have been made
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
   });
 

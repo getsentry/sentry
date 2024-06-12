@@ -210,12 +210,9 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         extra=log_params,
                     )
                 else:
-                    ts = None
-                    response_data = sdk_response.data
-                    if isinstance(response_data, dict):
-                        ts = response_data.get("ts")
+                    ts = sdk_response.get("ts")
 
-                    self.logger.info("slack.issue-alert.ts", extra={"ts": ts})
+                    self.logger.info("slack.issue_alert.ts", extra={"ts": ts})
 
                     new_notification_message_object.message_identifier = (
                         str(ts) if ts is not None else None
@@ -359,14 +356,28 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
     def render_label(self) -> str:
         tags = self.get_tags_list()
+        channel = self.get_option("channel").lstrip("#")
+        workspace = self.get_integration_name()
+        notes = self.get_option("notes")
 
-        return self.label.format(
-            workspace=self.get_integration_name(),
-            channel=self.get_option("channel"),
-            channel_id=self.get_option("channel_id"),
-            tags="[{}]".format(", ".join(tags)),
-            notes=self.get_option("notes", ""),
-        )
+        label = f"Send a notification to the {workspace} Slack workspace to #{channel}"
+        has_tags = True if tags and tags != [""] else False
+        # by default we have a list of empty single quotes if no tags are entered
+
+        if has_tags:
+            formatted_tags = "[{}]".format(", ".join(tags))
+            label += f" and show tags {formatted_tags}"
+
+        if notes:
+            if has_tags:
+                label += f' and notes "{notes}"'
+            else:
+                label += f' and show notes "{notes}"'
+
+        if notes or has_tags:
+            label += " in notification"
+
+        return label
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
