@@ -202,6 +202,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                         ],
                         alias,
                     ),
+                    default_result_type="duration",
                 ),
                 fields.MetricsFunction(
                     "avg",
