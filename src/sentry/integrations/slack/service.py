@@ -257,6 +257,7 @@ class SlackService:
                     text=notification_to_send,
                     blocks=json_blocks,
                 )
+                self._logger.info("successfully posted message to slack with sdk", extra=extra)
             except SlackApiError as err:
                 self._logger.info(
                     "failed to post message to slack",
