@@ -115,7 +115,7 @@ def process_profile_task(
     if "event_id" in profile:
         profile_context["profile_id"] = profile["event_id"]
     elif "chunk_id" in profile:
-        profile_context["event_id"] = profile["chunk_id"]
+        profile_context["chunk_id"] = profile["chunk_id"]
 
     sentry_sdk.set_context(
         "profile",
