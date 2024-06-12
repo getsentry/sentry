@@ -328,8 +328,8 @@ describe('SearchQueryBuilder', function () {
       );
       await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
-      // Clicking the "+14d" option should update the value
-      await userEvent.click(screen.getByRole('option', {name: '-14d'}));
+      // Clicking the "-14d" option should update the value
+      await userEvent.click(await screen.findByRole('option', {name: '-14d'}));
       expect(screen.getByRole('row', {name: 'age:-14d'})).toBeInTheDocument();
       expect(
         within(
@@ -741,6 +741,62 @@ describe('SearchQueryBuilder', function () {
       // Input should still have focus, and no changes should have been made
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
       expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    it('can select all and delete with ctrl+a', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:firefox foo"
+        />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+
+      // Should have selected the entire query
+      for (const token of screen.getAllByRole('row')) {
+        expect(token).toHaveAttribute('aria-selected', 'true');
+      }
+
+      // Focus should be on the grid container
+      expect(screen.getByRole('grid')).toHaveFocus();
+
+      // Pressing delete should remove all selected tokens
+      await userEvent.keyboard('{Backspace}');
+      expect(mockOnChange).toHaveBeenCalledWith('');
+    });
+
+    it('focus goes to first input after ctrl+a and arrow left', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+
+      // Pressing arrow left should put focus in first text input
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(0)
+      ).toHaveFocus();
+    });
+
+    it('focus goes to last input after ctrl+a and arrow right', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+
+      // Pressing arrow right should put focus in last text input
+      await userEvent.keyboard('{ArrowRight}');
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
     });
   });
 

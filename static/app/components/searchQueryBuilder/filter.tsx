@@ -265,6 +265,10 @@ const FilterWrapper = styled('div')`
     background-color: ${p => p.theme.gray100};
     outline: none;
   }
+
+  &[aria-selected='true'] {
+    background-color: ${p => p.theme.blue200};
+  }
 `;
 
 const BaseTokenPart = styled('div')`

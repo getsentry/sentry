@@ -1,14 +1,19 @@
-import {useCallback} from 'react';
+import {type DOMAttributes, type FocusEvent, useCallback, useMemo} from 'react';
 import {type AriaGridListOptions, useGridList} from '@react-aria/gridlist';
 import {ListKeyboardDelegate} from '@react-aria/selection';
 import type {ListState} from '@react-stately/list';
+import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
 interface UseQueryBuilderGridProps extends AriaGridListOptions<ParseResultToken> {
   children: CollectionChildren<ParseResultToken>;
 }
+
+const noop = () => {};
 
 /**
  * Modified version React Aria's useGridList to support the search component.
@@ -17,9 +22,25 @@ interface UseQueryBuilderGridProps extends AriaGridListOptions<ParseResultToken>
  */
 export function useQueryBuilderGrid(
   props: UseQueryBuilderGridProps,
-  state: ListState<ParseResultToken>,
   ref: React.RefObject<HTMLDivElement>
-) {
+): {
+  gridProps: DOMAttributes<HTMLDivElement>;
+  state: ListState<ParseResultToken>;
+} {
+  const {dispatch, query} = useSearchQueryBuilder();
+
+  const state = useListState<ParseResultToken>({
+    ...props,
+    selectionBehavior: 'replace',
+    onSelectionChange: selection => {
+      // When there is a selection, set focus to the grid itself.
+      if (selection === 'all' || selection.size > 0) {
+        state.selectionManager.setFocusedKey(null);
+        state.selectionManager.setFocused(true);
+      }
+    },
+  });
+
   // The default behavior uses vertical naviation, but we want horizontal navigation
   const delegate = new ListKeyboardDelegate({
     collection: state.collection,
@@ -29,7 +50,7 @@ export function useQueryBuilderGrid(
     direction: 'ltr',
   });
 
-  const {gridProps} = useGridList(
+  const {gridProps: originalGridProps} = useGridList(
     {
       ...props,
       shouldFocusWrap: false,
@@ -41,6 +62,32 @@ export function useQueryBuilderGrid(
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (state.selectionManager.selectedKeys.size > 0) {
+        switch (e.key) {
+          case 'Backspace':
+          case 'Delete':
+            dispatch({type: 'CLEAR'});
+            break;
+          case 'c':
+            if (isCtrlKeyPressed(e)) {
+              navigator.clipboard.writeText(query);
+            }
+            break;
+          case 'ArrowRight':
+            // e.preventDefault();
+            // e.stopPropagation();
+            state.selectionManager.setFocusedKey(state.collection.getLastKey());
+            break;
+          case 'ArrowLeft':
+            // e.preventDefault();
+            // e.stopPropagation();
+            state.selectionManager.setFocusedKey(state.collection.getFirstKey());
+            break;
+          default:
+            break;
+        }
+      }
+
       if (e.target instanceof HTMLElement) {
         // If the focus is on a menu item, let that component handle the event
         if (e.target.getAttribute('role') === 'menuitemradio') {
@@ -48,14 +95,14 @@ export function useQueryBuilderGrid(
         }
       }
 
-      gridProps.onKeyDown?.(e);
+      originalGridProps.onKeyDown?.(e);
     },
-    [gridProps]
+    [dispatch, originalGridProps, query, state.collection, state.selectionManager]
   );
 
-  return {
-    gridProps: {
-      ...gridProps,
+  const gridProps = useMemo(
+    () => ({
+      ...originalGridProps,
       // If we click inside the grid but not on any of the items, focus the last one
       onClick: () => {
         state.selectionManager.setFocused(true);
@@ -63,7 +110,7 @@ export function useQueryBuilderGrid(
       },
       // The default behavior will capture some keys such as Enter and Space, which
       // we want to handle ourselves.
-      onKeyDownCapture: () => {},
+      onKeyDownCapture: noop,
       onKeyDown,
       onFocus: () => {
         if (state.selectionManager.isFocused) {
@@ -78,6 +125,22 @@ export function useQueryBuilderGrid(
           state.selectionManager.setFocusedKey(state.collection.getLastKey());
         }
       },
-    },
+      onBlur: (e: FocusEvent) => {
+        // Reset selection on any focus change, except when focus moves
+        // to the grid itself (which is what happens when there is a selection)
+        if (
+          e.relatedTarget !== ref.current &&
+          state.selectionManager.selectedKeys.size > 0
+        ) {
+          state.selectionManager.clearSelection();
+        }
+      },
+    }),
+    [onKeyDown, originalGridProps, ref, state.collection, state.selectionManager]
+  );
+
+  return {
+    state,
+    gridProps,
   };
 }
