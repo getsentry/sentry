@@ -1767,7 +1767,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)

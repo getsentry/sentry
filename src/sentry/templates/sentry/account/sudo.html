@@ -61,7 +61,6 @@
                         container: '#u2f-challenge',
                         props: {
                           challengeData: {{ u2f_challenge|to_json|safe }},
-                          stateData: {{ activation.state|to_json|safe }},
                           displayMode: 'sudo'
                         },
                       });
