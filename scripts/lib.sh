@@ -162,12 +162,6 @@ install-js-dev() {
     yarn check --verify-tree || yarn install --check-files
 }
 
-develop() {
-    install-js-dev
-    install-py-dev
-    setup-git
-}
-
 init-config() {
     sentry init --dev --no-clobber
 }
@@ -207,18 +201,6 @@ build-platform-assets() {
     python3 -m sentry.build._integration_docs
     # make sure this didn't silently do nothing
     test -f src/sentry/integration-docs/android.json
-}
-
-bootstrap() {
-    develop
-    init-config
-    run-dependent-services
-    apply-migrations
-    create-superuser
-    # Load mocks requires a superuser
-    bin/load-mocks
-    build-platform-assets
-    echo "--> Finished bootstrapping. Have a nice day."
 }
 
 clean() {
