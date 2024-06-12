@@ -32,6 +32,7 @@ def _send_message_to_slack_channel(
                 unfurl_links=False,
                 unfurl_media=False,
             )
+            logger.info("slack.send_message_to_channel.success", extra=log_params)
         except SlackApiError as e:
             extra = {"error": str(e), **log_params}
             logger.info(log_error_message, extra=extra)
