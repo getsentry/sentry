@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 class SlackDMEndpoint(Endpoint, abc.ABC):
     slack_request_class = SlackDMRequest
 
-    _METRICS_SUCCESS_KEY = "slack.integrations.slack.dm_endpoint.success."
-    _METRIC_FAILURE_KEY = "slack.integrations.slack.dm_endpoint.failure."
+    _METRICS_SUCCESS_KEY = "sentry.integrations.slack.dm_endpoint.success"
+    _METRIC_FAILURE_KEY = "sentry.integrations.slack.dm_endpoint.failure"
 
     def post_dispatcher(self, request: SlackDMRequest) -> Response:
         """
