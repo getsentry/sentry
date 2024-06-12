@@ -205,9 +205,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the SDK selection feature in the onboarding
     manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Prefix host with organization ID when giving users DSNs (can be
-    # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE) eg. o123.ingest.us.sentry.io
-    manager.add("organizations:org-subdomains", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable views for anomaly detection
     manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile performance score calculation for transactions in relay
