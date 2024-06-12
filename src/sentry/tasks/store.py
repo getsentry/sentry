@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 import random
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from dataclasses import dataclass
 from time import time
 from typing import Any
@@ -15,7 +17,6 @@ from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
 from sentry.eventstore import processing
-from sentry.eventstore.processing.base import Event
 from sentry.features.rollout import in_random_rollout
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, create_feedback_issue
 from sentry.killswitches import killswitch_matches_context
@@ -26,7 +27,7 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
+from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -38,7 +39,7 @@ class RetryProcessing(Exception):
     pass
 
 
-def should_process(data: CanonicalKeyDict[Any]) -> bool:
+def should_process(data: Mapping[str, Any]) -> bool:
     """Quick check if processing is needed at all."""
     from sentry.plugins.base import plugins
 
@@ -95,7 +96,7 @@ def submit_save_event(
     cache_key: str | None,
     event_id: str | None,
     start_time: float | None,
-    data: Event | None,
+    data: MutableMapping[str, Any] | None,
 ) -> None:
     if cache_key:
         data = None
@@ -119,7 +120,7 @@ def submit_save_event(
 
 def _do_preprocess_event(
     cache_key: str,
-    data: Event | None,
+    data: MutableMapping[str, Any] | None,
     start_time: float | None,
     event_id: str | None,
     from_reprocessing: bool,
@@ -144,7 +145,6 @@ def _do_preprocess_event(
         return
 
     original_data = data
-    data = CanonicalKeyDict(data)
     project_id = data["project"]
     set_current_event_project(project_id)
 
@@ -182,7 +182,7 @@ def _do_preprocess_event(
         ):
             reprocessing2.backup_unprocessed_event(data=original_data)
 
-            is_low_priority = should_demote_symbolication(project_id)
+            is_low_priority = should_demote_symbolication(first_platform, project_id)
             submit_symbolicate(
                 SymbolicatorTaskKind(
                     platform=first_platform,
@@ -233,7 +233,7 @@ def _do_preprocess_event(
 )
 def preprocess_event(
     cache_key: str,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
@@ -260,7 +260,7 @@ def preprocess_event(
 )
 def preprocess_event_from_reprocessing(
     cache_key: str,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
@@ -296,7 +296,7 @@ def is_process_disabled(project_id: int, event_id: str, platform: str) -> bool:
 
 
 @sentry_sdk.tracing.trace
-def normalize_event(data: Any) -> Any:
+def normalize_event(data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
     normalizer = StoreNormalizer(
         remove_other=False,
         is_renormalize=True,
@@ -311,7 +311,7 @@ def do_process_event(
     start_time: float | None,
     event_id: str | None,
     from_reprocessing: bool,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     data_has_changed: bool = False,
     from_symbolicate: bool = False,
     has_attachments: bool = False,
@@ -327,8 +327,6 @@ def do_process_event(
         )
         error_logger.error("process.failed.empty", extra={"cache_key": cache_key})
         return
-
-    data = CanonicalKeyDict(data)
 
     project_id = data["project"]
     set_current_event_project(project_id)
@@ -388,12 +386,12 @@ def do_process_event(
     # re-normalization as it is hard to find sensitive data in partially
     # trimmed strings.
     if has_changed:
-        new_data = safe_execute(scrub_data, project=project, event=data.data)
+        new_data = safe_execute(scrub_data, project=project, event=data)
 
         # XXX(markus): When datascrubbing is finally "totally stable", we might want
         # to drop the event if it crashes to avoid saving PII
         if new_data is not None:
-            data.data = new_data
+            data = new_data
 
     # TODO(dcramer): ideally we would know if data changed by default
     # Default event processors.
@@ -548,7 +546,7 @@ def delete_raw_event(project_id: int, event_id: str | None) -> None:
 
 def _do_save_event(
     cache_key: str | None = None,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
@@ -572,15 +570,13 @@ def _do_save_event(
             event_type = data.get("type") or "none"
 
     with metrics.global_tags(event_type=event_type):
-        if data is not None:
-            data = CanonicalKeyDict(data)
-
         if event_id is None and data is not None:
             event_id = data["event_id"]
 
         # only when we come from reprocessing we get a project_id sent into
         # the task.
         if project_id is None:
+            assert data is not None
             project_id = data.pop("project")
             set_current_event_project(project_id)
 
@@ -660,7 +656,9 @@ def _do_save_event(
             time_synthetic_monitoring_event(data, project_id, start_time)
 
 
-def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: float | None) -> bool:
+def time_synthetic_monitoring_event(
+    data: Mapping[str, Any], project_id: int, start_time: float | None
+) -> bool:
     """
     For special events produced by the recurring synthetic monitoring
     functions, emit timing metrics for:
@@ -717,7 +715,7 @@ def time_synthetic_monitoring_event(data: Event, project_id: int, start_time: fl
 )
 def save_event(
     cache_key: str | None = None,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
@@ -735,7 +733,7 @@ def save_event(
 )
 def save_event_transaction(
     cache_key: str | None = None,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
@@ -771,7 +769,7 @@ def save_event_feedback(
 )
 def save_event_attachments(
     cache_key: str | None = None,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,
@@ -791,7 +789,7 @@ def save_event_attachments(
 )
 def save_event_highcpu(
     cache_key: str | None = None,
-    data: Event | None = None,
+    data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
     event_id: str | None = None,
     project_id: int | None = None,

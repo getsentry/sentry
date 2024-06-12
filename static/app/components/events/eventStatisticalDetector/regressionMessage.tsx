@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, Group} from 'sentry/types';
 import {IssueType} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

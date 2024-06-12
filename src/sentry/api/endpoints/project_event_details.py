@@ -74,8 +74,8 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        group_id = request.GET.get("group_id")
-        group_id = int(group_id) if group_id else None
+        group_id_s = request.GET.get("group_id")
+        group_id = int(group_id_s) if group_id_s else None
 
         event = eventstore.backend.get_event_by_id(project.id, event_id, group_id=group_id)
 
@@ -89,7 +89,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             event = event.for_group(event.group)
 
         data = wrap_event_response(
-            request.user, event, environments, include_full_release_data=True
+            request.user, event, list(environments), include_full_release_data=True
         )
         return Response(data)
 

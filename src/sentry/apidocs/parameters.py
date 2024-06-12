@@ -20,30 +20,23 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
-    ORG_SLUG = OpenApiParameter(
-        name="organization_slug",
-        description="The slug of the organization the resource belongs to.",
-        required=True,
-        type=str,
-        location="path",
-    )
     ORG_ID_OR_SLUG = OpenApiParameter(
         name="organization_id_or_slug",
-        description="The id or slug of the organization the resource belongs to.",
+        description="The ID or slug of the organization the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
     PROJECT_ID_OR_SLUG = OpenApiParameter(
         name="project_id_or_slug",
-        description="The id or slug of the project the resource belongs to.",
+        description="The ID or slug of the project the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
     TEAM_ID_OR_SLUG = OpenApiParameter(
         name="team_id_or_slug",
-        description="The id or slug of the team the resource belongs to.",
+        description="The ID or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -183,7 +176,7 @@ class ReleaseParams:
         location="query",
         required=False,
         type=str,
-        description="The project id to filter by.",
+        description="The project ID to filter by.",
     )
     HEALTH = OpenApiParameter(
         name="health",
@@ -321,7 +314,7 @@ class MonitorParams:
         location="path",
         required=True,
         type=str,
-        description="The id or slug of the monitor.",
+        description="The ID or slug of the monitor.",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",
@@ -349,7 +342,7 @@ class MonitorParams:
         location="path",
         required=False,
         type=OpenApiTypes.UUID,
-        description="The id of the processing error.",
+        description="The ID of the processing error.",
     )
 
 

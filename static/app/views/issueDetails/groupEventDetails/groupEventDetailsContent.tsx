@@ -10,6 +10,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -55,7 +56,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
+import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -106,7 +107,7 @@ function DefaultGroupEventDetailsContent({
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
-  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
+  const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
 
   const eventEntryProps = {group, event, project};
 
@@ -174,8 +175,8 @@ function DefaultGroupEventDetailsContent({
         project={project}
         viewAllRef={tagsRef}
       />
-      {showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutionsIssueDetailsContent
+      {showPossibleSolutionsHigher && (
+        <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
           project={project}
           group={group}
@@ -210,6 +211,7 @@ function DefaultGroupEventDetailsContent({
           projectSlug={project.slug}
         />
       )}
+      <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
@@ -217,8 +219,8 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      {!showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutionsIssueDetailsContent
+      {!showPossibleSolutionsHigher && (
+        <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
           project={project}
           group={group}
@@ -259,14 +261,14 @@ function DefaultGroupEventDetailsContent({
   );
 }
 
-function ResourcesAndMaybeSolutionsIssueDetailsContent({
+function ResourcesAndPossibleSolutionsIssueDetailsContent({
   event,
   project,
   group,
 }: Required<GroupEventDetailsContentProps>) {
   return (
     <ErrorBoundary mini>
-      <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+      <ResourcesAndPossibleSolutions event={event} project={project} group={group} />
     </ErrorBoundary>
   );
 }

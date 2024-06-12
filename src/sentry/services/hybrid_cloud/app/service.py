@@ -94,13 +94,6 @@ class AppService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         pass
 
@@ -113,6 +106,14 @@ class AppService(RpcService):
     @abc.abstractmethod
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         pass
+
+    def get_by_application_id(self, *, application_id: int) -> RpcSentryApp | None:
+        """
+        Get a SentryApp by application_id with caching
+
+        Wraps find_service_hook_sentry_app with caching.
+        """
+        return get_by_application_id(application_id)
 
     @rpc_method
     @abc.abstractmethod
@@ -128,18 +129,6 @@ class AppService(RpcService):
     @rpc_method
     @abc.abstractmethod
     def find_app_components(self, *, app_id: int) -> list[RpcSentryAppComponent]:
-        pass
-
-    @rpc_method
-    @abc.abstractmethod
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: list[int],
-        sentry_app_ids: list[int],
-        type: str,
-        group_by: str = "sentry_app_id",
-    ) -> Mapping[str, Any]:
         pass
 
     @rpc_method
@@ -198,6 +187,11 @@ class AppService(RpcService):
 @back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
 def get_installation(id: int) -> RpcSentryAppInstallation | None:
     return app_service.get_installation_by_id(id=id)
+
+
+@back_with_silo_cache("app_service.get_by_application_id", SiloMode.REGION, RpcSentryApp)
+def get_by_application_id(application_id: int) -> RpcSentryApp | None:
+    return app_service.find_service_hook_sentry_app(api_application_id=application_id)
 
 
 app_service = AppService.create_delegation()

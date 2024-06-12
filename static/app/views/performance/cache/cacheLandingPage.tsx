@@ -1,7 +1,6 @@
 import React, {Fragment, useEffect} from 'react';
 import keyBy from 'lodash/keyBy';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -34,7 +33,6 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
-  RELEASE_LEVEL,
 } from 'sentry/views/performance/cache/settings';
 import {
   isAValidSort,
@@ -45,6 +43,7 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
@@ -147,6 +146,12 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_ONBOARDING
   );
 
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    Referrer.LANDING_CACHE_ONBOARDING,
+    'insight.page_loads.cache'
+  );
+
   useEffect(() => {
     const hasMissingDataError =
       cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
@@ -198,7 +203,6 @@ export function CacheLandingPage() {
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
             />
-            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>

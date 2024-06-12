@@ -289,8 +289,8 @@ export async function openImportDashboardFromFileModal(options) {
   });
 }
 
-export async function openCreateDashboardFromScratchpad(options) {
-  const mod = await import('sentry/components/modals/createDashboardFromScratchpadModal');
+export async function openCreateDashboardFromMetrics(options) {
+  const mod = await import('sentry/components/modals/createDashboardFromMetricsModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {

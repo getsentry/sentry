@@ -20,7 +20,8 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
   ExampleTransaction,
@@ -245,8 +246,9 @@ export function SpanDurationBar(props: SpanDurationBarProps) {
     <DurationBar>
       <div style={{width: toPercent(widthPercentage)}}>
         <Tooltip
-          title={tct('[percentage] of the transaction', {
+          title={tct('[percentage] of the transaction ([duration])', {
             percentage: formatPercentage(widthPercentage),
+            duration: formatTraceDuration(transactionDuration),
           })}
           containerDisplayMode="block"
         >

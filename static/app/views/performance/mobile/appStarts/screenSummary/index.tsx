@@ -126,8 +126,8 @@ export function ScreenSummary() {
                     allowZero: false,
                     title:
                       appStartType === COLD_START_TYPE
-                        ? t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
-                        : t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
+                        ? t('Avg Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
+                        : t('Avg Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
                     dataKey: `avg_if(span.duration,release,${primaryRelease})`,
                   },
                   {
@@ -135,14 +135,15 @@ export function ScreenSummary() {
                     allowZero: false,
                     title:
                       appStartType === COLD_START_TYPE
-                        ? t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
-                        : t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
+                        ? t('Avg Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
+                        : t('Avg Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
                     dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
                   },
                   {
                     unit: 'percent_change',
                     title: t('Change'),
                     dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
+                    preferredPolarity: '-',
                   },
                   {
                     unit: 'count',

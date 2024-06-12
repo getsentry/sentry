@@ -262,7 +262,6 @@ from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEnd
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_hashes_split import GroupHashesSplitEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -491,7 +490,10 @@ from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
 from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
-from .endpoints.organization_traces import OrganizationTracesEndpoint
+from .endpoints.organization_traces import (
+    OrganizationTracesEndpoint,
+    OrganizationTracesStatsEndpoint,
+)
 from .endpoints.organization_transaction_anomaly_detection import (
     OrganizationTransactionAnomalyDetectionEndpoint,
 )
@@ -703,11 +705,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/hashes/$",
             GroupHashesEndpoint.as_view(),
             name=f"{name_prefix}-group-hashes",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^\/]+)/hashes/split/$",
-            GroupHashesSplitEndpoint.as_view(),
-            name=f"{name_prefix}-group-hashes-split",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/reprocessing/$",
@@ -1418,6 +1415,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/traces-stats/$",
+        OrganizationTracesStatsEndpoint.as_view(),
+        name="sentry-api-0-organization-traces-stats",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/spans/fields/$",

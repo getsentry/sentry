@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
@@ -10,6 +11,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -30,7 +32,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 type Props = {
   data: TableData | undefined;
@@ -48,25 +50,39 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
   const {project} = useCrossPlatformProject();
   const eventViewColumns = eventView.getColumns();
 
+  const ttidColumnNamePrimaryRelease = `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`;
+  const ttidColumnNameSecondaryRelease = `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`;
+  const ttfdColumnNamePrimaryRelease = `avg_if(measurements.time_to_full_display,release,${primaryRelease})`;
+  const ttfdColumnNameSecondaryRelease = `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`;
+  const countColumnName = `count()`;
+
   const columnNameMap = {
     transaction: t('Screen'),
-    [`avg_if(measurements.time_to_initial_display,release,${primaryRelease})`]: t(
-      'TTID (%s)',
+    [ttidColumnNamePrimaryRelease]: t('AVG TTID (%s)', PRIMARY_RELEASE_ALIAS),
+    [ttidColumnNameSecondaryRelease]: t('AVG TTID (%s)', SECONDARY_RELEASE_ALIAS),
+    [ttfdColumnNamePrimaryRelease]: t('AVG TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+    [ttfdColumnNameSecondaryRelease]: t('AVG TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+    [countColumnName]: t('Total Count'),
+  };
+
+  const columnTooltipMap = {
+    [ttidColumnNamePrimaryRelease]: t(
+      'Average time to initial display of %s.',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`]: t(
-      'TTID (%s)',
+    [ttidColumnNameSecondaryRelease]: t(
+      'Average time to initial display of %s.',
       SECONDARY_RELEASE_ALIAS
     ),
-    [`avg_if(measurements.time_to_full_display,release,${primaryRelease})`]: t(
-      'TTFD (%s)',
+    [ttfdColumnNamePrimaryRelease]: t(
+      'Average time to initial display of %s.',
       PRIMARY_RELEASE_ALIAS
     ),
-    [`avg_if(measurements.time_to_full_display,release,${secondaryRelease})`]: t(
-      'TTFD (%s)',
+    [ttfdColumnNameSecondaryRelease]: t(
+      'Average time to full display of %s.',
       SECONDARY_RELEASE_ALIAS
     ),
-    'count()': t('Total Count'),
+    [countColumnName]: t('The total count of screen loads.'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -173,6 +189,21 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
         generateSortLink={generateSortLink}
       />
     );
+
+    function columnWithToolTip(tooltipTitle: string) {
+      return (
+        <Alignment align={alignment}>
+          <StyledTooltip isHoverable title={<span>{tooltipTitle}</span>}>
+            {sortLink}
+          </StyledTooltip>
+        </Alignment>
+      );
+    }
+
+    const columnToolTip = columnTooltipMap[column.key];
+    if (columnToolTip) {
+      return columnWithToolTip(columnToolTip);
+    }
     return sortLink;
   }
 
@@ -201,7 +232,17 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={onCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.SCREEN_LOAD,
+            direction,
+          });
+        }}
+      />
     </Fragment>
   );
 }
@@ -248,3 +289,15 @@ export function useTableQuery({
     pageLinks: result.pageLinks,
   };
 }
+
+const Alignment = styled('span')<{align: string}>`
+  display: block;
+  margin: auto;
+  text-align: ${props => props.align};
+  width: 100%;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
+`;

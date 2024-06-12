@@ -79,18 +79,6 @@ class DatabaseBackedAppService(AppService):
         except SentryAppInstallation.DoesNotExist:
             return None
 
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        try:
-            install = SentryAppInstallation.objects.get(
-                organization_id=organization_id,
-                sentry_app_id=sentry_app_id,
-            )
-            return serialize_sentry_app_installation(install)
-        except SentryAppInstallation.DoesNotExist:
-            return None
-
     def get_sentry_app_by_slug(self, *, slug: str) -> RpcSentryApp | None:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)
@@ -146,24 +134,6 @@ class DatabaseBackedAppService(AppService):
                 action_list.append(action_details)
 
         return action_list
-
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: list[int],
-        sentry_app_ids: list[int],
-        type: str,
-        group_by: str = "sentry_app_id",
-    ) -> Mapping[str, Any]:
-        return {
-            str(k): v
-            for k, v in SentryAppInstallation.objects.get_related_sentry_app_components(
-                organization_ids=organization_ids,
-                sentry_app_ids=sentry_app_ids,
-                type=type,
-                group_by=group_by,
-            ).items()
-        }
 
     def get_component_contexts(
         self, *, filter: SentryAppInstallationFilterArgs, component_type: str

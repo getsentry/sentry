@@ -10,12 +10,12 @@ from sentry.api.bases.user import UserEndpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.validators.notifications import validate_type
+from sentry.integrations.types import PERSONAL_NOTIFICATION_PROVIDERS
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
 from sentry.notifications.serializers import NotificationSettingsProviderSerializer
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.notifications.validators import UserNotificationSettingsProvidersDetailsSerializer
-from sentry.types.integrations import PERSONAL_NOTIFICATION_PROVIDERS
 
 
 @control_silo_endpoint
@@ -24,7 +24,7 @@ class UserNotificationSettingsProvidersEndpoint(UserEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
     }
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
     # TODO(Steve): Make not private when we launch new system
     private = True
 

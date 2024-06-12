@@ -499,12 +499,6 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
-register(
-    "slack.sdk-web-client",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -1457,24 +1451,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
-register(
-    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 register(
     "sentry-metrics.monitor-queue-time",
     type=Bool,
@@ -1854,9 +1830,6 @@ register(
 
 # Break glass controls
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# RPC optimization
-register("sentryapps.get_installation_cached", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
@@ -2589,5 +2562,13 @@ register(
     "profiling.continuous-profiling.chunks-set.size",
     type=Int,
     default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable orjson in the occurrence_consumer.process_[message|batch]
+register(
+    "issues.occurrence_consumer.use_orjson",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

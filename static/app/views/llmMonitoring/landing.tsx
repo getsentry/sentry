@@ -25,12 +25,19 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
+
+  useHasDataTrackAnalytics(
+    new MutableSearch('span.category:"ai"'),
+    'api.performance.ai.llm-monitoring-landing',
+    'insight.page_loads.ai'
+  );
 
   return (
     <Layout.Page>

@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 import orjson
 from sentry_relay.processing import parse_release
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
@@ -24,7 +25,6 @@ from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
 

@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 
-import {REPLAY_CLIP_OFFSETS} from 'sentry/components/events/eventReplay';
 import ReplayClipPreview from 'sentry/components/events/eventReplay/replayClipPreview';
 import {LazyRender} from 'sentry/components/lazyRender';
 import {t} from 'sentry/locale';
@@ -10,6 +9,11 @@ import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 
 import {TraceDrawerComponents} from '../../styles';
+
+const REPLAY_CLIP_OFFSETS = {
+  durationAfterMs: 5_000,
+  durationBeforeMs: 5_000,
+};
 
 function ReplaySection({
   event,

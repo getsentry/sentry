@@ -1,7 +1,6 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useId} from '@react-aria/utils';
-import memoize from 'lodash/memoize';
 
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -16,7 +15,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {ensureQuotedTextFilters} from 'sentry/views/metrics/utils';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
-interface MetricSearchBarProps extends Partial<SmartSearchBarProps> {
+interface MetricSearchBarProps extends Partial<Omit<SmartSearchBarProps, 'projectIds'>> {
   onChange: (value: string) => void;
   blockedTags?: string[];
   disabled?: boolean;
@@ -78,22 +77,19 @@ export function MetricSearchBar({
     [supportedTags]
   );
 
-  const fetchTagValues = useMemo(() => {
-    const fn = memoize((tagKey: string) => {
-      // clear response from cache after 10 seconds
-      setTimeout(() => {
-        fn.cache.delete(tagKey);
-      }, 10000);
+  const fetchTagValues = useCallback(
+    (tagKey: string, search: string) => {
       return api.requestPromise(`/organizations/${org.slug}/metrics/tags/${tagKey}/`, {
         query: {
+          prefix: search,
           metric: mri,
           useCase: getUseCaseFromMRI(mri),
           project: selection.projects,
         },
       });
-    });
-    return fn;
-  }, [api, mri, org.slug, selection.projects]);
+    },
+    [api, mri, org.slug, selection.projects]
+  );
 
   const getTagValues = useCallback(
     async (tag: any, search: string) => {
@@ -102,15 +98,9 @@ export function MetricSearchBar({
         return selectedProjects.map(project => project.slug);
       }
 
-      const tagsValues = await fetchTagValues(tag.key);
+      const tagsValues = await fetchTagValues(tag.key, search);
 
-      return tagsValues
-        .filter(
-          tv =>
-            tv.value !== '' &&
-            tv.value.toLocaleLowerCase().includes(search.toLocaleLowerCase())
-        )
-        .map(tv => tv.value);
+      return tagsValues.filter(tv => tv.value !== '').map(tv => tv.value);
     },
     [fetchTagValues, selectedProjects]
   );

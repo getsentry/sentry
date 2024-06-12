@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -14,11 +13,13 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
@@ -33,9 +34,10 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
-  RELEASE_LEVEL,
 } from 'sentry/views/performance/queues/settings';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const DEFAULT_SORT = {
@@ -45,6 +47,7 @@ const DEFAULT_SORT = {
 
 function QueuesLandingPage() {
   const location = useLocation();
+  const organization = useOrganization();
 
   const query = useLocationQuery({
     fields: {
@@ -59,6 +62,11 @@ function QueuesLandingPage() {
       .at(0) ?? DEFAULT_SORT;
 
   const handleSearch = (newDestination: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newDestination,
+      source: ModuleName.QUEUE,
+    });
     browserHistory.push({
       ...location,
       query: {
@@ -75,6 +83,12 @@ function QueuesLandingPage() {
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
 
+  useHasDataTrackAnalytics(
+    new MutableSearch(DEFAULT_QUERY_FILTER),
+    Referrer.QUEUES_LANDING_ONBOARDING,
+    'insight.page_loads.queue'
+  );
+
   const crumbs = useModuleBreadcrumbs('queue');
 
   return (
@@ -89,7 +103,6 @@ function QueuesLandingPage() {
               docsUrl={MODULE_DOC_LINK}
               title={MODULE_DESCRIPTION}
             />
-            <FeatureBadge type={RELEASE_LEVEL} />
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>

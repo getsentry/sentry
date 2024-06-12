@@ -1,8 +1,10 @@
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {SpanMetricsField} from 'sentry/views/starfish/types';
 
@@ -11,6 +13,7 @@ export const WARM_START_TYPE = 'warm';
 
 export function StartTypeSelector() {
   const location = useLocation();
+  const organization = useOrganization();
 
   const value =
     decodeScalar(location.query[SpanMetricsField.APP_START_TYPE]) ?? COLD_START_TYPE;
@@ -26,6 +29,10 @@ export function StartTypeSelector() {
       value={value}
       options={options ?? []}
       onChange={newValue => {
+        trackAnalytics('insight.app_start.select_start_type', {
+          organization,
+          type: newValue.value,
+        });
         browserHistory.push({
           ...location,
           query: {

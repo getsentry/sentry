@@ -177,6 +177,65 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
 
+    def test_with_assigned_to_team_filter(self):
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {
+                "targetType": "Team",
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetIdentifier": self.team.id,
+            },
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert (
+            response.data["filters"][0]["name"]
+            == f"The issue is assigned to team #{self.team.slug}"
+        )
+
+    def test_with_assigned_to_user_filter(self):
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {
+                "targetType": "Member",
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetIdentifier": self.user.id,
+            },
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert (
+            response.data["filters"][0]["name"] == f"The issue is assigned to {self.user.username}"
+        )
+
     @responses.activate
     def test_neglected_rule(self):
         now = datetime.now(UTC)
@@ -648,7 +707,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 "interval": "1h",
-                "value": "100",
+                "value": "100.0",
                 "comparisonType": "count",
             }
         )
@@ -809,7 +868,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 "interval": "1h",
-                "value": "100",
+                "value": "100.0",
                 "comparisonType": "count",
             }
         )
@@ -1132,7 +1191,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert rendered_blocks[0]["text"]["text"] == message
         changes = "*Changes*\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
-        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] and notes  in notification* to *Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] and notes  in notification*\n"
+        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name* to *Send a notification to the Awesome Team Slack workspace to #new_channel_name*\n"
         changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
         changes += f"• Added *{staging_env.name}* environment\n"
         changes += "• Changed rule name from *my rule* to *new rule*\n"
@@ -1212,7 +1271,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "actions": [
                 {
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team",
                     "workspace": str(self.slack_integration.id),
                     "channel": "#team-team-team",
                     "channel_id": channel_id,

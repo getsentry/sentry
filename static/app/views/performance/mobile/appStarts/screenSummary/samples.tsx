@@ -5,15 +5,18 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 import {EventSamples} from 'sentry/views/performance/mobile/appStarts/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOperationTable';
 import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
-import {DeviceClassSelector} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
 import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 const EVENT = 'event';
 const SPANS = 'spans';
@@ -21,6 +24,7 @@ const SPANS = 'spans';
 export function SamplesTables({transactionName}) {
   const [sampleType, setSampleType] = useState<typeof EVENT | typeof SPANS>(SPANS);
   const {primaryRelease, secondaryRelease} = useReleaseSelection();
+  const organization = useOrganization();
 
   const content = useMemo(() => {
     if (sampleType === EVENT) {
@@ -74,9 +78,23 @@ export function SamplesTables({transactionName}) {
               secondaryRelease={secondaryRelease}
             />
           )}
-          <DeviceClassSelector size="md" clearSpansTableCursor />
+          <DeviceClassSelector
+            size="md"
+            clearSpansTableCursor
+            moduleName={ModuleName.APP_START}
+          />
         </FiltersContainer>
-        <SegmentedControl onChange={value => setSampleType(value)} defaultValue={SPANS}>
+        <SegmentedControl
+          onChange={value => {
+            trackAnalytics('insight.app_start.spans.toggle_sample_type', {
+              organization,
+              type: value,
+            });
+            setSampleType(value);
+          }}
+          defaultValue={SPANS}
+          aria-label={t('Sample Type Selection')}
+        >
           <SegmentedControl.Item key={SPANS}>{t('By Spans')}</SegmentedControl.Item>
           <SegmentedControl.Item key={EVENT}>{t('By Event')}</SegmentedControl.Item>
         </SegmentedControl>

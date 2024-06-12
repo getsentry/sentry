@@ -85,7 +85,7 @@ class ProcessDelayedAlertConditionsTest(
             id="EventUniqueUserFrequencyCondition",
         )
         event_frequency_percent_condition = self.create_event_frequency_condition(
-            interval="5m", id="EventFrequencyPercentCondition"
+            interval="5m", id="EventFrequencyPercentCondition", value=1.0
         )
         self.now = datetime.now(UTC)
 
@@ -223,13 +223,12 @@ class ProcessDelayedAlertConditionsTest(
         )
         tags = [["foo", "guux"], ["sentry:release", "releaseme"]]
         contexts = {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}}
-        with self.feature("organizations:issue-platform"):
-            for i in range(3):
-                event5 = self.create_performance_issue(
-                    tags=tags,
-                    fingerprint="group-5",
-                    contexts=contexts,
-                )
+        for i in range(3):
+            event5 = self.create_performance_issue(
+                tags=tags,
+                fingerprint="group-5",
+                contexts=contexts,
+            )
         group5 = event5.group
         assert group5
         assert self.group1

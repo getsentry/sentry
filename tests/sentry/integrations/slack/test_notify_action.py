@@ -7,12 +7,12 @@ import responses
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.integrations import ExternalProviders
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
@@ -82,7 +82,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
         assert (
             rule.render_label()
-            == "Send a notification to the Awesome Team Slack workspace to #my-channel (optionally, an ID: ) and show tags [one, two] and notes fix this @colleen in notification"
+            == 'Send a notification to the Awesome Team Slack workspace to #my-channel and show tags [one, two] and notes "fix this @colleen" in notification'
         )
 
     def test_render_label_without_integration(self):
@@ -99,10 +99,7 @@ class SlackNotifyActionTest(RuleTestCase):
         )
 
         label = rule.render_label()
-        assert (
-            label
-            == "Send a notification to the [removed] Slack workspace to #my-channel (optionally, an ID: ) and show tags [] and notes  in notification"
-        )
+        assert label == "Send a notification to the [removed] Slack workspace to #my-channel"
 
     @responses.activate
     def test_valid_bot_channel_selected(self):

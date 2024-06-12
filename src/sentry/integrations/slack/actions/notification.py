@@ -25,7 +25,6 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.integrations.slack.utils.options import has_slack_sdk_flag
 from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -175,7 +174,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
             organization = event.group.project.organization
 
-            if has_slack_sdk_flag(organization.id):
+            if features.has("organizations:slack-sdk-issue-alert-action", organization):
                 sdk_client = SlackSdkClient(integration_id=integration.id)
                 text = str(payload["text"]) if payload["text"] is not None else None
                 try:
@@ -207,16 +206,13 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     log_params["payload"] = orjson.dumps(payload).decode()
 
                     self.logger.info(
-                        "slack.issue-alert.error",
+                        "slack.issue_alert.error",
                         extra=log_params,
                     )
                 else:
-                    ts = None
-                    response_data = sdk_response.data
-                    if isinstance(response_data, dict):
-                        ts = response_data.get("ts")
+                    ts = sdk_response.get("ts")
 
-                    self.logger.info("slack.issue-alert.ts", extra={"ts": ts})
+                    self.logger.info("slack.issue_alert.ts", extra={"ts": ts})
 
                     new_notification_message_object.message_identifier = (
                         str(ts) if ts is not None else None
@@ -272,9 +268,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     )
 
             if (
-                features.has(
-                    "organizations:slack-thread-issue-alert", event.group.project.organization
-                )
+                features.has("organizations:slack-thread-issue-alert", organization)
                 and rule_action_uuid
                 and rule_id
             ):
@@ -313,37 +307,77 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         channel = self.get_option("channel_id")
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
+        json_blocks = orjson.dumps(blocks.get("blocks")).decode()
         payload = {
             "text": blocks.get("text"),
-            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
+            "blocks": json_blocks,
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,
         }
-        client = SlackClient(integration_id=integration.id)
-        try:
-            client.post("/chat.postMessage", data=payload, timeout=5, log_response_with_error=True)
-        except ApiError as e:
-            log_params = {
-                "error": str(e),
-                "project_id": rule.project.id,
-                "channel_name": self.get_option("channel"),
-            }
-            self.logger.info(
-                "rule_confirmation.fail.slack_post",
-                extra=log_params,
-            )
+
+        if features.has("organizations:slack-sdk-issue-alert-action", rule.project.organization):
+            sdk_client = SlackSdkClient(integration_id=integration.id)
+
+            try:
+                sdk_client.chat_postMessage(
+                    blocks=json_blocks,
+                    text=blocks.get("text"),
+                    channel=channel,
+                    unfurl_links=False,
+                    unfurl_media=False,
+                )
+            except SlackApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "slack.issue_alert.confirmation.fail",
+                    extra=log_params,
+                )
+        else:
+            client = SlackClient(integration_id=integration.id)
+            try:
+                client.post(
+                    "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
+                )
+            except ApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "rule_confirmation.fail.slack_post",
+                    extra=log_params,
+                )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()
+        channel = self.get_option("channel").lstrip("#")
+        workspace = self.get_integration_name()
+        notes = self.get_option("notes")
 
-        return self.label.format(
-            workspace=self.get_integration_name(),
-            channel=self.get_option("channel"),
-            channel_id=self.get_option("channel_id"),
-            tags="[{}]".format(", ".join(tags)),
-            notes=self.get_option("notes", ""),
-        )
+        label = f"Send a notification to the {workspace} Slack workspace to #{channel}"
+        has_tags = True if tags and tags != [""] else False
+        # by default we have a list of empty single quotes if no tags are entered
+
+        if has_tags:
+            formatted_tags = "[{}]".format(", ".join(tags))
+            label += f" and show tags {formatted_tags}"
+
+        if notes:
+            if has_tags:
+                label += f' and notes "{notes}"'
+            else:
+                label += f' and show notes "{notes}"'
+
+        if notes or has_tags:
+            label += " in notification"
+
+        return label
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
