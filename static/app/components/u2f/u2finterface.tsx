@@ -22,6 +22,7 @@ type Props = {
   onTap: ({
     response,
     challenge,
+    state,
     isSuperuserModal,
     superuserAccessCategory,
     superuserReason,
@@ -120,7 +121,7 @@ class U2fInterface extends Component<Props, State> {
           () => {
             const u2fResponse = this.getU2FResponse(data);
             const challenge = JSON.stringify(this.props.challengeData);
-            const state = JSON.stringify(this.props.stateData);
+            const stateData = JSON.stringify(this.props.stateData);
 
             if (this.state.responseElement) {
               // eslint-disable-next-line react/no-direct-mutation-state
@@ -128,7 +129,7 @@ class U2fInterface extends Component<Props, State> {
             }
             if (this.state.stateElement) {
               // eslint-disable-next-line react/no-direct-mutation-state
-              this.state.stateElement.value = state;
+              this.state.stateElement.value = stateData;
             }
 
             if (!this.props.onTap) {
@@ -140,6 +141,7 @@ class U2fInterface extends Component<Props, State> {
               .onTap({
                 response: u2fResponse,
                 challenge,
+                state: stateData,
               })
               .catch(() => {
                 // This is kind of gross but I want to limit the amount of changes to this component
