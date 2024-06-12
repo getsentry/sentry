@@ -1,6 +1,7 @@
 from django.core.signing import BadSignature, SignatureExpired
 from django.db import IntegrityError
 from django.http import Http404, HttpRequest, HttpResponse
+from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 
 from sentry.integrations.types import ExternalProviders
@@ -45,20 +46,22 @@ class SlackUnlinkIdentityView(BaseView):
     _METRICS_FAILURE_KEY = "sentry.integrations.slack.unlink_identity_view.failure"
 
     @method_decorator(never_cache)
-    def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponse:
+    def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         try:
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature) as e:
             logger.warning("dispatch.signature_error", exc_info=e)
-            metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": e}, sample_rate=1.0)
+            metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
             return render_to_response(
                 "sentry/integrations/slack/expired-link.html",
                 request=request,
             )
         return super().dispatch(request, params=params)
 
-    def get(self, request: HttpRequest, params: str) -> HttpResponse:
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+        params = kwargs["params"]
         method = ".get"
+
         try:
             organization, integration, idp = get_identity_or_404(
                 ExternalProviders.SLACK,
@@ -84,8 +87,9 @@ class SlackUnlinkIdentityView(BaseView):
             context={"organization": organization, "provider": integration.get_provider()},
         )
 
-    def post(self, request: HttpRequest, params: str) -> HttpResponse:
+    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
         method = ".post"
+        params = kwargs["params"]
         try:
             organization, integration, idp = get_identity_or_404(
                 ExternalProviders.SLACK,
