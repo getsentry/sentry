@@ -52,7 +52,7 @@ def _calculate_event_grouping(
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
+        "sdk": normalized_sdk_tag_from_event(event.data),
     }
 
     with metrics.timer("save_event._calculate_event_grouping", tags=metric_tags):
@@ -117,7 +117,7 @@ def _calculate_background_grouping(
     metric_tags: MutableTags = {
         "grouping_config": config["id"],
         "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
+        "sdk": normalized_sdk_tag_from_event(event.data),
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
         return _calculate_event_grouping(project, event, config)

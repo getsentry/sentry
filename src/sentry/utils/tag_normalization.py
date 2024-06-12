@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import functools
 import logging
 import re
-
-from sentry.eventstore.models import Event
+from collections.abc import Mapping
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +102,7 @@ def normalize_sdk_tag(tag: str) -> str:
     return tag
 
 
-def normalized_sdk_tag_from_event(event: Event) -> str:
+def normalized_sdk_tag_from_event(data: Mapping[str, Any]) -> str:
     """
      Normalize tags coming from SDKs to more manageable canonical form, by:
 
@@ -114,7 +116,7 @@ def normalized_sdk_tag_from_event(event: Event) -> str:
     the ones interesinting to us as granual as possible.
     """
     try:
-        return normalize_sdk_tag((event.data.get("sdk") or {}).get("name") or "other")
+        return normalize_sdk_tag((data.get("sdk") or {}).get("name") or "other")
     except Exception:
         logger.warning("failed to get SDK name", exc_info=True)
         return "other"

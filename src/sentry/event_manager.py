@@ -207,7 +207,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
         return {
             "sdk": {
                 "name": sdk_metadata.get("name") or "unknown",
-                "name_normalized": normalized_sdk_tag_from_event(event),
+                "name_normalized": normalized_sdk_tag_from_event(event.data),
             }
         }
     except Exception:
@@ -1585,7 +1585,7 @@ def _save_aggregate(
                         skip_internal=True,
                         tags={
                             "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event),
+                            "sdk": normalized_sdk_tag_from_event(event.data),
                         },
                     )
 
@@ -1599,7 +1599,7 @@ def _save_aggregate(
                             sample_rate=1.0,
                             tags={
                                 "platform": event.platform or "unknown",
-                                "sdk": normalized_sdk_tag_from_event(event),
+                                "sdk": normalized_sdk_tag_from_event(event.data),
                                 "frame_mix": frame_mix,
                             },
                         )
