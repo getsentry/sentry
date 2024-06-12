@@ -94,7 +94,6 @@ function init({organizationProps = {features: ['session-replay']}}: InitializeOr
     organization: {
       ...organizationProps,
     },
-    project: mockProject,
     projects: [mockProject],
     router: {
       routes: [

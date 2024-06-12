@@ -38,7 +38,6 @@ const renderComponent = ({
     organization: {
       ...organizationProps,
     },
-    project: ProjectFixture(),
     projects: [ProjectFixture()],
     router: {
       routes: [
