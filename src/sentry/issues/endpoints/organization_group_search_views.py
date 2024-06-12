@@ -7,10 +7,21 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
+
+DEFAULT_VIEWS = [
+    {
+        "id": "",
+        "name": "Prioritized",
+        "query": "is:unresolved issue.priority:[high, medium]",
+        "querySort": "date",
+        "position": 0,
+    }
+]
 
 
 class MemberPermission(OrganizationPermission):
@@ -38,6 +49,16 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
         query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
+
+        # Return only the prioritized view if user has no custom views yet
+        if not query.exists():
+            return self.paginate(
+                request=request,
+                paginator=SequencePaginator(
+                    [(idx, view) for idx, view in enumerate(DEFAULT_VIEWS)]
+                ),
+                on_results=lambda results: serialize(results, request.user),
+            )
 
         return self.paginate(
             request=request,

@@ -11,8 +11,10 @@ class OrganizationGroupSearchViewsTest(APITestCase):
     def create_base_data(self):
         user_1 = self.user
         self.user_2 = self.create_user()
+        self.user_3 = self.create_user()
 
         self.create_member(organization=self.organization, user=self.user_2)
+        self.create_member(organization=self.organization, user=self.user_3)
 
         first_custom_view_user_one = GroupSearchView.objects.create(
             name="Custom View One",
@@ -86,3 +88,18 @@ class OrganizationGroupSearchViewsTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data == serialize(objs["user_two_views"])
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_get_default_views(self):
+        self.create_base_data()
+
+        self.login_as(user=self.user_3)
+        response = self.get_success_response(self.organization.slug)
+        assert len(response.data) == 1
+
+        view = response.data[0]
+
+        assert view["name"] == "Prioritized"
+        assert view["query"] == "is:unresolved issue.priority:[high, medium]"
+        assert view["querySort"] == "date"
+        assert view["position"] == 0
