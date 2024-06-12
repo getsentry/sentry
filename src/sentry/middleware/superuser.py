@@ -51,7 +51,6 @@ class SuperuserMiddleware(MiddlewareMixin):
                         extra={
                             "superuser_token_id": su.token,
                             "user_id": request.user.id,
-                            "user_email": request.user.email,
                             "su_org_accessed": org_slug,
                         },
                     )
