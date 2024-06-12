@@ -584,7 +584,7 @@ export class VirtualizedViewManager {
       // which results in the value of x being incorrectly set and the view moving to the right.
       // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
       this.setTraceView({
-        x: newView[2] < this.MAX_ZOOM_PRECISION ? this.trace_view.x : newView[0],
+        x: newView[2] < this.MAX_ZOOM_PRECISION_MS ? this.trace_view.x : newView[0],
         width: newView[2],
       });
       this.draw();
@@ -787,7 +787,7 @@ export class VirtualizedViewManager {
     this.trace_view.x = clamp(
       x,
       0,
-      Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION)
+      Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION_MS)
     );
 
     this.recomputeTimelineIntervals();
