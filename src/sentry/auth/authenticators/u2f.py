@@ -235,11 +235,15 @@ class U2fInterface(AuthenticatorInterface):
             state=state if skip_setting_cookie else None,
         )
 
-    def validate_response(self, request: HttpRequest, challenge, response):
+    def validate_response(
+        self, request: HttpRequest, challenge, response, state: U2fInternalState | None = None
+    ):
+        if not skip_session_cookie(request):
+            state = request.session.get("webauthn_authentication_state")
         try:
             credentials = self.credentials()
             self.webauthn_authentication_server.authenticate_complete(
-                state=request.session.get("webauthn_authentication_state"),
+                state=state,
                 credentials=credentials,
                 credential_id=websafe_decode(response["keyHandle"]),
                 client_data=ClientData(websafe_decode(response["clientData"])),
