@@ -19,6 +19,7 @@
       container: '#u2f-container',
       props: {
         challengeData: {{ activation.challenge|to_json|safe }},
+        stateData: {{ activation.state|to_json|safe }},
       },
     });
   </script>

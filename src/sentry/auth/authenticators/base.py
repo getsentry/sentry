@@ -185,7 +185,7 @@ class AuthenticatorInterface:
         """
         return False
 
-    def validate_response(self, request: Request, challenge, response):
+    def validate_response(self, request: Request, challenge, response, state):
         """If the activation generates a challenge that needs to be
         responded to this validates the response for that challenge.  This
         is only ever called for challenges emitted by the activation of this

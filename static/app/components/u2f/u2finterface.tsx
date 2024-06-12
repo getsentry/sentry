@@ -127,7 +127,7 @@ class U2fInterface extends Component<Props, State> {
               // eslint-disable-next-line react/no-direct-mutation-state
               this.state.responseElement.value = u2fResponse;
             }
-            if (this.state.stateElement) {
+            if (this.state.stateElement && stateData) {
               // eslint-disable-next-line react/no-direct-mutation-state
               this.state.stateElement.value = stateData;
             }
@@ -141,7 +141,7 @@ class U2fInterface extends Component<Props, State> {
               .onTap({
                 response: u2fResponse,
                 challenge,
-                state: stateData,
+                ...(stateData ? {state: stateData} : {}),
               })
               .catch(() => {
                 // This is kind of gross but I want to limit the amount of changes to this component
