@@ -120,7 +120,7 @@ def send_incident_alert_notification(
         try:
             sdk_client = SlackSdkClient(integration_id=integration.id)
             sdk_response = sdk_client.chat_postMessage(
-                blocks=json_blocks,
+                attachments=json_blocks,
                 text=text,
                 channel=str(channel),
                 thread_ts=thread_ts,
@@ -139,6 +139,7 @@ def send_incident_alert_notification(
                 "error": str(e),
                 "incident_id": incident.id,
                 "incident_status": new_status,
+                "blocks": json_blocks,
             }
             logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         else:
