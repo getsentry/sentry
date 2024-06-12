@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -6,8 +6,8 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
-import {type ApiQueryKey, useApiQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -42,41 +42,25 @@ function getMetaQueryParams(
   };
 }
 
-function getTraceMetaQueryKey(
-  traceSlug: string,
-  orgSlug: string,
-  queryParams:
-    | {
-        // demo has the format ${projectSlug}:${eventId}
-        // used to query a demo transaction event from the backend.
-        demo: string | undefined;
-        statsPeriod: string;
-      }
-    | {
-        demo: string | undefined;
-        timestamp: string;
-      }
-): ApiQueryKey {
-  return [
-    `/organizations/${orgSlug}/events-trace-meta/${traceSlug}/`,
-    {query: queryParams},
-  ];
-}
-
 export type TraceMetaQueryResults = {
   data: TraceMeta;
+  errors: Error[];
   isLoading: boolean;
-  isRefetching: boolean;
-  refetch: () => void;
 };
 
-export function useTraceMeta(traceSlugs: string[]): {
-  data: TraceMeta;
-  isLoading: boolean;
-  isRefetching: boolean;
-  refetch: () => void;
-} {
+export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
   const filters = usePageFilters();
+  const api = useApi();
+  const [metaResults, setMetaResults] = useState<TraceMetaQueryResults>({
+    data: {
+      errors: 0,
+      performance_issues: 0,
+      projects: 0,
+      transactions: 0,
+    },
+    isLoading: true,
+    errors: [],
+  });
   const organization = useOrganization();
 
   const queryParams = useMemo(() => {
@@ -87,53 +71,66 @@ export function useTraceMeta(traceSlugs: string[]): {
 
   const mode = queryParams.demo ? 'demo' : undefined;
 
-  const queryKeys = useMemo(() => {
-    return traceSlugs.map(traceSlug =>
-      getTraceMetaQueryKey(traceSlug, organization.slug, queryParams)
-    );
-  }, [traceSlugs, organization, queryParams]);
-
-  const results = useApiQueries<TraceMeta>(queryKeys, {
-    enabled: traceSlugs.length > 0 && !!organization.slug && mode !== 'demo',
-    staleTime: Infinity,
-  });
-
-  const mergedTraceMeta = useMemo(() => {
-    const mergedResult: {
-      data: TraceMeta;
-      isLoading: boolean;
-      isRefetching: boolean;
-      refetch: () => void;
-    } = {
-      data: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-      },
-      isLoading: false,
-      isRefetching: false,
-      refetch: () => {
-        results.forEach(result => result.refetch());
-      },
-    };
-
-    for (const metaResult of results) {
-      mergedResult.isLoading ||= metaResult.isLoading;
-      mergedResult.isRefetching ||= metaResult.isRefetching;
-      mergedResult.data.errors += metaResult.data?.errors ?? 0;
-      mergedResult.data.performance_issues += metaResult.data?.performance_issues ?? 0;
-      // TODO: We want the count of unique projects, not the sum of all projects. When there are multiple traces, taking the best guess by using the max
-      // project count accross all traces for now. We don't use the project count for anything yet, so this is fine for now.
-      mergedResult.data.projects += Math.max(
-        metaResult.data?.projects ?? 0,
-        mergedResult.data.projects
+  const fetchSingleTraceMeta = useCallback(
+    async (traceSlug: string) => {
+      const data = await api.requestPromise(
+        `/organizations/${organization.slug}/events-trace-meta/${traceSlug}/`,
+        {
+          method: 'GET',
+          data: queryParams,
+        }
       );
-      mergedResult.data.transactions += metaResult.data?.transactions ?? 0;
-    }
+      return data;
+    },
+    [api, organization.slug, queryParams]
+  );
 
-    return mergedResult;
-  }, [results]);
+  const fetchTraceMetasInBatches = useCallback(
+    async (traceIds: string[]) => {
+      const clonedTraceIds = [...traceIds];
+
+      while (clonedTraceIds.length > 0) {
+        const batch = clonedTraceIds.splice(0, 3);
+        try {
+          const results = await Promise.allSettled(batch.map(fetchSingleTraceMeta));
+          setMetaResults(prev => {
+            const updatedData = results.reduce(
+              (acc, result) => {
+                if (result.status === 'fulfilled') {
+                  const {errors, performance_issues, projects, transactions} =
+                    result.value;
+                  acc.errors += errors;
+                  acc.performance_issues += performance_issues;
+                  acc.projects = Math.max(acc.projects, projects);
+                  acc.transactions += transactions;
+                }
+                return acc;
+              },
+              {...prev.data}
+            );
+
+            return {
+              ...prev,
+              isLoading: clonedTraceIds.length > 0,
+              data: updatedData,
+            };
+          });
+        } catch (error) {
+          setMetaResults(prev => {
+            return {
+              ...prev,
+              errors: [...prev.errors, error],
+            };
+          });
+        }
+      }
+    },
+    [fetchSingleTraceMeta]
+  );
+
+  useEffect(() => {
+    fetchTraceMetasInBatches(traceSlugs);
+  }, [traceSlugs, fetchTraceMetasInBatches]);
 
   // When projects don't have performance set up, we allow them to view a sample transaction.
   // The backend creates the sample transaction, however the trace is created async, so when the
@@ -150,10 +147,9 @@ export function useTraceMeta(traceSlugs: string[]): {
         transactions: 1,
       },
       isLoading: false,
-      isRefetching: false,
-      refetch: () => {},
+      errors: [],
     };
   }
 
-  return mergedTraceMeta;
+  return metaResults;
 }
