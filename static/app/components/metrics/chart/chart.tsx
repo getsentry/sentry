@@ -405,7 +405,7 @@ function CombinedChart({
 
     if (displayType === MetricDisplayType.BAR) {
       return [
-        ...transformToBarSeries({series, stacked: true, animation: false}),
+        ...transformToBarSeries({series, stacked: true, animation: false, barOpacity: 1}),
         ...transformToScatterSeries({series: scatterSeries, displayType}),
         ...additionalSeries,
       ];
