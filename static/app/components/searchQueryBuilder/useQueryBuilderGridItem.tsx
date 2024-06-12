@@ -10,6 +10,8 @@ function isInputElement(target: EventTarget): target is HTMLInputElement {
   return target instanceof HTMLInputElement;
 }
 
+const noop = () => {};
+
 /**
  * Modified version of React Aria's useGridListItem to support the search component.
  *
@@ -131,10 +133,29 @@ export function useQueryBuilderGridItem(
     [handleInputKeyDown, item.key, state.collection]
   );
 
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      switch (e.key) {
+        // Default Behavior is for Enter and Space to select the item
+        case 'Enter':
+        case 'Space':
+          break;
+        default:
+          gridCellProps.onKeyDown?.(e);
+      }
+    },
+    [gridCellProps]
+  );
+
   return {
     rowProps: {
       ...rowProps,
       onKeyDownCapture,
+      onKeyDown,
+      // Default behavior is for click events to select the item
+      onClick: noop,
+      onMouseDown: noop,
+      onPointerDown: noop,
     },
     gridCellProps,
   };

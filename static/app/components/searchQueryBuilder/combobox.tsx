@@ -14,7 +14,7 @@ import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
-import type {CollectionChildren, Key} from '@react-types/shared';
+import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import {Button} from 'sentry/components/button';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
@@ -70,7 +70,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   onExit?: () => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: KeyboardEvent) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
-import type {Node} from '@react-types/shared';
+import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
@@ -247,7 +248,11 @@ function SearchQueryBuilderInputInternal({
   }
 
   const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent) => {
+      if (e.key === 'a' && isCtrlKeyPressed(e)) {
+        e.continuePropagation();
+      }
+
       // At start and pressing backspace, focus the previous full token
       if (
         e.currentTarget.selectionStart === 0 &&
@@ -402,6 +407,16 @@ const Row = styled('div')`
 
   &:last-child {
     flex-grow: 1;
+  }
+
+  &[aria-selected='true'] {
+    background-color: ${p => p.theme.blue200};
+  }
+
+  input {
+    &::selection {
+      background-color: ${p => p.theme.blue200};
+    }
   }
 `;
 
