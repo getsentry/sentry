@@ -491,7 +491,6 @@ module = [
     "tests.sentry.identity.test_oauth2",
     "tests.sentry.incidents.test_logic",
     "tests.sentry.ingest.test_slicing",
-    "tests.sentry.integrations.github.test_client",
     "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [
@@ -602,6 +601,7 @@ module = [
     "sentry.services.hybrid_cloud.user_option.*",
     "sentry.services.hybrid_cloud.util",
     "sentry.snuba.metrics.extraction",
+    "sentry.tasks.beacon",
     "sentry.tasks.commit_context",
     "sentry.tasks.on_demand_metrics",
     "sentry.tasks.reprocessing2",

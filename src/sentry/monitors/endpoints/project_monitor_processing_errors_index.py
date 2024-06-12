@@ -39,7 +39,7 @@ class ProjectMonitorProcessingErrorsIndexEndpoint(ProjectMonitorEndpoint):
     @extend_schema(
         operation_id="Retrieve checkin processing errors for a monitor",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
         ],
@@ -67,7 +67,7 @@ class ProjectMonitorProcessingErrorsIndexEndpoint(ProjectMonitorEndpoint):
     @extend_schema(
         operation_id="Delete all processing errors by type for a Monitor",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             MonitorParams.MONITOR_ID_OR_SLUG,
         ],

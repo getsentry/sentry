@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import orderBy from 'lodash/orderBy';
@@ -19,11 +19,14 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
+import {
+  ItemType,
+  type SearchGroup,
+  type SearchItem,
+} from 'sentry/components/smartSearchBar/types';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
-import {defined} from 'sentry/utils';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 
@@ -34,7 +37,7 @@ type SearchQueryValueBuilderProps = {
 
 type SuggestionItem = {
   value: string;
-  description?: string;
+  description?: ReactNode;
 };
 
 type SuggestionSection = {
@@ -207,6 +210,16 @@ function getRelativeDateSuggestions(inputValue: string): SuggestionSection[] {
   ];
 }
 
+function getSuggestionDescription(group: SearchGroup | SearchItem) {
+  const description = group.desc ?? group.documentation;
+
+  if (description !== group.value) {
+    return description;
+  }
+
+  return undefined;
+}
+
 function getPredefinedValues({
   key,
   inputValue,
@@ -240,13 +253,32 @@ function getPredefinedValues({
     return [{sectionText: '', suggestions: key.values.map(value => ({value}))}];
   }
 
-  return key.values.map(group => ({
-    sectionText: group.title,
-    suggestions: group.children
-      .map(child => child.value)
-      .filter(defined)
-      .map(value => ({value})),
-  }));
+  const valuesWithoutSection = key.values
+    .filter(group => group.type === ItemType.TAG_VALUE && group.value)
+    .map(group => ({
+      value: group.value as string,
+      description: getSuggestionDescription(group),
+    }));
+  const sections = key.values
+    .filter(group => group.type === 'header')
+    .map(group => {
+      return {
+        sectionText: group.title,
+        suggestions: group.children
+          .filter(child => child.value)
+          .map(child => ({
+            value: child.value as string,
+            description: getSuggestionDescription(child),
+          })),
+      };
+    });
+
+  return [
+    ...(valuesWithoutSection.length > 0
+      ? [{sectionText: '', suggestions: valuesWithoutSection}]
+      : []),
+    ...sections,
+  ];
 }
 
 function tokenSupportsMultipleValues(
@@ -519,12 +551,13 @@ export function SearchQueryBuilderValueCombobox({
       if (
         e.key === 'Backspace' &&
         e.currentTarget.selectionStart === 0 &&
-        e.currentTarget.selectionEnd === 0
+        e.currentTarget.selectionEnd === 0 &&
+        canSelectMultipleValues
       ) {
         dispatch({type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE', token});
       }
     },
-    [dispatch, token]
+    [canSelectMultipleValues, dispatch, token]
   );
 
   // Clicking anywhere in the value editing area should focus the input

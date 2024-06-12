@@ -13,6 +13,7 @@ from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.integrations.gitlab import GitlabIntegrationProvider
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
+from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
@@ -22,6 +23,7 @@ from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_BASE_PATH, PROXY_OI_HEADER, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from tests.sentry.integrations.test_helpers import add_control_silo_proxy_response
 
@@ -213,7 +215,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
         assert self.default_group_id == installation.get_group_id()
 
     @responses.activate
@@ -232,7 +236,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -263,7 +269,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -292,7 +300,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -330,7 +340,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         filepath = "README.md"
         ref = "master"
@@ -365,7 +377,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         file = SourceLineInfo(
             path="src/gitlab.py",
@@ -414,7 +428,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
     def test_source_url_matches(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         test_cases = [
             (
@@ -450,7 +466,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         test_cases = [
             "https://gitlab.example.com/getsentry/projects/example-repo/blob/master/src/sentry/integrations/github/integration.py",
@@ -475,7 +493,9 @@ class GitlabIntegrationTest(IntegrationTestCase):
                 provider="integrations:gitlab",
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
 
         test_cases = [
             "https://gitlab.example.com/getsentry/projects/example-repo/blob/master/src/sentry/integrations/github/integration.py",
@@ -607,7 +627,9 @@ class GitlabIntegrationInstanceTest(IntegrationTestCase):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
 
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitlabIntegration, integration, self.organization.id
+        )
         assert installation.get_group_id() is None
 
 

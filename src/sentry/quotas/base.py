@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
@@ -15,6 +16,7 @@ from sentry.utils.services import Service
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
 
 
@@ -313,7 +315,12 @@ class Quota(Service):
     def __init__(self, **options):
         pass
 
-    def get_quotas(self, project, key=None, keys=None):
+    def get_quotas(
+        self,
+        project: Project,
+        key: ProjectKey | None = None,
+        keys: Iterable[ProjectKey] | None = None,
+    ) -> list[QuotaConfig]:
         """
         Returns a quotas for the given project and its organization.
 

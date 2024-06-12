@@ -75,7 +75,7 @@ class NoSnubaDataError(Exception):
 class NoMoreGroupsToBackfillError(Exception):
     pass
 
-
+  
 class GroupEventRow(TypedDict):
     event_id: str
     group_id: int
@@ -142,7 +142,8 @@ def backfill_seer_grouping_records(
             batch_end_index,
             total_groups_to_backfill_length,
         ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
-    except NoMoreGroupsToBackfillError:
+
+    if len(groups_to_backfill_with_no_embedding) == 0:
         return
 
     last_group_id = groups_to_backfill_with_no_embedding[-1]
@@ -175,11 +176,21 @@ def backfill_seer_grouping_records(
         )
         return
 
-    try:
-        nodestore_results, group_hashes_dict = get_events_from_nodestore(
-            project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+    if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:
+        call_next_backfill(
+            batch_end_index,
+            project_id,
+            redis_client,
+            total_groups_to_backfill_length,
+            last_group_id,
+            dry_run,
         )
-    except NoNodestoreDataError:
+        return
+
+    nodestore_results, group_hashes_dict = get_events_from_nodestore(
+        project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+    )
+    if not group_hashes_dict:
         call_next_backfill(
             batch_end_index,
             project_id,
@@ -324,7 +335,11 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
-        raise NoMoreGroupsToBackfillError("No more groups to backfill")
+        return (
+            groups_to_backfill_batch,
+            batch_end_index,
+            total_groups_to_backfill_length,
+        )
 
     groups_to_backfill_with_no_embedding = [
         group_id
@@ -469,7 +484,9 @@ def get_data_from_snuba_bulk_groups_query(project, group_id_batch_filtered):
 
 
 @sentry_sdk.tracing.trace
-def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
+def get_events_from_nodestore(
+    project, snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+):
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results)
     # If nodestore returns no data
     if len(nodestore_events) == 0:
@@ -477,10 +494,13 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
             "tasks.backfill_seer_grouping_records.no_data",
             extra={
                 "project_id": project.id,
-                "group_id_batch": json.dumps(group_id_batch_filtered),
+                "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding_has_snuba_row),
             },
         )
-        raise NoNodestoreDataError("No data found in nodestore")
+        return (
+            GroupStacktraceData(data=[], stacktrace_list=[]),
+            {},
+        )
 
     group_data = []
     stacktrace_strings = []
@@ -515,13 +535,15 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
         group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
         for group_stacktrace_data in group_data
     }
-    logger.info(
-        "backfill_seer_grouping_records.invalid_group_ids",
-        extra={
-            "project_id": project.id,
-            "invalid_group_ids": invalid_event_group_ids,
-        },
-    )
+    if len(invalid_event_group_ids) > 0:
+        logger.info(
+            "backfill_seer_grouping_records.invalid_group_ids",
+            extra={
+                "project_id": project.id,
+                "invalid_group_ids": invalid_event_group_ids,
+            },
+        )
+
     return (
         GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
         group_hashes_dict,
@@ -529,10 +551,12 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
 
 
 @sentry_sdk.tracing.trace
-def send_group_and_stacktrace_to_seer(project, group_id_batch_filtered, nodestore_results):
+def send_group_and_stacktrace_to_seer(
+    project, groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
+):
     seer_response = post_bulk_grouping_records(
         CreateGroupingRecordsRequest(
-            group_id_list=group_id_batch_filtered,
+            group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             data=nodestore_results["data"],
             stacktrace_list=nodestore_results["stacktrace_list"],
         )

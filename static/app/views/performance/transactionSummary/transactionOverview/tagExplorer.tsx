@@ -266,11 +266,6 @@ export class TagExplorer extends Component<Props> {
   };
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
-    const {organization} = this.props;
-    trackAnalytics('performance_views.summary.tag_explorer.tag_value', {
-      organization,
-    });
-
     const queryString = decodeScalar(location.query.query);
     const conditions = new MutableSearch(queryString ?? '');
 

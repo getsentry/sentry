@@ -262,7 +262,6 @@ from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEnd
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_hashes_split import GroupHashesSplitEndpoint
 from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
@@ -705,11 +704,6 @@ def create_group_urls(name_prefix: str) -> list[URLPattern | URLResolver]:
             r"^(?P<issue_id>[^\/]+)/hashes/$",
             GroupHashesEndpoint.as_view(),
             name=f"{name_prefix}-group-hashes",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^\/]+)/hashes/split/$",
-            GroupHashesSplitEndpoint.as_view(),
-            name=f"{name_prefix}-group-hashes-split",
         ),
         re_path(
             r"^(?P<issue_id>[^\/]+)/reprocessing/$",

@@ -1830,10 +1830,6 @@ register(
 
 # Break glass controls
 register("hybrid_cloud.rpc.disabled-service-methods", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# RPC optimization
-register("sentryapps.get_by_application_id_cached", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("sentryapps.get_installation_cached", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # == End hybrid cloud subsystem
 
 # Decides whether an incoming transaction triggers an update of the clustering rule applied to it.
@@ -2557,5 +2553,13 @@ register(
     "sentry.save-event-attachments.project-per-sec-limit",
     type=Int,
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Enable orjson in the occurrence_consumer.process_[message|batch]
+register(
+    "issues.occurrence_consumer.use_orjson",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
