@@ -8,11 +8,13 @@ import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useProjects from 'sentry/utils/useProjects';
 import type {CheckInPayload, CheckinProcessingError} from 'sentry/views/monitors/types';
 
 import {ProcessingErrorItem} from './processingErrorItem';
@@ -25,10 +27,22 @@ export default function MonitorProcessingErrors({
   checkinErrors: CheckinProcessingError[];
   children: React.ReactNode;
 }) {
+  const {projects} = useProjects();
+
   const flattenedErrors = checkinErrors.flatMap(({errors, checkin}) =>
     errors.map(error => ({error, checkin}))
   );
-  const errorsByType = groupBy(flattenedErrors, ({error}) => error.type);
+
+  const errorsByProject = groupBy(
+    flattenedErrors,
+    ({checkin}) => checkin.message.project_id
+  );
+  const errorsByProjectByType = Object.fromEntries(
+    Object.entries(errorsByProject).map(([projectId, projectErrors]) => [
+      projectId,
+      groupBy(projectErrors, ({error}) => error.type),
+    ])
+  );
 
   const renderCheckinTooltip = (checkin: CheckInPayload) => (
     <StyledHovercard
@@ -51,45 +65,70 @@ export default function MonitorProcessingErrors({
     </StyledHovercard>
   );
 
-  const [expanded, setExpanded] = useState(-1);
-  const accordionErrors = Object.values(errorsByType).map((errors, index) => {
-    const isExpanded = expanded === index;
-    return (
-      <ErrorGroup key={index}>
-        <ErrorHeader>
-          <Tag type="error">{errors.length}x</Tag>
-          <ProcessingErrorTitle type={errors[0].error.type} />
+  const showingMultipleProjects = Object.keys(errorsByProjectByType).length > 1;
+  const [expanded, setExpanded] = useState('');
+  const accordionErrors = Object.entries(errorsByProjectByType).map(
+    ([projectId, errorsByType]) => {
+      const project = projects.find(({id}) => id === projectId);
+      const projectEntries = Object.values(errorsByType).map((errors, index) => {
+        const isExpanded = expanded === `${projectId}:${index}`;
+        return (
+          <ErrorGroup key={index}>
+            <ErrorHeader>
+              <Tag type="error">{errors.length}x</Tag>
+              <ProcessingErrorTitle type={errors[0].error.type} />
 
-          <Button
-            icon={<Chevron size="small" direction={isExpanded ? 'up' : 'down'} />}
-            aria-label={isExpanded ? t('Collapse') : t('Expand')}
-            aria-expanded={isExpanded}
-            size="zero"
-            borderless
-            onClick={() => setExpanded(isExpanded ? -1 : index)}
-          />
-        </ErrorHeader>
-        {isExpanded && (
-          <List symbol="bullet">
-            {errors.map(({error, checkin}, errorIndex) => (
-              <ListItem key={errorIndex}>
-                <ProcessingErrorItem
-                  error={error}
-                  checkinTooltip={renderCheckinTooltip(checkin)}
-                />
-              </ListItem>
-            ))}
-          </List>
-        )}
-      </ErrorGroup>
-    );
-  });
+              <Button
+                icon={<Chevron size="small" direction={isExpanded ? 'up' : 'down'} />}
+                aria-label={isExpanded ? t('Collapse') : t('Expand')}
+                aria-expanded={isExpanded}
+                size="zero"
+                borderless
+                onClick={() => setExpanded(isExpanded ? '' : `${projectId}:${index}`)}
+              />
+            </ErrorHeader>
+            {isExpanded && (
+              <List symbol="bullet">
+                {errors.map(({error, checkin}, errorIndex) => (
+                  <ListItem key={errorIndex}>
+                    <ProcessingErrorItem
+                      error={error}
+                      checkinTooltip={renderCheckinTooltip(checkin)}
+                    />
+                  </ListItem>
+                ))}
+              </List>
+            )}
+          </ErrorGroup>
+        );
+      });
+
+      return showingMultipleProjects ? (
+        <ErrorsList key={projectId}>
+          {project ? (
+            <StyledProjectBadge avatarSize={16} project={project} disableLink />
+          ) : (
+            tct('Project [projectId]', {projectId})
+          )}
+          {projectEntries}
+        </ErrorsList>
+      ) : (
+        projectEntries
+      );
+    }
+  );
 
   return (
     <ScrollableAlert
       type="error"
       showIcon
-      expand={<ErrorsList>{accordionErrors}</ErrorsList>}
+      expand={
+        showingMultipleProjects ? (
+          <ProjectGroupsList>{accordionErrors}</ProjectGroupsList>
+        ) : (
+          <ErrorsList>{accordionErrors}</ErrorsList>
+        )
+      }
     >
       {children}
     </ScrollableAlert>
@@ -100,6 +139,10 @@ const ErrorsList = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+`;
+
+const ProjectGroupsList = styled(ErrorsList)`
+  gap: ${space(1.5)};
 `;
 
 const ErrorGroup = styled('div')`
@@ -124,4 +167,8 @@ const StyledHovercard = styled(Hovercard)`
 
 const StyledStructuredEventData = styled(StructuredEventData)`
   margin: 0;
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
