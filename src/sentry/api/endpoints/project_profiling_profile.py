@@ -143,20 +143,6 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
 
 
 @region_silo_endpoint
-class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project) -> HttpResponse:
-        if not features.has("organizations:profiling", project.organization, actor=request.user):
-            return Response(status=404)
-
-        kwargs: dict[str, Any] = {
-            "method": "GET",
-            "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",
-            "params": self.get_profiling_params(request, project),
-        }
-        return proxy_profiling_service(**kwargs)
-
-
-@region_silo_endpoint
 class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
     DEFAULT_PER_PAGE = 5
     MAX_PER_PAGE = 50

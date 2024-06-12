@@ -551,7 +551,6 @@ from .endpoints.project_processingissues import (
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
-    ProjectProfilingFlamegraphEndpoint,
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -2743,11 +2742,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-profile",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/flamegraph/$",
-        ProjectProfilingFlamegraphEndpoint.as_view(),
-        name="sentry-api-0-project-profiling-flamegraph",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
