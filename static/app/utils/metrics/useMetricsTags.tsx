@@ -1,4 +1,6 @@
-import type {MRI, Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
