@@ -86,24 +86,24 @@ const LIMIT = 12;
 
 type Props = {
   project: Project | undefined;
+  query: string;
   transactionName: string;
 };
 
 export default function SpanMetricsTable(props: Props) {
-  const {project, transactionName} = props;
+  const {project, transactionName, query: search} = props;
   const organization = useOrganization();
   const location = useLocation();
   const sort = useSpansTabTableSort();
 
   const query = useLocationQuery({
     fields: {
-      query: decodeScalar,
       spansCursor: decodeScalar,
       spanOp: decodeScalar,
     },
   });
 
-  const {query: search, spansCursor, spanOp} = query;
+  const {spansCursor, spanOp} = query;
 
   const filters: SpanMetricsQueryFilters = {
     transaction: transactionName,
