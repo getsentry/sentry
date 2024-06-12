@@ -50,6 +50,15 @@ Fetch a project's configuration. Responses should be proxied exactly to the SDK.
 
 ## Configurations [/projects/<organization_id_or_slug>/<project_id_or_slug>/configurations/]
 
+**Parameters**
+
+- offset (optional, number)
+  Default: 0
+- per_page (optional, number)
+  Default: 10
+
+**Attributes**
+
 | Field              | Type             | Description                                                                   |
 | ------------------ | ---------------- | ----------------------------------------------------------------------------- |
 | environment        | optional[string] | The environment the configuration is associated with.                         |
@@ -170,6 +179,23 @@ Delete a configuration.
 - Response 204
 
 ## Features [/projects/<organization_id_or_slug>/<project_id_or_slug>/configuration/<configuration_id>/features/]
+
+**Parameters**
+
+- offset (optional, number)
+  Default: 0
+- per_page (optional, number)
+  Default: 10
+
+**Attributes**
+
+| Field       | Type   | Description                                           |
+| ----------- | ------ | ----------------------------------------------------- |
+| description | string | The environment the configuration is associated with. |
+| id          | string | A server generated unique identifier.                 |
+| is_enabled  | bool   | Disabled features are not visible to clients.         |
+| key         | string | A unique, per-config feature identifier.              |
+| value       | any    | The value associated to the key.                      |
 
 ### Get Features [GET]
 
