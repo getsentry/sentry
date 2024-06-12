@@ -24,7 +24,7 @@ function U2fContainer({className, authenticators, ...props}: Props) {
             key={auth.id}
             {...props}
             challengeData={auth.challenge}
-            stateData={auth?.state}
+            stateData={auth.state}
           />
         ) : null
       )}
