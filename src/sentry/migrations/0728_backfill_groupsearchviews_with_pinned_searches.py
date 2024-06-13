@@ -35,7 +35,7 @@ def backfill_groupsearchviews_with_pinned_searches(
             defaults={
                 "Name": "Prioritized",
                 "query": PRIORITIZED_QUERY,
-                "query_sort": SortOptions.DATE,
+                "query_sort": SortOptions.DATE.value,
             },
         )
 
