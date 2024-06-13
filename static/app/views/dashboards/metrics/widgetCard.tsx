@@ -81,7 +81,8 @@ export function MetricWidgetCard({
   const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
 
   const {interval: validatedInterval} = useMetricsIntervalOptions({
-    interval: widget.interval,
+    // TODO: Figure out why this can be undefined
+    interval: widget.interval ?? '',
     hasSetMetric,
     datetime: selection.datetime,
     onIntervalChange: EMPTY_FN,
