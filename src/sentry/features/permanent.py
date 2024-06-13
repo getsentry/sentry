@@ -110,10 +110,6 @@ def register_permanent_features(manager: FeatureManager):
         "organizations:frontend-domainsplit": False,
         # Prefix host with organization ID when giving users DSNs (can be
         # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE) eg. o123.ingest.us.sentry.io
-        # Deprecated - use org-ingest-subdomain instead.
-        "organizations:org-subdomains": False,
-        # Prefix host with organization ID when giving users DSNs (can be
-        # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE) eg. o123.ingest.us.sentry.io
         "organizations:org-ingest-subdomains": False,
     }
 
