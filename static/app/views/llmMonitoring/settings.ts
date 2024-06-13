@@ -10,4 +10,4 @@ export const releaseLevelAsBadgeProps = {
   isNew: true,
 };
 
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/llm-monitoring/';
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/llm-monitoring/';
