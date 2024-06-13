@@ -340,7 +340,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable resolve in upcoming release
     manager.add("organizations:resolve-in-upcoming-release", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable post create/edit rule confirmation notifications
-    manager.add("organizations:rule-create-edit-confirm-notification", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
+    manager.add("organizations:rule-create-edit-confirm-notification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:sandbox-kill-switch", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable team member role provisioning through scim
     manager.add("organizations:scim-team-roles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
