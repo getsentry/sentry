@@ -28,13 +28,13 @@ import type {
   DeviceOrientationFrame,
   ErrorFrame,
   FeedbackFrame,
-  LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
   NavFrame,
   ReplayFrame,
   SlowClickFrame,
   TapFrame,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
@@ -267,7 +267,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
-  'largest-contentful-paint': (frame: LargestContentfulPaintFrame) => ({
+  'largest-contentful-paint': (frame: WebVitalFrame) => ({
     color: 'gray300',
     description:
       typeof frame.data.value === 'number' ? (
