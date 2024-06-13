@@ -153,7 +153,8 @@ export function Content() {
   const isError = !isLoading && traces.isError;
   const isEmpty = !isLoading && !isError && (traces?.data?.data?.length ?? 0) === 0;
   const data = normalizeTraces(!isLoading && !isError ? traces?.data?.data : undefined);
-  const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
+  const SPAN_PROPS_DOCS_URL =
+    'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
   return (
     <LayoutMain fullWidth>
@@ -234,7 +235,7 @@ export function Content() {
                     'Try adjusting your filters starting with your time range or [goToDocs] for more.',
                     {
                       goToDocs: (
-                        <ExternalLink href={TRACE_EXPLORER_DOCS_URL}>
+                        <ExternalLink href={SPAN_PROPS_DOCS_URL}>
                           {t('go to docs')}
                         </ExternalLink>
                       ),
