@@ -63,7 +63,7 @@ class AlertRuleProjectBackfillTest(TestMigrations):
 
         self.incident_existing_sub = self.create_incident(
             projects=[self.project],
-            alert_rule=self.alert_rule,
+            alert_rule=alert_rule_existing_sub,
             subscription=self.query_subscription_existing_sub,
         )
 

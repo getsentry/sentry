@@ -2,10 +2,12 @@
 
 import logging
 
+import django.db.models.deletion
 from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
+import sentry.db.models.fields.foreignkey
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapper
 
@@ -63,6 +65,15 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
+        migrations.AlterField(
+            model_name="incident",
+            name="subscription",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                to="sentry.querysubscription",
+            ),
+        ),
         # Run the data migration
         migrations.RunPython(
             _backfill_incident_subscription,
