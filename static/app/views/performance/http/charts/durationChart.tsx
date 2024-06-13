@@ -36,9 +36,7 @@ export function DurationChart({
       let {seriesIndex} = batch;
       const {dataIndex} = batch;
       // TODO: More hacks. The Chart component partitions the data series into a complete and incomplete series. Wrap the series index to work around overflowing index.
-      if (seriesIndex >= allSeries.length) {
-        seriesIndex = seriesIndex - allSeries.length;
-      }
+      seriesIndex = seriesIndex % allSeries.length;
 
       const highlightedSeries = allSeries?.[seriesIndex];
       const highlightedDataPoint = highlightedSeries?.data?.[dataIndex];
