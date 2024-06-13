@@ -22,7 +22,7 @@ from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.models import SnubaQuery
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -162,7 +162,8 @@ def build_metric_alert_chart(
     end: str | None = None,
     user: Optional["User"] = None,
     size: ChartSize | None = None,
-    subscription: QuerySubscription | None = None,
+    query_extra: str | None = None,
+    project_id: int | None = None,
 ) -> str | None:
     """
     Builds the dataset required for metric alert chart the same way the frontend would
@@ -206,20 +207,15 @@ def build_metric_alert_chart(
     )
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break
+    # TODO: determine whether this validation is necessary
     first_subscription_or_none = snuba_query.subscriptions.first()
     if first_subscription_or_none is None:
         return None
 
-    project_id = first_subscription_or_none.project_id
+    project_id = project_id or first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
-    # update query here
-    extra = ""
-    if subscription and subscription.query_extra:
-        if snuba_query.query:
-            extra = " and "
-        extra += subscription.query_extra
-    query_str = f"{snuba_query.query}{extra}"
+    query_str = f"{snuba_query.query}{query_extra}"
     query = (
         query_str
         if is_crash_free_alert
