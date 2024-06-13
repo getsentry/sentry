@@ -207,22 +207,30 @@ class TwoFactorAuthView(BaseView):
 
         #  If a challenge and response exists, validate
         if challenge:
-            response = request.POST.get("response")
-            if response:
+            if response := request.POST.get("response"):
                 response = json.loads(response)
-                if interface.validate_response(request, challenge, response):
+
+                # TODO(schew2381): Eventually check state in if statement
+                if state := request.POST.get("state"):
+                    state = json.loads(state)
+                else:
+                    # state may be an empty string, so we want to explicitly set
+                    # it to None before passing to validate_response
+                    state = None
+
+                if interface.validate_response(request, challenge, response, state):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
         return render_to_response(
-            ["sentry/twofactor_%s.html" % interface.interface_id, "sentry/twofactor.html"],
-            {
+            template=["sentry/twofactor_%s.html" % interface.interface_id, "sentry/twofactor.html"],
+            context={
                 "form": form,
                 "interface": interface,
                 "other_interfaces": self.get_other_interfaces(interface, interfaces),
                 "activation": activation,
             },
-            request,
+            request=request,
             status=200,
         )
 
