@@ -323,10 +323,12 @@ class Organization(ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMi
         if there is no owner. Used for analytics primarily.
         """
         if not hasattr(self, "_default_owner_id"):
-            owners = self.get_owners()
-            if len(owners) == 0:
+            owner_ids = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+                "user_id", flat=True
+            )
+            if len(owner_ids) == 0:
                 return None
-            self._default_owner_id = owners[0].id
+            self._default_owner_id = owner_ids[0]
         return self._default_owner_id
 
     @classmethod
