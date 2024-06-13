@@ -214,10 +214,8 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: tct(
-        'Session Replay is enabled by default when you install the Astro SDK. There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
+        'There are several privacy and sampling options available. Learn more about configuring Session Replay by reading the [link:configuration docs].',
         {
-          code: <code />,
-          code2: <code />,
           link: (
             <ExternalLink
               href={
@@ -272,7 +270,9 @@ export default defineConfig({
               language: 'javascript',
               filename: 'sentry.client.config.js',
               code: getReplaySDKSetupSnippet({
-                importStatement: `import * as Sentry from "@sentry/astro";`,
+                importStatement: `// This file overrides \`astro.config.mjs\` for the browser-side.
+// SDK options from \`astro.config.mjs\` will not apply.
+import * as Sentry from "@sentry/astro";`,
                 dsn: params.dsn,
                 mask: params.replayOptions?.mask,
                 block: params.replayOptions?.block,
