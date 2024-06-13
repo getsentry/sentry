@@ -7,7 +7,7 @@ import rest_framework
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, eventstream, features
+from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
@@ -15,7 +15,6 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
-from sentry.tasks.delete_seer_grouping_records_by_hash import delete_seer_grouping_records_by_hash
 from sentry.tasks.deletion.groups import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
 
@@ -46,18 +45,13 @@ def delete_group_list(
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex
 
-    all_group_hashes = GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids)
-
-    # Tell seer to delete grouping records with these group hashes
-    if features.has("projects:similarity-embeddings-delete-by-hash", project):
-        # TODO (jangjodi): once we store seer grouping info in GroupHash, we should filter by that here
-        delete_seer_grouping_records_by_hash.apply_async(
-            args=[project.id, [group_hash.hash for group_hash in all_group_hashes], 0]
-        )
-
     # We do not want to delete split hashes as they are necessary for keeping groups... split.
-    all_group_hashes.filter(state=GroupHash.State.SPLIT).update(group=None)
-    all_group_hashes.exclude(state=GroupHash.State.SPLIT).delete()
+    GroupHash.objects.filter(
+        project_id=project.id, group__id__in=group_ids, state=GroupHash.State.SPLIT
+    ).update(group=None)
+    GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids).exclude(
+        state=GroupHash.State.SPLIT
+    ).delete()
 
     # We remove `GroupInbox` rows here so that they don't end up influencing queries for
     # `Group` instances that are pending deletion
