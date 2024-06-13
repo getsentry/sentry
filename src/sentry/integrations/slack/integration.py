@@ -20,7 +20,7 @@ from sentry.integrations.base import (
 from sentry.models.integrations.integration import Integration
 from sentry.pipeline import NestedPipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
 
@@ -145,17 +145,7 @@ class SlackIntegrationProvider(IntegrationProvider):
             return sdk_response.get("team")
         except SlackApiError as e:
             logger.error("slack.install.team-info.error", extra={"error": str(e)})
-            # don't raise error, try with old method
-
-        # TODO(cathy): deprecate this method
-        headers = {"Authorization": f"Bearer {access_token}"}
-        try:
-            resp = SlackClient().get("/team.info", headers=headers)
-        except ApiError as e:
-            logger.error("slack.team-info.response-error", extra={"error": str(e)})
             raise IntegrationError("Could not retrieve Slack team information.")
-
-        return resp["team"]
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         data = state["identity"]["data"]
