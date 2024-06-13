@@ -279,7 +279,7 @@ class OrganizationReportBatch:
                 organization_id=self.ctx.organization.id, user_ids=user_list
             )
             user_template_context_by_user_id_list = []
-            for user_id in user_ids:
+            if user_ids:
                 user_template_context_by_user_id_list = prepare_template_context(
                     ctx=self.ctx, user_ids=user_ids
                 )
