@@ -173,11 +173,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 metrics.incr(
                     SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
                     sample_rate=1.0,
-                    tags={
-                        "action": "send_notification",
-                        "ok": response.get("ok", False),
-                        "status": response.status_code,
-                    },
+                    tags={"action": "send_notification"},
                 )
             except SlackApiError as e:
                 # Record the error code and details from the exception
@@ -212,9 +208,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 )
             else:
                 ts = response.get("ts")
-
-                self.logger.info("slack.issue_alert.ts", extra={"ts": ts})
-
                 new_notification_message_object.message_identifier = (
                     str(ts) if ts is not None else None
                 )
@@ -259,7 +252,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         client = SlackSdkClient(integration_id=integration.id)
 
         try:
-            response = client.chat_postMessage(
+            client.chat_postMessage(
                 blocks=json_blocks,
                 text=blocks.get("text"),
                 channel=channel,
@@ -269,11 +262,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             metrics.incr(
                 SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
-                tags={
-                    "action": "send_confirmation",
-                    "ok": response.get("ok", False),
-                    "status": response.status_code,
-                },
+                tags={"action": "send_confirmation"},
             )
         except SlackApiError as e:
             log_params = {
