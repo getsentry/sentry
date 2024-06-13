@@ -68,24 +68,25 @@ def get_metrics_meta(
                 _build_metric_meta(parsed_mri, project_ids, blocking_status, operations_config)
             )
 
-        for metric_mri, metric_blocking in metrics_blocking_state.items():
-            parsed_mri = parse_mri(metric_mri)
-            if parsed_mri is None:
-                continue
+        if use_case_id == UseCaseID.CUSTOM:
+            for metric_mri, metric_blocking in metrics_blocking_state.items():
+                parsed_mri = parse_mri(metric_mri)
+                if parsed_mri is None:
+                    continue
 
-            metrics_metas.append(
-                _build_metric_meta(
-                    parsed_mri,
-                    [],
-                    [
-                        BlockedMetric(
-                            isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id
-                        )
-                        for is_blocked, blocked_tags, project_id in metric_blocking
-                    ],
-                    operations_config,
+                metrics_metas.append(
+                    _build_metric_meta(
+                        parsed_mri,
+                        [],
+                        [
+                            BlockedMetric(
+                                isBlocked=is_blocked, blockedTags=blocked_tags, projectId=project_id
+                            )
+                            for is_blocked, blocked_tags, project_id in metric_blocking
+                        ],
+                        operations_config,
+                    )
                 )
-            )
 
     return metrics_metas
 
