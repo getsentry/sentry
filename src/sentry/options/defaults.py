@@ -888,6 +888,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "seer.similarity.supported_platforms",
+    type=Sequence,
+    default=["python", "javascript", "node"],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # seer nearest neighbour endpoint timeout
 register(
