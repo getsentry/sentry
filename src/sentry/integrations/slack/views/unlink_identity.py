@@ -19,7 +19,7 @@ from sentry.web.helpers import render_to_response
 
 SUCCESS_UNLINKED_MESSAGE = "Your Slack identity has been unlinked from your Sentry account."
 
-_logger = logging.get_logger(__name__)
+_logger = logging.getLogger(__name__)
 
 
 def build_unlinking_url(
