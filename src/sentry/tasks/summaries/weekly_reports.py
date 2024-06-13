@@ -375,7 +375,7 @@ class _DuplicateDeliveryCheck:
     def record_delivery(self) -> bool:
         """Record in Redis that the delivery was completed successfully."""
         if self.count is None:
-            raise ValueError("This object has not had `check_before` called yet")
+            raise ValueError("This object has not had `check_for_duplicate_delivery` called yet")
         cluster = self._get_redis_cluster()
         count_after = cluster.incr(self._redis_name)
         cluster.expire(self._redis_name, timedelta(days=1))
