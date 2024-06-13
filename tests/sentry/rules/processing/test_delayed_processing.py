@@ -208,7 +208,7 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=env3.id,
         )
         rules_to_groups = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
-        orig_rules_to_groups = deepcopy(rules_to_groups)  # type: ignore[arg-type]
+        orig_rules_to_groups = deepcopy(rules_to_groups)
         get_condition_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[arg-type]
         assert orig_rules_to_groups == rules_to_groups
 
