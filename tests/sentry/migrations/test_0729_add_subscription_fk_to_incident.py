@@ -68,7 +68,7 @@ class AlertRuleProjectBackfillTest(TestMigrations):
         )
 
         assert self.incident_existing_sub.alert_rule == alert_rule_existing_sub
-        assert self.incident_existing_sub.subscription.get() == self.query_subscription_existing_sub
+        assert self.incident_existing_sub.subscription == self.query_subscription_existing_sub
 
         # Incident with a no subscriptions
         snuba_query_no_sub = create_snuba_query(
