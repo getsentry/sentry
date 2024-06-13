@@ -37,7 +37,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
-        projectId={project.slug}
+        project={project}
         isProjectStabilized
       />
     );
@@ -69,7 +69,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
-        projectId={project.slug}
+        project={project}
         isProjectStabilized
       />
     );
@@ -92,7 +92,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         organization={organization}
         projectSlug={project.slug}
         location={router.location}
-        projectId={project.slug}
+        project={project}
         isProjectStabilized
       />
     );
@@ -116,7 +116,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
-        projectId={project.slug}
+        project={project}
         isProjectStabilized
       />
     );
@@ -138,7 +138,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
         location={LocationFixture({
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         })}
-        projectId={project.slug}
+        project={project}
         isProjectStabilized={false}
       />
     );

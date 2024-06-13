@@ -12,6 +12,7 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters, SessionApiResponse} from 'sentry/types';
 import {SessionFieldWithOperation} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -32,6 +33,7 @@ type Props = {
   hasSessions: boolean | null;
   isProjectStabilized: boolean;
   selection: PageFilters;
+  project?: Project;
   query?: string;
 };
 
@@ -149,7 +151,13 @@ function ProjectStabilityScoreCard(props: Props) {
       <ScoreCard
         title={cardTitle}
         help={cardHelp}
-        score={<MissingReleasesButtons organization={organization} health />}
+        score={
+          <MissingReleasesButtons
+            organization={organization}
+            health
+            platform={props.project?.platform}
+          />
+        }
       />
     );
   }
