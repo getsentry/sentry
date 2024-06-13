@@ -4,8 +4,12 @@ from collections.abc import Generator, Sequence
 from logging import Logger, getLogger
 from typing import Any
 
+import orjson
+from slack_sdk.errors import SlackApiError
+
 from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.base import NotificationMessageValidationError
@@ -19,18 +23,19 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
     SlackRuleSaveEditMessageBuilder,
 )
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
 from sentry.models.integrations.integration import Integration
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.shared_integrations.response import BaseApiResponse, MappingApiResponse
 from sentry.types.rules import RuleFuture
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 _default_logger: Logger = getLogger(__name__)
 
@@ -41,13 +46,10 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        # XXX(CEO): when removing the feature flag, put `label` back up as a class var
-        self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"  # type: ignore[misc]
-        if features.has("organizations:slack-block-kit", self.project.organization):
-            self.label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} and notes {notes} in notification"  # type: ignore[misc]
         self.form_fields = {
             "workspace": {
                 "type": "choice",
@@ -57,18 +59,17 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             "channel_id": {"type": "string", "placeholder": "e.g., CA2FRA079 or UA1J9RTE1"},
             "tags": {"type": "string", "placeholder": "e.g., environment,user,my_tag"},
         }
-        if features.has("organizations:slack-block-kit", self.project.organization):
-            self.form_fields["notes"] = {
-                "type": "string",
-                "placeholder": "e.g. @jane, @on-call-team",
-            }
+        self.form_fields["notes"] = {
+            "type": "string",
+            "placeholder": "e.g. @jane, @on-call-team",
+        }
 
         self._repository: IssueAlertNotificationMessageRepository = (
             get_default_issue_alert_repository()
         )
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
@@ -86,50 +87,28 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             additional_attachment = get_additional_attachment(
                 integration, self.project.organization
             )
-            payload = {}
-            if features.has("organizations:slack-block-kit", event.group.project.organization):
-                blocks = SlackIssuesMessageBuilder(
-                    group=event.group,
-                    event=event,
-                    tags=tags,
-                    rules=rules,
-                    notes=self.get_option("notes", ""),
-                ).build(notification_uuid=notification_uuid)
+            blocks = SlackIssuesMessageBuilder(
+                group=event.group,
+                event=event,
+                tags=tags,
+                rules=rules,
+                notes=self.get_option("notes", ""),
+            ).build(notification_uuid=notification_uuid)
 
-                if additional_attachment:
-                    for block in additional_attachment:
-                        blocks["blocks"].append(block)
+            if additional_attachment:
+                for block in additional_attachment:
+                    blocks["blocks"].append(block)
 
-                if blocks.get("blocks"):
-                    payload = {
-                        "text": blocks.get("text"),
-                        "blocks": json.dumps(blocks.get("blocks")),
-                        "channel": channel,
-                        "unfurl_links": False,
-                        "unfurl_media": False,
-                    }
-            else:
-                attachments = [
-                    SlackIssuesMessageBuilder(
-                        group=event.group,
-                        event=event,
-                        tags=tags,
-                        rules=rules,
-                    ).build(notification_uuid=notification_uuid)
-                ]
-                # getsentry might add a billing related attachment
-                if additional_attachment:
-                    attachments.append(additional_attachment)
-
-                payload = {
-                    "channel": channel,
-                    "link_names": 1,
-                    "attachments": json.dumps(attachments),
-                }
-                self.logger.info(
-                    "rule.slack_post.attachments",
-                    extra={"organization_id": event.group.project.organization_id},
-                )
+            payload = {
+                "text": blocks.get("text"),
+                "channel": channel,
+                "unfurl_links": False,
+                "unfurl_media": False,
+            }
+            json_blocks = None
+            if payload_blocks := blocks.get("blocks"):
+                json_blocks = orjson.dumps(payload_blocks).decode()
+                payload["blocks"] = json_blocks
 
             rule = rules[0] if rules else None
             rule_to_use = self.rule if self.rule else rule
@@ -151,11 +130,14 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 rule_action_uuid=rule_action_uuid,
             )
 
-            # Only try to get the parent notification message if the organization is in the FF
             # We need to search by rule action uuid and rule id, so only search if they exist
+            reply_broadcast = False
+            thread_ts = None
             if (
-                features.has(
-                    "organizations:slack-thread-issue-alert", event.group.project.organization
+                OrganizationOption.objects.get_value(
+                    organization=self.project.organization,
+                    key="sentry:issue_alerts_thread_flag",
+                    default=ISSUE_ALERTS_THREAD_DEFAULT,
                 )
                 and rule_action_uuid
                 and rule_id
@@ -181,63 +163,107 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     # To reply to a thread, use the specific key in the payload as referenced by the docs
                     # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
                     payload["thread_ts"] = parent_notification_message.message_identifier
+                    thread_ts = parent_notification_message.message_identifier
+                    # If this flow is triggered again for the same issue, we want it to be seen in the main channel
+                    payload["reply_broadcast"] = True
+                    reply_broadcast = True
 
-            client = SlackClient(integration_id=integration.id)
-            try:
-                response = client.post(
-                    "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
-                )
-            except ApiError as e:
-                # Record the error code and details from the exception
-                new_notification_message_object.error_code = e.code
-                new_notification_message_object.error_details = {
-                    "url": e.url,
-                    "host": e.host,
-                    "path": e.path,
-                    "data": e.json if e.json else e.text,
-                }
+            organization = event.group.project.organization
 
-                log_params = {
-                    "error": str(e),
-                    "project_id": event.project_id,
-                    "event_id": event.event_id,
-                    "channel_name": self.get_option("channel"),
-                }
-                if features.has("organizations:slack-block-kit", event.group.project.organization):
-                    # temporarily log the payload so we can debug message failures
-                    log_params["payload"] = json.dumps(payload)
-
-                self.logger.info(
-                    "rule.fail.slack_post",
-                    extra=log_params,
-                )
-            else:
-                # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
-                # on a successful message
-                ts = None
-                # This is a workaround for typing, and the dynamic nature of the return value
-                if isinstance(response, BaseApiResponse):
-                    ts = response.json.get("ts")
-                elif isinstance(response, MappingApiResponse):
-                    ts = response.get("ts")
-                else:
-                    _default_logger.info(
-                        "failed to get ts from slack response",
-                        extra={
-                            "response_type": type(response).__name__,
-                        },
+            if features.has("organizations:slack-sdk-issue-alert-action", organization):
+                sdk_client = SlackSdkClient(integration_id=integration.id)
+                text = str(payload["text"]) if payload["text"] is not None else None
+                try:
+                    sdk_response = sdk_client.chat_postMessage(
+                        blocks=json_blocks,
+                        text=text,
+                        channel=channel,
+                        unfurl_links=False,
+                        unfurl_media=False,
+                        thread_ts=thread_ts,
+                        reply_broadcast=reply_broadcast,
                     )
-                new_notification_message_object.message_identifier = (
-                    str(ts) if ts is not None else None
-                )
+                except SlackApiError as e:
+                    # Record the error code and details from the exception
+                    new_notification_message_object.error_code = e.response.status_code
+                    new_notification_message_object.error_details = {
+                        "msg": str(e),
+                        "data": e.response.data,
+                        "url": e.response.api_url,
+                    }
 
-            if (
-                features.has(
-                    "organizations:slack-thread-issue-alert", event.group.project.organization
-                )
-                and rule_action_uuid
-                and rule_id
-            ):
+                    log_params = {
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
+                    }
+                    # temporarily log the payload so we can debug message failures
+                    log_params["payload"] = orjson.dumps(payload).decode()
+
+                    self.logger.info(
+                        "slack.issue_alert.error",
+                        extra=log_params,
+                    )
+                else:
+                    ts = sdk_response.get("ts")
+
+                    self.logger.info("slack.issue_alert.ts", extra={"ts": ts})
+
+                    new_notification_message_object.message_identifier = (
+                        str(ts) if ts is not None else None
+                    )
+
+            else:
+                client = SlackClient(integration_id=integration.id)
+                try:
+                    response = client.post(
+                        "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
+                    )
+                except ApiError as e:
+                    # Record the error code and details from the exception
+                    new_notification_message_object.error_code = e.code
+                    new_notification_message_object.error_details = {
+                        "url": e.url,
+                        "host": e.host,
+                        "path": e.path,
+                        "data": e.json if e.json else e.text,
+                    }
+
+                    log_params = {
+                        "error": str(e),
+                        "project_id": event.project_id,
+                        "event_id": event.event_id,
+                        "channel_name": self.get_option("channel"),
+                    }
+                    # temporarily log the payload so we can debug message failures
+                    log_params["payload"] = orjson.dumps(payload).decode()
+
+                    self.logger.info(
+                        "rule.fail.slack_post",
+                        extra=log_params,
+                    )
+                else:
+                    # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
+                    # on a successful message
+                    ts = None
+                    # This is a workaround for typing, and the dynamic nature of the return value
+                    if isinstance(response, BaseApiResponse):
+                        ts = response.json.get("ts")
+                    elif isinstance(response, MappingApiResponse):
+                        ts = response.get("ts")
+                    else:
+                        _default_logger.info(
+                            "failed to get ts from slack response",
+                            extra={
+                                "response_type": type(response).__name__,
+                            },
+                        )
+                    new_notification_message_object.message_identifier = (
+                        str(ts) if ts is not None else None
+                    )
+
+            if rule_action_uuid and rule_id:
                 try:
                     self._repository.create_notification_message(
                         data=new_notification_message_object
@@ -273,45 +299,77 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         channel = self.get_option("channel_id")
         blocks = SlackRuleSaveEditMessageBuilder(rule=rule, new=new, changed=changed).build()
+        json_blocks = orjson.dumps(blocks.get("blocks")).decode()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": json_blocks,
             "channel": channel,
             "unfurl_links": False,
             "unfurl_media": False,
         }
-        client = SlackClient(integration_id=integration.id)
-        try:
-            client.post("/chat.postMessage", data=payload, timeout=5, log_response_with_error=True)
-        except ApiError as e:
-            log_params = {
-                "error": str(e),
-                "project_id": rule.project.id,
-                "channel_name": self.get_option("channel"),
-            }
-            self.logger.info(
-                "rule_confirmation.fail.slack_post",
-                extra=log_params,
-            )
+
+        if features.has("organizations:slack-sdk-issue-alert-action", rule.project.organization):
+            sdk_client = SlackSdkClient(integration_id=integration.id)
+
+            try:
+                sdk_client.chat_postMessage(
+                    blocks=json_blocks,
+                    text=blocks.get("text"),
+                    channel=channel,
+                    unfurl_links=False,
+                    unfurl_media=False,
+                )
+            except SlackApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "slack.issue_alert.confirmation.fail",
+                    extra=log_params,
+                )
+        else:
+            client = SlackClient(integration_id=integration.id)
+            try:
+                client.post(
+                    "/chat.postMessage", data=payload, timeout=5, log_response_with_error=True
+                )
+            except ApiError as e:
+                log_params = {
+                    "error": str(e),
+                    "project_id": rule.project.id,
+                    "channel_name": self.get_option("channel"),
+                }
+                self.logger.info(
+                    "rule_confirmation.fail.slack_post",
+                    extra=log_params,
+                )
 
     def render_label(self) -> str:
         tags = self.get_tags_list()
+        channel = self.get_option("channel").lstrip("#")
+        workspace = self.get_integration_name()
+        notes = self.get_option("notes")
 
-        if features.has("organizations:slack-block-kit", self.project.organization):
-            return self.label.format(
-                workspace=self.get_integration_name(),
-                channel=self.get_option("channel"),
-                channel_id=self.get_option("channel_id"),
-                tags="[{}]".format(", ".join(tags)),
-                notes=self.get_option("notes", ""),
-            )
+        label = f"Send a notification to the {workspace} Slack workspace to #{channel}"
+        has_tags = True if tags and tags != [""] else False
+        # by default we have a list of empty single quotes if no tags are entered
 
-        return self.label.format(
-            workspace=self.get_integration_name(),
-            channel=self.get_option("channel"),
-            channel_id=self.get_option("channel_id"),
-            tags="[{}]".format(", ".join(tags)),
-        )
+        if has_tags:
+            formatted_tags = "[{}]".format(", ".join(tags))
+            label += f" and show tags {formatted_tags}"
+
+        if notes:
+            if has_tags:
+                label += f' and notes "{notes}"'
+            else:
+                label += f' and show notes "{notes}"'
+
+        if notes or has_tags:
+            label += " in notification"
+
+        return label
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]

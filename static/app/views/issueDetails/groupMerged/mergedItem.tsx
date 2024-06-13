@@ -10,7 +10,7 @@ import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type Props = {
   fingerprint: Fingerprint;
@@ -189,7 +189,7 @@ const FingerprintLabel = styled('label')`
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   line-height: 1;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
 

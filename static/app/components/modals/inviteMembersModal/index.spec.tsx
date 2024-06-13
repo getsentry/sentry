@@ -12,9 +12,6 @@ import InviteMembersModal from 'sentry/components/modals/inviteMembersModal';
 import {ORG_ROLES} from 'sentry/constants';
 import TeamStore from 'sentry/stores/teamStore';
 import type {DetailedTeam, Scope} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
-
-jest.mock('sentry/utils/useOrganization');
 
 describe('InviteMembersModal', function () {
   const styledWrapper = styled(c => c.children);
@@ -84,9 +81,11 @@ describe('InviteMembersModal', function () {
     mockApiResponses.forEach(mockApiResponse => {
       mocks.push(mockApiResponse(MockApiClient, org.slug, roles));
     });
-    jest.mocked(useOrganization).mockReturnValue(org);
 
-    return {...render(<InviteMembersModal {...modalProps} />), mocks};
+    return {
+      ...render(<InviteMembersModal {...modalProps} />, {organization: org}),
+      mocks,
+    };
   };
 
   const setupMemberInviteState = async () => {

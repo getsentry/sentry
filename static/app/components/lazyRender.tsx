@@ -25,6 +25,10 @@ export interface LazyRenderProps {
   children: React.ReactNode;
   containerHeight?: number;
   observerOptions?: Partial<IntersectionObserverInit>;
+  /**
+   * Removes the wrapping div once visible
+   */
+  withoutContainer?: boolean;
 }
 
 /**
@@ -78,6 +82,10 @@ export function LazyRender(props: LazyRenderProps) {
     },
     [visible, props.observerOptions, props.containerHeight]
   );
+
+  if (visible && props.withoutContainer) {
+    return props.children;
+  }
 
   return <div ref={onRefNode}>{visible ? props.children : null}</div>;
 }

@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Hovercard} from 'sentry/components/hovercard';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Tag} from 'sentry/components/tag';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -155,7 +155,7 @@ const ProviderLogo = styled('div')`
 `;
 
 const ProviderName = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const ProviderDescription = styled('div')`
@@ -196,7 +196,7 @@ function LockedFeature({provider, features, className}: LockedFeatureProps) {
         />
       }
     >
-      <Tag role="status" icon={<IconLock isSolid />}>
+      <Tag role="status" icon={<IconLock locked />}>
         {t('disabled')}
       </Tag>
     </DisabledHovercard>

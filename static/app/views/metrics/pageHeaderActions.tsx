@@ -7,6 +7,8 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {
   IconBookmark,
   IconDashboard,
@@ -17,14 +19,13 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
-import {MRIToField} from 'sentry/utils/metrics/mri';
+import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
-import {QuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 
@@ -37,14 +38,8 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
   const router = useRouter();
   const organization = useOrganization();
   const formulaDependencies = useFormulaDependencies();
-  const {
-    isDefaultQuery,
-    setDefaultQuery,
-    widgets,
-    showQuerySymbols,
-    selectedWidgetIndex,
-    isMultiChartMode,
-  } = useMetricsContext();
+  const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
+    useMetricsContext();
   const createDashboard = useCreateDashboard(
     widgets,
     formulaDependencies,
@@ -122,18 +117,11 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
           });
           return {
             leadingItems: showQuerySymbols
-              ? [
-                  <QuerySymbol
-                    key="icon"
-                    queryId={widget.id}
-                    isHidden={widget.isHidden}
-                    isSelected={index === selectedWidgetIndex && isMultiChartMode}
-                  />,
-                ]
+              ? [<span key="symbol">{getQuerySymbol(widget.id)}:</span>]
               : [],
             key: `add-alert-${index}`,
             label: widget.mri
-              ? middleEllipsis(MRIToField(widget.mri, widget.op), 60, /\.|-|_/)
+              ? `${widget.op}(${middleEllipsis(formatMRI(widget.mri), 60, /\.|-|_/)})`
               : t('Select a metric to create an alert'),
             tooltip: isCustomMeasurement({mri: widget.mri})
               ? t('Custom measurements cannot be used to create alerts')
@@ -148,14 +136,14 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             },
           };
         }),
-    [isMultiChartMode, organization, selectedWidgetIndex, showQuerySymbols, widgets]
+    [organization, showQuerySymbols, widgets]
   );
 
   return (
     <ButtonBar gap={1}>
       {showCustomMetricButton && (
         <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
-          {t('Set Up Custom Metrics')}
+          {t('Add Custom Metrics')}
         </Button>
       )}
       <Button
@@ -165,27 +153,32 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
       >
         {isDefaultQuery ? t('Remove Default') : t('Save as default')}
       </Button>
-      {alertItems.length === 1 ? (
-        <Button
-          size="sm"
-          icon={<IconSiren />}
-          disabled={!alertItems[0].onAction}
-          onClick={alertItems[0].onAction}
-        >
-          {t('Create Alert')}
-        </Button>
-      ) : (
-        <DropdownMenu
-          items={alertItems}
-          triggerLabel={t('Create Alert')}
-          triggerProps={{
-            size: 'sm',
-            showChevron: false,
-            icon: <IconSiren direction="down" size="sm" />,
-          }}
-          position="bottom-end"
-        />
-      )}
+      <CreateMetricAlertFeature>
+        {({hasFeature}) =>
+          alertItems.length === 1 ? (
+            <Button
+              size="sm"
+              icon={<IconSiren />}
+              disabled={!alertItems[0].onAction || !hasFeature}
+              onClick={alertItems[0].onAction}
+            >
+              {t('Create Alert')}
+            </Button>
+          ) : (
+            <DropdownMenu
+              items={alertItems}
+              triggerLabel={t('Create Alert')}
+              isDisabled={!hasFeature}
+              triggerProps={{
+                size: 'sm',
+                showChevron: false,
+                icon: <IconSiren direction="down" size="sm" />,
+              }}
+              position="bottom-end"
+            />
+          )
+        }
+      </CreateMetricAlertFeature>
       <DropdownMenu
         items={items}
         triggerProps={{

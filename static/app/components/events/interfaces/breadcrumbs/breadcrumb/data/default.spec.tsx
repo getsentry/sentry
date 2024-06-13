@@ -54,7 +54,7 @@ describe('Breadcrumb Data Default', function () {
           },
         }}
         event={EventFixture()}
-        orgSlug="org-slug"
+        organization={organization}
         searchTerm=""
         breadcrumb={{
           type: BreadcrumbType.DEBUG,
@@ -98,7 +98,7 @@ describe('Breadcrumb Data Default', function () {
           },
         }}
         event={EventFixture()}
-        orgSlug="org-slug"
+        organization={organization}
         searchTerm=""
         breadcrumb={{
           type: BreadcrumbType.DEBUG,

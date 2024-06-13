@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import type {Configuration as DevServerConfig} from 'webpack-dev-server';
+import type {ProxyConfigArray, Static} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin';
@@ -24,15 +24,6 @@ import packageJson from './package.json';
 type MinimizerPluginOptions = {
   targets: lightningcss.TransformAttributeOptions['targets'];
 };
-
-/**
- * Merges the devServer config into the webpack config
- *
- * See: https://github.com/DefinitelyTyped/DefinitelyTyped/issues/43232
- */
-interface Configuration extends webpack.Configuration {
-  devServer?: DevServerConfig;
-}
 
 const {env} = process;
 
@@ -56,7 +47,9 @@ const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
 const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
 const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
 const DEV_MODE = !(IS_PRODUCTION || IS_CI);
-const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const WEBPACK_MODE: webpack.Configuration['mode'] = IS_PRODUCTION
+  ? 'production'
+  : 'development';
 const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 
 // Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
@@ -103,11 +96,13 @@ const SENTRY_EXPERIMENTAL_SPA =
 // working properly.
 const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const CODECOV_TOKEN = env.CODECOV_TOKEN;
+// value should come back as either 'true' or 'false' or undefined
+const ENABLE_CODECOV_BA = env.CODECOV_ENABLE_BA === 'true' ?? false;
 
 // this is the path to the django "sentry" app, we output the webpack build here to `dist`
 // so that `django collectstatic` and so that we can serve the post-webpack bundles
 const sentryDjangoAppPath = path.join(__dirname, 'src/sentry/static/sentry');
-const distPath = env.SENTRY_STATIC_DIST_PATH || path.join(sentryDjangoAppPath, 'dist');
+const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(__dirname, 'static');
 
 // Locale file extraction build step
@@ -169,7 +164,7 @@ const supportedLocales = localeCatalog.supported_locales;
 const supportedLanguages = supportedLocales.map(localeToLanguage);
 
 type CacheGroups = Exclude<
-  NonNullable<Configuration['optimization']>['splitChunks'],
+  NonNullable<webpack.Configuration['optimization']>['splitChunks'],
   false | undefined
 >['cacheGroups'];
 
@@ -228,7 +223,7 @@ const babelLoaderConfig = {
 /**
  * Main Webpack config for Sentry React SPA.
  */
-const appConfig: Configuration = {
+const appConfig: webpack.Configuration = {
   mode: WEBPACK_MODE,
   entry: {
     /**
@@ -268,7 +263,7 @@ const appConfig: Configuration = {
         use: {
           loader: 'po-catalog-loader',
           options: {
-            referenceExtensions: ['.js', '.jsx', '.tsx'],
+            referenceExtensions: ['.js', '.tsx'],
             domain: 'sentry',
           },
         },
@@ -342,15 +337,13 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new webpack.DefinePlugin({
-      'process.env': {
-        NODE_ENV: JSON.stringify(env.NODE_ENV),
-        IS_ACCEPTANCE_TEST: JSON.stringify(IS_ACCEPTANCE_TEST),
-        DEPLOY_PREVIEW_CONFIG: JSON.stringify(DEPLOY_PREVIEW_CONFIG),
-        EXPERIMENTAL_SPA: JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
-        SPA_DSN: JSON.stringify(SENTRY_SPA_DSN),
-        SENTRY_RELEASE_VERSION: JSON.stringify(SENTRY_RELEASE_VERSION),
-        USE_REACT_QUERY_DEVTOOL: JSON.stringify(USE_REACT_QUERY_DEVTOOL),
-      },
+      'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+      'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+      'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+      'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+      'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
+      'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+      'process.env.USE_REACT_QUERY_DEVTOOL': JSON.stringify(USE_REACT_QUERY_DEVTOOL),
     }),
 
     /**
@@ -366,9 +359,9 @@ const appConfig: Configuration = {
               configOverwrite: {
                 compilerOptions: {incremental: true},
               },
+              memoryLimit: 4096,
             },
             devServer: false,
-            // memorylimit is configured in package.json
           }),
         ]
       : []),
@@ -449,15 +442,20 @@ const appConfig: Configuration = {
     fallback: {
       vm: false,
       stream: false,
-      crypto: require.resolve('crypto-browserify'),
+      // Node crypto is imported in @sentry-internal/global-search but not used here
+      crypto: false,
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
       // For framer motion v6, might be able to remove on v11
       'process/browser': require.resolve('process/browser'),
     },
 
+    // Might be an issue if changing file extensions during development
+    cache: true,
+    // Prefers local modules over node_modules
+    preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.jsx', '.js', '.json', '.ts', '.tsx', '.less'],
+    extensions: ['.js', '.tsx', '.ts', '.json', '.less'],
     symlinks: false,
   },
   output: {
@@ -505,8 +503,9 @@ const appConfig: Configuration = {
 if (IS_TEST) {
   appConfig.resolve!.alias!['sentry-fixture'] = path.join(
     __dirname,
-    'fixtures',
-    'js-stubs'
+    'tests',
+    'js',
+    'fixtures'
   );
 }
 
@@ -568,46 +567,59 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy = {};
+    let controlSiloProxy: ProxyConfigArray = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select control/region when making API requests in non-proxied
       // environments (like production). We'll likely need a way to consolidate this
       // with the configuration api.Client uses.
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
-      controlSiloProxy = {
-        '/auth/**': controlSiloAddress,
-        '/account/**': controlSiloAddress,
-        '/api/0/users/**': controlSiloAddress,
-        '/api/0/api-tokens/**': controlSiloAddress,
-        '/api/0/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/audit-logs/**': controlSiloAddress,
-        '/api/0/organizations/*/broadcasts/**': controlSiloAddress,
-        '/api/0/organizations/*/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/config/integrations/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-apps/**': controlSiloAddress,
-        '/api/0/organizations/*/sentry-app-installations/**': controlSiloAddress,
-        '/api/0/api-authorizations/**': controlSiloAddress,
-        '/api/0/api-applications/**': controlSiloAddress,
-        '/api/0/doc-integrations/**': controlSiloAddress,
-        '/api/0/assistant/**': controlSiloAddress,
-      };
+      controlSiloProxy = [
+        {
+          context: [
+            '/auth/**',
+            '/account/**',
+            '/api/0/users/**',
+            '/api/0/api-tokens/**',
+            '/api/0/sentry-apps/**',
+            '/api/0/organizations/*/audit-logs/**',
+            '/api/0/organizations/*/broadcasts/**',
+            '/api/0/organizations/*/integrations/**',
+            '/api/0/organizations/*/config/integrations/**',
+            '/api/0/organizations/*/sentry-apps/**',
+            '/api/0/organizations/*/sentry-app-installations/**',
+            '/api/0/api-authorizations/**',
+            '/api/0/api-applications/**',
+            '/api/0/doc-integrations/**',
+            '/api/0/assistant/**',
+          ],
+          target: controlSiloAddress,
+        },
+      ];
     }
 
     appConfig.devServer = {
       ...appConfig.devServer,
       static: {
-        ...(appConfig.devServer.static as object),
+        ...(appConfig.devServer.static as Static),
         publicPath: '/_static/dist/sentry',
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
-      proxy: {
+      proxy: [
         ...controlSiloProxy,
-        '/api/store/**': relayAddress,
-        '/api/{1..9}*({0..9})/**': relayAddress,
-        '/api/0/relays/outcomes/': relayAddress,
-        '!/_static/dist/sentry/**': backendAddress,
-      },
+        {
+          context: [
+            '/api/store/**',
+            '/api/{1..9}*({0..9})/**',
+            '/api/0/relays/outcomes/**',
+          ],
+          target: relayAddress,
+        },
+        {
+          context: ['!/_static/dist/sentry/**'],
+          target: backendAddress,
+        },
+      ],
     };
     appConfig.output!.publicPath = '/_static/dist/sentry/';
   }
@@ -765,14 +777,21 @@ if (IS_PRODUCTION) {
   minificationPlugins.forEach(plugin => appConfig.plugins?.push(plugin));
 }
 
-if (CODECOV_TOKEN) {
+if (CODECOV_TOKEN && ENABLE_CODECOV_BA) {
   const {codecovWebpackPlugin} = require('@codecov/webpack-plugin');
+  // defaulting to an empty string which in turn will fallback to env var or
+  // determine merge commit sha from git
+  const GH_COMMIT_SHA = env.GH_COMMIT_SHA ?? '';
 
   appConfig.plugins?.push(
     codecovWebpackPlugin({
       enableBundleAnalysis: true,
-      bundleName: 'sentry-webpack-bundle',
+      bundleName: 'app-webpack-bundle',
       uploadToken: CODECOV_TOKEN,
+      debug: true,
+      uploadOverrides: {
+        sha: GH_COMMIT_SHA,
+      },
     })
   );
 }

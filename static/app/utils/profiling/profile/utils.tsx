@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import type {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
@@ -160,15 +161,11 @@ export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, optio
     return fn();
   }
 
-  const sentrySpan = parentSpan.startChild(options);
-  try {
-    return fn();
-  } catch (error) {
-    sentrySpan.setStatus('internal_error');
-    throw error;
-  } finally {
-    sentrySpan.end();
-  }
+  return Sentry.withActiveSpan(parentSpan, () => {
+    return Sentry.startSpan(options, () => {
+      return fn();
+    });
+  });
 }
 
 export const isSystemCall = (node: CallTreeNode): boolean => {

@@ -16,7 +16,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
@@ -210,7 +210,7 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)} !important;
 `;

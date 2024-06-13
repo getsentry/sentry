@@ -1,11 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event} from 'sentry/types';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import {EntryType, type Event} from 'sentry/types/event';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   type VirtualizedList,
   VirtualizedViewManager,
@@ -21,16 +18,18 @@ function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): E
 }
 
 function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceFullDetailed>>
-): TraceSplitResults<TraceFullDetailed> {
+  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
+): TraceSplitResults<TraceTree.Transaction> {
   return {
     transactions: [],
     orphan_errors: [],
     ...overrides,
-  } as TraceSplitResults<TraceFullDetailed>;
+  } as TraceSplitResults<TraceTree.Transaction>;
 }
 
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
+function makeTransaction(
+  overrides: Partial<TraceTree.Transaction> = {}
+): TraceTree.Transaction {
   return {
     children: [],
     start_timestamp: 0,
@@ -41,7 +40,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     errors: [],
     performance_issues: [],
     ...overrides,
-  } as TraceFullDetailed;
+  } as TraceTree.Transaction;
 }
 
 function makeSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
@@ -93,7 +92,8 @@ function makeSingleTransactionTree(): TraceTree {
           event_id: 'event_id',
         }),
       ],
-    })
+    }),
+    null
   );
 }
 
@@ -104,7 +104,7 @@ function makeList(): VirtualizedList {
 }
 
 const EVENT_REQUEST_URL =
-  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time';
+  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time&averageColumn=span.duration';
 
 describe('VirtualizedViewManger', () => {
   it('initializes space', () => {
@@ -299,7 +299,7 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
-  describe('scrollToPath', () => {
+  describe('expandToPath', () => {
     const organization = OrganizationFixture();
     const api = new MockApiClient();
 
@@ -313,7 +313,8 @@ describe('VirtualizedViewManger', () => {
         makeTrace({
           transactions: [makeTransaction()],
           orphan_errors: [],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -336,7 +337,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -368,7 +370,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -403,7 +406,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -438,7 +442,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -479,7 +484,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -492,7 +498,7 @@ describe('VirtualizedViewManger', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time',
+        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time&averageColumn=span.duration',
         method: 'GET',
         body: makeEvent(undefined, [makeSpan({span_id: 'other_child_span'})]),
       });
@@ -679,10 +685,12 @@ describe('VirtualizedViewManger', () => {
               span: '',
               level: 'error',
               title: 'ded fo good',
+              message: 'ded fo good',
               timestamp: 1,
             },
           ],
-        })
+        }),
+        null
       );
 
       const result = await TraceTree.ExpandToPath(tree, ['error-ded'], () => void 0, {
@@ -691,6 +699,54 @@ describe('VirtualizedViewManger', () => {
       });
 
       expect(result?.node).toBe(tree.list[2]);
+    });
+
+    describe('error handling', () => {
+      it('scrolls to child span of sibling autogrouped node when path is missing autogrouped node', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, makeSiblingAutogroupedSpans()),
+        });
+
+        const result = await TraceTree.ExpandToPath(
+          tree,
+          ['span-middle_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+      });
+
+      it('scrolls to child span of parent autogrouped node when path is missing autogrouped node', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, makeParentAutogroupSpans()),
+        });
+
+        const result = await TraceTree.ExpandToPath(
+          tree,
+          ['span-middle_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+      });
     });
   });
 });

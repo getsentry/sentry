@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar
 
 from django.db import models
 
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model
+from sentry.db.models import FlexibleForeignKey, control_silo_model
 from sentry.db.models.manager import BaseManager
 
 from . import ControlAvatarBase
@@ -25,7 +26,9 @@ class SentryAppAvatarTypes(Enum):
 
 
 class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
-    def get_by_apps_as_dict(self, sentry_apps: list[SentryApp]):
+    def get_by_apps_as_dict(
+        self, sentry_apps: Iterable[SentryApp]
+    ) -> dict[int, set[SentryAppAvatar]]:
         """
         Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
         """
@@ -36,7 +39,7 @@ class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
         return avatar_to_app_map
 
 
-@control_silo_only_model
+@control_silo_model
 class SentryAppAvatar(ControlAvatarBase):
     """
     A SentryAppAvatar associates a SentryApp with a logo photo File

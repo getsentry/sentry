@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from datetime import datetime, timezone
 from typing import Any, cast
 
-import sentry_sdk
+import orjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -12,11 +12,9 @@ from arroyo.processing.strategies import (
 )
 from arroyo.types import Commit, Message, Partition
 from django.core.cache import cache
-from django.db.models import F
 from sentry_kafka_schemas.schema_types.snuba_generic_metrics_v1 import GenericMetric
 
 from sentry.constants import DataCategory
-from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.indexer.strings import (
     SHARED_TAG_STRINGS,
@@ -25,9 +23,9 @@ from sentry.sentry_metrics.indexer.strings import (
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import reverse_resolve_tag_value
+from sentry.signals import first_custom_metric_received
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.naming_layer.mri import is_custom_metric
-from sentry.utils import json
 from sentry.utils.outcomes import Outcome, track_outcome
 
 logger = logging.getLogger(__name__)
@@ -87,9 +85,7 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
         self.__next_step.submit(message)
 
     def _get_payload(self, message: Message[KafkaPayload]) -> GenericMetric:
-        payload = json.loads(
-            message.payload.value.decode("utf-8"), use_rapid_json=True, skip_trace=True
-        )
+        payload = orjson.loads(message.payload.value)
         return cast(GenericMetric, payload)
 
     def _count_processed_items(self, generic_metric: GenericMetric) -> Mapping[DataCategory, int]:
@@ -165,34 +161,19 @@ class BillingTxCountMetricConsumerStrategy(ProcessingStrategy[KafkaPayload]):
             metric_mri = self._resolve(generic_metric["mapping_meta"], generic_metric["metric_id"])
 
             parsed_mri = parse_mri(metric_mri)
-            # If the metric is not custom, we don't want to perform any work.
             if parsed_mri is None or not is_custom_metric(parsed_mri):
                 return
 
-            # If the cache key is there, we don't want to load the project at all.
+            # If the cache key is present, it means that we have already updated the metric flag for this project.
             cache_key = _get_project_flag_updated_cache_key(org_id, project_id)
             if cache.get(cache_key) is not None:
                 return
 
             project = Project.objects.get_from_cache(id=project_id)
+
             if not project.flags.has_custom_metrics:
-                organization = Organization.objects.get_from_cache(id=org_id)
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_tag("organization_id", org_id)
-                    scope.set_tag("organization_slug", organization.slug)
-                    scope.set_tag("project_id", project_id)
-                    scope.set_tag("project_slug", project.slug)
-                    sentry_sdk.capture_message(
-                        "A new project has sent the first custom metric",
-                        fingerprint=["new-first-custom-metric"],
-                    )
+                first_custom_metric_received.send_robust(project=project, sender=project)
 
-                # We assume that the flag update is reflected in the cache, so that upcoming calls will get the up-to-
-                # date project with the `has_custom_metrics` flag set to true.
-                project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
-
-            # If we are here, it means that we received a custom metric, and we didn't have it reflected in the cache,
-            # so we update the cache.
             cache.set(cache_key, "1", CACHE_TTL_IN_SECONDS)
         except Project.DoesNotExist:
             pass

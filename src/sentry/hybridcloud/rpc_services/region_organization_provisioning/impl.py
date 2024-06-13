@@ -20,7 +20,7 @@ from sentry.services.organization import OrganizationProvisioningOptions
 
 def create_post_provision_outbox(
     provisioning_options: OrganizationProvisioningOptions, org_id: int
-):
+) -> RegionOutbox:
     return RegionOutbox(
         shard_scope=OutboxScope.ORGANIZATION_SCOPE,
         shard_identifier=org_id,
@@ -90,7 +90,7 @@ class DatabaseBackedRegionOrganizationProvisioningRpcService(
             if matching_organizations_qs.count() > 1:
                 raise PreProvisionCheckException("Multiple conflicting organizations found")
 
-            matching_org: Organization = matching_organizations_qs.first()
+            matching_org = matching_organizations_qs.get()
 
             try:
                 provisioning_user_is_org_owner = (

@@ -19,7 +19,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.builder import MetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import query as discover_query
 from sentry.snuba.metrics.extraction import (

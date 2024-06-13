@@ -84,6 +84,7 @@ export function OnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
+      replayOptions: {block: true, mask: true},
     };
 
     return {
@@ -137,13 +138,15 @@ export function OnboardingLayout({
             <Divider />
             <h4>{t('Next Steps')}</h4>
             <List symbol="bullet">
-              {nextSteps.map(step => (
-                <ListItem key={step.name}>
-                  <ExternalLink href={step.link}>{step.name}</ExternalLink>
-                  {': '}
-                  {step.description}
-                </ListItem>
-              ))}
+              {nextSteps
+                .filter((step): step is Exclude<typeof step, null> => step !== null)
+                .map(step => (
+                  <ListItem key={step.name}>
+                    <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                    {': '}
+                    {step.description}
+                  </ListItem>
+                ))}
             </List>
           </Fragment>
         )}

@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import Mock, call, patch
 from uuid import UUID
 
+import orjson
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework import status
 
@@ -23,7 +24,6 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
-from sentry.utils import json
 from sentry.utils.relocation import OrderedTask
 
 FRESH_INSTALL_PATH = get_fixture_path("backup", "fresh-install.json")
@@ -124,12 +124,12 @@ class GetRelocationsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
-        assert response.data[0]["creatorId"] == str(self.superuser.id)
-        assert response.data[0]["creatorEmail"] == str(self.superuser.email)
-        assert response.data[0]["creatorUsername"] == str(self.superuser.username)
-        assert response.data[0]["ownerId"] == str(self.owner.id)
-        assert response.data[0]["ownerEmail"] == str(self.owner.email)
-        assert response.data[0]["ownerUsername"] == str(self.owner.username)
+        assert response.data[0]["creator"]["id"] == str(self.superuser.id)
+        assert response.data[0]["creator"]["email"] == str(self.superuser.email)
+        assert response.data[0]["creator"]["username"] == str(self.superuser.username)
+        assert response.data[0]["owner"]["id"] == str(self.owner.id)
+        assert response.data[0]["owner"]["email"] == str(self.owner.email)
+        assert response.data[0]["owner"]["username"] == str(self.owner.username)
 
     def test_good_status_pause(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -310,8 +310,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -328,12 +328,12 @@ class PostRelocationsTest(APITestCase):
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
         assert response.data["scheduledPauseAtStep"] is None
-        assert response.data["creatorId"] == str(self.owner.id)
-        assert response.data["creatorEmail"] == str(self.owner.email)
-        assert response.data["creatorUsername"] == str(self.owner.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.owner.id)
+        assert response.data["creator"]["email"] == str(self.owner.email)
+        assert response.data["creator"]["username"] == str(self.owner.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -346,8 +346,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -372,8 +372,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -391,12 +391,12 @@ class PostRelocationsTest(APITestCase):
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
         assert response.data["scheduledPauseAtStep"] is None
-        assert response.data["creatorId"] == str(self.owner.id)
-        assert response.data["creatorEmail"] == str(self.owner.email)
-        assert response.data["creatorUsername"] == str(self.owner.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.owner.id)
+        assert response.data["creator"]["email"] == str(self.owner.email)
+        assert response.data["creator"]["username"] == str(self.owner.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -409,8 +409,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -439,8 +439,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -463,8 +463,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -493,8 +493,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -516,8 +516,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -544,8 +544,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -561,12 +561,12 @@ class PostRelocationsTest(APITestCase):
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
-        assert response.data["creatorId"] == str(self.staff_user.id)
-        assert response.data["creatorEmail"] == str(self.staff_user.email)
-        assert response.data["creatorUsername"] == str(self.staff_user.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.staff_user.id)
+        assert response.data["creator"]["email"] == str(self.staff_user.email)
+        assert response.data["creator"]["username"] == str(self.staff_user.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -579,8 +579,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -605,8 +605,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -622,12 +622,12 @@ class PostRelocationsTest(APITestCase):
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
-        assert response.data["creatorId"] == str(self.superuser.id)
-        assert response.data["creatorEmail"] == str(self.superuser.email)
-        assert response.data["creatorUsername"] == str(self.superuser.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.superuser.id)
+        assert response.data["creator"]["email"] == str(self.superuser.email)
+        assert response.data["creator"]["username"] == str(self.superuser.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -640,8 +640,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -658,8 +658,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner=self.owner.username,
@@ -684,8 +684,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner=self.owner.username,
@@ -730,8 +730,8 @@ class PostRelocationsTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with open(FRESH_INSTALL_PATH) as f:
-                    data = json.load(f)
+                with open(FRESH_INSTALL_PATH, "rb") as f:
+                    data = orjson.loads(f.read())
                     with open(tmp_pub_key_path, "rb") as p:
                         response = self.get_success_response(
                             owner=self.owner.username,
@@ -755,8 +755,8 @@ class PostRelocationsTest(APITestCase):
             assert analytics_record_mock.call_count == 1
             analytics_record_mock.assert_called_with(
                 "relocation.created",
-                creator_id=int(response.data["creatorId"]),
-                owner_id=int(response.data["ownerId"]),
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
                 uuid=response.data["uuid"],
             )
 
@@ -790,8 +790,8 @@ class PostRelocationsTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with open(FRESH_INSTALL_PATH) as f:
-                    data = json.load(f)
+                with open(FRESH_INSTALL_PATH, "rb") as f:
+                    data = orjson.loads(f.read())
                     with open(tmp_pub_key_path, "rb") as p:
                         response = self.get_error_response(
                             owner=self.owner.username,
@@ -841,8 +841,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_success_response(
                         owner=self.owner.username,
@@ -862,8 +862,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -899,8 +899,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner=self.owner.username,
@@ -927,8 +927,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         file=SimpleUploadedFile(
@@ -957,8 +957,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.staff_user, staff=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner="doesnotexist",
@@ -988,8 +988,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.superuser, superuser=True)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner="doesnotexist",
@@ -1019,8 +1019,8 @@ class PostRelocationsTest(APITestCase):
         self.login_as(user=self.owner, superuser=False)
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     response = self.get_error_response(
                         owner="other",
@@ -1064,8 +1064,8 @@ class PostRelocationsTest(APITestCase):
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-                with open(FRESH_INSTALL_PATH) as f:
-                    data = json.load(f)
+                with open(FRESH_INSTALL_PATH, "rb") as f:
+                    data = orjson.loads(f.read())
                     with open(tmp_pub_key_path, "rb") as p:
                         simple_file = SimpleUploadedFile(
                             "export.tar",
@@ -1095,8 +1095,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1139,8 +1139,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(initial_response.data["creatorId"]),
-            owner_id=int(initial_response.data["ownerId"]),
+            creator_id=int(initial_response.data["creator"]["id"]),
+            owner_id=int(initial_response.data["owner"]["id"]),
             uuid=initial_response.data["uuid"],
         )
 
@@ -1163,8 +1163,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1207,14 +1207,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]
@@ -1246,8 +1246,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1290,14 +1290,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]
@@ -1335,8 +1335,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1380,14 +1380,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]
@@ -1420,7 +1420,7 @@ class PostRelocationsTest(APITestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
             with open(FRESH_INSTALL_PATH) as f, freeze_time("2023-11-28 00:00:00") as frozen_time:
-                data = json.load(f)
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     initial_response = self.get_success_response(
                         owner=self.owner.username,
@@ -1468,14 +1468,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]
@@ -1506,8 +1506,8 @@ class PostRelocationsTest(APITestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
-            with open(FRESH_INSTALL_PATH) as f:
-                data = json.load(f)
+            with open(FRESH_INSTALL_PATH, "rb") as f:
+                data = orjson.loads(f.read())
                 with open(tmp_pub_key_path, "rb") as p:
                     self.get_error_response(
                         owner=self.owner.username,

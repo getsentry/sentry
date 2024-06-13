@@ -216,7 +216,7 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
         )
 
-        # TODO: use bulk_snql_query
+        # TODO: use bulk_snuba_queries
         other_result = other_events_builder.run_query(referrer)
         result = top_events_builder.run_query(referrer)
     else:
@@ -229,9 +229,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -263,11 +265,11 @@ def top_events_timeseries(
     for key, item in results.items():
         results[key] = SnubaTSResult(
             {
-                "data": discover.zerofill(
-                    item["data"], params["start"], params["end"], rollup, "time"
-                )
-                if zerofill_results
-                else item["data"],
+                "data": (
+                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else item["data"]
+                ),
                 "order": item["order"],
             },
             params["start"],

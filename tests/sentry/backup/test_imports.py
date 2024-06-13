@@ -4,10 +4,12 @@ import io
 import os
 import tarfile
 import tempfile
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime
 from pathlib import Path
 from unittest.mock import patch
+from uuid import uuid4
 
+import orjson
 import pytest
 import urllib3.exceptions
 from cryptography.fernet import Fernet
@@ -22,6 +24,7 @@ from sentry.backup.crypto import LocalFileDecryptor
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import (
+    MAX_BATCH_SIZE,
     ImportingError,
     import_in_config_scope,
     import_in_global_scope,
@@ -29,8 +32,6 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleThresholdType
-from sentry.models.actor import ACTOR_TYPES, Actor
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
@@ -42,6 +43,7 @@ from sentry.models.importchunk import (
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -65,9 +67,8 @@ from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
 from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
-from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.subscriptions import create_snuba_query
+from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
@@ -80,7 +81,6 @@ from sentry.testutils.helpers.backups import (
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,
@@ -343,12 +343,9 @@ class SanitizationTests(ImportTestCase):
         with tempfile.TemporaryDirectory() as tmp_dir:
             self.create_user("min_user")
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
-                json.dump(
-                    self.sort_in_memory_json(models),
-                    tmp_file,
-                )
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             # Import twice, to check that new suffixes are assigned both times.
             with open(tmp_path, "rb") as tmp_file:
@@ -371,14 +368,14 @@ class SanitizationTests(ImportTestCase):
     def test_bad_invalid_user(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify all username to be longer than 128 characters.
                 for model in models:
                     if model["model"] == "sentry.user":
                         model["fields"]["username"] = "x" * 129
-                json.dump(models, tmp_file)
+                tmp_file.write(orjson.dumps(models))
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
@@ -397,14 +394,14 @@ class SanitizationTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the UserIP to be in California, USA.
                 for model in models:
                     if model["model"] == "sentry.userip":
                         model["fields"]["ip_address"] = "8.8.8.8"
-                json.dump(models, tmp_file)
+                tmp_file.write(orjson.dumps(models))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
@@ -434,7 +431,7 @@ class SanitizationTests(ImportTestCase):
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the UserIP to be in California, USA.
@@ -488,7 +485,7 @@ class SanitizationTests(ImportTestCase):
                     }
                 )
 
-                json.dump(self.sort_in_memory_json(models), tmp_file)
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
@@ -504,14 +501,14 @@ class SanitizationTests(ImportTestCase):
     def test_bad_invalid_user_ip(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the IP address to be in invalid.
                 for m in models:
                     if m["model"] == "sentry.userip":
                         m["fields"]["ip_address"] = "0.1.2.3.4.5.6.7.8.9.abc.def"
-                json.dump(list(models), tmp_file)
+                tmp_file.write(orjson.dumps(list(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
@@ -524,7 +521,7 @@ class SanitizationTests(ImportTestCase):
     def test_good_multiple_useremails_per_user_in_user_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
@@ -556,7 +553,7 @@ class SanitizationTests(ImportTestCase):
                     }
                 )
 
-                json.dump(self.sort_in_memory_json(models), tmp_file)
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_user_scope(tmp_file, printer=NOOP_PRINTER)
@@ -576,7 +573,7 @@ class SanitizationTests(ImportTestCase):
     def test_good_multiple_useremails_per_user_in_global_scope(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Add two copies (1 verified, 1 not) of the same `UserEmail` - so the user now has 3
@@ -608,7 +605,7 @@ class SanitizationTests(ImportTestCase):
                     }
                 )
 
-                json.dump(self.sort_in_memory_json(models), tmp_file)
+                tmp_file.write(orjson.dumps(self.sort_in_memory_json(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 import_in_global_scope(tmp_file, printer=NOOP_PRINTER)
@@ -627,14 +624,14 @@ class SanitizationTests(ImportTestCase):
     def test_bad_invalid_user_option(self):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
-            with open(tmp_path, "w+") as tmp_file:
+            with open(tmp_path, "wb+") as tmp_file:
                 models = self.json_of_exhaustive_user_with_minimum_privileges()
 
                 # Modify the `timezone` option to be in invalid.
                 for m in models:
                     if m["model"] == "sentry.useroption" and m["fields"]["key"] == "timezone":
                         m["fields"]["value"] = '"MiddleEarth/Gondor"'
-                json.dump(list(models), tmp_file)
+                tmp_file.write(orjson.dumps(list(models)))
 
             with open(tmp_path, "rb") as tmp_file:
                 with pytest.raises(ImportingError) as err:
@@ -856,8 +853,8 @@ class DatabaseResetTests(ImportTestCase):
     def import_empty_backup_file(self, import_fn):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_empty_file_path = tmp_dir + "empty_backup.json"
-            with open(tmp_empty_file_path, "w") as tmp_file:
-                json.dump([], tmp_file)
+            with open(tmp_empty_file_path, "wb") as tmp_file:
+                tmp_file.write(orjson.dumps([]))
             with open(tmp_empty_file_path, "rb") as empty_backup_json:
                 import_fn(empty_backup_json, printer=NOOP_PRINTER)
 
@@ -952,15 +949,15 @@ class DecryptionTests(ImportTestCase):
         with open(tmp_pub_key_path, "wb") as f:
             f.write(pub_key_pem)
 
-        with open(good_file_path) as f:
-            json_data = json.load(f)
+        with open(good_file_path, "rb") as f:
+            json_data = orjson.loads(f.read())
 
         tmp_tarball_path = Path(tmp_dir).joinpath("input.tar")
         with open(tmp_tarball_path, "wb") as i, open(tmp_pub_key_path, "rb") as p:
             pem = p.read()
             data_encryption_key = Fernet.generate_key()
             backup_encryptor = Fernet(data_encryption_key)
-            encrypted_json_export = backup_encryptor.encrypt(json.dumps(json_data).encode("utf-8"))
+            encrypted_json_export = backup_encryptor.encrypt(orjson.dumps(json_data))
 
             dek_encryption_key = serialization.load_pem_public_key(pem, default_backend())
             sha256 = hashes.SHA256()
@@ -1409,7 +1406,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Monitor)
     def test_colliding_monitor(self, expected_models: list[type[Model]]):
@@ -1419,7 +1416,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `Monitor` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = Monitor.objects.filter().first()
+        colliding = Monitor.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1440,7 +1437,7 @@ class CollisionTests(ImportTestCase):
             assert Monitor.objects.filter(guid=colliding.guid).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, OrgAuthToken)
     def test_colliding_org_auth_token(self, expected_models: list[type[Model]]):
@@ -1452,7 +1449,7 @@ class CollisionTests(ImportTestCase):
         # Take note of the `OrgAuthToken` that was created by the exhaustive organization - this is
         # the one we'll be importing.
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding = OrgAuthToken.objects.filter().first()
+            colliding = OrgAuthToken.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1489,7 +1486,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, ProjectKey)
     def test_colliding_project_key(self, expected_models: list[type[Model]]):
@@ -1500,7 +1497,7 @@ class CollisionTests(ImportTestCase):
 
         # Take note of a `ProjectKey` that was created by the exhaustive organization - this is the
         # one we'll be importing.
-        colliding = ProjectKey.objects.filter().first()
+        colliding = ProjectKey.objects.all()[0]
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1522,7 +1519,7 @@ class CollisionTests(ImportTestCase):
             assert ProjectKey.objects.filter(secret_key=colliding.secret_key).count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @pytest.mark.xfail(
         not use_split_dbs(),
@@ -1542,10 +1539,10 @@ class CollisionTests(ImportTestCase):
 
             # Take note of the `QuerySubscription` that was created by the exhaustive organization -
             # this is the one we'll be importing.
-            colliding_snuba_query = SnubaQuery.objects.all().first()
-            colliding_query_subscription = QuerySubscription.objects.filter(
+            colliding_snuba_query = SnubaQuery.objects.all()[0]
+            colliding_query_subscription = QuerySubscription.objects.get(
                 snuba_query=colliding_snuba_query
-            ).first()
+            )
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1579,7 +1576,7 @@ class CollisionTests(ImportTestCase):
                 )
 
                 with open(tmp_path, "rb") as tmp_file:
-                    verify_models_in_output(expected_models, json.load(tmp_file))
+                    verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, SavedSearch)
     def test_colliding_saved_search(self, expected_models: list[type[Model]]):
@@ -1609,7 +1606,7 @@ class CollisionTests(ImportTestCase):
             assert SavedSearch.objects.count() == 1
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
     def test_colliding_configs_overwrite_configs_enabled_in_config_scope(
@@ -1619,16 +1616,16 @@ class CollisionTests(ImportTestCase):
         self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
+        colliding_option = Option.objects.get()
+        colliding_relay = Relay.objects.get()
+        colliding_relay_usage = RelayUsage.objects.get()
 
         old_relay_public_key = colliding_relay.public_key
         old_relay_usage_public_key = colliding_relay_usage.public_key
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
+            colliding_control_option = ControlOption.objects.get()
+            colliding_user_role = UserRole.objects.get()
             old_user_role_permissions = colliding_user_role.permissions
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -1699,13 +1696,13 @@ class CollisionTests(ImportTestCase):
                 assert ControlOption.objects.count() == 1
                 assert ControlOption.objects.filter(value__exact="b").exists()
 
-                actual_user_role = UserRole.objects.first()
+                actual_user_role = UserRole.objects.get()
                 assert len(actual_user_role.permissions) == len(old_user_role_permissions)
                 for i, actual_permission in enumerate(actual_user_role.permissions):
                     assert actual_permission == old_user_role_permissions[i]
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, ControlOption, Option, Relay, RelayUsage, UserRole)
     def test_colliding_configs_overwrite_configs_disabled_in_config_scope(
@@ -1715,13 +1712,13 @@ class CollisionTests(ImportTestCase):
         self.create_exhaustive_global_configs(owner)
 
         # Take note of the configs we want to track - this is the one we'll be importing.
-        colliding_option = Option.objects.all().first()
-        colliding_relay = Relay.objects.all().first()
-        colliding_relay_usage = RelayUsage.objects.all().first()
+        colliding_option = Option.objects.get()
+        colliding_relay = Relay.objects.get()
+        colliding_relay_usage = RelayUsage.objects.get()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            colliding_control_option = ControlOption.objects.all().first()
-            colliding_user_role = UserRole.objects.all().first()
+            colliding_control_option = ControlOption.objects.get()
+            colliding_user_role = UserRole.objects.get()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
@@ -1792,12 +1789,12 @@ class CollisionTests(ImportTestCase):
                 assert ControlOption.objects.filter(value__exact="z").exists()
 
                 assert UserRole.objects.count() == 1
-                actual_user_role = UserRole.objects.first()
+                actual_user_role = UserRole.objects.get()
                 assert len(actual_user_role.permissions) == 1
                 assert actual_user_role.permissions[0] == "other.admin"
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_user_scope(
@@ -1841,7 +1838,7 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_user_scope(
@@ -1886,20 +1883,30 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_enabled_in_organization_scope(
         self, expected_models: list[type[Model]]
     ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
-        self.create_organization("some-org", owner=owner)
+        org = self.create_organization("some-org", owner=owner)
+        old_org_membership = OrganizationMember.objects.get(organization=org)
+        old_org_membership.regenerate_token()
+        old_org_membership.save()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path, "rb") as tmp_file:
                 owner = self.create_exhaustive_user(username="owner", email="existing@example.com")
-                self.create_organization("some-org", owner=owner)
+                org = self.create_organization("some-org", owner=owner)
+
+                # Re-insert colliding tokens, pointed at the new user and org.
+                new_org_membership = OrganizationMember.objects.get(organization=org)
+                new_org_membership.token = old_org_membership.token
+                new_org_membership.token_expires_at = old_org_membership.token_expires_at
+                new_org_membership.save()
+
                 import_in_organization_scope(
                     tmp_file,
                     flags=ImportFlags(merge_users=True),
@@ -1948,6 +1955,10 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
+            # Expect one of the tokens to be nulled out due to collision.
+            assert OrganizationMember.objects.filter(token=old_org_membership.token).count() == 1
+            assert OrganizationMember.objects.filter(token__isnull=True).count() == 1
+
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert OrganizationMapping.objects.count() == 2
                 assert OrganizationMemberMapping.objects.count() == 2  # Same user in both orgs
@@ -1959,20 +1970,30 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, Organization, OrganizationMember, User, UserEmail)
     def test_colliding_user_with_merging_disabled_in_organization_scope(
         self, expected_models: list[type[Model]]
     ):
         owner = self.create_exhaustive_user(username="owner", email="importing@example.com")
-        self.create_organization("some-org", owner=owner)
+        org = self.create_organization("some-org", owner=owner)
+        old_org_membership = OrganizationMember.objects.get(organization=org)
+        old_org_membership.regenerate_token()
+        old_org_membership.save()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
             with open(tmp_path, "rb") as tmp_file:
                 owner = self.create_exhaustive_user(username="owner", email="existing@example.com")
-                self.create_organization("some-org", owner=owner)
+                org = self.create_organization("some-org", owner=owner)
+
+                # Re-insert colliding tokens, pointed at the new user and org.
+                new_org_membership = OrganizationMember.objects.get(organization=org)
+                new_org_membership.token = old_org_membership.token
+                new_org_membership.token_expires_at = old_org_membership.token_expires_at
+                new_org_membership.save()
+
                 import_in_organization_scope(
                     tmp_file,
                     flags=ImportFlags(merge_users=False),
@@ -2026,6 +2047,10 @@ class CollisionTests(ImportTestCase):
                 == 1
             )
 
+            # Expect one of the tokens to be nulled out due to collision.
+            assert OrganizationMember.objects.filter(token=old_org_membership.token).count() == 1
+            assert OrganizationMember.objects.filter(token__isnull=True).count() == 1
+
             with assume_test_silo_mode(SiloMode.CONTROL):
                 assert OrganizationMapping.objects.count() == 2
                 assert OrganizationMemberMapping.objects.count() == 2
@@ -2037,7 +2062,7 @@ class CollisionTests(ImportTestCase):
                 )
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_enabled_in_config_scope(
@@ -2085,7 +2110,7 @@ class CollisionTests(ImportTestCase):
                 assert not ControlImportChunk.objects.filter(model="sentry.userpermission").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(COLLISION_TESTED, Email, User, UserEmail, UserPermission)
     def test_colliding_user_with_merging_disabled_in_config_scope(
@@ -2133,7 +2158,7 @@ class CollisionTests(ImportTestCase):
                 assert UserEmail.objects.filter(email__icontains="importing@").exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
 
 CUSTOM_IMPORT_BEHAVIOR_TESTED: set[NormalizedModelName] = set()
@@ -2148,105 +2173,6 @@ class CustomImportBehaviorTests(ImportTestCase):
     as much as reasonably possible.
     """
 
-    # TODO(hybrid-cloud): actor refactor. Remove this test case when done.
-    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Actor, AlertRule)
-    def test_alert_rule_with_owner_id(self, expected_models: list[type[Model]]):
-        user = self.create_user()
-        org = self.create_organization(name="test-org", owner=user)
-        team = self.create_team(name="test-team", organization=org)
-
-        def create_fake_snuba_query() -> SnubaQuery:
-            return create_snuba_query(
-                query_type=SnubaQuery.Type.ERROR,
-                dataset=Dataset.Events,
-                query="level:error",
-                aggregate="count()",
-                time_window=timedelta(minutes=10),
-                resolution=timedelta(minutes=1),
-                environment=None,
-                event_types=[SnubaQueryEventType.EventType.ERROR],
-            )
-
-        # Create four `AlertRule`. Both of them fell through the `owner_id` migration, and therefore
-        # DO have an `owner_id`, but have NEITHER a `team_id` nor `user_id`.
-        #
-        # For the first two `AlertRule` rules, we'll include an `Actor` model with the correct data,
-        # meaning we just have to do a DB lookup, but the model import should go ahead as if the
-        # migration had been successful. For the third `AlertRule`, the `Actor` will also have both
-        # `team` and `user` set to null. Finally, the last instance will have no `Actor` at all.
-        #
-        # The expected result is that the first two instances succeed, while the last two are
-        # ignored.]
-        common_alert_rule_args = {
-            "organization": org,
-            "threshold_type": AlertRuleThresholdType.ABOVE.value,
-            "resolve_threshold": 10,
-            "threshold_period": 1,
-            "include_all_projects": False,
-            "comparison_delta": None,
-        }
-
-        # Use `bulk_create` to avoid the `.save()` checks that catch some otherwise invalid data -
-        # the whole point of this test is to ensure we gracefully recover when importing such data!
-        AlertRule.objects.bulk_create(
-            [
-                AlertRule(
-                    name="user-alert-rule",
-                    owner=Actor.objects.create(user_id=user.id, type=ACTOR_TYPES["user"]),
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-                AlertRule(
-                    name="team-alert-rule",
-                    owner=Actor.objects.get(team=team, type=ACTOR_TYPES["team"]),
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-                AlertRule(
-                    name="null-alert-rule",
-                    owner=Actor.objects.create(team=None, user_id=None, type=ACTOR_TYPES["team"]),
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-                AlertRule(
-                    name="unowned-alert-rule",
-                    owner=None,
-                    snuba_query=create_fake_snuba_query(),
-                    **common_alert_rule_args,
-                ),
-            ]
-        )
-
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
-            with open(tmp_path, "rb") as tmp_file:
-                import_in_organization_scope(
-                    tmp_file,
-                    printer=NOOP_PRINTER,
-                )
-
-            user_alert_rule: AlertRule = AlertRule.objects.get(name="user-alert-rule")
-            user_actor: Actor = Actor.objects.get(id=user_alert_rule.owner_id)
-            assert user_alert_rule.owner is not None
-            assert user_alert_rule.user_id == user_actor.user_id
-            assert user_alert_rule.team is None
-            assert user_actor.team is None
-
-            team_alert_rule: AlertRule = AlertRule.objects.get(name="team-alert-rule")
-            team_actor: Actor = Actor.objects.get(id=team_alert_rule.owner_id)
-            assert team_alert_rule.owner is not None
-            assert team_alert_rule.team == team_actor.team
-            assert team_alert_rule.user_id is None
-            assert team_actor.user_id is None
-
-            null_alert_rule: AlertRule = AlertRule.objects.get(name="null-alert-rule")
-            unowned_alert_rule: AlertRule = AlertRule.objects.get(name="unowned-alert-rule")
-            assert null_alert_rule.owner is None
-            assert unowned_alert_rule.owner is None
-
-            with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
-
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
     def test_organization_member_inviter_id(self, expected_models: list[type[Model]]):
         admin = self.create_exhaustive_user("admin", email="admin@test.com", is_superuser=True)
@@ -2256,7 +2182,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             slug="test-org",
             owner=owner,
             member=member,
-            invites={
+            pending_invites={
                 admin: "invited-by-admin@test.com",
                 owner: "invited-by-owner@test.com",
             },
@@ -2312,7 +2238,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             ).exists()
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
     def test_project_ids_retained_in_global_scope(self, expected_models: list[type[Model]]):
@@ -2343,7 +2269,7 @@ class CustomImportBehaviorTests(ImportTestCase):
             assert set(imported_proj_ids) == set(existing_proj_ids)
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, Project)
     def test_project_ids_reassigned_in_organization_scope(self, expected_models: list[type[Model]]):
@@ -2374,7 +2300,152 @@ class CustomImportBehaviorTests(ImportTestCase):
             assert set(imported_proj_ids).isdisjoint(set(existing_proj_ids))
 
             with open(tmp_path, "rb") as tmp_file:
-                verify_models_in_output(expected_models, json.load(tmp_file))
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
+
+
+class BatchingTests(TestCase):
+    """
+    Ensure large lists of a single model type are batched properly, and that this batching does not disrupt pk mapping. These tests do not inherit from `ImportTestCase` because they do not require a completely clean database.
+    """
+
+    def import_n_users_with_options(self, import_uuid: str, n: int) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
+            with open(tmp_path, "wb") as tmp_file:
+                users = []
+                user_options = []
+                for i in range(1, n + 1):
+                    users.append(
+                        {
+                            "model": "sentry.user",
+                            "pk": i + 100,
+                            "fields": {
+                                "password": "fake",
+                                "username": f"user-{i}",
+                                "name": f"user-{i}",
+                                "email": f"{i}@example.com",
+                                "is_staff": False,
+                                "is_active": True,
+                                "is_superuser": False,
+                                "is_managed": False,
+                                "is_password_expired": False,
+                                "is_unclaimed": False,
+                                "last_password_change": "2023-06-22T22:59:57.023Z",
+                                "flags": "0",
+                                "date_joined": "2023-06-22T22:59:55.488Z",
+                                "last_active": "2023-06-22T22:59:55.489Z",
+                                "avatar_type": 0,
+                            },
+                        }
+                    )
+                    user_options.append(
+                        {
+                            "model": "sentry.useroption",
+                            "pk": i + 1000,
+                            "fields": {
+                                "user": i + 100,
+                                "key": f"key-{i}",
+                                "value": f"user-{i}",
+                            },
+                        }
+                    )
+
+                tmp_file.write(orjson.dumps(users + user_options))
+
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_user_scope(
+                    tmp_file, flags=ImportFlags(import_uuid=import_uuid), printer=NOOP_PRINTER
+                )
+
+    def test_exact_multiple_of_batch_size(self):
+        import_uuid = uuid4().hex
+        want_chunks = 2
+        n = MAX_BATCH_SIZE * want_chunks
+        self.import_n_users_with_options(import_uuid, n)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_chunks = list(
+                ControlImportChunk.objects.filter(import_uuid=import_uuid, model="sentry.user")
+            )
+            user_option_chunks = list(
+                ControlImportChunk.objects.filter(
+                    import_uuid=import_uuid, model="sentry.useroption"
+                )
+            )
+
+            assert len(user_chunks) == want_chunks
+            assert len(user_option_chunks) == want_chunks
+
+            assert user_chunks[0].min_ordinal == 1
+            assert user_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_chunks[0].min_source_pk == 101
+            assert user_chunks[0].max_source_pk == MAX_BATCH_SIZE + 100
+
+            assert user_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_chunks[1].max_ordinal == MAX_BATCH_SIZE * 2
+            assert user_chunks[1].min_source_pk == MAX_BATCH_SIZE + 101
+            assert user_chunks[1].max_source_pk == (MAX_BATCH_SIZE * 2) + 100
+
+            assert user_option_chunks[0].min_ordinal == 1
+            assert user_option_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_option_chunks[0].min_source_pk == 1001
+            assert user_option_chunks[0].max_source_pk == MAX_BATCH_SIZE + 1000
+
+            assert user_option_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_option_chunks[1].max_ordinal == MAX_BATCH_SIZE * 2
+            assert user_option_chunks[1].min_source_pk == MAX_BATCH_SIZE + 1001
+            assert user_option_chunks[1].max_source_pk == (MAX_BATCH_SIZE * 2) + 1000
+
+            # Ensure pk mapping from a later batch is still consistent.
+            target = MAX_BATCH_SIZE + (MAX_BATCH_SIZE // 2)
+            user_option = UserOption.objects.get(key=f"key-{target}")
+            user = User.objects.get(id=user_option.user_id)
+            assert user.name == f"user-{target}"
+
+    def test_one_more_than_batch_size(self):
+        import_uuid = uuid4().hex
+        want_chunks = 2
+        n = MAX_BATCH_SIZE + 1
+        self.import_n_users_with_options(import_uuid, n)
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            user_chunks = list(
+                ControlImportChunk.objects.filter(import_uuid=import_uuid, model="sentry.user")
+            )
+            user_option_chunks = list(
+                ControlImportChunk.objects.filter(
+                    import_uuid=import_uuid, model="sentry.useroption"
+                )
+            )
+
+            assert len(user_chunks) == want_chunks
+            assert len(user_option_chunks) == want_chunks
+
+            assert user_chunks[0].min_ordinal == 1
+            assert user_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_chunks[0].min_source_pk == 101
+            assert user_chunks[0].max_source_pk == MAX_BATCH_SIZE + 100
+
+            assert user_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_chunks[1].max_ordinal == MAX_BATCH_SIZE + 1
+            assert user_chunks[1].min_source_pk == MAX_BATCH_SIZE + 101
+            assert user_chunks[1].max_source_pk == MAX_BATCH_SIZE + 101
+
+            assert user_option_chunks[0].min_ordinal == 1
+            assert user_option_chunks[0].max_ordinal == MAX_BATCH_SIZE
+            assert user_option_chunks[0].min_source_pk == 1001
+            assert user_option_chunks[0].max_source_pk == MAX_BATCH_SIZE + 1000
+
+            assert user_option_chunks[1].min_ordinal == MAX_BATCH_SIZE + 1
+            assert user_option_chunks[1].max_ordinal == MAX_BATCH_SIZE + 1
+            assert user_option_chunks[1].min_source_pk == MAX_BATCH_SIZE + 1001
+            assert user_option_chunks[1].max_source_pk == MAX_BATCH_SIZE + 1001
+
+            # Ensure pk mapping from a later batch is still consistent.
+            target = MAX_BATCH_SIZE + 1
+            user_option = UserOption.objects.get(key=f"key-{target}")
+            user = User.objects.get(id=user_option.user_id)
+            assert user.name == f"user-{target}"
 
 
 @pytest.mark.skipif(reason="not legacy")

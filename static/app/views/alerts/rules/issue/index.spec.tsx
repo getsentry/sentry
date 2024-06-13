@@ -1,5 +1,4 @@
 import type {PlainRoute} from 'react-router';
-import {browserHistory} from 'react-router';
 import moment from 'moment';
 import {EnvironmentsFixture} from 'sentry-fixture/environments';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -27,6 +26,7 @@ import {
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {metric} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import IssueRuleEditor from 'sentry/views/alerts/rules/issue';
 import {permissionAlertText} from 'sentry/views/settings/project/permissionAlert';
 import ProjectAlerts from 'sentry/views/settings/projectAlerts';
@@ -82,7 +82,7 @@ const projectAlertRuleDetailsRoutes: PlainRoute<any>[] = [
 ];
 
 const createWrapper = (props = {}) => {
-  const {organization, project, routerContext, router} = initializeOrg(props);
+  const {organization, project, router} = initializeOrg(props);
   const params = {
     projectId: project.slug,
     organizationId: organization.slug,
@@ -109,7 +109,7 @@ const createWrapper = (props = {}) => {
         userTeamIds={[]}
       />
     </ProjectAlerts>,
-    {context: routerContext, organization}
+    {router, organization}
   );
 
   return {

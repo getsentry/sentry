@@ -9,7 +9,7 @@ import {Button, type ButtonProps, LinkButton} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -83,7 +83,7 @@ function OptInModal({closeModal}: ModalRenderProps) {
       <ButtonGroup>
         <LinkButton
           external
-          href="https://help.sentry.io/product-features/other/metrics-beta-faqs/"
+          href="https://sentry.zendesk.com/hc/en-us/articles/24886170163867-Metrics-Beta-FAQ"
           onClick={() => {
             trackAnalytics('ddm.opt_in_modal_closed', {
               organization,
@@ -122,14 +122,14 @@ const Content = styled('div')`
 const Subheader = styled('h2')`
   color: ${p => p.theme.purple300};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(3)};
   text-transform: uppercase;
 `;
 
 const Header = styled('h1')`
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: ${space(1.5)} 0;
 `;
 

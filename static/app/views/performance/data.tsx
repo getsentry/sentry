@@ -71,6 +71,8 @@ export enum PerformanceTerm {
   TIME_TO_INITIAL_DISPLAY = 'timeToInitialDisplay',
   MOST_TIME_SPENT_DB_QUERIES = 'mostTimeSpentDbQueries',
   MOST_TIME_CONSUMING_RESOURCES = 'mostTimeConsumingResources',
+  MOST_TIME_CONSUMING_DOMAINS = 'mostTimeConsumingDomains',
+  HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highestCacheMissRateTransactions',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -383,6 +385,10 @@ export const PERFORMANCE_TERMS: Record<PerformanceTerm, TermFormatter> = {
     t('Database spans on which the application spent most of its total time.'),
   mostTimeConsumingResources: () =>
     t('Render blocking resources on which the application spent most of its total time.'),
+  mostTimeConsumingDomains: () =>
+    t('Outgoing HTTP domains on which the application spent most of its total time.'),
+  highestCacheMissRateTransactions: () =>
+    t('Transactions with the highest cache miss rate.'),
   slowHTTPSpans: () => t('The transactions with the slowest spans of a certain type.'),
   stallPercentage: () =>
     t(

@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
@@ -11,6 +10,7 @@ import {IconReleases} from 'sentry/icons/iconReleases';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {

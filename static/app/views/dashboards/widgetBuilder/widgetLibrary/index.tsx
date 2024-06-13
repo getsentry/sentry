@@ -6,7 +6,7 @@ import {openWidgetBuilderOverwriteModal} from 'sentry/actionCreators/modal';
 import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
 import {getTopNConvertedDefaultWidgets} from 'sentry/views/dashboards/widgetLibrary/data';

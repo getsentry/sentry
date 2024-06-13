@@ -1,3 +1,5 @@
+import type {LocationDescriptor} from 'history';
+
 import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
@@ -95,6 +97,7 @@ export enum IssueType {
 
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
+  REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 }
 
 export enum IssueTitle {
@@ -125,6 +128,7 @@ export enum IssueTitle {
 
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
+  REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -152,6 +156,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
+  replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -234,6 +239,7 @@ export type EventAttachment = IssueAttachment;
 export type Tag = {
   key: string;
   name: string;
+  alias?: string;
 
   isInput?: boolean;
 
@@ -372,6 +378,7 @@ export enum GroupActivityType {
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
   SET_PRIORITY = 'set_priority',
+  DELETED_ATTACHMENT = 'deleted_attachment',
 }
 
 interface GroupActivityBase {
@@ -630,6 +637,11 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
   type: GroupActivityType.CREATE_ISSUE;
 }
 
+interface GroupActivityDeletedAttachment extends GroupActivityBase {
+  data: {};
+  type: GroupActivityType.DELETED_ATTACHMENT;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
@@ -657,7 +669,8 @@ export type GroupActivity =
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
   | GroupActivitySetEscalating
-  | GroupActivitySetPriority;
+  | GroupActivitySetPriority
+  | GroupActivityDeletedAttachment;
 
 export type Activity = GroupActivity;
 
@@ -798,6 +811,7 @@ export interface BaseGroup {
   inbox?: InboxDetails | null | false;
   integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
+  latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
   sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
@@ -906,12 +920,16 @@ export type UserReport = {
 export type KeyValueListDataItem = {
   key: string;
   subject: string;
+  action?: {
+    link?: string | LocationDescriptor;
+  };
   actionButton?: React.ReactNode;
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
+  subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;
 };
 

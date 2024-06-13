@@ -14,7 +14,7 @@ class OrganizationRepoCommitsDocs(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-repository-commits",
-            kwargs={"organization_slug": organization.slug, "repo_id": repo.id},
+            kwargs={"organization_id_or_slug": organization.slug, "repo_id": repo.id},
         )
 
         self.login_as(user=self.user)

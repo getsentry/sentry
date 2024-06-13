@@ -1,7 +1,11 @@
 import pytest
 from django.urls import NoReverseMatch, reverse
 
-from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
+from sentry.discover.models import (
+    DiscoverSavedQuery,
+    DiscoverSavedQueryProject,
+    DiscoverSavedQueryTypes,
+)
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 
 
@@ -33,6 +37,16 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         invalid.set_projects(self.project_ids)
 
         self.query_id_without_access = invalid.id
+
+    def setup_no_team_user(self):
+        # disable Open Membership
+        self.org.flags.allow_joinleave = False
+        self.org.save()
+
+        # user has no access to the first project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(user=user_no_team, organization=self.org, role="member", teams=[])
+        self.login_as(user_no_team)
 
     def test_invalid_id(self):
         with pytest.raises(NoReverseMatch):
@@ -116,6 +130,18 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
+    def test_get_disallow_when_no_project_access(self):
+        self.setup_no_team_user()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+            response = self.client.get(url)
+
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
     def test_put(self):
         with self.feature(self.feature_name):
             url = reverse(
@@ -142,6 +168,68 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
         assert response.data["fields"] == []
         assert response.data["conditions"] == []
         assert response.data["limit"] == 20
+
+    def test_put_dataset(self):
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                    "queryDataset": "transaction-like",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.query_id)
+        assert set(response.data["projects"]) == set(self.project_ids)
+        assert response.data["fields"] == []
+        assert response.data["conditions"] == []
+        assert response.data["limit"] == 20
+        assert response.data["queryDataset"] == "transaction-like"
+
+    def test_dataset_set_to_discover_on_update(self):
+        query = {"fields": ["event_id"], "query": "event.type:error", "limit": 10, "version": 2}
+        model = DiscoverSavedQuery.objects.create(
+            organization=self.org,
+            created_by_id=self.user.id,
+            name="query",
+            query=query,
+            dataset=DiscoverSavedQueryTypes.TRANSACTION_LIKE,
+        )
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, model.id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                },
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(model.id)
+        assert response.data["queryDataset"] == "discover"
 
     def test_put_with_interval(self):
         with self.feature(self.feature_name):
@@ -256,6 +344,31 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
+    def test_put_disallow_when_no_project_access(self):
+        self.setup_no_team_user()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.put(
+                url,
+                {
+                    "name": "New query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                },
+            )
+
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
     def test_delete(self):
         with self.feature(self.feature_name):
             url = reverse(
@@ -323,6 +436,19 @@ class DiscoverSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.content
 
+    def test_delete_disallow_when_no_project_access(self):
+        self.setup_no_team_user()
+
+        with self.feature(self.feature_name):
+            url = reverse(
+                "sentry-api-0-discover-saved-query-detail", args=[self.org.slug, self.query_id]
+            )
+
+            response = self.client.delete(url)
+
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
 
 class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
     def setUp(self):
@@ -345,11 +471,12 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
     def url(self, query_id):
         return reverse(
             "sentry-api-0-discover-saved-query-visit",
-            kwargs={"organization_slug": self.org.slug, "query_id": query_id},
+            kwargs={"organization_id_or_slug": self.org.slug, "query_id": query_id},
         )
 
     def test_visit_query(self):
         last_visited = self.query.last_visited
+        assert last_visited is not None
         assert self.query.visits == 1
 
         with self.feature("organizations:discover-query"):
@@ -359,6 +486,7 @@ class OrganizationDiscoverQueryVisitTest(APITestCase, SnubaTestCase):
 
         query = DiscoverSavedQuery.objects.get(id=self.query.id)
         assert query.visits == 2
+        assert query.last_visited is not None
         assert query.last_visited > last_visited
 
     def test_visit_query_no_access(self):

@@ -7,7 +7,6 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 from django.conf import settings
-from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 from django.db.models import F, Window
@@ -63,7 +62,7 @@ def _bulk_retrieve_group_values(group_ids: list[int], Group: type[Group]) -> lis
                 status=group_values["status"],
                 substatus=group_values["substatus"],
                 first_seen=group_values["first_seen"],
-                num_comments=group_values["num_comments"],
+                num_comments=group_values["num_comments"] or 0,
             )
         )
     return results
@@ -178,10 +177,4 @@ class Migration(CheckedMigration):
         ("sentry", "0640_index_together"),
     ]
 
-    operations = [
-        migrations.RunPython(
-            backfill_group_attributes_to_snuba,
-            reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_groupedmessage"]},
-        )
-    ]
+    operations = []

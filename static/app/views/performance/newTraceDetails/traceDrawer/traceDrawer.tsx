@@ -1,4 +1,4 @@
-import {useCallback, useLayoutEffect, useMemo, useRef} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -8,7 +8,7 @@ import {Button} from 'sentry/components/button';
 import {IconChevron, IconPanel, IconPin} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import type EventView from 'sentry/utils/discover/eventView';
 import {PERFORMANCE_URL_PARAM} from 'sentry/utils/performance/constants';
 import type {
@@ -20,10 +20,13 @@ import {
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
@@ -39,25 +42,31 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   makeTraceNodeBarColor,
   type TraceTree,
   type TraceTreeNode,
 } from '../traceModels/traceTree';
+import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
+import type {TraceType} from '../traceType';
 
 import {TraceDetails} from './tabs/trace';
 import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
+  metaResults: TraceMetaQueryResults;
+  onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  replayRecord: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
-  trace_dispatch: React.Dispatch<TraceReducerAction>;
-  trace_state: TraceReducerState;
+  traceType: TraceType;
   traces: TraceSplitResults<TraceFullDetailed> | null;
 };
 
@@ -65,16 +74,28 @@ export function TraceDrawer(props: TraceDrawerProps) {
   const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
 
   // The /events-facets/ endpoint used to fetch tags for the trace tab is slow. Therefore,
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
   // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
   const urlParams = useMemo(() => {
-    return pick(location.query, [...Object.values(PERFORMANCE_URL_PARAM), 'cursor']);
+    const {timestamp} = getTraceQueryParams(location.query);
+    const params = pick(location.query, [
+      ...Object.values(PERFORMANCE_URL_PARAM),
+      'cursor',
+    ]);
+
+    if (timestamp) {
+      params.traceTimestamp = timestamp;
+    }
+    return params;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const tagsQueryResults = useApiQuery<Tag[]>(
-    [
+
+  const tagsInfiniteQueryResults = useInfiniteApiQuery<Tag[]>({
+    queryKey: [
       `/organizations/${organization.slug}/events-facets/`,
       {
         query: {
@@ -84,15 +105,10 @@ export function TraceDrawer(props: TraceDrawerProps) {
         },
       },
     ],
-    {
-      staleTime: Infinity,
-    }
-  );
+  });
 
-  const traceStateRef = useRef(props.trace_state);
-  traceStateRef.current = props.trace_state;
-
-  const trace_dispatch = props.trace_dispatch;
+  const traceStateRef = useRef(traceState);
+  traceStateRef.current = traceState;
 
   const initialSizeRef = useRef<Record<string, number> | null>(null);
   if (!initialSizeRef.current) {
@@ -104,16 +120,31 @@ export function TraceDrawer(props: TraceDrawerProps) {
     (size: number, min: number, user?: boolean, minimized?: boolean) => {
       if (!props.traceGridRef) return;
 
+      // When we resize the layout in x axis, we need to update the physical space
+      // of the virtualized view manager to make sure a redrawing is correctly triggered.
+      // If we dont do this, then the virtualized view manager will only trigger a redraw
+      // whenver ResizeObserver detects a change. Since resize observers have "debounced"
+      // callbacks, relying only on them to redraw the screen causes visual jank.
+      if (
+        (traceStateRef.current.preferences.layout === 'drawer left' ||
+          traceStateRef.current.preferences.layout === 'drawer right') &&
+        props.manager.container
+      ) {
+        const {width, height} = props.manager.container.getBoundingClientRect();
+        props.manager.initializePhysicalSpace(width, height);
+        props.manager.draw();
+      }
+
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom' && user) {
         if (size <= min && !minimized) {
-          trace_dispatch({
+          traceDispatch({
             type: 'minimize drawer',
             payload: true,
           });
         } else if (size > min && minimized) {
-          trace_dispatch({
+          traceDispatch({
             type: 'minimize drawer',
             payload: false,
           });
@@ -135,16 +166,16 @@ export function TraceDrawer(props: TraceDrawerProps) {
             ? drawerHeight
             : drawerWidth;
 
-        trace_dispatch({
+        traceDispatch({
           type: 'set drawer dimension',
           payload: drawer_size,
         });
       }, 1000);
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
-        min = minimized ? 27 : drawerHeight;
+        min = minimized ? 27 : size;
       } else {
-        min = minimized ? 0 : drawerWidth;
+        min = minimized ? 0 : size;
       }
 
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
@@ -158,13 +189,14 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
       }
     },
-    [props.traceGridRef, trace_dispatch]
+    [props.traceGridRef, props.manager, traceDispatch]
   );
 
+  const [drawerRef, setDrawerRef] = useState<HTMLDivElement | null>(null);
   const drawerOptions: Pick<UsePassiveResizableDrawerOptions, 'min' | 'initialSize'> =
     useMemo(() => {
       const initialSizeInPercentage =
-        props.trace_state.preferences.drawer.sizes[props.trace_state.preferences.layout];
+        traceState.preferences.drawer.sizes[traceState.preferences.layout];
 
       // We have a stored user preference for the drawer size
       const {width, height} = props.traceGridRef?.getBoundingClientRect() ?? {
@@ -172,61 +204,83 @@ export function TraceDrawer(props: TraceDrawerProps) {
         height: 0,
       };
 
-      const initialSize =
-        props.trace_state.preferences.layout === 'drawer bottom'
+      const initialSize = traceState.preferences.drawer.minimized
+        ? 0
+        : traceState.preferences.layout === 'drawer bottom'
           ? height * initialSizeInPercentage
           : width * initialSizeInPercentage;
 
       return {
-        min: props.trace_state.preferences.layout === 'drawer bottom' ? 27 : 300,
+        min: traceState.preferences.layout === 'drawer bottom' ? 27 : 350,
         initialSize,
+        ref: drawerRef,
       };
       // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [props.traceGridRef, props.trace_state.preferences.layout]);
+    }, [props.traceGridRef, traceState.preferences.layout, drawerRef]);
 
   const resizableDrawerOptions: UsePassiveResizableDrawerOptions = useMemo(() => {
     return {
       ...drawerOptions,
       onResize,
       direction:
-        props.trace_state.preferences.layout === 'drawer left'
+        traceState.preferences.layout === 'drawer left'
           ? 'left'
-          : props.trace_state.preferences.layout === 'drawer right'
+          : traceState.preferences.layout === 'drawer right'
             ? 'right'
             : 'up',
     };
-  }, [onResize, drawerOptions, props.trace_state.preferences.layout]);
+  }, [onResize, drawerOptions, traceState.preferences.layout]);
 
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
   const onParentClick = useCallback(
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
       props.onTabScrollToNode(node);
-      props.trace_dispatch({
+      traceDispatch({
         type: 'activate tab',
         payload: node,
         pin_previous: true,
       });
     },
-    [props]
+    [props, traceDispatch]
   );
 
   const onMinimizeClick = useCallback(() => {
-    trace_dispatch({
+    traceAnalytics.trackDrawerMinimize(organization);
+    traceDispatch({
       type: 'minimize drawer',
-      payload: !props.trace_state.preferences.drawer.minimized,
+      payload: !traceState.preferences.drawer.minimized,
     });
-    if (!props.trace_state.preferences.drawer.minimized) {
+    if (!traceState.preferences.drawer.minimized) {
       onResize(0, 0, true, true);
       size.current = drawerOptions.min;
     } else {
+      if (drawerOptions.initialSize === 0) {
+        const userPreference =
+          traceStateRef.current.preferences.drawer.sizes[
+            traceStateRef.current.preferences.layout
+          ];
+
+        const {width, height} = props.traceGridRef?.getBoundingClientRect() ?? {
+          width: 0,
+          height: 0,
+        };
+        const containerSize =
+          traceStateRef.current.preferences.layout === 'drawer bottom' ? height : width;
+        const drawer_size = containerSize * userPreference;
+        onResize(drawer_size, drawerOptions.min, true, false);
+        size.current = userPreference;
+        return;
+      }
       onResize(drawerOptions.initialSize, drawerOptions.min, true, false);
       size.current = drawerOptions.initialSize;
     }
   }, [
     size,
     onResize,
-    trace_dispatch,
-    props.trace_state.preferences.drawer.minimized,
+    traceDispatch,
+    props.traceGridRef,
+    traceState.preferences.drawer.minimized,
+    organization,
     drawerOptions,
   ]);
 
@@ -236,15 +290,15 @@ export function TraceDrawer(props: TraceDrawerProps) {
       return;
     }
 
-    trace_dispatch({type: 'minimize drawer', payload: false});
-    const initialSize = TRACE_DRAWER_DEFAULT_SIZES[props.trace_state.preferences.layout];
+    traceDispatch({type: 'minimize drawer', payload: false});
+    const initialSize = TRACE_DRAWER_DEFAULT_SIZES[traceState.preferences.layout];
     const {width, height} = props.traceGridRef?.getBoundingClientRect() ?? {
       width: 0,
       height: 0,
     };
 
     const containerSize =
-      props.trace_state.preferences.layout === 'drawer bottom' ? height : width;
+      traceState.preferences.layout === 'drawer bottom' ? height : width;
     const drawer_size = containerSize * initialSize;
 
     onResize(drawer_size, drawerOptions.min, true, false);
@@ -254,15 +308,15 @@ export function TraceDrawer(props: TraceDrawerProps) {
     onMinimizeClick,
     onResize,
     drawerOptions.min,
-    props.trace_state.preferences.layout,
+    traceState.preferences.layout,
     props.traceGridRef,
-    trace_dispatch,
+    traceDispatch,
   ]);
 
   const initializedRef = useRef(false);
   useLayoutEffect(() => {
     if (initializedRef.current) return;
-    if (props.trace_state.preferences.drawer.minimized && props.traceGridRef) {
+    if (traceState.preferences.drawer.minimized && props.traceGridRef) {
       if (traceStateRef.current.preferences.layout === 'drawer bottom') {
         props.traceGridRef.style.gridTemplateColumns = `1fr`;
         props.traceGridRef.style.gridTemplateRows = `1fr minmax(${27}px, 0%)`;
@@ -284,36 +338,34 @@ export function TraceDrawer(props: TraceDrawerProps) {
   // Syncs the height of the tabs with the trace indicators
   const hasIndicators =
     props.trace.indicators.length > 0 &&
-    props.trace_state.preferences.layout !== 'drawer bottom';
+    traceState.preferences.layout !== 'drawer bottom';
 
   if (
-    props.trace_state.preferences.drawer.minimized &&
-    props.trace_state.preferences.layout !== 'drawer bottom'
+    traceState.preferences.drawer.minimized &&
+    traceState.preferences.layout !== 'drawer bottom'
   ) {
     return (
       <TabsHeightContainer
         absolute
-        layout={props.trace_state.preferences.layout}
+        layout={traceState.preferences.layout}
         hasIndicators={hasIndicators}
       >
         <TabLayoutControlItem>
-          <TraceLayoutMinimizeButton
-            onClick={onMinimizeClick}
-            trace_state={props.trace_state}
-          />
+          <TraceLayoutMinimizeButton onClick={onMinimizeClick} trace_state={traceState} />
         </TabLayoutControlItem>
       </TabsHeightContainer>
     );
   }
 
   return (
-    <PanelWrapper layout={props.trace_state.preferences.layout}>
+    <PanelWrapper ref={setDrawerRef} layout={traceState.preferences.layout}>
       <ResizeableHandle
-        layout={props.trace_state.preferences.layout}
+        layout={traceState.preferences.layout}
         onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClickResetToDefault}
       />
       <TabsHeightContainer
-        layout={props.trace_state.preferences.layout}
+        layout={traceState.preferences.layout}
         onDoubleClick={onDoubleClickResetToDefault}
         hasIndicators={hasIndicators}
       >
@@ -322,17 +374,18 @@ export function TraceDrawer(props: TraceDrawerProps) {
             <TabLayoutControlItem>
               <TraceLayoutMinimizeButton
                 onClick={onMinimizeClick}
-                trace_state={props.trace_state}
+                trace_state={traceState}
               />
+              <TabSeparator />
             </TabLayoutControlItem>
           </TabActions>
           <TabsContainer
             style={{
-              gridTemplateColumns: `repeat(${props.trace_state.tabs.tabs.length + (props.trace_state.tabs.last_clicked_tab ? 1 : 0)}, minmax(0, min-content))`,
+              gridTemplateColumns: `repeat(${traceState.tabs.tabs.length + (traceState.tabs.last_clicked_tab ? 1 : 0)}, minmax(0, min-content))`,
             }}
           >
             {/* Renders all open tabs */}
-            {props.trace_state.tabs.tabs.map((n, i) => {
+            {traceState.tabs.tabs.map((n, i) => {
               return (
                 <TraceDrawerTab
                   key={i}
@@ -340,58 +393,59 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   index={i}
                   theme={theme}
                   trace={props.trace}
-                  trace_state={props.trace_state}
-                  trace_dispatch={props.trace_dispatch}
+                  trace_state={traceState}
+                  traceDispatch={traceDispatch}
                   onTabScrollToNode={props.onTabScrollToNode}
                   pinned
                 />
               );
             })}
             {/* Renders the last tab the user clicked on - this one is ephemeral and might change */}
-            {props.trace_state.tabs.last_clicked_tab ? (
+            {traceState.tabs.last_clicked_tab ? (
               <TraceDrawerTab
                 pinned={false}
                 key="last-clicked"
-                tab={props.trace_state.tabs.last_clicked_tab}
-                index={props.trace_state.tabs.tabs.length}
+                tab={traceState.tabs.last_clicked_tab}
+                index={traceState.tabs.tabs.length}
                 theme={theme}
-                trace_state={props.trace_state}
-                trace_dispatch={props.trace_dispatch}
+                trace_state={traceState}
+                traceDispatch={traceDispatch}
                 onTabScrollToNode={props.onTabScrollToNode}
                 trace={props.trace}
               />
             ) : null}
           </TabsContainer>
-          <TraceLayoutButtons
-            trace_dispatch={props.trace_dispatch}
-            trace_state={props.trace_state}
-          />
+          {traceState.preferences.drawer.layoutOptions.length > 0 ? (
+            <TraceLayoutButtons traceDispatch={traceDispatch} trace_state={traceState} />
+          ) : null}
         </TabsLayout>
       </TabsHeightContainer>
-      {props.trace_state.preferences.drawer.minimized ? null : (
-        <Content
-          layout={props.trace_state.preferences.layout}
-          data-test-id="trace-drawer"
-        >
+      {traceState.preferences.drawer.minimized ? null : (
+        <Content layout={traceState.preferences.layout} data-test-id="trace-drawer">
           <ContentWrapper>
-            {props.trace_state.tabs.current_tab ? (
-              props.trace_state.tabs.current_tab.node === 'trace' ? (
+            {traceState.tabs.current_tab ? (
+              traceState.tabs.current_tab.node === 'trace' ? (
                 <TraceDetails
+                  metaResults={props.metaResults}
+                  traceType={props.traceType}
                   tree={props.trace}
                   node={props.trace.root.children[0]}
                   rootEventResults={props.rootEventResults}
                   traces={props.traces}
-                  tagsQueryResults={tagsQueryResults}
+                  tagsInfiniteQueryResults={tagsInfiniteQueryResults}
                   traceEventView={props.traceEventView}
                 />
-              ) : props.trace_state.tabs.current_tab.node === 'vitals' ? (
+              ) : traceState.tabs.current_tab.node === 'vitals' ? (
                 <TraceVitals trace={props.trace} />
+              ) : traceState.tabs.current_tab.node === 'profiles' ? (
+                <TraceProfiles tree={props.trace} onScrollToNode={props.onScrollToNode} />
               ) : (
                 <TraceTreeNodeDetails
+                  replayRecord={props.replayRecord}
                   manager={props.manager}
                   organization={organization}
                   onParentClick={onParentClick}
-                  node={props.trace_state.tabs.current_tab.node}
+                  node={traceState.tabs.current_tab.node}
                   onTabScrollToNode={props.onTabScrollToNode}
                 />
               )
@@ -410,10 +464,11 @@ interface TraceDrawerTabProps {
   tab: TraceTabsReducerState['tabs'][number];
   theme: Theme;
   trace: TraceTree;
-  trace_dispatch: React.Dispatch<TraceReducerAction>;
+  traceDispatch: React.Dispatch<TraceReducerAction>;
   trace_state: TraceReducerState;
 }
 function TraceDrawerTab(props: TraceDrawerTabProps) {
+  const organization = useOrganization();
   const node = props.tab.node;
 
   if (typeof node === 'string') {
@@ -426,14 +481,17 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
           props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'
         }
         onClick={() => {
-          if (props.tab.node !== 'vitals') {
+          if (props.tab.node !== 'vitals' && props.tab.node !== 'profiles') {
+            traceAnalytics.trackTabView(node, organization);
             props.onTabScrollToNode(root);
           }
-          props.trace_dispatch({type: 'activate tab', payload: props.index});
+          props.traceDispatch({type: 'activate tab', payload: props.index});
         }}
       >
         {/* A trace is technically an entry in the list, so it has a color */}
-        {props.tab.node === 'trace' || props.tab.node === 'vitals' ? null : (
+        {props.tab.node === 'trace' ||
+        props.tab.node === 'vitals' ||
+        props.tab.node === 'profiles' ? null : (
           <TabButtonIndicator
             backgroundColor={makeTraceNodeBarColor(props.theme, root)}
           />
@@ -448,8 +506,9 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
       data-test-id="trace-drawer-tab"
       aria-selected={props.tab === props.trace_state.tabs.current_tab ? 'true' : 'false'}
       onClick={() => {
+        traceAnalytics.trackTabView('event', organization);
         props.onTabScrollToNode(node);
-        props.trace_dispatch({type: 'activate tab', payload: props.index});
+        props.traceDispatch({type: 'activate tab', payload: props.index});
       }}
     >
       <TabButtonIndicator backgroundColor={makeTraceNodeBarColor(props.theme, node)} />
@@ -458,9 +517,10 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
         pinned={props.pinned}
         onClick={e => {
           e.stopPropagation();
+          traceAnalytics.trackTabPin(organization);
           props.pinned
-            ? props.trace_dispatch({type: 'unpin tab', payload: props.index})
-            : props.trace_dispatch({type: 'pin tab'});
+            ? props.traceDispatch({type: 'unpin tab', payload: props.index})
+            : props.traceDispatch({type: 'pin tab'});
         }}
       />
     </Tab>
@@ -468,44 +528,55 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
 }
 
 function TraceLayoutButtons(props: {
-  trace_dispatch: React.Dispatch<TraceReducerAction>;
+  traceDispatch: React.Dispatch<TraceReducerAction>;
   trace_state: TraceReducerState;
 }) {
+  const organization = useOrganization();
+
   return (
     <TabActions>
-      <TabLayoutControlItem>
-        <TabIconButton
-          active={props.trace_state.preferences.layout === 'drawer left'}
-          onClick={() =>
-            props.trace_dispatch({type: 'set layout', payload: 'drawer left'})
-          }
-          size="xs"
-          aria-label={t('Drawer left')}
-          icon={<IconPanel size="xs" direction="left" />}
-        />
-      </TabLayoutControlItem>
-      <TabLayoutControlItem>
-        <TabIconButton
-          active={props.trace_state.preferences.layout === 'drawer bottom'}
-          onClick={() =>
-            props.trace_dispatch({type: 'set layout', payload: 'drawer bottom'})
-          }
-          size="xs"
-          aria-label={t('Drawer bottom')}
-          icon={<IconPanel size="xs" direction="down" />}
-        />
-      </TabLayoutControlItem>
-      <TabLayoutControlItem>
-        <TabIconButton
-          active={props.trace_state.preferences.layout === 'drawer right'}
-          onClick={() =>
-            props.trace_dispatch({type: 'set layout', payload: 'drawer right'})
-          }
-          size="xs"
-          aria-label={t('Drawer right')}
-          icon={<IconPanel size="xs" direction="right" />}
-        />
-      </TabLayoutControlItem>
+      {props.trace_state.preferences.drawer.layoutOptions.includes('drawer left') ? (
+        <TabLayoutControlItem>
+          <TabIconButton
+            active={props.trace_state.preferences.layout === 'drawer left'}
+            onClick={() => {
+              traceAnalytics.trackLayoutChange('drawer left', organization);
+              props.traceDispatch({type: 'set layout', payload: 'drawer left'});
+            }}
+            size="xs"
+            aria-label={t('Drawer left')}
+            icon={<IconPanel size="xs" direction="left" />}
+          />
+        </TabLayoutControlItem>
+      ) : null}
+      {props.trace_state.preferences.drawer.layoutOptions.includes('drawer bottom') ? (
+        <TabLayoutControlItem>
+          <TabIconButton
+            active={props.trace_state.preferences.layout === 'drawer bottom'}
+            onClick={() => {
+              traceAnalytics.trackLayoutChange('drawer bottom', organization);
+              props.traceDispatch({type: 'set layout', payload: 'drawer bottom'});
+            }}
+            size="xs"
+            aria-label={t('Drawer bottom')}
+            icon={<IconPanel size="xs" direction="down" />}
+          />
+        </TabLayoutControlItem>
+      ) : null}
+      {props.trace_state.preferences.drawer.layoutOptions.includes('drawer right') ? (
+        <TabLayoutControlItem>
+          <TabIconButton
+            active={props.trace_state.preferences.layout === 'drawer right'}
+            onClick={() => {
+              traceAnalytics.trackLayoutChange('drawer right', organization);
+              props.traceDispatch({type: 'set layout', payload: 'drawer right'});
+            }}
+            size="xs"
+            aria-label={t('Drawer right')}
+            icon={<IconPanel size="xs" direction="right" />}
+          />
+        </TabLayoutControlItem>
+      ) : null}
     </TabActions>
   );
 }
@@ -584,7 +655,6 @@ const PanelWrapper = styled('div')<{
 const SmallerChevronIcon = styled(IconChevron)`
   width: 13px;
   height: 13px;
-
   transition: none;
 `;
 
@@ -593,6 +663,7 @@ const TabsHeightContainer = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
   absolute?: boolean;
 }>`
+  background: ${p => p.theme.backgroundSecondary};
   left: ${p => (p.layout === 'drawer left' ? '0' : 'initial')};
   right: ${p => (p.layout === 'drawer right' ? '0' : 'initial')};
   position: ${p => (p.absolute ? 'absolute' : 'relative')};
@@ -632,9 +703,25 @@ const TabActions = styled('ul')`
   }
 `;
 
+const TabSeparator = styled('span')`
+  display: inline-block;
+  margin-left: ${space(0.5)};
+  margin-right: ${space(0.5)};
+  height: 16px;
+  width: 1px;
+  background-color: ${p => p.theme.border};
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+`;
+
 const TabLayoutControlItem = styled('li')`
   display: inline-block;
   margin: 0;
+  position: relative;
+  z-index: 10;
+  background-color: ${p => p.theme.backgroundSecondary};
 `;
 
 const Tab = styled('li')`
@@ -647,16 +734,16 @@ const Tab = styled('li')`
   position: relative;
 
   &.Static + li:not(.Static) {
-    margin-left: ${space(2)};
+    margin-left: 10px;
 
     &:after {
       display: block;
       content: '';
       position: absolute;
-      left: -14px;
+      left: -10px;
       top: 50%;
       transform: translateY(-50%);
-      height: 72%;
+      height: 16px;
       width: 1px;
       background-color: ${p => p.theme.border};
     }
@@ -688,7 +775,7 @@ const TabButtonIndicator = styled('div')<{backgroundColor: string}>`
 const TabButton = styled('button')`
   height: 100%;
   border: none;
-  max-width: 66ch;
+  max-width: 28ch;
 
   overflow: hidden;
   text-overflow: ellipsis;
@@ -711,22 +798,6 @@ const Content = styled('div')<{layout: 'drawer bottom' | 'drawer left' | 'drawer
   td {
     max-width: 100% !important;
   }
-
-  ${p =>
-    p.layout !== 'drawer bottom' &&
-    `
-        table {
-          display: flex;
-        }
-
-        tbody {
-          flex: 1;
-        }
-
-        tr {
-          display: grid;
-        }
-      `}
 `;
 
 const TabIconButton = styled(Button)<{active: boolean}>`

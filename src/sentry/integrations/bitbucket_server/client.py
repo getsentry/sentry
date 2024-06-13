@@ -76,6 +76,7 @@ class BitbucketServerSetupClient(ApiClient):
             rsa_key=self.private_key,
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
         url = self.access_token_url.format(self.base_url)
         resp = self.post(url, auth=auth, allow_text=True)
@@ -91,6 +92,7 @@ class BitbucketServerSetupClient(ApiClient):
                 rsa_key=self.private_key,
                 signature_method=SIGNATURE_RSA,
                 signature_type="auth_header",
+                decoding=None,
             )
         return self._request(*args, **kwargs)
 
@@ -134,6 +136,7 @@ class BitbucketServerClient(ApiClient):
             resource_owner_secret=self.identity.data["access_token_secret"],
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request

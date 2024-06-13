@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
@@ -45,7 +45,6 @@ from sentry.snuba.metrics import (
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.sessions import _make_stats, get_rollup_starts_and_buckets
 from sentry.snuba.sessions_v2 import QueryDefinition
-from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.safe import get_path
 from sentry.utils.snuba import QueryOutsideRetentionError
@@ -122,13 +121,31 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         return projects, org_ids.pop()
 
     @staticmethod
+    def _extract_crash_free_rates_from_result_groups(
+        result_groups: Sequence[Any],
+    ) -> dict[int, float | None]:
+        crash_free_rates: dict[int, float | None] = {}
+        for result_group in result_groups:
+            project_id = get_path(result_group, "by", "project_id")
+            if project_id is None:
+                continue
+
+            totals = get_path(result_group, "totals", "rate", should_log=True)
+            if totals is not None:
+                crash_free_rates[project_id] = totals * 100
+            else:
+                crash_free_rates[project_id] = None
+
+        return crash_free_rates
+
+    @staticmethod
     def _get_crash_free_rate_data(
         org_id: int,
         projects: Sequence[Project],
         start: datetime,
         end: datetime,
         rollup: int,
-    ) -> dict[int, float]:
+    ) -> dict[int, float | None]:
 
         project_ids = [p.id for p in projects]
 
@@ -151,30 +168,10 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             include_totals=True,
         )
         result = get_series(projects=projects, metrics_query=query, use_case_id=USE_CASE_ID)
-
-        groups = get_path(result, "groups", default=[])
-        ret_val = {}
-        for group in groups:
-            project_id = get_path(group, "by", "project_id")
-            assert project_id is not None
-            totals = get_path(group, "totals", "rate", should_log=True)
-            try:
-                if totals is None:
-                    logger.info(
-                        "sentry.release_health.metrics._get_crash_free_rate_data.totals_is_none",
-                        extra={
-                            "group": json.dumps(group),
-                            "project_id": json.dumps(project_id),
-                            "organization_id": org_id,
-                            "timeseries_for_query": json.dumps(result),
-                        },
-                    )
-            except Exception as e:
-                logger.exception("Unable to log; %s", e)
-            assert totals is not None
-            ret_val[project_id] = totals * 100
-
-        return ret_val
+        result_groups = get_path(result, "groups", default=[])
+        return MetricsReleaseHealthBackend._extract_crash_free_rates_from_result_groups(
+            result_groups=result_groups
+        )
 
     def is_metrics_based(self) -> bool:
         return True
@@ -426,7 +423,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Sequence[EnvironmentName] | None = None,
+        environments: Iterable[str] | None = None,
     ) -> ReleaseSessionsTimeBounds:
 
         projects, org_id = self._get_projects_and_org_id([project_id])
@@ -1209,7 +1206,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_changed_project_release_model_adoptions(
         self,
-        project_ids: Sequence[ProjectId],
+        project_ids: Iterable[int],
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
 
@@ -1575,8 +1572,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_num_sessions_per_project(
         self,
         project_ids: Sequence[ProjectId],
-        start: datetime,
-        end: datetime,
+        start: datetime | None,
+        end: datetime | None,
         environment_ids: Sequence[int] | None = None,
         rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:

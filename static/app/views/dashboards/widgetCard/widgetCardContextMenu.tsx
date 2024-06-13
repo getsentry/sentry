@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {openDashboardWidgetQuerySelectorModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import {Tag} from 'sentry/components/tag';
 import {IconEdit, IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -209,12 +209,12 @@ function WidgetCardContextMenu({
   }
 
   if (widget.widgetType === WidgetType.METRICS) {
-    const ddmLocation = getWidgetMetricsUrl(widget, selection, organization);
+    const metricsLocation = getWidgetMetricsUrl(widget, selection, organization);
 
     menuOptions.push({
       key: 'open-in-metrics',
       label: t('Open in Metrics'),
-      to: ddmLocation,
+      to: metricsLocation,
     });
   }
 

@@ -867,6 +867,10 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Time-Consuming Queries'
     );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/database/'
+    );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
       1,
@@ -894,8 +898,52 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Most time consuming resources widget', async function () {
+  it('Most time consuming domains widget', async function () {
     const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS}
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Most Time-Consuming Domains'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/http/'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: [
+            'project.id',
+            'span.domain',
+            'sum(span.self_time)',
+            'avg(span.self_time)',
+            'time_spent_percentage()',
+          ],
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'span.module:http',
+          sort: '-time_spent_percentage()',
+          statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Most time consuming resources widget', async function () {
+    const data = initializeData(undefined, {features: ['performance-insights']});
 
     wrapper = render(
       <MEPSettingProvider forceTransactions>
@@ -907,7 +955,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Time Consuming Resources'
+      'Most Time-Consuming Assets'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/insights/browser/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -932,6 +984,50 @@ describe('Performance > Widgets > WidgetContainer', function () {
             '!span.description:browser-extension://* resource.render_blocking_status:blocking ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) transaction.op:pageload',
           sort: '-time_spent_percentage()',
           statsPeriod: '7d',
+        }),
+      })
+    );
+  });
+
+  it('Highest cache miss rate transactions widget', async function () {
+    const data = initializeData();
+
+    wrapper = render(
+      <MEPSettingProvider forceTransactions>
+        <WrappedComponent
+          data={data}
+          defaultChartSetting={
+            PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+          }
+        />
+      </MEPSettingProvider>
+    );
+
+    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
+      'Highest Cache Miss Rates'
+    );
+    expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
+      'href',
+      '/performance/caches/'
+    );
+    expect(eventsMock).toHaveBeenCalledTimes(1);
+    expect(eventsMock).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        query: expect.objectContaining({
+          cursor: '0:0:1',
+          dataset: 'spansMetrics',
+          environment: ['prod'],
+          field: ['transaction', 'project.id', 'cache_miss_rate()'],
+          noPagination: true,
+          per_page: QUERY_LIMIT_PARAM,
+          project: ['-42'],
+          query: 'span.op:[cache.get_item,cache.get]',
+          statsPeriod: '7d',
+          referrer:
+            'api.performance.generic-widget-chart.highest-cache--miss-rate-transactions',
+          sort: '-cache_miss_rate()',
         }),
       })
     );
@@ -978,7 +1074,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.ttfb)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,""] avg(measurements.score.total):>=0',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );

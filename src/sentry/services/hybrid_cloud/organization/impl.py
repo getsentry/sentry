@@ -60,7 +60,7 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.util import flags_to_bits
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs
 from sentry.utils.audit import create_org_delete_log
@@ -554,6 +554,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 .bitand(~OrganizationMember.flags["idp:provisioned"])
                 .bitand(~OrganizationMember.flags["idp:role-restricted"])
             )
+
+        with unguarded_write(using=router.db_for_write(Team)):
+            Team.objects.filter(organization_id=organization_id).update(idp_provisioned=False)
 
     def update_region_user(self, *, user: RpcRegionUser, region_name: str) -> None:
         # Normally, calling update on a QS for organization member fails because we need to ensure that updates to

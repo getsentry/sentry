@@ -11,7 +11,7 @@ from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.types.activity import ActivityType
@@ -145,11 +145,11 @@ def reprocess_group(
 @retry
 def handle_remaining_events(
     project_id: int,
-    new_group_id: str,
+    new_group_id: int,
     remaining_events: str,
     # TODO(markus): Should be mandatory arguments.
     event_ids_redis_key: str | None = None,
-    old_group_id: str | None = None,
+    old_group_id: int | None = None,
     # TODO(markus): Deprecated arguments, can remove in next version.
     event_ids: Sequence[str] | None = None,
     from_timestamp: datetime | None = None,
@@ -244,7 +244,8 @@ def finish_reprocessing(project_id: int, group_id: int) -> None:
         # to transfer manually.
         # Any activities created during reprocessing (e.g. user clicks "assign" in an old browser tab)
         # are ignored.
-        activity = Activity.objects.get(group_id=group_id, type=ActivityType.REPROCESS.value)
+        activities = Activity.objects.filter(group_id=group_id, type=ActivityType.REPROCESS.value)
+        activity = activities[0]
         new_group_id = activity.group_id = activity.data["newGroupId"]
         activity.save()
 

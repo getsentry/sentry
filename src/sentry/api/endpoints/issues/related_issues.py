@@ -1,5 +1,3 @@
-from typing import Any
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,24 +5,42 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.issues.related import find_related_issues
+from sentry.issues.related import RELATED_ISSUES_ALGORITHMS
 from sentry.models.group import Group
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 @region_silo_endpoint
 class RelatedIssuesEndpoint(GroupEndpoint):
     owner = ApiOwner.ISSUES
     publish_status = {"GET": ApiPublishStatus.EXPERIMENTAL}
-
-    def get(self, _: Request, group: Group) -> Response:
-        related_issues = find_related_issues(group)
-        # Backward compatible for UI
-        response: dict[str, Any] = {
-            related_set["type"]: [int(g.id) for g in related_set["data"]]
-            for related_set in related_issues
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(limit=15, window=5),
+            RateLimitCategory.USER: RateLimit(limit=15, window=5),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=15, window=1),
         }
-        response["data"] = [
-            {"type": related_set["type"], "data": [int(g.id) for g in related_set["data"]]}
-            for related_set in related_issues
-        ]
-        return Response(response)
+    }
+
+    # We get a Group object since the endpoint is /issues/{issue_id}/related-issues
+    def get(self, request: Request, group: Group) -> Response:
+        """
+        Retrieve related issues for a Group
+        ````````````````````````````````````
+        Related issues can be based on the same root cause or trace connected.
+
+        :pparam Request request: the request object
+        :pparam Group group: the group object
+        """
+        # The type of related issues to retrieve. Can be either `same_root_cause` or `trace_connected`.
+        related_type = request.query_params["type"]
+        extra_args = {
+            "event_id": request.query_params.get("event_id"),
+            "project_id": request.query_params.get("project_id"),
+        }
+        try:
+            data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group, extra_args)
+            return Response({"type": related_type, "data": data, "meta": meta})
+        except AssertionError:
+            return Response({}, status=400)

@@ -7,6 +7,7 @@ from unittest import mock
 from unittest.mock import patch
 from urllib.parse import urlencode, urlparse
 
+import orjson
 import pytest
 import responses
 from django.urls import reverse
@@ -21,6 +22,7 @@ from sentry.integrations.github import (
     GitHubIntegrationProvider,
     client,
 )
+from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models.integrations.integration import Integration
@@ -32,8 +34,8 @@ from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
@@ -412,12 +414,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
         self.client.get(init_path_1)
 
-        webhook_event = json.loads(INSTALLATION_EVENT_EXAMPLE)
+        webhook_event = orjson.loads(INSTALLATION_EVENT_EXAMPLE)
         webhook_event["installation"]["id"] = self.installation_id
         webhook_event["sender"]["login"] = "attacker"
         resp = self.client.post(
             path="/extensions/github/webhook/",
-            data=json.dumps(webhook_event),
+            data=orjson.dumps(webhook_event),
             content_type="application/json",
             HTTP_X_GITHUB_EVENT="installation",
             HTTP_X_HUB_SIGNATURE="sha1=d184e6717f8bfbcc291ebc8c0756ee446c6c9486",
@@ -499,7 +501,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
         # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
@@ -514,7 +518,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
@@ -531,7 +537,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.assert_setup_flow()
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
 
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories()
@@ -561,7 +569,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/1234567/README.md"
@@ -589,7 +599,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -620,7 +632,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         ).delete()
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -652,7 +666,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.com/Test-Organization/foo/blob/master/README.md"
@@ -661,7 +677,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
     def test_get_message_from_error(self):
         self.assert_setup_flow()
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
         base_error = f"Error Communicating with GitHub (HTTP 404): {API_ERRORS[404]}"
         assert (
             installation.message_from_error(
@@ -771,12 +789,14 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.GET, "https://api.github.com/rate_limit", json=response_json, status=status
         )
 
-    def get_installation_helper(self):
+    def get_installation_helper(self) -> GitHubIntegration:
         with self.tasks():
             self.assert_setup_flow()  # This somehow creates the integration
 
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
         return installation
 
     def _expected_trees(self, repo_info_list=None):
@@ -992,7 +1012,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
             )
 
         self.set_rate_limit()
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubIntegration, integration, self.organization.id
+        )
 
         file = SourceLineInfo(
             path="src/github.py",

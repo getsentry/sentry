@@ -20,9 +20,10 @@ import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectCo
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization, Project} from 'sentry/types';
 import type {CustomRepo} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
@@ -302,7 +303,7 @@ export default CustomRepositories;
 const DropDownLabel = styled(MenuItem)`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
   span {
     padding: 0;

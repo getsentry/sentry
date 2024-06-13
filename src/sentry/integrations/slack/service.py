@@ -2,19 +2,60 @@ from __future__ import annotations
 
 from logging import Logger, getLogger
 
+import orjson
+from slack_sdk.errors import SlackApiError
+
+from sentry import features
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
 )
 from sentry.integrations.slack import BlockSlackMessageBuilder, SlackClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.threads.activity_notifications import (
+    AssignedActivityNotification,
+    ExternalIssueCreatedActivityNotification,
+)
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
-from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
-from sentry.types.integrations import ExternalProviderEnum
+from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
+from sentry.notifications.notifications.activity.base import ActivityNotification
+from sentry.notifications.notifications.activity.escalating import EscalatingActivityNotification
+from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
+from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
+from sentry.notifications.notifications.activity.resolved import ResolvedActivityNotification
+from sentry.notifications.notifications.activity.resolved_in_release import (
+    ResolvedInReleaseActivityNotification,
+)
+from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
+from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
+from sentry.types.activity import ActivityType
 
 _default_logger = getLogger(__name__)
+
+
+DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS: dict[
+    ActivityType, type[ActivityNotification]
+] = {
+    ActivityType.ASSIGNED: AssignedActivityNotification,
+    ActivityType.DEPLOY: ReleaseActivityNotification,
+    ActivityType.SET_REGRESSION: RegressionActivityNotification,
+    ActivityType.SET_RESOLVED: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_BY_AGE: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_IN_COMMIT: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_IN_PULL_REQUEST: ResolvedActivityNotification,
+    ActivityType.SET_RESOLVED_IN_RELEASE: ResolvedInReleaseActivityNotification,
+    ActivityType.UNASSIGNED: UnassignedActivityNotification,
+    ActivityType.SET_ESCALATING: EscalatingActivityNotification,
+    ActivityType.SET_IGNORED: ArchiveActivityNotification,
+    ActivityType.SET_UNRESOLVED: UnresolvedActivityNotification,
+    ActivityType.CREATE_ISSUE: ExternalIssueCreatedActivityNotification,
+}
 
 
 class RuleDataError(Exception):
@@ -35,10 +76,12 @@ class SlackService:
         self,
         notification_message_repository: IssueAlertNotificationMessageRepository,
         message_block_builder: BlockSlackMessageBuilder,
+        activity_thread_notification_handlers: dict[ActivityType, type[ActivityNotification]],
         logger: Logger,
     ) -> None:
         self._notification_message_repository = notification_message_repository
         self._slack_block_builder = message_block_builder
+        self._activity_thread_notification_handlers = activity_thread_notification_handlers
         self._logger = logger
 
     @classmethod
@@ -46,6 +89,7 @@ class SlackService:
         return SlackService(
             notification_message_repository=get_default_issue_alert_repository(),
             message_block_builder=BlockSlackMessageBuilder(),
+            activity_thread_notification_handlers=DEFAULT_SUPPORTED_ACTIVITY_THREAD_NOTIFICATION_HANDLERS,
             logger=_default_logger,
         )
 
@@ -75,6 +119,22 @@ class SlackService:
             )
             return None
 
+        organization_id = activity.group.organization.id
+        # If the feature is turned off for the organization, exit early as there's nothing to do
+        if not OrganizationOption.objects.get_value(
+            organization=activity.group.organization,
+            key="sentry:issue_alerts_thread_flag",
+            default=ISSUE_ALERTS_THREAD_DEFAULT,
+        ):
+            self._logger.info(
+                "feature is turned off for this organization",
+                extra={
+                    "activity_id": activity.id,
+                    "organization_id": organization_id,
+                    "project_id": activity.project.id,
+                },
+            )
+            return None
         # The same message is sent to all the threads, so this needs to only happen once
         notification_to_send = self._get_notification_message_to_send(activity=activity)
         if not notification_to_send:
@@ -87,7 +147,7 @@ class SlackService:
             return None
 
         integration = get_active_integration_for_organization(
-            organization_id=activity.group.organization.id,
+            organization_id=organization_id,
             provider=ExternalProviderEnum.SLACK,
         )
         if integration is None:
@@ -95,13 +155,17 @@ class SlackService:
                 "no integration found for activity",
                 extra={
                     "activity_id": activity.id,
-                    "organization_id": activity.project.organization_id,
+                    "organization_id": organization_id,
                     "project_id": activity.project.id,
                 },
             )
             return None
 
-        slack_client = SlackClient(integration_id=integration.id)
+        slack_client: SlackClient | SlackSdkClient = SlackClient(integration_id=integration.id)
+        if features.has(
+            "organizations:slack-sdk-activity-threads", organization=activity.group.organization
+        ):
+            slack_client = SlackSdkClient(integration_id=integration.id)
 
         # Get all parent notifications, which will have the message identifier to use to reply in a thread
         parent_notifications = (
@@ -133,7 +197,7 @@ class SlackService:
         self,
         parent_notification: IssueAlertNotificationMessage,
         notification_to_send: str,
-        client: SlackClient,
+        client: SlackClient | SlackSdkClient,
     ) -> None:
         # For each parent notification, we need to get the channel that the notification is replied to
         # Get the channel by using the action uuid
@@ -166,20 +230,40 @@ class SlackService:
             block, fallback_text=notification_to_send
         )
         payload.update(slack_payload)
-        try:
-            client.post("/chat.postMessage", data=payload, timeout=5)
-        except Exception as err:
-            self._logger.info(
-                "failed to post message to slack",
-                extra={
-                    "error": str(err),
-                    "payload": payload,
-                    "channel": channel_id,
-                    "thread_ts": parent_notification.message_identifier,
-                    "rule_action_uuid": parent_notification.rule_action_uuid,
-                },
-            )
-            raise
+        # TODO (Yash): Users should not have to remember to do this, interface should handle serializing the field
+        json_blocks = orjson.dumps(payload.get("blocks")).decode()
+        payload["blocks"] = json_blocks
+
+        extra = {
+            "channel": channel_id,
+            "thread_ts": parent_notification.message_identifier,
+            "rule_action_uuid": parent_notification.rule_action_uuid,
+        }
+
+        if isinstance(client, SlackClient):
+            try:
+                client.post("/chat.postMessage", data=payload, timeout=5)
+            except Exception as err:
+                self._logger.info(
+                    "failed to post message to slack",
+                    extra={"error": str(err), "payload": payload, **extra},
+                )
+                raise
+        else:
+            try:
+                client.chat_postMessage(
+                    channel=channel_id,
+                    thread_ts=parent_notification.message_identifier,
+                    text=notification_to_send,
+                    blocks=json_blocks,
+                )
+                self._logger.info("successfully posted message to slack with sdk", extra=extra)
+            except SlackApiError as err:
+                self._logger.info(
+                    "failed to post message to slack",
+                    extra={"error": str(err), "blocks": json_blocks, **extra},
+                )
+                raise
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
         """
@@ -187,7 +271,21 @@ class SlackService:
 
         Apparently the get_context is a very computation heavy call, so make sure to only call this once.
         """
-        notification_cls = EMAIL_CLASSES_BY_TYPE.get(activity.type, None)
+        try:
+            activity_type: ActivityType = ActivityType(activity.type)
+        except ValueError as err:
+            self._logger.info(
+                "there was an error trying to get activity type, assuming activity is unsupported",
+                exc_info=err,
+                extra={
+                    "error": str(err),
+                    "activity_id": activity.id,
+                    "activity_type": activity.type,
+                },
+            )
+            return None
+
+        notification_cls = self._activity_thread_notification_handlers.get(activity_type, None)
         if not notification_cls:
             self._logger.info(
                 "activity type is not currently supported",

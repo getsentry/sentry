@@ -85,7 +85,7 @@ const StyledButton = styled(Button)<StyledButtonProps>`
   z-index: 2;
 
   ${p => (p.isOpen || p.disabled) && 'box-shadow: none;'}
-  ${p => p.hasPrefix && `${ButtonLabel} {font-weight: 400;}`}
+  ${p => p.hasPrefix && `${ButtonLabel} {font-weight: ${p.theme.fontWeightNormal};}`}
 `;
 
 const LabelText = styled('span')`
@@ -93,7 +93,7 @@ const LabelText = styled('span')`
     content: ':';
   }
 
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   padding-right: ${space(0.75)};
 `;
 

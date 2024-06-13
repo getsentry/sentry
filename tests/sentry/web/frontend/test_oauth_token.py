@@ -176,6 +176,33 @@ class OAuthTokenCodeTest(TestCase):
         assert resp.status_code == 400
         assert json.loads(resp.content) == {"error": "invalid_grant"}
 
+    def test_one_time_use_grant(self):
+        self.login_as(self.user)
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 200
+
+        # attempt to re-use the same grant code
+        resp = self.client.post(
+            self.path,
+            {
+                "grant_type": "authorization_code",
+                "redirect_uri": self.application.get_default_redirect_uri(),
+                "code": self.grant.code,
+                "client_id": self.application.client_id,
+                "client_secret": self.client_secret,
+            },
+        )
+        assert resp.status_code == 400
+
     def test_invalid_redirect_uri(self):
         self.login_as(self.user)
 
@@ -439,6 +466,8 @@ class OAuthTokenRefreshTokenTest(TestCase):
         assert token2.application == self.token.application
         assert token2.user == self.token.user
         assert token2.get_scopes() == self.token.get_scopes()
+        assert self.token.expires_at is not None
+        assert token2.expires_at is not None
         assert token2.expires_at > self.token.expires_at
         assert token2.token != self.token.token
         assert token2.refresh_token != self.token.refresh_token

@@ -1,14 +1,16 @@
 import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {OrganizationStats, PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
 import {ChartDataTransform} from './usageChart';
@@ -25,10 +27,9 @@ describe('OrganizationStats', function () {
     },
   };
   const projects = ['1', '2', '3'].map(id => ProjectFixture({id, slug: `proj-${id}`}));
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     organization: {features: ['global-views', 'team-insights']},
     projects,
-    project: undefined,
     router: undefined,
   });
   const endpoint = `/organizations/${organization.slug}/stats_v2/`;
@@ -55,6 +56,8 @@ describe('OrganizationStats', function () {
       url: endpoint,
       body: mockStatsResponse,
     });
+    ConfigStore.init();
+    ConfigStore.set('user', UserFixture());
   });
 
   afterEach(() => {
@@ -67,13 +70,13 @@ describe('OrganizationStats', function () {
   it('renders header state without tabs', async () => {
     const newOrg = initializeOrg();
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
     });
     expect(await screen.findByText('Organization Usage Stats')).toBeInTheDocument();
   });
 
   it('renders header state with tabs', async () => {
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
     expect(await screen.findByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Usage')).toBeInTheDocument();
     expect(screen.getByText('Issues')).toBeInTheDocument();
@@ -84,7 +87,7 @@ describe('OrganizationStats', function () {
    * Base + Error Handling
    */
   it('renders the base view', async () => {
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
@@ -146,7 +149,7 @@ describe('OrganizationStats', function () {
       url: endpoint,
       statusCode: 500,
     });
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
@@ -160,18 +163,27 @@ describe('OrganizationStats', function () {
       statusCode: 400,
       body: {detail: 'No projects available'},
     });
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
+  it('renders with just errors category for errors-only self-hosted', async () => {
+    ConfigStore.set('isSelfHostedErrorsOnly', true);
+    render(<OrganizationStats {...defaultProps} />, {router});
+    await userEvent.click(await screen.findByText('Category'));
+    // Shows only errors as stats category
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('option', {name: 'Errors'})).toBeInTheDocument();
+  });
+
   /**
    * Router Handling
    */
   it('pushes state changes to the route', async () => {
-    render(<OrganizationStats {...defaultProps} />, {context: routerContext});
+    render(<OrganizationStats {...defaultProps} />, {router});
 
     await userEvent.click(await screen.findByText('Category'));
     await userEvent.click(screen.getByText('Attachments'));
@@ -215,7 +227,7 @@ describe('OrganizationStats', function () {
       {query: {}}
     );
     render(<OrganizationStats {...defaultProps} location={dummyLocation as any} />, {
-      context: routerContext,
+      router,
     });
 
     const projectLinks = await screen.findAllByTestId('badge-display-name');
@@ -234,14 +246,10 @@ describe('OrganizationStats', function () {
    */
   it('renders single project without global-views', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['team-insights'];
 
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
       organization: newOrg.organization,
     });
 
@@ -252,15 +260,10 @@ describe('OrganizationStats', function () {
 
   it('renders default projects with global-views', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
     OrganizationStore.onUpdate(newOrg.organization, {replace: true});
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
       organization: newOrg.organization,
     });
 
@@ -280,12 +283,7 @@ describe('OrganizationStats', function () {
 
   it('renders with multiple projects selected', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
 
     const selectedProjects = [1, 2];
     const newSelection = {
@@ -300,7 +298,7 @@ describe('OrganizationStats', function () {
         selection={newSelection}
       />,
       {
-        context: newOrg.routerContext,
+        router: newOrg.router,
         organization: newOrg.organization,
       }
     );
@@ -326,12 +324,7 @@ describe('OrganizationStats', function () {
 
   it('renders with a single project selected', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
     const selectedProject = [1];
     const newSelection = {
       ...defaultSelection,
@@ -345,7 +338,7 @@ describe('OrganizationStats', function () {
         selection={newSelection}
       />,
       {
-        context: newOrg.routerContext,
+        router: newOrg.router,
         organization: newOrg.organization,
       }
     );
@@ -372,14 +365,9 @@ describe('OrganizationStats', function () {
 
   it('renders a project when its graph icon is clicked', async () => {
     const newOrg = initializeOrg();
-    newOrg.organization.features = [
-      'global-views',
-      'team-insights',
-      // TODO(Leander): Remove the following check once the project-stats flag is GA
-      'project-stats',
-    ];
+    newOrg.organization.features = ['global-views', 'team-insights'];
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
-      context: newOrg.routerContext,
+      router: newOrg.router,
       organization: newOrg.organization,
     });
     await userEvent.click(screen.getByTestId('proj-1'));
@@ -396,7 +384,7 @@ describe('OrganizationStats', function () {
       ...defaultSelection,
       projects: selectedProject,
     };
-    for (const features of [['team-insights'], ['team-insights', 'project-stats']]) {
+    for (const features of [['team-insights'], ['team-insights']]) {
       const newOrg = initializeOrg();
       newOrg.organization.features = features;
       render(
@@ -406,7 +394,7 @@ describe('OrganizationStats', function () {
           selection={newSelection}
         />,
         {
-          context: newOrg.routerContext,
+          router: newOrg.router,
           organization: newOrg.organization,
         }
       );

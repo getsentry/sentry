@@ -43,8 +43,8 @@ enum SortBy {
 }
 
 enum SourceMapsBundleType {
-  RELEASE,
-  DEBUG_ID,
+  RELEASE = 0,
+  DEBUG_ID = 1,
 }
 
 function SourceMapsTableRow({

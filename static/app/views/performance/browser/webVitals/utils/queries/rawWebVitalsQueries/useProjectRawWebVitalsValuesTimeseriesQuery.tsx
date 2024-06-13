@@ -1,5 +1,5 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -10,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/browser/webVitals/settings';
 
 type Props = {
   datetime?: PageFilters['datetime'];
@@ -40,13 +41,7 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'count_scores(measurements.score.inp)',
       ],
       name: 'Web Vitals',
-      query: [
-        'transaction.op:[pageload,""]',
-        'span.op:[ui.interaction.click,""]',
-        search.formatString(),
-      ]
-        .join(' ')
-        .trim(),
+      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),

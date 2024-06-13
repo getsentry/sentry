@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from dateutil.parser import parse as parse_date
@@ -34,13 +35,12 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
 from sentry.signals import project_created
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -83,7 +83,9 @@ class MockAccess:
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
-        response = self.get_success_response(self.organization.slug)
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
 
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
@@ -97,10 +99,21 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert len(response.data["projects"]) == 0
         assert "customer-domains" not in response.data["features"]
 
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
+
     def test_simple_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}.testserver"
         response = self.get_success_response(
-            self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+            self.organization.slug,
+            extra_headers={"HTTP_HOST": HTTP_HOST},
+            qs_params={"include_feature_flags": 1},
         )
 
         assert response.data["slug"] == self.organization.slug
@@ -118,7 +131,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         with self.feature({"organizations:customer-domains": False}):
             HTTP_HOST = f"{self.organization.slug}.testserver"
             response = self.get_success_response(
-                self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+                self.organization.slug,
+                extra_headers={"HTTP_HOST": HTTP_HOST},
+                qs_params={"include_feature_flags": 1},
             )
             assert "customer-domains" in response.data["features"]
 
@@ -344,6 +359,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert org.name == "hello world"
         assert org.slug == "foobar"
 
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
+
     def test_dupe_slug(self):
         org = self.create_organization(owner=self.user, slug="duplicate")
 
@@ -426,6 +450,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "allowJoinRequests": False,
             "aggregatedDataConsent": True,
             "genAIConsent": True,
+            "issueAlertsThreadFlag": False,
+            "metricAlertsThreadFlag": False,
+            "metricsActivatePercentiles": True,
+            "metricsActivateLastForGauges": True,
         }
 
         # needed to set require2FA
@@ -459,6 +487,8 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:metrics_activate_percentiles") is True
+        assert options.get("sentry:metrics_activate_last_for_gauges") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -489,6 +519,16 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
         assert "to {}".format(data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
         assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
+        assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
+        assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
+        assert (
+            "to {}".format(data["metricsActivatePercentiles"])
+            in log.data["metricsActivatePercentiles"]
+        )
+        assert (
+            "to {}".format(data["metricsActivateLastForGauges"])
+            in log.data["metricsActivateLastForGauges"]
+        )
 
     @responses.activate
     @patch(
@@ -556,7 +596,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         response_data = response.data.get("trustedRelays")
         assert response_data is not None
-        resp_str = json.dumps(response_data)
+        resp_str = orjson.dumps(response_data).decode()
         # check that we have the duplicate key specified somewhere in the error message
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 

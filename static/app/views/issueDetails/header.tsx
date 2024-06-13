@@ -4,12 +4,12 @@ import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import Count from 'sentry/components/count';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
@@ -20,7 +20,7 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Organization, Project} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
@@ -57,11 +57,16 @@ function GroupHeaderTabs({
   project,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
+  const location = useLocation();
 
   const {getReplayCountForIssue} = useReplayCountForIssues({
     statsPeriod: '90d',
   });
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory);
+
+  // omit `sort` param from the URLs because it persists from the issues list,
+  // which can cause the tab content rendering to break
+  const queryParams = omit(location.query, ['sort']);
 
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
@@ -69,7 +74,8 @@ function GroupHeaderTabs({
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasReplaySupport =
-    organizationFeatures.has('session-replay') && projectCanLinkToReplay(project);
+    organizationFeatures.has('session-replay') &&
+    projectCanLinkToReplay(organization, project);
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -90,7 +96,7 @@ function GroupHeaderTabs({
         key={Tab.ACTIVITY}
         textValue={t('Activity')}
         disabled={disabledTabs.includes(Tab.ACTIVITY)}
-        to={`${baseUrl}activity/${location.search}`}
+        to={{pathname: `${baseUrl}activity/`, query: queryParams}}
       >
         {t('Activity')}
         <IconBadge>
@@ -103,7 +109,7 @@ function GroupHeaderTabs({
         textValue={t('User Feedback')}
         hidden={!issueTypeConfig.userFeedback.enabled}
         disabled={disabledTabs.includes(Tab.USER_FEEDBACK)}
-        to={`${baseUrl}feedback/${location.search}`}
+        to={{pathname: `${baseUrl}feedback/`, query: queryParams}}
       >
         {t('User Feedback')} <Badge text={group.userReportCount} />
       </TabList.Item>
@@ -111,7 +117,7 @@ function GroupHeaderTabs({
         key={Tab.ATTACHMENTS}
         hidden={!hasEventAttachments || !issueTypeConfig.attachments.enabled}
         disabled={disabledTabs.includes(Tab.ATTACHMENTS)}
-        to={`${baseUrl}attachments/${location.search}`}
+        to={{pathname: `${baseUrl}attachments/`, query: queryParams}}
       >
         {t('Attachments')}
       </TabList.Item>
@@ -119,7 +125,7 @@ function GroupHeaderTabs({
         key={Tab.TAGS}
         hidden={!issueTypeConfig.tags.enabled}
         disabled={disabledTabs.includes(Tab.TAGS)}
-        to={`${baseUrl}tags/${location.search}`}
+        to={{pathname: `${baseUrl}tags/`, query: queryParams}}
       >
         {t('Tags')}
       </TabList.Item>
@@ -137,22 +143,15 @@ function GroupHeaderTabs({
         key={Tab.MERGED}
         hidden={!issueTypeConfig.mergedIssues.enabled}
         disabled={disabledTabs.includes(Tab.MERGED)}
-        to={`${baseUrl}merged/${location.search}`}
+        to={{pathname: `${baseUrl}merged/`, query: queryParams}}
       >
         {t('Merged Issues')}
-      </TabList.Item>
-      <TabList.Item
-        key={Tab.RELATED_ISSUES}
-        hidden={!organizationFeatures.has('related-issues')}
-        to={`${baseUrl}related/${location.search}`}
-      >
-        {t('Related Issues')}
       </TabList.Item>
       <TabList.Item
         key={Tab.SIMILAR_ISSUES}
         hidden={!hasSimilarView || !issueTypeConfig.similarIssues.enabled}
         disabled={disabledTabs.includes(Tab.SIMILAR_ISSUES)}
-        to={`${baseUrl}similar/${location.search}`}
+        to={{pathname: `${baseUrl}similar/`, query: queryParams}}
       >
         {t('Similar Issues')}
       </TabList.Item>
@@ -160,7 +159,7 @@ function GroupHeaderTabs({
         key={Tab.REPLAYS}
         textValue={t('Replays')}
         hidden={!hasReplaySupport || !issueTypeConfig.replays.enabled}
-        to={`${baseUrl}replays/${location.search}`}
+        to={{pathname: `${baseUrl}replays/`, query: queryParams}}
       >
         {t('Replays')}
         <ReplayCountBadge count={replaysCount} />
@@ -180,12 +179,6 @@ function GroupHeader({
   const location = useLocation();
 
   const disabledTabs = useMemo(() => {
-    const hasReprocessingV2Feature = organization.features.includes('reprocessing-v2');
-
-    if (!hasReprocessingV2Feature) {
-      return [];
-    }
-
     if (groupReprocessingStatus === ReprocessingStatus.REPROCESSING) {
       return [
         Tab.ACTIVITY,
@@ -211,7 +204,7 @@ function GroupHeader({
     }
 
     return [];
-  }, [organization, groupReprocessingStatus]);
+  }, [groupReprocessingStatus]);
 
   const eventRoute = useMemo(() => {
     const searchTermWithoutQuery = omit(location.query, 'query');

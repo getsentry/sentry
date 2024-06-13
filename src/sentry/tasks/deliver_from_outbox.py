@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable
+from typing import Any
 
 import sentry_sdk
 from celery import Task
@@ -22,8 +22,8 @@ from sentry.utils.env import in_test_environment
     silo_mode=SiloMode.CONTROL,
 )
 def enqueue_outbox_jobs_control(
-    concurrency: int | None = None, process_outbox_backfills=True, **kwargs
-):
+    concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
+) -> None:
     schedule_batch(
         silo_mode=SiloMode.CONTROL,
         drain_task=drain_outbox_shards_control,
@@ -35,7 +35,9 @@ def enqueue_outbox_jobs_control(
 @instrumented_task(
     name="sentry.tasks.enqueue_outbox_jobs", queue="outbox", silo_mode=SiloMode.REGION
 )
-def enqueue_outbox_jobs(concurrency: int | None = None, process_outbox_backfills=True, **kwargs):
+def enqueue_outbox_jobs(
+    concurrency: int | None = None, process_outbox_backfills: bool = True, **kwargs: Any
+) -> None:
     schedule_batch(
         silo_mode=SiloMode.REGION,
         drain_task=drain_outbox_shards,
@@ -55,10 +57,10 @@ CONCURRENCY = 5
 
 def schedule_batch(
     silo_mode: SiloMode,
-    drain_task: Task | Callable,
+    drain_task: Task,
     concurrency: int | None = None,
     process_outbox_backfills=True,
-):
+) -> None:
     scheduled_count = 0
 
     if not concurrency:
@@ -96,7 +98,7 @@ def schedule_batch(
 
             deepest_shard_information = outbox_model.get_shard_depths_descending(limit=1)
             max_shard_depth = (
-                deepest_shard_information[0]["depth"] if deepest_shard_information else 0
+                float(deepest_shard_information[0]["depth"]) if deepest_shard_information else 0.0
             )
             metrics.gauge(
                 "deliver_from_outbox.maximum_shard_depth",
@@ -127,7 +129,7 @@ def drain_outbox_shards(
     outbox_identifier_low: int = 0,
     outbox_identifier_hi: int = 0,
     outbox_name: str | None = None,
-):
+) -> None:
     try:
         if outbox_name is None:
             outbox_name = settings.SENTRY_OUTBOX_MODELS["REGION"][0]
@@ -150,7 +152,7 @@ def drain_outbox_shards_control(
     outbox_identifier_low: int = 0,
     outbox_identifier_hi: int = 0,
     outbox_name: str | None = None,
-):
+) -> None:
     try:
         if outbox_name is None:
             outbox_name = settings.SENTRY_OUTBOX_MODELS["CONTROL"][0]

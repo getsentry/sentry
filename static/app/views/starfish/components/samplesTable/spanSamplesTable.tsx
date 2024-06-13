@@ -1,31 +1,29 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {LinkButton} from 'sentry/components/button';
 import type {GridColumnHeader} from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons/iconProfiling';
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DurationComparisonCell} from 'sentry/views/starfish/components/samplesTable/common';
 import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
+import FilenameCell from 'sentry/views/starfish/components/tableCells/filenameCell';
 import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
 import {
   OverflowEllipsisTextContainer,
   TextAlignRight,
 } from 'sentry/views/starfish/components/textAlign';
 import type {SpanSample} from 'sentry/views/starfish/queries/useSpanSamples';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Keys =
   | 'transaction_id'
@@ -35,7 +33,8 @@ type Keys =
   | 'duration'
   | 'p95_comparison'
   | 'avg_comparison'
-  | 'http.response_content_length';
+  | 'http.response_content_length'
+  | 'span.description';
 export type SamplesTableColumnHeader = GridColumnHeader<Keys>;
 
 export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
@@ -58,33 +57,39 @@ export const DEFAULT_COLUMN_ORDER: SamplesTableColumnHeader[] = [
 
 type SpanTableRow = {
   op: string;
+  trace: string;
   transaction: {
-    id: string;
     'project.name': string;
     timestamp: string;
-    trace: string;
     'transaction.duration': number;
   };
+  'transaction.id': string;
 } & SpanSample;
 
 type Props = {
   avg: number;
   data: SpanTableRow[];
+  groupId: string;
   isLoading: boolean;
+  moduleName: ModuleName;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  source?: string;
 };
 
 export function SpanSamplesTable({
+  groupId,
   isLoading,
   data,
   avg,
+  moduleName,
   highlightedSpanId,
   onMouseLeaveSample,
   onMouseOverSample,
   columnOrder,
+  source,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -93,7 +98,8 @@ export function SpanSamplesTable({
     if (
       column.key === 'p95_comparison' ||
       column.key === 'avg_comparison' ||
-      column.key === 'duration'
+      column.key === 'duration' ||
+      column.key === HTTP_RESPONSE_CONTENT_LENGTH
     ) {
       return (
         <TextAlignRight>
@@ -110,19 +116,20 @@ export function SpanSamplesTable({
       return (
         <Link
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({
-              id: row['transaction.id'],
-              project: row.project,
-            }),
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.trace,
+            projectSlug: row.project,
             organization,
-            location,
-            eventView: EventView.fromLocation(location),
-            dataRow: {
-              id: row['transaction.id'],
-              trace: row.transaction?.trace,
-              timestamp: row.timestamp,
+            location: {
+              ...location,
+              query: {
+                ...location.query,
+                groupId,
+              },
             },
             spanId: row.span_id,
+            source,
           })}
         >
           {row['transaction.id'].slice(0, 8)}
@@ -133,20 +140,27 @@ export function SpanSamplesTable({
     if (column.key === 'span_id') {
       return (
         <Link
+          onClick={() =>
+            trackAnalytics('performance_views.sample_spans.span_clicked', {
+              organization,
+              source: moduleName,
+            })
+          }
           to={generateLinkToEventInTraceView({
-            eventSlug: generateEventSlug({
-              id: row['transaction.id'],
-              project: row.project,
-            }),
+            eventId: row['transaction.id'],
+            timestamp: row.timestamp,
+            traceSlug: row.trace,
+            projectSlug: row.project,
             organization,
-            location,
-            eventView: EventView.fromLocation(location),
-            dataRow: {
-              id: row['transaction.id'],
-              trace: row.transaction?.trace,
-              timestamp: row.timestamp,
+            location: {
+              ...location,
+              query: {
+                ...location.query,
+                groupId,
+              },
             },
             spanId: row.span_id,
+            source,
           })}
         >
           {row.span_id}
@@ -157,6 +171,10 @@ export function SpanSamplesTable({
     if (column.key === HTTP_RESPONSE_CONTENT_LENGTH) {
       const size = parseInt(row[HTTP_RESPONSE_CONTENT_LENGTH], 10);
       return <ResourceSizeCell bytes={size} />;
+    }
+
+    if (column.key === SPAN_DESCRIPTION) {
+      return <FilenameCell url={row[SPAN_DESCRIPTION]} />;
     }
 
     if (column.key === 'profile_id') {
@@ -209,7 +227,6 @@ export function SpanSamplesTable({
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location}
     />
   );
 }

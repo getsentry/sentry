@@ -1,5 +1,4 @@
 import {MemberFixture} from 'sentry-fixture/member';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -8,28 +7,20 @@ import MemberBadge from 'sentry/components/idBadge/memberBadge';
 
 describe('MemberBadge', function () {
   let member;
-  const routerContext = RouterContextFixture();
   beforeEach(() => {
     member = MemberFixture();
   });
 
   it('renders with link when member and orgId are supplied', function () {
-    render(<MemberBadge member={member} orgId="orgId" />, {context: routerContext});
+    render(<MemberBadge member={member} />);
 
     expect(screen.getByTestId('letter_avatar-avatar')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Foo Bar'})).toBeInTheDocument();
     expect(screen.getByText('foo@example.com')).toBeInTheDocument();
   });
 
-  it('does not use a link when useLink = false', function () {
-    render(<MemberBadge member={member} useLink={false} orgId="orgId" />);
-
-    expect(screen.queryByRole('link', {name: 'Foo Bar'})).not.toBeInTheDocument();
-    expect(screen.getByText('Foo Bar')).toBeInTheDocument();
-  });
-
-  it('does not use a link when orgId = null', function () {
-    render(<MemberBadge member={member} useLink />);
+  it('does not use a link when disableLink', function () {
+    render(<MemberBadge member={member} disableLink />);
 
     expect(screen.queryByRole('link', {name: 'Foo Bar'})).not.toBeInTheDocument();
     expect(screen.getByText('Foo Bar')).toBeInTheDocument();

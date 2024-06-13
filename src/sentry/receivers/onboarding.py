@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -25,6 +25,7 @@ from sentry.signals import (
     event_processed,
     first_cron_checkin_received,
     first_cron_monitor_created,
+    first_custom_metric_received,
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
@@ -83,6 +84,9 @@ def record_new_project(project, user=None, user_id=None, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
+        updated_empty_state=features.has(
+            "organizations:issue-stream-empty-state", project.organization
+        ),
     )
 
     success = OrganizationOnboardingTask.objects.record(
@@ -315,6 +319,19 @@ def record_first_cron_checkin(project, monitor_id, **kwargs):
     )
 
 
+@first_custom_metric_received.connect(weak=False)
+def record_first_custom_metric(project, **kwargs):
+    project.update(flags=F("flags").bitor(Project.flags.has_custom_metrics))
+
+    analytics.record(
+        "first_custom_metric.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+    )
+
+
 @member_invited.connect(weak=False)
 def record_member_invited(member, user, **kwargs):
     OrganizationOnboardingTask.objects.record(
@@ -361,9 +378,9 @@ def record_release_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        try:
-            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-        except IndexError:
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        owner_id = organization.default_owner_id
+        if not owner_id:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -372,7 +389,7 @@ def record_release_received(project, event, **kwargs):
 
         analytics.record(
             "first_release_tag.sent",
-            user_id=user.id if user else None,
+            user_id=owner_id,
             project_id=project.id,
             organization_id=project.organization_id,
         )
@@ -398,11 +415,9 @@ def record_user_context_received(project, event, **kwargs):
             project_id=project.id,
         )
         if success:
-            try:
-                user: RpcUser = Organization.objects.get(
-                    id=project.organization_id
-                ).get_default_owner()
-            except IndexError:
+            organization = Organization.objects.get_from_cache(id=project.organization_id)
+            owner_id = organization.default_owner_id
+            if not owner_id:
                 logger.warning(
                     "Cannot record user context received for organization (%s) due to missing owners",
                     project.organization_id,
@@ -411,7 +426,7 @@ def record_user_context_received(project, event, **kwargs):
 
             analytics.record(
                 "first_user_context.sent",
-                user_id=user.id if user else None,
+                user_id=owner_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
             )
@@ -423,9 +438,9 @@ event_processed.connect(record_user_context_received, weak=False)
 
 @first_event_with_minified_stack_trace_received.connect(weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
-    try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-    except IndexError:
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    owner_id = organization.default_owner_id
+    if not owner_id:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
             project.organization_id,
@@ -447,7 +462,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
         ):
             analytics.record(
                 "first_event_with_minified_stack_trace_for_project.sent",
-                user_id=user.id if user else None,
+                user_id=owner_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
@@ -471,9 +486,9 @@ def record_sourcemaps_received(project, event, **kwargs):
         project_id=project.id,
     )
     if success:
-        try:
-            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-        except IndexError:
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        owner_id = organization.default_owner_id
+        if not owner_id:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
                 project.organization_id,
@@ -481,7 +496,7 @@ def record_sourcemaps_received(project, event, **kwargs):
             return
         analytics.record(
             "first_sourcemaps.sent",
-            user_id=user.id if user else None,
+            user_id=owner_id,
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
@@ -496,9 +511,9 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
     if not has_sourcemap(event):
         return
 
-    try:
-        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
-    except IndexError:
+    organization = Organization.objects.get_from_cache(id=project.organization_id)
+    owner_id = organization.default_owner_id
+    if not owner_id:
         logger.warning(
             "Cannot record sourcemaps received for organization (%s) due to missing owners",
             project.organization_id,
@@ -517,7 +532,7 @@ def record_sourcemaps_received_for_project(project, event, **kwargs):
         if project.date_added > START_DATE_TRACKING_FIRST_SOURCEMAP_PER_PROJ and affected > 0:
             analytics.record(
                 "first_sourcemaps_for_project.sent",
-                user_id=user.id if user else None,
+                user_id=owner_id,
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
@@ -555,7 +570,9 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
 
 
 @alert_rule_created.connect(weak=False)
-def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
+def record_alert_rule_created(user, project: Project, rule_type: str, **kwargs):
+    # NOTE: This intentionally does not fire for the default issue alert rule
+    # that gets created on new project creation.
     task = OnboardingTask.METRIC_ALERT if rule_type == "metric" else OnboardingTask.ALERT_RULE
     rows_affected, created = OrganizationOnboardingTask.objects.create_or_update(
         organization_id=project.organization_id,

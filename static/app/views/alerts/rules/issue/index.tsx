@@ -1,7 +1,6 @@
 import type {ChangeEvent, ReactNode} from 'react';
 import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -47,7 +46,6 @@ import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
-import {OnboardingTaskKey} from 'sentry/types';
 import type {
   IssueAlertConfiguration,
   IssueAlertRule,
@@ -60,7 +58,9 @@ import {
   IssueAlertConditionType,
   IssueAlertFilterType,
 } from 'sentry/types/alerts';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -322,7 +322,21 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      const hasHighPriorityIssueAlerts =
+        this.props.organization.features.includes('default-high-priority-alerts') ||
+        this.props.project.features.includes('high-priority-alerts');
+      const isValidPlatform =
+        this.props.project.platform?.startsWith('javascript') ||
+        this.props.project.platform?.startsWith('python');
+
+      if (hasHighPriorityIssueAlerts && isValidPlatform) {
+        this.handleChange('conditions', [
+          {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
+          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
+        ]);
+      } else {
+        this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      }
     }
   }
 
@@ -731,6 +745,16 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       newTypeList.splice(idx, 1);
 
       set(clonedState, `rule[${type}]`, newTypeList);
+
+      const {organization} = this.props;
+      const {project} = this.state;
+      const deletedItem = prevState.rule ? prevState.rule[type][idx] : null;
+      trackAnalytics('edit_alert_rule.delete_row', {
+        organization,
+        project_id: project.id,
+        type,
+        name: deletedItem?.id ?? '',
+      });
       return clonedState;
     });
   };
@@ -1641,7 +1665,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.5;
 `;
 
@@ -1651,7 +1675,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;
 
@@ -1696,7 +1720,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

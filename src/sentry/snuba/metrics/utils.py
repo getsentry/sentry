@@ -193,6 +193,7 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
         EntityKey.GenericMetricsCounters,
         EntityKey.GenericMetricsSets,
         EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
     },
     UseCaseID.TRANSACTIONS: {
         EntityKey.GenericMetricsCounters,

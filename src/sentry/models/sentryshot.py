@@ -7,11 +7,11 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model
-from sentry.db.models.base import region_silo_only_model
+from sentry.db.models.base import region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-@region_silo_only_model
+@region_silo_model
 class SentryShot(Model):
     """
     Represents metadata for a screenshot within Sentry product

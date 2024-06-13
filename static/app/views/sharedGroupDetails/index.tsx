@@ -13,7 +13,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import withApi from 'sentry/utils/withApi';
 
 import {OrganizationContext} from '../organizationContext';

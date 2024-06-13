@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {DashboardWidgetSource} from 'sentry/views/dashboards/types';
 import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
@@ -74,7 +74,7 @@ function mockRequests(orgSlug: Organization['slug']) {
 }
 
 describe('VisualizationStep', function () {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     organization: {
       features: ['dashboards-edit', 'global-views', 'dashboards-mep'],
     },
@@ -117,7 +117,7 @@ describe('VisualizationStep', function () {
         }}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -166,7 +166,7 @@ describe('VisualizationStep', function () {
         }}
       />,
       {
-        context: routerContext,
+        router,
         organization: {
           ...organization,
           features: [...organization.features, 'dynamic-sampling', 'mep-rollout-flag'],
@@ -208,7 +208,7 @@ describe('VisualizationStep', function () {
         }}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -254,7 +254,7 @@ describe('VisualizationStep', function () {
         }}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );

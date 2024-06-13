@@ -48,7 +48,6 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "README",  # no extension
     "ssl.py",
     # XXX: The following will need to be supported
-    "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
     "initialization.dart",
     "backburner.js",
 ]
@@ -128,6 +127,24 @@ class TestFrameFilename:
         for filepath in UNSUPPORTED_FRAME_FILENAMES:
             with pytest.raises(UnsupportedFrameFilename):
                 FrameFilename(filepath)
+
+    @pytest.mark.parametrize(
+        "files,prefixes",
+        [
+            ("FrameFilename('app:///utils/something.py').straight_path_prefix", "app:///"),
+            ("FrameFilename('./app/utils/something.py').straight_path_prefix", "./"),
+            (
+                "FrameFilename('../../../../../../packages/something.py').straight_path_prefix",
+                "../../../../../../",
+            ),
+            (
+                "FrameFilename('app:///../services/something.py').straight_path_prefix",
+                "app:///../",
+            ),
+        ],
+    )
+    def test_straight_path_prefix(self, files, prefixes):
+        assert eval(files) == prefixes
 
 
 class TestDerivedCodeMappings(TestCase):

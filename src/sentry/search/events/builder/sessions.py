@@ -9,11 +9,6 @@ from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import SelectType, WhereType
 
 
-class SessionsQueryBuilder(QueryBuilder):
-    requires_organization_condition = True
-    organization_column: str = "org_id"
-
-
 class SessionsV2QueryBuilder(QueryBuilder):
     filter_allowlist_fields = {"project", "project_id", "environment", "release"}
     requires_organization_condition = True

@@ -1,4 +1,5 @@
 import {useCallback} from 'react';
+import styled from '@emotion/styled';
 
 import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicator';
 import CheckboxField from 'sentry/components/forms/fields/checkboxField';
@@ -6,11 +7,13 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import NarrowLayout from 'sentry/components/narrowLayout';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {OrganizationSummary} from 'sentry/types';
+import HookStore from 'sentry/stores/hookStore';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -33,6 +36,14 @@ function OrganizationCreate() {
   const relocationUrl = normalizeUrl(`/relocation/`);
   const regionChoices = getRegionChoices();
   const client = useApi();
+
+  const DataConsentCheck = HookOrDefault({
+    hookName: 'component:data-consent-org-creation-checkbox',
+    defaultComponent: null,
+  });
+
+  const hasDataConsent =
+    HookStore.get('component:data-consent-org-creation-checkbox').length !== 0;
 
   // This is a trimmed down version of the logic in ApiForm. It validates the
   // form data prior to submitting the request, and overrides the request host
@@ -119,20 +130,23 @@ function OrganizationCreate() {
             />
           )}
           {termsUrl && privacyUrl && (
-            <CheckboxField
-              name="agreeTerms"
-              label={tct(
-                'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
-                {
-                  termsLink: <a href={termsUrl} />,
-                  privacyLink: <a href={privacyUrl} />,
-                }
-              )}
-              inline={false}
-              stacked
-              required
-            />
+            <TermsWrapper hasDataConsent={hasDataConsent}>
+              <CheckboxField
+                name="agreeTerms"
+                label={tct(
+                  'I agree to the [termsLink:Terms of Service] and the [privacyLink:Privacy Policy]',
+                  {
+                    termsLink: <a href={termsUrl} />,
+                    privacyLink: <a href={privacyUrl} />,
+                  }
+                )}
+                inline={false}
+                stacked
+                required
+              />
+            </TermsWrapper>
           )}
+          <DataConsentCheck />
           {!isSelfHosted && ConfigStore.get('features').has('relocation:enabled') && (
             <div>
               {tct('[relocationLink:Relocating from self-hosted?]', {
@@ -147,3 +161,7 @@ function OrganizationCreate() {
 }
 
 export default OrganizationCreate;
+
+const TermsWrapper = styled('div')<{hasDataConsent?: boolean}>`
+  margin-bottom: ${p => (p.hasDataConsent ? '0' : '16px')};
+`;

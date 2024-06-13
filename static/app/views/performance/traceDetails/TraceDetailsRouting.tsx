@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import type {LocationDescriptorObject} from 'history';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {getEventTimestamp} from 'sentry/components/quickTrace/utils';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -32,14 +32,14 @@ function TraceDetailsRouting(props: Props) {
         pathname: issuesLocation,
       });
     } else {
-      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl(
+      const traceDetailsLocation: LocationDescriptorObject = getTraceDetailsUrl({
         organization,
-        traceId,
-        datetimeSelection,
-        location.query,
-        getEventTimestamp(event),
-        event.eventID
-      );
+        traceSlug: traceId,
+        dateSelection: datetimeSelection,
+        timestamp: getEventTimestamp(event),
+        eventId: event.eventID,
+        location,
+      });
 
       const query = {...traceDetailsLocation.query};
       if (location.hash.includes('span')) {

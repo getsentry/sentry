@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -18,6 +17,7 @@ import {
 
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import TrendsIndex from 'sentry/views/performance/trends/';
 import {defaultTrendsSelectionDate} from 'sentry/views/performance/trends/content';
@@ -144,7 +144,6 @@ function initializeTrendsData(
       },
     },
     projects: _projects,
-    project: projects ? projects[0] : undefined,
   });
 
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
@@ -300,7 +299,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -316,7 +315,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -332,7 +331,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -358,7 +357,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -388,7 +387,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -418,7 +417,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -446,7 +445,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -476,7 +475,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -506,7 +505,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -537,7 +536,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -553,7 +552,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -569,7 +568,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -585,7 +584,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -614,7 +613,7 @@ describe('Performance > Trends', function () {
     const {rerender} = render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -669,7 +668,7 @@ describe('Performance > Trends', function () {
     const {rerender} = render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -741,7 +740,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );
@@ -770,7 +769,7 @@ describe('Performance > Trends', function () {
     render(
       <TrendsIndex location={data.router.location} organization={data.organization} />,
       {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       }
     );

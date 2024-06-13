@@ -4,13 +4,13 @@ import * as Sentry from '@sentry/react';
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import type {Organization} from 'sentry/types';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
-  TracePerformanceIssue,
+  TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -22,8 +22,9 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {TraceType} from '../../traceDetails/newTraceDetailsContent';
+import {getStylingSliceName} from '../../../traces/utils';
 import {isRootTransaction} from '../../traceDetails/utils';
 import {
   isAutogroupedNode,
@@ -38,6 +39,7 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from '../guards';
+import {TraceType} from '../traceType';
 
 /**
  *
@@ -90,7 +92,7 @@ import {
  *      |- other span
  *
  * When the autogrouped node is expanded the UI needs to show the entire collapsed chain, so we swap the tail children to point
- * back to the tail, and have autogrouped node point to it's head as the children.
+ * back to the tail, and have autogrouped node point to its head as the children.
  *
  * - root                                                             - root
  *  - trace                                                            - trace
@@ -109,14 +111,20 @@ import {
  * - instead of storing span children separately, we should have meta tree nodes that handle pointing to the correct children
  */
 
+type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
+
 export declare namespace TraceTree {
-  type Transaction = TraceFullDetailed;
+  interface Transaction extends TraceFullDetailed {
+    sdk_name: string;
+  }
   interface Span extends RawSpanType {
-    childTransaction: Transaction | undefined;
+    childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
+    measurements?: Record<string, Measurement>;
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+  type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string; space: [number, number]};
 
   interface MissingInstrumentationSpan {
@@ -171,6 +179,12 @@ export declare namespace TraceTree {
   };
 
   type CollectedVital = {key: string; measurement: Measurement};
+
+  interface TraceTreeEvents {
+    ['trace timeline change']: (view: [number, number]) => void;
+  }
+
+  type EventStore = {[K in keyof TraceTreeEvents]: Set<TraceTreeEvents[K]>};
 }
 
 export type ViewManagerScrollToOptions = {
@@ -188,7 +202,13 @@ function fetchTransactionSpans(
   event_id: string
 ): Promise<EventTransaction> {
   return api.requestPromise(
-    `/organizations/${organization.slug}/events/${project_slug}:${event_id}/?averageColumn=span.self_time`
+    `/organizations/${organization.slug}/events/${project_slug}:${event_id}/?averageColumn=span.self_time&averageColumn=span.duration`
+  );
+}
+
+function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
+  return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+    transaction.sdk_name
   );
 }
 
@@ -245,7 +265,10 @@ export function makeTraceNodeBarColor(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): string {
   if (isTransactionNode(node)) {
-    return pickBarColor(node.value['transaction.op']);
+    return pickBarColor(
+      getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
+        node.value['transaction.op']
+    );
   }
   if (isSpanNode(node)) {
     return pickBarColor(node.value.op);
@@ -256,11 +279,18 @@ export function makeTraceNodeBarColor(
   if (isMissingInstrumentationNode(node)) {
     return theme.gray300;
   }
-  if (isTraceErrorNode(node)) {
-    return theme.red300;
-  }
   if (isNoDataNode(node)) {
     return theme.yellow300;
+  }
+  if (isTraceErrorNode(node)) {
+    // Theme defines this as orange, yet everywhere in our product we show red for errors
+    if (node.value.level === 'error' || node.value.level === 'fatal') {
+      return theme.red300;
+    }
+    if (node.value.level) {
+      return theme.level[node.value.level] ?? theme.red300;
+    }
+    return theme.red300;
   }
   return pickBarColor('default');
 }
@@ -272,13 +302,38 @@ function shouldCollapseNodeByDefault(node: TraceTreeNode<TraceTree.NodeValue>) {
     if (
       node.value.op === 'http.client' &&
       node.value.origin === 'auto.http.okhttp' &&
-      !node.value.childTransaction
+      !node.value.childTransactions.length
     ) {
       return true;
     }
   }
 
   return false;
+}
+
+function startTimestamp(node: TraceTreeNode<TraceTree.NodeValue>) {
+  if (node.space) return node.space[0];
+
+  if (isTraceNode(node)) {
+    return 0;
+  }
+  if (isSpanNode(node)) {
+    return node.value.start_timestamp;
+  }
+  if (isTransactionNode(node)) {
+    return node.value.start_timestamp;
+  }
+  if (isMissingInstrumentationNode(node)) {
+    return node.previous.value.timestamp;
+  }
+  return 0;
+}
+
+function chronologicalSort(
+  a: TraceTreeNode<TraceTree.NodeValue>,
+  b: TraceTreeNode<TraceTree.NodeValue>
+) {
+  return startTimestamp(a) - startTimestamp(b);
 }
 
 // cls is not included as it is a cumulative layout shift and not a single point in time
@@ -359,6 +414,8 @@ export class TraceTree {
   vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
 
+  profiled_events: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
+
   private _spanPromises: Map<string, Promise<Event>> = new Map();
   private _list: TraceTreeNode<TraceTree.NodeValue>[] = [];
 
@@ -388,7 +445,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, replayRecord: ReplayRecord | null): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -403,7 +460,7 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceFullDetailed | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -411,6 +468,10 @@ export class TraceTree {
       });
       node.canFetch = true;
       tree.eventsCount += 1;
+
+      if (node.profiles.length > 0) {
+        tree.profiled_events.add(node);
+      }
 
       if (isTraceTransaction(value)) {
         for (const error of value.errors) {
@@ -469,6 +530,8 @@ export class TraceTree {
     const tLen = transactionQueue.length;
     const oLen = orphanErrorsQueue.length;
 
+    // Items in each queue are sorted by timestamp, so we just take
+    // from the queue with the earliest timestamp which means the final list will be ordered.
     while (tIdx < tLen || oIdx < oLen) {
       const transaction = transactionQueue[tIdx];
       const orphan = orphanErrorsQueue[oIdx];
@@ -505,6 +568,18 @@ export class TraceTree {
       }
     }
 
+    // The sum of all durations of traces that exist under a replay is not always
+    // equal to the duration of the replay. We need to adjust the traceview bounds
+    // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
+    // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
+    if (replayRecord) {
+      const replayStart = replayRecord.started_at.getTime() / 1000;
+      const replayEnd = replayRecord.finished_at.getTime() / 1000;
+
+      traceStart = Math.min(traceStart, replayStart);
+      traceEnd = Math.max(traceEnd, replayEnd);
+    }
+
     traceNode.space = [
       traceStart * traceNode.multiplier,
       (traceEnd - traceStart) * traceNode.multiplier,
@@ -529,20 +604,28 @@ export class TraceTree {
     }
 
     const {transactions, orphan_errors} = trace.value;
-    const {roots, orphans} = (transactions ?? []).reduce(
-      (counts, transaction) => {
+    const traceStats = transactions?.reduce<{
+      javascriptRootTransactions: TraceTree.Transaction[];
+      orphans: number;
+      roots: number;
+    }>(
+      (stats, transaction) => {
         if (isRootTransaction(transaction)) {
-          counts.roots++;
-        } else {
-          counts.orphans++;
-        }
-        return counts;
-      },
-      {roots: 0, orphans: 0}
-    );
+          stats.roots++;
 
-    if (roots === 0) {
-      if (orphans > 0) {
+          if (isJavascriptSDKTransaction(transaction)) {
+            stats.javascriptRootTransactions.push(transaction);
+          }
+        } else {
+          stats.orphans++;
+        }
+        return stats;
+      },
+      {roots: 0, orphans: 0, javascriptRootTransactions: []}
+    ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
+
+    if (traceStats.roots === 0) {
+      if (traceStats.orphans > 0) {
         return TraceType.NO_ROOT;
       }
 
@@ -553,15 +636,19 @@ export class TraceTree {
       return TraceType.EMPTY_TRACE;
     }
 
-    if (roots === 1) {
-      if (orphans > 0) {
+    if (traceStats.roots === 1) {
+      if (traceStats.orphans > 0) {
         return TraceType.BROKEN_SUBTRACES;
       }
 
       return TraceType.ONE_ROOT;
     }
 
-    if (roots > 1) {
+    if (traceStats.roots > 1) {
+      if (traceStats.javascriptRootTransactions.length > 0) {
+        return TraceType.BROWSER_MULTIPLE_ROOTS;
+      }
+
       return TraceType.MULTIPLE_ROOTS;
     }
 
@@ -573,9 +660,12 @@ export class TraceTree {
     data: Event,
     spans: RawSpanType[],
     options: {sdk: string | undefined} | undefined
-  ): TraceTreeNode<TraceTree.NodeValue> {
+  ): [TraceTreeNode<TraceTree.NodeValue>, [number, number] | null] {
     parent.invalidate(parent);
     const platformHasMissingSpans = shouldAddMissingInstrumentationSpan(options?.sdk);
+
+    let min_span_start = Number.POSITIVE_INFINITY;
+    let min_span_end = Number.NEGATIVE_INFINITY;
 
     const parentIsSpan = isSpanNode(parent);
     const lookuptable: Record<
@@ -586,14 +676,14 @@ export class TraceTree {
     // If we've already fetched children, the tree is already assembled
     if (parent.spanChildren.length > 0) {
       parent.zoomedIn = true;
-      return parent;
+      return [parent, null];
     }
 
     // If we have no spans, insert an empty node to indicate that there is no data
     if (!spans.length && !parent.children.length) {
       parent.zoomedIn = true;
       parent.spanChildren.push(new NoDataNode(parent));
-      return parent;
+      return [parent, null];
     }
 
     if (parentIsSpan) {
@@ -602,30 +692,50 @@ export class TraceTree {
       }
     }
 
-    const transactionsToSpanMap = new Map<string, TraceTreeNode<TraceTree.Transaction>>();
+    const transactionsToSpanMap = new Map<
+      string,
+      TraceTreeNode<TraceTree.Transaction>[]
+    >();
 
     for (const child of parent.children) {
-      if (
-        isTransactionNode(child) &&
-        'parent_span_id' in child.value &&
-        typeof child.value.parent_span_id === 'string'
-      ) {
-        transactionsToSpanMap.set(child.value.parent_span_id, child);
+      if (isTransactionNode(child)) {
+        // keep track of the transaction nodes that should be reparented under the newly fetched spans.
+        const key =
+          'parent_span_id' in child.value &&
+          typeof child.value.parent_span_id === 'string'
+            ? child.value.parent_span_id
+            : // This should be unique, but unreachable at lookup time.
+              `unreachable-${child.value.event_id}`;
+
+        const list = transactionsToSpanMap.get(key) ?? [];
+        list.push(child);
+        transactionsToSpanMap.set(key, list);
       }
-      continue;
     }
 
+    const remappedTransactionParents = new Set<TraceTreeNode<TraceTree.NodeValue>>();
+
     for (const span of spans) {
-      const childTransaction = transactionsToSpanMap.get(span.span_id);
+      const childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
-        childTransaction: childTransaction?.value,
+        childTransactions,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: undefined,
         project_slug: undefined,
       });
+
+      if (
+        typeof span.start_timestamp === 'number' &&
+        span.start_timestamp < min_span_start
+      ) {
+        min_span_start = span.start_timestamp;
+      }
+      if (typeof span.timestamp === 'number' && span.timestamp > min_span_end) {
+        min_span_end = span.timestamp;
+      }
 
       for (const error of getRelatedSpanErrorsFromTransaction(span, parent)) {
         node.errors.add(error);
@@ -638,15 +748,19 @@ export class TraceTree {
         node.performance_issues.add(performanceIssue);
       }
 
-      // This is the case where the current span is the parent of a txn at the
-      // trace level. When zooming into the parent of the txn, we want to place a copy
+      // This is the case where the current span is the parent of a transaction.
+      // When zooming into the parent of the txn, we want to place a copy
       // of the txn as a child of the parenting span.
-      if (childTransaction) {
-        const clonedChildTxn =
-          childTransaction.cloneDeep() as unknown as TraceTreeNode<TraceTree.Span>;
-
-        node.spanChildren.push(clonedChildTxn);
-        clonedChildTxn.parent = node;
+      if (childTransactions) {
+        for (const childTransaction of childTransactions) {
+          const clonedChildTxn = childTransaction.cloneDeep();
+          node.spanChildren.push(clonedChildTxn);
+          clonedChildTxn.parent = node;
+          remappedTransactionParents.add(node);
+          // Delete the transaction from the lookup table so that we don't
+          // duplicate the transaction in the tree.
+        }
+        transactionsToSpanMap.delete(span.span_id);
       }
 
       lookuptable[span.span_id] = node;
@@ -671,10 +785,32 @@ export class TraceTree {
       node.parent = parent;
     }
 
+    // Whatever remains is transaction nodes that we failed to reparent under the spans.
+    for (const [_, transactions] of transactionsToSpanMap) {
+      for (const transaction of transactions) {
+        if ('parent_span_id' in transaction.value && !!transaction.value.parent_span_id) {
+          Sentry.withScope(scope => {
+            scope.setFingerprint(['trace-view-reparenting']);
+            scope.captureMessage(
+              'Failed to reparent transaction under span. None of the spans we fetched had a span_id matching the parent_span_id of the transaction.'
+            );
+          });
+        }
+        const cloned = transaction.cloneDeep();
+        parent.spanChildren.push(cloned);
+        cloned.parent = parent;
+      }
+    }
+
+    for (const c of remappedTransactionParents) {
+      c.spanChildren.sort(chronologicalSort);
+    }
+
     parent.zoomedIn = true;
     TraceTree.AutogroupSiblingSpanNodes(parent);
     TraceTree.AutogroupDirectChildrenSpanNodes(parent);
-    return parent;
+
+    return [parent, [min_span_start, min_span_end]];
   }
 
   static AutogroupDirectChildrenSpanNodes(
@@ -697,7 +833,7 @@ export class TraceTree {
       let groupMatchCount = 0;
 
       const errors: TraceErrorType[] = [];
-      const performance_issues: TracePerformanceIssue[] = [];
+      const performance_issues: TraceTree.TracePerformanceIssue[] = [];
 
       let start = head.value.start_timestamp;
       let end = head.value.timestamp;
@@ -766,7 +902,15 @@ export class TraceTree {
         throw new Error('Parent node is missing, this should be unreachable code');
       }
 
+      const index = node.parent.children.indexOf(node);
+      node.parent.children[index] = autoGroupedNode;
+
+      autoGroupedNode.head.parent = autoGroupedNode;
       autoGroupedNode.groupCount = groupMatchCount + 1;
+      autoGroupedNode.space = [
+        start * autoGroupedNode.multiplier,
+        (end - start) * autoGroupedNode.multiplier,
+      ];
 
       for (const error of errors) {
         autoGroupedNode.errors.add(error);
@@ -776,18 +920,10 @@ export class TraceTree {
         autoGroupedNode.performance_issues.add(performanceIssue);
       }
 
-      autoGroupedNode.space = [
-        start * autoGroupedNode.multiplier,
-        (end - start) * autoGroupedNode.multiplier,
-      ];
-
       for (const c of tail.children) {
         c.parent = autoGroupedNode;
         queue.push(c);
       }
-
-      const index = node.parent.children.indexOf(node);
-      node.parent.children[index] = autoGroupedNode;
     }
   }
 
@@ -994,7 +1130,6 @@ export class TraceTree {
 
         this._list.splice(index + 1, childrenCount);
 
-        node.getVisibleChildrenCount();
         const newChildren = [node.head].concat(
           node.head.getVisibleChildren() as TraceTreeNode<TraceTree.Span>[]
         );
@@ -1137,7 +1272,34 @@ export class TraceTree {
 
       // We are at the last path segment (the node that the user clicked on)
       // and we should scroll the view to this node.
-      const index = tree.list.findIndex(node => node === current);
+      let index = current ? tree.list.findIndex(node => node === current) : -1;
+
+      // We have found the node, yet it is somehow not in the visible tree.
+      // This means that the path we were given did not match the current tree.
+      // This sometimes happens when we receive external links like span-x, txn-y
+      // however the resulting tree looks like span-x, autogroup, txn-y. In this case,
+      // we should expand the autogroup node and try to find the node again.
+      if (current && index === -1) {
+        let parent_node = current.parent;
+        while (parent_node) {
+          // Transactions break autogrouping chains, so we can stop here
+          if (isTransactionNode(parent_node)) {
+            break;
+          }
+          if (isAutogroupedNode(parent_node)) {
+            tree.expand(parent_node, true);
+            index = current ? tree.list.findIndex(node => node === current) : -1;
+            // This is very wasteful as it performs O(n^2) search each time we expand a node...
+            // In most cases though, we should be operating on a tree with sub 10k elements and hopefully
+            // a low autogrouped node count.
+            if (index !== -1) {
+              break;
+            }
+          }
+          parent_node = parent_node.parent;
+        }
+      }
+
       if (index === -1) {
         throw new Error(`Couldn't find node in list ${scrollQueue.join(',')}`);
       }
@@ -1163,6 +1325,11 @@ export class TraceTree {
 
     if (!zoomedIn) {
       const index = this._list.indexOf(node);
+
+      if (index === -1) {
+        return Promise.resolve(null);
+      }
+
       const childrenCount = node.getVisibleChildrenCount();
       this._list.splice(index + 1, childrenCount);
 
@@ -1206,6 +1373,11 @@ export class TraceTree {
 
         // Remove existing entries from the list
         const index = this._list.indexOf(node);
+
+        if (index === -1) {
+          return data;
+        }
+
         if (node.expanded) {
           const childrenCount = node.getVisibleChildrenCount();
           if (childrenCount > 0) {
@@ -1216,7 +1388,36 @@ export class TraceTree {
         // Api response is not sorted
         spans.data.sort((a, b) => a.start_timestamp - b.start_timestamp);
 
-        TraceTree.FromSpans(node, data, spans.data, {sdk: data.sdk?.name});
+        const [_, view] = TraceTree.FromSpans(node, data, spans.data, {
+          sdk: data.sdk?.name,
+        });
+
+        // Spans contain millisecond precision, which means that it is possible for the
+        // children spans of a transaction to extend beyond the start and end of the transaction
+        // through ns precision. To account for this, we need to adjust the space of the transaction node and the space
+        // of our trace so that all of the span children are visible and can be rendered inside the view.
+        if (
+          view &&
+          Number.isFinite(view[0]) &&
+          Number.isFinite(view[1]) &&
+          this.root.space
+        ) {
+          const prev_start = this.root.space[0];
+          const prev_end = this.root.space[1];
+          const new_start = view[0];
+          const new_end = view[1];
+
+          // Update the space of the tree and the trace root node
+          this.root.space = [
+            Math.min(new_start * node.multiplier, this.root.space[0]),
+            Math.max(new_end * node.multiplier - prev_start, this.root.space[1]),
+          ];
+          this.root.children[0].space = [...this.root.space];
+
+          if (prev_start !== this.root.space[0] || prev_end !== this.root.space[1]) {
+            this.dispatch('trace timeline change', this.root.space);
+          }
+        }
 
         const spanChildren = node.getVisibleChildren();
         this._list.splice(index + 1, 0, ...spanChildren);
@@ -1256,6 +1457,38 @@ export class TraceTree {
     return this._list;
   }
 
+  listeners: TraceTree.EventStore = {
+    'trace timeline change': new Set(),
+  };
+
+  on<K extends keyof TraceTree.TraceTreeEvents>(
+    event: K,
+    cb: TraceTree.TraceTreeEvents[K]
+  ): void {
+    this.listeners[event].add(cb);
+  }
+
+  off<K extends keyof TraceTree.TraceTreeEvents>(
+    event: K,
+    cb: TraceTree.TraceTreeEvents[K]
+  ): void {
+    this.listeners[event].delete(cb);
+  }
+
+  dispatch<K extends keyof TraceTree.TraceTreeEvents>(
+    event: K,
+    ...args: ArgumentTypes<TraceTree.TraceTreeEvents[K]>
+  ): void {
+    if (!this.listeners[event]) {
+      return;
+    }
+
+    for (const handler of this.listeners[event]) {
+      // @ts-expect-error
+      handler(...args);
+    }
+  }
+
   /**
    * Prints the tree in a human readable format, useful for debugging and testing
    */
@@ -1287,15 +1520,16 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     project_slug: undefined,
     event_id: undefined,
   };
+
   errors: Set<TraceErrorType> = new Set<TraceErrorType>();
-  performance_issues: Set<TracePerformanceIssue> = new Set<TracePerformanceIssue>();
+  performance_issues: Set<TraceTree.TracePerformanceIssue> =
+    new Set<TraceTree.TracePerformanceIssue>();
+  profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
   space: [number, number] | null = null;
 
-  profiles: TraceTree.Profile[] = [];
-
-  private unit: 'milliseconds' = 'milliseconds';
+  private unit = 'milliseconds' as const;
   private _depth: number | undefined;
   private _children: TraceTreeNode[] = [];
   private _spanChildren: TraceTreeNode[] = [];
@@ -1355,8 +1589,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     | TraceTreeNode<T>
     | ParentAutogroupNode
     | SiblingAutogroupNode
-    | NoDataNode {
-    let clone: TraceTreeNode<T> | ParentAutogroupNode | SiblingAutogroupNode | NoDataNode;
+    | NoDataNode
+    | MissingInstrumentationNode {
+    let clone:
+      | TraceTreeNode<T>
+      | ParentAutogroupNode
+      | SiblingAutogroupNode
+      | NoDataNode
+      | MissingInstrumentationNode;
 
     if (isParentAutogroupedNode(this)) {
       clone = new ParentAutogroupNode(
@@ -1372,6 +1612,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       clone.groupCount = this.groupCount;
     } else if (isNoDataNode(this)) {
       clone = new NoDataNode(this.parent);
+    } else if (isMissingInstrumentationNode(this)) {
+      clone = new MissingInstrumentationNode(
+        this.parent!,
+        this.value,
+        this.metadata,
+        this.previous,
+        this.next
+      );
     } else {
       clone = new TraceTreeNode(this.parent, this.value, this.metadata);
     }
@@ -1553,6 +1801,22 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return this._spanChildren;
   }
 
+  private _max_severity: keyof Theme['level'] | undefined;
+  get max_severity(): keyof Theme['level'] {
+    if (this._max_severity) {
+      return this._max_severity;
+    }
+
+    for (const error of this.errors) {
+      if (error.level === 'error' || error.level === 'fatal') {
+        this._max_severity = error.level;
+        return this.max_severity;
+      }
+    }
+
+    return 'default';
+  }
+
   /**
    * Invalidate the visual data used to render the tree, forcing it
    * to be recalculated on the next render. This is useful when for example
@@ -1589,11 +1853,14 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     const stack: TraceTreeNode<TraceTree.NodeValue>[] = [];
     let count = 0;
 
-    if (
-      this.expanded ||
-      isParentAutogroupedNode(this) ||
-      isMissingInstrumentationNode(this)
-    ) {
+    if (isParentAutogroupedNode(this)) {
+      if (this.expanded) {
+        return this.head.getVisibleChildrenCount();
+      }
+      return this.tail.getVisibleChildrenCount();
+    }
+
+    if (this.expanded || isMissingInstrumentationNode(this)) {
       for (let i = this.children.length - 1; i >= 0; i--) {
         stack.push(this.children[i]);
       }
@@ -1707,14 +1974,41 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     while (queue.length > 0) {
       const next = queue.pop()!;
 
-      if (predicate(next)) return next;
+      if (predicate(next)) {
+        return next;
+      }
 
-      for (const child of next.children) {
-        queue.push(child);
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        for (const child of next.children) {
+          queue.push(child);
+        }
       }
     }
 
     return null;
+  }
+
+  static ForEachChild(
+    root: TraceTreeNode<TraceTree.NodeValue>,
+    cb: (node: TraceTreeNode<TraceTree.NodeValue>) => void
+  ): void {
+    const queue = [root];
+
+    while (queue.length > 0) {
+      const next = queue.pop()!;
+      cb(next);
+
+      if (isParentAutogroupedNode(next)) {
+        queue.push(next.head);
+      } else {
+        const children = next.spanChildren ? next.spanChildren : next.children;
+        for (const child of children) {
+          queue.push(child);
+        }
+      }
+    }
   }
 
   static Root() {
@@ -1836,12 +2130,6 @@ export class NoDataNode extends TraceTreeNode<null> {
 
 // Generates a ID of the tree node based on its type
 function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
-  if (isTransactionNode(n)) {
-    return `txn-${n.value.event_id}`;
-  }
-  if (isSpanNode(n)) {
-    return `span-${n.value.span_id}`;
-  }
   if (isAutogroupedNode(n)) {
     if (isParentAutogroupedNode(n)) {
       return `ag-${n.head.value.span_id}`;
@@ -1852,6 +2140,12 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
         return `ag-${child.value.span_id}`;
       }
     }
+  }
+  if (isTransactionNode(n)) {
+    return `txn-${n.value.event_id}`;
+  }
+  if (isSpanNode(n)) {
+    return `span-${n.value.span_id}`;
   }
   if (isTraceNode(n)) {
     return `trace-root`;
@@ -1965,16 +2259,16 @@ function getRelatedSpanErrorsFromTransaction(
 function getRelatedPerformanceIssuesFromTransaction(
   span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
-): TracePerformanceIssue[] {
+): TraceTree.TracePerformanceIssue[] {
   if (!node || !node.value || !isTransactionNode(node)) {
     return [];
   }
 
-  if (!node?.value?.performance_issues?.length && !node?.value?.errors?.length) {
+  if (!node?.value?.performance_issues?.length) {
     return [];
   }
 
-  const performanceIssues: TracePerformanceIssue[] = [];
+  const performanceIssues: TraceTree.TracePerformanceIssue[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
     for (const s of perfIssue.span) {
@@ -2059,7 +2353,6 @@ function findInTreeFromSegment(
     if (type === 'txn' && isTransactionNode(node)) {
       return node.value.event_id === id;
     }
-
     if (type === 'span' && isSpanNode(node)) {
       return node.value.span_id === id;
     }
@@ -2146,6 +2439,7 @@ function partialTransaction(
     span_id: '',
     parent_event_id: '',
     project_id: 0,
+    sdk_name: '',
     'transaction.duration': 0,
     'transaction.op': 'loading-transaction',
     'transaction.status': 'loading-status',
@@ -2212,7 +2506,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace);
+  const tree = TraceTree.FromTrace(trace, null);
 
   return tree;
 }

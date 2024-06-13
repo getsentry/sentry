@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import type {Location} from 'history';
 
 import Panel from 'sentry/components/panels/panel';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {WebVital} from 'sentry/utils/fields';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
-import type {TreeLabelPart} from 'sentry/types';
+import type {TreeLabelPart} from 'sentry/types/event';
 import {getTreeLabelPartDetails} from 'sentry/utils/events';
 
 type Props = {

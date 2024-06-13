@@ -228,6 +228,8 @@ DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""
 LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.items()}
 
+PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
+
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
@@ -264,7 +266,8 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
-    "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
+    "sentry.rules.conditions.new_high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.existing_high_priority_issue.ExistingHighPriorityIssueCondition",
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -277,7 +280,6 @@ _SENTRY_RULES = (
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
-    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -640,6 +642,10 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
+ISSUE_ALERTS_THREAD_DEFAULT = True
+METRIC_ALERTS_THREAD_DEFAULT = True
+METRICS_ACTIVATE_PERCENTILES_DEFAULT = False
+METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
@@ -705,6 +711,8 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthy",
     "*/healthz",
+    "*/_health",
+    r"*/\[_health\]",
     "*/live",
     "*/livez",
     "*/ready",

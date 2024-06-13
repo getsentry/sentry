@@ -10,9 +10,7 @@ import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
-import {RouteContext} from 'sentry/views/routeContext';
 
 type InitializeOrgProps = {
   location?: {
@@ -32,20 +30,14 @@ jest.mock('sentry/utils/useMedia', () => ({
 const mockEventsUrl = '/organizations/org-slug/events/';
 const mockReplaysUrl = '/organizations/org-slug/replays/';
 
-let mockRouterContext: {
-  childContextTypes?: any;
-  context?: any;
-} = {};
-
-const getComponent = ({
+const renderComponent = ({
   location,
   organizationProps = {features: ['performance-view', 'session-replay']},
-}: InitializeOrgProps) => {
-  const {router, organization, routerContext} = initializeOrg({
+}: InitializeOrgProps = {}) => {
+  const {organization, router} = initializeOrg({
     organization: {
       ...organizationProps,
     },
-    project: ProjectFixture(),
     projects: [ProjectFixture()],
     router: {
       routes: [
@@ -67,26 +59,7 @@ const getComponent = ({
   ProjectsStore.init();
   ProjectsStore.loadInitialData(organization.projects);
 
-  mockRouterContext = routerContext;
-
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: router.params,
-          routes: router.routes,
-        }}
-      >
-        <TransactionReplays />
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-};
-
-const renderComponent = (componentProps: InitializeOrgProps = {}) => {
-  return render(getComponent(componentProps), {context: mockRouterContext});
+  return render(<TransactionReplays />, {router, organization});
 };
 
 describe('TransactionReplays', () => {

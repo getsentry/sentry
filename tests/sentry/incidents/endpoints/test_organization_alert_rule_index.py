@@ -9,6 +9,7 @@ from django.test.utils import override_settings
 from rest_framework import status
 
 from sentry import audit_log
+from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
@@ -23,7 +24,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
@@ -32,6 +33,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -82,6 +84,7 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
+            "activations": [],
         }
 
 
@@ -121,6 +124,31 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         assert serialize([alert_rule2]) not in resp.data
         assert resp.data == serialize([alert_rule1])
 
+    def test_response_headers(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug)
+
+        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+        assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
+
+    def test_simple_with_activation(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        self.create_alert_rule_activation(
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+        )
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data == serialize([alert_rule])
+
 
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
@@ -158,6 +186,25 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             resp.renderer_context["request"].META["REMOTE_ADDR"]
             == list(audit_log_entry)[0].ip_address
         )
+
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        data = {
+            **self.alert_rule_dict,
+            "description": "yeehaw",
+        }
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.description == resp.data.get("description")
 
     def test_monitor_type_with_condition(self):
         data = {
@@ -837,7 +884,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:use-metrics-layer-in-alerts",
+                "organizations:custom-metrics",
             ]
         ):
             for mri in (
@@ -871,7 +918,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:custom-metrics",
-                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             for mri in (
@@ -905,7 +951,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:custom-metrics",
-                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             test_params = {
@@ -991,7 +1036,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "dataset": "sessions",
+            "dataset": "metrics",
             "eventTypes": [],
         }
 

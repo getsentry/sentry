@@ -1,12 +1,12 @@
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, control_silo_only_model
+from sentry.db.models import Model, control_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
 
 
-@control_silo_only_model
+@control_silo_model
 class DocIntegration(Model):
     """
     Document based integrations can be found in Sentry, but are installed via code change.

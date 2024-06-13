@@ -5,7 +5,7 @@ from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 
 

@@ -6,7 +6,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project

@@ -24,7 +24,7 @@ from sentry.db.models import (
     BaseManager,
     BoundedPositiveIntegerField,
     OptionManager,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentryOrgSlugField
@@ -37,12 +37,12 @@ from sentry.models.outbox import OutboxCategory
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.services.hybrid_cloud.user import RpcUser, RpcUserProfile
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
-from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
+from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id, snowflake_id_model
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
@@ -142,10 +142,9 @@ class OrganizationManager(BaseManager["Organization"]):
         return owner_role_orgs
 
 
-@region_silo_only_model
-class Organization(
-    ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMixin, SnowflakeIdMixin
-):
+@snowflake_id_model
+@region_silo_model
+class Organization(ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -242,9 +241,10 @@ class Organization(
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         if SENTRY_USE_SNOWFLAKE:
-            self.save_with_snowflake_id(
-                self.snowflake_redis_key,
-                lambda: super(Organization, self).save(*args, **kwargs),
+            save_with_snowflake_id(
+                instance=self,
+                snowflake_redis_key=self.snowflake_redis_key,
+                save_callback=lambda: super(Organization, self).save(*args, **kwargs),
             )
         else:
             super().save(*args, **kwargs)
@@ -309,7 +309,7 @@ class Organization(
         )
 
         with in_test_hide_transaction_boundary():
-            return user_service.get_many(filter={"user_ids": list(owners)})
+            return user_service.get_many_by_id(ids=list(owners))
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
@@ -323,11 +323,68 @@ class Organization(
         if there is no owner. Used for analytics primarily.
         """
         if not hasattr(self, "_default_owner_id"):
-            owners = self.get_owners()
-            if len(owners) == 0:
+            owner_ids = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+                "user_id", flat=True
+            )
+            if len(owner_ids) == 0:
                 return None
-            self._default_owner_id = owners[0].id
+            self._default_owner_id = owner_ids[0]
         return self._default_owner_id
+
+    @classmethod
+    def _get_bulk_owner_ids(cls, organizations: Collection[Organization]) -> dict[int, int]:
+        """Find user IDs of the default owners of multiple organization.
+
+        The returned table maps organization ID to user ID.
+        """
+        from sentry.models.organizationmember import OrganizationMember
+
+        owner_id_table: dict[int, int] = {}
+        org_ids_to_query: list[int] = []
+        for org in organizations:
+            default_owner = getattr(org, "_default_owner", None)
+            if default_owner and default_owner.id is not None:
+                owner_id_table[org.id] = default_owner.id
+            else:
+                org_ids_to_query.append(org.id)
+
+        if org_ids_to_query:
+            queried_owner_ids = OrganizationMember.objects.filter(
+                organization_id__in=org_ids_to_query, role=roles.get_top_dog().id
+            ).values_list("organization_id", "user_id")
+
+            for (org_id, user_id) in queried_owner_ids:
+                # An org may have multiple owners. Here we mimic the behavior of
+                # `get_default_owner`, which is to use the first one in the query
+                # result's iteration order.
+                if (user_id is not None) and (org_id not in owner_id_table):
+                    owner_id_table[org_id] = user_id
+
+        return owner_id_table
+
+    @classmethod
+    def get_bulk_owner_profiles(
+        cls, organizations: Collection[Organization]
+    ) -> dict[int, RpcUserProfile]:
+        """Query for profile data of owners of multiple organizations.
+
+        The returned table is keyed by organization ID and shows the default owner.
+        An organization may have multiple owners, in which case only the default
+        owner is shown. Organization IDs may be absent from the returned table if no
+        owner was found.
+        """
+
+        owner_id_table = cls._get_bulk_owner_ids(organizations)
+        owner_ids = list(owner_id_table.values())
+
+        profiles = user_service.get_many_profiles(filter=dict(user_ids=owner_ids))
+        profile_table = {c.id: c for c in profiles}
+
+        return {
+            org_id: profile_table[user_id]
+            for (org_id, user_id) in owner_id_table.items()
+            if user_id in profile_table
+        }
 
     def has_single_owner(self):
         owners = list(

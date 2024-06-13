@@ -1,5 +1,5 @@
 import type {ColumnType} from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 
 import type {HistogramData} from './types';
 

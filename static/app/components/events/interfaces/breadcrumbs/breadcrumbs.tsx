@@ -13,8 +13,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
@@ -207,7 +207,7 @@ function Breadcrumbs({
 
   return (
     <Fragment>
-      <StyledPanelTable
+      <StyledBreadcrumbPanelTable
         headers={panelHeaders}
         isEmpty={!breadcrumbs.length}
         {...emptyMessage}
@@ -233,7 +233,7 @@ function Breadcrumbs({
             />
           )}
         </AutoSizer>
-      </StyledPanelTable>
+      </StyledBreadcrumbPanelTable>
       <PanelDragHandle
         onMouseDown={onMouseDown}
         onDoubleClick={onDoubleClick}
@@ -245,7 +245,7 @@ function Breadcrumbs({
 
 export default Breadcrumbs;
 
-const StyledPanelTable = styled(PanelTable)`
+export const StyledBreadcrumbPanelTable = styled(PanelTable)`
   display: grid;
   overflow: hidden;
   grid-template-columns: 64px 140px 1fr 106px 100px;
@@ -352,7 +352,7 @@ const StyledList = styled(List as any)<SharedListProps>`
   outline: none;
 `;
 
-const BreadcrumbRow = styled('div')<{error: boolean}>`
+export const BreadcrumbRow = styled('div')<{error: boolean}>`
   :not(:last-child) {
     border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
   }

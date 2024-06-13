@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
@@ -13,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
 import QueryList from 'sentry/views/discover/queryList';
@@ -30,7 +30,7 @@ describe('Discover > QueryList', function () {
     eventsStatsMock,
     wrapper;
 
-  const {router, routerContext} = initializeOrg();
+  const {router} = initializeOrg();
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
@@ -194,7 +194,7 @@ describe('Discover > QueryList', function () {
         onQueryChange={queryChangeMock}
         location={location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
@@ -216,7 +216,7 @@ describe('Discover > QueryList', function () {
         onQueryChange={queryChangeMock}
         location={location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;

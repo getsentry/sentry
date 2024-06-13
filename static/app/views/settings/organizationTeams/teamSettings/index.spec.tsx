@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
@@ -12,6 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import TeamSettings from 'sentry/views/settings/organizationTeams/teamSettings';
 
 describe('TeamSettings', function () {

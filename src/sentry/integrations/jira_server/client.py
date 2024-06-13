@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
 from django.urls import reverse
@@ -17,7 +18,6 @@ from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ class JiraServerClient(ApiClient):
         self,
         integration: RpcIntegration | Integration,
         identity: RpcIdentity,
-        logging_context: JSONData | None = None,
+        logging_context: Any | None = None,
     ):
         self.base_url = integration.metadata["base_url"]
         self.identity = identity
@@ -84,6 +84,7 @@ class JiraServerClient(ApiClient):
             resource_owner_secret=self.identity.data["access_token_secret"],
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request
@@ -269,6 +270,7 @@ class JiraServerSetupClient(ApiClient):
             rsa_key=self.private_key,
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
         url = self.access_token_url.format(self.base_url)
         resp = self.post(url, auth=auth, allow_text=True)
@@ -282,6 +284,7 @@ class JiraServerSetupClient(ApiClient):
             resource_owner_secret=credentials["access_token_secret"],
             signature_method=SIGNATURE_RSA,
             signature_type="auth_header",
+            decoding=None,
         )
 
         # Create a JWT token that we can add to the webhook URL
@@ -305,5 +308,6 @@ class JiraServerSetupClient(ApiClient):
                 rsa_key=self.private_key,
                 signature_method=SIGNATURE_RSA,
                 signature_type="auth_header",
+                decoding=None,
             )
         return self._request(*args, **kwargs)

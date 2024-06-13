@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -7,6 +6,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import selectEvent from 'sentry-test/selectEvent';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import TransactionTags from 'sentry/views/performance/transactionSummary/transactionTags';
 
 const TEST_RELEASE_NAME = 'test-project@1.0.0';
@@ -147,10 +147,10 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -179,10 +179,10 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('Default tagKey is set when loading the page without one', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, router} = initializeData();
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -214,12 +214,12 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('Passed tagKey gets used when calling queries', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, router} = initializeData({
       query: {tagKey: 'effectiveConnectionType'},
     });
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -254,7 +254,7 @@ describe('Performance > Transaction Tags', function () {
     const initialData = initializeData({query: {tagKey: 'release'}});
 
     render(<TransactionTags location={initialData.router.location} />, {
-      context: initialData.routerContext,
+      router: initialData.router,
       organization: initialData.organization,
     });
 
@@ -274,7 +274,7 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('clears tableCursor when selecting a new tag', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, router} = initializeData({
       query: {
         statsPeriod: '14d',
         tagKey: 'hardwareConcurrency',
@@ -282,7 +282,7 @@ describe('Performance > Transaction Tags', function () {
     });
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -332,12 +332,12 @@ describe('Performance > Transaction Tags', function () {
   });
 
   it('changes the aggregate column when a new x-axis is selected', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, router} = initializeData({
       query: {tagKey: 'os'},
     });
 
     render(<TransactionTags location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 

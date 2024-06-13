@@ -22,7 +22,7 @@ export function AddIntegrationBanner({orgSlug, onDismiss}: AddIntegrationBannerP
         <IntegationBannerTitle>{t('Connect with Git Providers')}</IntegationBannerTitle>
         <IntegationBannerDescription>
           {t(
-            'Install Git providers (GitHub, Gitlab…) to enable features like code mapping and stack trace linking.'
+            'Install Git providers (GitHub, GitLab…) to enable features like code mapping and stack trace linking.'
           )}
         </IntegationBannerDescription>
         <LinkButton
@@ -66,7 +66,7 @@ export const StacktraceIntegrationBannerWrapper = styled('div')`
 export const IntegationBannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export const IntegationBannerDescription = styled('div')`

@@ -52,6 +52,12 @@ class RpcFilter(RpcModel):
         )
 
 
+class RpcPrimaryKeyEntry(RpcModel):
+    new_id: int
+    kind: ImportKind
+    slug: str | None
+
+
 class RpcPrimaryKeyMap(RpcModel):
     """
     Shadows `sentry.backup.dependencies.PrimaryKeyMap` for the purpose of passing it over an RPC
@@ -62,17 +68,30 @@ class RpcPrimaryKeyMap(RpcModel):
     """
 
     # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
-    mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]] = {}
+    map_entries: dict[str, dict[int, RpcPrimaryKeyEntry]] = {}
 
     def from_rpc(self) -> PrimaryKeyMap:
         pk_map = PrimaryKeyMap()
-        pk_map.mapping = defaultdict(dict, self.mapping)
+        if self.map_entries:
+            pk_mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]] = defaultdict(dict)
+            for model_name, entries in self.map_entries.items():
+                entries_data = dict()
+                for old_id, entry in entries.items():
+                    entries_data[old_id] = (entry.new_id, entry.kind, entry.slug)
+                pk_mapping[model_name] = entries_data
+            pk_map.mapping = pk_mapping
         return pk_map
 
     @classmethod
     def into_rpc(cls, base_map: PrimaryKeyMap) -> "RpcPrimaryKeyMap":
         converted = cls()
-        converted.mapping = dict(base_map.mapping)
+        mapping_entries = dict()
+        for model_name, entries in base_map.mapping.items():
+            mapping_entries[model_name] = {
+                old_id: RpcPrimaryKeyEntry(new_id=entry[0], kind=entry[1], slug=entry[2])
+                for old_id, entry in entries.items()
+            }
+        converted.map_entries = mapping_entries
         return converted
 
 
@@ -129,6 +148,7 @@ class RpcImportErrorKind(str, Enum):
     DeserializationFailed = "DeserializationFailed"
     IncorrectSiloModeForModel = "IncorrectSiloModeForModel"
     IntegrityError = "IntegrityError"
+    InvalidMinOrdinal = "InvalidMinOrdinal"
     MissingImportUUID = "MissingImportUUID"
     UnknownModel = "UnknownModel"
     UnexpectedModel = "UnexpectedModel"

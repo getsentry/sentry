@@ -12,7 +12,8 @@ from sentry.integrations.utils.codecov import (
     has_codecov_integration,
 )
 from sentry.models.integrations.integration import Integration
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
 

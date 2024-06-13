@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
 
@@ -20,8 +19,9 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
 

@@ -5,7 +5,7 @@ import {
 } from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import type {ObjectStatus} from 'sentry/types';
+import type {ObjectStatus} from 'sentry/types/core';
 import {logException} from 'sentry/utils/logging';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {Monitor} from 'sentry/views/monitors/types';

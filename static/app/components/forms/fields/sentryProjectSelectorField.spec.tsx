@@ -24,4 +24,38 @@ describe('SentryProjectSelectorField', () => {
 
     expect(mock).toHaveBeenCalledWith('23', expect.anything());
   });
+
+  it('can group values', async () => {
+    const mock = jest.fn();
+    const projects = [
+      ProjectFixture(),
+      ProjectFixture({
+        id: '23',
+        slug: 'my-proj',
+        name: 'My Proj',
+      }),
+      ProjectFixture({
+        id: '24',
+        slug: 'other-project',
+        name: 'My Other Project',
+      }),
+    ];
+    render(
+      <SentryProjectSelectorField
+        groupProjects={project => (project.slug === 'other-project' ? 'other' : 'main')}
+        groups={[
+          {key: 'main', label: 'Main projects'},
+          {key: 'other', label: 'Other'},
+        ]}
+        onChange={mock}
+        name="project"
+        projects={projects}
+      />
+    );
+
+    await selectEvent.openMenu(screen.getByText(/choose sentry project/i));
+
+    expect(screen.getByText('Main projects')).toBeInTheDocument();
+    expect(screen.getByText('Other')).toBeInTheDocument();
+  });
 });

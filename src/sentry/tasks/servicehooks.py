@@ -3,7 +3,7 @@ from time import time
 from sentry.api.serializers import serialize
 from sentry.http import safe_urlopen
 from sentry.models.servicehook import ServiceHook
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json

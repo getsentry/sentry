@@ -40,7 +40,6 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.tasks import build_query_builder
 
 from ...snuba.metrics.naming_layer.mri import is_mri
 from . import (
@@ -87,13 +86,13 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         allow_null=True,
     )
     aggregate = serializers.CharField(required=True, min_length=1)
-    owner = ActorField(
-        required=False,
-        allow_null=True,
-        as_actor=True,
-    )  # This will be set to required=True once the frontend starts sending it.
+
+    # This will be set to required=True once the frontend starts sending it.
+    owner = ActorField(required=False, allow_null=True)
+
     monitor_type = serializers.IntegerField(required=False, min_value=0)
     activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
+    description = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = AlertRule
@@ -117,6 +116,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "event_types",
             "monitor_type",
             "activation_condition",
+            "description",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
@@ -129,13 +129,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         AlertRuleThresholdType.ABOVE: lambda threshold: threshold + 100,
         AlertRuleThresholdType.BELOW: lambda threshold: 100 - threshold,
     }
-
-    def validate_owner(self, owner):
-        # owner should be team:id or user:id
-        if owner is None:
-            return
-
-        return owner
 
     def validate_query(self, query):
         query_terms = query.split()
@@ -281,13 +274,6 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     def _validate_query(self, data):
         dataset = data.setdefault("dataset", Dataset.Events)
-        # If metric based crash rate alerts are enabled, coerce sessions over
-        if dataset == Dataset.Sessions and features.has(
-            "organizations:alert-crash-free-metrics",
-            self.context["organization"],
-            actor=self.context.get("user", None),
-        ):
-            dataset = data["dataset"] = Dataset.Metrics
 
         if features.has(
             "organizations:custom-metrics",
@@ -349,11 +335,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         end = timezone.now()
         start = end - timedelta(minutes=10)
         try:
-            query_builder = build_query_builder(
-                entity_subscription,
-                data["query"],
-                [p.id for p in projects],
-                data.get("environment"),
+            query_builder = entity_subscription.build_query_builder(
+                query=data["query"],
+                project_ids=[p.id for p in projects],
+                environment=data.get("environment"),
                 params={
                     "organization_id": projects[0].organization_id,
                     "project_id": [p.id for p in projects],
@@ -413,7 +398,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     @staticmethod
     def _validate_time_window(dataset, time_window):
-        if dataset in [Dataset.Sessions, Dataset.Metrics]:
+        if dataset == Dataset.Metrics:
             # Validate time window
             if time_window not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(
@@ -510,6 +495,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         triggers = validated_data.pop("triggers")
         if "id" in validated_data:
             validated_data.pop("id")
+        if "monitor_type" in validated_data:
+            """
+            TODO: enable monitor type editing
+            requires creating/disabling activations accordingly
+            """
+            validated_data.pop("monitor_type")
         with transaction.atomic(router.db_for_write(AlertRule)):
             alert_rule = update_alert_rule(
                 instance,

@@ -1,12 +1,11 @@
 import uuid
-from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
 
+import orjson
 import redis
 from django.conf import settings
 
-from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import redis_clusters
 
@@ -36,7 +35,7 @@ class RedisReprocessingStore(ReprocessingStore):
         self.redis = redis_clusters.get(cluster)
 
     def event_count_for_hashes(
-        self, project_id: int, group_id: int, old_primary_hashes: Sequence[str]
+        self, project_id: int, group_id: int, old_primary_hashes: set[str]
     ) -> int:
         # Events for a group are split and bucketed by their primary hashes. If flushing is to be
         # performed on a per-group basis, the event count needs to be summed up across all buckets
@@ -94,7 +93,7 @@ class RedisReprocessingStore(ReprocessingStore):
         self,
         project_id: int,
         group_id: int,
-        event_id: str,
+        event_id: int,
         date_val: datetime,
         old_primary_hash: str,
     ) -> None:
@@ -161,9 +160,9 @@ class RedisReprocessingStore(ReprocessingStore):
         self.redis.setex(
             _get_info_reprocessed_key(group_id),
             settings.SENTRY_REPROCESSING_SYNC_TTL,
-            json.dumps(
-                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count}
-            ),
+            orjson.dumps(
+                {"dateCreated": date_created, "syncCount": sync_count, "totalEvents": event_count},
+            ).decode(),
         )
 
     def get_pending(self, group_id: int) -> tuple[str | None, int]:
@@ -176,4 +175,4 @@ class RedisReprocessingStore(ReprocessingStore):
         info = self.redis.get(_get_info_reprocessed_key(group_id))
         if info is None:
             return None
-        return json.loads(info)
+        return orjson.loads(info)

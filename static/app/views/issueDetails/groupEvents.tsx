@@ -1,12 +1,12 @@
 import {useCallback} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

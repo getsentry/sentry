@@ -40,7 +40,7 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import collect_groups_by_project, get_subscription_from_attributes
-from sentry.notifications.types import GroupSubscriptionStatus, NotificationSettingEnum
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
@@ -55,7 +55,6 @@ from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
 from sentry.types.group import SUBSTATUS_TO_STR, PriorityLevel
 from sentry.utils.cache import cache
-from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
 from sentry.utils.snuba import aliased_query, raw_query
 
@@ -85,7 +84,7 @@ class GroupStatusDetailsResponseOptional(TypedDict, total=False):
     inRelease: str
     inCommit: str
     pendingEvents: int
-    info: JSONData
+    info: Any
 
 
 class GroupStatusDetailsResponse(GroupStatusDetailsResponseOptional):
@@ -180,7 +179,7 @@ class GroupSerializerBase(Serializer, ABC):
         for team in Team.objects.filter(id__in=all_team_ids.keys()):
             for group_id in all_team_ids[team.id]:
                 result[group_id] = team
-        for user in user_service.get_many(filter=dict(user_ids=list(all_user_ids.keys()))):
+        for user in user_service.get_many_by_id(ids=list(all_user_ids.keys())):
             for group_id in all_user_ids[user.id]:
                 result[group_id] = user
 
@@ -570,10 +569,14 @@ class GroupSerializerBase(Serializer, ABC):
 
         groups_by_project = collect_groups_by_project(groups)
         project_ids = list(groups_by_project.keys())
-        enabled_settings = notifications_service.get_subscriptions_for_projects(
+        enabled_settings = notifications_service.subscriptions_for_projects(
             user_id=user.id, project_ids=project_ids, type=NotificationSettingEnum.WORKFLOW
         )
-        query_groups = {group for group in groups if (not enabled_settings[group.project_id][2])}
+        query_groups = {
+            group
+            for group in groups
+            if (not enabled_settings[group.project_id].has_only_inactive_subscriptions)
+        }
         subscriptions_by_group_id: dict[int, GroupSubscription] = {
             subscription.group_id: subscription
             for subscription in GroupSubscription.objects.filter(
@@ -584,12 +587,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         results = {}
         for project_id, group_set in groups_by_project.items():
-            s = enabled_settings[project_id]
-            subscription_status = GroupSubscriptionStatus(
-                is_disabled=s[0],
-                is_active=s[1],
-                has_only_inactive_subscriptions=s[2],
-            )
+            subscription_status = enabled_settings[project_id]
             for group in group_set:
                 subscription = subscriptions_by_group_id.get(group.id)
                 if subscription:
@@ -648,11 +646,7 @@ class GroupSerializerBase(Serializer, ABC):
 
         # find the external issues for sentry apps and add them in
         return (
-            safe_execute(
-                PlatformExternalIssue.get_annotations_for_group_list,
-                group_list=groups,
-                _with_transaction=False,
-            )
+            safe_execute(PlatformExternalIssue.get_annotations_for_group_list, group_list=groups)
             or {}
         )
 
@@ -660,7 +654,7 @@ class GroupSerializerBase(Serializer, ABC):
     def _resolve_integration_annotations(
         org_id: int, groups: Sequence[Group]
     ) -> Sequence[Mapping[int, Sequence[Any]]]:
-        from sentry.integrations import IntegrationFeatures
+        from sentry.integrations.base import IntegrationFeatures
 
         integration_annotations = []
         # find all the integration installs that have issue tracking
@@ -674,12 +668,7 @@ class GroupSerializerBase(Serializer, ABC):
 
             install = integration.get_installation(organization_id=org_id)
             local_annotations_by_group_id = (
-                safe_execute(
-                    install.get_annotations_for_group_list,
-                    group_list=groups,
-                    _with_transaction=False,
-                )
-                or {}
+                safe_execute(install.get_annotations_for_group_list, group_list=groups) or {}
             )
             integration_annotations.append(local_annotations_by_group_id)
 
@@ -700,11 +689,9 @@ class GroupSerializerBase(Serializer, ABC):
         for plugin in plugins.for_project(project=item.project, version=1):
             if is_plugin_deprecated(plugin, item.project):
                 continue
-            safe_execute(plugin.tags, None, item, annotations_for_group, _with_transaction=False)
+            safe_execute(plugin.tags, None, item, annotations_for_group)
         for plugin in plugins.for_project(project=item.project, version=2):
-            annotations_for_group.extend(
-                safe_execute(plugin.get_annotations, group=item, _with_transaction=False) or ()
-            )
+            annotations_for_group.extend(safe_execute(plugin.get_annotations, group=item) or ())
 
         return annotations_for_group
 
@@ -918,8 +905,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def __init__(
         self,
         environment_ids=None,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         search_filters=None,
         collapse=None,
         expand=None,

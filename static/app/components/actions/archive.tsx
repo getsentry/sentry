@@ -9,8 +9,8 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {GroupStatusResolution} from 'sentry/types';
-import {GroupStatus, GroupSubstatus} from 'sentry/types';
+import type {GroupStatusResolution} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
 
 interface ArchiveActionProps {
   onUpdate: (params: GroupStatusResolution) => void;
@@ -198,5 +198,5 @@ const MenuWrapper = styled('div')`
 `;
 
 const StyledExternalLink = styled(ExternalLink)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

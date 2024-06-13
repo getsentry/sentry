@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import TYPE_CHECKING
 
 from sentry.services.hybrid_cloud import ValueEqualityEnum
@@ -27,6 +27,8 @@ class NotificationSettingEnum(ValueEqualityEnum):
     QUOTA_ATTACHMENTS = "quotaAttachments"
     QUOTA_REPLAYS = "quotaReplays"
     QUOTA_MONITOR_SEATS = "quotaMonitorSeats"
+    QUOTA_SPANS = "quotaSpans"
+    QUOTA_PROFILE_DURATION = "quotaProfileDuration"
     QUOTA_SPEND_ALLOCATIONS = "quotaSpendAllocations"
     SPIKE_PROTECTION = "spikeProtection"
     MISSING_MEMBERS = "missingMembers"
@@ -57,7 +59,7 @@ class NotificationScopeEnum(ValueEqualityEnum):
     TEAM = "team"
 
 
-class FineTuningAPIKey(Enum):
+class FineTuningAPIKey(StrEnum):
     ALERTS = "alerts"
     APPROVAL = "approval"
     DEPLOY = "deploy"
@@ -108,6 +110,14 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingsOptionEnum.NEVER,
     },
     NotificationSettingEnum.QUOTA_MONITOR_SEATS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_SPANS: {
+        NotificationSettingsOptionEnum.ALWAYS,
+        NotificationSettingsOptionEnum.NEVER,
+    },
+    NotificationSettingEnum.QUOTA_PROFILE_DURATION: {
         NotificationSettingsOptionEnum.ALWAYS,
         NotificationSettingsOptionEnum.NEVER,
     },

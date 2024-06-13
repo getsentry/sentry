@@ -10,7 +10,9 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {fadeIn} from 'sentry/styles/animations';
 import {space} from 'sentry/styles/space';
-import type {Event, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import useRouter from 'sentry/utils/useRouter';
@@ -83,7 +85,10 @@ export function CronTimelineSection({event, organization, project}: Props) {
       <LinkButton
         size="xs"
         icon={<IconOpen />}
-        to={`/organizations/${organization.slug}/crons/${project.slug}/${monitorSlug}`}
+        to={{
+          pathname: `/organizations/${organization.slug}/crons/${project.slug}/${monitorSlug}`,
+          query: {environment},
+        }}
       >
         {t('View in Monitor Details')}
       </LinkButton>
@@ -100,14 +105,11 @@ export function CronTimelineSection({event, organization, project}: Props) {
     >
       <TimelineContainer>
         <TimelineWidthTracker ref={elementRef} />
-        <StyledGridLineTimeLabels
-          timeWindowConfig={timeWindowConfig}
-          width={timelineWidth}
-        />
+        <StyledGridLineTimeLabels timeWindowConfig={timeWindowConfig} />
         <GridLineOverlay
-          showCursor={!isLoading}
           timeWindowConfig={timeWindowConfig}
-          width={timelineWidth}
+          showCursor={!isLoading}
+          showIncidents={!isLoading}
         />
         {monitorStats && !isLoading ? (
           <Fragment>
@@ -117,7 +119,6 @@ export function CronTimelineSection({event, organization, project}: Props) {
             </EventLineLabel>
             <FadeInContainer>
               <CheckInTimeline
-                width={timelineWidth}
                 bucketedData={monitorStats[monitorId]}
                 timeWindowConfig={timeWindowConfig}
                 environment={environment ?? DEFAULT_ENVIRONMENT}

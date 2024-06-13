@@ -14,17 +14,17 @@ import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
+import Redirect from 'sentry/components/redirect';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import categoryList from 'sentry/data/platformPickerCategories';
 import platforms from 'sentry/data/platforms';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {OnboardingSelectedSDK} from 'sentry/types';
+import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -405,7 +405,7 @@ function Onboarding(props: Props) {
         <Confirm bypass={!shallProjectBeDeleted} {...goBackDeletionAlertModalProps}>
           <Back animate={stepIndex > 0 ? 'visible' : 'hidden'} />
         </Confirm>
-        <AnimatePresence exitBeforeEnter onExitComplete={updateAnimationState}>
+        <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep key={stepObj.id} data-test-id={`onboarding-step-${stepObj.id}`}>
             {stepObj.Component && (
               <stepObj.Component

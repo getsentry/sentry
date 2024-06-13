@@ -8,7 +8,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
@@ -65,13 +65,13 @@ describe('IssueListActions', function () {
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
       it('can bulk select', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
       });
 
@@ -82,7 +82,7 @@ describe('IssueListActions', function () {
         });
 
         render(<WrappedComponent queryCount={1500} />);
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
@@ -113,7 +113,7 @@ describe('IssueListActions', function () {
           organization: OrganizationFixture({features: ['issue-priority-ui']}),
         });
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
         await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
@@ -144,14 +144,9 @@ describe('IssueListActions', function () {
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={15} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
-      });
-
-      it('can bulk select', async function () {
-        render(<WrappedComponent queryCount={15} />);
-
-        await userEvent.click(screen.getByRole('checkbox'));
-
+        const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
+        await userEvent.click(checkbox);
+        expect(checkbox).toBeChecked();
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
       });
 
@@ -163,7 +158,7 @@ describe('IssueListActions', function () {
 
         render(<WrappedComponent queryCount={15} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
@@ -435,7 +430,7 @@ describe('IssueListActions', function () {
           {organization: orgWithPerformanceIssues}
         );
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
@@ -483,7 +478,7 @@ describe('IssueListActions', function () {
           {organization: orgWithPerformanceIssues}
         );
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 

@@ -39,7 +39,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             },
         }
 
-    def after(self, event, state, notification_uuid: str | None = None):
+    def after(self, event, notification_uuid: str | None = None):
         integration = self.get_integration()
         if not integration:
             logger.error("Integration removed, but the rule still refers to it")

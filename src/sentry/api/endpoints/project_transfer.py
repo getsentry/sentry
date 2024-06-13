@@ -39,9 +39,9 @@ class ProjectTransferEndpoint(ProjectEndpoint):
 
         Schedules a project for transfer to a new organization.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           project belongs to.
-        :pparam string project_slug: the slug of the project to delete.
+        :pparam string project_id_or_slug: the id or slug of the project to delete.
         :param string email: email of new owner. must be an organization owner
         :auth: required
         """

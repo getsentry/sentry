@@ -15,7 +15,8 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -25,15 +26,20 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 class MockOrganizationRoles:
     TEST_ORG_ROLES = [
-        {"id": "alice", "name": "Alice", "scopes": ["project:read", "project:write"]},
-        {"id": "bob", "name": "Bob", "scopes": ["project:read"]},
-        {"id": "carol", "name": "Carol", "scopes": ["project:write"]},
+        {
+            "id": "alice",
+            "name": "Alice",
+            "desc": "In Wonderland",
+            "scopes": ["project:read", "project:write"],
+        },
+        {"id": "bob", "name": "Bob", "desc": "The builder", "scopes": ["project:read"]},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?", "scopes": ["project:write"]},
     ]
 
     TEST_TEAM_ROLES = [
-        {"id": "alice", "name": "Alice"},
-        {"id": "bob", "name": "Bob"},
-        {"id": "carol", "name": "Carol"},
+        {"id": "alice", "name": "Alice", "desc": "In Wonderland"},
+        {"id": "bob", "name": "Bob", "desc": "The builder"},
+        {"id": "carol", "name": "Carol", "desc": "A nanny?"},
     ]
 
     def __init__(self):
@@ -201,8 +207,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_regenerate_token(self):
         member = OrganizationMember(organization=self.organization, email="foo@example.com")
-        assert member.token is None
-        assert member.token_expires_at is None
+        assert (member.token, member.token_expires_at) == (None, None)
 
         member.regenerate_token()
         assert member.token
@@ -513,8 +518,9 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
     def test_get_allowed_org_roles_to_invite_subset_logic(self):
         mock_org_roles = MockOrganizationRoles()
-        with patch("sentry.roles.organization_roles.get", mock_org_roles.get), patch(
-            "sentry.roles.organization_roles.get_all", mock_org_roles.get_all
+        with (
+            patch("sentry.roles.organization_roles.get", mock_org_roles.get),
+            patch("sentry.roles.organization_roles.get_all", mock_org_roles.get_all),
         ):
             alice = self.create_member(
                 user=self.create_user(), organization=self.organization, role="alice"

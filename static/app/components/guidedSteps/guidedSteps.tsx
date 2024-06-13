@@ -14,6 +14,7 @@ import {type BaseButtonProps, Button} from 'sentry/components/button';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import usePrevious from 'sentry/utils/usePrevious';
 
 type GuidedStepsProps = {
   children: React.ReactElement<StepProps> | React.ReactElement<StepProps>[];
@@ -22,6 +23,7 @@ type GuidedStepsProps = {
 };
 
 interface GuidedStepsContextState {
+  advanceToNextIncompleteStep: () => void;
   currentStep: number;
   getStepNumber: (stepKey: string) => number;
   registerStep: (step: RegisterStepInfo) => void;
@@ -34,12 +36,14 @@ interface StepProps {
   stepKey: string;
   title: string;
   isCompleted?: boolean;
+  optional?: boolean;
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
 type RegisteredSteps = {[key: string]: {stepNumber: number; isCompleted?: boolean}};
 
 const GuidedStepsContext = createContext<GuidedStepsContextState>({
+  advanceToNextIncompleteStep: () => {},
   currentStep: 0,
   setCurrentStep: () => {},
   totalSteps: 0,
@@ -63,6 +67,7 @@ function useGuidedStepsContentValue({
   // render and that step order does not change.
   const registerStep = useCallback((props: RegisterStepInfo) => {
     if (registeredStepsRef.current[props.stepKey]) {
+      registeredStepsRef.current[props.stepKey].isCompleted = props.isCompleted;
       return;
     }
     const numRegisteredSteps = Object.keys(registeredStepsRef.current).length + 1;
@@ -77,15 +82,24 @@ function useGuidedStepsContentValue({
     return registeredStepsRef.current[stepKey]?.stepNumber ?? 1;
   }, []);
 
+  const getFirstIncompleteStep = useCallback(() => {
+    return orderBy(Object.values(registeredStepsRef.current), 'stepNumber').find(
+      step => step.isCompleted !== true
+    );
+  }, []);
+
+  const advanceToNextIncompleteStep = useCallback(() => {
+    const firstIncompleteStep = getFirstIncompleteStep();
+    if (firstIncompleteStep) {
+      setCurrentStep(firstIncompleteStep.stepNumber);
+    }
+  }, [getFirstIncompleteStep]);
+
   // On initial load, set the current step to the first incomplete step
   useEffect(() => {
-    const firstIncompleteStep = orderBy(
-      Object.values(registeredStepsRef.current),
-      'stepNumber'
-    ).find(step => step.isCompleted !== true);
-
+    const firstIncompleteStep = getFirstIncompleteStep();
     setCurrentStep(firstIncompleteStep?.stepNumber ?? 1);
-  }, []);
+  }, [getFirstIncompleteStep]);
 
   const handleSetCurrentStep = useCallback(
     (step: number) => {
@@ -102,33 +116,50 @@ function useGuidedStepsContentValue({
       totalSteps,
       registerStep,
       getStepNumber,
+      advanceToNextIncompleteStep,
     }),
-    [currentStep, getStepNumber, handleSetCurrentStep, registerStep, totalSteps]
+    [
+      advanceToNextIncompleteStep,
+      currentStep,
+      getStepNumber,
+      handleSetCurrentStep,
+      registerStep,
+      totalSteps,
+    ]
   );
 }
 
 function Step(props: StepProps) {
-  const {currentStep, registerStep, getStepNumber} = useGuidedStepsContext();
+  const {advanceToNextIncompleteStep, currentStep, registerStep, getStepNumber} =
+    useGuidedStepsContext();
   const stepNumber = getStepNumber(props.stepKey);
   const isActive = currentStep === stepNumber;
   const isCompleted = props.isCompleted ?? currentStep > stepNumber;
+  const previousIsCompleted = usePrevious(isCompleted);
 
   useEffect(() => {
     registerStep({isCompleted: props.isCompleted, stepKey: props.stepKey});
   }, [props.isCompleted, props.stepKey, registerStep]);
 
+  useEffect(() => {
+    if (!previousIsCompleted && isCompleted && isActive) {
+      advanceToNextIncompleteStep();
+    }
+  }, [advanceToNextIncompleteStep, isActive, isCompleted, previousIsCompleted]);
+
   return (
     <StepWrapper data-test-id={`guided-step-${stepNumber}`}>
       <StepNumber isActive={isActive}>{stepNumber}</StepNumber>
-      <div>
+      <StepDetails>
         <StepHeading isActive={isActive}>
           {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
         </StepHeading>
+        {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
         )}
-      </div>
+      </StepDetails>
     </StepWrapper>
   );
 }
@@ -161,11 +192,12 @@ function NextButton({children, ...props}: BaseButtonProps) {
   );
 }
 
-function StepButtons() {
+function StepButtons({children}: {children?: React.ReactNode}) {
   return (
     <StepButtonsWrapper>
       <BackButton />
       <NextButton />
+      {children}
     </StepButtonsWrapper>
   );
 }
@@ -214,7 +246,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   position: relative;
   z-index: 2;
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -230,7 +262,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
 const StepHeading = styled('h4')<{isActive: boolean}>`
   line-height: 34px;
   margin: 0;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 `;
@@ -243,12 +275,23 @@ const StepDoneIcon = styled(IconCheckmark, {
   vertical-align: middle;
 `;
 
+const StepOptionalLabel = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: -${space(0.75)};
+  margin-bottom: ${space(1)};
+`;
+
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 
   p {
     margin-bottom: ${space(1)};
   }
+`;
+
+const StepDetails = styled('div')`
+  overflow: hidden;
 `;
 
 GuidedSteps.Step = Step;

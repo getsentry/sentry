@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, ClassVar
 
 from django.conf import settings
@@ -13,19 +13,19 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -168,7 +168,7 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         from sentry import features
         from sentry.notifications.utils.participants import ParticipantMap
 
-        all_possible_actors = RpcActor.many_from_object(group.project.get_members_as_rpc_users())
+        all_possible_actors = Actor.many_from_object(group.project.get_members_as_rpc_users())
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_actors]
         )
@@ -201,9 +201,9 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
             if user.id not in providers_by_recipient:
                 continue
 
-            subscription_option = subscriptions_by_user_id.get(user.id, {})
+            subscription_option = subscriptions_by_user_id.get(user.id)
             if not subscription_option and has_team_workflow:
-                subscription_option = subscriptions_by_team_id.get(user.id, {})
+                subscription_option = subscriptions_by_team_id.get(user.id)
 
             for provider_str, val in providers_by_recipient[user.id].items():
                 value = NotificationSettingsOptionEnum(val)
@@ -229,15 +229,15 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
                     result.add(provider, user, reason)
         return result
 
-    def get_possible_team_actors(self, group: Group) -> list[RpcActor]:
+    def get_possible_team_actors(self, group: Group) -> list[Actor]:
         from sentry.models.team import Team
 
         possible_teams_ids = Team.objects.filter(id__in=self.get_participating_team_ids(group))
-        return RpcActor.many_from_object(possible_teams_ids)
+        return Actor.many_from_object(possible_teams_ids)
 
     def get_subscriptions_by_team_id(
-        self, group: Group, possible_team_actors: list[RpcActor]
-    ) -> Mapping[int, int]:
+        self, group: Group, possible_team_actors: list[Actor]
+    ) -> dict[int, GroupSubscription]:
         active_and_disabled_team_subscriptions = self.filter(
             group=group, team_id__in=[t.id for t in possible_team_actors]
         )
@@ -247,30 +247,34 @@ class GroupSubscriptionManager(BaseManager["GroupSubscription"]):
         }
 
     @staticmethod
-    def get_participating_user_ids(group: Group) -> Sequence[int]:
+    def get_participating_user_ids(group: Group) -> list[int]:
         """Return the list of user ids participating in this issue."""
 
-        return list(
-            GroupSubscription.objects.filter(group=group, is_active=True, team=None).values_list(
-                "user_id", flat=True
-            )
-        )
+        return [
+            user_id
+            for user_id in GroupSubscription.objects.filter(
+                group=group, is_active=True, team=None
+            ).values_list("user_id", flat=True)
+            if user_id is not None
+        ]
 
     @staticmethod
-    def get_participating_team_ids(group: Group) -> Sequence[int]:
+    def get_participating_team_ids(group: Group) -> list[int]:
         """Return the list of team ids participating in this issue."""
 
-        return list(
-            GroupSubscription.objects.filter(group=group, is_active=True, user_id=None).values_list(
-                "team_id", flat=True
-            )
-        )
+        return [
+            team_id
+            for team_id in GroupSubscription.objects.filter(
+                group=group, is_active=True, user_id=None
+            ).values_list("team_id", flat=True)
+            if team_id is not None
+        ]
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupSubscription(Model):
     """
-    Identifies a subscription relationship between a user and an issue.
+    Identifies a subscription relationship between a user / team and an issue.
     """
 
     __relocation_scope__ = RelocationScope.Excluded

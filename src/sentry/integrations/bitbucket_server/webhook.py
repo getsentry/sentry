@@ -1,6 +1,7 @@
 import logging
 from datetime import datetime, timezone
 
+import orjson
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from django.http import HttpResponse
@@ -17,7 +18,6 @@ from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.shared_integrations.exceptions import ApiHostError, ApiUnauthorized, IntegrationError
-from sentry.utils import json
 from sentry.web.frontend.base import region_silo_view
 
 logger = logging.getLogger("sentry.webhooks")
@@ -164,8 +164,8 @@ class BitbucketServerWebhookEndpoint(View):
             return HttpResponse(status=204)
 
         try:
-            event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(body)
+        except orjson.JSONDecodeError:
             logger.exception(
                 "%s.webhook.invalid-json",
                 PROVIDER_NAME,

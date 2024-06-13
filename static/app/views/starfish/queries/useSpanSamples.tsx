@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,
@@ -23,8 +23,8 @@ type Options = {
   groupId: string;
   transactionName: string;
   additionalFields?: string[];
-  query?: string[];
   release?: string;
+  spanSearch?: MutableSearch;
   transactionMethod?: string;
 };
 
@@ -50,16 +50,14 @@ export const useSpanSamples = (options: Options) => {
     transactionName,
     transactionMethod,
     release,
-    query: extraQuery = [],
+    spanSearch,
     additionalFields,
   } = options;
   const location = useLocation();
 
-  const query = new MutableSearch([
-    `${SPAN_GROUP}:${groupId}`,
-    `transaction:"${transactionName}"`,
-    ...extraQuery,
-  ]);
+  const query = spanSearch !== undefined ? spanSearch.copy() : new MutableSearch([]);
+  query.addFilterValue(SPAN_GROUP, groupId);
+  query.addFilterValue('transaction', transactionName);
 
   const filters: SpanMetricsQueryFilters = {
     transaction: transactionName,
@@ -77,14 +75,16 @@ export const useSpanSamples = (options: Options) => {
 
   const dateCondtions = getDateConditions(pageFilter.selection);
 
-  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries({
-    search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
-    yAxis: [`avg(${SPAN_SELF_TIME})`],
-    enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
-      Boolean(value)
-    ),
-    referrer: 'api.starfish.sidebar-span-metrics',
-  });
+  const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
+      yAxis: [`avg(${SPAN_SELF_TIME})`],
+      enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
+        Boolean(value)
+      ),
+    },
+    'api.starfish.sidebar-span-metrics'
+  );
 
   const maxYValue = computeAxisMax([spanMetricsSeriesData?.[`avg(${SPAN_SELF_TIME})`]]);
 

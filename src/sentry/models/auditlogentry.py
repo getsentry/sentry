@@ -17,7 +17,7 @@ from sentry.db.models import (
     Model,
     sane_repr,
 )
-from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.log import AuditLogEvent
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -42,7 +42,7 @@ def format_scim_token_actor_name(actor):
     return f"SCIM Internal Integration ({uuid_prefix})"
 
 
-@control_silo_only_model
+@control_silo_model
 class AuditLogEntry(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -81,7 +81,7 @@ class AuditLogEntry(Model):
     def save(self, *args, **kwargs):
         # trim label to the max length
         self._apply_actor_label()
-        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH]
+        self.actor_label = self.actor_label[:MAX_ACTOR_LABEL_LENGTH] if self.actor_label else ""
         super().save(*args, **kwargs)
 
     def _apply_actor_label(self):

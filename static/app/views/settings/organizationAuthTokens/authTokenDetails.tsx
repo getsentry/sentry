@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {browserHistory} from 'react-router';
 
 import {
   addErrorMessage,
@@ -18,6 +17,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization, OrgAuthToken} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   getApiQueryData,

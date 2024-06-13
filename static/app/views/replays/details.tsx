@@ -1,13 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
+import {Flex} from 'sentry/components/container/flex';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Flex} from 'sentry/components/profiling/flex';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconDelete} from 'sentry/icons';
@@ -17,6 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
+import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -70,6 +71,28 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   const replayErrors = errors.filter(e => e.title !== 'User Feedback');
 
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
+
+  const {mutate: markAsViewed} = useMarkReplayViewed();
+  useEffect(() => {
+    if (
+      !fetchError &&
+      replayRecord &&
+      !replayRecord.has_viewed &&
+      projectSlug &&
+      !fetching &&
+      replayId
+    ) {
+      markAsViewed({projectSlug, replayId});
+    }
+  }, [
+    fetchError,
+    fetching,
+    markAsViewed,
+    organization,
+    projectSlug,
+    replayId,
+    replayRecord,
+  ]);
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
@@ -167,7 +190,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           projectSlug={projectSlug}
           replayErrors={replayErrors}
         >
-          <ReplaysLayout isVideoReplay={isVideoReplay} />
+          <ReplaysLayout isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>

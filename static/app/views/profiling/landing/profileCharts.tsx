@@ -10,7 +10,7 @@ import {HeaderTitle} from 'sentry/components/charts/styles';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';

@@ -79,9 +79,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
 
-        incident_trigger = (
-            IncidentTrigger.objects.filter(incident=incident).order_by("-date_modified").first()
-        )
+        incident_trigger = IncidentTrigger.objects.get(incident=incident)
         incident_trigger.update(date_modified=now)
 
         # Test the trigger "firing"
@@ -264,7 +262,7 @@ class IncidentAttachmentInfoTestForCrashRateAlerts(TestCase, BaseMetricsTestCase
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
         )
         trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 95)

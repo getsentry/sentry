@@ -23,7 +23,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.models.distribution import Distribution
@@ -43,7 +43,7 @@ ARTIFACT_INDEX_FILENAME = "artifact-index.json"
 ARTIFACT_INDEX_TYPE = "release.artifact-index"
 
 
-class PublicReleaseFileManager(models.Manager):
+class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
     """Manager for all release files that are not internal.
 
     Internal release files include:
@@ -59,7 +59,7 @@ class PublicReleaseFileManager(models.Manager):
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.

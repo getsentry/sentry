@@ -49,7 +49,10 @@ class OrganizationReleasePreviousCommitsTest(APITestCase):
         new_release.add_project(self.project2)
         self.url = reverse(
             "sentry-api-0-organization-release-previous-with-commits",
-            kwargs={"organization_slug": self.organization.slug, "version": new_release.version},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "version": new_release.version,
+            },
         )
 
     def test_previous_release_has_commits(self):
@@ -68,7 +71,10 @@ class OrganizationReleasePreviousCommitsTest(APITestCase):
         new_release.add_project(self.project2)
         url = reverse(
             "sentry-api-0-organization-release-previous-with-commits",
-            kwargs={"organization_slug": self.organization.slug, "version": new_release.version},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "version": new_release.version,
+            },
         )
         response = self.client.get(url)
         assert response.status_code == 200, response.content
@@ -80,7 +86,7 @@ class OrganizationReleasePreviousCommitsTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-previous-with-commits",
-            kwargs={"organization_slug": self.organization.slug, "version": release.version},
+            kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
         )
 
         response = self.client.get(url)

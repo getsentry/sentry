@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
-from sentry_relay.processing import validate_project_config
+from sentry_relay.processing import normalize_project_config
 
 from sentry.constants import HEALTH_CHECK_GLOBS
 from sentry.discover.models import TeamKeyTransaction
@@ -25,7 +25,6 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 
 @pytest.fixture
@@ -78,10 +77,9 @@ def _validate_rules(project):
         "sampling": {
             "version": 2,
             "rules": rules,
-            "mode": "total",
         },
     }
-    validate_project_config(json.dumps(project_config), strict=True)
+    assert normalize_project_config(project_config) == project_config
 
 
 @patch("sentry.dynamic_sampling.rules.base.sentry_sdk")

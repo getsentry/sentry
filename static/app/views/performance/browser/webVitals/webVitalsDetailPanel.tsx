@@ -1,5 +1,4 @@
-import {useMemo} from 'react';
-import {Link} from 'react-router';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -10,14 +9,19 @@ import type {
 } from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
@@ -52,6 +56,7 @@ export function WebVitalsDetailPanel({
   webVital: WebVitals | null;
 }) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
@@ -121,6 +126,15 @@ export function WebVitalsDetailPanel({
 
   const detailKey = webVital;
 
+  useEffect(() => {
+    if (webVital !== null) {
+      trackAnalytics('insight.vital.vital_sidebar_opened', {
+        organization,
+        vital: webVital,
+      });
+    }
+  }, [organization, webVital]);
+
   const renderHeadCell = (col: Column) => {
     if (col.key === 'transaction') {
       return <NoOverflow>{col.name}</NoOverflow>;
@@ -142,7 +156,7 @@ export function WebVitalsDetailPanel({
                 {webVital: webVital?.toUpperCase() ?? ''}
               )}
               <br />
-              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+              <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
                 {t('How is this calculated?')}
               </ExternalLink>
             </span>
@@ -247,7 +261,6 @@ export function WebVitalsDetailPanel({
               renderHeadCell,
               renderBodyCell,
             }}
-            location={location}
           />
         </TableContainer>
         <PageAlert />

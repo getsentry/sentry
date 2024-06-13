@@ -12,12 +12,6 @@ from sentry.models.project import Project
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.receivers.rules import (
-    DEFAULT_RULE_DATA,
-    DEFAULT_RULE_DATA_NEW,
-    DEFAULT_RULE_LABEL,
-    DEFAULT_RULE_LABEL_NEW,
-)
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.signals import (
     advanced_search,
@@ -303,10 +297,10 @@ def record_inbound_filter_toggled(project, **kwargs):
 @alert_rule_created.connect(weak=False)
 def record_alert_rule_created(
     user,
-    project,
-    rule,
-    rule_type,
-    is_api_token,
+    project: Project,
+    rule_id: int,
+    rule_type: str,
+    is_api_token: bool,
     referrer=None,
     session_id=None,
     alert_rule_ui_component=None,
@@ -314,13 +308,8 @@ def record_alert_rule_created(
     wizard_v3=None,
     **kwargs,
 ):
-    if (
-        rule_type == "issue"
-        and rule.label in [DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW]
-        and rule.data in [DEFAULT_RULE_DATA, DEFAULT_RULE_DATA_NEW]
-    ):
-        return
-
+    # NOTE: This intentionally does not fire for the default issue alert rule
+    # that gets created on new project creation.
     FeatureAdoption.objects.record(
         organization_id=project.organization_id, feature_slug="alert_rules", complete=True
     )
@@ -337,7 +326,7 @@ def record_alert_rule_created(
         default_user_id=default_user_id,
         organization_id=project.organization_id,
         project_id=project.id,
-        rule_id=rule.id,
+        rule_id=rule_id,
         rule_type=rule_type,
         referrer=referrer,
         session_id=session_id,

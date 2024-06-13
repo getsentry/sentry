@@ -7,7 +7,8 @@ import TeamRoleSelect from 'sentry/components/teamRoleSelect';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Member, Organization, Team, TeamMember, User} from 'sentry/types';
+import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 interface Props {
@@ -34,7 +35,7 @@ function TeamMembersRow({
   return (
     <TeamRolesPanelItem key={member.id}>
       <div>
-        <IdBadge avatarSize={36} member={member} useLink orgId={organization.slug} />
+        <IdBadge avatarSize={36} member={member} />
       </div>
       <RoleSelectWrapper>
         <TeamRoleSelect

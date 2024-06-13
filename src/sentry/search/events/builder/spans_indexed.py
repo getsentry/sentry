@@ -1,11 +1,14 @@
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Function
 
+from sentry.search.events import constants
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
+from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
 
 
-class SpansIndexedQueryBuilder(QueryBuilder):
-    requires_organization_condition = False
+class SpansIndexedQueryBuilderMixin:
+    meta_resolver_map: dict[str, str]
 
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
@@ -16,13 +19,28 @@ class SpansIndexedQueryBuilder(QueryBuilder):
         return None
 
 
-class TimeseriesSpanIndexedQueryBuilder(TimeseriesQueryBuilder):
-    @property
-    def time_column(self) -> SelectType:
-        return Function("toStartOfHour", [Column("end_timestamp")], "time")
+class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, QueryBuilder):
+    requires_organization_condition = False
+    uuid_fields = {"transaction.id", "replay.id", "profile.id", "trace"}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.value_resolver_map[
+            constants.SPAN_STATUS
+        ] = lambda status: SPAN_STATUS_CODE_TO_NAME.get(status)
 
 
-class TopEventsSpanIndexedQueryBuilder(TopEventsQueryBuilder):
+class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):
     @property
     def time_column(self) -> SelectType:
-        return Function("toStartOfHour", [Column("timestamp")], "time")
+        return custom_time_processor(
+            self.interval, Function("toUInt32", [Column("start_timestamp")])
+        )
+
+
+class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
+    @property
+    def time_column(self) -> SelectType:
+        return custom_time_processor(
+            self.interval, Function("toUInt32", [Column("start_timestamp")])
+        )

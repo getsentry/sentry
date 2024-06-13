@@ -17,7 +17,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.features import with_feature
@@ -247,7 +247,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         # require 2FA disabled when saml is enabled
         with assume_test_silo_mode(SiloMode.REGION):
             org = Organization.objects.get(id=self.organization.id)
-            assert not org.flags.require_2fa.is_set
+            assert not org.flags.require_2fa
 
         event = AuditLogEntry.objects.get(
             target_object=org.id, event=audit_log.get_event_id("ORG_EDIT"), actor=self.user

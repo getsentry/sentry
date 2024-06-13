@@ -10,10 +10,6 @@ export class Timer extends EventTarget {
   private _additionalTime: number = 0;
   private _callbacks: Map<number, (() => void)[]> = new Map();
 
-  constructor() {
-    super();
-  }
-
   step = () => {
     if (!this._active) {
       return;

@@ -1,11 +1,11 @@
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils.cases import TestCase
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 
 class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):
@@ -23,7 +23,7 @@ class GetParticipantsTest(TestCase):
     def setUp(self):
         self.user2 = self.create_user()
         self.create_member(user=self.user2, organization=self.organization)
-        self.user_actors = {RpcActor.from_orm_user(user) for user in (self.user, self.user2)}
+        self.user_actors = {Actor.from_orm_user(user) for user in (self.user, self.user2)}
 
     def test_default_to_slack(self):
         notification = DummyRequestNotification(self.organization, self.user)

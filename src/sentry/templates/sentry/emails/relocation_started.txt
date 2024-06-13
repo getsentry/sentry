@@ -4,6 +4,6 @@ Your relocation request has been accepted. You requested that the following orga
 * {{ org }}
 {% endfor %}
 
-Relocations usually complete in 24 hours or less. If you do not hear from us in that time frame, please contact support at https://help.sentry.io.
+Relocations usually complete in 24 hours or less. If you do not hear from us in that time frame, please contact support at https://sentry.zendesk.com/hc/en-us.
 
 ID: {{ uuid }}

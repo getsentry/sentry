@@ -2,21 +2,19 @@ import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import EventContextSummary from 'sentry/components/events/contextSummary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   getSentryDefaultTags,
   TagFilter,
   TagFilterData,
   TAGS_DOCS_LINK,
-  useHasNewTagsUI,
 } from 'sentry/components/events/eventTags/util';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 
 import {EventTags} from '../eventTags';
 
@@ -29,7 +27,6 @@ function Tags({event, projectSlug}: Props) {
   const sentryTags = getSentryDefaultTags();
 
   const [tagFilter, setTagFilter] = useState<TagFilter>(TagFilter.ALL);
-  const hasNewTagsUI = useHasNewTagsUI();
   const handleTagFilterChange = useCallback((value: TagFilter) => {
     setTagFilter(value);
   }, []);
@@ -50,7 +47,7 @@ function Tags({event, projectSlug}: Props) {
     });
   }, [event.tags]);
 
-  const actions = !hasNewTagsUI ? null : (
+  const actions = (
     <ButtonBar gap={1}>
       <SegmentedControl
         size="xs"
@@ -77,7 +74,6 @@ function Tags({event, projectSlug}: Props) {
       guideTarget="tags"
       type="tags"
     >
-      {!hasNewTagsUI && <EventContextSummary event={event} />}
       <EventTags
         event={event}
         projectSlug={projectSlug}

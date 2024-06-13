@@ -108,8 +108,8 @@ class SDKCrashDetection:
         metrics.incr("post_process.sdk_crash_monitoring.detecting_sdk_crash", tags=metric_tags)
 
         if sdk_crash_detector.is_sdk_crash(frames):
-            # TODO this rollout rate is backwards
-            if random.random() >= sample_rate:
+            # The sample rate is backwards on purpose, because we return None if we don't want to sample an event.
+            if random.random() > sample_rate:
                 return None
 
             sdk_crash_event_data = strip_event_data(event.data, sdk_crash_detector)

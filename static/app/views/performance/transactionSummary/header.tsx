@@ -4,16 +4,17 @@ import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -78,7 +79,7 @@ function TransactionHeader({
     isProfilingSupportedOrProjectHasProfiles(project);
 
   const hasAggregateWaterfall = organization.features.includes(
-    'starfish-aggregate-span-waterfall'
+    'insights-initial-modules'
   );
 
   const getWebVitals = useCallback(
@@ -114,10 +115,6 @@ function TransactionHeader({
     statsPeriod: '90d',
   });
   const replaysCount = getReplayCountForTransaction(transactionName);
-
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
 
   return (
     <Layout.Header>
@@ -201,10 +198,7 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS} hidden={hasTransactionSummaryCleanupFlag}>
-                {t('Spans')}
-              </TabList.Item>
-
+              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
                 key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}

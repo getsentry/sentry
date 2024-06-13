@@ -7,8 +7,8 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
+import type {Organization} from 'sentry/types/organization';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 import {barAxisLabel, sortSeriesByDay} from './utils';

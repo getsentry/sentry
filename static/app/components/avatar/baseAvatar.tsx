@@ -7,7 +7,7 @@ import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
 import LetterAvatar from 'sentry/components/letterAvatar';
 import type {TooltipProps} from 'sentry/components/tooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {Avatar} from 'sentry/types';
+import type {Avatar} from 'sentry/types/core';
 
 import Gravatar from './gravatar';
 import type {ImageStyleProps} from './styles';
@@ -122,21 +122,27 @@ function BaseAvatar({
         width: size,
       };
 
-  return (
-    <Tooltip title={tooltip} disabled={!hasTooltip} {...tooltipOptions}>
-      <StyledBaseAvatar
-        data-test-id={`${type}-avatar`}
-        ref={forwardedRef}
-        className={classNames('avatar', className)}
-        round={!!round}
-        suggested={!!suggested}
-        style={{...sizeStyle, ...style}}
-        title={title}
-        {...props}
-      >
-        {hasError ? backup : imageAvatar}
-      </StyledBaseAvatar>
+  const avatarComponent = (
+    <StyledBaseAvatar
+      data-test-id={`${type}-avatar`}
+      ref={forwardedRef}
+      className={classNames('avatar', className)}
+      round={!!round}
+      suggested={!!suggested}
+      style={{...sizeStyle, ...style}}
+      title={title}
+      {...props}
+    >
+      {hasError ? backup : imageAvatar}
+    </StyledBaseAvatar>
+  );
+
+  return hasTooltip ? (
+    <Tooltip title={tooltip} {...tooltipOptions}>
+      {avatarComponent}
     </Tooltip>
+  ) : (
+    avatarComponent
   );
 }
 

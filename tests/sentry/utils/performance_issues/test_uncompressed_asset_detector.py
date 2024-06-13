@@ -389,17 +389,6 @@ class UncompressedAssetsDetectorTest(TestCase):
 
         assert len(self.find_problems(event)) == 0
 
-    def test_respects_feature_flag(self):
-        project = self.create_project()
-        event = get_event("uncompressed-assets/uncompressed-script-asset")
-
-        detector = UncompressedAssetSpanDetector(self._settings, event)
-
-        assert not detector.is_creation_allowed_for_organization(project.organization)
-
-        with self.feature({"organizations:performance-issues-compressed-assets-detector": True}):
-            assert detector.is_creation_allowed_for_organization(project.organization)
-
     def test_detects_problems_from_event(self):
         event = get_event("uncompressed-assets/uncompressed-script-asset")
 

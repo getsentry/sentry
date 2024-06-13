@@ -1,4 +1,4 @@
-import type {GroupStatus} from 'sentry/types';
+import type {GroupStatus} from 'sentry/types/group';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
@@ -69,6 +69,11 @@ export type TeamInsightsEventParameters = {
   'alert_stream.viewed': {};
   'alert_wizard.option_selected': {alert_type: string};
   'edit_alert_rule.add_row': {
+    name: string;
+    project_id: string;
+    type: string;
+  };
+  'edit_alert_rule.delete_row': {
     name: string;
     project_id: string;
     type: string;
@@ -166,6 +171,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
+  'edit_alert_rule.delete_row': 'Edit Alert Rule: Delete Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',

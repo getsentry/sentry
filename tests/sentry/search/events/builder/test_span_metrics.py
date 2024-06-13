@@ -8,6 +8,7 @@ from sentry.search.events.builder import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
 )
+from sentry.search.events.types import ParamsType
 from sentry.testutils.cases import MetricsEnhancedPerformanceTestCase
 
 pytestmark = pytest.mark.sentry_metrics
@@ -231,7 +232,7 @@ class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
 
 class TimeseriesMetricQueryBuilder(MetricsEnhancedPerformanceTestCase):
     def test_split_granularity(self):
-        params = {
+        params: ParamsType = {
             "organization_id": self.organization.id,
             "project_id": [self.project.id],
             "start": datetime.datetime(2015, 5, 18, 23, 3, 0, tzinfo=timezone.utc),

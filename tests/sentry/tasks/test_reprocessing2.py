@@ -25,8 +25,8 @@ from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.reprocessing2 import is_group_finished
 from sentry.tasks.reprocessing2 import finish_reprocessing, reprocess_group
 from sentry.tasks.store import preprocess_event
-from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -61,8 +61,7 @@ def _create_user_report(evt):
 def reprocessing_feature(settings):
     settings.SENTRY_REPROCESSING_PAGE_SIZE = 1
 
-    with Feature({"organizations:reprocessing-v2": True}):
-        yield
+    yield
 
 
 @pytest.fixture
@@ -115,7 +114,6 @@ def test_basic(
     reset_snuba,
     process_and_save,
     register_event_preprocessor,
-    burst_task_runner,
     monkeypatch,
     django_cache,
 ):
@@ -173,10 +171,10 @@ def test_basic(
 
     old_event = event
 
-    with burst_task_runner() as burst:
+    with BurstTaskRunner() as burst:
         reprocess_group(default_project.id, event.group_id)
 
-    burst(max_jobs=100)
+        burst(max_jobs=100)
 
     (event,) = get_event_by_processing_counter("x1")
 
@@ -222,7 +220,6 @@ def test_concurrent_events_go_into_new_group(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    burst_task_runner,
     default_user,
     django_cache,
 ):
@@ -250,17 +247,20 @@ def test_concurrent_events_go_into_new_group(
         group_id=original_issue_id, project=default_project, user_id=default_user.id
     )
 
-    with burst_task_runner() as burst_reprocess:
+    with BurstTaskRunner() as burst_reprocess:
         reprocess_group(default_project.id, event.group_id)
 
-    assert not is_group_finished(event.group_id)
+        assert not is_group_finished(event.group_id)
 
-    event_id2 = process_and_save({"message": "hello world"})
-    event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
-    assert event2.event_id != event.event_id
-    assert event2.group_id != event.group_id
+        # this triggers an async task as well: allow it to complete
+        with burst_reprocess.temporarily_enable_normal_task_processing():
+            event_id2 = process_and_save({"message": "hello world"})
 
-    burst_reprocess(max_jobs=100)
+        event2 = eventstore.backend.get_event_by_id(default_project.id, event_id2)
+        assert event2.event_id != event.event_id
+        assert event2.group_id != event.group_id
+
+        burst_reprocess(max_jobs=100)
 
     event3 = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event3.event_id == event.event_id
@@ -288,7 +288,6 @@ def test_max_events(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    burst_task_runner,
     monkeypatch,
     remaining_events,
     max_events,
@@ -314,7 +313,7 @@ def test_max_events(
 
     (group_id,) = {e.group_id for e in old_events.values()}
 
-    with burst_task_runner() as burst:
+    with BurstTaskRunner() as burst:
         reprocess_group(
             default_project.id,
             group_id,
@@ -322,7 +321,7 @@ def test_max_events(
             remaining_events=remaining_events,
         )
 
-    burst(max_jobs=100)
+        burst(max_jobs=100)
 
     for i, event_id in enumerate(event_ids):
         event = eventstore.backend.get_event_by_id(default_project.id, event_id)
@@ -362,7 +361,6 @@ def test_attachments_and_userfeedback(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    burst_task_runner,
     monkeypatch,
 ):
     @register_event_preprocessor
@@ -399,10 +397,10 @@ def test_attachments_and_userfeedback(
 
         _create_user_report(evt)
 
-    with burst_task_runner() as burst:
+    with BurstTaskRunner() as burst:
         reprocess_group(default_project.id, event.group_id, max_events=1)
 
-    burst(max_jobs=100)
+        burst(max_jobs=100)
 
     new_event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert new_event.group_id != event.group_id
@@ -431,7 +429,6 @@ def test_nodestore_missing(
     default_project,
     reset_snuba,
     process_and_save,
-    burst_task_runner,
     monkeypatch,
     remaining_events,
     django_cache,
@@ -441,12 +438,12 @@ def test_nodestore_missing(
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     old_group = event.group
 
-    with burst_task_runner() as burst:
+    with BurstTaskRunner() as burst:
         reprocess_group(
             default_project.id, event.group_id, max_events=1, remaining_events=remaining_events
         )
 
-    burst(max_jobs=100)
+        burst(max_jobs=100)
 
     assert is_group_finished(event.group_id)
 
@@ -475,7 +472,6 @@ def test_apply_new_fingerprinting_rules(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    burst_task_runner,
 ):
     """
     Assert that after changing fingerprinting rules, the new fingerprinting config
@@ -512,9 +508,9 @@ def test_apply_new_fingerprinting_rules(
         return_value=new_rules,
     ):
         # Reprocess
-        with burst_task_runner() as burst_reprocess:
+        with BurstTaskRunner() as burst_reprocess:
             reprocess_group(default_project.id, event1.group_id)
-        burst_reprocess(max_jobs=100)
+            burst_reprocess(max_jobs=100)
 
     assert is_group_finished(event1.group_id)
 
@@ -540,7 +536,6 @@ def test_apply_new_stack_trace_rules(
     reset_snuba,
     register_event_preprocessor,
     process_and_save,
-    burst_task_runner,
 ):
     """
     Assert that after changing stack trace rules, the new grouping config
@@ -608,10 +603,10 @@ def test_apply_new_stack_trace_rules(
         },
     ):
         # Reprocess
-        with burst_task_runner() as burst_reprocess:
+        with BurstTaskRunner() as burst_reprocess:
             reprocess_group(default_project.id, event1.group_id)
             reprocess_group(default_project.id, event2.group_id)
-        burst_reprocess(max_jobs=100)
+            burst_reprocess(max_jobs=100)
 
     assert is_group_finished(event1.group_id)
     assert is_group_finished(event2.group_id)
@@ -630,6 +625,7 @@ def test_finish_reprocessing(default_project):
     # Pretend that the old group has more than one activity still connected:
     old_group = Group.objects.create(project=default_project)
     new_group = Group.objects.create(project=default_project)
+    new_group2 = Group.objects.create(project=default_project)
 
     old_group.activity_set.create(
         project=default_project,
@@ -638,4 +634,18 @@ def test_finish_reprocessing(default_project):
     )
     old_group.activity_set.create(project=default_project, type=ActivityType.NOTE.value)
 
+    old_group.activity_set.create(
+        project=default_project,
+        type=ActivityType.REPROCESS.value,
+        data={"newGroupId": new_group2.id},
+    )
+
     finish_reprocessing(old_group.project_id, old_group.id)
+
+    redirects = list(
+        GroupRedirect.objects.filter(
+            previous_group_id=old_group.id,
+        )
+    )
+    assert len(redirects) == 1
+    assert redirects[0].group_id == new_group.id

@@ -1,4 +1,4 @@
-import {reactHooks, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {useDispatchingReducer} from 'sentry/utils/useDispatchingReducer';
@@ -19,16 +19,14 @@ describe('useDispatchingReducer', () => {
   it('initializes state with initializer', () => {
     const reducer = jest.fn().mockImplementation(s => s) as () => {};
     const initialState = {type: 'initial'};
-    const {result} = reactHooks.renderHook(() =>
-      useDispatchingReducer(reducer, initialState)
-    );
+    const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
     expect(result.current[0]).toBe(initialState);
   });
   it('initializes state with fn initializer arg', () => {
     const reducer = jest.fn().mockImplementation(s => s) as () => {};
     const initialState = {type: 'initial'};
-    const {result} = reactHooks.renderHook(() =>
+    const {result} = renderHook(() =>
       // @ts-expect-error force undfined
       useDispatchingReducer(reducer, undefined, () => initialState)
     );
@@ -46,12 +44,10 @@ describe('useDispatchingReducer', () => {
     });
     it('calls reducer and updates state', async () => {
       const initialState = {type: 'initial'};
-      const {result} = reactHooks.renderHook(() =>
-        useDispatchingReducer(reducer, initialState)
-      );
+      const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
-      reactHooks.act(() => result.current[1]('action'));
-      reactHooks.act(() => {
+      act(() => result.current[1]('action'));
+      act(() => {
         jest.runAllTimers();
       });
 
@@ -62,15 +58,13 @@ describe('useDispatchingReducer', () => {
     });
     it('calls before action with state and action args', () => {
       const initialState = {type: 'initial'};
-      const {result} = reactHooks.renderHook(() =>
-        useDispatchingReducer(reducer, initialState)
-      );
+      const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
       const beforeAction = jest.fn();
       result.current[2].on('before action', beforeAction);
 
-      reactHooks.act(() => result.current[1]('action'));
-      reactHooks.act(() => {
+      act(() => result.current[1]('action'));
+      act(() => {
         jest.runAllTimers();
       });
 
@@ -79,15 +73,13 @@ describe('useDispatchingReducer', () => {
     });
     it('calls after action with previous, new state and action args', () => {
       const initialState = {type: 'initial'};
-      const {result} = reactHooks.renderHook(() =>
-        useDispatchingReducer(reducer, initialState)
-      );
+      const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
       const beforeNextState = jest.fn();
       result.current[2].on('before next state', beforeNextState);
 
-      reactHooks.act(() => result.current[1]('action'));
-      reactHooks.act(() => {
+      act(() => result.current[1]('action'));
+      act(() => {
         jest.runAllTimers();
       });
 
@@ -112,16 +104,16 @@ describe('useDispatchingReducer', () => {
               };
           }
         });
-      const {result} = reactHooks.renderHook(() =>
+      const {result} = renderHook(() =>
         useDispatchingReducer(action_storing_reducer, initialState)
       );
 
-      reactHooks.act(() => {
+      act(() => {
         result.current[1]('action');
         result.current[1]('another');
       });
 
-      reactHooks.act(() => {
+      act(() => {
         jest.runAllTimers();
       });
 
@@ -145,16 +137,14 @@ describe('useDispatchingReducer', () => {
     });
 
     const initialState = {a: {}, b: {}};
-    const {result} = reactHooks.renderHook(() =>
-      useDispatchingReducer(finalReducer, initialState)
-    );
+    const {result} = renderHook(() => useDispatchingReducer(finalReducer, initialState));
 
-    reactHooks.act(() => {
+    act(() => {
       result.current[1]('a');
       result.current[1]('b');
     });
 
-    reactHooks.act(() => {
+    act(() => {
       jest.runAllTimers();
     });
 
@@ -171,9 +161,7 @@ describe('useDispatchingReducer', () => {
     });
 
     const initialState = {};
-    const {result} = reactHooks.renderHook(() =>
-      useDispatchingReducer(reducer, initialState)
-    );
+    const {result} = renderHook(() => useDispatchingReducer(reducer, initialState));
 
     result.current[2].on('before action', (_state, action) => {
       if (action === 'a') {
@@ -181,8 +169,8 @@ describe('useDispatchingReducer', () => {
       }
     });
 
-    reactHooks.act(() => result.current[1]('a'));
-    reactHooks.act(() => {
+    act(() => result.current[1]('a'));
+    act(() => {
       jest.runAllTimers();
     });
 

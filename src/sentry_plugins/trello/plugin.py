@@ -4,7 +4,7 @@ from django.urls import re_path
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
@@ -59,7 +59,7 @@ class TrelloPlugin(CorePluginMixin, IssuePlugin2):
             initial_values = kwargs.get("initial", {})
             return initial_values.get(field) or self.get_option(field, project)
 
-        token_config = {
+        token_config: dict[str, object] = {
             "name": "token",
             "type": "secret",
             "label": "Trello API Token",

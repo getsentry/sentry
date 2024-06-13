@@ -42,8 +42,17 @@ from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
-from sentry.utils.settings import is_self_hosted, should_show_beacon_consent_prompt
-from sentry.utils.support import get_support_mail
+from sentry.utils.settings import (
+    is_self_hosted,
+    is_self_hosted_errors_only,
+    should_show_beacon_consent_prompt,
+)
+
+
+def _get_support_mail() -> str | None:
+    """Returns the most appropriate support email address"""
+
+    return options.get("system.support-email") or options.get("system.admin-email") or None
 
 
 def _get_version_info():
@@ -212,17 +221,14 @@ class _ClientConfig:
             yield "auth:register"
         if features.has("relocation:enabled", actor=self.user):
             yield "relocation:enabled"
+        if features.has("system:multi-region", actor=self.user):
+            yield "system:multi-region"
         if self.customer_domain or (
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
-        # TODO (Gabe): Remove selector option check once GetSentry side lands
-        if options.get("hybrid_cloud.multi-region-selector") or features.has(
-            "organizations:multi-region-selector", actor=self.user
-        ):
-            yield "organizations:multi-region-selector"
-        if options.get("frontend.react-concurrent-renderer-enabled"):
-            yield "organizations:react-concurrent-renderer-enabled"
+
+        yield "organizations:multi-region-selector"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -399,7 +405,7 @@ class _ClientConfig:
             "initialTrace": self.tracing_data,
             "customerDomain": self.customer_domain,
             "singleOrganization": settings.SENTRY_SINGLE_ORGANIZATION,
-            "supportEmail": get_support_mail(),
+            "supportEmail": _get_support_mail(),
             "urlPrefix": options.get("system.url-prefix"),
             "version": _get_version_info(),
             "features": list(self.enabled_features),
@@ -412,6 +418,7 @@ class _ClientConfig:
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
+            "isSelfHostedErrorsOnly": is_self_hosted_errors_only(),
             "shouldPreloadData": self.should_preload_data,
             "shouldShowBeaconConsentPrompt": not self.needs_upgrade
             and should_show_beacon_consent_prompt(),

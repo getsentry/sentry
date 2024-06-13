@@ -29,7 +29,7 @@ from sentry.services.hybrid_cloud.rpc import (
     RpcAuthenticationSetupException,
     generate_request_signature,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.outbox import outbox_runner
@@ -181,11 +181,11 @@ class TestTokenAuthentication(TestCase):
 
         self.auth = UserAuthTokenAuthentication()
         self.org = self.create_organization(owner=self.user)
-        self.token = "abc123"
         self.api_token = ApiToken.objects.create(
-            token=self.token,
+            token_type=AuthTokenType.USER,
             user=self.user,
         )
+        self.token = self.api_token.plaintext_token
 
     def test_authenticate(self):
         request = HttpRequest()

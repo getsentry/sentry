@@ -11,7 +11,7 @@ import Checkbox from 'sentry/components/checkbox';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getEndOfDay,
@@ -270,7 +270,7 @@ const UtcPicker = styled('div')`
 
 const UtcPickerLabel = styled('label')`
   margin: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: inherit;
 `;
 

@@ -130,7 +130,7 @@ export function getTitle(
 
   switch (type) {
     case EventOrGroupType.ERROR: {
-      if (customTitle) {
+      if (customTitle && customTitle !== '<unlabeled event>') {
         return {
           title: customTitle,
           subtitle: culprit,
@@ -178,7 +178,7 @@ export function getTitle(
       };
     case EventOrGroupType.DEFAULT:
       return {
-        title: customTitle ?? metadata.title ?? '',
+        title: customTitle ?? title,
         subtitle: '',
         treeLabel: undefined,
       };

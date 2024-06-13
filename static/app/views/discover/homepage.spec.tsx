@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -14,6 +13,7 @@ import {
 
 import * as pageFilterUtils from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 
 import {DEFAULT_EVENT_VIEW} from './data';
@@ -57,6 +57,10 @@ describe('Discover > Homepage', () => {
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
+      body: '',
+    });
     mockHomepage = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/homepage/',
       method: 'GET',
@@ -97,7 +101,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await screen.findByText('Discover Trends');
@@ -115,7 +119,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -149,7 +153,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -168,7 +172,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
@@ -197,7 +201,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -244,7 +248,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(await screen.findByText('Remove Default')).toBeInTheDocument();
@@ -277,7 +281,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     expect(mockHomepage).toHaveBeenCalled();
@@ -313,7 +317,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await userEvent.click(await screen.findByText('24H'));
@@ -351,7 +355,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
@@ -407,7 +411,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     renderGlobalModal();
 
@@ -463,7 +467,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
     await waitFor(() => {
       expect(measurementsMetaMock).toHaveBeenCalled();
@@ -498,7 +502,7 @@ describe('Discover > Homepage', () => {
         setSavedQuery={jest.fn()}
         loading={false}
       />,
-      {context: initialData.routerContext, organization: initialData.organization}
+      {router: initialData.router, organization: initialData.organization}
     );
 
     await waitFor(() => expect(screen.getByTestId('set-as-default')).toBeEnabled());

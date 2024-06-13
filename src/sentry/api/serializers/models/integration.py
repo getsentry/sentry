@@ -5,7 +5,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.integrations import IntegrationProvider
+from sentry.integrations.base import IntegrationProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.user import User
@@ -15,7 +15,6 @@ from sentry.services.hybrid_cloud.integration import (
     integration_service,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +53,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 class IntegrationSerializer(Serializer):
     def serialize(
         self, obj: Integration | RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         provider = obj.get_provider()
         return {
             "id": str(obj.id),
@@ -82,7 +81,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
         user: User,
         include_config: bool = True,
         **kwargs: Any,
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
 
         if not include_config:
@@ -137,7 +136,7 @@ class OrganizationIntegrationSerializer(Serializer):
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
@@ -197,7 +196,7 @@ class OrganizationIntegrationSerializer(Serializer):
 class IntegrationProviderSerializer(Serializer):
     def serialize(
         self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         org_slug = kwargs.pop("organization").slug
         metadata = obj.metadata
         metadata = metadata and metadata._asdict() or None

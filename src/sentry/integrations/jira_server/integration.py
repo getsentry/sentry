@@ -18,7 +18,7 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import features
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -44,7 +44,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
+from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri
 from sentry.web.helpers import render_to_response
@@ -279,6 +279,7 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
+    resolution_strategy_key = "resolution_strategy"
 
     default_identity = None
 
@@ -348,6 +349,20 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": _("Sync Jira Server Assignment to Sentry"),
                 "help": _(
                     "When a ticket is assigned in Jira Server, assign its linked Sentry issue to the same user."
+                ),
+            },
+            {
+                "name": self.resolution_strategy_key,
+                "label": "Resolve",
+                "type": "select",
+                "placeholder": "Resolve",
+                "choices": [
+                    ("resolve", "Resolve"),
+                    ("resolve_current_release", "Resolve in Current Release"),
+                    ("resolve_next_release", "Resolve in Next Release"),
+                ],
+                "help": _(
+                    "Select what action to take on Sentry Issue when Jira ticket is marked Done."
                 ),
             },
             {

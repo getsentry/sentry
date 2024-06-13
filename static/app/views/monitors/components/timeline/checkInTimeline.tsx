@@ -1,10 +1,9 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {Tooltip} from 'sentry/components/tooltip';
 import {CheckInStatus} from 'sentry/views/monitors/types';
-import {tickStyle} from 'sentry/views/monitors/utils';
+import {getTickStyle} from 'sentry/views/monitors/utils';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
 import {mergeBuckets} from './utils/mergeBuckets';
@@ -13,7 +12,6 @@ import type {MonitorBucketData, TimeWindowConfig} from './types';
 
 interface TimelineProps {
   timeWindowConfig: TimeWindowConfig;
-  width: number;
 }
 
 export interface CheckInTimelineProps extends TimelineProps {
@@ -31,11 +29,11 @@ function getBucketedCheckInsPosition(
 }
 
 export function CheckInTimeline(props: CheckInTimelineProps) {
-  const {bucketedData, timeWindowConfig, width, environment} = props;
-  const {start, end} = timeWindowConfig;
+  const {bucketedData, timeWindowConfig, environment} = props;
+  const {start, end, timelineWidth} = timeWindowConfig;
 
   const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / width;
+  const msPerPixel = elapsedMs / timelineWidth;
 
   const jobTicks = mergeBuckets(bucketedData, environment);
 
@@ -64,6 +62,7 @@ export function CheckInTimeline(props: CheckInTimelineProps) {
               status={getAggregateStatus(envMapping)}
               roundedLeft={roundedLeft}
               roundedRight={roundedRight}
+              data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
         );
@@ -79,11 +78,10 @@ export interface MockCheckInTimelineProps extends TimelineProps {
 export function MockCheckInTimeline({
   mockTimestamps,
   timeWindowConfig,
-  width,
 }: MockCheckInTimelineProps) {
   const {start, end} = timeWindowConfig;
   const elapsedMs = end.getTime() - start.getTime();
-  const msPerPixel = elapsedMs / width;
+  const msPerPixel = elapsedMs / timeWindowConfig.timelineWidth;
 
   return (
     <TimelineContainer>
@@ -104,6 +102,7 @@ export function MockCheckInTimeline({
               status={CheckInStatus.IN_PROGRESS}
               roundedLeft
               roundedRight
+              data-test-id="monitor-checkin-tick"
             />
           </Tooltip>
         );
@@ -129,44 +128,7 @@ const JobTick = styled('div')<{
   transform: translateY(-50%);
   opacity: 0.7;
 
-  ${p => {
-    const style = tickStyle[p.status];
-
-    if (style.hatchTick === undefined) {
-      return css`
-        background: ${p.theme[style.tickColor]};
-      `;
-    }
-
-    return css`
-      border: 1px solid ${p.theme[style.tickColor]};
-      ${!p.roundedLeft && 'border-left-width: 0'};
-      ${!p.roundedRight && 'border-right-width: 0'};
-
-      background-size: 3px 3px;
-      opacity: 0.5;
-      background-image: linear-gradient(
-          -45deg,
-          ${p.theme[style.hatchTick]} 25%,
-          transparent 25%,
-          transparent 50%,
-          ${p.theme[style.hatchTick]} 50%,
-          ${p.theme[style.hatchTick]} 75%,
-          transparent 75%,
-          transparent
-        ),
-        linear-gradient(
-          45deg,
-          ${p.theme[style.hatchTick]} 25%,
-          transparent 25%,
-          transparent 50%,
-          ${p.theme[style.hatchTick]} 50%,
-          ${p.theme[style.hatchTick]} 75%,
-          transparent 75%,
-          transparent
-        );
-    `;
-  }};
+  ${p => getTickStyle(p.status, p.theme)};
 
   ${p =>
     p.roundedLeft &&
@@ -180,4 +142,6 @@ const JobTick = styled('div')<{
     border-top-right-radius: 2px;
     border-bottom-right-radius: 2px;
   `}
+  ${p => !p.roundedLeft && 'border-left-width: 0'};
+  ${p => !p.roundedRight && 'border-right-width: 0'};
 `;

@@ -15,7 +15,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils.redis import (
@@ -232,7 +232,7 @@ class FeatureAdoptionManager(BaseManager["FeatureAdoption"]):
         ).first()
 
 
-@region_silo_only_model
+@region_silo_model
 class FeatureAdoption(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

@@ -21,8 +21,8 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {AggregateEventTransaction, EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import theme from 'sentry/utils/theme';
@@ -717,7 +717,7 @@ const TimeAxis = styled('div')<{hasProfileMeasurementsChart: boolean}>`
   background-color: ${p => p.theme.background};
   color: ${p => p.theme.gray300};
   font-size: 10px;
-  font-weight: 500;
+  ${p => p.theme.fontWeightNormal};
   font-variant-numeric: tabular-nums;
   overflow: hidden;
 `;

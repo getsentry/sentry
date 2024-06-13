@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import type {Scope} from '@sentry/types';
 
+import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
@@ -10,7 +12,7 @@ import {t, tct} from 'sentry/locale';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import withProject from 'sentry/utils/withProject';
@@ -41,7 +43,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
     }
 
     const route = getRouteStringFromRoutes(routes);
-    const enrichScopeContext = (scope: Sentry.Scope) => {
+    const enrichScopeContext = (scope: Scope) => {
       scope.setExtra('route', route);
       scope.setExtra('orgFeatures', organization?.features ?? []);
       scope.setExtra('orgAccess', organization?.access ?? []);
@@ -75,7 +77,7 @@ function RouteError({error, disableLogSentry, disableReport, project}: Props) {
       });
 
       if (!disableReport) {
-        Sentry.showReportDialog();
+        Sentry.showReportDialog({eventId: getLastEventId() || ''});
       }
     });
 

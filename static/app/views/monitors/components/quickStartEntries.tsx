@@ -152,7 +152,7 @@ export function PHPCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 
   const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
-$checkInId = \Sentry\captureCheckIn(
+$checkInId = \\Sentry\\captureCheckIn(
     slug: '${slug}',
     status: CheckInStatus::inProgress()
 );
@@ -160,14 +160,14 @@ $checkInId = \Sentry\captureCheckIn(
 // Execute your scheduled task here...
 
 // 🟢 Notify Sentry your job has completed successfully:
-\Sentry\captureCheckIn(
+\\Sentry\\captureCheckIn(
     slug: '${slug}',
     status: CheckInStatus::ok(),
     checkInId: $checkInId,
 );`;
 
   const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
-\Sentry\captureCheckIn(
+\\Sentry\\captureCheckIn(
     slug: '${slug}',
     status: CheckInStatus::error()
     checkInId: $checkInId,
@@ -250,7 +250,9 @@ Sentry.captureCheckIn({
         {tct(
           '[installLink:Install and configure] the Sentry Node SDK (min v7.52), then instrument your monitor:',
           {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/node/" />,
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/" />
+            ),
           }
         )}
       </div>
@@ -567,7 +569,7 @@ Sentry.captureCheckIn({
           'Use the [additionalDocs:Node SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
           {
             additionalDocs: (
-              <ExternalLink href="https://docs.sentry.io/platforms/node/crons/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/crons/" />
             ),
           }
         )}

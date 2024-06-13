@@ -3,11 +3,16 @@ from __future__ import annotations
 import logging
 from collections.abc import Sequence
 
+import orjson
 import sentry_sdk
 from django.http.response import HttpResponse, HttpResponseBase
 from rest_framework import status
 from rest_framework.request import Request
 
+from sentry.integrations.middleware.hybrid_cloud.parser import (
+    BaseRequestParser,
+    create_async_request_payload,
+)
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.requests.event import is_event_challenge
 from sentry.integrations.slack.views.link_identity import SlackLinkIdentityView
@@ -23,16 +28,13 @@ from sentry.integrations.slack.webhooks.base import SlackDMEndpoint
 from sentry.integrations.slack.webhooks.command import SlackCommandsEndpoint
 from sentry.integrations.slack.webhooks.event import SlackEventEndpoint
 from sentry.integrations.slack.webhooks.options_load import SlackOptionsLoadEndpoint
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_slack_response
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.types.region import Region
-from sentry.utils import json
 from sentry.utils.signing import unsign
-
-from .base import BaseRequestParser, create_async_request_payload
 
 logger = logging.getLogger(__name__)
 
@@ -127,8 +129,8 @@ class SlackRequestParser(BaseRequestParser):
         # Handle event interactions challenge request
         data = None
         try:
-            data = json.loads(self.request.body.decode(encoding="utf-8"))
-        except Exception:
+            data = orjson.loads(self.request.body)
+        except orjson.JSONDecodeError:
             pass
         if data and is_event_challenge(data):
             return self.get_response_from_control_silo()

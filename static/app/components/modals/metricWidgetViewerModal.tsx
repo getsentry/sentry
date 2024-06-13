@@ -12,7 +12,7 @@ import {Queries} from 'sentry/components/modals/metricWidgetViewerModal/queries'
 import {MetricVisualization} from 'sentry/components/modals/metricWidgetViewerModal/visualization';
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
@@ -23,15 +23,13 @@ import type {
   Order,
 } from 'sentry/views/dashboards/metrics/types';
 import {
-  expressionsToApiQueries,
   expressionsToWidget,
-  filterEquationsByDisplayType,
-  filterQueriesByDisplayType,
   getMetricEquations,
   getMetricQueries,
   getMetricWidgetTitle,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -46,12 +44,12 @@ function MetricWidgetViewerModal({
   Body,
   Header,
   closeModal,
+  CloseButton,
   onMetricWidgetEdit,
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
   const [displayType, setDisplayType] = useState(widget.displayType);
-  const [interval, setInterval] = useState<string>(widget.interval);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters)
   );
@@ -59,31 +57,20 @@ function MetricWidgetViewerModal({
     getMetricEquations(widget)
   );
 
-  const filteredQueries = useMemo(
-    () => filterQueriesByDisplayType(metricQueries, displayType),
-    [metricQueries, displayType]
+  const filteredEquations = useMemo(
+    () => metricEquations.filter(equation => equation.formula !== ''),
+    [metricEquations]
   );
 
-  const filteredEquations = useMemo(
-    () =>
-      filterEquationsByDisplayType(metricEquations, displayType).filter(
-        equation => equation.formula !== ''
-      ),
-    [metricEquations, displayType]
+  const expressions = useMemo(
+    () => [...metricQueries, ...filteredEquations],
+    [metricQueries, filteredEquations]
   );
 
   const generateQueryId = useGenerateExpressionId(metricQueries);
   const generateEquationId = useGenerateExpressionId(metricEquations);
 
-  const apiQueries = useMemo(
-    () => expressionsToApiQueries([...filteredQueries, ...filteredEquations]),
-    [filteredQueries, filteredEquations]
-  );
-
-  const widgetMQL = useMemo(
-    () => getMetricWidgetTitle([...filteredQueries, ...filteredEquations]),
-    [filteredQueries, filteredEquations]
-  );
+  const widgetMQL = useMemo(() => getMetricWidgetTitle(expressions), [expressions]);
 
   const [title, setTitle] = useState<MetricWidgetTitleState>({
     stored: widget.title,
@@ -122,7 +109,7 @@ function MetricWidgetViewerModal({
 
   const handleOrderChange = useCallback(
     ({id, order}: {id: number; order: Order}) => {
-      const queryIdx = filteredQueries.findIndex(query => query.id === id);
+      const queryIdx = metricQueries.findIndex(query => query.id === id);
       if (queryIdx > -1) {
         setMetricQueries(curr => {
           return curr.map((query, i) => {
@@ -143,7 +130,7 @@ function MetricWidgetViewerModal({
         });
       }
     },
-    [filteredEquations, filteredQueries]
+    [filteredEquations, metricQueries]
   );
 
   const addQuery = useCallback(
@@ -151,7 +138,9 @@ function MetricWidgetViewerModal({
       setMetricQueries(curr => {
         const query = metricQueries[queryIndex ?? metricQueries.length - 1];
         return [
-          ...curr,
+          ...(displayType === DisplayType.BIG_NUMBER
+            ? curr.map(q => ({...q, isHidden: true}))
+            : curr),
           {
             ...query,
             id: generateQueryId(),
@@ -159,7 +148,7 @@ function MetricWidgetViewerModal({
         ];
       });
     },
-    [generateQueryId, metricQueries]
+    [displayType, generateQueryId, metricQueries]
   );
 
   const addEquation = useCallback(() => {
@@ -175,7 +164,12 @@ function MetricWidgetViewerModal({
         },
       ];
     });
-  }, [generateEquationId]);
+
+    // Hide all queries when adding an equation to a big number widget
+    if (displayType === DisplayType.BIG_NUMBER) {
+      setMetricQueries(curr => curr.map(q => ({...q, isHidden: true})));
+    }
+  }, [displayType, generateEquationId]);
 
   const removeEquation = useCallback(
     (index: number) => {
@@ -184,8 +178,15 @@ function MetricWidgetViewerModal({
         updated.splice(index, 1);
         return updated;
       });
+
+      // Show the last query when removing an equation from a big number widget
+      if (displayType === DisplayType.BIG_NUMBER) {
+        setMetricQueries(curr =>
+          curr.map((q, idx) => (idx === curr.length - 1 ? {...q, isHidden: false} : q))
+        );
+      }
     },
-    [setMetricEquations]
+    [displayType]
   );
 
   const removeQuery = useCallback(
@@ -193,47 +194,50 @@ function MetricWidgetViewerModal({
       setMetricQueries(curr => {
         const updated = [...curr];
         updated.splice(index, 1);
+        // Make sure the last query is visible for big number widgets
+        if (displayType === DisplayType.BIG_NUMBER && filteredEquations.length === 0) {
+          updated[updated.length - 1].isHidden = false;
+        }
         return updated;
       });
     },
-    [setMetricQueries]
+    [displayType, filteredEquations.length]
   );
 
   const handleSubmit = useCallback(() => {
     const convertedWidget = expressionsToWidget(
-      [...filteredQueries, ...filteredEquations],
+      [...metricQueries, ...filteredEquations],
       title.edited,
       toDisplayType(displayType),
-      // TODO(metrics): for now we do not persist the interval by default
-      // as we need to find a way to handle per widget interval perferences
-      // with the dashboard interval preferences
-      widget.interval ?? interval
+      widget.interval
     );
-
-    onMetricWidgetEdit?.(convertedWidget);
+    onMetricWidgetEdit?.({...widget, ...convertedWidget});
 
     closeModal();
   }, [
-    filteredQueries,
+    metricQueries,
     filteredEquations,
     title.edited,
     displayType,
     onMetricWidgetEdit,
     closeModal,
-    interval,
-    widget.interval,
+    widget,
   ]);
 
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
-        <Header closeButton>
+        <Header>
           <MetricWidgetTitle
             title={title}
             onTitleChange={handleTitleChange}
             placeholder={widgetMQL}
             description={widget.description}
           />
+          {/* Added a div with onClick because CloseButton overrides passed onClick handler */}
+          <div onClick={handleSubmit}>
+            <CloseButton />
+          </div>
         </Header>
         <Body>
           <Queries
@@ -248,12 +252,11 @@ function MetricWidgetViewerModal({
             removeQuery={removeQuery}
           />
           <MetricVisualization
-            queries={apiQueries}
+            expressions={expressions}
             displayType={displayType}
             onDisplayTypeChange={setDisplayType}
             onOrderChange={handleOrderChange}
-            onIntervalChange={setInterval}
-            interval={interval}
+            interval={widget.interval}
           />
           <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
         </Body>
@@ -269,7 +272,6 @@ function MetricWidgetViewerModal({
             >
               {t('Open in Metrics')}
             </LinkButton>
-            <Button onClick={closeModal}>{t('Close')}</Button>
             <Button priority="primary" onClick={handleSubmit}>
               {t('Save changes')}
             </Button>

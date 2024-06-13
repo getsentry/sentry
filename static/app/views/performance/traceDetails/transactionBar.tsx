@@ -1,5 +1,4 @@
 import {createRef, Fragment, useCallback, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -52,8 +51,9 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
   TraceError,

@@ -10,14 +10,15 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {SeriesDataUnit} from 'sentry/types/echarts';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {getPeriod} from 'sentry/utils/getPeriod';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MiniAggregateWaterfall} from 'sentry/views/performance/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/performance/browser/webVitals/components/performanceScoreRingWithTooltips';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import type {ProjectScore} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
@@ -137,7 +138,7 @@ export function PageOverviewSidebar({
             <span>
               {t('The overall performance rating of this page.')}
               <br />
-              <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+              <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                 {t('How is this calculated?')}
               </ExternalLink>
             </span>

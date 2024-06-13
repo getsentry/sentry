@@ -11,7 +11,7 @@ from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, UserOptionFilterArgs
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 def get_option_from_list(

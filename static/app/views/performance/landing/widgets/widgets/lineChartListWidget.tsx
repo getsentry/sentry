@@ -1,8 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import * as qs from 'query-string';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
@@ -14,6 +14,7 @@ import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   canUseMetricsData,
   useMEPSettingContext,
@@ -22,28 +23,34 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/resourceView';
 import {getResourcesEventViewQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
+import {BASE_FILTERS, CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import DurationChart from 'sentry/views/performance/charts/chart';
+import {DomainCell} from 'sentry/views/performance/http/tables/domainCell';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
 import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {RoutingContextProvider} from 'sentry/views/starfish/utils/routingContext';
 
 import {excludeTransaction} from '../../utils';
+import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import SelectableList, {
   GrowLink,
+  HighestCacheMissRateTransactionsWidgetEmptyStateWarning,
   ListClose,
   RightAlignedCell,
   Subtitle,
+  TimeConsumingDomainsWidgetEmptyStateWarning,
   TimeSpentInDatabaseWidgetEmptyStateWarning,
   WidgetAddInstrumentationWarning,
   WidgetEmptyStateWarning,
@@ -95,6 +102,14 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   let emptyComponent;
   if (props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES) {
     emptyComponent = TimeSpentInDatabaseWidgetEmptyStateWarning;
+  } else if (
+    props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
+  ) {
+    emptyComponent = TimeConsumingDomainsWidgetEmptyStateWarning;
+  } else if (
+    props.chartSetting === PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+  ) {
+    emptyComponent = HighestCacheMissRateTransactionsWidgetEmptyStateWarning;
   } else {
     emptyComponent = canHaveIntegrationEmptyState
       ? () => (
@@ -175,6 +190,34 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           mutableSearch.addFilterValue('span.module', 'db');
           eventView.query = mutableSearch.formatString();
         } else if (
+          props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
+        ) {
+          // Set fields
+          eventView.fields = [
+            {field: SpanMetricsField.PROJECT_ID},
+            {field: SpanMetricsField.SPAN_DOMAIN},
+            {field: `sum(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field: `avg(${SpanMetricsField.SPAN_SELF_TIME})`},
+            {field},
+          ];
+
+          // Change data set to spansMetrics
+          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.SPANS_METRICS,
+          };
+
+          // Update query
+          const mutableSearch = new MutableSearch(eventView.query);
+          mutableSearch.removeFilter('event.type');
+          mutableSearch.removeFilter('transaction.op');
+          eventView.additionalConditions.removeFilter('event.type');
+          eventView.additionalConditions.removeFilter('transaction.op');
+          eventView.additionalConditions.removeFilter('time_spent_percentage()');
+          mutableSearch.addFilterValue('span.module', 'http');
+          eventView.query = mutableSearch.formatString();
+        } else if (
           props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
         ) {
           // Set fields
@@ -205,6 +248,28 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             {'resource.render_blocking_status': 'blocking'},
             DEFAULT_RESOURCE_TYPES
           ).join(' ')}`;
+        } else if (
+          props.chartSetting ===
+          PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+        ) {
+          eventView.fields = [
+            {field: SpanMetricsField.TRANSACTION},
+            {field: 'project.id'},
+            {field},
+          ];
+
+          // Change data set to spansMetrics
+          eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+          extraQueryParams = {
+            ...extraQueryParams,
+            dataset: DiscoverDatasets.SPANS_METRICS,
+          };
+
+          // Update query
+          const mutableSearch = MutableSearch.fromQueryObject(BASE_FILTERS);
+          eventView.additionalConditions.removeFilter('event.type');
+          eventView.additionalConditions.removeFilter('transaction.op');
+          eventView.query = mutableSearch.formatString();
         } else if (isSlowestType || isFramesType) {
           eventView.additionalConditions.setFilterValues('epm()', ['>0.01']);
           eventView.fields = [
@@ -222,6 +287,8 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           ![
             PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
             PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+            PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+            PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
           ].includes(props.chartSetting)
         ) {
           eventView.additionalConditions.setFilterValues(field, ['>0']);
@@ -269,11 +336,13 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           let partialDataParam = true;
 
           if (
-            !provided.widgetData.list.data[selectedListIndex] ||
-            (!provided.widgetData.list.data[selectedListIndex]?.transaction &&
-              !provided.widgetData.list.data[selectedListIndex][
-                SpanMetricsField.SPAN_DESCRIPTION
-              ])
+            !provided.widgetData.list.data[selectedListIndex]?.transaction &&
+            !provided.widgetData.list.data[selectedListIndex]?.[
+              SpanMetricsField.SPAN_DESCRIPTION
+            ] &&
+            !provided.widgetData.list.data[selectedListIndex]?.[
+              SpanMetricsField.SPAN_DOMAIN
+            ]
           ) {
             return null;
           }
@@ -308,7 +377,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             eventView.query = mutableSearch.formatString();
           } else if (
             props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES ||
-            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES
+            props.chartSetting ===
+              PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES ||
+            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
           ) {
             // Update request params
             eventView.dataset = DiscoverDatasets.SPANS_METRICS;
@@ -330,18 +401,61 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             // Update search query
             eventView.additionalConditions.removeFilter('event.type');
             eventView.additionalConditions.removeFilter('transaction');
-            eventView.additionalConditions.addFilterValue(
-              SpanMetricsField.SPAN_GROUP,
-              provided.widgetData.list.data[selectedListIndex][
-                SpanMetricsField.SPAN_GROUP
-              ].toString()
-            );
+
+            if (
+              props.chartSetting === PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS
+            ) {
+              eventView.additionalConditions.addFilterValue(
+                SpanMetricsField.SPAN_DOMAIN,
+                provided.widgetData.list.data[selectedListIndex][
+                  SpanMetricsField.SPAN_DOMAIN
+                ].toString(),
+                false
+              );
+            } else {
+              eventView.additionalConditions.addFilterValue(
+                SpanMetricsField.SPAN_GROUP,
+                provided.widgetData.list.data[selectedListIndex][
+                  SpanMetricsField.SPAN_GROUP
+                ].toString()
+              );
+            }
+
+            const mutableSearch = new MutableSearch(eventView.query);
+            mutableSearch.removeFilter('transaction');
+            eventView.query = mutableSearch.formatString();
+          } else if (
+            props.chartSetting ===
+            PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+          ) {
+            // Update request params
+            eventView.dataset = DiscoverDatasets.SPANS_METRICS;
+            extraQueryParams = {
+              ...extraQueryParams,
+              dataset: DiscoverDatasets.SPANS_METRICS,
+              excludeOther: false,
+              per_page: 50,
+            };
+            eventView.fields = [];
+
+            // Update chart options
+            partialDataParam = false;
+            yAxis = `${SpanFunction.CACHE_MISS_RATE}()`;
+            interval = getInterval(pageFilterDatetime, STARFISH_CHART_INTERVAL_FIDELITY);
+            includePreviousParam = false;
+            currentSeriesNames = [`${SpanFunction.CACHE_MISS_RATE}()`];
+
+            // Update search query
+            eventView.additionalConditions.removeFilter('event.type');
+            eventView.additionalConditions.removeFilter('transaction.op');
+
             const mutableSearch = new MutableSearch(eventView.query);
             mutableSearch.removeFilter('transaction');
             eventView.query = mutableSearch.formatString();
           } else {
             eventView.fields = [{field: 'transaction'}, {field}];
           }
+
           return (
             <EventsRequest
               {...pick(provided, eventsRequestQueryProps)}
@@ -374,215 +488,257 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getItems(provided).map(item => ({header: item, content: getChart(provided)}));
 
-  const getChart = provided =>
-    function () {
-      return (
-        <DurationChart
-          {...provided.widgetData.chart}
-          {...provided}
-          disableMultiAxis
-          disableXAxis
-          chartColors={props.chartColor ? [props.chartColor] : undefined}
-          isLineChart
-        />
-      );
-    };
+  const getChart = provided => (
+    <DurationChart
+      {...provided.widgetData.chart}
+      {...provided}
+      disableMultiAxis
+      disableXAxis
+      chartColors={props.chartColor ? [props.chartColor] : undefined}
+      isLineChart
+    />
+  );
 
   const getItems = provided =>
-    provided.widgetData.list.data.map(
-      listItem =>
-        function () {
-          const transaction = (listItem.transaction as string | undefined) ?? '';
+    provided.widgetData.list.data.map(listItem => {
+      const transaction = (listItem.transaction as string | undefined) ?? '';
 
-          const additionalQuery: Record<string, string> = {};
+      const additionalQuery: Record<string, string> = {};
 
-          if (props.chartSetting === PerformanceWidgetSetting.SLOW_HTTP_OPS) {
-            additionalQuery.breakdown = 'http';
-            additionalQuery.display = 'latency';
-          } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS) {
-            additionalQuery.breakdown = 'db';
-            additionalQuery.display = 'latency';
-          } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_BROWSER_OPS) {
-            additionalQuery.breakdown = 'browser';
-            additionalQuery.display = 'latency';
-          } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_RESOURCE_OPS) {
-            additionalQuery.breakdown = 'resource';
-            additionalQuery.display = 'latency';
+      if (props.chartSetting === PerformanceWidgetSetting.SLOW_HTTP_OPS) {
+        additionalQuery.breakdown = 'http';
+        additionalQuery.display = 'latency';
+      } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_DB_OPS) {
+        additionalQuery.breakdown = 'db';
+        additionalQuery.display = 'latency';
+      } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_BROWSER_OPS) {
+        additionalQuery.breakdown = 'browser';
+        additionalQuery.display = 'latency';
+      } else if (props.chartSetting === PerformanceWidgetSetting.SLOW_RESOURCE_OPS) {
+        additionalQuery.breakdown = 'resource';
+        additionalQuery.display = 'latency';
+      }
+
+      const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
+      const transactionTarget = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : transactionSummaryRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectID: listItem['project.id'] as string,
+            transaction,
+            query: props.eventView.getPageFiltersQuery(),
+            additionalQuery,
+          });
+
+      const fieldString = field;
+
+      const valueMap = {
+        [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
+        [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
+        slowest: getPerformanceDuration(listItem[fieldString] as number),
+      };
+      const rightValue =
+        valueMap[isSlowestType ? 'slowest' : props.chartSetting] ?? listItem[fieldString];
+
+      switch (props.chartSetting) {
+        case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
+          return (
+            <Fragment>
+              <GrowLink to={transactionTarget}>
+                <Truncate value={transaction} maxLength={40} />
+              </GrowLink>
+              <RightAlignedCell>
+                <Tooltip title={listItem.title}>
+                  <Link
+                    to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/?referrer=performance-line-chart-widget`}
+                  >
+                    {rightValue}
+                  </Link>
+                </Tooltip>
+              </RightAlignedCell>
+              {!props.withStaticFilters && (
+                <ListClose
+                  setSelectListIndex={setSelectListIndex}
+                  onClick={() =>
+                    excludeTransaction(listItem.transaction, {
+                      eventView: props.eventView,
+                      location,
+                    })
+                  }
+                />
+              )}
+            </Fragment>
+          );
+        case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
+          return (
+            <Fragment>
+              <GrowLink to={transactionTarget}>
+                <Truncate value={transaction} maxLength={40} />
+              </GrowLink>
+              <RightAlignedCell>
+                {tct('[count] errors', {
+                  count: <Count value={rightValue} />,
+                })}
+              </RightAlignedCell>
+              {!props.withStaticFilters && (
+                <ListClose
+                  setSelectListIndex={setSelectListIndex}
+                  onClick={() =>
+                    excludeTransaction(listItem.transaction, {
+                      eventView: props.eventView,
+                      location,
+                    })
+                  }
+                />
+              )}
+            </Fragment>
+          );
+        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS:
+          return (
+            <Fragment>
+              <StyledTextOverflow>
+                <DomainCell
+                  projectId={listItem[SpanMetricsField.PROJECT_ID].toString()}
+                  domain={listItem[SpanMetricsField.SPAN_DOMAIN]}
+                />
+              </StyledTextOverflow>
+
+              <RightAlignedCell>
+                <TimeSpentCell
+                  percentage={listItem[fieldString]}
+                  total={listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+                  op={'http.client'}
+                />
+              </RightAlignedCell>
+
+              {!props.withStaticFilters && (
+                <ListClose
+                  setSelectListIndex={setSelectListIndex}
+                  onClick={() =>
+                    excludeTransaction(listItem.transaction, {
+                      eventView: props.eventView,
+                      location,
+                    })
+                  }
+                />
+              )}
+            </Fragment>
+          );
+        case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
+        case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
+          const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
+          const group: string = listItem[SpanMetricsField.SPAN_GROUP];
+          const projectID: number = listItem['project.id'];
+          const timeSpentPercentage: number = listItem[fieldString];
+          const totalTime: number = listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
+
+          const isQueriesWidget =
+            props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
+          const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.RESOURCE;
+          const timeSpentOp = isQueriesWidget ? 'op' : undefined;
+
+          return (
+            <Fragment>
+              <StyledTextOverflow>
+                <SpanDescriptionCell
+                  projectId={projectID}
+                  group={group}
+                  description={description}
+                  moduleName={moduleName}
+                />
+              </StyledTextOverflow>
+              <RightAlignedCell>
+                <TimeSpentCell
+                  percentage={timeSpentPercentage}
+                  total={totalTime}
+                  op={timeSpentOp}
+                />
+              </RightAlignedCell>
+              {!props.withStaticFilters && (
+                <ListClose
+                  setSelectListIndex={setSelectListIndex}
+                  onClick={() =>
+                    excludeTransaction(listItem.transaction, {
+                      eventView: props.eventView,
+                      location,
+                    })
+                  }
+                />
+              )}
+            </Fragment>
+          );
+        case PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS:
+          const cacheMissRate = listItem[fieldString];
+          const target = normalizeUrl(
+            `${CACHE_BASE_URL}/?${qs.stringify({transaction: transaction, project: listItem['project.id']})}`
+          );
+          return (
+            <Fragment>
+              <GrowLink to={target}>
+                <Truncate value={transaction} maxLength={40} />
+              </GrowLink>
+              <RightAlignedCell>{formatPercentage(cacheMissRate)}</RightAlignedCell>
+              {!props.withStaticFilters && (
+                <ListClose
+                  setSelectListIndex={setSelectListIndex}
+                  onClick={() =>
+                    excludeTransaction(listItem.transaction, {
+                      eventView: props.eventView,
+                      location,
+                    })
+                  }
+                />
+              )}
+            </Fragment>
+          );
+        default:
+          if (typeof rightValue === 'number') {
+            return (
+              <Fragment>
+                <GrowLink to={transactionTarget}>
+                  <Truncate value={transaction} maxLength={40} />
+                </GrowLink>
+                <RightAlignedCell>
+                  <Count value={rightValue} />
+                </RightAlignedCell>
+                {!props.withStaticFilters && (
+                  <ListClose
+                    setSelectListIndex={setSelectListIndex}
+                    onClick={() =>
+                      excludeTransaction(listItem.transaction, {
+                        eventView: props.eventView,
+                        location,
+                      })
+                    }
+                  />
+                )}
+              </Fragment>
+            );
           }
-
-          const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-          const transactionTarget = isUnparameterizedRow
-            ? createUnnamedTransactionsDiscoverTarget({
-                organization,
-                location,
-              })
-            : transactionSummaryRouteWithQuery({
-                orgSlug: props.organization.slug,
-                projectID: listItem['project.id'] as string,
-                transaction,
-                query: props.eventView.getPageFiltersQuery(),
-                additionalQuery,
-              });
-
-          const fieldString = field;
-
-          const valueMap = {
-            [PerformanceWidgetSetting.MOST_RELATED_ERRORS]: listItem.failure_count,
-            [PerformanceWidgetSetting.MOST_RELATED_ISSUES]: listItem.issue,
-            slowest: getPerformanceDuration(listItem[fieldString] as number),
-          };
-          const rightValue =
-            valueMap[isSlowestType ? 'slowest' : props.chartSetting] ??
-            listItem[fieldString];
-
-          switch (props.chartSetting) {
-            case PerformanceWidgetSetting.MOST_RELATED_ISSUES:
-              return (
-                <Fragment>
-                  <GrowLink to={transactionTarget}>
-                    <Truncate value={transaction} maxLength={40} />
-                  </GrowLink>
-                  <RightAlignedCell>
-                    <Tooltip title={listItem.title}>
-                      <Link
-                        to={`/organizations/${props.organization.slug}/issues/${listItem['issue.id']}/?referrer=performance-line-chart-widget`}
-                      >
-                        {rightValue}
-                      </Link>
-                    </Tooltip>
-                  </RightAlignedCell>
-                  {!props.withStaticFilters && (
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() =>
-                        excludeTransaction(listItem.transaction, {
-                          eventView: props.eventView,
-                          location,
-                        })
-                      }
-                    />
-                  )}
-                </Fragment>
-              );
-            case PerformanceWidgetSetting.MOST_RELATED_ERRORS:
-              return (
-                <Fragment>
-                  <GrowLink to={transactionTarget}>
-                    <Truncate value={transaction} maxLength={40} />
-                  </GrowLink>
-                  <RightAlignedCell>
-                    {tct('[count] errors', {
-                      count: <Count value={rightValue} />,
-                    })}
-                  </RightAlignedCell>
-                  {!props.withStaticFilters && (
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() =>
-                        excludeTransaction(listItem.transaction, {
-                          eventView: props.eventView,
-                          location,
-                        })
-                      }
-                    />
-                  )}
-                </Fragment>
-              );
-            case PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES:
-            case PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES:
-              const description: string = listItem[SpanMetricsField.SPAN_DESCRIPTION];
-              const group: string = listItem[SpanMetricsField.SPAN_GROUP];
-              const projectID: number = listItem['project.id'];
-              const timeSpentPercentage: number = listItem[fieldString];
-              const totalTime: number =
-                listItem[`sum(${SpanMetricsField.SPAN_SELF_TIME})`];
-
-              const isQueriesWidget =
-                props.chartSetting ===
-                PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES;
-              const moduleName = isQueriesWidget ? ModuleName.DB : ModuleName.HTTP;
-              const timeSpentOp = isQueriesWidget ? 'op' : undefined;
-              const routingContextBaseURL = isQueriesWidget
-                ? '/performance/database'
-                : '/performance/browser/resources';
-              return (
-                <RoutingContextProvider value={{baseURL: routingContextBaseURL}}>
-                  <Fragment>
-                    <StyledTextOverflow>
-                      <SpanDescriptionCell
-                        projectId={projectID}
-                        group={group}
-                        description={description}
-                        moduleName={moduleName}
-                      />
-                    </StyledTextOverflow>
-                    <RightAlignedCell>
-                      <TimeSpentCell
-                        percentage={timeSpentPercentage}
-                        total={totalTime}
-                        op={timeSpentOp}
-                      />
-                    </RightAlignedCell>
-                    {!props.withStaticFilters && (
-                      <ListClose
-                        setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          excludeTransaction(listItem.transaction, {
-                            eventView: props.eventView,
-                            location,
-                          })
-                        }
-                      />
-                    )}
-                  </Fragment>
-                </RoutingContextProvider>
-              );
-            default:
-              if (typeof rightValue === 'number') {
-                return (
-                  <Fragment>
-                    <GrowLink to={transactionTarget}>
-                      <Truncate value={transaction} maxLength={40} />
-                    </GrowLink>
-                    <RightAlignedCell>
-                      <Count value={rightValue} />
-                    </RightAlignedCell>
-                    {!props.withStaticFilters && (
-                      <ListClose
-                        setSelectListIndex={setSelectListIndex}
-                        onClick={() =>
-                          excludeTransaction(listItem.transaction, {
-                            eventView: props.eventView,
-                            location,
-                          })
-                        }
-                      />
-                    )}
-                  </Fragment>
-                );
-              }
-              return (
-                <Fragment>
-                  <GrowLink to={transactionTarget}>
-                    <Truncate value={transaction} maxLength={40} />
-                  </GrowLink>
-                  <RightAlignedCell>{rightValue}</RightAlignedCell>
-                  {!props.withStaticFilters && (
-                    <ListClose
-                      setSelectListIndex={setSelectListIndex}
-                      onClick={() =>
-                        excludeTransaction(listItem.transaction, {
-                          eventView: props.eventView,
-                          location,
-                        })
-                      }
-                    />
-                  )}
-                </Fragment>
-              );
-          }
-        }
-    );
+          return (
+            <Fragment>
+              <GrowLink to={transactionTarget}>
+                <Truncate value={transaction} maxLength={40} />
+              </GrowLink>
+              <RightAlignedCell>{rightValue}</RightAlignedCell>
+              {!props.withStaticFilters && (
+                <ListClose
+                  setSelectListIndex={setSelectListIndex}
+                  onClick={() =>
+                    excludeTransaction(listItem.transaction, {
+                      eventView: props.eventView,
+                      location,
+                    })
+                  }
+                />
+              )}
+            </Fragment>
+          );
+      }
+    });
 
   const Visualizations = organization.features.includes('performance-new-widget-designs')
     ? [
@@ -626,18 +782,28 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
         },
       ];
 
+  const moduleURLBuilder = useModuleURLBuilder(true);
+
   const getContainerActions = provided => {
     const route =
-      props.chartSetting === PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES
-        ? 'performance/database/'
-        : 'performance/browser/resources/';
+      {
+        [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
+          moduleURLBuilder('resource'),
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: moduleURLBuilder('http'),
+        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
+          moduleURLBuilder('cache'),
+      }[props.chartSetting] ?? '';
+
     return [
       PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
       PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+      PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
     ].includes(props.chartSetting) ? (
       <Fragment>
         <div>
-          <LinkButton to={`/organizations/${organization.slug}/${route}`} size="sm">
+          <LinkButton to={`/${route}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>

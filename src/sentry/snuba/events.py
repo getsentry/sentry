@@ -600,6 +600,22 @@ class Columns(Enum):
         issue_platform_name="contexts[app.in_foreground]",
         alias="app.in_foreground",
     )
+    OS_DISTRIBUTION_NAME = Column(
+        group_name="events.contexts[os.distribution.name]",
+        event_name="contexts[os.distribution.name]",
+        transaction_name="contexts[os.distribution.name]",
+        discover_name="contexts[os.distribution.name]",
+        issue_platform_name="contexts[os.distribution.name]",
+        alias="os.distribution.name",
+    )
+    OS_DISTRIBUTION_VERSION = Column(
+        group_name="events.contexts[os.distribution.version]",
+        event_name="contexts[os.distribution.version]",
+        transaction_name="contexts[os.distribution.version]",
+        discover_name="contexts[os.distribution.version]",
+        issue_platform_name="contexts[os.distribution.version]",
+        alias="os.distribution.version",
+    )
     # Transactions specific columns
     TRANSACTION_OP = Column(
         group_name=None,
@@ -742,8 +758,20 @@ class Columns(Enum):
     REPLAY_ID = Column(
         group_name=None,
         event_name="replay_id",
-        transaction_name=None,
-        discover_name=None,
+        transaction_name="replay_id",
+        discover_name="replay_id",
+        issue_platform_name="replay_id",
+        alias="replay.id",
+    )
+    # We used to set the replay_id as a tag on error events as
+    # replayId. We allow this query for backwards compatibility,
+    # but in the future shouldn't be displayed in the UI anywhere
+    # as a suggested column.
+    REPLAY_ID_DEPRECATED = Column(
+        group_name=None,
+        event_name="replay_id",
+        transaction_name="replay_id",
+        discover_name="replay_id",
         issue_platform_name="replay_id",
         alias="replayId",
     )

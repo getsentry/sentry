@@ -1,19 +1,14 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
-import ConfigStore from 'sentry/stores/configStore';
-import {
-  useHasOrganizationSentAnyReplayEvents,
-  useReplayOnboardingSidebarPanel,
-} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
@@ -22,6 +17,14 @@ import type {ReplayError} from 'sentry/views/replays/types';
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 jest.mock('sentry/utils/replays/hooks/useReplayReader');
 jest.mock('sentry/utils/useProjects');
+// Replay clip preview is very heavy, mock it out
+jest.mock(
+  'sentry/components/events/eventReplay/replayClipPreview',
+  () =>
+    function () {
+      return <div data-test-id="replay-clip" />;
+    }
+);
 
 const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
 const mockReplayId = '761104e184c64d439ee1014b72b4d83b';
@@ -94,10 +97,6 @@ describe('EventReplay', function () {
     useReplayOnboardingSidebarPanel
   );
 
-  const MockUseHasOrganizationSentAnyReplayEvents = jest.mocked(
-    useHasOrganizationSentAnyReplayEvents
-  );
-
   const organization = OrganizationFixture({
     features: ['session-replay'],
   });
@@ -131,22 +130,18 @@ describe('EventReplay', function () {
       placeholders: [],
       projects: [project],
     });
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: false,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
   });
 
   it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: false,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
     });
     render(<EventReplay {...defaultProps} />, {organization});
 
@@ -156,10 +151,6 @@ describe('EventReplay', function () {
   });
 
   it('should render a replay when there is a replayId from tags', async function () {
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: true,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
@@ -175,14 +166,10 @@ describe('EventReplay', function () {
       {organization}
     );
 
-    expect(await screen.findByTestId('player-container')).toBeInTheDocument();
+    expect(await screen.findByTestId('replay-clip')).toBeInTheDocument();
   });
 
   it('should render a replay when there is a replay_id from contexts', async function () {
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: true,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
@@ -203,71 +190,6 @@ describe('EventReplay', function () {
       {organization}
     );
 
-    expect(await screen.findByTestId('player-container')).toBeInTheDocument();
-  });
-
-  describe('replay clip', function () {
-    const orgWithClipFlag = OrganizationFixture({
-      features: [...organization.features, 'issue-details-inline-replay-viewer'],
-    });
-
-    beforeEach(() => {
-      MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-        hasOrgSentReplays: true,
-        fetching: false,
-      });
-      MockUseReplayOnboardingSidebarPanel.mockReturnValue({
-        activateSidebar: jest.fn(),
-      });
-
-      const user = ConfigStore.get('user');
-
-      ConfigStore.set('user', {
-        ...user,
-        options: {...user.options, issueDetailsNewExperienceQ42023: true},
-      });
-    });
-
-    it('adds event and issue information to breadcrumbs', async () => {
-      mockIsFullscreen.mockReturnValue(true);
-
-      render(
-        <EventReplay
-          {...defaultProps}
-          event={EventFixture({
-            ...mockEvent,
-            id: '1',
-            contexts: {
-              replay: {
-                replay_id: '761104e184c64d439ee1014b72b4d83b',
-              },
-            },
-          })}
-          group={GroupFixture({id: '101'})}
-        />,
-        {
-          organization: orgWithClipFlag,
-        }
-      );
-
-      // Event that matches ID 1 should be shown as "This Event"
-      await waitFor(
-        () => {
-          expect(screen.getByText('Error: This Event')).toBeInTheDocument();
-        },
-        {timeout: 5000, interval: 100}
-      );
-      expect(screen.getByText('JAVASCRIPT-101')).toBeInTheDocument();
-
-      // Other events should link to the event and issue
-      expect(screen.getByRole('link', {name: '2'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/102/events/2/#replay'
-      );
-      expect(screen.getByRole('link', {name: 'JAVASCRIPT-102'})).toHaveAttribute(
-        'href',
-        '/organizations/org-slug/issues/102/'
-      );
-    }, 10000);
+    expect(await screen.findByTestId('replay-clip')).toBeInTheDocument();
   });
 });

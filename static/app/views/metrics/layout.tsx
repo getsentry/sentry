@@ -1,13 +1,19 @@
 import {Fragment, memo, useCallback} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import emptyStateImg from 'sentry-images/spot/custom-metrics-empty-state.svg';
 
+import Alert from 'sentry/components/alert';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
-import FeatureBadge from 'sentry/components/featureBadge';
+import ButtonBar from 'sentry/components/buttonBar';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -18,10 +24,17 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import BackgroundSpace from 'sentry/views/discover/backgroundSpace';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
+import {MetricsApiChangeAlert} from 'sentry/views/metrics/metricsApiChangeAlert';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 import {Queries} from 'sentry/views/metrics/queries';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
@@ -29,11 +42,26 @@ import {WidgetDetails} from 'sentry/views/metrics/widgetDetails';
 
 export const MetricsLayout = memo(() => {
   const organization = useOrganization();
-  const {hasMetrics} = useMetricsContext();
+  const pageFilters = usePageFilters();
+  const selectedProjects = pageFilters.selection.projects.join();
+  const {
+    hasCustomMetrics: hasSentCustomMetrics,
+    hasPerformanceMetrics,
+    isHasMetricsLoading,
+  } = useMetricsContext();
   const {activateSidebar} = useMetricsOnboardingSidebar();
+  const {dismiss: emptyStateDismiss, isDismissed: isEmptyStateDismissed} =
+    useDismissAlert({
+      key: `${organization.id}:${selectedProjects}:metrics-empty-state-dismissed`,
+    });
+  const theme = useTheme();
+  const isSmallBanner = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const [isBannerDismissed] = useLocalStorageState('metrics-banner-dismissed', false);
+
+  const showOnboardingPanel = !isEmptyStateDismissed && !hasSentCustomMetrics;
 
   const addCustomMetric = useCallback(
-    (referrer: 'header' | 'onboarding_panel') => {
+    (referrer: 'header' | 'onboarding_panel' | 'banner') => {
       Sentry.metrics.increment('ddm.add_custom_metric', 1, {
         tags: {
           referrer,
@@ -47,6 +75,22 @@ export const MetricsLayout = memo(() => {
     },
     [activateSidebar, organization]
   );
+
+  const viewPerformanceMetrics = useCallback(() => {
+    Sentry.metrics.increment('ddm.view_performance_metrics', 1);
+    trackAnalytics('ddm.view_performance_metrics', {
+      organization,
+    });
+    emptyStateDismiss();
+  }, [emptyStateDismiss, organization]);
+
+  if (!hasCustomMetrics(organization)) {
+    return (
+      <Layout.Page withPadding>
+        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
+      </Layout.Page>
+    );
+  }
 
   return (
     <Fragment>
@@ -64,15 +108,40 @@ export const MetricsLayout = memo(() => {
           </Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <PageHeaderActions
-            showCustomMetricButton={hasMetrics}
-            addCustomMetric={() => addCustomMetric('header')}
-          />
+          {!showOnboardingPanel ? (
+            <PageHeaderActions
+              showCustomMetricButton={
+                hasSentCustomMetrics || (isEmptyStateDismissed && isBannerDismissed)
+              }
+              addCustomMetric={() => addCustomMetric('header')}
+            />
+          ) : null}
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
         <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
+          {isEmptyStateDismissed && !hasSentCustomMetrics && (
+            <Banner
+              title={t('Custom Metrics')}
+              subtitle={t(
+                "Track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+              )}
+              backgroundComponent={<BackgroundSpace />}
+              dismissKey="metrics"
+            >
+              <Button
+                size={isSmallBanner ? 'xs' : undefined}
+                translucentBorder
+                onClick={() => addCustomMetric('banner')}
+              >
+                {t('Set Up')}
+              </Button>
+            </Banner>
+          )}
+
+          <MetricsApiChangeAlert />
+
           <FilterContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
@@ -81,26 +150,40 @@ export const MetricsLayout = memo(() => {
             </PageFilterBar>
             <IntervalSelect />
           </FilterContainer>
-          {hasMetrics ? (
+
+          {isHasMetricsLoading ? (
+            <LoadingIndicator />
+          ) : !showOnboardingPanel ? (
             <Fragment>
+              <GuideAnchor target="metrics_onboarding" />
               <Queries />
               <MetricScratchpad />
               <WidgetDetails />
             </Fragment>
           ) : (
             <OnboardingPanel image={<EmptyStateImage src={emptyStateImg} />}>
-              <h3>{t('Get started with custom metrics')}</h3>
+              <h3>{t('Track and solve what matters')}</h3>
               <p>
                 {t(
-                  "Send your own metrics to Sentry to track your system's behaviour and profit from the same powerful features as you do with errors, like alerting and dashboards."
+                  'Create custom metrics to track and visualize the data points you care about over time, like processing time, checkout conversion rate, or user signups. See correlated trace exemplars and metrics if used together with Performance Monitoring.'
                 )}
               </p>
-              <Button
-                priority="primary"
-                onClick={() => addCustomMetric('onboarding_panel')}
-              >
-                {t('Add Custom Metric')}
-              </Button>
+              <ButtonList gap={1}>
+                <Button
+                  priority="primary"
+                  onClick={() => addCustomMetric('onboarding_panel')}
+                >
+                  {t('Set Up Custom Metric')}
+                </Button>
+                <Button href={METRICS_DOCS_URL} external>
+                  {t('Read Docs')}
+                </Button>
+                {hasPerformanceMetrics && (
+                  <Button onClick={viewPerformanceMetrics}>
+                    {t('View Performance Metrics')}
+                  </Button>
+                )}
+              </ButtonList>
             </OnboardingPanel>
           )}
         </Layout.Main>
@@ -139,4 +222,10 @@ const EmptyStateImage = styled('img')`
     transform: translateX(-75%);
     width: 320px;
   }
+`;
+
+const ButtonList = styled(ButtonBar)`
+  grid-template-columns: repeat(auto-fit, minmax(130px, max-content));
+  grid-auto-flow: row;
+  gap: ${space(1)};
 `;

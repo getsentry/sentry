@@ -21,12 +21,12 @@ import {IconClose} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 import {createFuzzySearch} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -555,7 +555,7 @@ const ButtonsWrapper = styled('div')`
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerDescription = styled('div')`

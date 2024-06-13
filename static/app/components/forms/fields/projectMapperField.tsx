@@ -23,8 +23,8 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
-import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
 import type {InputFieldProps} from './inputField';

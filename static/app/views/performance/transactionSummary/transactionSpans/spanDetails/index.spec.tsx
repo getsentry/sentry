@@ -1,5 +1,3 @@
-import {browserHistory} from 'react-router';
-
 import {
   generateSuspectSpansResponse,
   initializeData as _initializeData,
@@ -14,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import SpanDetails from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 
@@ -127,7 +126,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       });
 
@@ -206,7 +205,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       });
 
@@ -280,7 +279,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       });
 
@@ -346,7 +345,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       });
 
@@ -360,7 +359,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
 
       render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-        context: data.routerContext,
+        router: data.router,
         organization: data.organization,
       });
 
@@ -389,7 +388,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -404,7 +403,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -422,7 +421,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -439,7 +438,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -459,7 +458,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -486,7 +485,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -535,7 +534,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -560,7 +559,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -583,7 +582,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -602,7 +601,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 
@@ -630,7 +629,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         render(<SpanDetails params={{spanSlug: 'op:aaaaaaaa'}} {...data} />, {
-          context: data.routerContext,
+          router: data.router,
           organization: data.organization,
         });
 

@@ -12,11 +12,12 @@ import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import type {Organization, SessionApiResponse} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useApi from 'sentry/utils/useApi';
 import {
   getSessionTermDescription,

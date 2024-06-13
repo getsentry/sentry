@@ -13,7 +13,8 @@ from sentry.models.repository import Repository
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.issue2 import IssuePlugin2
 from sentry.signals import receivers_raise_on_send
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -475,4 +476,4 @@ class GitlabFinishPipelineTest(IntegrationTestCase):
         }
         resp = self.pipeline.finish_pipeline()
         assert not OrganizationIntegration.objects.filter(integration_id=integration.id)
-        assert "account is linked to a different Sentry user" in str(resp.content)
+        assert "account is linked to a different Sentry user" in resp.content.decode()

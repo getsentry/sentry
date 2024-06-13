@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import EventAnnotation from 'sentry/components/events/eventAnnotation';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import InboxShortId from 'sentry/components/group/inboxBadges/shortId';
-import {GroupStatusBadge} from 'sentry/components/group/inboxBadges/statusBadge';
 import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
@@ -13,8 +12,9 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -38,18 +38,16 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
     project,
     lifetime,
     isUnhandled,
-    status,
-    substatus,
   } = data as Group;
 
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount =
-    organization.features.includes('session-replay') && projectCanLinkToReplay(project);
+    organization.features.includes('session-replay') &&
+    projectCanLinkToReplay(organization, project);
 
   return (
     <GroupExtra>
-      <GroupStatusBadge status={status} substatus={substatus} />
       {shortId && (
         <InboxShortId
           shortId={shortId}
@@ -62,7 +60,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
       )}
       {isUnhandled && <UnhandledTag />}
       {!lifetime && !firstSeen && !lastSeen ? (
-        <Placeholder height="14px" width="100px" />
+        <Placeholder height="12px" width="100px" />
       ) : (
         <TimesTag
           lastSeen={lifetime?.lastSeen || lastSeen}

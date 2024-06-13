@@ -2,7 +2,6 @@ import type {Location} from 'history';
 import {GlobalSelectionFixture} from 'sentry-fixture/globalSelection';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -97,7 +96,6 @@ describe('ProfileSummaryPage', () => {
         organization: OrganizationFixture({
           features: ['profiling-summary-redesign'],
         }),
-        context: RouterContextFixture(),
       }
     );
 

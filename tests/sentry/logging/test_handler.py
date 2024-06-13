@@ -93,14 +93,14 @@ def test_emit_invalid_keys_prod(handler):
     handler.emit(make_logrecord(), logger=logger)
 
 
-@mock.patch("django.conf.settings.DEBUG", True)
+@mock.patch("logging.raiseExceptions", True)
 def test_JSONRenderer_nonprod():
     renderer = JSONRenderer()
     with pytest.raises(TypeError):
         renderer(None, None, {"foo": {mock.Mock(): "foo"}})
 
 
-@mock.patch("django.conf.settings.DEBUG", False)
+@mock.patch("logging.raiseExceptions", False)
 def test_JSONRenderer_prod():
     renderer = JSONRenderer()
     renderer(None, None, {"foo": {mock.Mock(): "foo"}})

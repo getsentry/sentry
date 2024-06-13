@@ -32,7 +32,6 @@ from sentry.search.events.constants import (
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
     DEVICE_CLASS_ALIAS,
-    EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
     FUNCTION_ALIASES,
@@ -91,7 +90,7 @@ from sentry.search.events.fields import (
     normalize_percentile_alias,
     with_default,
 )
-from sentry.search.events.filter import to_list, translate_transaction_status
+from sentry.search.events.filter import to_list
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.referrer import Referrer
@@ -1891,36 +1890,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         return None
 
     def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        value = search_filter.value.value
-        if search_filter.value.is_wildcard():
-            # XXX: We don't want the '^$' values at the beginning and end of
-            # the regex since we want to find the pattern anywhere in the
-            # message. Strip off here
-            value = search_filter.value.value[1:-1]
-            return Condition(
-                Function("match", [self.builder.column("message"), f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
-        elif value == "":
-            operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
-            return Condition(
-                Function("equals", [self.builder.column("message"), value]), operator, 1
-            )
-        else:
-            if search_filter.is_in_filter:
-                return Condition(
-                    self.builder.column("message"),
-                    Op(search_filter.operator),
-                    value,
-                )
-
-            # make message search case insensitive
-            return Condition(
-                Function("positionCaseInsensitive", [self.builder.column("message"), value]),
-                Op.NEQ if search_filter.operator in EQUALITY_OPERATORS else Op.EQ,
-                0,
-            )
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _trace_parent_span_converter(self, search_filter: SearchFilter) -> WhereType | None:
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
@@ -1933,22 +1903,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             return self.builder.default_filter_converter(search_filter)
 
     def _transaction_status_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
-        # Handle "has" queries
-        if search_filter.value.raw_value == "":
-            return Condition(
-                self.builder.resolve_field(search_filter.key.name),
-                Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
-            )
-        internal_value = (
-            [translate_transaction_status(val) for val in search_filter.value.raw_value]
-            if search_filter.is_in_filter
-            else translate_transaction_status(search_filter.value.raw_value)
-        )
-        return Condition(
-            self.builder.resolve_field(search_filter.key.name),
-            Op(search_filter.operator),
-            internal_value,
-        )
+        return filter_aliases.span_status_filter_converter(self.builder, search_filter)
 
     def _performance_issue_ids_filter_converter(
         self, search_filter: SearchFilter

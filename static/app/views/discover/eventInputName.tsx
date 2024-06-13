@@ -1,9 +1,8 @@
-import {browserHistory} from 'react-router';
-
 import EditableText from 'sentry/components/editableText';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';

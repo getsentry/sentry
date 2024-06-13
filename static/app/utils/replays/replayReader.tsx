@@ -103,6 +103,36 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
 }
 
+// If a `navigation` crumb and `navigation.*` span happen within this timeframe,
+// we'll consider them duplicates.
+const DUPLICATE_NAV_THRESHOLD_MS = 2;
+
+/**
+ * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
+ * there is a matching navigation.* span to replace it.
+ *
+ * SpanFrame is preferred because they render with more specific titles.
+ */
+function removeDuplicateNavCrumbs(
+  crumbFrames: BreadcrumbFrame[],
+  spanFrames: SpanFrame[]
+) {
+  const navCrumbs = crumbFrames.filter(crumb => crumb.category === 'navigation');
+  const otherBreadcrumbFrames = crumbFrames.filter(
+    crumb => crumb.category !== 'navigation'
+  );
+
+  const navSpans = spanFrames.filter(span => span.op.startsWith('navigation.'));
+
+  const uniqueNavCrumbs = navCrumbs.filter(
+    crumb =>
+      !navSpans.some(
+        span => Math.abs(crumb.offsetMs - span.offsetMs) <= DUPLICATE_NAV_THRESHOLD_MS
+      )
+  );
+  return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
+}
+
 export default class ReplayReader {
   static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
@@ -399,6 +429,14 @@ export default class ReplayReader {
     ].sort(sortFrames)
   );
 
+  getMobileNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'navigation'].includes(frame.category)
+      ),
+    ].sort(sortFrames)
+  );
+
   getNetworkFrames = memoize(() =>
     this._sortedSpanFrames.filter(
       frame => frame.op.startsWith('navigation.') || frame.op.startsWith('resource.')
@@ -437,6 +475,11 @@ export default class ReplayReader {
             'replay.init',
             'replay.mutations',
             'feedback',
+            'device.battery',
+            'device.connectivity',
+            'device.orientation',
+            'app.foreground',
+            'app.background',
           ].includes(frame.category)
         ),
         ...this._errors,
@@ -446,20 +489,22 @@ export default class ReplayReader {
     )
   );
 
-  getPerfFrames = memoize(() =>
-    [
-      ...removeDuplicateClicks(
-        this._sortedBreadcrumbFrames.filter(
-          frame =>
-            ['navigation', 'ui.click'].includes(frame.category) ||
-            (frame.category === 'ui.slowClickDetected' &&
-              (isDeadClick(frame as SlowClickFrame) ||
-                isDeadRageClick(frame as SlowClickFrame)))
-        )
-      ),
-      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
-    ].sort(sortFrames)
-  );
+  getPerfFrames = memoize(() => {
+    const crumbs = removeDuplicateClicks(
+      this._sortedBreadcrumbFrames.filter(
+        frame =>
+          ['navigation', 'ui.click', 'ui.tap'].includes(frame.category) ||
+          (frame.category === 'ui.slowClickDetected' &&
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
+      )
+    );
+    const spans = this._sortedSpanFrames.filter(frame =>
+      frame.op.startsWith('navigation.')
+    );
+    const uniqueCrumbs = removeDuplicateNavCrumbs(crumbs, spans);
+    return [...uniqueCrumbs, ...spans].sort(sortFrames);
+  });
 
   getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
 

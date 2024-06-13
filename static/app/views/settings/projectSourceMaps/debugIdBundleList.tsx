@@ -1,7 +1,7 @@
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {IconList} from 'sentry/icons';

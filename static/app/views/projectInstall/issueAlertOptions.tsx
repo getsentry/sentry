@@ -9,20 +9,20 @@ import Input from 'sentry/components/input';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {IssueAlertRuleAction} from 'sentry/types/alerts';
 import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
 export enum MetricValues {
-  ERRORS,
-  USERS,
+  ERRORS = 0,
+  USERS = 1,
 }
 
 export enum RuleAction {
-  DEFAULT_ALERT,
-  CUSTOMIZED_ALERTS,
-  CREATE_ALERT_LATER,
+  DEFAULT_ALERT = 0,
+  CUSTOMIZED_ALERTS = 1,
+  CREATE_ALERT_LATER = 2,
 }
 
 const ISSUE_ALERT_DEFAULT_ACTION: Omit<

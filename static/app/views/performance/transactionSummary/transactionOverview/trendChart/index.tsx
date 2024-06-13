@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {Query} from 'history';
 
@@ -16,6 +15,7 @@ import type {
   Project,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import type EventView from 'sentry/utils/discover/eventView';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';

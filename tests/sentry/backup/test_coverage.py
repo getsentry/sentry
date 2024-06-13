@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from sentry.backup.dependencies import dependencies, get_exportable_sentry_models, get_model_name
 from sentry.backup.scopes import RelocationScope
-from sentry.models.actor import Actor
-from sentry.models.team import Team
 from tests.sentry.backup.test_exhaustive import EXHAUSTIVELY_TESTED, UNIQUENESS_TESTED
 from tests.sentry.backup.test_imports import COLLISION_TESTED
 from tests.sentry.backup.test_models import DYNAMIC_RELOCATION_SCOPE_TESTED
 from tests.sentry.backup.test_releases import RELEASE_TESTED
+from tests.sentry.backup.test_sanitize import SANITIZATION_TESTED
 
 ALL_EXPORTABLE_MODELS = {get_model_name(c) for c in get_exportable_sentry_models()}
 
@@ -45,24 +44,30 @@ def test_exportable_final_derivations_of_sentry_model_are_collision_tested():
         }:
             continue
 
-        for unique in model_relations.uniques:
+        for unique_set in model_relations.uniques:
             necessitates_collision_test = True
-            for field in unique:
+            for field in unique_set:
                 foreign_field = model_relations.foreign_keys.get(field)
+
+                # For cases where the foreign field is named directly (ex: "foo") but the unique
+                # constraint chose to name it as the underlying id (ex: "foo_id"), try to recover.
+                if foreign_field is None and field.endswith("_id"):
+                    foreign_field = model_relations.foreign_keys.get(field[:-3])
+
+                # We have a foreign field - if it is in the `Organization` or `Global` scope, we can
+                # ensure that it will be unique for every import, thereby guaranteed that this
+                # `unique_set` does not necessitate a collision test (though other `unique_set`s
+                # still might!).
                 if foreign_field is not None:
-                    foreign_model = deps[get_model_name(foreign_field.model)]
+                    foreign_model_relations = deps[get_model_name(foreign_field.model)]
                     if not {RelocationScope.User, RelocationScope.Config}.intersection(
-                        foreign_model.get_possible_relocation_scopes()
+                        foreign_model_relations.get_possible_relocation_scopes()
                     ):
                         necessitates_collision_test = False
                         break
 
             if necessitates_collision_test:
                 want_collision_tested.add(model_relations.model)
-
-    # TODO(hybrid-cloud): Remove after actor refactor completed.
-    want_collision_tested.remove(Actor)
-    want_collision_tested.remove(Team)
 
     untested = {get_model_name(m) for m in want_collision_tested} - COLLISION_TESTED
     assert not {str(u) for u in untested}
@@ -75,6 +80,11 @@ def test_exportable_final_derivations_of_sentry_model_are_exhaustively_tested():
 
 def test_exportable_final_derivations_of_sentry_model_are_release_tested_at_head():
     untested = ALL_EXPORTABLE_MODELS - RELEASE_TESTED
+    assert not {str(u) for u in untested}
+
+
+def test_exportable_final_derivations_of_sentry_model_are_sanitization_tested_at_head():
+    untested = ALL_EXPORTABLE_MODELS - SANITIZATION_TESTED
     assert not {str(u) for u in untested}
 
 

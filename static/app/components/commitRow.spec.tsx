@@ -1,12 +1,11 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {CommitRow} from 'sentry/components/commitRow';
-import type {Commit, Repository, User} from 'sentry/types';
-import {RepositoryStatus} from 'sentry/types';
+import type {Commit, Repository} from 'sentry/types/integrations';
+import {RepositoryStatus} from 'sentry/types/integrations';
+import type {User} from 'sentry/types/user';
 
 jest.mock('sentry/components/hovercard', () => {
   return {
@@ -61,7 +60,7 @@ describe('commitRow', () => {
       },
     } as Commit;
 
-    render(<CommitRow commit={commit} />, {context: RouterContextFixture()});
+    render(<CommitRow commit={commit} />);
     expect(
       screen.getByText(
         textWithMarkupMatcher(

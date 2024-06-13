@@ -739,6 +739,24 @@ class DetailedProjectSerializerTest(TestCase):
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:feedback_user_report_notifications"] is False
 
+    def test_replay_rage_click_flag(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # default should be true
+        assert result["options"]["sentry:replay_rage_click_issues"] is True
+
+        self.project.update_option("sentry:replay_rage_click_issues", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:replay_rage_click_issues"] is False
+
+    def test_replay_hydration_error_flag(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # default should be true
+        assert result["options"]["sentry:replay_hydration_error_issues"] is True
+
+        self.project.update_option("sentry:replay_hydration_error_issues", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:replay_hydration_error_issues"] is False
+
 
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property

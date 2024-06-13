@@ -1,5 +1,5 @@
 import type {ErrorInfo} from 'react';
-import {Component, lazy, Suspense, useMemo} from 'react';
+import {Component, Suspense} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -7,17 +7,13 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
-import retryableImport from 'sentry/utils/retryableImport';
 
-type PromisedImport<C> = Promise<{default: C}>;
-
-type ComponentType = React.ComponentType<any>;
-
-type Props<C extends ComponentType> = React.ComponentProps<C> & {
+type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   /**
-   * Accepts a function to trigger the import resolution of the component.
+   * Wrap the component with `lazy()` before passing it to LazyLoad.
+   * This should be declared outside of the render funciton.
    */
-  component: () => PromisedImport<C>;
+  LazyComponent: C;
 
   /**
    * Override the default fallback component.
@@ -31,18 +27,16 @@ type Props<C extends ComponentType> = React.ComponentProps<C> & {
  * LazyLoad is used to dynamically load codesplit components via a `import`
  * call. This is primarily used in our routing tree.
  *
- * <LazyLoad component={() => import('./myComponent')} someComponentProps={...} />
+ * Outside the render path
+ * const LazyComponent = lazy(() => import('./myComponent'))
+ *
+ * <LazyLoad LazyComponent={LazyComponent} someComponentProps={...} />
  */
-function LazyLoad<C extends ComponentType>({
-  component,
+function LazyLoad<C extends React.LazyExoticComponent<any>>({
+  LazyComponent,
   loadingFallback,
   ...props
 }: Props<C>) {
-  const LazyComponent = useMemo(
-    () => lazy<C>(() => retryableImport(component)),
-    [component]
-  );
-
   return (
     <ErrorBoundary>
       <Suspense
@@ -54,7 +48,8 @@ function LazyLoad<C extends ComponentType>({
           )
         }
       >
-        <LazyComponent {...(props as React.ComponentProps<C>)} />
+        {/* Props are strongly typed when passed in, but seem to conflict with LazyExoticComponent */}
+        <LazyComponent {...(props as any)} />
       </Suspense>
     </ErrorBoundary>
   );

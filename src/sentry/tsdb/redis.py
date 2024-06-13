@@ -1,9 +1,10 @@
+import binascii
 import itertools
 import logging
 import random
 import uuid
 from collections import defaultdict, namedtuple
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from functools import reduce
 from hashlib import md5
@@ -14,8 +15,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from redis.client import Script
 
-from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBModel
-from sentry.utils.compat import crc32
+from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBKey, TSDBModel
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import (
     check_cluster_versions,
@@ -32,6 +32,12 @@ T = TypeVar("T")
 SketchParameters = namedtuple("SketchParameters", "depth width capacity")
 
 CountMinScript = load_redis_script("tsdb/cmsketch.lua")
+
+
+def _crc32(data: bytes) -> int:
+    # python 2 equivalent crc32 to return signed
+    rv = binascii.crc32(data)
+    return rv - ((rv & 0x80000000) << 1)
 
 
 class SuppressionWrapper(Generic[T]):
@@ -196,7 +202,7 @@ class RedisTSDB(BaseTSDB):
         if isinstance(model_key, int):
             vnode = model_key % self.vnodes
         else:
-            vnode = crc32(force_bytes(model_key)) % self.vnodes
+            vnode = _crc32(force_bytes(model_key)) % self.vnodes
 
         return (
             "{prefix}{model}:{epoch}:{vnode}".format(
@@ -226,7 +232,7 @@ class RedisTSDB(BaseTSDB):
     def incr(
         self,
         model: TSDBModel,
-        key: int,
+        key: TSDBKey,
         timestamp: datetime | None = None,
         count: int = 1,
         environment_id: int | None = None,
@@ -237,7 +243,7 @@ class RedisTSDB(BaseTSDB):
 
     def incr_multi(
         self,
-        items: list[tuple[TSDBModel, int] | tuple[TSDBModel, int, IncrMultiOptions]],
+        items: Sequence[tuple[TSDBModel, TSDBKey] | tuple[TSDBModel, TSDBKey, IncrMultiOptions]],
         timestamp: datetime | None = None,
         count: int = 1,
         environment_id: int | None = None,
@@ -306,16 +312,17 @@ class RedisTSDB(BaseTSDB):
     def get_range(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime,
         rollup: int | None = None,
         environment_ids: list[int] | None = None,
+        conditions=None,
         use_cache: bool = False,
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[int, list[tuple[float, int]]]:
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -332,9 +339,9 @@ class RedisTSDB(BaseTSDB):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
-        _series: list[datetime] = [to_datetime(item) for item in series]
+        _series = [to_datetime(item) for item in series]
 
-        results: list[tuple[float, int, Any]] = []
+        results = []
         cluster, _ = self.get_cluster(environment_id)
         with cluster.map() as client:
             for key in keys:
@@ -342,13 +349,15 @@ class RedisTSDB(BaseTSDB):
                     hash_key, hash_field = self.make_counter_key(
                         model, rollup, timestamp, key, environment_id
                     )
-                    results.append((timestamp.timestamp(), key, client.hget(hash_key, hash_field)))
+                    results.append(
+                        (int(timestamp.timestamp()), key, client.hget(hash_key, hash_field))
+                    )
 
-        results_by_key: dict[int, dict[float, int]] = defaultdict(dict)
+        results_by_key: dict[TSDBKey, dict[int, int]] = defaultdict(dict)
         for epoch, key, count in results:
             results_by_key[key][epoch] = int(count.value or 0)
 
-        output: dict[int, list[tuple[float, int]]] = {}
+        output = {}
         for key, points in results_by_key.items():
             output[key] = sorted(points.items())
         return output
@@ -483,7 +492,7 @@ class RedisTSDB(BaseTSDB):
     def get_distinct_counts_series(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[int],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -519,7 +528,7 @@ class RedisTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[int],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -766,7 +775,7 @@ class RedisTSDB(BaseTSDB):
 
     def record_frequency_multi(
         self,
-        requests: Iterable[tuple[TSDBModel, dict[str, dict[str, int | float]]]],
+        requests: Sequence[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]],
         timestamp: datetime | None = None,
         environment_id: int | None = None,
     ) -> None:
@@ -822,14 +831,14 @@ class RedisTSDB(BaseTSDB):
     def get_most_frequent(
         self,
         model: TSDBModel,
-        keys: Iterable[str],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
         limit: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, int | str] | None = None,
-    ) -> dict[str, list[tuple[str, float]]]:
+    ) -> dict[TSDBKey, list[tuple[str, float]]]:
         self.validate_arguments([model], [environment_id])
 
         if not self.enable_frequency_sketches:
@@ -841,16 +850,16 @@ class RedisTSDB(BaseTSDB):
         if limit is not None:
             arguments.append(int(limit))
 
-        commands: dict[str, list[tuple[Script, list[str], list[int]]]] = {}
+        commands = {}
         for key in keys:
-            ks: list[str] = []
+            ks = []
             for timestamp in series:
                 ks.extend(
                     self.make_frequency_table_keys(model, rollup, timestamp, key, environment_id)
                 )
             commands[key] = [(CountMinScript, ks, arguments)]
 
-        results: dict[str, list[tuple[str, float]]] = {}
+        results = {}
         cluster, _ = self.get_cluster(environment_id)
         for _key, responses in cluster.execute_commands(commands).items():
             results[_key] = [
@@ -906,7 +915,7 @@ class RedisTSDB(BaseTSDB):
     def get_frequency_series(
         self,
         model: TSDBModel,
-        items: dict[str, Iterable[str]],
+        items: Mapping[str, Sequence[str]],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -924,8 +933,7 @@ class RedisTSDB(BaseTSDB):
         # as positional arguments to the Redis script and later associating the
         # results (which are returned in the same order that the arguments were
         # provided) with the original input values to compose the result.
-        for key, members in list(items.items()):
-            items[key] = list(members)
+        items = {k: list(members) for k, members in items.items()}
 
         commands: dict[str, list[tuple[Script, list[str], list[str | int]]]] = {}
 
@@ -956,7 +964,7 @@ class RedisTSDB(BaseTSDB):
     def get_frequency_totals(
         self,
         model: TSDBModel,
-        items: dict[str, Iterable[str]],
+        items: Mapping[str, Sequence[str]],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,

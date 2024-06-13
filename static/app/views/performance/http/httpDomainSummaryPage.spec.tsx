@@ -3,18 +3,16 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {HTTPDomainSummaryPage} from 'sentry/views/performance/http/httpDomainSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 describe('HTTPSummaryPage', function () {
   const organization = OrganizationFixture();
 
-  let domainChartsRequestMock, domainTransactionsListRequestMock;
+  let domainChartsRequestMock, domainTransactionsListRequestMock, spanFieldTagsMock;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -43,8 +41,6 @@ describe('HTTPSummaryPage', function () {
     key: '',
   });
 
-  jest.mocked(useOrganization).mockReturnValue(organization);
-
   beforeEach(function () {
     jest.clearAllMocks();
 
@@ -68,6 +64,21 @@ describe('HTTPSummaryPage', function () {
         },
       },
     });
+
+    spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
   });
 
   afterAll(function () {
@@ -75,7 +86,7 @@ describe('HTTPSummaryPage', function () {
   });
 
   it('fetches module data', async function () {
-    render(<HTTPDomainSummaryPage />);
+    render(<HTTPDomainSummaryPage />, {organization});
 
     expect(domainChartsRequestMock).toHaveBeenNthCalledWith(
       1,
@@ -93,8 +104,8 @@ describe('HTTPSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-throughput-chart',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+          referrer: 'api.performance.http.domain-summary-throughput-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'spm()',
@@ -118,8 +129,8 @@ describe('HTTPSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-duration-chart',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+          referrer: 'api.performance.http.domain-summary-duration-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: 'avg(span.self_time)',
@@ -143,8 +154,8 @@ describe('HTTPSummaryPage', function () {
           partial: 1,
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-response-code-chart',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+          referrer: 'api.performance.http.domain-summary-response-code-chart',
           statsPeriod: '10d',
           topEvents: undefined,
           yAxis: [
@@ -175,8 +186,8 @@ describe('HTTPSummaryPage', function () {
           ],
           per_page: 50,
           project: [],
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
-          referrer: 'api.starfish.http-module-domain-summary-metrics-ribbon',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
+          referrer: 'api.performance.http.domain-summary-metrics-ribbon',
           statsPeriod: '10d',
         },
       })
@@ -205,10 +216,23 @@ describe('HTTPSummaryPage', function () {
           per_page: 20,
           project: [],
           cursor: '0:20:0',
-          query: 'span.module:http span.domain:"\\*.sentry.dev"',
+          query: 'span.module:http span.op:http.client span.domain:"\\*.sentry.dev"',
           sort: '-time_spent_percentage()',
-          referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+          referrer: 'api.performance.http.domain-summary-transactions-list',
           statsPeriod: '10d',
+        },
+      })
+    );
+
+    expect(spanFieldTagsMock).toHaveBeenNthCalledWith(
+      1,
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
         },
       })
     );
@@ -223,7 +247,7 @@ describe('HTTPSummaryPage', function () {
 
       match: [
         MockApiClient.matchQuery({
-          referrer: 'api.starfish.http-module-domain-summary-transactions-list',
+          referrer: 'api.performance.http.domain-summary-transactions-list',
         }),
       ],
       body: {
@@ -253,7 +277,7 @@ describe('HTTPSummaryPage', function () {
       },
     });
 
-    render(<HTTPDomainSummaryPage />);
+    render(<HTTPDomainSummaryPage />, {organization});
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 

@@ -1,4 +1,4 @@
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.safe import safe_execute
 

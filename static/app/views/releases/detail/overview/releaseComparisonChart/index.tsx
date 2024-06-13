@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -32,9 +31,10 @@ import {
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import type {Color} from 'sentry/utils/theme';

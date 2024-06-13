@@ -1,3 +1,4 @@
+import orjson
 import responses
 from django.test import override_settings
 from requests import Request
@@ -9,7 +10,6 @@ from sentry.integrations.bitbucket_server.client import (
 )
 from sentry.testutils.cases import BaseTestCase, TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 control_address = "http://controlserver"
@@ -64,14 +64,14 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
             "oauth_signature",
         ]
         for hc in header_components:
-            assert hc in str(request.headers["Authorization"])
+            assert hc in request.headers["Authorization"]
 
     @responses.activate
     def test_get_repo_authentication(self):
         responses.add(
             responses.GET,
             f"{self.bb_server_client.base_url}{BitbucketServerAPIPath.repository.format(project='laurynsentry', repo='helloworld')}",
-            body=json.dumps(REPO),
+            body=orjson.dumps(REPO),
         )
 
         res = self.bb_server_client.get_repo("laurynsentry", "helloworld")
@@ -80,4 +80,4 @@ class BitbucketServerClientTest(TestCase, BaseTestCase):
         assert res["slug"] == "helloworld"
 
         assert len(responses.calls) == 1
-        assert b"oauth_consumer_key" in responses.calls[0].request.headers["Authorization"]
+        assert "oauth_consumer_key" in responses.calls[0].request.headers["Authorization"]

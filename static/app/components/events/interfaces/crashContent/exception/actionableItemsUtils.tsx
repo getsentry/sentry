@@ -11,16 +11,16 @@ import {
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
 import {tct} from 'sentry/locale';
-import type {Project} from 'sentry/types';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Image} from 'sentry/types/debugImage';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {semverCompare} from 'sentry/utils/versions';
+import {semverCompare} from 'sentry/utils/versions/semverCompare';
 import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =

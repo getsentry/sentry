@@ -16,8 +16,7 @@ import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
-import {trackAnalytics} from 'sentry/utils/analytics';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
@@ -153,12 +152,6 @@ class Tags extends Component<Props, State> {
       }
       this.setState({loading: false, error: err});
     }
-  };
-
-  handleTagClick = (tag: string) => {
-    const {organization} = this.props;
-    // metrics
-    trackAnalytics('discover_v2.facet_map.clicked', {organization, tag});
   };
 
   renderTag(tag: Tag, index: number) {

@@ -1,4 +1,4 @@
-import {useContext, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -12,7 +12,6 @@ import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
-import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import type {StepProps} from './types';
 
@@ -20,18 +19,25 @@ const PROMO_CODE_ERROR_MSG = t(
   'That promotional code has already been claimed, does not have enough remaining uses, is no longer valid, or never existed.'
 );
 
-function GetStarted({regionUrl, onChangeRegionUrl, onComplete}: StepProps) {
+// Best-effort region name prettification.
+function prettyRegionName(name: string): string {
+  if (name === 'de') {
+    return '🇪🇺 European Union (EU)';
+  }
+  if (name === 'us') {
+    return '🇺🇸 United States of America (US)';
+  }
+  return name;
+}
+
+function GetStarted({relocationState, onUpdateRelocationState, onComplete}: StepProps) {
   const api = useApi();
-  const relocationOnboardingContext = useContext(RelocationOnboardingContext);
-  const {orgSlugs, promoCode} = relocationOnboardingContext.data;
-  const [showPromoCode, setShowPromoCode] = useState(
-    !!relocationOnboardingContext.data.promoCode
-  );
+  const {orgSlugs, regionUrl, promoCode} = relocationState;
+  const [showPromoCode, setShowPromoCode] = useState(!!promoCode);
   const selectableRegions = ConfigStore.get('relocationConfig')?.selectableRegions || [];
   const regions = ConfigStore.get('regions').filter(region =>
     selectableRegions.includes(region.name)
   );
-  onChangeRegionUrl(relocationOnboardingContext.data.regionUrl);
 
   const handleContinue = async (event: any) => {
     event.preventDefault();
@@ -47,7 +53,6 @@ function GetStarted({regionUrl, onChangeRegionUrl, onComplete}: StepProps) {
         }
       }
     }
-    relocationOnboardingContext.setData({orgSlugs, regionUrl, promoCode});
     onComplete();
   };
   return (
@@ -71,13 +76,9 @@ function GetStarted({regionUrl, onChangeRegionUrl, onComplete}: StepProps) {
           <Input
             type="text"
             name="orgs"
-            aria-label="org-slugs"
+            aria-label={t('org-slugs')}
             onChange={evt => {
-              relocationOnboardingContext.setData({
-                orgSlugs: evt.target.value,
-                regionUrl,
-                promoCode,
-              });
+              onUpdateRelocationState({orgSlugs: evt.target.value});
             }}
             required
             minLength={3}
@@ -88,10 +89,12 @@ function GetStarted({regionUrl, onChangeRegionUrl, onComplete}: StepProps) {
           <RegionSelect
             value={regionUrl}
             name="region"
-            aria-label="region"
+            aria-label={t('region')}
             placeholder="Select Location"
-            options={regions.map(r => ({label: r.name, value: r.url}))}
-            onChange={opt => onChangeRegionUrl(opt.value)}
+            options={regions.map(r => ({label: prettyRegionName(r.name), value: r.url}))}
+            onChange={opt => {
+              onUpdateRelocationState({regionUrl: opt.value});
+            }}
           />
           {regionUrl && (
             <p>{t('This is an important decision and cannot be changed.')}</p>
@@ -115,13 +118,9 @@ function GetStarted({regionUrl, onChangeRegionUrl, onComplete}: StepProps) {
               <PromoCodeInput
                 type="text"
                 name="promocode"
-                aria-label="promocode"
+                aria-label={t('promocode')}
                 onChange={evt => {
-                  relocationOnboardingContext.setData({
-                    orgSlugs,
-                    regionUrl,
-                    promoCode: evt.target.value,
-                  });
+                  onUpdateRelocationState({promoCode: evt.target.value});
                 }}
                 placeholder=""
                 value={promoCode}
@@ -129,7 +128,7 @@ function GetStarted({regionUrl, onChangeRegionUrl, onComplete}: StepProps) {
             </div>
           ) : (
             <TogglePromoCode onClick={() => setShowPromoCode(true)}>
-              Got a promo code? <u>Redeem</u>
+              Got a promo code? <u>Click here to redeem it!</u>
             </TogglePromoCode>
           )}
           <ContinueButton

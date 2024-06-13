@@ -10,8 +10,8 @@ import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegra
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';

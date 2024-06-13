@@ -112,18 +112,20 @@ SPAN_COLUMN_MAP = {
     "description": "description",
     "domain": "domain",
     "group": "group",
-    "module": "module",
     "id": "span_id",
     "parent_span": "parent_span_id",
     "platform": "platform",
     "project": "project_id",
+    "project.id": "project_id",
     "span.action": "action",
     "span.description": "description",
+    # message also maps to span description but gets special handling
+    # to support wild card searching by default
+    "message": "description",
     "span.domain": "domain",
     # DO NOT directly expose span.duration, we should always use the alias
     # "span.duration": "duration",
     "span.group": "group",
-    "span.module": "module",
     "span.op": "op",
     "span.self_time": "exclusive_time",
     "span.status": "span_status",
@@ -134,6 +136,9 @@ SPAN_COLUMN_MAP = {
     "segment.id": "segment_id",
     "transaction.op": "transaction_op",
     "user": "user",
+    "user.id": "sentry_tags[user.id]",
+    "user.email": "sentry_tags[user.email]",
+    "user.username": "sentry_tags[user.username]",
     "profile_id": "profile_id",  # deprecated in favour of `profile.id`
     "profile.id": "profile_id",
     "cache.hit": "sentry_tags[cache.hit]",
@@ -146,15 +151,22 @@ SPAN_COLUMN_MAP = {
     "category": "sentry_tags[category]",
     "span.category": "sentry_tags[category]",
     "span.status_code": "sentry_tags[status_code]",
+    "replay_id": "sentry_tags[replay_id]",
+    "replay.id": "sentry_tags[replay_id]",
     "resource.render_blocking_status": "sentry_tags[resource.render_blocking_status]",
     "http.response_content_length": "sentry_tags[http.response_content_length]",
     "http.decoded_response_content_length": "sentry_tags[http.decoded_response_content_length]",
     "http.response_transfer_size": "sentry_tags[http.response_transfer_size]",
     "app_start_type": "sentry_tags[app_start_type]",
-    "replay.id": "sentry_tags[replay_id]",
     "browser.name": "sentry_tags[browser.name]",
     "origin.transaction": "sentry_tags[transaction]",
     "is_transaction": "is_segment",
+    "sdk.name": "sentry_tags[sdk.name]",
+    "trace.status": "sentry_tags[trace.status]",
+    "messaging.destination.name": "sentry_tags[messaging.destination.name]",
+    "messaging.message.id": "sentry_tags[messaging.message.id]",
+    "tags.key": "tags.key",
+    "tags.value": "tags.value",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {
@@ -837,7 +849,8 @@ SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
 RequestQueryBody = tuple[Request, Translator, Translator]
 LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
-ResultSet = list[Mapping[str, Any]]  # TODO: Would be nice to make this a concrete structure
+# TODO: Would be nice to make this a concrete structure
+ResultSet = list[Mapping[str, Any]]
 
 
 def raw_snql_query(
@@ -852,17 +865,6 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     return bulk_snuba_queries([request], referrer, use_cache)[0]
-
-
-def bulk_snql_query(
-    requests: list[Request],
-    referrer: str | None = None,
-    use_cache: bool = False,
-) -> ResultSet:
-    """
-    Alias for `bulk_snuba_queries`, kept for backwards compatibility.
-    """
-    return bulk_snuba_queries(requests, referrer, use_cache)
 
 
 def bulk_snuba_queries(
@@ -1004,7 +1006,7 @@ def _bulk_snuba_query(
     for index, item in enumerate(query_results):
         response, _, reverse = item
         try:
-            body = json.loads(response.data, skip_trace=True)
+            body = json.loads(response.data)
             if SNUBA_INFO:
                 if "sql" in body:
                     log_snuba_info(
@@ -1025,13 +1027,18 @@ def _bulk_snuba_query(
 
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
-
+            metrics.incr(
+                "snuba.client.api.error",
+                tags={"status_code": response.status, "referrer": query_referrer},
+            )
             if body.get("error"):
                 error = body["error"]
                 if response.status == 429:
                     raise RateLimitExceeded(error["message"])
                 elif error["type"] == "schema":
                     raise SchemaValidationError(error["message"])
+                elif error["type"] == "invalid_query":
+                    raise UnqualifiedQueryError(error["message"])
                 elif error["type"] == "clickhouse":
                     raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
                         error["message"]
@@ -1061,11 +1068,6 @@ def _log_request_query(req: Request) -> None:
 
 
 RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
-
-
-def _snql_query(params: tuple[RequestQueryBody, Hub, Mapping[str, str], str]) -> RawResult:
-    # TODO: For backwards compatibility. Some modules in Sentry use this function directly (despite it being marked private).
-    return _snuba_query(params)
 
 
 def _snuba_query(
@@ -1225,6 +1227,7 @@ def resolve_column(dataset) -> Callable:
 
         # Some dataset specific logic:
         if dataset == Dataset.Discover:
+
             if isinstance(col, (list, tuple)) or col in ("project_id", "group_id"):
                 return col
         elif (
@@ -1249,7 +1252,6 @@ def resolve_column(dataset) -> Callable:
         span_op_breakdown_name = get_span_op_breakdown_name(col)
         if "span_op_breakdowns_key" in DATASETS[dataset] and span_op_breakdown_name:
             return f"span_op_breakdowns[{span_op_breakdown_name}]"
-
         return f"tags[{col}]"
 
     return _resolve_column
@@ -1448,6 +1450,7 @@ JSON_TYPE_MAP = {
     "Float32": "number",
     "Float64": "number",
     "DateTime": "date",
+    "Nullable": "null",
 }
 
 
@@ -1503,9 +1506,14 @@ def get_snuba_translators(filter_keys, is_grouprelease=False):
     """
 
     # Helper lambdas to compose translator functions
-    identity = lambda x: x
-    compose = lambda f, g: lambda x: f(g(x))
-    replace = lambda d, key, val: d.update({key: val}) or d
+    def identity(x):
+        return x
+
+    def compose(f, g):
+        return lambda x: f(g(x))
+
+    def replace(d, key, val):
+        return d.update({key: val}) or d
 
     forward = identity
     reverse = identity

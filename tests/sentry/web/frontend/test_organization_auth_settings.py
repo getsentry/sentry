@@ -25,14 +25,15 @@ from sentry.models.integrations.sentry_app_installation_for_provider import (
 )
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import receivers_raise_on_send
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 
@@ -341,10 +342,14 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_provider.flags.scim_enabled = True
         auth_provider.save()
 
-        member = self.create_om_and_link_sso(organization)
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode_of(OrganizationMember, Team):
+            member = self.create_om_and_link_sso(organization)
             member.flags["idp:provisioned"] = True
             member.save()
+
+            team = self.create_team(organization, members=[self.user])
+            team.idp_provisioned = True
+            team.save()
 
         assert not SentryAppInstallationForProvider.objects.filter(provider=auth_provider).exists()
 
@@ -360,9 +365,12 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         ]
         assert not AuthProvider.objects.filter(organization_id=organization.id).exists()
 
-        with assume_test_silo_mode(SiloMode.REGION):
+        with assume_test_silo_mode_of(OrganizationMember, Team):
             member.refresh_from_db()
             assert not member.flags["idp:provisioned"], "member should not be idp controlled now"
+
+            team.refresh_from_db()
+            assert not team.idp_provisioned, "team should not be idp controlled now"
 
     def test_superuser_disable_provider(self):
         organization, auth_provider = self.create_org_and_auth_provider()
@@ -427,7 +435,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert result.data == {"require_link": "to False", "default_role": "to owner"}
 
@@ -458,7 +466,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert result.data == {"require_link": "to False"}
 
@@ -489,7 +497,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
         assert result.data == {"default_role": "to owner"}
 
     def test_edit_sso_settings__no_change(self):
@@ -673,7 +681,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert audit_logs.data == {
             "x509cert": "to bar_x509_cert",

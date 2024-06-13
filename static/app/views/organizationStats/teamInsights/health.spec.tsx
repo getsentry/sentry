@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
 import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
@@ -47,6 +46,8 @@ describe('TeamStatsHealth', () => {
   const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
+    TeamStore.reset();
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/projects/`,
@@ -156,10 +157,6 @@ describe('TeamStatsHealth', () => {
     });
   });
 
-  beforeEach(() => {
-    TeamStore.reset();
-  });
-
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -181,7 +178,6 @@ describe('TeamStatsHealth', () => {
       organization.access = organization.access.filter(scope => scope !== 'org:admin');
     }
 
-    const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
     MockApiClient.addMockResponse({
@@ -190,7 +186,6 @@ describe('TeamStatsHealth', () => {
     });
 
     return render(<TeamStatsHealth {...routerProps} />, {
-      context,
       organization,
     });
   }

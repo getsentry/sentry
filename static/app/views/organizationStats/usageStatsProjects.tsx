@@ -372,6 +372,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           stats[projectId][outcome] += group.totals['sum(quantity)'];
         } else if (
           outcome === Outcome.RATE_LIMITED ||
+          outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.INVALID ||
           outcome === Outcome.DROPPED
         ) {
@@ -468,7 +469,7 @@ const Container = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray400};
   display: flex;

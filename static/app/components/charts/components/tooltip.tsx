@@ -8,8 +8,8 @@ import moment from 'moment';
 import type BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
+import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
-import toArray from 'sentry/utils/toArray';
 
 import {truncationFormatter} from '../utils';
 

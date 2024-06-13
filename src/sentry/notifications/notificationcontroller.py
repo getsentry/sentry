@@ -7,6 +7,12 @@ from typing import Union
 from django.db.models import Q
 
 from sentry import features
+from sentry.integrations.types import (
+    EXTERNAL_PROVIDERS_REVERSE_VALUES,
+    PERSONAL_NOTIFICATION_PROVIDERS,
+    ExternalProviderEnum,
+    ExternalProviders,
+)
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organizationmapping import OrganizationMapping
@@ -26,17 +32,11 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.types.integrations import (
-    EXTERNAL_PROVIDERS_REVERSE,
-    PERSONAL_NOTIFICATION_PROVIDERS,
-    ExternalProviderEnum,
-    ExternalProviders,
-)
+from sentry.types.actor import Actor, ActorType
 
-Recipient = Union[RpcActor, Team, RpcUser, User]
+Recipient = Union[Actor, Team, RpcUser, User]
 TEAM_NOTIFICATION_PROVIDERS = [ExternalProviderEnum.SLACK]
 
 
@@ -265,7 +265,7 @@ class NotificationController:
         Recipient,
         MutableMapping[
             NotificationSettingEnum,
-            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            MutableMapping[str, NotificationSettingsOptionEnum],
         ],
     ]:
         """
@@ -280,7 +280,7 @@ class NotificationController:
             Recipient,
             MutableMapping[
                 NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+                MutableMapping[str, NotificationSettingsOptionEnum],
             ],
         ] = defaultdict(
             lambda: defaultdict(
@@ -320,25 +320,24 @@ class NotificationController:
                 ):
                     if setting.scope_identifier != project_id:
                         continue
-
                 # sort the settings by scope type, with the most specific scope last so we override with the most specific value
                 most_specific_recipient_providers[NotificationSettingEnum(setting.type)][
-                    ExternalProviderEnum(setting.provider)
+                    ExternalProviderEnum(setting.provider).value
                 ] = NotificationSettingsOptionEnum(setting.value)
 
             # if we have no settings for this user, use the defaults
             for type in NotificationSettingEnum:
                 for provider_str in PERSONAL_NOTIFICATION_PROVIDERS:
                     provider = ExternalProviderEnum(provider_str)
-                    if provider not in most_specific_recipient_providers[type]:
+                    if provider_str not in most_specific_recipient_providers[type]:
                         # TODO(jangjodi): Remove this once the flag is removed
                         if recipient_is_team(recipient) and (not has_team_workflow):
                             most_specific_recipient_providers[type][
-                                provider
+                                provider_str
                             ] = NotificationSettingsOptionEnum.NEVER
                         else:
                             most_specific_recipient_providers[type][
-                                provider
+                                provider_str
                             ] = get_default_for_provider(type, provider)
 
         return most_specific_setting_providers
@@ -352,7 +351,7 @@ class NotificationController:
         Recipient,
         MutableMapping[
             NotificationSettingEnum,
-            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            MutableMapping[str, NotificationSettingsOptionEnum],
         ],
     ]:
         """
@@ -376,7 +375,7 @@ class NotificationController:
             Recipient,
             MutableMapping[
                 NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+                MutableMapping[str, NotificationSettingsOptionEnum],
             ],
         ] = defaultdict(
             lambda: defaultdict(
@@ -412,7 +411,7 @@ class NotificationController:
         type: NotificationSettingEnum,
         actor_type: ActorType | None = None,
         project_id: int | None = None,
-    ) -> Mapping[ExternalProviders, set[RpcActor]]:
+    ) -> Mapping[ExternalProviders, set[Actor]]:
         """
         Returns the recipients that should be notified for each provider,
         filtered by the given notification type.
@@ -423,15 +422,15 @@ class NotificationController:
         combined_settings = self.get_combined_settings(
             type=type, actor_type=actor_type, project_id=project_id
         )
-        recipients: Mapping[ExternalProviders, set[RpcActor]] = defaultdict(set)
+        recipients: Mapping[ExternalProviders, set[Actor]] = defaultdict(set)
         for recipient, type_map in combined_settings.items():
-            actor = RpcActor.from_object(recipient)
+            actor = Actor.from_object(recipient)
             for type, provider_map in type_map.items():
                 for provider, value in provider_map.items():
                     if value == NotificationSettingsOptionEnum.NEVER:
                         continue
 
-                    recipients[EXTERNAL_PROVIDERS_REVERSE[provider]].add(actor)
+                    recipients[EXTERNAL_PROVIDERS_REVERSE_VALUES[provider]].add(actor)
         return recipients
 
     def get_settings_for_user_by_projects(
@@ -442,7 +441,7 @@ class NotificationController:
         int,
         MutableMapping[
             NotificationSettingEnum,
-            MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+            MutableMapping[str, NotificationSettingsOptionEnum],
         ],
     ]:
         """
@@ -456,7 +455,7 @@ class NotificationController:
             int,
             MutableMapping[
                 NotificationSettingEnum,
-                MutableMapping[ExternalProviderEnum, NotificationSettingsOptionEnum],
+                MutableMapping[str, NotificationSettingsOptionEnum],
             ],
         ] = defaultdict(
             lambda: defaultdict(
@@ -522,9 +521,7 @@ class NotificationController:
 
     def get_participants(
         self,
-    ) -> MutableMapping[
-        RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
-    ]:
+    ) -> MutableMapping[Actor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]]:
         """
         Returns a mapping of recipients to the providers they should be notified on.
         Note that this returns the ExternalProviders int enum instead of the ExternalProviderEnum string.
@@ -535,13 +532,13 @@ class NotificationController:
 
         combined_settings = self.get_combined_settings(type=self.type)
         user_to_providers: MutableMapping[
-            RpcActor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
+            Actor, MutableMapping[ExternalProviders, NotificationSettingsOptionEnum]
         ] = defaultdict(dict)
         for recipient, setting_map in combined_settings.items():
-            actor = RpcActor.from_object(recipient)
+            actor = Actor.from_object(recipient)
             provider_map = setting_map[self.type]
             user_to_providers[actor] = {
-                EXTERNAL_PROVIDERS_REVERSE[provider]: value
+                EXTERNAL_PROVIDERS_REVERSE_VALUES[provider]: value
                 for provider, value in provider_map.items()
             }
 
@@ -597,11 +594,12 @@ class NotificationController:
             recipient: The recipient of the notification settings (user or team).
             type: The notification type to filter providers and recipients by.
         """
+        provider_str = provider.value
         if self.type and type != self.type:
             raise Exception("Type mismatch: the provided type differs from the controller type")
 
         setting_providers = self._get_layered_setting_providers(type=type.value)
-        return setting_providers[recipient][type][provider]
+        return setting_providers[recipient][type][provider_str]
 
     def get_users_for_weekly_reports(self) -> list[int]:
         if not self.organization_id:

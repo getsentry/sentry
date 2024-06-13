@@ -18,6 +18,7 @@ import type {
 import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
@@ -423,14 +424,13 @@ function renderTraceAsLinkable(
     return null;
   }
   const dateSelection = eventView.normalizeDateSelection(location);
-  const target = getTraceDetailsUrl(
+  const target = getTraceDetailsUrl({
     organization,
-    String(data.trace),
+    traceSlug: String(data.trace),
     dateSelection,
-    {},
-    data.timestamp,
-    data.id || data.eventID
-  );
+    timestamp: getTimeStampFromTableDateField(data.timestamp),
+    location,
+  });
 
   return (
     <Tooltip title={t('View Trace')}>

@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import moment from 'moment';
 
@@ -15,6 +14,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {DateString, MetricsApiResponse} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {WebVital} from 'sentry/utils/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useLocation} from 'sentry/utils/useLocation';

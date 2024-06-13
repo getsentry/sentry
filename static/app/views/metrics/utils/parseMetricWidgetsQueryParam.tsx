@@ -1,4 +1,5 @@
-import {getDefaultMetricOp} from 'sentry/utils/metrics';
+import type {MRI} from 'sentry/types/metrics';
+import {getDefaultAggregate} from 'sentry/utils/metrics';
 import {
   DEFAULT_SORT_STATE,
   emptyMetricsQueryWidget,
@@ -8,6 +9,7 @@ import {isMRI} from 'sentry/utils/metrics/mri';
 import {
   type BaseWidgetParams,
   type FocusedMetricsSeries,
+  MetricChartOverlayType,
   MetricDisplayType,
   MetricExpressionType,
   type MetricsEquationWidget,
@@ -139,7 +141,7 @@ function parseQueryWidget(
 
   return {
     mri,
-    op: parseStringParam(widget, 'op') ?? getDefaultMetricOp(mri),
+    op: parseStringParam(widget, 'op') ?? getDefaultAggregate(mri),
     query: parseStringParam(widget, 'query') ?? '',
     groupBy: parseArrayParam(widget, 'groupBy', entry =>
       typeof entry === 'string' ? entry : undefined
@@ -174,12 +176,12 @@ function parseQueryId(widget: Record<string, unknown>, key: string): number {
 
 function fillIds(
   entries: MetricsWidget[],
-  indezesWithoutId: Set<number>,
+  indicesWithoutId: Set<number>,
   usedIds: Set<number>
 ): MetricsWidget[] {
-  if (indezesWithoutId.size > 0) {
+  if (indicesWithoutId.size > 0) {
     const generateId = getUniqueQueryIdGenerator(usedIds);
-    for (const index of indezesWithoutId) {
+    for (const index of indicesWithoutId) {
       const widget = entries[index];
       if (!widget) {
         continue;
@@ -190,7 +192,10 @@ function fillIds(
   return entries;
 }
 
-export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget[] {
+export function parseMetricWidgetsQueryParam(
+  queryParam?: string,
+  defaultMRI?: MRI
+): MetricsWidget[] {
   let currentWidgets: unknown = undefined;
 
   try {
@@ -206,11 +211,11 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
 
   const queries: MetricsQueryWidget[] = [];
   const usedQueryIds = new Set<number>();
-  const queryIndezesWithoutId = new Set<number>();
+  const queryIndicesWithoutId = new Set<number>();
 
   const formulas: MetricsEquationWidget[] = [];
   const usedFormulaIds = new Set<number>();
-  const formulaIndezesWithoutId = new Set<number>();
+  const formulaIndicesWithoutId = new Set<number>();
 
   (currentWidgets as unknown[]).forEach((widget: unknown) => {
     if (!isRecord(widget)) {
@@ -245,6 +250,9 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
       focusedSeries: parseArrayParam(widget, 'focusedSeries', parseFocusedSeries),
       sort: parseSortParam(widget, 'sort'),
       isHidden: parseBooleanParam(widget, 'isHidden') ?? false,
+      overlays: widget.overlays
+        ? parseArrayParam(widget, 'overlays', entry => entry as MetricChartOverlayType)
+        : [MetricChartOverlayType.SAMPLES],
     };
 
     switch (type) {
@@ -255,7 +263,7 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
         }
         queries.push(query);
         if (query.id === NO_QUERY_ID) {
-          queryIndezesWithoutId.add(queries.length - 1);
+          queryIndicesWithoutId.add(queries.length - 1);
         }
         break;
       }
@@ -266,7 +274,7 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
         }
         formulas.push(formula);
         if (formula.id === NO_QUERY_ID) {
-          formulaIndezesWithoutId.add(formulas.length - 1);
+          formulaIndicesWithoutId.add(formulas.length - 1);
         }
         break;
       }
@@ -278,7 +286,13 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
   // Iterate over the widgets without an id and assign them a unique one
 
   if (queries.length === 0) {
-    queries.push(emptyMetricsQueryWidget);
+    const mri = defaultMRI || emptyMetricsQueryWidget.mri;
+
+    queries.push({
+      ...emptyMetricsQueryWidget,
+      mri,
+      op: getDefaultAggregate(mri),
+    });
   }
 
   // We can reset the id if there is only one widget
@@ -291,7 +305,7 @@ export function parseMetricWidgetsQueryParam(queryParam?: string): MetricsWidget
   }
 
   return [
-    ...fillIds(queries, queryIndezesWithoutId, usedQueryIds),
-    ...fillIds(formulas, formulaIndezesWithoutId, usedFormulaIds),
+    ...fillIds(queries, queryIndicesWithoutId, usedQueryIds),
+    ...fillIds(formulas, formulaIndicesWithoutId, usedFormulaIds),
   ];
 }

@@ -1,7 +1,6 @@
 import type {FC} from 'react';
 import {Fragment, useEffect, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -20,6 +19,7 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';

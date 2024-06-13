@@ -4,6 +4,7 @@ import logging
 from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
+import sentry_sdk
 from django.utils import timezone
 
 from sentry import analytics
@@ -26,6 +27,8 @@ from sentry.services.hybrid_cloud.integration import (
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
+    RpcOrganizationContext,
+    RpcOrganizationContextList,
 )
 from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration,
@@ -210,31 +213,49 @@ class DatabaseBackedIntegrationService(IntegrationService):
 
         return [serialize_organization_integration(oi) for oi in ois]
 
-    def get_organization_context(
+    def organization_context(
         self,
         *,
         organization_id: int,
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
-        integration, installs = self.get_organization_contexts(
+    ) -> RpcOrganizationContext:
+        context = self.organization_contexts(
             organization_id=organization_id,
             integration_id=integration_id,
             provider=provider,
             external_id=external_id,
         )
+        install = None
+        if context.organization_integrations:
+            install = context.organization_integrations[0]
+        if install and install.organization_id != organization_id:
+            with sentry_sdk.push_scope() as scope:
+                scope.set_context(
+                    "localscope",
+                    {
+                        "integration_id": integration_id,
+                        "organization_id": organization_id,
+                        "install.organization": install.organization_id,
+                    },
+                )
+                sentry_sdk.capture_message(
+                    "integration.installation does not belong to requested_org"
+                )
+            install = None
+        return RpcOrganizationContext(
+            integration=context.integration, organization_integration=install
+        )
 
-        return integration, installs[0] if installs else None
-
-    def get_organization_contexts(
+    def organization_contexts(
         self,
         *,
         organization_id: int | None = None,
         integration_id: int | None = None,
         provider: str | None = None,
         external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
+    ) -> RpcOrganizationContextList:
         integration = self.get_integration(
             organization_id=organization_id,
             integration_id=integration_id,
@@ -242,12 +263,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
             external_id=external_id,
         )
         if not integration:
-            return (None, [])
+            return RpcOrganizationContextList(integration=None, organization_integrations=[])
         organization_integrations = self.get_organization_integrations(
             integration_id=integration.id,
             organization_id=organization_id,
         )
-        return (integration, organization_integrations)
+        return RpcOrganizationContextList(
+            integration=integration, organization_integrations=organization_integrations
+        )
 
     def update_integrations(
         self,
@@ -448,7 +471,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         except OrganizationIntegration.DoesNotExist:
             return []
 
-        iep_kwargs = {"organization_integration_id": oi.id}
+        iep_kwargs: dict[str, Any] = {"organization_integration_id": oi.id}
         if external_id is not None:
             iep_kwargs["external_id"] = external_id
         external_projects = IntegrationExternalProject.objects.filter(**iep_kwargs)

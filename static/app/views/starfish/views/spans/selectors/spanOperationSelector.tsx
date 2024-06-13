@@ -1,9 +1,9 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';

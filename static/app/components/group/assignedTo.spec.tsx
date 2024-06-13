@@ -146,7 +146,11 @@ describe('Group > AssignedTo', () => {
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith('team', TEAM_1, undefined);
+    expect(onAssign).toHaveBeenCalledWith(
+      'team',
+      {id: `team:${TEAM_1.id}`, name: TEAM_1.slug, type: 'team'},
+      undefined
+    );
 
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
@@ -189,7 +193,7 @@ describe('Group > AssignedTo', () => {
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
-    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
@@ -242,7 +246,7 @@ describe('Group > AssignedTo', () => {
     await openMenu();
 
     expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
-    expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
+    expect(screen.getByText('Codeowners:/./app/components')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Suspect commit author'));
 
@@ -255,7 +259,7 @@ describe('Group > AssignedTo', () => {
       )
     );
     expect(onAssign).toHaveBeenCalledWith(
-      'member',
+      'user',
       USER_2,
       expect.objectContaining({
         suggestedReason: 'suspectCommit',

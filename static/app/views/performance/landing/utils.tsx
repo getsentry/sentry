@@ -1,17 +1,16 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import {t} from 'sentry/locale';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
-import {
-  formatAbbreviatedNumber,
-  formatFloat,
-  formatPercentage,
-  getDuration,
-} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {HistogramData} from 'sentry/utils/performance/histogram/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';

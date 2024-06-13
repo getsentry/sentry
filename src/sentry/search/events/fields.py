@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
@@ -694,7 +694,7 @@ def get_json_meta_type(field_alias, snuba_type, builder=None):
         return alias_definition.result_type
 
     snuba_json = get_json_type(snuba_type)
-    if snuba_json != "string":
+    if snuba_json not in ["string", "null"]:
         if function is not None:
             result_type = function.instance.get_result_type(function.field, function.arguments)
             if result_type is not None:
@@ -2111,6 +2111,29 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     return f"{match.group(1)}({aggregate_arg})"
 
 
+def custom_time_processor(interval, time_column):
+    """For when snuba doesn't have a time processor for a dataset"""
+    return Function(
+        "toDateTime",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [
+                            time_column,
+                            interval,
+                        ],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        "time",
+    )
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
@@ -2142,7 +2165,7 @@ class MetricArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Sequence[str] | None = None,
+        allowed_columns: Iterable[str] | None = None,
         allow_custom_measurements: bool | None = True,
         validate_only: bool | None = True,
         allow_mri: bool = True,
@@ -2193,6 +2216,7 @@ class MetricsFunction(SnQLFunction):
         self.snql_distribution = kwargs.pop("snql_distribution", None)
         self.snql_set = kwargs.pop("snql_set", None)
         self.snql_counter = kwargs.pop("snql_counter", None)
+        self.snql_gauge = kwargs.pop("snql_gauge", None)
         self.snql_metric_layer = kwargs.pop("snql_metric_layer", None)
         self.is_percentile = kwargs.pop("is_percentile", False)
         super().__init__(*args, **kwargs)
@@ -2210,11 +2234,12 @@ class MetricsFunction(SnQLFunction):
                     self.snql_distribution is not None,
                     self.snql_set is not None,
                     self.snql_counter is not None,
+                    self.snql_gauge is not None,
                     self.snql_column is not None,
                     self.snql_metric_layer is not None,
                 ]
             )
-            == 1
+            >= 1
         )
 
         # assert that no duplicate argument names are used

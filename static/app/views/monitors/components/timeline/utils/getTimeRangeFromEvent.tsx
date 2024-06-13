@@ -1,6 +1,6 @@
 import moment from 'moment';
 
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 
 import type {TimeWindow} from '../types';
 

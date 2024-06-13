@@ -1,4 +1,3 @@
-import {render} from 'react-dom';
 import {createRoot} from 'react-dom/client';
 
 export function renderDom(
@@ -14,17 +13,6 @@ export function renderDom(
     return;
   }
 
-  // Types are for ConfigStore, the window object is from json and features is not a Set
-  if (
-    (window.__initialData.features as unknown as string[]).includes(
-      'organizations:react-concurrent-renderer-enabled'
-    )
-  ) {
-    // Enable concurrent rendering
-    const root = createRoot(rootEl);
-    root.render(<Component {...props} />);
-  } else {
-    // Legacy rendering
-    render(<Component {...props} />, rootEl);
-  }
+  const root = createRoot(rootEl);
+  root.render(<Component {...props} />);
 }

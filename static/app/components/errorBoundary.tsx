@@ -1,11 +1,11 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {Alert} from 'sentry/components/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
 type DefaultProps = {

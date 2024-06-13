@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {browserHistory, Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -9,25 +8,32 @@ import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEdit
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber, getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {SORTABLE_FIELDS} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -56,6 +62,7 @@ const DEFAULT_SORT: Sort = {
 
 export function PagePerformanceTable() {
   const location = useLocation();
+  const organization = useOrganization();
   const {projects} = useProjects();
 
   const columnOrder = COLUMN_ORDER;
@@ -81,7 +88,7 @@ export function PagePerformanceTable() {
     isLoading: isTransactionWebVitalsQueryLoading,
   } = useTransactionWebVitalsQuery({
     limit: MAX_ROWS,
-    transaction: `*${escapeFilterValue(query)}*`,
+    transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
   });
@@ -144,7 +151,7 @@ export function PagePerformanceTable() {
               <span>
                 {t('The overall performance rating of this page.')}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
@@ -172,7 +179,7 @@ export function PagePerformanceTable() {
                   "A number rating how impactful a performance improvement on this page would be to your application's overall Performance Score."
                 )}
                 <br />
-                <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#opportunity">
+                <ExternalLink href={`${MODULE_DOC_LINK}#opportunity`}>
                   {t('How is this calculated?')}
                 </ExternalLink>
               </span>
@@ -280,6 +287,11 @@ export function PagePerformanceTable() {
   }
 
   const handleSearch = (newQuery: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newQuery,
+      source: ModuleName.VITAL,
+    });
     browserHistory.push({
       ...location,
       query: {
@@ -333,7 +345,6 @@ export function PagePerformanceTable() {
             renderHeadCell,
             renderBodyCell,
           }}
-          location={location}
         />
       </GridContainer>
     </span>

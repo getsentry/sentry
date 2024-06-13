@@ -152,7 +152,10 @@ class AlertRuleTest(TestCase):
         assert mock_bulk_create_snuba_subscriptions.call_count == 0
 
         alert_rule.subscribe_projects(
-            projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+            projects=[self.project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activator="testing",
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         assert mock_bulk_create_snuba_subscriptions.call_count == 1
 
@@ -170,7 +173,8 @@ class AlertRuleTest(TestCase):
                     project=project,
                     activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
                     query_extra=query_extra,
-                    trigger="test",
+                    origin="test",
+                    activator="testing",
                 )
             )
             assert len(created_subscriptions) == 1
@@ -194,7 +198,8 @@ class AlertRuleTest(TestCase):
                     project=project,
                     activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
                     query_extra=query_extra,
-                    trigger="test",
+                    origin="test",
+                    activator="testing",
                 )
             )
             assert len(created_subscriptions) == 1
@@ -401,7 +406,10 @@ class UpdateAlertActivationsTest(TestCase):
         with self.tasks():
             alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
             alert_rule.subscribe_projects(
-                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+                projects=[self.project],
+                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+                activator="testing",
             )
             subscription = alert_rule.snuba_query.subscriptions.get()
             activation = alert_rule.activations.get()
@@ -423,7 +431,10 @@ class UpdateAlertActivationsTest(TestCase):
         with self.tasks():
             alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
             alert_rule.subscribe_projects(
-                projects=[self.project], monitor_type=AlertRuleMonitorType.ACTIVATED
+                projects=[self.project],
+                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+                activator="testing",
             )
 
             subscription = alert_rule.snuba_query.subscriptions.get()

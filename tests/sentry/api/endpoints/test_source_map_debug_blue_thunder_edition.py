@@ -1,6 +1,10 @@
+from __future__ import annotations
+
 import zipfile
 from io import BytesIO
+from typing import Any
 
+import orjson
 from django.core.files.base import ContentFile
 from rest_framework import status
 
@@ -21,7 +25,6 @@ from sentry.models.release import Release
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, ARTIFACT_INDEX_TYPE, ReleaseFile
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -33,16 +36,14 @@ def create_exception_with_frame(frame):
     }
 
 
-def create_exception_with_frames(raw_frames=None, frames=None):
-    ex = {
-        "type": "Error",
-    }
+def create_exception_with_frames(raw_frames=None, frames=None) -> dict[str, Any]:
+    ex: dict[str, Any] = {"type": "Error"}
 
     if raw_frames is not None:
-        ex["raw_stacktrace"] = {"frames": raw_frames}  # type: ignore[assignment]
+        ex["raw_stacktrace"] = {"frames": raw_frames}
 
     if frames is not None:
-        ex["stacktrace"] = {"frames": frames}  # type: ignore[assignment]
+        ex["stacktrace"] = {"frames": frames}
 
     return ex
 
@@ -864,7 +865,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             zip_file.writestr("files/_/_/bundle.min.js", b'console.log("hello world");')
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -877,7 +878,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -940,7 +941,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             )
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -952,7 +953,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -1013,7 +1014,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             )
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -1025,7 +1026,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -1086,7 +1087,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             zip_file.writestr("files/_/_/bundle.min.js.map", b"")
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -1105,7 +1106,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -1175,7 +1176,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             zip_file.writestr("files/_/_/bundle.min.js.map", b"")
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -1194,7 +1195,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -1291,7 +1292,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             zip_file.writestr("files/_/_/bundle.min.js.map", b"")
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -1310,7 +1311,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -1392,7 +1393,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         artifact_index.putfile(
             ContentFile(
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "~/bundle.min.js": {
@@ -1415,7 +1416,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ).encode()
+                )
             )
         )
 
@@ -1438,7 +1439,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             zip_file.writestr("files/_/_/bundle.min.js.map", b"")
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -1457,7 +1458,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
         release_artifact_bundle = File.objects.create(
@@ -1509,7 +1510,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
 
         artifact_index.putfile(
             ContentFile(
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "~/bundle.min.js": {
@@ -1528,7 +1529,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ).encode()
+                )
             )
         )
 
@@ -1550,7 +1551,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
             zip_file.writestr("files/_/_/bundle.min.js.map", b"")
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         "files": {
                             "files/_/_/bundle.min.js": {
@@ -1569,7 +1570,7 @@ class SourceMapDebugBlueThunderEditionEndpointTestCase(APITestCase):
                             },
                         },
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
         release_artifact_bundle = File.objects.create(

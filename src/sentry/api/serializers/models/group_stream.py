@@ -25,6 +25,7 @@ from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.constants import StatsPeriod
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
+from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group
 from sentry.models.groupinbox import get_inbox_details
 from sentry.models.grouplink import GroupLink
@@ -50,7 +51,7 @@ def get_actions(request: Request, group):
         if is_plugin_deprecated(plugin, project):
             continue
 
-        results = safe_execute(plugin.actions, request, group, action_list, _with_transaction=False)
+        results = safe_execute(plugin.actions, request, group, action_list)
 
         if not results:
             continue
@@ -60,9 +61,7 @@ def get_actions(request: Request, group):
     for plugin in plugins.for_project(project, version=2):
         if is_plugin_deprecated(plugin, project):
             continue
-        for action in (
-            safe_execute(plugin.get_actions, request, group, _with_transaction=False) or ()
-        ):
+        for action in safe_execute(plugin.get_actions, request, group) or ():
             action_list.append(action)
 
     return action_list
@@ -79,9 +78,7 @@ def get_available_issue_plugins(request: Request, group):
         if isinstance(plugin, IssueTrackingPlugin2):
             if is_plugin_deprecated(plugin, project):
                 continue
-            plugin_issues = safe_execute(
-                plugin.plugin_issues, request, group, plugin_issues, _with_transaction=False
-            )
+            safe_execute(plugin.plugin_issues, request, group, plugin_issues)
     return plugin_issues
 
 
@@ -396,6 +393,22 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 )
                 attrs[item].update({"sentryAppIssues": sentry_app_issues})
 
+        if self._expand("latestEventHasAttachments"):
+            if not features.has(
+                "organizations:event-attachments",
+                item.project.organization,
+                actor=request.user,
+            ):
+                return self.respond(status=404)
+
+            for item in item_list:
+                latest_event = item.get_latest_event()
+                if latest_event is not None:
+                    num_attachments = EventAttachment.objects.filter(
+                        project_id=latest_event.project_id, event_id=latest_event.event_id
+                    ).count()
+                    attrs[item].update({"latestEventHasAttachments": num_attachments > 0})
+
         return attrs
 
     def serialize(
@@ -453,6 +466,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
         if self._expand("sentryAppIssues"):
             result["sentryAppIssues"] = attrs["sentryAppIssues"]
+
+        if self._expand("latestEventHasAttachments") and "latestEventHasAttachments" in attrs:
+            result["latestEventHasAttachments"] = attrs["latestEventHasAttachments"]
 
         return result
 

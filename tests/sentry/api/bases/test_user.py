@@ -11,7 +11,7 @@ from sentry.api.bases.user import (
 )
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.testutils.cases import DRFPermissionTestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, control_silo_test, no_silo_test
 
 
@@ -46,7 +46,7 @@ class UserPermissionTest(DRFPermissionTestCase):
             )
 
     @override_settings(SENTRY_SELF_HOSTED=False, SUPERUSER_ORG_ID=1000)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_active_superuser_read(self):
         # superuser read can hit GET
         request = self.make_request(user=self.superuser, is_superuser=True, method="GET")
@@ -58,7 +58,7 @@ class UserPermissionTest(DRFPermissionTestCase):
         assert not self.user_permission.has_object_permission(request, None, self.normal_user)
 
     @override_settings(SENTRY_SELF_HOSTED=False, SUPERUSER_ORG_ID=1000)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_active_superuser_write(self):
         # superuser write can hit GET
         self.add_user_permission(self.superuser, "superuser.write")

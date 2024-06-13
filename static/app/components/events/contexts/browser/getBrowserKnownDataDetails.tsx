@@ -1,19 +1,15 @@
+import type {KnownDataDetails} from 'sentry/components/events/contexts/utils';
 import {t} from 'sentry/locale';
 
 import type {BrowserKnownData} from './types';
 import {BrowserKnownDataType} from './types';
-
-type Output = {
-  subject: string;
-  value: React.ReactNode | null;
-};
 
 type Props = {
   data: BrowserKnownData;
   type: BrowserKnownDataType;
 };
 
-export function getBrowserKnownDataDetails({data, type}: Props): Output | undefined {
+export function getBrowserKnownDataDetails({data, type}: Props): KnownDataDetails {
   switch (type) {
     case BrowserKnownDataType.NAME:
       return {

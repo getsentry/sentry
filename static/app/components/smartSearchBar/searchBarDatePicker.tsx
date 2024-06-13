@@ -1,7 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import format from 'date-fns/format';
-import type {Moment} from 'moment';
 
 import {DatePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
@@ -12,7 +11,6 @@ import {DEFAULT_DAY_START_TIME, setDateToTime} from 'sentry/utils/dates';
 
 type SearchBarDatePickerProps = {
   handleSelectDateTime: (value: string) => void;
-  date?: Moment;
   dateString?: string;
 };
 
@@ -144,7 +142,7 @@ function TimeInput({time, setTime}: TimeInputProps) {
   return (
     <Input
       ref={timeInputRef}
-      aria-label="Time"
+      aria-label={t('Time')}
       type="time"
       data-test-id="search-bar-date-picker-time-input"
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -205,7 +203,7 @@ const UtcPickerLabel = styled('label')`
   align-items: center;
   justify-content: flex-end;
   margin: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   user-select: none;
   cursor: pointer;
   gap: ${space(1)};

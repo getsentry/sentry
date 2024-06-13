@@ -17,7 +17,8 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Group, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {useQueryClient} from 'sentry/utils/queryClient';
@@ -106,12 +107,13 @@ function ActionsBarPriority({
           <Checkbox
             onChange={() => SelectedGroupStore.toggleSelectAll()}
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+            aria-label={pageSelected ? t('Deselect all') : t('Select all')}
             disabled={displayReprocessingActions}
           />
         </ActionsCheckbox>
       )}
       {!displayReprocessingActions && (
-        <AnimatePresence initial={false} exitBeforeEnter>
+        <AnimatePresence initial={false} mode="wait">
           {shouldDisplayActions && (
             <HeaderButtonsWrapper key="actions" {...animationProps}>
               <ActionSet
@@ -138,7 +140,7 @@ function ActionsBarPriority({
           )}
         </AnimatePresence>
       )}
-      <AnimatePresence initial={false} exitBeforeEnter>
+      <AnimatePresence initial={false} mode="wait">
         {!anySelected ? (
           <AnimatedHeaderItemsContainer key="headers" {...animationProps}>
             <Headers
@@ -376,6 +378,7 @@ function IssueListActions({
               <Checkbox
                 onChange={() => SelectedGroupStore.toggleSelectAll()}
                 checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                aria-label={pageSelected ? t('Deselect all') : t('Select all')}
                 disabled={displayReprocessingActions}
               />
             </ActionsCheckbox>
@@ -460,10 +463,10 @@ function IssueListActions({
 
 function useSelectedGroupsState() {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedIds = useLegacyStore(SelectedGroupStore);
+  const selectedGroupState = useLegacyStore(SelectedGroupStore);
+  const selectedIds = SelectedGroupStore.getSelectedIds();
 
-  const selected = SelectedGroupStore.getSelectedIds();
-  const projects = [...selected]
+  const projects = [...selectedIds]
     .map(id => GroupStore.get(id))
     .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
@@ -481,7 +484,7 @@ function useSelectedGroupsState() {
 
   useEffect(() => {
     setAllInQuerySelected(false);
-  }, [selectedIds]);
+  }, [selectedGroupState]);
 
   return {
     pageSelected,

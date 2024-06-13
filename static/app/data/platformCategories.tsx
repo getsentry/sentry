@@ -1,12 +1,12 @@
-import type {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
-  FRONTEND,
-  MOBILE,
-  BACKEND,
-  SERVERLESS,
-  DESKTOP,
-  OTHER,
+  FRONTEND = 0,
+  MOBILE = 1,
+  BACKEND = 2,
+  SERVERLESS = 3,
+  DESKTOP = 4,
+  OTHER = 5,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
@@ -56,6 +56,7 @@ export const mobile: PlatformKey[] = [
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 export const backend: PlatformKey[] = [
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -63,6 +64,7 @@ export const backend: PlatformKey[] = [
   'go',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
@@ -87,6 +89,7 @@ export const backend: PlatformKey[] = [
   'php-laravel',
   'php-monolog',
   'php-symfony',
+  'powershell',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -159,6 +162,7 @@ export const sourceMaps: PlatformKey[] = [
 
 export const performance: PlatformKey[] = [
   'bun',
+  'deno',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -194,7 +198,7 @@ export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
 export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
-  'nintendo',
+  'nintendo-switch',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -272,6 +276,7 @@ export const releaseHealth: PlatformKey[] = [
   'dart-flutter',
   // backend
   'bun',
+  'deno',
   'native',
   'node',
   'node-express',
@@ -305,11 +310,13 @@ export const releaseHealth: PlatformKey[] = [
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
 export const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
+  'deno',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'elixir',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go',
   'go-gin',
   'go-http',
@@ -429,7 +436,6 @@ export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
   'node-azurefunctions',
   'node-connect',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'minidump',
   'python-asgi',
   'python-awslambda',
@@ -454,7 +460,10 @@ export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
 
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'bun',
+  'dart',
+  'deno',
   'dotnet',
+  'dotnet-aspnet',
   'dotnet-aspnetcore',
   'dotnet-awslambda',
   'dotnet-gcpfunctions',
@@ -512,7 +521,9 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'android',
+  'apple-ios',
   'electron',
+  'flutter',
   'java-android',
   'javascript-angular',
   'javascript-astro',

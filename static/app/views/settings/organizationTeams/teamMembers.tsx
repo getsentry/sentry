@@ -12,6 +12,7 @@ import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {Flex} from 'sentry/components/container/flex';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -26,7 +27,8 @@ import {TeamRoleColumnLabel} from 'sentry/components/teamRoleUtils';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
+import type {Member, Organization, Team, TeamMember} from 'sentry/types/organization';
+import type {Config} from 'sentry/types/system';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -367,7 +369,7 @@ class TeamMembers extends DeprecatedAsyncView<Props, State> {
             <div>
               <TeamRoleColumnLabel />
             </div>
-            <div style={{textTransform: 'none'}}>{this.renderDropdown(isTeamAdmin)}</div>
+            <Flex justify="end">{this.renderDropdown(isTeamAdmin)}</Flex>
           </StyledPanelHeader>
           {this.renderMembers(isTeamAdmin)}
         </Panel>

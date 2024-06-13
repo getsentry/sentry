@@ -13,12 +13,16 @@ import {space} from 'sentry/styles/space';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
-import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/performance/http/settings';
+import {
+  MODULE_DOC_LINK,
+  MODULE_TITLE as HTTP_MODULE_TITLE,
+} from 'sentry/views/performance/http/settings';
 import {getIsMultiProject} from 'sentry/views/performance/utils';
 
 type Props = {
-  items: (() => React.ReactNode)[];
+  items: React.ReactNode[];
   selectedIndex: number;
   setSelectedIndex: (index: number) => void;
   radioColor?: string;
@@ -34,7 +38,7 @@ export default function SelectableList(props: Props) {
           currentIndex={index}
           key={index}
         >
-          {item()}
+          {item}
         </SelectableItem>
       ))}
     </div>
@@ -98,6 +102,46 @@ export function TimeSpentInDatabaseWidgetEmptyStateWarning() {
       <PrimaryMessage>{t('No results found')}</PrimaryMessage>
       <SecondaryMessage>
         <NoDataMessage Wrapper={Fragment} isDataAvailable={false} />
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function TimeConsumingDomainsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Domains may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href={MODULE_DOC_LINK}>
+                {t('Requests module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
+      </SecondaryMessage>
+    </StyledEmptyStateWarning>
+  );
+}
+
+export function HighestCacheMissRateTransactionsWidgetEmptyStateWarning() {
+  return (
+    <StyledEmptyStateWarning>
+      <PrimaryMessage>{t('No results found')}</PrimaryMessage>
+      <SecondaryMessage>
+        {tct(
+          'Transactions may be missing due to the filters above, a low sampling rate, or an error with instrumentation. Please see the [link] for more information.',
+          {
+            link: (
+              <ExternalLink href={`https://docs.sentry.io/product${CACHE_BASE_URL}`}>
+                {t('Cache module documentation')}
+              </ExternalLink>
+            ),
+          }
+        )}
       </SecondaryMessage>
     </StyledEmptyStateWarning>
   );
@@ -187,7 +231,7 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
 const PrimaryMessage = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.gray300};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: 0 auto ${space(1)};
 `;
 

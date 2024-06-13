@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -10,6 +9,7 @@ import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEdit
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -17,14 +17,11 @@ import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
@@ -35,6 +32,7 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
 import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useInpSpanSamplesWebVitalsQuery';
 import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionSamplesWebVitalsQuery';
@@ -49,6 +47,8 @@ import {
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
@@ -159,7 +159,9 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
   function renderHeadCell(col: Column | InteractionsColumn) {
     function generateSortLink() {
-      const key = col.key === 'inpScore' ? 'measurements.score.total' : col.key;
+      const key = ['totalScore', 'inpScore'].includes(col.key)
+        ? 'measurements.score.total'
+        : col.key;
       let newSortDirection: Sort['kind'] = 'desc';
       if (sort?.field === key) {
         if (sort.kind === 'desc') {
@@ -216,7 +218,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
                   <span>
                     {t('The overall performance rating of this page.')}
                     <br />
-                    <ExternalLink href="https://docs.sentry.io/product/performance/web-vitals/#performance-score">
+                    <ExternalLink href={`${MODULE_DOC_LINK}#performance-score`}>
                       {t('How is this calculated?')}
                     </ExternalLink>
                   </span>
@@ -367,11 +369,13 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
 
     if (key === 'id' && 'id' in row) {
       const eventTarget = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug({...row, project: row.projectSlug}),
-        dataRow: row,
-        eventView: EventView.fromLocation(location),
+        projectSlug: row.projectSlug,
+        traceSlug: row.trace,
+        eventId: row.id,
+        timestamp: row.timestamp,
         organization,
         location,
+        source: TraceViewSources.WEB_VITALS_MODULE,
       });
 
       return (
@@ -397,31 +401,37 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
   return (
     <span>
       <SearchBarContainer>
-        {
-          <SegmentedControl
-            size="md"
-            value={datatype}
-            onChange={newDataSet => {
-              // Reset pagination and sort when switching datatypes
-              router.replace({
-                ...location,
-                query: {
-                  ...location.query,
-                  sort: undefined,
-                  cursor: undefined,
-                  [DATATYPE_KEY]: newDataSet,
-                },
-              });
-            }}
+        <SegmentedControl
+          size="md"
+          value={datatype}
+          aria-label={t('Data Type')}
+          onChange={newDataSet => {
+            // Reset pagination and sort when switching datatypes
+            trackAnalytics('insight.vital.overview.toggle_data_type', {
+              organization,
+              type: newDataSet,
+            });
+            router.replace({
+              ...location,
+              query: {
+                ...location.query,
+                sort: undefined,
+                cursor: undefined,
+                [DATATYPE_KEY]: newDataSet,
+              },
+            });
+          }}
+        >
+          <SegmentedControl.Item key={Datatype.PAGELOADS} aria-label={t('Pageloads')}>
+            {t('Pageloads')}
+          </SegmentedControl.Item>
+          <SegmentedControl.Item
+            key={Datatype.INTERACTIONS}
+            aria-label={t('Interactions')}
           >
-            <SegmentedControl.Item key={Datatype.PAGELOADS}>
-              {t('Pageloads')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key={Datatype.INTERACTIONS}>
-              {t('Interactions')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        }
+            {t('Interactions')}
+          </SegmentedControl.Item>
+        </SegmentedControl>
 
         <StyledSearchBar
           query={query}
@@ -462,36 +472,32 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           </Wrapper>
         )}
       </SearchBarContainer>
-      <GridContainer>
-        {datatype === Datatype.PAGELOADS && (
-          <GridEditable
-            isLoading={isLoading}
-            columnOrder={PAGELOADS_COLUMN_ORDER}
-            columnSortBy={[]}
-            data={tableData}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-            minimumColWidth={70}
-          />
-        )}
-        {datatype === Datatype.INTERACTIONS && (
-          <GridEditable
-            isLoading={isInteractionsLoading}
-            columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
-            columnSortBy={[]}
-            data={interactionsTableData}
-            grid={{
-              renderHeadCell,
-              renderBodyCell,
-            }}
-            location={location}
-            minimumColWidth={70}
-          />
-        )}
-      </GridContainer>
+      {datatype === Datatype.PAGELOADS && (
+        <GridEditable
+          isLoading={isLoading}
+          columnOrder={PAGELOADS_COLUMN_ORDER}
+          columnSortBy={[]}
+          data={tableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+          minimumColWidth={70}
+        />
+      )}
+      {datatype === Datatype.INTERACTIONS && (
+        <GridEditable
+          isLoading={isInteractionsLoading}
+          columnOrder={INTERACTION_SAMPLES_COLUMN_ORDER}
+          columnSortBy={[]}
+          data={interactionsTableData}
+          grid={{
+            renderHeadCell,
+            renderBodyCell,
+          }}
+          minimumColWidth={70}
+        />
+      )}
     </span>
   );
 }
@@ -519,28 +525,6 @@ const StyledProjectAvatar = styled(ProjectAvatar)`
   top: ${space(0.25)};
   position: relative;
   padding-right: ${space(1)};
-`;
-
-// Not pretty but we need to override gridEditable styles since the original
-// styles have too much padding for small spaces
-const GridContainer = styled('div')`
-  margin-bottom: ${space(1)};
-  th {
-    padding: 0 ${space(1)};
-  }
-  th:first-child {
-    padding-left: ${space(2)};
-  }
-  th:last-child {
-    padding-right: ${space(2)};
-  }
-  td {
-    padding: ${space(1)};
-  }
-  td:first-child {
-    padding-right: ${space(1)};
-    padding-left: ${space(2)};
-  }
 `;
 
 const NoValue = styled('span')`

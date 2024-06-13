@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {GroupFixture} from 'sentry-fixture/group';
 
@@ -12,7 +11,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {Group, Organization} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupEvents from 'sentry/views/issueDetails/groupEvents';
 
 let location: Location;
@@ -30,12 +30,12 @@ describe('groupEvents', () => {
   });
 
   let organization: Organization;
-  let routerContext;
+  let router;
 
   beforeEach(() => {
     browserHistory.push = jest.fn();
 
-    ({organization, routerContext} = initializeOrg({
+    ({organization, router} = initializeOrg({
       organization: {
         features: ['event-attachments'],
       },
@@ -126,7 +126,7 @@ describe('groupEvents', () => {
 
   it('fetches and renders a table of events', async () => {
     render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -144,7 +144,7 @@ describe('groupEvents', () => {
 
   it('handles search', async () => {
     render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -176,7 +176,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     await waitFor(() => {
       expect(screen.getByText('transaction')).toBeInTheDocument();
@@ -199,7 +199,7 @@ describe('groupEvents', () => {
         group={group}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -224,7 +224,7 @@ describe('groupEvents', () => {
         group={group}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -241,7 +241,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization: {...organization, features: []}}
+      {router, organization: {...organization, features: []}}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -256,7 +256,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -271,7 +271,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -304,7 +304,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     const minidumpColumn = screen.queryByText('minidump');
@@ -336,7 +336,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     const attachmentsColumn = screen.queryByText('attachments');
@@ -352,7 +352,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -375,7 +375,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging'], sort: 'user'}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -402,7 +402,7 @@ describe('groupEvents', () => {
           },
         }}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
     expect(requests.discover).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -430,7 +430,7 @@ describe('groupEvents', () => {
         {...baseProps}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -447,7 +447,7 @@ describe('groupEvents', () => {
         group={group}
         location={{...location, query: {environment: ['prod', 'staging']}}}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

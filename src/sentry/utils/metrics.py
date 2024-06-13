@@ -57,7 +57,7 @@ def _should_sample(sample_rate: float) -> bool:
     return sample_rate >= 1 or random() >= 1 - sample_rate
 
 
-def _sampled_value(value: int | float, sample_rate: float) -> int | float:
+def _sampled_value(value: int, sample_rate: float) -> int:
     if sample_rate < 1:
         value = int(value * (1.0 / sample_rate))
     return value
@@ -68,7 +68,7 @@ class InternalMetrics:
         self._started = False
 
     def _start(self) -> None:
-        q: Queue[tuple[str, str | None, Tags | None, float | int, float]]
+        q: Queue[tuple[str, str | None, Tags | None, int, float]]
         self.q = q = Queue()
 
         def worker() -> None:
@@ -231,3 +231,31 @@ def wraps(
         return inner  # type: ignore[return-value]
 
     return wrapper
+
+
+def event(
+    title: str,
+    message: str,
+    alert_type: str | None = None,
+    aggregation_key: str | None = None,
+    source_type_name: str | None = None,
+    priority: str | None = None,
+    instance: str | None = None,
+    tags: Tags | None = None,
+    stacklevel: int = 0,
+) -> None:
+    try:
+        backend.event(
+            title,
+            message,
+            alert_type,
+            aggregation_key,
+            source_type_name,
+            priority,
+            instance,
+            tags,
+            stacklevel + 1,
+        )
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")

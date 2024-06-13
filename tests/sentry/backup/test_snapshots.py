@@ -1,6 +1,8 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any
 
+import orjson
 import pytest
 
 from sentry.backup.comparators import get_default_comparators
@@ -16,7 +18,6 @@ from sentry.testutils.helpers.backups import (
     clear_database,
     export_to_file,
 )
-from sentry.utils import json
 
 
 class SnapshotTests(BackupTestCase):
@@ -30,15 +31,15 @@ class SnapshotTests(BackupTestCase):
 
     def import_export_fixture_then_validate(
         self, *, tmp_out_path: Path, fixture_file_name: str
-    ) -> json.JSONData:
+    ) -> Any:
         """
         Test helper that validates that data imported from a fixture `.json` file correctly matches
         the actual outputted export data.
         """
 
         fixture_file_path = get_fixture_path("backup", fixture_file_name)
-        with open(fixture_file_path) as backup_file:
-            expect = json.load(backup_file)
+        with open(fixture_file_path, "rb") as backup_file:
+            expect = orjson.loads(backup_file.read())
         with open(fixture_file_path, "rb") as fixture_file:
             import_in_global_scope(fixture_file, printer=NOOP_PRINTER)
 

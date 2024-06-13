@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict, Union
+from typing import Any, NotRequired, TypedDict, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -12,6 +12,7 @@ from django.db.models import Sum
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -19,6 +20,7 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.release_health.base import ReleaseHealthOverview
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
@@ -290,6 +292,17 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, A
     return results
 
 
+class _ProjectDict(TypedDict):
+    id: int
+    slug: str | None
+    name: str
+    new_groups: int | None
+    platform: str | None
+    platforms: list[str]
+    health_data: NotRequired[ReleaseHealthOverview | None]
+    has_health_data: NotRequired[bool]
+
+
 @register(Release)
 class ReleaseSerializer(Serializer):
     def __get_project_id_list(self, item_list):
@@ -314,7 +327,7 @@ class ReleaseSerializer(Serializer):
             False,
         )
 
-    def __get_release_data_no_environment(self, project, item_list):
+    def __get_release_data_no_environment(self, project, item_list, no_snuba_for_release_creation):
         if project is not None:
             project_ids = [project.id]
             specialized = True
@@ -325,12 +338,16 @@ class ReleaseSerializer(Serializer):
 
         first_seen: dict[str, datetime.datetime] = {}
         last_seen: dict[str, datetime.datetime] = {}
-        tag_values = tagstore.backend.get_release_tags(
-            organization_id,
-            project_ids,
-            environment_id=None,
-            versions=[o.version for o in item_list],
-        )
+        if no_snuba_for_release_creation:
+            tag_values = []
+        else:
+            tag_values = tagstore.backend.get_release_tags(
+                organization_id,
+                project_ids,
+                environment_id=None,
+                versions=[o.version for o in item_list],
+            )
+
         for tv in tag_values:
             first_val = first_seen.get(tv.value)
             last_val = last_seen.get(tv.value)
@@ -416,8 +433,8 @@ class ReleaseSerializer(Serializer):
         health_stat = kwargs.get("health_stat", None)
         health_stats_period = kwargs.get("health_stats_period")
         summary_stats_period = kwargs.get("summary_stats_period")
-        no_snuba = kwargs.get("no_snuba")
-        if with_health_data and no_snuba:
+        no_snuba_for_release_creation = kwargs.get("no_snuba_for_release_creation")
+        if with_health_data and no_snuba_for_release_creation:
             raise TypeError("health data requires snuba")
 
         adoption_stages = {}
@@ -428,7 +445,7 @@ class ReleaseSerializer(Serializer):
 
         if environments is None:
             first_seen, last_seen, issue_counts_by_release = self.__get_release_data_no_environment(
-                project, item_list
+                project, item_list, no_snuba_for_release_creation
             )
         else:
             if release_project_envs is None:
@@ -486,7 +503,7 @@ class ReleaseSerializer(Serializer):
             has_health_data = {}
 
         for pr in project_releases:
-            pr_rv = {
+            pr_rv: _ProjectDict = {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
@@ -542,8 +559,8 @@ class ReleaseSerializer(Serializer):
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        d = {
+    def serialize(self, obj, attrs, user, **kwargs) -> ReleaseSerializerResponse:
+        d: ReleaseSerializerResponse = {
             "id": obj.id,
             "version": obj.version,
             "status": ReleaseStatus.to_string(obj.status),

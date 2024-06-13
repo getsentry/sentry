@@ -6,13 +6,13 @@ from sentry.db.models import (
     BaseModel,
     BoundedAutoField,
     BoundedBigIntegerField,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-@control_silo_only_model
+@control_silo_model
 class OrganizationMemberTeamReplica(BaseModel):
     """
     Identifies relationships between organization members and the teams they are on.

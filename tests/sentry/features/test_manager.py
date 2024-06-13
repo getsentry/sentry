@@ -1,7 +1,9 @@
 from typing import Any
 from unittest import mock
 
+import pytest
 from django.conf import settings
+from django.test import override_settings
 
 from sentry import features
 from sentry.features.base import (
@@ -13,6 +15,7 @@ from sentry.features.base import (
     UserFeature,
 )
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.cases import TestCase
 
 
@@ -22,7 +25,7 @@ class MockBatchHandler(features.BatchFeatureHandler):
     def has(
         self,
         feature: Feature,
-        actor: User,
+        actor: User | RpcUser,
         skip_entity: bool | None = False,
     ) -> bool:
         return True
@@ -70,6 +73,22 @@ class FeatureManagerTest(TestCase):
             "projects:feature2",
             "projects:feature3",
         }
+
+    def test_feature_register_default(self):
+        manager = features.FeatureManager()
+        manager.add("organizations:red-paint", OrganizationFeature, default=False)
+
+        assert set(manager.all(OrganizationFeature)) == {"organizations:red-paint"}
+        assert settings.SENTRY_FEATURES["organizations:red-paint"] is False
+
+        # Defaults should not override config data.
+        feature_config = {
+            "organizations:red-paint": True,
+        }
+        with override_settings(SENTRY_FEATURES=feature_config):
+            manager = features.FeatureManager()
+            manager.add("organizations:red-paint", OrganizationFeature, default=False)
+            assert settings.SENTRY_FEATURES["organizations:red-paint"] is True
 
     def test_handlers(self):
         project_flag = "projects:test_handlers"
@@ -252,6 +271,17 @@ class FeatureManagerTest(TestCase):
         assert ret is not None
         assert ret[f"project:{self.project.id}"]["projects:feature"]
 
+    def test_batch_has_no_entity_multiple_projects(self):
+        manager = features.FeatureManager()
+        manager.add("projects:feature", ProjectFeature)
+        manager.add_handler(MockBatchHandler())
+        projects = [self.project, self.create_project()]
+
+        result = manager.batch_has(["projects:feature"], actor=self.user, projects=projects)
+        assert result is not None
+        for project in projects:
+            assert result[f"project:{project.id}"]["projects:feature"]
+
     def test_has(self):
         manager = features.FeatureManager()
         manager.add("auth:register")
@@ -302,3 +332,14 @@ class FeatureManagerTest(TestCase):
 
         assert list(manager.all().keys()) == ["feat:org", "feat:project", "feat:system"]
         assert list(manager.all(OrganizationFeature).keys()) == ["feat:org"]
+
+    def test_option_features(self):
+        manager = features.FeatureManager()
+        manager.add("organizations:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+        manager.add("projects:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+        assert manager.option_features == {"organizations:some-test", "projects:some-test"}
+
+    def test_invalid_option_features(self):
+        manager = features.FeatureManager()
+        with pytest.raises(NotImplementedError):
+            manager.add("users:some-test", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)

@@ -1,4 +1,3 @@
-import {useContext} from 'react';
 import {motion} from 'framer-motion';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -9,13 +8,11 @@ import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCodeBlock';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
-import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import type {StepProps} from './types';
 
-export function PublicKey({publicKeys, onComplete}: StepProps) {
-  const relocationOnboardingContext = useContext(RelocationOnboardingContext);
-  const {regionUrl} = relocationOnboardingContext.data;
+export function PublicKey({publicKeys, relocationState, onComplete}: StepProps) {
+  const {regionUrl} = relocationState;
   const publicKey = publicKeys.get(regionUrl);
   const handleContinue = (event: any) => {
     event.preventDefault();

@@ -9,6 +9,7 @@ import sentry_sdk
 from sentry.integrations.msteams.card_builder.block import AdaptiveCard
 from sentry.integrations.msteams.utils import get_user_conversation_id
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
+from sentry.integrations.types import ExternalProviders
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
@@ -24,8 +25,7 @@ from sentry.notifications.notifications.activity.unassigned import UnassignedAct
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 from sentry.utils import metrics
 
 from .card_builder.notifications import (
@@ -63,7 +63,7 @@ def is_supported_notification_type(notification: BaseNotification) -> bool:
 
 
 def get_notification_card(
-    notification: BaseNotification, context: Mapping[str, Any], recipient: User | Team | RpcActor
+    notification: BaseNotification, context: Mapping[str, Any], recipient: User | Team | Actor
 ) -> AdaptiveCard:
     cls = MESSAGE_BUILDERS[notification.message_builder]
     return cls(notification, context, recipient).build_notification_card()
@@ -72,9 +72,9 @@ def get_notification_card(
 @register_notification_provider(ExternalProviders.MSTEAMS)
 def send_notification_as_msteams(
     notification: BaseNotification,
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[Actor],
     shared_context: Mapping[str, Any],
-    extra_context_by_actor: Mapping[RpcActor, Mapping[str, Any]] | None,
+    extra_context_by_actor: Mapping[Actor, Mapping[str, Any]] | None,
 ):
     if not is_supported_notification_type(notification):
         logger.info(

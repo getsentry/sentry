@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 from django.db import connections, router, transaction
@@ -11,10 +11,10 @@ from sentry_sdk.api import capture_exception
 
 from sentry.db.models import BaseManager, Model
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import find_regions_for_orgs, find_regions_for_user
 from sentry.utils.env import in_test_environment
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
     from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
@@ -80,7 +80,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
     Provides bulk update and delete methods that respect outbox creation.
     """
 
-    def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> Collection[_RM]:
+    def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> list[_RM]:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_RM, ...] = tuple(objs)
@@ -90,9 +90,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
         model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
 
-        assert not issubclass(
-            model, SnowflakeIdMixin
-        ), "bulk_create cannot work for SnowflakeIdMixin models!"
+        assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models!"
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
                 cursor.execute(
@@ -109,7 +107,9 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-    def bulk_update(self, objs: Iterable[_RM], fields: list[str], *args: Any, **kwds: Any) -> Any:
+    def bulk_update(
+        self, objs: Iterable[_RM], fields: Sequence[str], *args: Any, **kwds: Any
+    ) -> Any:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_RM, ...] = tuple(objs)
@@ -264,7 +264,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
     Provides bulk update and delete methods that respect outbox creation.
     """
 
-    def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> Collection[_CM]:
+    def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> list[_CM]:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_CM, ...] = tuple(objs)
@@ -273,10 +273,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
 
         model: type[_CM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
-
-        assert not issubclass(
-            model, SnowflakeIdMixin
-        ), "bulk_create cannot work for SnowflakeIdMixin models!"
+        assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models"
 
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
@@ -294,7 +291,9 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-    def bulk_update(self, objs: Iterable[_CM], fields: list[str], *args: Any, **kwds: Any) -> Any:
+    def bulk_update(
+        self, objs: Iterable[_CM], fields: Sequence[str], *args: Any, **kwds: Any
+    ) -> Any:
         from sentry.models.outbox import outbox_context
 
         tuple_of_objs: tuple[_CM, ...] = tuple(objs)
@@ -331,7 +330,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
 
 class ReplicatedControlModel(ControlOutboxProducingModel):
     """
-    An extension of RegionOutboxProducingModel that provides a default implementation for `outboxes_for_update`
+    An extension of ControlOutboxProducingModel that provides a default implementation for `outboxes_for_update`
     based on the category nd outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_deletion based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.

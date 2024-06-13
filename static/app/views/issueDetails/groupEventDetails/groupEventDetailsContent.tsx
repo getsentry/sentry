@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -10,6 +10,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {EventEntry} from 'sentry/components/events/eventEntry';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import AggregateSpanDiff from 'sentry/components/events/eventStatisticalDetector/aggregateSpanDiff';
@@ -21,7 +22,6 @@ import {EventFunctionComparisonList} from 'sentry/components/events/eventStatist
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
 import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {TransactionsDeltaProvider} from 'sentry/components/events/eventStatisticalDetector/transactionsDeltaProvider';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
@@ -36,15 +36,31 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import LazyLoad from 'sentry/components/lazyLoad';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group, Project} from 'sentry/types';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {
+  type EntryException,
+  type Event,
+  EventOrGroupType,
+  type Group,
+  IssueCategory,
+  IssueType,
+  type Project,
+} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
+import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
+import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ResourcesAndMaybeSolutions} from 'sentry/views/issueDetails/resourcesAndMaybeSolutions';
+import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+
+const LLMMonitoringSection = lazy(
+  () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
+);
 
 type GroupEventDetailsContentProps = {
   group: Group;
@@ -83,14 +99,15 @@ function DefaultGroupEventDetailsContent({
   project,
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
-  const hasNewTagsUI = useHasNewTagsUI();
+  const location = useLocation();
+  const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
-  const hasReplay = Boolean(event.tags?.find(({key}) => key === 'replayId')?.value);
+  const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
   const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
-  const showMaybeSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
+  const showPossibleSolutionsHigher = shouldShowCustomErrorResourceConfig(group, project);
 
   const eventEntryProps = {group, event, project};
 
@@ -119,9 +136,32 @@ function DefaultGroupEventDetailsContent({
             report={event.userReport}
             orgSlug={organization.slug}
             issueId={group.id}
+            showEventLink={false}
           />
         </EventDataSection>
       )}
+      {event.type === EventOrGroupType.ERROR &&
+      organization.features.includes('ai-analytics') &&
+      event?.entries
+        ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
+        .flatMap(x => x.data.values ?? [])
+        .some(({value}) => {
+          const lowerText = value?.toLowerCase();
+          return (
+            lowerText &&
+            (lowerText.includes('api key') || lowerText.includes('429')) &&
+            (lowerText.includes('openai') ||
+              lowerText.includes('anthropic') ||
+              lowerText.includes('cohere') ||
+              lowerText.includes('langchain'))
+          );
+        }) ? (
+        <LazyLoad
+          LazyComponent={LLMMonitoringSection}
+          event={event}
+          organization={organization}
+        />
+      ) : null}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
@@ -129,12 +169,18 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection event={event} group={group} project={project} />
-      {!hasNewTagsUI && (
-        <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-      )}
-      {showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+      <HighlightsDataSection
+        event={event}
+        group={group}
+        project={project}
+        viewAllRef={tagsRef}
+      />
+      {showPossibleSolutionsHigher && (
+        <ResourcesAndPossibleSolutionsIssueDetailsContent
+          event={event}
+          project={project}
+          group={group}
+        />
       )}
       <EventEvidence event={event} group={group} project={project} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
@@ -142,7 +188,21 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.THREADS} {...eventEntryProps} />
       {hasAnrImprovementsFeature && isANR && (
-        <AnrRootCause event={event} organization={organization} />
+        <QuickTraceQuery
+          event={event}
+          location={location}
+          orgSlug={organization.slug}
+          type={'spans'}
+          skipLight
+        >
+          {results => {
+            return (
+              <QuickTraceContext.Provider value={results}>
+                <AnrRootCause event={event} organization={organization} />
+              </QuickTraceContext.Provider>
+            );
+          }}
+        </QuickTraceQuery>
       )}
       {group.issueCategory === IssueCategory.PERFORMANCE && (
         <SpanEvidenceSection
@@ -151,6 +211,7 @@ function DefaultGroupEventDetailsContent({
           projectSlug={project.slug}
         />
       )}
+      <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
@@ -158,14 +219,18 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
-      {!showMaybeSolutionsHigher && (
-        <ResourcesAndMaybeSolutions event={event} project={project} group={group} />
+      {!showPossibleSolutionsHigher && (
+        <ResourcesAndPossibleSolutionsIssueDetailsContent
+          event={event}
+          project={project}
+          group={group}
+        />
       )}
       <GroupEventEntry entryType={EntryType.DEBUGMETA} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.REQUEST} {...eventEntryProps} />
-      {hasNewTagsUI && (
+      <div ref={tagsRef}>
         <EventTagsAndScreenshot event={event} projectSlug={project.slug} />
-      )}
+      </div>
       <EventContexts group={group} event={event} />
       <EventExtraData event={event} />
       <EventPackageData event={event} />
@@ -193,6 +258,18 @@ function DefaultGroupEventDetailsContent({
         />
       )}
     </Fragment>
+  );
+}
+
+function ResourcesAndPossibleSolutionsIssueDetailsContent({
+  event,
+  project,
+  group,
+}: Required<GroupEventDetailsContentProps>) {
+  return (
+    <ErrorBoundary mini>
+      <ResourcesAndPossibleSolutions event={event} project={project} group={group} />
+    </ErrorBoundary>
   );
 }
 

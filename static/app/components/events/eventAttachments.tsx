@@ -16,8 +16,8 @@ import FileSize from 'sentry/components/fileSize';
 import LoadingError from 'sentry/components/loadingError';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t} from 'sentry/locale';
-import type {IssueAttachment} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {IssueAttachment} from 'sentry/types/group';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import EventAttachmentsCrashReportsNotice from './eventAttachmentsCrashReportsNotice';

@@ -15,7 +15,7 @@ from sentry.issues.escalating import (
 from sentry.issues.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.escalating_issues_alg import generate_issue_forecast, standard_version
 from sentry.models.group import Group
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,7 @@ def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
     Generates and saves a list of forecasted values for each group.
     `groups`: Sequence of groups to be forecasted
     """
+    groups = [group for group in groups if group.issue_type.should_detect_escalation()]
     past_counts = query_groups_past_counts(groups)
     group_counts = parse_groups_past_counts(past_counts)
     save_forecast_per_group(groups, group_counts)

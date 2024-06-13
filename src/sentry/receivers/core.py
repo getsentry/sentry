@@ -7,9 +7,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import connections, router, transaction
 from django.db.models.signals import post_save
 from django.db.utils import OperationalError, ProgrammingError
-from packaging.version import parse as parse_version
 
-from sentry import options
 from sentry.loader.dynamic_sdk_options import get_default_loader_data
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -21,7 +19,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import region_silo_function
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import post_upgrade, project_created
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 from sentry.utils.settings import is_self_hosted
 
@@ -121,25 +119,6 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         echo(f"Created internal Sentry project (slug={project.slug}, id={project.id})")
 
     return project
-
-
-def set_sentry_version(latest=None, **kwargs):
-    import sentry
-
-    current = sentry.VERSION
-
-    version = options.get("sentry:latest_version")
-
-    for ver in (current, version):
-        if parse_version(ver) >= parse_version(latest):
-            latest = ver
-
-    if latest == version:
-        return
-
-    options.set(
-        "sentry:latest_version", (latest or current), channel=options.UpdateChannel.APPLICATION
-    )
 
 
 def create_keys_for_project(instance, created, app=None, **kwargs):

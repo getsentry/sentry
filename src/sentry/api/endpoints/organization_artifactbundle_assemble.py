@@ -1,4 +1,5 @@
 import jsonschema
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,7 +18,6 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
-from sentry.utils import json
 
 
 @region_silo_endpoint
@@ -49,7 +49,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         }
 
         try:
-            data = json.loads(request.body)
+            data = orjson.loads(request.body)
             jsonschema.validate(data, schema)
         except jsonschema.ValidationError as e:
             return Response({"error": str(e).splitlines()[0]}, status=400)
@@ -60,9 +60,11 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         if len(projects) == 0:
             return Response({"error": "You need to specify at least one project"}, status=400)
 
-        project_ids = Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE, slug__in=projects
-        ).values_list("id", flat=True)
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization, status=ObjectStatus.ACTIVE, slug__in=projects
+            ).values_list("id", flat=True)
+        )
         if len(project_ids) != len(projects):
             return Response({"error": "One or more projects are invalid"}, status=400)
 

@@ -35,12 +35,9 @@ class ExhaustiveTests(BackupTestCase):
         clear_database(reset_pks=reset_pks)
         return tmp_path
 
-    @expect_models(EXHAUSTIVELY_TESTED, "__all__")
-    def test_exhaustive_clean_pks(self, expected_models: list[type[Model]]):
-        self.create_exhaustive_instance(is_superadmin=True)
-        actual = self.import_export_then_validate(self._testMethodName, reset_pks=True)
-        verify_models_in_output(expected_models, actual)
-
+    # Note: the "clean_pks" version of this test lives in
+    # `test_sanitize.py::SanitizationExhaustiveTests`. Because these tests are slow, we want to
+    # reduce duplication, so we only use that one in that particular location.
     @expect_models(EXHAUSTIVELY_TESTED, "__all__")
     def test_exhaustive_dirty_pks(self, expected_models: list[type[Model]]):
         self.create_exhaustive_instance(is_superadmin=True)

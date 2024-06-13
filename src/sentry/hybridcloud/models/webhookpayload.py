@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any, Self
+from typing import Any
 
 from django.db import models
 from django.http import HttpRequest
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, control_silo_only_model, sane_repr
+from sentry.db.models import Model, control_silo_model, sane_repr
 from sentry.utils import json, metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
@@ -18,7 +18,7 @@ BACKOFF_INTERVAL = 3
 BACKOFF_RATE = 1.4
 
 
-@control_silo_only_model
+@control_silo_model
 class WebhookPayload(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -79,7 +79,7 @@ class WebhookPayload(Model):
         identifier: int | str,
         request: HttpRequest,
         integration_id: int | None = None,
-    ) -> Self:
+    ) -> WebhookPayload:
         metrics.incr("hybridcloud.deliver_webhooks.saved")
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",

@@ -12,7 +12,7 @@ import {
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import * as useRecentCreatedProjectHook from 'sentry/components/onboarding/useRecentCreatedProject';
 import type {PlatformKey, Project} from 'sentry/types';
-import {OnboardingProjectStatus} from 'sentry/types';
+import {OnboardingProjectStatus} from 'sentry/types/onboarding';
 import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
@@ -25,7 +25,7 @@ describe('Onboarding', function () {
       step: 'welcome',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -36,7 +36,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -50,7 +50,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -61,7 +61,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -82,7 +82,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -149,7 +149,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -172,7 +172,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -234,7 +234,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -267,7 +267,7 @@ describe('Onboarding', function () {
       step: 'setup-docs',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       router: {
         params: routeParams,
       },
@@ -329,7 +329,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -353,7 +353,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -367,7 +367,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -392,7 +392,7 @@ describe('Onboarding', function () {
       step: 'select-platform',
     };
 
-    const {routerProps, routerContext, organization} = initializeOrg({
+    const {routerProps, router, organization} = initializeOrg({
       organization: {
         features: ['onboarding-sdk-selection'],
       },
@@ -406,7 +406,7 @@ describe('Onboarding', function () {
         <Onboarding {...routerProps} />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );

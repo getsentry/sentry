@@ -1,4 +1,4 @@
-import FeatureBadge from 'sentry/components/featureBadge';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import type {NavigationSection} from 'sentry/views/settings/types';
 
@@ -10,7 +10,7 @@ const organizationNavigation: NavigationSection[] = [
     name: t('User Settings'),
     items: [
       {
-        path: `${userSettingsPathPrefix}`,
+        path: `${userSettingsPathPrefix}/`,
         title: t('General Settings'),
         description: t('Configure general settings for your account'),
         id: 'user-settings',

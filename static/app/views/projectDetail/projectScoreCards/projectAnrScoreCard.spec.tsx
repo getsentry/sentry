@@ -1,13 +1,13 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {ProjectAnrScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectAnrScoreCard';
 
 describe('ProjectDetail > ProjectAnr', function () {
   let endpointMock, endpointMockPreviousPeriod;
 
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {
       location: {
         query: {project: '1', statsPeriod: '7d'},
@@ -123,7 +123,7 @@ describe('ProjectDetail > ProjectAnr', function () {
         location={router.location}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 

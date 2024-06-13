@@ -5,12 +5,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-@control_silo_only_model
+@control_silo_model
 class ExternalActorReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

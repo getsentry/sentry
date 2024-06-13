@@ -1,7 +1,7 @@
-import type {StoreDefinition} from 'reflux';
 import {createStore} from 'reflux';
 
-import type {User} from 'sentry/types';
+import type {StrictStoreDefinition} from 'sentry/stores/types';
+import type {User} from 'sentry/types/user';
 
 type State = {
   cursor: string | null;
@@ -13,14 +13,12 @@ type State = {
 // XXX(epurkhiser): Either this store is completely wrong, or it is misnamed, a
 // `Member` has one `User`, this stores users not members.
 
-interface MemberListStoreDefinition extends StoreDefinition {
+interface MemberListStoreDefinition extends StrictStoreDefinition<State> {
   getAll(): User[];
   getById(memberId: string): User | undefined;
-  getState(): State;
   init(): void;
   loadInitialData(items: User[], hasMore?: boolean | null, cursor?: string | null): void;
   reset(): void;
-  state: State;
 }
 
 const storeConfig: MemberListStoreDefinition = {

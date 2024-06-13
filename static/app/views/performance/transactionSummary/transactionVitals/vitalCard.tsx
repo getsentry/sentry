@@ -15,13 +15,15 @@ import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingM
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import getDuration from 'sentry/utils/duration/getDuration';
 import type {WebVital} from 'sentry/utils/fields';
-import {formatAbbreviatedNumber, formatFloat, getDuration} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
 import type {DataFilter, HistogramData} from 'sentry/utils/performance/histogram/types';
 import {
   computeBuckets,
@@ -116,15 +118,6 @@ class VitalCard extends Component<Props, State> {
 
     return {...prevState};
   }
-
-  trackOpenInDiscoverClicked = () => {
-    const {organization} = this.props;
-    const {vitalDetails: vital} = this.props;
-    trackAnalytics('performance_views.vitals.open_in_discover', {
-      organization,
-      vital: vital.slug,
-    });
-  };
 
   trackOpenAllEventsClicked = () => {
     const {organization} = this.props;

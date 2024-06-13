@@ -16,7 +16,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('renders default state', async function () {
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {
@@ -31,7 +31,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      context: routerContext,
+      router,
     });
 
     // Introduction
@@ -95,7 +95,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('renders for Loader Script', async function () {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {
@@ -119,7 +119,7 @@ describe('Onboarding Product Selection', function () {
         platform="javascript-react"
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -135,13 +135,13 @@ describe('Onboarding Product Selection', function () {
       )
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('Go here'));
+    await userEvent.click(screen.getByText('View npm instructions'));
 
     expect(skipLazyLoader).toHaveBeenCalledTimes(1);
   });
 
   it('renders disabled product', async function () {
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.SESSION_REPLAY]},
@@ -163,7 +163,7 @@ describe('Onboarding Product Selection', function () {
         platform="javascript-react"
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -191,7 +191,7 @@ describe('Onboarding Product Selection', function () {
       ProductSolution.PERFORMANCE_MONITORING,
     ];
 
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.SESSION_REPLAY]},
@@ -201,7 +201,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      context: routerContext,
+      router,
     });
 
     expect(
@@ -218,7 +218,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('render Profiling', async function () {
-    const {router, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -228,7 +228,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<ProductSelection organization={organization} platform="python-django" />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.getByRole('checkbox', {name: 'Profiling'})).toBeInTheDocument();
@@ -245,7 +245,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('renders npm & yarn info text', function () {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -255,7 +255,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.queryByText('npm')).toBeInTheDocument();
@@ -263,7 +263,7 @@ describe('Onboarding Product Selection', function () {
   });
 
   it('does not render npm & yarn info text', function () {
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         location: {
           query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -273,7 +273,7 @@ describe('Onboarding Product Selection', function () {
     });
 
     render(<ProductSelection organization={organization} platform="python-django" />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.queryByText('npm')).not.toBeInTheDocument();

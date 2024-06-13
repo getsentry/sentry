@@ -1,6 +1,6 @@
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
-import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/definitions';
+import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/data/definitions';
 
 interface Props {
   code: number;

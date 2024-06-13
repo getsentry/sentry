@@ -12,8 +12,43 @@ from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils import json
+
+# We have to be careful when removing fields from our model schemas, since exports created using
+# the old-but-still-in-the-support-window versions could have those fields set in the data they
+# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
+# valid in at least one of the versions we support. For example, since our current version
+# support window is two minor versions back, if we delete a field at version 24.5.N, we must
+# include an entry in this map for that field until that version is out of the support window
+# (in this case, we can remove shim once version 24.7.0 is released).
+#
+# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
+# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
+# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
+# the shim, noting in the comment which self-hosted release will trigger the removal.
+DELETED_FIELDS: dict[str, set[str]] = {
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.team": {"actor"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
+}
+
+# When models are removed from the application, they will continue to be in exports
+# from previous releases. Models in this list are elided from data as imports are processed.
+#
+# NOTE TO FUTURE EDITORS: please keep the `DELETED_MODELS` set, and the subsequent `if` clause,
+# around even if the set is empty, to ensure that there is a ready place to pop shims into. For
+# each entry in this set, please leave a TODO comment pointed to a github issue for removing
+# the shim, noting in the comment which self-hosted release will trigger the removal.
+DELETED_MODELS = {
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.actor"
+}
 
 
 class NormalizedModelName:
@@ -22,8 +57,6 @@ class NormalizedModelName:
     "normalized" model name is one that is identical to the name as it appears in an exported JSON
     backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
     """
-
-    __model_name: str
 
     def __init__(self, model_name: str):
         if "." not in model_name:
@@ -375,8 +408,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     from sentry.db.models.fields.foreignkey import FlexibleForeignKey
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.db.models.fields.onetoone import OneToOneCascadeDeletes
-    from sentry.models.actor import Actor
-    from sentry.models.team import Team
 
     # Process the list of models, and get the list of dependencies.
     model_dependencies_dict: dict[NormalizedModelName, ModelRelations] = {}
@@ -415,11 +446,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
-                    # team.actor_id, which avoids circular imports
-                    if model == Team and rel_model == Actor:
-                        continue
-
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
@@ -517,9 +543,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
     # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
     # `Organization` as non-nullable, so mark it is non-dangling. This is a hack - we should figure
-    # out a more rigorous way to deduce this. The same applies to `Actor`, since each actor must
-    # reference at least one `User` or `Team`, neither of which are dangling.
-    model_dependencies_dict[NormalizedModelName("sentry.actor")].dangling = False
+    # out a more rigorous way to deduce this.
     model_dependencies_dict[NormalizedModelName("sentry.alertrule")].dangling = False
 
     # TODO(getsentry/team-ospo#190): The same is basically true for the remaining models in this

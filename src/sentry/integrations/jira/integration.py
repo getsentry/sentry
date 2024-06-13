@@ -8,11 +8,12 @@ from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -36,8 +37,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
-from sentry.utils.decorators import classproperty
+from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
@@ -125,6 +125,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
+    resolution_strategy_key = "resolution_strategy"
 
     @classproperty
     def use_email_scope(cls):
@@ -185,6 +186,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "label": _("Sync Jira Assignment to Sentry"),
                 "help": _(
                     "When a ticket is assigned in Jira, assign its linked Sentry issue to the same user."
+                ),
+            },
+            {
+                "name": self.resolution_strategy_key,
+                "label": "Resolve",
+                "type": "select",
+                "placeholder": "Resolve",
+                "choices": [
+                    ("resolve", "Resolve"),
+                    ("resolve_current_release", "Resolve in Current Release"),
+                    ("resolve_next_release", "Resolve in Next Release"),
+                ],
+                "help": _(
+                    "Select what action to take on Sentry Issue when Jira ticket is marked Done."
                 ),
             },
             {

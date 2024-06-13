@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -59,7 +61,6 @@ from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.app_store_connect import dsym_download
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 logger = logging.getLogger(__name__)
@@ -131,7 +132,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     ```
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
@@ -217,7 +218,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     they receive the saved configuration.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
@@ -275,7 +276,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):
 
     def validate_appconnectPrivateKey(
         self, private_key_json: str | dict[str, bool] | None
-    ) -> json.JSONData | None:
+    ) -> Any | None:
         return validate_secret(private_key_json)
 
 
@@ -295,7 +296,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     a sub-set. Useful for API key refreshes.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
@@ -363,7 +364,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     headers, see the sentry.middleware.ratelimit module.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     enforce_rate_limit = True
@@ -374,9 +375,9 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
         group="appconnect-refresh",
         limit_overrides={
             "POST": {
-                RateLimitCategory.IP: RateLimit(1, 20),
-                RateLimitCategory.USER: RateLimit(1, 45),
-                RateLimitCategory.ORGANIZATION: RateLimit(720, 3600),
+                RateLimitCategory.IP: RateLimit(limit=1, window=20),
+                RateLimitCategory.USER: RateLimit(limit=1, window=45),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=720, window=3600),
             }
         },
     )
@@ -439,7 +440,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):
       of whether there were any or no builds in App Store Connect at the time.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (ProjectPermission,)
 
     def get(self, request: Request, project: Project) -> Response:

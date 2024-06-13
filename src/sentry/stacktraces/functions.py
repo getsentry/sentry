@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from typing import Any
 from urllib.parse import urlparse
 
@@ -44,7 +45,9 @@ _anon_namespace_re = re.compile(
 PAIRS = {"(": ")", "{": "}", "[": "]", "<": ">"}
 
 
-def replace_enclosed_string(s, start, end, replacement=None):
+def replace_enclosed_string(
+    s: str, start: str, end: str, replacement: str | Callable[[str, int], str] | None = None
+) -> str:
     if start not in s:
         return s
 
@@ -60,11 +63,11 @@ def replace_enclosed_string(s, start, end, replacement=None):
         elif char == end:
             depth -= 1
             if depth == 0:
-                if replacement is not None:
-                    if callable(replacement):
-                        rv.append(replacement(s[pair_start + 1 : idx], pair_start))
-                    else:
-                        rv.append(replacement)
+                if isinstance(replacement, str):
+                    rv.append(replacement)
+                elif replacement is not None:
+                    assert pair_start is not None
+                    rv.append(replacement(s[pair_start + 1 : idx], pair_start))
         elif depth == 0:
             rv.append(char)
 
@@ -282,6 +285,8 @@ def get_source_link_for_frame(frame: Frame) -> str | None:
     stacktrace link. Otherwise, return the link as is.
     """
     source_link = getattr(frame, "source_link", None)
+    if source_link is None:
+        return None
 
     try:
         URLValidator()(source_link)

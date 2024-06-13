@@ -17,11 +17,11 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
@@ -38,7 +38,7 @@ class IdentityStatus:
     INVALID = 2
 
 
-@control_silo_only_model
+@control_silo_model
 class IdentityProvider(Model):
     """
     An IdentityProvider is an instance of a provider.
@@ -173,7 +173,7 @@ class IdentityManager(BaseManager["Identity"]):
         """
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
-        identity_model = query.first()
+        identity_model = query.get()
         logger.info(
             "updated-identity",
             extra={
@@ -186,7 +186,7 @@ class IdentityManager(BaseManager["Identity"]):
         return identity_model
 
 
-@control_silo_only_model
+@control_silo_model
 class Identity(Model):
     """
     A verified link between a user and a third party identity.

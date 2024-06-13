@@ -1,10 +1,11 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import Loading from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
 import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {
   TraceError,
@@ -14,6 +15,11 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
+import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
+import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import TraceView, {
   StyledTracePanel,
 } from 'sentry/views/performance/traceDetails/traceView';
@@ -26,13 +32,15 @@ import {
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {loadTraceViewPreferences} from '../../../performance/newTraceDetails/traceState/tracePreferences';
+
 function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
   // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
   useRouteAnalyticsParams(performanceActive ? {trace_status: 'trace missing'} : {});
 
   return (
     <BorderedSection data-test-id="replay-details-trace-tab">
-      <EmptyState>
+      <EmptyState data-test-id="empty-state">
         <p>{t('No traces found')}</p>
       </EmptyState>
     </BorderedSection>
@@ -72,6 +80,22 @@ function TraceFound({
   );
 }
 
+const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
+  drawer: {
+    minimized: false,
+    sizes: {
+      'drawer left': 0.33,
+      'drawer right': 0.33,
+      'drawer bottom': 0.4,
+    },
+    layoutOptions: [],
+  },
+  layout: 'drawer bottom',
+  list: {
+    width: 0.5,
+  },
+};
+
 type Props = {
   replayRecord: undefined | ReplayRecord;
 };
@@ -84,16 +108,24 @@ function Trace({replayRecord}: Props) {
     eventView,
   } = useTransactionData();
 
-  useFetchTransactions();
+  const metaResults = useReplayTraceMeta(replayRecord);
 
-  if (!replayRecord || !didInit || (isFetching && !traces?.length)) {
-    // Show the blank screen until we start fetching, thats when you get a spinner
-    return (
-      <StyledPlaceholder height="100%">
-        {isFetching ? <Loading /> : null}
-      </StyledPlaceholder>
-    );
-  }
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('replay-trace-view-preferences') ||
+      DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+    []
+  );
+
+  const traceSplitResults = useMemo(() => {
+    return {
+      transactions: traces ?? [],
+      orphan_errors: orphanErrors ?? [],
+    };
+  }, [traces, orphanErrors]);
+
+  const rootEvent = useTraceRootEvent(traceSplitResults);
+  useFetchTransactions();
 
   if (errors.length) {
     // Same style as <EmptyStateWarning>
@@ -107,6 +139,15 @@ function Trace({replayRecord}: Props) {
     );
   }
 
+  if (!replayRecord || !didInit || (isFetching && !traces?.length) || !eventView) {
+    // Show the blank screen until we start fetching, thats when you get a spinner
+    return (
+      <StyledPlaceholder height="100%">
+        {isFetching ? <Loading /> : null}
+      </StyledPlaceholder>
+    );
+  }
+
   const project = projects.find(p => p.id === replayRecord.project_id);
   const hasPerformance = project?.firstTransactionEvent === true;
   const performanceActive =
@@ -114,6 +155,29 @@ function Trace({replayRecord}: Props) {
 
   if (!hasTraceData(traces, orphanErrors)) {
     return <TracesNotFound performanceActive={performanceActive} />;
+  }
+
+  if (organization.features.includes('replay-trace-view-v1')) {
+    return (
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey="replay-trace-view-preferences"
+      >
+        <TraceViewWaterfallWrapper>
+          <TraceViewWaterfall
+            traceSlug="Replay"
+            status={errors.length > 0 ? 'error' : isFetching ? 'loading' : 'success'}
+            trace={traceSplitResults}
+            organization={organization}
+            traceEventView={eventView}
+            metaResults={metaResults}
+            rootEvent={rootEvent}
+            source="replay"
+            replayRecord={replayRecord}
+          />
+        </TraceViewWaterfallWrapper>
+      </TraceStateProvider>
+    );
   }
 
   return (
@@ -145,6 +209,12 @@ const OverflowScrollBorderedSection = styled(BorderedSection)`
   ${StyledTracePanel} {
     border: none;
   }
+`;
+
+const TraceViewWaterfallWrapper = styled('div')`
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 `;
 
 export default Trace;

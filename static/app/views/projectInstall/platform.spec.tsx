@@ -5,7 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
 type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
@@ -59,7 +59,7 @@ describe('ProjectInstallPlatform', function () {
     const routeParams = {
       projectId: ProjectFixture().slug,
     };
-    const {organization, routerProps, project, routerContext} = initializeOrg({
+    const {organization, routerProps, project, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -72,7 +72,7 @@ describe('ProjectInstallPlatform', function () {
 
     render(<ProjectInstallPlatform {...routerProps} />, {
       organization,
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe('ProjectInstallPlatform', function () {
       platform: 'python',
     };
 
-    const {routerProps, routerContext} = initializeOrg({
+    const {routerProps, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -128,7 +128,7 @@ describe('ProjectInstallPlatform', function () {
     mockProjectApiResponses([project]);
 
     render(<ProjectInstallPlatform {...routerProps} />, {
-      context: routerContext,
+      router,
     });
 
     expect(

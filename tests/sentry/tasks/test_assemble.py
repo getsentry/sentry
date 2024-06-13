@@ -1,5 +1,6 @@
 import io
 import os
+import uuid
 from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from unittest import mock
@@ -28,10 +29,13 @@ from sentry.tasks.assemble import (
     assemble_artifacts,
     assemble_dif,
     assemble_file,
+    delete_assemble_status,
     get_assemble_status,
+    set_assemble_status,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 class BaseAssembleTest(TestCase):
@@ -205,9 +209,6 @@ class AssembleDifTest(BaseAssembleTest):
 
 
 class AssembleArtifactsTest(BaseAssembleTest):
-    def setUp(self):
-        super().setUp()
-
     def test_artifacts_with_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -263,8 +264,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 )
                 assert len(release_artifact_bundle) == count
                 if count == 1:
-                    release_artifact_bundle[0].version_name = version
-                    release_artifact_bundle[0].dist_name = dist
+                    assert release_artifact_bundle[0].release_name == version
+                    assert release_artifact_bundle[0].dist_name == (dist or "")
 
                 project_artifact_bundles = ProjectArtifactBundle.objects.filter(
                     project_id=self.project.id
@@ -1047,3 +1048,24 @@ class ArtifactBundleIndexingTest(TestCase):
             organization_id=self.organization.id,
             artifact_bundles=[(artifact_bundle_1, mock.ANY)],
         )
+
+
+@use_redis_cluster()
+def test_redis_assemble_status():
+    task = AssembleTask.DIF
+    project_id = uuid.uuid4().hex
+    checksum = uuid.uuid4().hex
+
+    # If it doesn't exist, it should return correct values.
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)
+
+    # Test setter
+    set_assemble_status(task, project_id, checksum, ChunkFileState.CREATED, detail="cylons")
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (
+        "created",
+        "cylons",
+    )
+
+    # Deleting should actually delete it.
+    delete_assemble_status(task, project_id, checksum=checksum)
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)

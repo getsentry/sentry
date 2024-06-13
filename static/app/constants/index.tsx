@@ -2,7 +2,7 @@
 
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
-import {DataCategoryExact} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types/core';
 
 /**
  * Common constants here
@@ -310,6 +310,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
+  [DataCategoryExact.SPAN]: {
+    name: DataCategoryExact.SPAN,
+    apiName: 'span_indexed',
+    plural: 'spans',
+    displayName: 'spans',
+    titleName: t('Spans'),
+    uid: 12,
+  },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
@@ -317,6 +325,34 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
     uid: 13,
+  },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    name: DataCategoryExact.PROFILE_DURATION,
+    apiName: 'profile_duration',
+    plural: 'profileDuration',
+    displayName: 'profile hours',
+    titleName: t('Profile Hours'),
+    uid: 17,
+  },
+  /**
+   * Used to display metrics on the stats page
+   */
+  [DataCategoryExact.METRICS]: {
+    name: DataCategoryExact.METRICS,
+    apiName: 'metricOutcomes',
+    plural: 'metrics',
+    displayName: 'metrics',
+    titleName: t('Metrics'),
+    // Metrics has no uid, is only used on stats page
+    uid: -1,
+  },
+  [DataCategoryExact.METRIC_SECOND]: {
+    name: DataCategoryExact.METRIC_SECOND,
+    apiName: 'metricSecond',
+    plural: 'metricSeconds',
+    displayName: 'metric hours',
+    titleName: t('Metrics Hours'),
+    uid: 19,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

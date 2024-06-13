@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -9,16 +8,13 @@ import type {
   GridColumnSortBy,
 } from 'sentry/components/gridEditable';
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  generateEventSlug,
-  generateLinkToEventInTraceView,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import getDuration from 'sentry/utils/duration/getDuration';
 import {getShortEventId} from 'sentry/utils/events';
-import {getDuration} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import useReplayExists from 'sentry/utils/replayCount/useReplayExists';
@@ -44,6 +40,8 @@ import type {
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type Column = GridColumnHeader;
 
@@ -206,11 +204,13 @@ export function PageOverviewWebVitalsDetailPanel({
     }
     if (key === 'id') {
       const eventTarget = generateLinkToEventInTraceView({
-        eventSlug: generateEventSlug({id: row.id, project: projectSlug}),
-        dataRow: row,
+        eventId: row.id,
+        traceSlug: row.trace,
+        timestamp: row.timestamp,
+        projectSlug,
         organization,
-        eventView: EventView.fromLocation(location),
         location,
+        source: TraceViewSources.WEB_VITALS_MODULE,
       });
       return (
         <NoOverflow>
@@ -383,7 +383,6 @@ export function PageOverviewWebVitalsDetailPanel({
                 renderHeadCell,
                 renderBodyCell: renderInpBodyCell,
               }}
-              location={location}
             />
           ) : (
             <GridEditable
@@ -395,7 +394,6 @@ export function PageOverviewWebVitalsDetailPanel({
                 renderHeadCell,
                 renderBodyCell,
               }}
-              location={location}
             />
           )}
         </TableContainer>

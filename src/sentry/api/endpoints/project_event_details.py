@@ -64,9 +64,9 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
 
         Return details on an individual event.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           event belongs to.
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the id of the event to retrieve.
                                  It is the hexadecimal id as
@@ -74,8 +74,8 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        group_id = request.GET.get("group_id")
-        group_id = int(group_id) if group_id else None
+        group_id_s = request.GET.get("group_id")
+        group_id = int(group_id_s) if group_id_s else None
 
         event = eventstore.backend.get_event_by_id(project.id, event_id, group_id=group_id)
 
@@ -89,7 +89,7 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             event = event.for_group(event.group)
 
         data = wrap_event_response(
-            request.user, event, environments, include_full_release_data=True
+            request.user, event, list(environments), include_full_release_data=True
         )
         return Response(data)
 

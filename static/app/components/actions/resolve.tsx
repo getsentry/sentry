@@ -14,11 +14,13 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {GroupStatusResolution, Project, ResolvedStatusDetails} from 'sentry/types';
-import {GroupStatus, GroupSubstatus} from 'sentry/types';
+import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 function SetupReleasesPrompt() {
   return (
@@ -356,7 +358,7 @@ const SetupReleases = styled('div')`
   color: ${p => p.theme.gray400};
   width: 250px;
   white-space: normal;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const SetupReleasesHeader = styled('h6')`

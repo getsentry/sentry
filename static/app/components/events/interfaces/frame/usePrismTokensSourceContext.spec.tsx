@@ -1,4 +1,4 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {usePrismTokensSourceContext} from 'sentry/components/events/interfaces/frame/usePrismTokensSourceContext';
 import {loadPrismLanguage} from 'sentry/utils/prism';
@@ -26,7 +26,7 @@ describe('usePrismTokensSourceContext', function () {
   });
 
   it('splits tokens by line (normal case)', function () {
-    const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+    const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: defaultProps,
     });
     const lines = result.current;
@@ -54,7 +54,7 @@ describe('usePrismTokensSourceContext', function () {
   });
 
   it('fixes broken block comment at start of context', function () {
-    const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+    const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
         contextLines: [
@@ -97,7 +97,7 @@ describe('usePrismTokensSourceContext', function () {
   });
 
   it('fixes broken block comment at end of context', function () {
-    const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+    const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
         contextLines: [
@@ -140,7 +140,7 @@ describe('usePrismTokensSourceContext', function () {
   });
 
   it('fixes broken block comment at beginning and end of context', function () {
-    const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+    const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
         contextLines: [
@@ -190,7 +190,7 @@ describe('usePrismTokensSourceContext', function () {
   });
 
   it('does not modify highlighting when block comment is fully formed', function () {
-    const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+    const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
         contextLines: [
@@ -242,7 +242,7 @@ describe('usePrismTokensSourceContext', function () {
   });
 
   it('does not mistake comment terminators within strings as comments', function () {
-    const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+    const {result} = renderHook(usePrismTokensSourceContext, {
       initialProps: {
         ...defaultProps,
         contextLines: [
@@ -289,7 +289,7 @@ describe('usePrismTokensSourceContext', function () {
 
   describe('other languages', function () {
     it('python: fixes open syntax at start and end', function () {
-      const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+      const {result} = renderHook(usePrismTokensSourceContext, {
         initialProps: {
           ...defaultProps,
           contextLines: [
@@ -334,7 +334,7 @@ describe('usePrismTokensSourceContext', function () {
     });
 
     it('perl: fixes open syntax at start and end', function () {
-      const {result} = reactHooks.renderHook(usePrismTokensSourceContext, {
+      const {result} = renderHook(usePrismTokensSourceContext, {
         initialProps: {
           ...defaultProps,
           contextLines: [

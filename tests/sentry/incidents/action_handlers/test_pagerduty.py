@@ -10,7 +10,7 @@ from sentry.incidents.logic import update_incident_status
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json

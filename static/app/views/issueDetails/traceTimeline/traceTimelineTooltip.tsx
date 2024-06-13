@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -21,12 +22,6 @@ interface TraceTimelineTooltipProps {
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const {projects} = useProjects({
-    slugs: [
-      ...timelineEvents.reduce((acc, cur) => acc.add(cur.project), new Set<string>()),
-    ],
-    orgId: organization.slug,
-  });
   // TODO: should handling of current event + other events look different
   if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
     return <YouAreHere>{t('You are here')}</YouAreHere>;
@@ -43,49 +38,19 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       <EventItemsWrapper hasTitle={hasTitle}>
         {hasTitle && <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>}
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
-          const project = projects.find(p => p.slug === timelineEvent.project);
           return (
             <EventItem
               key={timelineEvent.id}
-              to={{
-                pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
-                query: {
-                  ...location.query,
-                  project: undefined,
-                  referrer: 'issues_trace_timeline',
-                },
-              }}
-              onClick={() => {
-                trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
-                  organization,
-                  event_id: timelineEvent.id,
-                  group_id: `${timelineEvent['issue.id']}`,
-                });
-              }}
-            >
-              <div>
-                {project && (
-                  <ProjectBadge project={project} avatarSize={18} hideName disableLink />
-                )}
-              </div>
-              <EventTitleWrapper>
-                <EventTitle>{timelineEvent.title}</EventTitle>
-                <EventDescription>
-                  {timelineEvent.transaction
-                    ? timelineEvent.transaction
-                    : 'stack.function' in timelineEvent
-                      ? timelineEvent['stack.function'].at(-1)
-                      : null}
-                </EventDescription>
-              </EventTitleWrapper>
-            </EventItem>
+              timelineEvent={timelineEvent}
+              location={location}
+            />
           );
         })}
       </EventItemsWrapper>
       {filteredTimelineEvents.length > 3 && (
         <TraceItem>
           <Link
-            to={generateTraceTarget(event, organization)}
+            to={generateTraceTarget(event, organization, location)}
             onClick={() => {
               trackAnalytics(
                 'issue_details.issue_tab.trace_timeline_more_events_clicked',
@@ -108,6 +73,51 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
   );
 }
 
+interface EventItemProps {
+  location: Location;
+  timelineEvent: TimelineEvent;
+}
+
+function EventItem({timelineEvent, location}: EventItemProps) {
+  const organization = useOrganization();
+  const {projects} = useProjects({
+    slugs: [timelineEvent.project],
+    orgId: organization.slug,
+  });
+  const project = projects.find(p => p.slug === timelineEvent.project);
+  return (
+    <EventItemRoot
+      to={{
+        pathname: `/organizations/${organization.slug}/issues/${timelineEvent['issue.id']}/events/${timelineEvent.id}/`,
+        query: {
+          ...location.query,
+          project: undefined,
+          referrer: 'issues_trace_timeline',
+        },
+      }}
+      onClick={() => {
+        trackAnalytics('issue_details.issue_tab.trace_timeline_clicked', {
+          organization,
+          event_id: timelineEvent.id,
+          group_id: `${timelineEvent['issue.id']}`,
+        });
+      }}
+    >
+      {project && <ProjectBadge project={project} avatarSize={18} hideName disableLink />}
+      <EventTitleWrapper>
+        <EventTitle>{timelineEvent.title}</EventTitle>
+        <EventDescription>
+          {timelineEvent.transaction
+            ? timelineEvent.transaction
+            : 'stack.function' in timelineEvent
+              ? timelineEvent['stack.function'].at(-1)
+              : null}
+        </EventDescription>
+      </EventTitleWrapper>
+    </EventItemRoot>
+  );
+}
+
 const UnstyledUnorderedList = styled('div')`
   display: flex;
   flex-direction: column;
@@ -125,7 +135,7 @@ const EventItemsTitle = styled('div')`
   padding-left: ${space(1)};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 
@@ -142,7 +152,7 @@ const YouAreHereItem = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const EventItem = styled(Link)`
+const EventItemRoot = styled(Link)`
   display: grid;
   grid-template-columns: max-content auto;
   color: ${p => p.theme.textColor};
@@ -166,7 +176,7 @@ const EventTitleWrapper = styled('div')`
 
 const EventTitle = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const EventDescription = styled('div')`

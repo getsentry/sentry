@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -6,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -176,7 +176,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-      routerContext,
+      router,
     } = initialize(
       projects,
       {
@@ -195,7 +195,7 @@ describe('WrapperComponent', function () {
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const button = await screen.findByTestId('tags-explorer-open-tags');
@@ -248,7 +248,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-      routerContext,
+      router,
     } = initialize(projects, {});
 
     render(
@@ -261,7 +261,7 @@ describe('WrapperComponent', function () {
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await waitFor(() => expect(facetApiMock).toHaveBeenCalled());

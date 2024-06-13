@@ -100,7 +100,7 @@ def patch_sentry_sdk():
     MetricsAggregator._emit = patched_emit  # type: ignore[method-assign]
 
 
-def before_emit_metric(key: str, tags: dict[str, Any]) -> bool:
+def before_emit_metric(key: str, value: int | float | str, unit: str, tags: dict[str, Any]) -> bool:
     if not options.get("delightful_metrics.enable_common_tags"):
         tags.pop("transaction", None)
         tags.pop("release", None)
@@ -211,3 +211,17 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 unit=self._to_minimetrics_unit(unit=unit),
                 stacklevel=stacklevel + 1,
             )
+
+    def event(
+        self,
+        title: str,
+        message: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        priority: str | None = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        pass

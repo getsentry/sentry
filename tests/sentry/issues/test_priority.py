@@ -6,7 +6,7 @@ from sentry.issues.priority import (
     auto_update_priority,
 )
 from sentry.models.activity import Activity
-from sentry.models.group import GroupStatus
+from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -17,18 +17,18 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 
 @apply_feature_flag_on_cls("projects:issue-priority")
 class TestUpdatesPriority(TestCase):
-    def assert_activity_grouphistory_set(self, group, priority, reason) -> None:
-        activity = (
-            Activity.objects.filter(group=group, type=ActivityType.SET_PRIORITY.value)
-            .order_by("-datetime")
-            .first()
-        )
+    def assert_activity_grouphistory_set(
+        self, group: Group, priority: PriorityLevel, reason: PriorityChangeReason
+    ) -> None:
+        activity = Activity.objects.filter(
+            group=group, type=ActivityType.SET_PRIORITY.value
+        ).order_by("-datetime")[0]
         assert activity.data == {
             "priority": priority.to_str(),
             "reason": reason.value,
         }
 
-        grouphistory = GroupHistory.objects.filter(group=group).order_by("-date_added").first()
+        grouphistory = GroupHistory.objects.filter(group=group).order_by("-date_added")[0]
         assert grouphistory.status == PRIORITY_TO_GROUP_HISTORY_STATUS[priority]
 
     def test_updates_priority_escalating(self) -> None:

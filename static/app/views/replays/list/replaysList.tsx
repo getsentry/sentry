@@ -1,74 +1,51 @@
 import {Fragment, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import Pagination from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
-import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import useFetchReplayList from 'sentry/utils/replays/hooks/useFetchReplayList';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjectSdkNeedsUpdate from 'sentry/utils/useProjectSdkNeedsUpdate';
 import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
-
-function ReplaysList() {
-  const location = useLocation<ReplayListLocationQuery>();
-  const organization = useOrganization();
-
-  const eventView = useMemo(() => {
-    const query = decodeScalar(location.query.query, '');
-    const conditions = new MutableSearch(query);
-
-    return EventView.fromNewQueryWithLocation(
-      {
-        id: '',
-        name: '',
-        version: 2,
-        fields: REPLAY_LIST_FIELDS,
-        projects: [],
-        query: conditions.formatString(),
-        orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
-      },
-      location
-    );
-  }, [location]);
-
-  return (
-    <ReplaysListTable
-      eventView={eventView}
-      location={location}
-      organization={organization}
-    />
-  );
-}
 
 const MIN_REPLAY_CLICK_SDK = '7.44.0';
 
-function ReplaysListTable({
-  eventView,
-  location,
-  organization,
-}: {
-  eventView: EventView;
-  location: Location;
-  organization: Organization;
-}) {
-  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
-    eventView,
-    location,
-    organization,
+function ReplaysList() {
+  const organization = useOrganization();
+
+  const query = useLocationQuery({
+    fields: {
+      cursor: decodeScalar,
+      end: decodeScalar,
+      environment: decodeList,
+      project: decodeList,
+      query: decodeScalar,
+      sort: value => decodeScalar(value, '-started_at'),
+      start: decodeScalar,
+      statsPeriod: decodeScalar,
+      utc: decodeScalar,
+    },
   });
+
+  const {
+    data: replays,
+    getResponseHeader,
+    isLoading,
+    error,
+  } = useFetchReplayList({
+    options: {query},
+    organization,
+    queryReferrer: 'replayList',
+  });
+  const pageLinks = getResponseHeader?.('Link') ?? null;
 
   const {
     selection: {projects},
@@ -82,10 +59,7 @@ function ReplaysListTable({
     projectId: projects.map(String),
   });
 
-  const conditions = useMemo(() => {
-    return new MutableSearch(decodeScalar(location.query.query, ''));
-  }, [location.query.query]);
-
+  const conditions = useMemo(() => new MutableSearch(query.query), [query.query]);
   const hasReplayClick = conditions.getFilterKeys().some(k => k.startsWith('click.'));
 
   // browser isn't applicable for mobile projects
@@ -113,10 +87,10 @@ function ReplaysListTable({
     <Fragment>
       <ReplayTable
         referrerLocation={'replay'}
-        fetchError={fetchError}
-        isFetching={isFetching}
+        fetchError={error}
+        isFetching={isLoading}
         replays={replays}
-        sort={eventView.sorts[0]}
+        sort={decodeSorts(query.sort).at(0)}
         visibleColumns={visibleCols}
         showDropdownFilters
         emptyMessage={

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import partial from 'lodash/partial';
@@ -10,6 +9,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
+import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -23,8 +23,10 @@ import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {AvatarProject, IssueAttachment, Organization, Project} from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import toArray from 'sentry/utils/array/toArray';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventData, MetaType} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import type {RateUnit} from 'sentry/utils/discover/fields';
@@ -34,15 +36,18 @@ import {
   getSpanOperationName,
   isEquation,
   isRelativeSpanOperationBreakdownField,
+  parseFunction,
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {getShortEventId} from 'sentry/utils/events';
-import {formatFloat, formatPercentage, formatRate} from 'sentry/utils/formatters';
+import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatFloat} from 'sentry/utils/number/formatFloat';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import Projects from 'sentry/utils/projects';
-import toArray from 'sentry/utils/toArray';
+import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import {
@@ -261,7 +266,9 @@ export const FIELD_FORMATTERS: FieldFormatters = {
     isSortable: true,
     renderFunc: (field, data) => (
       <NumberContainer>
-        {typeof data[field] === 'number' ? formatPercentage(data[field]) : emptyValue}
+        {typeof data[field] === 'number'
+          ? formatPercentage(data[field], undefined, {minimumValue: 0.0001})
+          : emptyValue}
       </NumberContainer>
     ),
   },
@@ -547,7 +554,7 @@ const SPECIAL_FIELDS: SpecialFields = {
                 project = projects.find(p => p.slug === data.project);
               }
               return (
-                <ProjectBadge
+                <StyledProjectBadge
                   project={project ? project : {slug: data.project}}
                   avatarSize={16}
                 />
@@ -695,13 +702,13 @@ const SPECIAL_FIELDS: SpecialFields = {
   'span.status_code': {
     sortField: 'span.status_code',
     renderFunc: data => (
-      <NumberContainer>
+      <Container>
         {data['span.status_code'] ? (
           <ResponseStatusCodeCell code={parseInt(data['span.status_code'], 10)} />
         ) : (
           t('Unknown')
         )}
-      </NumberContainer>
+      </Container>
     ),
   },
 };
@@ -780,10 +787,12 @@ const SPECIAL_FUNCTIONS: SpecialFunctions = {
     );
   },
   time_spent_percentage: fieldName => data => {
+    const parsedFunction = parseFunction(fieldName);
+    const column = parsedFunction?.arguments?.[1] ?? SpanMetricsField.SPAN_SELF_TIME;
     return (
       <TimeSpentCell
         percentage={data[fieldName]}
-        total={data[`sum(${SpanMetricsField.SPAN_SELF_TIME})`]}
+        total={data[`sum(${column})`]}
         op={data[`span.op`]}
       />
     );
@@ -949,6 +958,12 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
 
 const StyledLink = styled(Link)`
   max-width: 100%;
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  ${BadgeDisplayName} {
+    max-width: 100%;
+  }
 `;
 
 /**

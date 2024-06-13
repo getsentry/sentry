@@ -219,8 +219,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Retrieve Ownership Configuration for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=None,
         responses={200: ProjectOwnershipSerializer},
@@ -241,8 +241,8 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Update Ownership Configuration for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
         ],
         request=ProjectOwnershipRequestSerializer,
         responses={

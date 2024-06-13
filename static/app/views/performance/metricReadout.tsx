@@ -5,15 +5,20 @@ import styled from '@emotion/styled';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {PercentChange, type Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
-import type {CountUnit, PercentageUnit} from 'sentry/utils/discover/fields';
-import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import {
-  formatAbbreviatedNumber,
-  formatPercentage,
-  formatRate,
-} from 'sentry/utils/formatters';
+  type CountUnit,
+  CurrencyUnit,
+  DurationUnit,
+  type PercentageUnit,
+  type PercentChangeUnit,
+  RateUnit,
+  SizeUnit,
+} from 'sentry/utils/discover/fields';
+import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
 
 type Unit =
@@ -21,7 +26,9 @@ type Unit =
   | SizeUnit.BYTE
   | RateUnit
   | CountUnit
-  | PercentageUnit;
+  | PercentageUnit
+  | PercentChangeUnit
+  | CurrencyUnit;
 
 interface Props {
   title: string;
@@ -29,6 +36,7 @@ interface Props {
   value: ReactText | undefined;
   align?: 'left' | 'right';
   isLoading?: boolean;
+  preferredPolarity?: Polarity;
   tooltip?: React.ReactNode;
 }
 
@@ -40,7 +48,14 @@ export function MetricReadout(props: Props) {
   );
 }
 
-function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Props) {
+function ReadoutContent({
+  unit,
+  value,
+  tooltip,
+  align = 'right',
+  isLoading,
+  preferredPolarity,
+}: Props) {
   if (isLoading) {
     return (
       <LoadingContainer align={align}>
@@ -58,7 +73,9 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
   if (isARateUnit(unit)) {
     renderedValue = (
       <NumberContainer align={align}>
-        {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit)}
+        {formatRate(typeof value === 'string' ? parseFloat(value) : value, unit, {
+          minimumValue: MINIMUM_RATE_VALUE,
+        })}
       </NumberContainer>
     );
   }
@@ -93,10 +110,41 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
     );
   }
 
+  if (unit === CurrencyUnit.USD) {
+    const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+    if (numericValue <= 1) {
+      renderedValue = (
+        <NumberContainer align={align}>US ${numericValue.toFixed(3)}</NumberContainer>
+      );
+    } else {
+      renderedValue = (
+        <NumberContainer align={align}>
+          US ${formatAbbreviatedNumber(numericValue)}
+        </NumberContainer>
+      );
+    }
+  }
+
   if (unit === 'percentage') {
     renderedValue = (
       <NumberContainer align={align}>
-        {formatPercentage(typeof value === 'string' ? parseFloat(value) : value)}
+        {formatPercentage(
+          typeof value === 'string' ? parseFloat(value) : value,
+          undefined,
+          {minimumValue: MINIMUM_PERCENTAGE_VALUE}
+        )}
+      </NumberContainer>
+    );
+  }
+
+  if (unit === 'percent_change') {
+    renderedValue = (
+      <NumberContainer align={align}>
+        <PercentChange
+          value={typeof value === 'string' ? parseFloat(value) : value}
+          minimumValue={MINIMUM_PERCENTAGE_VALUE}
+          preferredPolarity={preferredPolarity}
+        />
       </NumberContainer>
     );
   }
@@ -113,6 +161,9 @@ function ReadoutContent({unit, value, tooltip, align = 'right', isLoading}: Prop
 
   return <NumberContainer align={align}>{renderedValue}</NumberContainer>;
 }
+
+const MINIMUM_RATE_VALUE = 0.01;
+const MINIMUM_PERCENTAGE_VALUE = 0.0001; // 0.01%
 
 const NumberContainer = styled('div')<{align: 'left' | 'right'}>`
   text-align: ${p => p.align};
