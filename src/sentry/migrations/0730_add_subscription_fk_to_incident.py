@@ -71,6 +71,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             _backfill_incident_subscription,
             migrations.RunPython.noop,
-            hints={"tables": ["sentry_alertruleprojects", "sentry_querysubscription"]},
+            hints={"tables": ["sentry_incident", "sentry_querysubscription"]},
         ),
     ]
