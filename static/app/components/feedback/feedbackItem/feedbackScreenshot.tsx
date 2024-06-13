@@ -53,7 +53,6 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
   border: 0;
   border-radius: ${p => p.theme.borderRadius};
-  gap: 0px;
 `;
 
 const StyledLoadingIndicator = styled('div')`
@@ -61,7 +60,6 @@ const StyledLoadingIndicator = styled('div')`
   align-items: center;
   justify-content: center;
   height: 100%;
-  overflow: auto;
   background: ${p => p.theme.purple100};
 `;
 
