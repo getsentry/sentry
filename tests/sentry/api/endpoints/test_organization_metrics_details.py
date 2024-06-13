@@ -317,3 +317,39 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         response = self.get_response(organization_without_projects.slug)
         assert response.status_code == 404
         assert response.data["detail"] == "You must supply at least one project to see its metrics"
+
+    def test_blocking_metrics_dont_duplicate_with_multiple_use_cases(self):
+        project_1 = self.create_project()
+
+        block_metric("s:custom/user@none", [project_1])
+
+        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
+            ("s:custom/user@none", "set", project_1),
+            ("c:custom/clicks@none", "counter", project_1),
+        )
+        for mri, entity, project in metrics:
+            self.store_metric(
+                project.organization.id,
+                project.id,
+                entity,
+                mri,
+                {"transaction": "/hello"},
+                int(self.now.timestamp()),
+                10,
+                UseCaseID.CUSTOM,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id], useCase=["transactions", "custom"]
+        )
+        assert len(response.data) == 2
+
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert data[0]["mri"] == "c:custom/clicks@none"
+        assert data[0]["projectIds"] == [project_1.id]
+        assert data[0]["blockingStatus"] == []
+        assert data[1]["mri"] == "s:custom/user@none"
+        assert sorted(data[1]["projectIds"]) == sorted([project_1.id])
+        assert data[1]["blockingStatus"] == [
+            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
+        ]
