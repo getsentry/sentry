@@ -487,7 +487,7 @@ class EventManager:
             job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
-                "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "sdk": normalized_sdk_tag_from_event(job["event"].data),
                 "using_transition_optimization": job["optimized_grouping"],
                 "in_transition": job["in_grouping_transition"],
             }
@@ -2629,7 +2629,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         skip_internal=True,
         tags={
             "platform": job["platform"],
-            "sdk": normalized_sdk_tag_from_event(job["event"]),
+            "sdk": normalized_sdk_tag_from_event(job["event"].data),
         },
     )
 
@@ -2931,7 +2931,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 amount=len(unique_default_hashes),
                 tags={
                     "platform": job["platform"] or "unknown",
-                    "sdk": normalized_sdk_tag_from_event(event),
+                    "sdk": normalized_sdk_tag_from_event(event.data),
                 },
             )
         except Exception:
