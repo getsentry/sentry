@@ -374,6 +374,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
     By batching we're able to process occurrences in parallel while guaranteeing
     that no occurrences are processed out of order per group.
     """
+
     batch = message.payload
 
     occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
@@ -414,9 +415,15 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     if not items:
         return
 
-    project = Project.objects.get_from_cache(id=items[0]["project_id"])
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-    if features.has("organizations:occurence-consumer-prune-status-changes", organization):
+    try:
+        project = Project.objects.get_from_cache(id=items[0]["project_id"])
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+    except Exception:
+        logger.exception("Failed to fetch project or organization")
+        organization = None
+    if organization and features.has(
+        "organizations:occurence-consumer-prune-status-changes", organization
+    ):
         status_changes = [
             item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
         ]
