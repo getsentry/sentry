@@ -33,10 +33,13 @@ export function DurationChart({
     const allSeries = [...series, ...(scatterPlot ?? [])];
 
     const highlightedDataPoints = event.batch.map(batch => {
-      const {seriesIndex, dataIndex} = batch;
+      let {seriesIndex} = batch;
+      const {dataIndex} = batch;
+      // TODO: More hacks. The Chart component partitions the data series into a complete and incomplete series. Wrap the series index to work around overflowing index.
+      seriesIndex = seriesIndex % allSeries.length;
 
       const highlightedSeries = allSeries?.[seriesIndex];
-      const highlightedDataPoint = highlightedSeries.data?.[dataIndex];
+      const highlightedDataPoint = highlightedSeries?.data?.[dataIndex];
 
       return {series: highlightedSeries, dataPoint: highlightedDataPoint};
     });

@@ -450,7 +450,7 @@ function transformToScatterSeries({
   });
 }
 
-function createIngestionSeries(
+export function createIngestionSeries(
   orignalSeries: Series,
   ingestionBuckets: number,
   displayType: MetricDisplayType
@@ -539,7 +539,10 @@ const AVERAGE_INGESTION_DELAY_MS = 90_000;
  * @param bucketSize in ms
  * @param lastBucketTimestamp starting time of the last bucket in ms
  */
-function getIngestionDelayBucketCount(bucketSize: number, lastBucketTimestamp: number) {
+export function getIngestionDelayBucketCount(
+  bucketSize: number,
+  lastBucketTimestamp: number
+) {
   const timeSinceLastBucket = Date.now() - (lastBucketTimestamp + bucketSize);
   const ingestionAffectedTime = Math.max(
     0,
