@@ -277,7 +277,11 @@ function TraceRow({
           size="zero"
           borderless
         />
-        <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
+        <TraceIdRenderer
+          traceId={trace.trace}
+          timestamp={trace.spans[0].timestamp}
+          location={location}
+        />
       </StyledPanelItem>
       <StyledPanelItem align="left" overflow>
         <Description>

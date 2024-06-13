@@ -30,6 +30,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
@@ -44,6 +45,8 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+
+import Tab from '../../tabs';
 
 type DataRowKeys =
   | SpanIndexedField.ID
@@ -316,6 +319,15 @@ function renderBodyCell(
           timestamp={timestamp}
           traceId={trace}
           transactionId={transactionId}
+          location={{
+            ...location,
+            query: {
+              ...location.query,
+              tab: Tab.SPANS,
+              spanSlug: `${spanOp}:${transactionId}`,
+            },
+          }}
+          source={TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY}
         />
       );
     }
