@@ -230,9 +230,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                 data.update({"integrationIssues": integration_issues})
 
             if "sentryAppIssues" in expand:
-                external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
+                platform_external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)
                 sentry_app_issues = serialize(
-                    list(external_issues), request, serializer=PlatformExternalIssueSerializer()
+                    list(platform_external_issues),
+                    request,
+                    serializer=PlatformExternalIssueSerializer(),
                 )
                 data.update({"sentryAppIssues": sentry_app_issues})
 

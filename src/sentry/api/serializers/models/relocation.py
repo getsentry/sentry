@@ -2,8 +2,9 @@ import dataclasses
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.db.models import QuerySet
+
 from sentry.api.serializers import Serializer, register
-from sentry.db.models.manager.base import BaseManager
 from sentry.models.importchunk import BaseImportChunk, ControlImportChunkReplica, RegionImportChunk
 from sentry.models.relocation import Relocation
 from sentry.models.user import User
@@ -29,7 +30,7 @@ class RelocationMetadata:
     imported_org_ids: list[int]
 
 
-def get_all_imported_ids_of_model(chunks: BaseManager[BaseImportChunk]) -> list[int]:
+def get_all_imported_ids_of_model(chunks: QuerySet[BaseImportChunk]) -> list[int]:
     all_imported_ids = set()
     for chunk in chunks:
         all_imported_ids |= (
