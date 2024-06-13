@@ -81,6 +81,45 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["count()"] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_count_if(self):
+        self.store_span_metric(
+            2,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.three_days_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_span_metric(
+            2,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.three_days_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_span_metric(
+            2,
+            internal_metric=constants.SELF_TIME_LIGHT,
+            timestamp=self.three_days_ago,
+            tags={"release": "2.0.0"},
+        )
+
+        fieldRelease1 = "count_if(release,1.0.0)"
+        fieldRelease2 = "count_if(release,2.0.0)"
+        response = self.do_request(
+            {
+                "field": [fieldRelease1, fieldRelease2],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "7d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0][fieldRelease1] == 2
+        assert data[0][fieldRelease2] == 1
+        assert meta["dataset"] == "spansMetrics"
+
     def test_count_unique(self):
         self.store_span_metric(
             1,
