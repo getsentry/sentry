@@ -9,12 +9,15 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer, View
+from sentry.api.serializers.models.groupsearchview import (
+    GroupSearchViewSerializer,
+    GroupSearchViewSerializerResponse,
+)
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SortOptions
 
-DEFAULT_VIEWS: list[View] = [
+DEFAULT_VIEWS: list[GroupSearchViewSerializerResponse] = [
     {
         "id": "",
         "name": "Prioritized",

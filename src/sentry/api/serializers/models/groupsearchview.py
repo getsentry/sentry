@@ -5,7 +5,7 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.savedsearch import SORT_LITERALS
 
 
-class View(TypedDict):
+class GroupSearchViewSerializerResponse(TypedDict):
     id: str
     name: str
     query: str
@@ -17,7 +17,7 @@ class View(TypedDict):
 
 @register(GroupSearchView)
 class GroupSearchViewSerializer(Serializer):
-    def serialize(self, obj, attrs, user) -> View:
+    def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
         return {
             "id": str(obj.id),
             "name": obj.name,
