@@ -715,8 +715,8 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 @sentry_sdk.tracing.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
-    release_date_added: dict[tuple[int, Release], datetime] = {}
+    jobs_with_releases: dict[tuple[int, str], list[Job]] = {}
+    release_date_added: dict[tuple[int, str], datetime] = {}
 
     for job in jobs:
         if not job["release"]:
