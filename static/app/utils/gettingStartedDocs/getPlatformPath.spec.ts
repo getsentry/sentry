@@ -27,7 +27,7 @@ describe('getPlatformPath', () => {
   });
 
   it('handles special cases', () => {
-    function getFrameworklatformWithId(id: PlatformKey): PlatformIntegration {
+    function getFrameworkPlatformWithId(id: PlatformKey): PlatformIntegration {
       return {
         type: 'framework',
         id,
@@ -48,23 +48,25 @@ describe('getPlatformPath', () => {
     }
 
     // Frameworks
-    expect(getPlatformPath(getFrameworklatformWithId('capacitor'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('capacitor'))).toEqual(
       'capacitor/capacitor'
     );
-    expect(getPlatformPath(getFrameworklatformWithId('ionic'))).toEqual('ionic/ionic');
-    expect(getPlatformPath(getFrameworklatformWithId('dart'))).toEqual('dart/dart');
-    expect(getPlatformPath(getFrameworklatformWithId('android'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('ionic'))).toEqual('ionic/ionic');
+    expect(getPlatformPath(getFrameworkPlatformWithId('dart'))).toEqual('dart/dart');
+    expect(getPlatformPath(getFrameworkPlatformWithId('android'))).toEqual(
       'android/android'
     );
-    expect(getPlatformPath(getFrameworklatformWithId('flutter'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('flutter'))).toEqual(
       'flutter/flutter'
     );
-    expect(getPlatformPath(getFrameworklatformWithId('unreal'))).toEqual('unreal/unreal');
-    expect(getPlatformPath(getFrameworklatformWithId('unity'))).toEqual('unity/unity');
-    expect(getPlatformPath(getFrameworklatformWithId('minidump'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('unreal'))).toEqual(
+      'unreal/unreal'
+    );
+    expect(getPlatformPath(getFrameworkPlatformWithId('unity'))).toEqual('unity/unity');
+    expect(getPlatformPath(getFrameworkPlatformWithId('minidump'))).toEqual(
       'minidump/minidump'
     );
-    expect(getPlatformPath(getFrameworklatformWithId('native-qt'))).toEqual(
+    expect(getPlatformPath(getFrameworkPlatformWithId('native-qt'))).toEqual(
       'native/native-qt'
     );
 
