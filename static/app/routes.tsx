@@ -19,7 +19,6 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
-import {PERFORMANCE_BASE_URL as PERFORMANCE_RESOURCE_BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/performance/utils/useModuleURL';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
@@ -1497,23 +1496,11 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Redirect
+        from="browser/resources/"
+        to={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
       <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
-        <IndexRoute
-          component={make(
-            () => import('sentry/views/performance/browser/resources/index')
-          )}
-        />
-        <Route
-          path="spans/span/:groupId/"
-          component={make(
-            () =>
-              import(
-                'sentry/views/performance/browser/resources/resourceSummaryPage/index'
-              )
-          )}
-        />
-      </Route>
-      <Route path={`${PERFORMANCE_RESOURCE_BASE_URL}/`}>
         <IndexRoute
           component={make(
             () => import('sentry/views/performance/browser/resources/index')
