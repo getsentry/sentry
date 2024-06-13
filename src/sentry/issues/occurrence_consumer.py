@@ -428,7 +428,7 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
             item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
         ]
 
-        if len(status_changes) > 1:
+        if status_changes:
             items = [
                 item
                 for item in items
