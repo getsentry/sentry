@@ -1,3 +1,4 @@
+from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -8,6 +9,12 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.issues.related import RELATED_ISSUES_ALGORITHMS
 from sentry.models.group import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+
+
+class RequestSerializer(serializers.Serializer):
+    type = serializers.CharField(required=True)
+    event_id = serializers.CharField(required=False)
+    project_id = serializers.IntegerField(required=False)
 
 
 @region_silo_endpoint
@@ -33,6 +40,8 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         :pparam Request request: the request object
         :pparam Group group: the group object
         """
+        serializer = RequestSerializer(data=request.data)
+        serializer.is_valid()
         # The type of related issues to retrieve. Can be either `same_root_cause` or `trace_connected`.
         related_type = request.query_params["type"]
         extra_args = {
