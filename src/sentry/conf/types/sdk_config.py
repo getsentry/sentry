@@ -32,4 +32,3 @@ class ServerSdkConfig(SdkConfig):
     # these get popped before sending along to the sdk
     dsn: NotRequired[str]
     relay_dsn: NotRequired[str]
-    experimental_dsn: NotRequired[str]
