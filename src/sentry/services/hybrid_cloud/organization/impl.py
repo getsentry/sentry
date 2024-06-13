@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, router, transaction
 from django.db.models.expressions import CombinedExpression, F
 from django.dispatch import Signal
 
@@ -528,67 +528,75 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         assert to_member
 
-        # Delete all org access requests between the two now-merged users.
-        OrganizationAccessRequest.objects.filter(
-            member=from_member, requester_id=to_user_id
-        ).delete()
-        OrganizationAccessRequest.objects.filter(
-            member=to_member, requester_id=from_user_id
-        ).delete()
+        with enforce_constraints(transaction.atomic(using=router.db_for_write(OrganizationMember))):
+            # Delete all org access requests between the two now-merged users.
+            OrganizationAccessRequest.objects.filter(
+                member=from_member, requester_id=to_user_id
+            ).delete()
+            OrganizationAccessRequest.objects.filter(
+                member=to_member, requester_id=from_user_id
+            ).delete()
 
-        # All other org access requests should be pointed from the old member to the new one.
-        reqs = OrganizationAccessRequest.objects.filter(member=from_member)
-        for req in reqs:
-            req.member = to_member
-            req.save()
+            # All other org access requests should be pointed from the old member to the new
+            # one.
+            reqs = OrganizationAccessRequest.objects.filter(member=from_member)
+            for req in reqs:
+                req.member = to_member
+                req.save()
 
-        for team in from_member.teams.all():
-            try:
-                with enforce_constraints(
-                    transaction.atomic(router.db_for_write(OrganizationMemberTeam))
-                ):
+            # Move all old team memberships to the newly merged `OrganizationMember`.
+            for team in from_member.teams.all():
+                OrganizationMemberTeam.objects.filter(
+                    organizationmember=from_member, team=team
+                ).delete()
+                to_member_team = OrganizationMemberTeam.objects.filter(
+                    organizationmember=to_member, team=team
+                ).first()
+                if to_member_team is None:
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
-                    OrganizationMemberTeam.objects.filter(
-                        organizationmember=from_member, team=team
-                    ).delete()
-            except IntegrityError:
-                pass
 
-        # Update all organization region models to only use the new user id.
-        model_set = {
-            Activity,
-            AlertRule,
-            AlertRuleActivity,
-            CustomDynamicSamplingRule,
-            Dashboard,
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            GroupShare,
-            GroupSearchView,
-            GroupSubscription,
-            IncidentActivity,
-            IncidentSubscription,
+            # Update all organization region models to only use the new user id.
+            model_list = [
+                Activity,
+                AlertRule,
+                AlertRuleActivity,
+                CustomDynamicSamplingRule,
+                Dashboard,
+                GroupAssignee,
+                GroupBookmark,
+                GroupSeen,
+                GroupShare,
+                GroupSearchView,
+                GroupSubscription,
+                IncidentActivity,
+                IncidentSubscription,
+                OrganizationAccessRequest,
+                ProjectBookmark,
+                RecentSearch,
+                Rule,
+                RuleActivity,
+                RuleSnooze,
+                SavedSearch,
+            ]
+            for model in model_list:
+                merge_users_for_model_in_org(
+                    model,
+                    organization_id=organization_id,
+                    from_user_id=from_user_id,
+                    to_user_id=to_user_id,
+                )
+
+            # Finally, delete the old member.
+            from_member.delete()
+
+        # TODO: for some reason, `Monitor` insists on being updated outside of the transaction, even
+        # though it's also not region siloed?
+        merge_users_for_model_in_org(
             Monitor,
-            OrganizationAccessRequest,
-            OrganizationMember,
-            ProjectBookmark,
-            RecentSearch,
-            Rule,
-            RuleActivity,
-            RuleSnooze,
-            SavedSearch,
-        }
-        for model in model_set:
-            merge_users_for_model_in_org(
-                model,
-                organization_id=organization_id,
-                from_user_id=from_user_id,
-                to_user_id=to_user_id,
-            )
-
-        # Finally, delete the old member.
-        from_member.delete()
+            organization_id=organization_id,
+            from_user_id=from_user_id,
+            to_user_id=to_user_id,
+        )
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):

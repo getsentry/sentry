@@ -39,6 +39,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import unique_db_instance
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
@@ -365,24 +366,32 @@ class User(BaseModel, AbstractBaseUser):
             # Update all organization control models to only use the new user id.
             #
             # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
-            model_set: set[type[BaseModel]] = {OrgAuthToken, OrganizationMemberMapping}
-            for model in model_set:
-                merge_users_for_model_in_org(
-                    model,
-                    organization_id=organization_id,
-                    from_user_id=from_user_id,
-                    to_user_id=to_user_id,
+            with enforce_constraints(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
+                control_side_org_models: tuple[type[BaseModel], ...] = (
+                    OrgAuthToken,
+                    OrganizationMemberMapping,
                 )
+                for model in control_side_org_models:
+                    merge_users_for_model_in_org(
+                        model,
+                        organization_id=organization_id,
+                        from_user_id=from_user_id,
+                        to_user_id=to_user_id,
+                    )
 
-        model_list: tuple[type[BaseModel], ...] = (
+        # While it would be nice to make the following changes in a transaction, there are too many
+        # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
+        # the `IntegrityError`s.
+        user_related_models: tuple[type[BaseModel], ...] = (
             Authenticator,
             Identity,
             UserAvatar,
             UserEmail,
             UserOption,
         )
-
-        for model in model_list:
+        for model in user_related_models:
             for obj in model.objects.filter(user_id=from_user_id):
                 try:
                     with transaction.atomic(using=router.db_for_write(User)):

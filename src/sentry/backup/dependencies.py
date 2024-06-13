@@ -6,13 +6,12 @@ from enum import Enum, auto, unique
 from functools import lru_cache
 from typing import NamedTuple
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models
 from django.db.models import Q, UniqueConstraint
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
-from sentry.db.postgres.transactions import enforce_constraints
 from sentry.silo.base import SiloMode
 from sentry.utils import json
 
@@ -726,8 +725,4 @@ def merge_users_for_model_in_org(
     for user_ref in user_refs:
         q = for_this_org & Q(**{user_ref: from_user_id})
         obj = model.objects.filter(q)
-        try:
-            with enforce_constraints(transaction.atomic(router.db_for_write(model))):
-                obj.update(**{user_ref: to_user_id})
-        except IntegrityError:
-            pass
+        obj.update(**{user_ref: to_user_id})
