@@ -143,8 +143,13 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
   return false;
 }
 
-export function isLCPFrame(frame: SpanFrame): frame is LargestContentfulPaintFrame {
-  return frame.op === 'largest-contentful-paint';
+export function isLCPFrame(frame: SpanFrame): frame is WebVitalFrame {
+  return (
+    frame.op === 'largest-contentful-paint' ||
+    frame.op === 'cumulative-layout-shift' ||
+    frame.op === 'first-input-delay' ||
+    frame.op === 'interaction-to-next-paint'
+  );
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
@@ -287,7 +292,12 @@ export const BreadcrumbCategories = [
 // Spans
 export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
 export type HistoryFrame = HydratedSpan<'navigation.push'>;
-export type LargestContentfulPaintFrame = HydratedSpan<'largest-contentful-paint'>;
+export type WebVitalFrame = HydratedSpan<
+  | 'largest-contentful-paint'
+  | 'cumulative-layout-shift'
+  | 'first-input-delay'
+  | 'interaction-to-next-paint'
+>;
 export type MemoryFrame = HydratedSpan<'memory'>;
 export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
