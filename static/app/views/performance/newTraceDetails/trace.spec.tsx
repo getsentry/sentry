@@ -64,7 +64,7 @@ function mockTraceResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-trace/trace-id/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? {body: {}}),
   });
 }
 
@@ -74,10 +74,12 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      transactions: 0,
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+      },
     }),
   });
 }
@@ -87,7 +89,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? []),
+    ...(resp ?? {body: []}),
   });
 }
 
@@ -396,16 +398,12 @@ const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const searchToUpdate = (): Promise<void> => {
-  return act(async () => {
-    await wait(500);
-  });
+const searchToUpdate = async (): Promise<void> => {
+  await wait(500);
 };
 
-const scrollToEnd = (): Promise<void> => {
-  return act(async () => {
-    await wait(1000);
-  });
+const scrollToEnd = async (): Promise<void> => {
+  await wait(1000);
 };
 
 // @ts-expect-error ignore this line

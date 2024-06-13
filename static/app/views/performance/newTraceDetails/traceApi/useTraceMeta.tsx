@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useLayoutEffect, useMemo, useState} from 'react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -72,7 +72,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
   const mode = queryParams.demo ? 'demo' : undefined;
 
   const fetchSingleTraceMeta = useCallback(
-    async (traceSlug: string) => {
+    async (traceSlug: string): Promise<TraceMeta> => {
       const data = await api.requestPromise(
         `/organizations/${organization.slug}/events-trace-meta/${traceSlug}/`,
         {
@@ -119,7 +119,8 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
           setMetaResults(prev => {
             return {
               ...prev,
-              errors: [...prev.errors, error],
+              isLoading: false,
+              errors: prev.errors.concat(error),
             };
           });
         }
@@ -128,7 +129,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     [fetchSingleTraceMeta]
   );
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     fetchTraceMetasInBatches(traceSlugs);
   }, [traceSlugs, fetchTraceMetasInBatches]);
 
