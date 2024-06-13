@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Iterable, Mapping
 
 from django.http import Http404
@@ -12,6 +13,8 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization, organizat
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import control_silo_function
 
+_logger = logging.getLogger(__name__)
+
 
 @control_silo_function
 def get_identity_or_404(
@@ -21,17 +24,27 @@ def get_identity_or_404(
     organization_id: int | None = None,
 ) -> tuple[RpcOrganization, Integration, IdentityProvider]:
     """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
+    logger_extras = {
+        "provider": provider,
+        "user_id": user.id,
+        "integration_id": integration_id,
+        "organization_id": organization_id,
+    }
+
     if provider not in EXTERNAL_PROVIDERS:
+        _logger.error("invalid_provider", extra=logger_extras)
         raise Http404
 
     integration = Integration.objects.filter(id=integration_id).first()
     if integration is None:
+        _logger.error("invalid_integration", extra=logger_extras)
         raise Http404
 
     idp = IdentityProvider.objects.filter(
         external_id=integration.external_id, type=EXTERNAL_PROVIDERS[provider]
     ).first()
     if idp is None:
+        _logger.error("invalid_identity_provider", extra=logger_extras)
         raise Http404
 
     organization_integrations = OrganizationIntegration.objects.filter(
@@ -43,6 +56,7 @@ def get_identity_or_404(
     organizations = user_service.get_organizations(user_id=user.id, only_visible=True)
     valid_organization_ids = [o.id for o in organizations if o.id in organization_ids]
     if len(valid_organization_ids) <= 0:
+        _logger.error("invalid_organization", extra=logger_extras)
         raise Http404
 
     selected_organization_id = (
@@ -56,6 +70,7 @@ def get_identity_or_404(
     )
 
     if context is None:
+        _logger.error("invalid_organization_context", extra=logger_extras)
         raise Http404
     return context.organization, integration, idp
 
