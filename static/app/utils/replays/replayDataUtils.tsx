@@ -71,9 +71,7 @@ export function replayTimestamps(
   const breadcrumbTimestamps = rawCrumbs
     .map(rawCrumb => rawCrumb.timestamp)
     .filter(Boolean);
-  const rawSpanDataFiltered = rawSpanData.filter(
-    ({op}) => op !== 'largest-contentful-paint'
-  );
+  const rawSpanDataFiltered = rawSpanData.filter(({op}) => op !== 'web-vital');
   const spanStartTimestamps = rawSpanDataFiltered
     .map(span => span.startTimestamp)
     .filter(Boolean);

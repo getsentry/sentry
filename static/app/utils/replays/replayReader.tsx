@@ -38,8 +38,8 @@ import {
   EventType,
   isDeadClick,
   isDeadRageClick,
-  isLCPFrame,
   isPaintFrame,
+  isWebVitalFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -469,6 +469,7 @@ export default class ReplayReader {
     this._trimFramesToClipWindow(
       [
         ...this.getPerfFrames(),
+        ...this.getWebVitalFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
           [
             'replay.hydrate-error',
@@ -506,7 +507,7 @@ export default class ReplayReader {
     return [...uniqueCrumbs, ...spans].sort(sortFrames);
   });
 
-  getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
+  getWebVitalFrames = memoize(() => this._sortedSpanFrames.filter(isWebVitalFrame));
 
   getVideoEvents = () => this._videoEvents;
 

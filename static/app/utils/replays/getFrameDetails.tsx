@@ -278,7 +278,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     color: 'gray300',
     description:
       typeof frame.data.value === 'number' ? (
-        `${Math.round(frame.data.value)}ms`
+        `${Math.round(frame.data.value)}ms ${frame.data.rating}`
       ) : (
         <Tooltip
           title={t(
@@ -289,7 +289,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
         </Tooltip>
       ),
     tabKey: TabKey.NETWORK,
-    title: 'LCP',
+    title: frame.description,
     icon: <IconInfo size="xs" />,
   }),
   memory: () => ({
