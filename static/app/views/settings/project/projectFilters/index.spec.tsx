@@ -9,7 +9,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function () {
-  const {organization, project, routerProps} = initializeOrg({project: {options: {}}});
+  const {organization, project, routerProps} = initializeOrg();
   const PROJECT_URL = `/projects/${organization.slug}/${project.slug}/`;
 
   const getFilterEndpoint = (filter: string) => `${PROJECT_URL}filters/${filter}/`;

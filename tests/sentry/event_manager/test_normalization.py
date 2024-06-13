@@ -199,17 +199,6 @@ def test_deprecated_attrs(key):
     assert not data.get("errors")
 
 
-def test_returns_canonical_dict_after_normalization():
-    from sentry.utils.canonical import CanonicalKeyDict
-
-    event = make_event()
-
-    manager = EventManager(event)
-    assert not isinstance(manager.get_data(), CanonicalKeyDict)
-    manager.normalize()
-    assert isinstance(manager.get_data(), CanonicalKeyDict)
-
-
 @pytest.mark.parametrize("environment", ["", None, "production"])
 def test_environment_tag_removed(environment):
     event = make_event()

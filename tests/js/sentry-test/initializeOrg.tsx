@@ -42,6 +42,7 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     additionalProjects ||
     (additionalProject && [additionalProject]) || [{}]
   ).map(p => ProjectFixture(p));
+
   const [project] = projects;
   const organization = OrganizationFixture({
     projects,

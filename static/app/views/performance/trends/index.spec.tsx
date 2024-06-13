@@ -144,7 +144,6 @@ function initializeTrendsData(
       },
     },
     projects: _projects,
-    project: projects ? projects[0] : undefined,
   });
 
   act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
