@@ -228,8 +228,6 @@ class _ClientConfig:
         ):
             yield "organizations:customer-domains"
 
-        yield "organizations:multi-region-selector"
-
     @property
     def needs_upgrade(self) -> bool:
         return self.request is not None and is_active_superuser(self.request) and _needs_upgrade()
