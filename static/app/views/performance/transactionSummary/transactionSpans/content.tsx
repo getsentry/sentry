@@ -234,10 +234,7 @@ function SpansContentV2(props: Props) {
         />
         <PageFilterBar condensed>
           <EnvironmentPageFilter />
-          <DatePageFilter
-            maxPickableDays={SPAN_RETENTION_DAYS}
-            relativeOptions={SPAN_RELATIVE_PERIODS}
-          />
+          <DatePageFilter />
         </PageFilterBar>
         <StyledSearchBar
           organization={organization}
