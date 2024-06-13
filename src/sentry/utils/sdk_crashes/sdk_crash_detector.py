@@ -78,7 +78,8 @@ class SDKCrashDetector:
         # Furthermore, if they use static linking for including, for example, the Sentry Cocoa,
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
-        for frame in reversed(frames):
+        iter_frames = [f for f in reversed(frames) if f is not None]
+        for frame in iter_frames:
             function = frame.get("function")
             if function:
                 for matcher in self.config.sdk_crash_ignore_functions_matchers:

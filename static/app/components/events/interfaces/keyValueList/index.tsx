@@ -33,7 +33,7 @@ function KeyValueList({
     return null;
   }
 
-  const keyValueData = shouldSort ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
+  const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
     <Table

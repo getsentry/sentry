@@ -168,7 +168,7 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
         self.create_alert_rule_trigger_action(
             alert_rule_trigger=trigger, triggered_for_incident=incident
         )
-        metric_value = 123.12
+        metric_value = "123.12"
         data = incident_attachment_info(incident, IncidentStatus.CRITICAL, metric_value)
         assert (
             data["text"]
