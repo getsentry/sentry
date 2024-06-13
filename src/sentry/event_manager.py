@@ -122,7 +122,6 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
@@ -404,9 +403,7 @@ class EventManager:
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(
-            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
-        )
+        self._data = rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -1234,7 +1231,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
         )
 
 
-def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
+def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
         event_id=data.get("event_id"),
