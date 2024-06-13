@@ -1,3 +1,4 @@
+from django.conf import settings
 from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
@@ -33,8 +34,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0713_team_remove_actor_state"
-    migrate_to = "0714_backfill_group_priority_to_group_attributes"
+    migrate_from = "0724_discover_saved_query_dataset"
+    migrate_to = "0725_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()
@@ -45,14 +46,14 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0713_team_remove_actor_state"
-    migrate_to = "0714_backfill_group_priority_to_group_attributes"
+    migrate_from = "0724_discover_saved_query_dataset"
+    migrate_to = "0725_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()
         self.group_2 = self.create_group()
-        redis_client = redis.redis_clusters.get("default")
-        redis_client.set("backfill_group_priority_to_group_attributes", self.group.id)
+        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+        redis_client.set("backfill_group_info_to_group_attributes", self.group.id)
 
     def test_restart(self):
         run_test([self.group_2])
