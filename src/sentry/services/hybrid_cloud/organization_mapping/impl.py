@@ -88,18 +88,18 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
     def _upsert_organization_slug_reservation_for_monolith(
         self, organization_id: int, mapping_update: RpcOrganizationMappingUpdate
     ) -> None:
-        org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+        org_slug_reservation = OrganizationSlugReservation.objects.filter(
             organization_id=organization_id
-        )
-        if not org_slug_reservation_qs.exists():
+        ).first()
+        if org_slug_reservation is None:
             OrganizationSlugReservation(
                 region_name=mapping_update.region_name,
                 slug=mapping_update.slug,
                 organization_id=organization_id,
                 user_id=-1,
             ).save(unsafe_write=True)
-        elif org_slug_reservation_qs.first().slug != mapping_update.slug:
-            org_slug_reservation_qs.first().update(slug=mapping_update.slug, unsafe_write=True)
+        elif org_slug_reservation.slug != mapping_update.slug:
+            org_slug_reservation.update(slug=mapping_update.slug, unsafe_write=True)
 
     def upsert(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         update_dict: dict[str, Any] = dict(

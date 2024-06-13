@@ -5,7 +5,6 @@ import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
@@ -138,7 +137,7 @@ function TestComponent(
         routes: router.routes,
       }}
     >
-      <GroupEventDetails {...mergedProps} />;
+      <GroupEventDetails {...mergedProps} />
     </RouteContext.Provider>
   );
 }
@@ -349,9 +348,7 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />, {
-      organization: props.organization,
-    });
+    const {rerender} = render(<TestComponent {...props} />);
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
     rerender(<TestComponent query={{environment: ['prod']}} />);
@@ -363,9 +360,7 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />, {
-      organization: props.organization,
-    });
+    const {rerender} = render(<TestComponent {...props} />);
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
     rerender(<TestComponent query={{environment: []}} />);
@@ -393,9 +388,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    render(<TestComponent event={undefined} eventError />, {
-      organization: props.organization,
-    });
+    render(<TestComponent event={undefined} eventError />);
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
@@ -475,9 +468,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    render(<TestComponent group={group} event={transaction} />, {
-      organization: props.organization,
-    });
+    render(<TestComponent group={group} event={transaction} />, {});
 
     expect(
       await screen.findByRole('heading', {
@@ -494,10 +485,7 @@ describe('groupEventDetails', () => {
   it('renders event tags ui', async () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
-    const organization = OrganizationFixture();
-    render(<TestComponent group={props.group} event={props.event} />, {
-      organization,
-    });
+    render(<TestComponent group={props.group} event={props.event} />, {});
 
     expect(await screen.findByText('Event ID:')).toBeInTheDocument();
     expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
@@ -558,7 +546,7 @@ describe('EventCause', () => {
       },
     });
 
-    render(<TestComponent project={props.project} />, {organization: props.organization});
+    render(<TestComponent project={props.project} />);
 
     expect(await screen.findByTestId(/suspect-commit/)).toBeInTheDocument();
   });
@@ -625,7 +613,7 @@ describe('Platform Integrations', () => {
       match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
-    render(<TestComponent />, {organization: props.organization});
+    render(<TestComponent />);
 
     expect(await screen.findByText('Sample App Issue')).toBeInTheDocument();
     expect(componentsRequest).toHaveBeenCalled();

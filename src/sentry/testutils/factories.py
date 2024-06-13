@@ -1517,6 +1517,7 @@ class Factories:
         comparison_delta=None,
         monitor_type=AlertRuleMonitorType.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        description=None,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1545,6 +1546,7 @@ class Factories:
             comparison_delta=comparison_delta,
             monitor_type=monitor_type,
             activation_condition=activation_condition,
+            description=description,
         )
 
         if date_added is not None:

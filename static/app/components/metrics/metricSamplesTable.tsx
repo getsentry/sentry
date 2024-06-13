@@ -68,6 +68,7 @@ export type Field = (typeof fields)[number];
 
 interface MetricsSamplesTableProps {
   focusArea?: SelectionRange;
+  hasPerformance?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   op?: string;
@@ -150,6 +151,7 @@ export function MetricSamplesTable({
   query,
   setMetricsSamples,
   sortKey = 'sort',
+  hasPerformance = true,
 }: MetricsSamplesTableProps) {
   const location = useLocation();
 
@@ -232,6 +234,21 @@ export function MetricSamplesTable({
   }, [result]);
 
   const emptyMessage = useMemo(() => {
+    if (!hasPerformance) {
+      return (
+        <PerformanceEmptyState withIcon={false}>
+          <p>{t('You need to set up performance monitoring to collect samples.')}</p>
+          <LinkButton
+            priority="primary"
+            external
+            href="https://docs.sentry.io/performance-monitoring/getting-started"
+          >
+            {t('Set Up Now')}
+          </LinkButton>
+        </PerformanceEmptyState>
+      );
+    }
+
     if (!defined(mri)) {
       return (
         <EmptyStateWarning>
@@ -241,7 +258,7 @@ export function MetricSamplesTable({
     }
 
     return null;
-  }, [mri]);
+  }, [mri, hasPerformance]);
 
   const _renderHeadCell = useMemo(() => {
     const generateSortLink = (key: string) => () => {
@@ -766,4 +783,8 @@ const LegendDot = styled('div')<{color: string}>`
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const PerformanceEmptyState = styled(EmptyStateWarning)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
