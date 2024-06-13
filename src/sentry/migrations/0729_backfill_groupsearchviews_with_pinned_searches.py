@@ -56,7 +56,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("sentry", "0727_add_description_alertrule"),
+        ("sentry", "0728_incident_subscription_fk"),
     ]
 
     operations = [
