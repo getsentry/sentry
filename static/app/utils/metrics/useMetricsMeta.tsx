@@ -35,25 +35,10 @@ export function useMetricsMeta(
     }
   );
 
-  const meta = useMemo(() => {
-    const sortedMeta = (data ?? []).sort((a, b) =>
-      formatMRI(a.mri).localeCompare(formatMRI(b.mri))
-    );
-
-    // Filter duplicate MRIs and metrics without a project (faulty data)
-    // TODO: Remove this once the endpoint is fixed
-    const seen = new Set<string>();
-    return sortedMeta.filter(entry => {
-      if (!entry.projectIds.length) {
-        return false;
-      }
-      if (seen.has(entry.mri)) {
-        return false;
-      }
-      seen.add(entry.mri);
-      return true;
-    });
-  }, [data]);
+  const meta = useMemo(
+    () => (data ?? []).sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri))),
+    [data]
+  );
 
   const filteredMeta = useMemo(
     () =>
