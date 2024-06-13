@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+from collections.abc import Iterator, Sequence
 from datetime import timedelta
-from typing import Generic, Iterator, Optional, Sequence, Tuple, TypeVar
+from typing import Generic, TypeVar
 
 K = TypeVar("K")
 V = TypeVar("V")
@@ -19,14 +20,14 @@ class KVStorage(ABC, Generic[K, V]):
     """
 
     @abstractmethod
-    def get(self, key: K) -> Optional[V]:
+    def get(self, key: K) -> V | None:
         """
         Fetch a value from the store by its key. Returns the value if it
         exists, otherwise ``None``.
         """
         raise NotImplementedError
 
-    def get_many(self, keys: Sequence[K]) -> Iterator[Tuple[K, V]]:
+    def get_many(self, keys: Sequence[K]) -> Iterator[tuple[K, V]]:
         """
         Fetch multiple values from the store by their keys. Returns an
         iterator of ``(key, value)`` pairs of items that were present in the
@@ -40,7 +41,7 @@ class KVStorage(ABC, Generic[K, V]):
                 yield key, value
 
     @abstractmethod
-    def set(self, key: K, value: V, ttl: Optional[timedelta] = None) -> None:
+    def set(self, key: K, value: V, ttl: timedelta | None = None) -> None:
         """
         Set a value in the store by its key, overwriting any data that
         already existed at that key.

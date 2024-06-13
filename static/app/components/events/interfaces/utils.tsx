@@ -1,13 +1,13 @@
-import * as Sentry from '@sentry/react';
 import partition from 'lodash/partition';
 import * as qs from 'query-string';
 
 import getThreadException from 'sentry/components/events/interfaces/threads/threadSelector/getThreadException';
 import {FILTER_MASK} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
-import {Frame, PlatformKey, StacktraceType} from 'sentry/types';
-import {Image} from 'sentry/types/debugImage';
-import {EntryRequest, EntryThreads, EntryType, Event, Thread} from 'sentry/types/event';
+import type {Frame, PlatformKey, StacktraceType} from 'sentry/types';
+import type {Image} from 'sentry/types/debugImage';
+import type {EntryRequest, EntryThreads, Event, Thread} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {fileExtensionToPlatform, getFileExtension} from 'sentry/utils/fileExtension';
 
@@ -158,14 +158,11 @@ export function getCurlCommand(data: EntryRequest['data']) {
       default:
         if (typeof data.data === 'string') {
           result += ' \\\n --data "' + escapeBashString(data.data) + '"';
-        } else if (Object.keys(data.data).length === 0) {
-          // Do nothing with empty object data.
-        } else {
-          Sentry.withScope(scope => {
-            scope.setExtra('data', data);
-            Sentry.captureException(new Error('Unknown event data'));
-          });
         }
+      // It is common for `data.inferredContentType` to be
+      // "multipart/form-data" or "null", in which case, we do not attempt to
+      // serialize the `data.data` object as port of the cURL command.
+      // See https://github.com/getsentry/sentry/issues/71456
     }
   }
 
@@ -398,8 +395,9 @@ export function getStacktracePlatform(
   event: Event,
   stacktrace?: StacktraceType | null
 ): PlatformKey {
-  const overridePlatform = stacktrace?.frames?.find(frame => defined(frame.platform))
-    ?.platform;
+  const overridePlatform = stacktrace?.frames?.find(frame =>
+    defined(frame.platform)
+  )?.platform;
 
   return overridePlatform ?? event.platform ?? 'other';
 }

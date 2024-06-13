@@ -14,8 +14,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.discord.webhooks.command import DiscordCommandHandler
 from sentry.integrations.discord.webhooks.message_component import DiscordMessageComponentHandler
-from sentry.silo import SiloMode
-from sentry.web.decorators import transaction_start
+from sentry.silo.base import SiloMode
 
 from .types import DiscordResponseTypes
 
@@ -48,7 +47,6 @@ class DiscordInteractionsEndpoint(Endpoint):
         return JsonResponse({"type": DiscordResponseTypes.PONG})
 
     @csrf_exempt
-    @transaction_start("DiscordInteractionsEndpoint")
     def post(self, request: Request) -> HttpResponse:
         try:
             discord_request = self.discord_request_class(request)

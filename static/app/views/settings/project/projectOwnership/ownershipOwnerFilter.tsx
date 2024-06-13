@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
-import Badge from 'sentry/components/badge';
+import Badge from 'sentry/components/badge/badge';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';

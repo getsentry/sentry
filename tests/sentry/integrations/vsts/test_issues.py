@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from functools import cached_property
 from time import time
-from typing import Any, List
+from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.test import RequestFactory, override_settings
@@ -18,9 +19,8 @@ from fixtures.vsts import (
 )
 from sentry.integrations.mixins import ResolveSyncAction
 from sentry.integrations.vsts.integration import VstsIntegration
-from sentry.models.identity import Identity, IdentityProvider
+from sentry.models.identity import Identity
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -31,14 +31,13 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
 
 def generate_mock_response(*, method: str, non_region_url: str, path: str, **kwargs):
     if SiloMode.get_current_mode() == SiloMode.REGION:
-        match: List[Any] | None = kwargs.pop("match", None)
+        match: list[Any] | None = kwargs.pop("match", None)
         if match is None:
             match = [matchers.header_matcher({PROXY_PATH: path})]
         else:
@@ -78,7 +77,7 @@ class VstsIssueBase(TestCase):
 
     def setUp(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
-            model = Integration.objects.create(
+            model = self.create_provider_integration(
                 provider="vsts",
                 external_id="vsts_external_id",
                 name="fabrikam-fiber-inc",
@@ -88,7 +87,7 @@ class VstsIssueBase(TestCase):
                 },
             )
             identity = Identity.objects.create(
-                idp=IdentityProvider.objects.create(type="vsts", config={}),
+                idp=self.create_identity_provider(type="vsts"),
                 user=self.user,
                 external_id="vsts",
                 data={"access_token": "123456789", "expires": time() + 1234567},
@@ -190,7 +189,7 @@ class VstsIssueSyncTest(VstsIssueBase):
         }
         request = responses.calls[-1].request
         assert request.headers["Content-Type"] == "application/json-patch+json"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == [
             {"op": "add", "path": "/fields/System.Title", "value": "Hello"},
             # Adds both a comment and a description.
@@ -257,7 +256,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             ],
         )
 
-        request_body = json.loads(responses.calls[1].request.body)
+        request_body = orjson.loads(responses.calls[1].request.body)
         assert len(request_body) == 1
         assert request_body[0]["path"] == "/fields/System.AssignedTo"
         assert request_body[0]["value"] == "ftotten@vscsi.us"
@@ -320,7 +319,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             ],
         )
 
-        request_body = json.loads(responses.calls[2].request.body)
+        request_body = orjson.loads(responses.calls[2].request.body)
         assert len(request_body) == 1
         assert request_body[0]["path"] == "/fields/System.AssignedTo"
         assert request_body[0]["value"] == "ftotten@vscsi.us"
@@ -377,7 +376,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             req.url
             == f"https://fabrikam-fiber-inc.visualstudio.com/_apis/wit/workitems/{vsts_work_item_id}"
         )
-        assert json.loads(req.body) == [
+        assert orjson.loads(req.body) == [
             {"path": "/fields/System.State", "value": "Resolved", "op": "replace"}
         ]
         assert responses.calls[2].response.status_code == 200

@@ -76,7 +76,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             )
 
     def test_organization_retention_respected(self) -> None:
-        base_time = datetime.utcnow()
+        base_time = timezone.now()
 
         self._insert_event_for_time(base_time - timedelta(minutes=1))
         self._insert_event_for_time(base_time - timedelta(days=2))
@@ -97,7 +97,7 @@ class SnubaTest(TestCase, SnubaTestCase):
             assert _get_event_count() == {self.project.id: 1}
 
     def test_organization_retention_larger_than_end_date(self) -> None:
-        base_time = datetime.utcnow()
+        base_time = timezone.now()
 
         with self.options({"system.event-retention-days": 1}):
             assert (

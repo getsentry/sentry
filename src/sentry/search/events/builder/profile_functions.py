@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Protocol
+from typing import Any, Protocol
 
 from snuba_sdk import AliasedExpression, And, Column, Condition, CurriedFunction, Op, Or
 from snuba_sdk.function import Function
@@ -7,7 +7,7 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
-from sentry.search.events.fields import get_function_alias
+from sentry.search.events.fields import custom_time_processor, get_function_alias
 from sentry.search.events.types import (
     ParamsType,
     QueryBuilderConfig,
@@ -37,9 +37,9 @@ class ProfileFunctionsQueryBuilderMixin:
         resolved: str = self.config.resolve_column(col)
         return resolved
 
-    def get_field_type(self: ProfileFunctionsQueryBuilderProtocol, field: str) -> Optional[str]:
+    def get_field_type(self: ProfileFunctionsQueryBuilderProtocol, field: str) -> str | None:
         # giving resolved a type here convinces mypy that the type is str
-        resolved: Optional[str] = self.config.resolve_column_type(field)
+        resolved: str | None = self.config.resolve_column_type(field)
         return resolved
 
 
@@ -71,25 +71,7 @@ class ProfileFunctionsTimeseriesQueryBuilder(
 
     @property
     def time_column(self) -> SelectType:
-        return Function(
-            "toDateTime",
-            [
-                Function(
-                    "multiply",
-                    [
-                        Function(
-                            "intDiv",
-                            [
-                                Function("toUInt32", [Column("timestamp")]),
-                                self.interval,
-                            ],
-                        ),
-                        self.interval,
-                    ],
-                ),
-            ],
-            "time",
-        )
+        return custom_time_processor(self.interval, Function("toUInt32", [Column("timestamp")]))
 
 
 class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryBuilder):
@@ -98,14 +80,14 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         dataset: Dataset,
         params: ParamsType,
         interval: int,
-        top_events: List[Dict[str, Any]],
+        top_events: list[dict[str, Any]],
         other: bool = False,
-        query: Optional[str] = None,
-        selected_columns: Optional[List[str]] = None,
-        timeseries_columns: Optional[List[str]] = None,
-        equations: Optional[List[str]] = None,
-        config: Optional[QueryBuilderConfig] = None,
-        limit: Optional[int] = 10000,
+        query: str | None = None,
+        selected_columns: list[str] | None = None,
+        timeseries_columns: list[str] | None = None,
+        equations: list[str] | None = None,
+        config: QueryBuilderConfig | None = None,
+        limit: int | None = 10000,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -132,7 +114,7 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
             )
 
     @property
-    def translated_groupby(self) -> List[str]:
+    def translated_groupby(self) -> list[str]:
         """Get the names of the groupby columns to create the series names"""
         translated = []
         for groupby in self.groupby:
@@ -151,8 +133,8 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
         return resolved in self.aggregates
 
     def resolve_top_event_conditions(
-        self, top_functions: List[Dict[str, Any]], other: bool
-    ) -> Optional[WhereType]:
+        self, top_functions: list[dict[str, Any]], other: bool
+    ) -> WhereType | None:
         assert not other, "Other is not supported"  # TODO: support other
 
         # we only want to create conditions on the non aggregate fields

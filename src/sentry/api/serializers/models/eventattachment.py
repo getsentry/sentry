@@ -17,7 +17,7 @@ class EventAttachmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         file = attrs.get("file")
         content_type = obj.content_type or get_mimetype(file)
-        size = obj.size or file.size
+        size = obj.size if obj.size is not None else file.size
         sha1 = obj.sha1 or file.checksum
         headers = {"Content-Type": content_type}
 

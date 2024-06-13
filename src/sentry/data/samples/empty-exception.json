@@ -18,7 +18,14 @@
   "sdk": {
     "name": "sentry.python",
     "version": "0.1",
-    "integrations": ["logging", "stdlib", "excepthook", "dedupe", "atexit", "modules"],
+    "integrations": [
+      "logging",
+      "stdlib",
+      "excepthook",
+      "dedupe",
+      "atexit",
+      "modules"
+    ],
     "packages": [
       {
         "name": "pypi:sentry-sdk",

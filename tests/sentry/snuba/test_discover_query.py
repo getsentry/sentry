@@ -34,9 +34,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
-        self.now = before_now().replace(tzinfo=timezone.utc)
-        self.one_min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
-        self.two_min_ago = before_now(minutes=2).replace(tzinfo=timezone.utc)
+        self.now = before_now()
+        self.one_min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
 
         self.event_time = self.one_min_ago
         self.event = self.store_event(
@@ -54,7 +54,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         self.params = {
             "organization_id": self.organization.id,
             "project_id": [self.project.id],
-            "start": before_now(days=1).replace(tzinfo=timezone.utc),
+            "start": before_now(days=1),
             "end": self.now,
         }
 
@@ -386,9 +386,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
 
     def test_timestamp_rounding_filters(self):
-        one_day_ago = before_now(days=1).replace(tzinfo=timezone.utc)
-        two_day_ago = before_now(days=2).replace(tzinfo=timezone.utc)
-        three_day_ago = before_now(days=3).replace(tzinfo=timezone.utc)
+        one_day_ago = before_now(days=1)
+        two_day_ago = before_now(days=2)
+        three_day_ago = before_now(days=3)
         self.params["start"] = three_day_ago
 
         self.store_event(
@@ -1984,7 +1984,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         for event in events:
             data["event_id"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2027,7 +2027,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         for event in events:
             data["event_id"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2163,7 +2163,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for event in events:
             data["event_id"] = event[0]
             data["transaction"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2716,7 +2716,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data = load_data("transaction")
             data["timestamp"] = iso_format(self.one_min_ago)
             data["transaction"] = val * 32
-            data["message"] = val * 32
+            data["logentry"] = {"formatted": val * 32}
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
             self.store_event(data=data, project_id=self.project.id)
 
@@ -2764,7 +2764,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
-                data["message"] = val
+                data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
@@ -2796,7 +2796,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
-                data["message"] = val
+                data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
@@ -3145,7 +3145,7 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         super().setUp()
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.now = before_now().replace(tzinfo=timezone.utc)
+        self.now = before_now()
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500

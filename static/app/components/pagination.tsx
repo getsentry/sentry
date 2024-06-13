@@ -1,12 +1,12 @@
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Query} from 'history';
+import type {Query} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 

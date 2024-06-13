@@ -1,9 +1,9 @@
 import {Component, Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
@@ -18,7 +18,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Environment, Organization, Project} from 'sentry/types';
+import type {Environment, Organization, Project} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';

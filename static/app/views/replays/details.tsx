@@ -1,30 +1,30 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
+import {Flex} from 'sentry/components/container/flex';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Flex} from 'sentry/components/profiling/flex';
+import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useInitialTimeOffsetMs, {
-  TimeOffsetLocationQueryParams,
-} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
+import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useUser} from 'sentry/utils/useUser';
 import ReplaysLayout from 'sentry/views/replays/detail/layout';
 import Page from 'sentry/views/replays/detail/page';
 import ReplayTransactionContext from 'sentry/views/replays/detail/trace/replayTransactionContext';
@@ -37,7 +37,7 @@ type Props = RouteComponentProps<
 >;
 
 function ReplayDetails({params: {replaySlug}}: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
 
@@ -46,7 +46,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   useRouteAnalyticsParams({
     organization,
     referrer: decodeScalar(location.query.referrer),
-    user_email: config.user.email,
+    user_email: user.email,
     tab: location.query.t_main,
   });
 
@@ -55,7 +55,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   // TODO: replayId is known ahead of time and useReplayData is parsing it from the replaySlug
   // once we fix the route params and links we should fix this to accept replayId and stop returning it
   const {
-    errors: replayErrors,
+    errors,
     fetchError,
     fetching,
     onRetry,
@@ -68,7 +68,31 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     orgSlug,
   });
 
+  const replayErrors = errors.filter(e => e.title !== 'User Feedback');
+
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
+
+  const {mutate: markAsViewed} = useMarkReplayViewed();
+  useEffect(() => {
+    if (
+      !fetchError &&
+      replayRecord &&
+      !replayRecord.has_viewed &&
+      projectSlug &&
+      !fetching &&
+      replayId
+    ) {
+      markAsViewed({projectSlug, replayId});
+    }
+  }, [
+    fetchError,
+    fetching,
+    markAsViewed,
+    organization,
+    projectSlug,
+    replayId,
+    replayRecord,
+  ]);
 
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
@@ -97,7 +121,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
   if (fetchError) {
-    if (fetchError.statusText === 'Not Found') {
+    if (fetchError.status === 404) {
       return (
         <Page
           orgSlug={orgSlug}
@@ -145,20 +169,28 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
+  const isVideoReplay = Boolean(
+    organization.features.includes('session-replay-mobile-player') &&
+      replay?.isVideoReplay()
+  );
+
   return (
     <ReplayContextProvider
-      isFetching={fetching}
-      replay={replay}
+      analyticsContext="replay_details"
       initialTimeOffsetMs={initialTimeOffsetMs}
+      isFetching={fetching}
+      prefsStrategy={LocalStorageReplayPreferences}
+      replay={replay}
     >
       <ReplayTransactionContext replayRecord={replayRecord}>
         <Page
+          isVideoReplay={isVideoReplay}
           orgSlug={orgSlug}
           replayRecord={replayRecord}
           projectSlug={projectSlug}
           replayErrors={replayErrors}
         >
-          <ReplaysLayout />
+          <ReplaysLayout isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>

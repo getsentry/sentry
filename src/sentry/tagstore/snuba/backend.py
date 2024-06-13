@@ -2,9 +2,9 @@ import functools
 import os
 import re
 from collections import defaultdict
-from collections.abc import Iterable
-from datetime import timezone
-from typing import Any, Dict, Optional, Sequence
+from collections.abc import Iterable, Sequence
+from datetime import timedelta, timezone
+from typing import Any
 
 from dateutil.parser import parse as parse_datetime
 from django.core.cache import cache
@@ -16,9 +16,10 @@ from sentry.api.utils import default_start_end_dates
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.replays.query import query_replays_dataset_tagkey_values
 from sentry.search.events.constants import (
     PROJECT_ALIAS,
@@ -32,6 +33,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
@@ -41,7 +43,6 @@ from sentry.tagstore.exceptions import (
 )
 from sentry.tagstore.types import GroupTagKey, GroupTagValue, TagKey, TagValue
 from sentry.utils import metrics, snuba
-from sentry.utils.dates import to_timestamp
 from sentry.utils.hashlib import md5_text
 from sentry.utils.snuba import (
     _prepare_start_end,
@@ -98,7 +99,7 @@ def get_project_list(project_id):
     return project_id if isinstance(project_id, Iterable) else [project_id]
 
 
-def _translate_filter_keys(project_ids, group_ids, environment_ids) -> Dict[str, Any]:
+def _translate_filter_keys(project_ids, group_ids, environment_ids) -> dict[str, Any]:
     filter_keys = {"project_id": project_ids}
 
     if environment_ids:
@@ -428,8 +429,8 @@ class SnubaTagStorage(TagStorage):
         start,
         end,
         status=TagKeyStatus.ACTIVE,
-        use_cache=False,
-        include_transactions=False,
+        use_cache: bool = False,
+        include_transactions: bool = False,
         tenant_ids=None,
     ):
         max_unsampled_projects = _max_unsampled_projects
@@ -439,7 +440,9 @@ class SnubaTagStorage(TagStorage):
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
         # that we don't cause performance issues for Snuba.
-        if len(projects) <= max_unsampled_projects:
+        # We also see issues with long timeranges in large projects,
+        # So only disable sampling if the timerange is short enough.
+        if len(projects) <= max_unsampled_projects and end - start <= timedelta(days=14):
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
             projects,
@@ -695,7 +698,7 @@ class SnubaTagStorage(TagStorage):
         self,
         group: Group,
         environment_ids: Sequence[int],
-        keys: Optional[Sequence[str]] = None,
+        keys: Sequence[str] | None = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
         tenant_ids=None,
         **kwargs,
@@ -861,7 +864,7 @@ class SnubaTagStorage(TagStorage):
         end=None,
         dataset=Dataset.Events,
         extra_aggregations=None,
-        referrer="tagstore.__get_groups_user_counts",
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         tenant_ids=None,
     ):
         filters = {"project_id": project_ids, "group_id": group_ids}
@@ -888,7 +891,14 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
+        self,
+        project_ids,
+        group_ids,
+        environment_ids,
+        start=None,
+        end=None,
+        tenant_ids=None,
+        referrer="tagstore.get_groups_user_counts",
     ):
         return self.__get_groups_user_counts(
             project_ids,
@@ -898,7 +908,7 @@ class SnubaTagStorage(TagStorage):
             end,
             Dataset.Events,
             [],
-            "tagstore.get_groups_user_counts",
+            referrer,
             tenant_ids=tenant_ids,
         )
 
@@ -988,8 +998,8 @@ class SnubaTagStorage(TagStorage):
     def _get_tag_values_for_semver(
         self,
         projects: Sequence[int],
-        environments: Optional[Sequence[str]],
-        query: Optional[str],
+        environments: Sequence[str] | None,
+        query: str | None,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -1171,9 +1181,9 @@ class SnubaTagStorage(TagStorage):
         end=None,
         query=None,
         order_by="-last_seen",
-        include_transactions=False,
-        include_sessions=False,
-        include_replays=False,
+        include_transactions: bool = False,
+        include_sessions: bool = False,
+        include_replays: bool = False,
         tenant_ids=None,
     ):
         from sentry.api.paginator import SequencePaginator
@@ -1394,7 +1404,7 @@ class SnubaTagStorage(TagStorage):
             if score_field == "times_seen":
                 # times_seen already an int
                 return int(getattr(tv, score_field))
-            return int(to_timestamp(getattr(tv, score_field)) * 1000)
+            return int(getattr(tv, score_field).timestamp() * 1000)
 
         return SequencePaginator(
             [(score_field_to_int(tv), tv) for tv in tag_values],
@@ -1402,7 +1412,15 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, group, environment_ids, key, callbacks=(), limit=1000, offset=0, tenant_ids=None
+        self,
+        group,
+        environment_ids,
+        key,
+        callbacks=(),
+        orderby="-first_seen",
+        limit: int = 1000,
+        offset: int = 0,
+        tenant_ids=None,
     ):
         filters = {
             "project_id": get_project_list(group.project_id),
@@ -1422,7 +1440,7 @@ class SnubaTagStorage(TagStorage):
                 ["min", "timestamp", "first_seen"],
                 ["max", "timestamp", "last_seen"],
             ],
-            orderby="-first_seen",  # Closest thing to pre-existing `-id` order
+            orderby=orderby,
             limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
@@ -1453,7 +1471,7 @@ class SnubaTagStorage(TagStorage):
             raise ValueError("Unsupported order_by: %s" % order_by)
 
         group_tag_values = self.get_group_tag_value_iter(
-            group, environment_ids, key, tenant_ids=tenant_ids
+            group, environment_ids, key, orderby="-last_seen", tenant_ids=tenant_ids
         )
 
         desc = order_by.startswith("-")
@@ -1465,10 +1483,7 @@ class SnubaTagStorage(TagStorage):
             )
 
         return SequencePaginator(
-            [
-                (int(to_timestamp(getattr(gtv, score_field)) * 1000), gtv)
-                for gtv in group_tag_values
-            ],
+            [(int(getattr(gtv, score_field).timestamp() * 1000), gtv) for gtv in group_tag_values],
             reverse=desc,
         )
 

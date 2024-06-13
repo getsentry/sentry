@@ -3,7 +3,8 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
-import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import {
   MINIMAP_HEIGHT,
   PROFILE_MEASUREMENTS_CHART_HEIGHT,
@@ -15,7 +16,7 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import {DividerSpacer} from 'sentry/components/performance/waterfall/miniHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import toPercent from 'sentry/utils/number/toPercent';
 
 import * as CursorGuideHandler from './cursorGuideHandler';
@@ -147,9 +148,9 @@ type ProfilingMeasurementsProps = {
     cursorGuideHeight: number;
     mouseLeft: number | undefined;
     showCursorGuide: boolean;
-  }) => void;
-  renderFog?: () => void;
-  renderWindowSelection?: () => void;
+  }) => React.ReactNode;
+  renderFog?: () => React.ReactNode;
+  renderWindowSelection?: () => React.ReactNode;
 };
 
 function ProfilingMeasurements({

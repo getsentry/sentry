@@ -1,6 +1,6 @@
 import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import {Button} from 'sentry/components/button';
@@ -13,21 +13,27 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {
   createOnDemandFilterWarning,
   isOnDemandQueryString,
+  shouldDisplayOnDemandWidgetWarning,
 } from 'sentry/utils/onDemandMetrics';
 import {hasOnDemandMetricWidgetFeature} from 'sentry/utils/onDemandMetrics/features';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {ReleasesProvider} from 'sentry/utils/releases/releasesProvider';
+import type RequestError from 'sentry/utils/requestError/requestError';
+import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import ReleasesSelectControl from 'sentry/views/dashboards/releasesSelectControl';
 import {
   DashboardFilterKeys,
-  DashboardFilters,
-  WidgetQuery,
-  WidgetType,
+  type DashboardFilters,
+  OnDemandExtractionState,
+  type ValidateWidgetResponse,
+  type WidgetQuery,
+  type WidgetType,
 } from 'sentry/views/dashboards/types';
 
 import {BuildStep, SubHeading} from '../buildStep';
@@ -43,6 +49,7 @@ interface Props {
   organization: Organization;
   queries: WidgetQuery[];
   selection: PageFilters;
+  validatedWidgetResponse: UseApiQueryResult<ValidateWidgetResponse, RequestError>;
   widgetType: WidgetType;
   dashboardFilters?: DashboardFilters;
   projectIds?: number[] | readonly number[];
@@ -63,6 +70,7 @@ export function FilterResultsStep({
   widgetType,
   selection,
   onQueryConditionChange,
+  validatedWidgetResponse,
 }: Props) {
   const [queryConditionValidity, setQueryConditionValidity] = useState<boolean[]>([]);
 
@@ -113,8 +121,6 @@ export function FilterResultsStep({
       }
     )
   );
-  const shouldDisplayOnDemandWarning =
-    hasOnDemandMetricWidgetFeature(organization) && widgetType === WidgetType.DISCOVER;
 
   return (
     <BuildStep
@@ -162,7 +168,9 @@ export function FilterResultsStep({
               <SearchConditionsWrapper>
                 <datasetConfig.SearchBar
                   getFilterWarning={
-                    shouldDisplayOnDemandWarning ? getOnDemandFilterWarning : undefined
+                    shouldDisplayOnDemandWidgetWarning(query, widgetType, organization)
+                      ? getOnDemandFilterWarning
+                      : undefined
                   }
                   organization={organization}
                   pageFilters={selection}
@@ -170,15 +178,13 @@ export function FilterResultsStep({
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
                 />
-                {shouldDisplayOnDemandWarning &&
-                  isOnDemandQueryString(query.conditions) && (
-                    <OnDemandWarningIcon
-                      msg={tct(
-                        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
-                        {strong: <strong />}
-                      )}
-                    />
-                  )}
+                {shouldDisplayOnDemandWidgetWarning(query, widgetType, organization) && (
+                  <WidgetOnDemandQueryWarning
+                    query={query}
+                    validatedWidgetResponse={validatedWidgetResponse}
+                    queryIndex={queryIndex}
+                  />
+                )}
                 {!hideLegendAlias && (
                   <LegendAliasInput
                     type="text"
@@ -215,6 +221,44 @@ export function FilterResultsStep({
         )}
       </div>
     </BuildStep>
+  );
+}
+
+function WidgetOnDemandQueryWarning(props: {
+  query: WidgetQuery;
+  queryIndex: number;
+  validatedWidgetResponse: Props['validatedWidgetResponse'];
+}) {
+  const organization = useOrganization();
+  if (!hasOnDemandMetricWidgetFeature(organization)) {
+    return null;
+  }
+  if (!isOnDemandQueryString(props.query.conditions)) {
+    return null;
+  }
+
+  if (
+    props.validatedWidgetResponse?.data?.warnings?.queries?.[props.queryIndex] ===
+    OnDemandExtractionState.DISABLED_SPEC_LIMIT
+  ) {
+    return (
+      <OnDemandWarningIcon
+        msg={tct(
+          'We don’t routinely collect metrics for this property and you’ve exceeded the maximum number of extracted metrics for your organization. [strong:Please review your other widgets and remove any unused or less valuable queries marked with a (!) sign.]',
+          {strong: <strong />}
+        )}
+        color="yellow300"
+      />
+    );
+  }
+
+  return (
+    <OnDemandWarningIcon
+      msg={tct(
+        'We don’t routinely collect metrics from this property. However, we’ll do so [strong:once this widget has been saved.]',
+        {strong: <strong />}
+      )}
+    />
   );
 }
 

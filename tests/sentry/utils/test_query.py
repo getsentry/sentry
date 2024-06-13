@@ -1,10 +1,13 @@
+import pytest
+
 from sentry.db.models.query import in_iexact
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.utils.query import (
+    InvalidQuerySetError,
     RangeQuerySetWrapper,
     RangeQuerySetWrapperWithProgressBar,
     RangeQuerySetWrapperWithProgressBarApprox,
@@ -23,6 +26,7 @@ class InIexactQueryTest(TestCase):
         assert Organization.objects.filter(in_iexact("slug", [])).count() == 0
 
 
+@no_silo_test
 class RangeQuerySetWrapperTest(TestCase):
     range_wrapper = RangeQuerySetWrapper
 
@@ -53,13 +57,27 @@ class RangeQuerySetWrapperTest(TestCase):
         qs = User.objects.all()
         assert len(list(self.range_wrapper(qs, step=2))) == 0
 
+    def test_order_by_non_unique_fails(self):
+        qs = User.objects.all()
+        with pytest.raises(InvalidQuerySetError):
+            self.range_wrapper(qs, order_by="name")
 
-@control_silo_test
+        # Shouldn't error if the safety check is disabled
+        self.range_wrapper(qs, order_by="name", override_unique_safety_check=True)
+
+    def test_order_by_unique(self):
+        self.create_user()
+        qs = User.objects.all()
+        self.range_wrapper(qs, order_by="username")
+        assert len(list(self.range_wrapper(qs, order_by="username", step=2))) == 1
+
+
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBar
 
 
-@control_silo_test
+@no_silo_test
 class RangeQuerySetWrapperWithProgressBarApproxTest(RangeQuerySetWrapperTest):
     range_wrapper = RangeQuerySetWrapperWithProgressBarApprox
 

@@ -2,7 +2,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import OnboardingPanel from 'sentry/components/onboardingPanel';
 import {t, tct} from 'sentry/locale';
 
-import {Monitor} from '../types';
+import type {Monitor} from '../types';
 
 import MonitorQuickStartGuide from './monitorQuickStartGuide';
 

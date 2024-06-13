@@ -1,4 +1,4 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +10,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     filteredEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>,
     newIssuesEndpointMock: ReturnType<typeof MockApiClient.addMockResponse>;
 
-  const {organization, router, project, routerContext} = initializeOrg({
+  const {organization, router, project} = initializeOrg({
     organization: {
       features: ['discover-basic'],
     },
@@ -66,7 +66,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -83,7 +83,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         location={router.location}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -112,7 +112,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -142,7 +142,7 @@ describe('ProjectDetail > ProjectIssues', function () {
         projectId={parseInt(project.id, 10)}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -175,7 +175,7 @@ describe('ProjectDetail > ProjectIssues', function () {
           query: {statsPeriod: '7d', environment: 'staging', somethingBad: 'nope'},
         }}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(0);

@@ -1,5 +1,4 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -8,18 +7,16 @@ import {
   waitFor,
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DomainSelector', function () {
-  const organization = Organization();
-  jest.mocked(useOrganization).mockReturnValue(organization);
+  const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -106,13 +103,11 @@ describe('DomainSelector', function () {
       expect(fetchMoreResponse).toHaveBeenCalled();
     });
 
-    await tick();
-
-    expect(screen.getByText('pg_data')).toBeInTheDocument();
+    expect(await screen.findByText('pg_data')).toBeInTheDocument();
     expect(screen.queryByText('sentry_user')).not.toBeInTheDocument();
     expect(screen.queryByText('sentry_organization')).not.toBeInTheDocument();
 
-    userEvent.clear(screen.getByRole('textbox'));
+    await userEvent.clear(screen.getByRole('textbox'));
 
     expect(screen.getByText('pg_data')).toBeInTheDocument();
     expect(screen.getByText('sentry_user')).toBeInTheDocument();

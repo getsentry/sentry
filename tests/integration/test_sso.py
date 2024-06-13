@@ -1,17 +1,20 @@
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.utils.auth import SsoSession
 
 
-# @control_silo_test
+@control_silo_test
 class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_sso_auth_required(self):
         user = self.create_user("foo@example.com", is_superuser=False)
         organization = self.create_organization(name="foo")
         member = self.create_member(user=user, organization=organization)
         setattr(member.flags, "sso:linked", True)
-        member.save()
+        with assume_test_silo_mode_of(OrganizationMember):
+            member.save()
 
         auth_provider = AuthProvider.objects.create(
             organization_id=organization.id, provider="dummy", flags=0

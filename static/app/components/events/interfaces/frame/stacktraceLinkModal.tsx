@@ -1,9 +1,8 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import uniq from 'lodash/uniq';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -17,6 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {uniq} from 'sentry/utils/array/uniq';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -51,7 +51,7 @@ function StacktraceLinkModal({
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
 
-  const {data: sugestedCodeMappings} = useApiQuery<DerivedCodeMapping[]>(
+  const {data: suggestedCodeMappings} = useApiQuery<DerivedCodeMapping[]>(
     [
       `/organizations/${organization.slug}/derive-code-mappings/`,
       {
@@ -70,7 +70,7 @@ function StacktraceLinkModal({
   );
 
   const suggestions = uniq(
-    (sugestedCodeMappings ?? []).map(suggestion => {
+    suggestedCodeMappings?.map(suggestion => {
       return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
     })
   ).slice(0, 2);
@@ -153,7 +153,7 @@ function StacktraceLinkModal({
   return (
     <Fragment>
       <Header closeButton>
-        <h4>{t('Tell us where your source code is')}</h4>
+        <h4>{t('Set up Code Mapping')}</h4>
       </Header>
       <Body>
         <ModalContainer>
@@ -177,8 +177,8 @@ function StacktraceLinkModal({
                     }
                   )
                 : error.includes('blank')
-                ? t('URL is required.')
-                : error}
+                  ? t('URL is required.')
+                  : error}
             </StyledAlert>
           )}
           <div>

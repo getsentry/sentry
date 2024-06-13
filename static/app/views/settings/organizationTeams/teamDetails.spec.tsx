@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -10,9 +10,9 @@ import TeamDetails from 'sentry/views/settings/organizationTeams/teamDetails';
 describe('TeamMembers', () => {
   let joinMock;
 
-  const organization = Organization();
-  const team = Team({hasAccess: false});
-  const teamHasAccess = Team({id: '1337', slug: 'django', hasAccess: true});
+  const organization = OrganizationFixture();
+  const team = TeamFixture({hasAccess: false});
+  const teamHasAccess = TeamFixture({id: '1337', slug: 'django', hasAccess: true});
 
   beforeEach(() => {
     TeamStore.init();
@@ -29,7 +29,7 @@ describe('TeamMembers', () => {
   });
 
   it('can request membership', async () => {
-    const {routerProps, routerContext} = initializeOrg({
+    const {routerProps, router} = initializeOrg({
       organization,
       router: {
         params: {orgId: organization.slug, teamId: team.slug},
@@ -40,7 +40,7 @@ describe('TeamMembers', () => {
       <TeamDetails {...routerProps}>
         <div data-test-id="test" />
       </TeamDetails>,
-      {organization, context: routerContext}
+      {organization, router}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Request Access'}));
@@ -50,7 +50,7 @@ describe('TeamMembers', () => {
   });
 
   it('displays children', () => {
-    const {routerContext, routerProps} = initializeOrg({
+    const {router, routerProps} = initializeOrg({
       organization,
       router: {
         params: {orgId: organization.slug, teamId: teamHasAccess.slug},
@@ -60,7 +60,7 @@ describe('TeamMembers', () => {
       <TeamDetails {...routerProps}>
         <div data-test-id="test" />
       </TeamDetails>,
-      {organization, context: routerContext}
+      {organization, router}
     );
 
     expect(screen.getByTestId('test')).toBeInTheDocument();

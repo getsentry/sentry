@@ -1,9 +1,10 @@
 import math
 import time
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
-from typing import Any, Iterator, List, Mapping, Optional, Protocol, Tuple
+from typing import Any, Protocol
 
 import sentry_sdk
 from snuba_sdk import (
@@ -21,15 +22,11 @@ from snuba_sdk import (
 
 from sentry import quotas
 from sentry.dynamic_sampling.rules.utils import OrganizationId
-from sentry.dynamic_sampling.tasks.constants import (
-    CHUNK_SIZE,
-    MAX_ORGS_PER_QUERY,
-    MAX_SECONDS,
-    RECALIBRATE_ORGS_QUERY_INTERVAL,
-)
+from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY, MAX_SECONDS
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
-from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
+from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
+from sentry.dynamic_sampling.tasks.utils import sample_function
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -39,6 +36,8 @@ from sentry.utils.snuba import raw_snql_query
 
 ACTIVE_ORGS_DEFAULT_TIME_INTERVAL = timedelta(hours=1)
 ACTIVE_ORGS_DEFAULT_GRANULARITY = Granularity(3600)
+
+ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL = timedelta(minutes=5)
 ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY = Granularity(60)
 
 
@@ -159,7 +158,7 @@ class TimedIterator(Iterator[Any]):
         self,
         context: TaskContext,
         inner: ContextIterator,
-        name: Optional[str] = None,
+        name: str | None = None,
     ):
         self.context = context
         self.inner = inner
@@ -211,7 +210,7 @@ class GetActiveOrgs:
     def __init__(
         self,
         max_orgs: int = MAX_ORGS_PER_QUERY,
-        max_projects: Optional[int] = None,
+        max_projects: int | None = None,
         time_interval: timedelta = ACTIVE_ORGS_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_DEFAULT_GRANULARITY,
     ):
@@ -220,7 +219,7 @@ class GetActiveOrgs:
             str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value)
         )
         self.offset = 0
-        self.last_result: List[Tuple[int, int]] = []
+        self.last_result: list[tuple[int, int]] = []
         self.has_more_results = True
         self.max_orgs = max_orgs
         self.max_projects = max_projects
@@ -231,7 +230,7 @@ class GetActiveOrgs:
     def __iter__(self):
         return self
 
-    def __next__(self) -> List[int]:
+    def __next__(self) -> list[int]:
         self.log_state.num_iterations += 1
         if self._enough_results_cached():
             # we have enough in the cache to satisfy the current iteration
@@ -256,10 +255,10 @@ class GetActiveOrgs:
                         Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                         Condition(Column("metric_id"), Op.EQ, self.metric_id),
                     ],
-                    granularity=self.granularity,
                     orderby=[
                         OrderBy(Column("org_id"), Direction.ASC),
                     ],
+                    granularity=self.granularity,
                 )
                 .set_limit(CHUNK_SIZE + 1)
                 .set_offset(self.offset)
@@ -359,9 +358,9 @@ class OrganizationDataVolume:
     # total number of transactions
     total: int
     # number of transactions indexed (i.e. stored)
-    indexed: Optional[int]
+    indexed: int | None
 
-    def is_valid_for_recalibration(self):
+    def is_valid_for_recalibration(self) -> bool:
         return self.total > 0 and self.indexed is not None and self.indexed > 0
 
 
@@ -374,10 +373,10 @@ class GetActiveOrgsVolumes:
     def __init__(
         self,
         max_orgs: int = MAX_ORGS_PER_QUERY,
-        time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
+        time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
         granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
         include_keep=True,
-        orgs: Optional[List[int]] = None,
+        orgs: list[int] | None = None,
     ):
         self.include_keep = include_keep
         self.orgs = orgs
@@ -404,7 +403,7 @@ class GetActiveOrgsVolumes:
             self.keep_count_column = None
 
         self.offset = 0
-        self.last_result: List[OrganizationDataVolume] = []
+        self.last_result: list[OrganizationDataVolume] = []
         self.has_more_results = True
         self.max_orgs = max_orgs
         self.log_state = DynamicSamplingLogState()
@@ -414,7 +413,7 @@ class GetActiveOrgsVolumes:
     def __iter__(self):
         return self
 
-    def __next__(self) -> List[OrganizationDataVolume]:
+    def __next__(self) -> list[OrganizationDataVolume]:
         self.log_state.num_iterations += 1
         if self._enough_results_cached():
             # we have enough in the cache to satisfy the current iteration
@@ -447,6 +446,7 @@ class GetActiveOrgsVolumes:
                         Column("org_id"),
                     ],
                     where=where,
+                    granularity=self.granularity,
                 )
                 .set_limit(CHUNK_SIZE + 1)
                 .set_offset(self.offset)
@@ -502,7 +502,7 @@ class GetActiveOrgsVolumes:
         """
         return len(self.last_result) >= self.max_orgs
 
-    def _get_from_cache(self) -> List[OrganizationDataVolume]:
+    def _get_from_cache(self) -> list[OrganizationDataVolume]:
         """
         Returns a batch from cache and removes the elements returned from the cache
         """
@@ -517,7 +517,7 @@ class GetActiveOrgsVolumes:
 
 
 def fetch_orgs_with_total_root_transactions_count(
-    org_ids: List[int], window_size: int
+    org_ids: list[int], window_size: int
 ) -> Mapping[OrganizationId, int]:
     """
     Fetches for each org the total root transaction count.
@@ -578,21 +578,15 @@ def fetch_orgs_with_total_root_transactions_count(
 
         if not more_results:
             break
-    else:
-        log_query_timeout(
-            query="fetch_orgs_with_total_root_transactions_count",
-            offset=offset,
-            timeout_seconds=MAX_SECONDS,
-        )
 
     return aggregated_projects
 
 
 def get_organization_volume(
     org_id: int,
-    time_interval: timedelta = RECALIBRATE_ORGS_QUERY_INTERVAL,
+    time_interval: timedelta = ACTIVE_ORGS_VOLUMES_DEFAULT_TIME_INTERVAL,
     granularity: Granularity = ACTIVE_ORGS_VOLUMES_DEFAULT_GRANULARITY,
-) -> Optional[OrganizationDataVolume]:
+) -> OrganizationDataVolume | None:
     """
     Specialized version of GetActiveOrgsVolumes that returns a single org
     """
@@ -607,7 +601,7 @@ def get_organization_volume(
     return None
 
 
-def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
+def sample_rate_to_float(sample_rate: str | None) -> float | None:
     """
     Converts a sample rate to a float or returns None in case the conversion failed.
     """
@@ -620,7 +614,7 @@ def sample_rate_to_float(sample_rate: Optional[str]) -> Optional[float]:
         return None
 
 
-def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
+def are_equal_with_epsilon(a: float | None, b: float | None) -> bool:
     """
     Checks if two floating point numbers are equal within an error boundary.
     """
@@ -635,11 +629,11 @@ def are_equal_with_epsilon(a: Optional[float], b: Optional[float]) -> bool:
 
 def compute_guarded_sliding_window_sample_rate(
     org_id: int,
-    project_id: Optional[int],
+    project_id: int | None,
     total_root_count: int,
     window_size: int,
     context: TaskContext,
-) -> Optional[float]:
+) -> float | None:
     """
     Computes the actual sliding window sample rate by guarding any exceptions and returning None in case
     any problem would arise.
@@ -656,8 +650,8 @@ def compute_guarded_sliding_window_sample_rate(
 
 
 def compute_sliding_window_sample_rate(
-    org_id: int, project_id: Optional[int], total_root_count: int, window_size: int, context
-) -> Optional[float]:
+    org_id: int, project_id: int | None, total_root_count: int, window_size: int, context
+) -> float | None:
     """
     Computes the actual sample rate for the sliding window given the total root count and the size of the
     window that was used for computing the root count.
@@ -680,13 +674,19 @@ def compute_sliding_window_sample_rate(
         return None
 
     # We want to log the monthly volume for observability purposes.
-    log_extrapolated_monthly_volume(
-        org_id, project_id, total_root_count, extrapolated_volume, window_size
+    sample_function(
+        function=log_extrapolated_monthly_volume,
+        _sample_rate=0.1,
+        org_id=org_id,
+        project_id=project_id,
+        volume=total_root_count,
+        extrapolated_volume=extrapolated_volume,
+        window_size=window_size,
     )
 
     func_name = "get_transaction_sampling_tier_for_volume"
     with context.get_timer(func_name):
-        sampling_tier = quotas.get_transaction_sampling_tier_for_volume(  # type:ignore
+        sampling_tier = quotas.backend.get_transaction_sampling_tier_for_volume(
             org_id, extrapolated_volume
         )
         state = context.get_function_state(func_name)

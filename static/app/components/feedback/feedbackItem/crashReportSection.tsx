@@ -7,7 +7,7 @@ import useFetchCrashReport from 'sentry/components/feedback/feedbackItem/useFetc
 import Placeholder from 'sentry/components/placeholder';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 interface Props {
   crashReportId: string;
@@ -44,9 +44,8 @@ export default function CrashReportSection({
         eventId={crashReportId}
         organization={organization}
         data={groupData}
-        size="normal"
       />
-      <EventOrGroupExtraDetails data={groupData} showInboxTime />
+      <EventOrGroupExtraDetails data={groupData} />
     </IssueDetailsContainer>
   );
 }

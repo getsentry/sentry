@@ -6,16 +6,18 @@ from sentry import tagstore
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
+from sentry.api.utils import handle_query_errors
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_measurement
 
 
 @region_silo_endpoint
-class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
+class OrganizationTagsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
 
@@ -26,7 +28,7 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
             return Response([])
 
         with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
-            with self.handle_query_errors():
+            with handle_query_errors():
                 results = tagstore.backend.get_tag_keys_for_projects(
                     filter_params["project_id"],
                     filter_params.get("environment"),

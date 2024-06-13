@@ -1,16 +1,23 @@
 import {Fragment} from 'react';
 
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 
-import {getKnownData, getUnknownData} from '../utils';
+import {
+  getContextMeta,
+  getKnownData,
+  getKnownStructuredData,
+  getUnknownData,
+} from '../utils';
 
 import {getBrowserKnownDataDetails} from './getBrowserKnownDataDetails';
-import {BrowserKnownData, BrowserKnownDataType} from './types';
+import type {BrowserKnownData} from './types';
+import {BrowserKnownDataType} from './types';
 
 type Props = {
   data: BrowserKnownData;
   event: Event;
+  meta?: Record<string, any>;
 };
 
 export const browserKnownDataValues = [
@@ -18,25 +25,32 @@ export const browserKnownDataValues = [
   BrowserKnownDataType.VERSION,
 ];
 
-export function BrowserEventContext({data, event}: Props) {
-  const meta = event._meta?.contexts?.browser ?? {};
+export function getKnownBrowserContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
+  return getKnownData<BrowserKnownData, BrowserKnownDataType>({
+    data,
+    meta,
+    knownDataTypes: browserKnownDataValues,
+    onGetKnownDataDetails: v => getBrowserKnownDataDetails(v),
+  });
+}
+
+export function getUnknownBrowserContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
+  return getUnknownData({
+    allData: data,
+    knownKeys: [...browserKnownDataValues],
+    meta,
+  });
+}
+
+export function BrowserEventContext({data, event, meta: propsMeta}: Props) {
+  const meta = propsMeta ?? getContextMeta(event, 'browser');
+  const knownData = getKnownBrowserContextData({data, meta});
+  const knownStructuredData = getKnownStructuredData(knownData, meta);
+  const unknownData = getUnknownBrowserContextData({data, meta});
   return (
     <Fragment>
-      <ContextBlock
-        data={getKnownData<BrowserKnownData, BrowserKnownDataType>({
-          data,
-          meta,
-          knownDataTypes: browserKnownDataValues,
-          onGetKnownDataDetails: v => getBrowserKnownDataDetails(v),
-        })}
-      />
-      <ContextBlock
-        data={getUnknownData({
-          allData: data,
-          knownKeys: [...browserKnownDataValues],
-          meta,
-        })}
-      />
+      <ContextBlock data={knownStructuredData} />
+      <ContextBlock data={unknownData} />
     </Fragment>
   );
 }

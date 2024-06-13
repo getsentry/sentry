@@ -7,7 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.relocation import Relocation
 
@@ -25,7 +25,7 @@ class RelocationAbortEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
     def put(self, request: Request, relocation_uuid: str) -> Response:
         """

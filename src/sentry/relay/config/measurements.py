@@ -1,7 +1,8 @@
 """ Relay configuration related to transaction measurements. """
 
 
-from typing import Literal, Sequence, TypedDict
+from collections.abc import Sequence
+from typing import Literal, TypedDict
 
 #: The maximum number of custom measurements to be extracted from transactions.
 CUSTOM_MEASUREMENT_LIMIT = 10
@@ -50,12 +51,14 @@ BUILTIN_MEASUREMENTS: Sequence[BuiltinMeasurementKey] = [
     {"name": "score.fid", "unit": "ratio"},
     {"name": "score.lcp", "unit": "ratio"},
     {"name": "score.ttfb", "unit": "ratio"},
+    {"name": "score.inp", "unit": "ratio"},
     {"name": "score.total", "unit": "ratio"},
     {"name": "score.weight.cls", "unit": "ratio"},
     {"name": "score.weight.fcp", "unit": "ratio"},
     {"name": "score.weight.fid", "unit": "ratio"},
     {"name": "score.weight.lcp", "unit": "ratio"},
     {"name": "score.weight.ttfb", "unit": "ratio"},
+    {"name": "score.weight.inp", "unit": "ratio"},
 ]
 
 

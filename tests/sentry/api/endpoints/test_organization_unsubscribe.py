@@ -4,11 +4,10 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.linksign import generate_signed_link
 
 
-@region_silo_test
 class OrganizationUnsubscribeProjectTest(APITestCase):
     endpoint = "sentry-api-0-organization-unsubscribe-project"
 
@@ -73,7 +72,7 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
         resp = self.client.get(path)
         assert resp.status_code == 404
 
-    def test_post_success(self):
+    def test_post_success_slug(self):
         project = self.create_project(organization=self.organization)
         path = generate_signed_link(
             user=self.user, viewname=self.endpoint, args=[self.organization.slug, project.id]
@@ -89,8 +88,23 @@ class OrganizationUnsubscribeProjectTest(APITestCase):
                 value="never",
             ).exists()
 
+    def test_post_success_id(self):
+        project = self.create_project(organization=self.organization)
+        path = generate_signed_link(
+            user=self.user, viewname=self.endpoint, args=[self.organization.id, project.id]
+        )
+        resp = self.client.post(path, data={"cancel": "1"})
+        assert resp.status_code == 201
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert NotificationSettingOption.objects.filter(
+                user_id=self.user.id,
+                scope_type="project",
+                scope_identifier=project.id,
+                type="alerts",
+                value="never",
+            ).exists()
 
-@region_silo_test
+
 class OrganizationUnsubscribeIssueTest(APITestCase):
     endpoint = "sentry-api-0-organization-unsubscribe-issue"
 
@@ -141,10 +155,21 @@ class OrganizationUnsubscribeIssueTest(APITestCase):
         resp = self.client.post(path)
         assert resp.status_code == 404
 
-    def test_post_success(self):
+    def test_post_success_slug(self):
         group = self.create_group(project=self.project)
         path = generate_signed_link(
             user=self.user, viewname=self.endpoint, args=[self.organization.slug, group.id]
+        )
+        resp = self.client.post(path, data={"cancel": "1"})
+        assert resp.status_code == 201
+
+        sub = GroupSubscription.objects.get(group=group, user_id=self.user.id)
+        assert sub.is_active is False
+
+    def test_post_success_id(self):
+        group = self.create_group(project=self.project)
+        path = generate_signed_link(
+            user=self.user, viewname=self.endpoint, args=[self.organization.id, group.id]
         )
         resp = self.client.post(path, data={"cancel": "1"})
         assert resp.status_code == 201

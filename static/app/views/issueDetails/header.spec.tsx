@@ -1,20 +1,20 @@
-import {browserHistory} from 'react-router';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory, PriorityLevel} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupHeader from 'sentry/views/issueDetails/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
-describe('groupDetails', () => {
+describe('GroupHeader', () => {
   const baseUrl = 'BASE_URL/';
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const project = ProjectFixture({
-    teams: [Team()],
+    teams: [TeamFixture()],
   });
 
   describe('issue category: error, js project', () => {
@@ -27,7 +27,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const jsProjectWithSimilarityView = ProjectFixture({
@@ -58,16 +58,28 @@ describe('groupDetails', () => {
       expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
 
       await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/activity/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/activity/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/feedback/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/feedback/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/attachments/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/attachments/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/tags/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -76,10 +88,16 @@ describe('groupDetails', () => {
       });
 
       await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/merged/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/merged/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /replays/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/replays/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/replays/',
+        query: {},
+      });
 
       expect(screen.queryByRole('tab', {name: /replays/i})).toBeInTheDocument();
     });
@@ -95,7 +113,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
       const mobileProjectWithSimilarityView = ProjectFixture({
@@ -123,7 +141,10 @@ describe('groupDetails', () => {
       );
 
       await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/similar/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/similar/',
+        query: {},
+      });
 
       expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
     });
@@ -139,7 +160,7 @@ describe('groupDetails', () => {
     };
 
     it('displays the correct tabs with all features enabled', async () => {
-      const orgWithFeatures = Organization({
+      const orgWithFeatures = OrganizationFixture({
         features: ['similarity-view', 'event-attachments', 'session-replay'],
       });
 
@@ -170,7 +191,10 @@ describe('groupDetails', () => {
       expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
 
       await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
-      expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
+      expect(browserHistory.push).toHaveBeenCalledWith({
+        pathname: 'BASE_URL/tags/',
+        query: {},
+      });
 
       await userEvent.click(screen.getByRole('tab', {name: /sampled events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -185,6 +209,47 @@ describe('groupDetails', () => {
         screen.queryByRole('tab', {name: /similar issues/i})
       ).not.toBeInTheDocument();
       expect(screen.queryByRole('tab', {name: /replays/i})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('priority', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/prompts-activity/',
+        body: {data: {dismissed_ts: null}},
+      });
+    });
+
+    it('can change priority', async () => {
+      const mockModifyIssue = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/issues/`,
+        method: 'PUT',
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/replay-count/',
+        body: {},
+      });
+
+      render(
+        <GroupHeader
+          baseUrl=""
+          organization={OrganizationFixture({features: ['issue-priority-ui']})}
+          group={GroupFixture({priority: PriorityLevel.MEDIUM})}
+          project={ProjectFixture()}
+          groupReprocessingStatus={ReprocessingStatus.NO_STATUS}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Modify issue priority'}));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+      expect(mockModifyIssue).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {priority: PriorityLevel.HIGH},
+        })
+      );
     });
   });
 });

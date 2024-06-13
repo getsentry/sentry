@@ -1,39 +1,49 @@
-import {Fragment, useState} from 'react';
+import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
+import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {t} from 'sentry/locale';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {calculatePerformanceScoreFromTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/calculatePerformanceScore';
+import {
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
+import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import {useStoredScoresSetting} from 'sentry/views/performance/browser/webVitals/utils/useStoredScoresSetting';
 import {WebVitalsDetailPanel} from 'sentry/views/performance/browser/webVitals/webVitalsDetailPanel';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
-export default function WebVitalsLandingPage() {
+export function WebVitalsLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
-  const shouldUseStoredScores = useStoredScoresSetting();
 
   const router = useRouter();
 
@@ -43,40 +53,48 @@ export default function WebVitalsLandingPage() {
 
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({enabled: shouldUseStoredScores});
+    useProjectWebVitalsScoresQuery();
 
   const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
 
   const projectScore =
-    (shouldUseStoredScores && isProjectScoresLoading) || isLoading || noTransactions
+    isProjectScoresLoading || isLoading || noTransactions
       ? undefined
-      : shouldUseStoredScores
-      ? calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0])
-      : calculatePerformanceScoreFromTableDataRow(projectData?.data?.[0]);
+      : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
+
+  useHasDataTrackAnalytics(
+    new MutableSearch(
+      // TODO: check for all possible WebVital data sources
+      'span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press]'
+    ),
+    'api.performance.vital.vital-landing',
+    'insight.page_loads.vital'
+  );
+
+  const crumbs = useModuleBreadcrumbs('vital');
 
   return (
-    <ModulePageProviders title={[t('Performance'), t('Web Vitals')].join(' — ')}>
+    <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Web Vitals',
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>{t('Web Vitals')}</Layout.Title>
+          <Layout.Title>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
-        <FloatingFeedbackWidget />
         <Layout.Main fullWidth>
           <TopMenuContainer>
             <PageFilterBar condensed>
@@ -96,9 +114,7 @@ export default function WebVitalsLandingPage() {
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
-                  isProjectScoreLoading={
-                    isLoading || (shouldUseStoredScores && isProjectScoresLoading)
-                  }
+                  isProjectScoreLoading={isLoading || isProjectScoresLoading}
                   webVital={state.webVital}
                 />
               </PerformanceScoreChartContainer>
@@ -110,6 +126,33 @@ export default function WebVitalsLandingPage() {
                 />
               </WebVitalMetersContainer>
               <PagePerformanceTable />
+              <PagesTooltipContainer>
+                <Tooltip
+                  isHoverable
+                  title={
+                    <div>
+                      <div>
+                        {tct(
+                          'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks [link:here].',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
+                            ),
+                          }
+                        )}
+                      </div>
+                      <br />
+                      <div>
+                        {t(
+                          'Keep your JavaScript SDK updated to the latest version for the best Web Vitals support.'
+                        )}
+                      </div>
+                    </div>
+                  }
+                >
+                  <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
+                </Tooltip>
+              </PagesTooltipContainer>
             </Fragment>
           )}
         </Layout.Main>
@@ -124,9 +167,19 @@ export default function WebVitalsLandingPage() {
           setState({...state, webVital: null});
         }}
       />
+    </React.Fragment>
+  );
+}
+
+function PageWithProviders() {
+  return (
+    <ModulePageProviders moduleName="vital" features="insights-initial-modules">
+      <WebVitalsLandingPage />
     </ModulePageProviders>
   );
 }
+
+export default PageWithProviders;
 
 const TopMenuContainer = styled('div')`
   display: flex;
@@ -142,4 +195,33 @@ const OnboardingContainer = styled('div')`
 
 const WebVitalMetersContainer = styled('div')`
   margin-bottom: ${space(4)};
+`;
+
+export const AlertContent = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+export const DismissButton = styled(Button)`
+  color: ${p => p.theme.alert.info.color};
+  pointer-events: all;
+  &:hover {
+    opacity: 0.5;
+  }
+`;
+
+export const StyledAlert = styled(Alert)`
+  margin-top: ${space(2)};
+`;
+
+export const PagesTooltip = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
+  text-decoration: underline dotted ${p => p.theme.gray300};
+`;
+
+export const PagesTooltipContainer = styled('div')`
+  display: flex;
 `;

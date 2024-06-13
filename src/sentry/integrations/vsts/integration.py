@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from time import time
-from typing import Any, Collection, Mapping, MutableMapping, Sequence
+from typing import Any
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from django import forms
@@ -16,7 +17,7 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.identity.vsts.provider import get_user_info
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -40,10 +41,9 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationProviderError,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 from sentry.web.helpers import render_to_response
 
 from .client import VstsApiClient, VstsSetupApiClient
@@ -518,7 +518,7 @@ class VstsIntegrationProvider(IntegrationProvider):
                     "Please ensure third-party app access via OAuth is enabled \n"
                     "in the organization's security policy."
                 )
-            raise e
+            raise
 
         subscription_id = subscription["id"]
         return subscription_id, shared_secret
@@ -609,7 +609,7 @@ class AccountConfigView(PipelineView):
                 return account
         return None
 
-    def get_accounts(self, access_token: str, user_id: int) -> JSONData | None:
+    def get_accounts(self, access_token: str, user_id: int) -> Any | None:
         url = (
             f"https://app.vssps.visualstudio.com/_apis/accounts?memberId={user_id}&api-version=4.1"
         )

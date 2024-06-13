@@ -2,10 +2,8 @@ from django.urls import reverse
 
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class UpdateOrganizationAccessRequestTest(APITestCase):
     def test_owner_can_list_access_requests(self):
         self.login_as(user=self.user)

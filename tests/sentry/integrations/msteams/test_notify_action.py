@@ -2,14 +2,15 @@ import re
 import time
 from unittest import mock
 
+import orjson
 import responses
 
 from sentry.integrations.msteams import MsTeamsNotifyServiceAction
-from sentry.models.integrations.integration import Integration
+from sentry.models.integrations import Integration
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -20,7 +21,9 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def setUp(self):
         event = self.get_event()
 
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            event.project.organization,
+            self.user,
             provider="msteams",
             name="Galactic Empire",
             external_id="D4r7h_Pl4gu315_th3_w153",
@@ -30,7 +33,6 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        self.integration.add_organization(event.project.organization, self.user)
 
     def assert_form_valid(self, form, expected_channel_id, expected_channel):
         assert form.is_valid()
@@ -47,9 +49,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
-        results = list(
-            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-        )
+        results = list(rule.after(event=event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
         responses.add(
@@ -60,7 +60,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         )
 
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert "attachments" in data
         attachments = data["attachments"]
@@ -107,7 +107,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Hellboy", "channel_id": "nb"}
         )
-        results = list(rule.after(event=group_event, state=self.get_state()))
+        results = list(rule.after(event=group_event))
         assert len(results) == 1
 
         responses.add(
@@ -119,7 +119,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         results[0].callback(event, futures=[])
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert "attachments" in data
         attachments = data["attachments"]
         assert len(attachments) == 1
@@ -145,7 +145,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(
             data={"team": self.integration.id, "channel": "Naboo", "channel_id": "nb"}
         )
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -157,7 +157,7 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         results[0].callback(event, futures=[])
 
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
         assert "attachments" in data
         attachments = data["attachments"]
         assert len(attachments) == 1
@@ -179,7 +179,8 @@ class MsTeamsNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert rule.render_label() == "Send a notification to the Galactic Empire Team to Tatooine"
 
     def test_render_label_without_integration(self):
-        self.integration.delete()
+        with assume_test_silo_mode_of(Integration):
+            self.integration.delete()
 
         rule = self.get_rule(data={"team": self.integration.id, "channel": "Coruscant"})
 

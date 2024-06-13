@@ -4,6 +4,11 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportBackendInstallStep,
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {getPythonMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import {t, tct} from 'sentry/locale';
 
@@ -34,7 +39,7 @@ sentry_sdk.init(
 )`;
 
 const onboarding: OnboardingConfig = {
-  install: () => [
+  install: (params: Params) => [
     {
       type: StepType.INSTALL,
       description: tct('Install our Python SDK using [code:pip]:', {
@@ -42,6 +47,15 @@ const onboarding: OnboardingConfig = {
       }),
       configurations: [
         {
+          description: params.isProfilingSelected
+            ? tct(
+                'You need a minimum version [codeVersion:1.18.0] of the [codePackage:sentry-python] SDK for the profiling feature.',
+                {
+                  codeVersion: <code />,
+                  codePackage: <code />,
+                }
+              )
+            : undefined,
           language: 'bash',
           code: getInstallSnippet(),
         },
@@ -81,11 +95,27 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+export const crashReportOnboardingPython: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportBackendInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/python/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   customMetricsOnboarding: getPythonMetricsOnboarding({
     installSnippet: getInstallSnippet(),
   }),
+  crashReportOnboarding: crashReportOnboardingPython,
 };
 
 export default docs;

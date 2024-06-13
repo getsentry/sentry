@@ -7,7 +7,8 @@ import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepo} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 
 import CustomRepositoryActions from './actions';
 import Details from './details';
@@ -71,14 +72,14 @@ function Repository({
                 !hasFeature
                   ? undefined
                   : !hasAccess
-                  ? t(
-                      'You do not have permission to edit custom repositories configurations.'
-                    )
-                  : !authenticated
-                  ? t(
-                      'Authentication is required before this repository can sync with App Store Connect.'
-                    )
-                  : undefined
+                    ? t(
+                        'You do not have permission to edit custom repositories configurations.'
+                      )
+                    : !authenticated
+                      ? t(
+                          'Authentication is required before this repository can sync with App Store Connect.'
+                        )
+                      : undefined
               }
             >
               {t('Sync Now')}

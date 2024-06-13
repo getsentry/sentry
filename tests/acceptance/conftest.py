@@ -3,7 +3,6 @@ import subprocess
 import sys
 import time
 
-from sentry.testutils.pytest.sentry import configure_split_db
 from sentry.utils import json
 
 
@@ -70,5 +69,3 @@ def pytest_configure(config):
         raise Exception(
             "Unable to run `yarn` -- make sure your development environment is setup correctly: https://docs.sentry.io/development/contribute/environment/#macos---nodejs"
         )
-
-    configure_split_db()

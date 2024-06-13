@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import GridEditable, {
@@ -15,11 +14,14 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import {
   isFieldSortable,
   pickRelevantLocationQueryStrings,
 } from 'sentry/utils/discover/eventView';
@@ -28,17 +30,14 @@ import {
   getFieldRenderer,
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
+import type {Column} from 'sentry/utils/discover/fields';
 import {
-  Column,
   fieldAlignment,
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
-import {
-  eventDetailsRouteWithEventView,
-  generateEventSlug,
-} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
@@ -47,6 +46,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -62,7 +62,7 @@ import CellAction, {Actions, updateQuery} from './cellAction';
 import ColumnEditModal, {modalCss} from './columnEditModal';
 import TableActions from './tableActions';
 import TopResultsIndicator from './topResultsIndicator';
-import {TableColumn} from './types';
+import type {TableColumn} from './types';
 
 export type TableViewProps = {
   error: string | null;
@@ -182,19 +182,40 @@ function TableView(props: TableViewProps) {
     if (!hasIdField) {
       let value = dataRow.id;
 
-      if (tableData && tableData.meta) {
+      if (tableData?.meta) {
         const fieldRenderer = getFieldRenderer('id', tableData.meta);
         value = fieldRenderer(dataRow, {organization, location});
       }
 
-      const eventSlug = generateEventSlug(dataRow);
+      let target;
+      if (dataRow['event.type'] === 'transaction') {
+        if (dataRow.trace === null) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
 
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
-        eventView,
-        isHomepage,
-      });
+        target = generateLinkToEventInTraceView({
+          traceSlug: dataRow.trace,
+          eventId: dataRow.id,
+          projectSlug: dataRow.project || dataRow['project.name'],
+          timestamp: dataRow.timestamp,
+          organization,
+          isHomepage,
+          location,
+          eventView,
+          type: 'discover',
+          source: TraceViewSources.DISCOVER,
+        });
+      } else {
+        const project = dataRow.project || dataRow['project.name'];
+
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      }
 
       const eventIdLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -294,14 +315,36 @@ function TableView(props: TableViewProps) {
     let cell = fieldRenderer(dataRow, {organization, location, unit});
 
     if (columnKey === 'id') {
-      const eventSlug = generateEventSlug(dataRow);
+      let target;
 
-      const target = eventDetailsRouteWithEventView({
-        orgSlug: organization.slug,
-        eventSlug,
-        eventView,
-        isHomepage,
-      });
+      if (dataRow['event.type'] === 'transaction') {
+        if (dataRow.trace === null) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
+        target = generateLinkToEventInTraceView({
+          traceSlug: dataRow.trace?.toString(),
+          eventId: dataRow.id,
+          projectSlug: (dataRow.project || dataRow['project.name']).toString(),
+          timestamp: dataRow.timestamp,
+          organization,
+          isHomepage,
+          location,
+          eventView,
+          type: 'discover',
+          source: TraceViewSources.DISCOVER,
+        });
+      } else {
+        const project = dataRow.project || dataRow['project.name'];
+
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      }
 
       const idLink = (
         <StyledLink data-test-id="view-event" to={target}>
@@ -336,14 +379,19 @@ function TableView(props: TableViewProps) {
         </TransactionLink>
       );
     } else if (columnKey === 'trace') {
+      const timestamp = getTimeStampFromTableDateField(
+        dataRow['max(timestamp)'] ?? dataRow.timestamp
+      );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
-        const target = getTraceDetailsUrl(
+        const target = getTraceDetailsUrl({
           organization,
-          String(dataRow.trace),
+          traceSlug: String(dataRow.trace),
           dateSelection,
-          {}
-        );
+          timestamp,
+          location,
+          source: TraceViewSources.DISCOVER,
+        });
 
         cell = (
           <Tooltip title={t('View Trace')}>
@@ -595,7 +643,7 @@ function TableView(props: TableViewProps) {
     );
   }
 
-  const {error, eventView, isLoading, location, tableData} = props;
+  const {error, eventView, isLoading, tableData} = props;
 
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
@@ -603,8 +651,8 @@ function TableView(props: TableViewProps) {
   const prependColumnWidths = eventView.hasAggregateField()
     ? ['40px']
     : eventView.hasIdField()
-    ? []
-    : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
+      ? []
+      : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
   return (
     <GridEditable
@@ -622,7 +670,6 @@ function TableView(props: TableViewProps) {
         prependColumnWidths,
       }}
       headerButtons={renderHeaderButtons}
-      location={location}
     />
   );
 }

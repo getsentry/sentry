@@ -30,8 +30,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
+    def convert_args(self, request: Request, organization_id_or_slug, config_id, *args, **kwargs):
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, config_id, *args, **kwargs
+        )
         ois = integration_service.get_organization_integrations(
             organization_id=kwargs["organization"].id
         )
@@ -50,7 +52,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         Update a repository project path config
         ``````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param int repository_id:
         :param int project_id:
@@ -59,6 +61,8 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:
             # We expect there to exist an org_integration
@@ -92,6 +96,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
         :auth: required
         """
+
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         try:
             config.delete()
             return self.respond(status=status.HTTP_204_NO_CONTENT)

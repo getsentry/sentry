@@ -2,14 +2,12 @@ import {createRef, Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Input, {InputProps} from 'sentry/components/input';
+import type {InputProps} from 'sentry/components/input';
+import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  Column,
-  generateFieldAsString,
-  isLegalEquationColumn,
-} from 'sentry/utils/discover/fields';
+import type {Column} from 'sentry/utils/discover/fields';
+import {generateFieldAsString, isLegalEquationColumn} from 'sentry/utils/discover/fields';
 
 const NONE_SELECTED = -1;
 
@@ -166,7 +164,7 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       event.preventDefault();
 
       const newOptionGroups = makeOptions(options, partialTerm, hideFieldOptions);
-      const flattenedOptions = newOptionGroups.map(group => group.options).flat();
+      const flattenedOptions = newOptionGroups.flatMap(group => group.options);
       if (flattenedOptions.length === 0) {
         return;
       }
@@ -439,7 +437,7 @@ const DropdownTitle = styled('header')`
 
   background-color: ${p => p.theme.backgroundSecondary};
   color: ${p => p.theme.gray300};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
 
   margin: 0;
@@ -464,7 +462,7 @@ const DropdownListItem = styled(ListItem)`
 
 const DropdownItemTitleWrapper = styled('div')`
   color: ${p => p.theme.textColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: 0;
   line-height: ${p => p.theme.text.lineHeightHeading};

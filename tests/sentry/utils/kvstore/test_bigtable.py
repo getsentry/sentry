@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import functools
 import os
-from typing import Optional
 
 import pytest
 
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
-def create_store(request, compression: Optional[str] = None) -> BigtableKVStorage:
+def create_store(request, compression: str | None = None) -> BigtableKVStorage:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
             "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
@@ -40,7 +39,7 @@ def store_factory(request):
     ids=["zlib", "ident", "zstd"],
 )
 def test_compression_raw_values(
-    compression: Optional[str],
+    compression: str | None,
     flag: BigtableKVStorage.Flags | None,
     expected_prefix: bytes,
     request,

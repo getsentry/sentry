@@ -5,7 +5,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {Permissions, Scope, WebhookEvent} from 'sentry/types';
+import type {Permissions, Scope, WebhookEvent} from 'sentry/types';
 import {
   comparePermissionLevels,
   toResourcePermissions,
@@ -20,6 +20,7 @@ type DefaultProps = {
 
 type Props = DefaultProps & {
   events: WebhookEvent[];
+  newApp: boolean;
   scopes: Scope[];
 };
 
@@ -87,11 +88,11 @@ export default class PermissionsObserver extends Component<Props, State> {
   renderCallout() {
     const {elevating} = this.state;
 
-    if (elevating === true) {
+    if (!this.props.newApp && elevating === true) {
       return (
         <Alert type="warning" showIcon>
           {t(
-            'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider re-creating the integration.'
+            'You are going to increase privileges for this integration. Organization members who already had access to the Client Secret may gain extra permissions due to this change. If this is not what you are expecting, consider rotating the Client Secret below.'
           )}
         </Alert>
       );

@@ -1,9 +1,9 @@
-from typing import Any, Dict, TypedDict
+from typing import Any, TypedDict
 
 
 class SentryEventData(TypedDict):
     tag: str
-    payload: Dict[str, Any]
+    payload: dict[str, Any]
 
 
 class SentryEvent(TypedDict):

@@ -7,7 +7,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SelectValue, TagCollection} from 'sentry/types';
+import type {SelectValue, TagCollection} from 'sentry/types';
 import {
   EQUATION_PREFIX,
   explodeField,
@@ -18,8 +18,10 @@ import {
 } from 'sentry/utils/discover/fields';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {DisplayType, WidgetQuery, WidgetType} from 'sentry/views/dashboards/types';
-import {SortDirection, sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
+import type {WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {SortDirection} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {sortDirections} from 'sentry/views/dashboards/widgetBuilder/utils';
 import ArithmeticInput from 'sentry/views/discover/table/arithmeticInput';
 import {QueryField} from 'sentry/views/discover/table/queryField';
 
@@ -80,7 +82,7 @@ export function SortBySelectors({
       >
         <SelectControl
           name="sortDirection"
-          aria-label="Sort direction"
+          aria-label={t('Sort direction')}
           menuPlacement="auto"
           disabled={disableSortDirection}
           options={Object.keys(sortDirections).map(value => ({
@@ -103,7 +105,7 @@ export function SortBySelectors({
         {displayType === DisplayType.TABLE ? (
           <SelectControl
             name="sortBy"
-            aria-label="Sort by"
+            aria-label={t('Sort by')}
             menuPlacement="auto"
             disabled={disableSort}
             placeholder={`${t('Select a column')}\u{2026}`}
@@ -123,9 +125,12 @@ export function SortBySelectors({
           <QueryField
             disabled={disableSort}
             fieldValue={
-              showCustomEquation
-                ? explodeField({field: CUSTOM_EQUATION_VALUE})
-                : explodeField({field: values.sortBy})
+              // Fields in metrics widgets would parse as function in explodeField
+              widgetType === WidgetType.METRICS
+                ? {kind: 'field', field: values.sortBy}
+                : showCustomEquation
+                  ? explodeField({field: CUSTOM_EQUATION_VALUE})
+                  : explodeField({field: values.sortBy})
             }
             fieldOptions={datasetConfig.getTimeseriesSortOptions!(
               organization,
@@ -137,7 +142,6 @@ export function SortBySelectors({
                 : undefined
             }
             filterAggregateParameters={datasetConfig.filterAggregateParams}
-            placeholder={widgetType === WidgetType.METRICS ? t('(tag)') : undefined}
             onChange={value => {
               if (value.alias && isEquationAlias(value.alias)) {
                 onChange({
@@ -154,7 +158,6 @@ export function SortBySelectors({
                 onChange(customEquation);
                 return;
               }
-
               onChange({
                 sortBy: parsedValue,
                 sortDirection: values.sortDirection,

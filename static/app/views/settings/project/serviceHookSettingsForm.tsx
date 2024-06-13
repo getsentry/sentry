@@ -1,5 +1,4 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 
 import ApiForm from 'sentry/components/forms/apiForm';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
@@ -10,7 +9,8 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
-import {Organization, ServiceHook} from 'sentry/types';
+import type {Organization, ServiceHook} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'];

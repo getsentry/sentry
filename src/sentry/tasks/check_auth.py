@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from random import randrange
-from typing import List
 
 from django.db import router
 from django.utils import timezone
@@ -14,8 +13,8 @@ from sentry.auth.exceptions import IdentityNotValid
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMember, organization_service
-from sentry.silo import unguarded_write
 from sentry.silo.base import SiloMode
+from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
@@ -65,7 +64,7 @@ def check_auth_identity(auth_identity_id: int, **kwargs):
 )
 def check_auth_identities(
     auth_identity_id: int | None = None,
-    auth_identity_ids: List[int] | None = None,
+    auth_identity_ids: list[int] | None = None,
     chunk_size=100,
     **kwargs,
 ):

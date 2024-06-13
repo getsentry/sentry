@@ -7,7 +7,7 @@ from sentry import audit_log, roles
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.endpoints.organization_member.index import OrganizationMemberRequestSerializer
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
@@ -61,7 +61,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         Creates an invite request given an email and suggested role / teams.
 
-        :pparam string organization_slug: the slug of the organization the member will belong to
+        :pparam string organization_id_or_slug: the id or slug of the organization the member will belong to
         :param string email: the email address to invite
         :param string role: the suggested role of the new member
         :param string orgRole: the suggested org-role of the new member
@@ -70,7 +70,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
         :auth: required
         """
-        serializer = OrganizationMemberSerializer(
+        serializer = OrganizationMemberRequestSerializer(
             data=request.data,
             context={"organization": organization, "allowed_roles": roles.get_all()},
         )

@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, Mapping, Tuple
+from typing import Any
 
+import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
@@ -25,7 +27,6 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -208,7 +209,7 @@ handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebho
 
 
 class GitlabWebhookMixin:
-    def _get_external_id(self, request, extra) -> Tuple[str, str] | HttpResponse:
+    def _get_external_id(self, request, extra) -> tuple[str, str] | HttpResponse:
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.
@@ -240,7 +241,7 @@ class GitlabWebhookMixin:
 class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
@@ -269,9 +270,11 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return result
         (external_id, secret) = result
 
-        integration, installs = integration_service.get_organization_contexts(
+        result = integration_service.organization_contexts(
             provider=self.provider, external_id=external_id
         )
+        integration = result.integration
+        installs = result.organization_integrations
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
@@ -308,8 +311,8 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return HttpResponse(status=409, reason=extra["reason"])
 
         try:
-            event = json.loads(request.body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             logger.info("gitlab.webhook.invalid-json", extra=extra)
             extra["reason"] = "Data received is not JSON."
             logger.exception(extra["reason"])
@@ -328,7 +331,9 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return HttpResponse(status=400, reason=extra["reason"])
 
         for install in installs:
-            org_context = organization_service.get_organization_by_id(id=install.organization_id)
+            org_context = organization_service.get_organization_by_id(
+                id=install.organization_id, include_teams=False, include_projects=False
+            )
             if org_context:
                 organization = org_context.organization
                 handler()(integration, organization, event)

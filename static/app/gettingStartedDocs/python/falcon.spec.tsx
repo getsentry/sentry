@@ -16,7 +16,7 @@ describe('falcon onboarding docs', function () {
     // Renders install instructions
     expect(
       screen.getByText(
-        textWithMarkupMatcher(/pip install --upgrade sentry-sdk\[falcon\]/)
+        textWithMarkupMatcher(/pip install --upgrade 'sentry-sdk\[falcon\]'/)
       )
     ).toBeInTheDocument();
   });

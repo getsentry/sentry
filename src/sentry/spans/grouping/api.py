@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any
 
 from sentry.spans.grouping.strategy.config import (
     CONFIGURATIONS,
@@ -11,7 +11,7 @@ class SpanGroupingConfigNotFound(LookupError):
     pass
 
 
-def load_span_grouping_config(config: Optional[Any] = None) -> SpanGroupingConfig:
+def load_span_grouping_config(config: Any | None = None) -> SpanGroupingConfig:
     if config is None:
         config_id = DEFAULT_CONFIG_ID
 

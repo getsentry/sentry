@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Sequence, Tuple
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 
@@ -20,7 +21,9 @@ class TaggedEventForm(forms.Form):
     value = forms.CharField(widget=forms.TextInput(), required=False)
 
     def clean(self) -> dict[str, Any] | None:
-        cleaned_data: dict[str, Any] = super().clean()
+        cleaned_data = super().clean()
+        if cleaned_data is None:
+            return None
 
         match = cleaned_data.get("match")
         value = cleaned_data.get("value")
@@ -42,7 +45,7 @@ class TaggedEventCondition(EventCondition):
         "value": {"type": "string", "placeholder": "value"},
     }
 
-    def _passes(self, raw_tags: Sequence[Tuple[str, Any]]) -> bool:
+    def _passes(self, raw_tags: Sequence[tuple[str, Any]]) -> bool:
         key = self.get_option("key")
         match = self.get_option("match")
         value = self.get_option("value")
@@ -132,7 +135,7 @@ class TaggedEventCondition(EventCondition):
         return self._passes(event.tags)
 
     def passes_activity(
-        self, condition_activity: ConditionActivity, event_map: Dict[str, Any]
+        self, condition_activity: ConditionActivity, event_map: dict[str, Any]
     ) -> bool:
         try:
             tags = event_map[condition_activity.data["event_id"]]["tags"]
@@ -148,8 +151,8 @@ class TaggedEventCondition(EventCondition):
         }
         return self.label.format(**data)
 
-    def get_event_columns(self) -> Dict[Dataset, Sequence[str]]:
-        columns: Dict[Dataset, Sequence[str]] = get_dataset_columns(
+    def get_event_columns(self) -> dict[Dataset, Sequence[str]]:
+        columns: dict[Dataset, Sequence[str]] = get_dataset_columns(
             [Columns.TAGS_KEY, Columns.TAGS_VALUE]
         )
         return columns

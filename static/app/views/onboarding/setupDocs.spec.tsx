@@ -1,4 +1,4 @@
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -6,10 +6,10 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
+import type {OnboardingRecentCreatedProject, Organization, Project} from 'sentry/types';
 import SetupDocs from 'sentry/views/onboarding/setupDocs';
 
-const PROJECT_KEY = ProjectKeys()[0];
+const PROJECT_KEY = ProjectKeysFixture()[0];
 
 function renderMockRequests({
   project,
@@ -57,7 +57,7 @@ function renderMockRequests({
 
 describe('Onboarding Setup Docs', function () {
   it('does not render Product Selection', async function () {
-    const {router, route, routerContext, organization, project} = initializeOrg({
+    const {router, organization, project} = initializeOrg({
       projects: [
         {
           ...initializeOrg().project,
@@ -79,7 +79,7 @@ describe('Onboarding Setup Docs', function () {
           onComplete={() => {}}
           stepIndex={2}
           router={router}
-          route={route}
+          route={{}}
           location={router.location}
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
@@ -88,7 +88,7 @@ describe('Onboarding Setup Docs', function () {
         />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -105,7 +105,7 @@ describe('Onboarding Setup Docs', function () {
   });
 
   it('renders SDK version from the sentry release registry', async function () {
-    const {router, route, routerContext, organization, project} = initializeOrg({
+    const {router, organization, project} = initializeOrg({
       projects: [
         {
           ...initializeOrg().project,
@@ -127,7 +127,7 @@ describe('Onboarding Setup Docs', function () {
           onComplete={() => {}}
           stepIndex={2}
           router={router}
-          route={route}
+          route={{}}
           location={router.location}
           genSkipOnboardingLink={() => ''}
           orgId={organization.slug}
@@ -136,7 +136,7 @@ describe('Onboarding Setup Docs', function () {
         />
       </OnboardingContextProvider>,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -148,7 +148,7 @@ describe('Onboarding Setup Docs', function () {
 
   describe('renders Product Selection', function () {
     it('all products checked', async function () {
-      const {router, route, routerContext, organization, project} = initializeOrg({
+      const {router, organization, project} = initializeOrg({
         router: {
           location: {
             query: {
@@ -183,7 +183,7 @@ describe('Onboarding Setup Docs', function () {
             onComplete={() => {}}
             stepIndex={2}
             router={router}
-            route={route}
+            route={{}}
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
@@ -192,7 +192,7 @@ describe('Onboarding Setup Docs', function () {
           />
         </OnboardingContextProvider>,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -207,7 +207,7 @@ describe('Onboarding Setup Docs', function () {
     });
 
     it('only performance checked', async function () {
-      const {router, route, routerContext, organization, project} = initializeOrg({
+      const {router, organization, project} = initializeOrg({
         router: {
           location: {
             query: {product: [ProductSolution.PERFORMANCE_MONITORING]},
@@ -237,7 +237,7 @@ describe('Onboarding Setup Docs', function () {
             onComplete={() => {}}
             stepIndex={2}
             router={router}
-            route={route}
+            route={{}}
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
@@ -246,7 +246,7 @@ describe('Onboarding Setup Docs', function () {
           />
         </OnboardingContextProvider>,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -257,7 +257,7 @@ describe('Onboarding Setup Docs', function () {
     });
 
     it('only session replay checked', async function () {
-      const {router, route, routerContext, organization, project} = initializeOrg({
+      const {router, organization, project} = initializeOrg({
         router: {
           location: {
             query: {product: [ProductSolution.SESSION_REPLAY]},
@@ -287,7 +287,7 @@ describe('Onboarding Setup Docs', function () {
             onComplete={() => {}}
             stepIndex={2}
             router={router}
-            route={route}
+            route={{}}
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
@@ -296,7 +296,7 @@ describe('Onboarding Setup Docs', function () {
           />
         </OnboardingContextProvider>,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -307,7 +307,7 @@ describe('Onboarding Setup Docs', function () {
     });
 
     it('only error monitoring checked', async function () {
-      const {router, route, routerContext, organization, project} = initializeOrg({
+      const {router, organization, project} = initializeOrg({
         router: {
           location: {
             query: {product: []},
@@ -337,7 +337,7 @@ describe('Onboarding Setup Docs', function () {
             onComplete={() => {}}
             stepIndex={2}
             router={router}
-            route={route}
+            route={{}}
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
@@ -346,7 +346,7 @@ describe('Onboarding Setup Docs', function () {
           />
         </OnboardingContextProvider>,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -361,7 +361,7 @@ describe('Onboarding Setup Docs', function () {
 
   describe('JS Loader Script', function () {
     it('renders Loader Script setup', async function () {
-      const {router, route, routerContext, organization, project} = initializeOrg({
+      const {router, organization, project} = initializeOrg({
         router: {
           location: {
             query: {
@@ -402,7 +402,7 @@ describe('Onboarding Setup Docs', function () {
             onComplete={() => {}}
             stepIndex={2}
             router={router}
-            route={route}
+            route={{}}
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
@@ -411,7 +411,7 @@ describe('Onboarding Setup Docs', function () {
           />
         </OnboardingContextProvider>,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -448,7 +448,7 @@ describe('Onboarding Setup Docs', function () {
             onComplete={() => {}}
             stepIndex={2}
             router={router}
-            route={route}
+            route={{}}
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
@@ -479,7 +479,7 @@ describe('Onboarding Setup Docs', function () {
 
   describe('special platforms', () => {
     it('renders platform other', async function () {
-      const {router, route, routerContext, organization, project} = initializeOrg({
+      const {router, organization, project} = initializeOrg({
         projects: [
           {
             ...initializeOrg().project,
@@ -501,7 +501,7 @@ describe('Onboarding Setup Docs', function () {
             onComplete={() => {}}
             stepIndex={2}
             router={router}
-            route={route}
+            route={{}}
             location={router.location}
             genSkipOnboardingLink={() => ''}
             orgId={organization.slug}
@@ -510,7 +510,7 @@ describe('Onboarding Setup Docs', function () {
           />
         </OnboardingContextProvider>,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );

@@ -1,12 +1,13 @@
-import {ReactNode} from 'react';
-import {PlainRoute, RouteComponentProps} from 'react-router';
+import type {ReactNode} from 'react';
+import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
   addSuccessMessage,
   clearIndicators,
-  Indicator,
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -16,7 +17,8 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
@@ -24,14 +26,20 @@ import ListItem from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
-import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
+import type {
+  EventsStats,
+  MultiSeriesEventsStats,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {AggregationKey} from 'sentry/utils/fields';
 import {
   getForceMetricsLayerQueryExtras,
-  hasDDMFeature,
+  hasCustomMetrics,
 } from 'sentry/utils/metrics/features';
 import {DEFAULT_METRIC_ALERT_FIELD, formatMRIField} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
@@ -54,10 +62,10 @@ import {
   hasIgnoreArchivedFeatureFlag,
   ruleNeedsErrorMigration,
 } from 'sentry/views/alerts/utils/migrationUi';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
-  MetricAlertType,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -71,16 +79,18 @@ import {
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import {
-  AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  AlertRuleTriggerType,
-  Dataset,
+import type {
   EventTypes,
   MetricActionTemplate,
   MetricRule,
   Trigger,
   UnsavedMetricRule,
+} from './types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+  Dataset,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -128,9 +138,10 @@ type State = {
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
+  activationCondition?: ActivationConditionType;
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
-  uuid?: string;
+  monitorType?: MonitorType;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -138,6 +149,7 @@ const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
+  uuid: string | null = null;
 
   get isDuplicateRule(): boolean {
     return Boolean(this.props.isDuplicateRule);
@@ -169,7 +181,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location} = this.props;
+    const {rule, location, organization} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -196,6 +208,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ? `is:unresolved ${rule.query ?? ''}`
       : rule.query ?? '';
 
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
+
     return {
       ...super.getDefaultState(),
 
@@ -220,6 +234,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
+      monitorType: hasActivatedAlerts
+        ? rule.monitorType || MonitorType.CONTINUOUS
+        : undefined,
+      activationCondition:
+        rule.activationCondition || ActivationConditionType.RELEASE_CREATION,
     };
   }
 
@@ -245,7 +264,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   resetPollingState = (loadingSlackIndicator: Indicator) => {
     IndicatorStore.remove(loadingSlackIndicator);
-    this.setState({loading: false, uuid: undefined});
+    this.uuid = null;
+    this.setState({loading: false});
   };
 
   fetchStatus(model: FormModel) {
@@ -279,11 +299,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onSubmitSuccess,
       params: {ruleId},
     } = this.props;
-    const {uuid, project} = this.state;
+    const {project} = this.state;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/alert-rule-task/${uuid}/`
+        `/projects/${organization.slug}/${project.slug}/alert-rule-task/${this.uuid}/`
       );
 
       const {status, alertRule, error} = response;
@@ -550,6 +570,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({query, dataset, isQueryValid});
   };
 
+  handleMonitorTypeSelect = (activatedAlertFields: {
+    activationCondition?: ActivationConditionType | undefined;
+    monitorType?: MonitorType;
+    monitorWindowSuffix?: string | undefined;
+    monitorWindowValue?: number | undefined;
+  }) => {
+    const {monitorType} = activatedAlertFields;
+    let updatedFields = activatedAlertFields;
+    if (monitorType === MonitorType.CONTINUOUS) {
+      updatedFields = {
+        ...updatedFields,
+        activationCondition: undefined,
+        monitorWindowValue: undefined,
+      };
+    }
+    this.setState(updatedFields as State);
+  };
+
   validateOnDemandMetricAlert() {
     if (
       !isOnDemandMetricAlert(this.state.dataset, this.state.aggregate, this.state.query)
@@ -560,16 +598,22 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return !this.state.aggregate.includes(AggregationKey.PERCENTILE);
   }
 
-  handleSubmit = async (
-    _data: Partial<MetricRule>,
-    _onSubmitSuccess,
-    _onSubmitError,
-    _e,
-    model: FormModel
-  ) => {
+  validateActivatedAlerts() {
+    const {organization} = this.props;
+    const {monitorType, activationCondition, timeWindow} = this.state;
+
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
+    return (
+      !hasActivatedAlerts ||
+      monitorType !== MonitorType.ACTIVATED ||
+      (activationCondition !== undefined && timeWindow)
+    );
+  }
+
+  validateSubmit = model => {
     if (!this.validateMri()) {
       addErrorMessage(t('You need to select a metric before you can save the alert'));
-      return;
+      return false;
     }
     // This validates all fields *except* for Triggers
     const validRule = model.validateForm();
@@ -578,6 +622,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const triggerErrors = this.validateTriggers();
     const validTriggers = Array.from(triggerErrors).length === 0;
     const validOnDemandAlert = this.validateOnDemandMetricAlert();
+    const validActivatedAlerts = this.validateActivatedAlerts();
 
     if (!validTriggers) {
       this.setState(state => ({
@@ -593,13 +638,34 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ].filter(x => x);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
-      return;
+      return false;
     }
 
     if (!validOnDemandAlert) {
       addErrorMessage(
         t('%s is not supported for on-demand metric alerts', this.state.aggregate)
       );
+      return false;
+    }
+
+    if (!validActivatedAlerts) {
+      addErrorMessage(
+        t('Activation condition and monitor window must be set for activated alerts')
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  handleSubmit = async (
+    _data: Partial<MetricRule>,
+    _onSubmitSuccess,
+    _onSubmitError,
+    _e,
+    model: FormModel
+  ) => {
+    if (!this.validateSubmit(model)) {
       return;
     }
 
@@ -619,9 +685,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       thresholdType,
       thresholdPeriod,
       comparisonDelta,
-      uuid,
       timeWindow,
       eventTypes,
+      monitorType,
+      activationCondition,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -629,81 +696,97 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         trigger.label !== AlertRuleTriggerType.WARNING || !isEmpty(trigger.alertThreshold)
     );
 
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     const loadingIndicator = IndicatorStore.addMessage(
       t('Saving your alert rule, hold on...'),
       'loading'
     );
-    try {
-      const transaction = metric.startTransaction({name: 'saveAlertRule'});
-      transaction.setTag('type', AlertRuleType.METRIC);
-      transaction.setTag('operation', !rule.id ? 'create' : 'edit');
-      for (const trigger of sanitizedTriggers) {
-        for (const action of trigger.actions) {
-          if (action.type === 'slack' || action.type === 'discord') {
-            transaction.setTag(action.type, true);
+    await Sentry.withScope(async scope => {
+      try {
+        scope.setTag('type', AlertRuleType.METRIC);
+        scope.setTag('operation', !rule.id ? 'create' : 'edit');
+        for (const trigger of sanitizedTriggers) {
+          for (const action of trigger.actions) {
+            if (action.type === 'slack' || action.type === 'discord') {
+              scope.setTag(action.type, true);
+            }
           }
         }
-      }
-      transaction.setData('actions', sanitizedTriggers);
+        scope.setExtra('actions', sanitizedTriggers);
 
-      const dataset = this.determinePerformanceDataset();
-      this.setState({loading: true});
-      const [data, , resp] = await addOrUpdateRule(
-        this.api,
-        organization.slug,
-        {
-          ...rule,
-          ...model.getTransformedData(),
-          projects: [project.slug],
-          triggers: sanitizedTriggers,
-          resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
-          thresholdType,
-          thresholdPeriod,
-          comparisonDelta: comparisonDelta ?? null,
-          timeWindow,
-          aggregate,
-          // Remove eventTypes as it is no longer required for crash free
-          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset,
-          queryType: DatasetMEPAlertQueryTypes[dataset],
-        },
-        {
-          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: 'true',
-          referrer: location?.query?.referrer,
-          sessionId,
-          ...getForceMetricsLayerQueryExtras(organization, dataset),
+        metric.startSpan({name: 'saveAlertRule'});
+
+        let activatedAlertFields = {};
+        if (hasActivatedAlerts) {
+          activatedAlertFields = {
+            monitorType,
+            activationCondition,
+          };
         }
-      );
-      // if we get a 202 back it means that we have an async task
-      // running to lookup and verify the channel id for Slack.
-      if (resp?.status === 202) {
-        // if we have a uuid in state, no need to start a new polling cycle
-        if (!uuid) {
-          this.setState({loading: true, uuid: data.uuid});
-          this.fetchStatus(model);
+
+        const dataset = this.determinePerformanceDataset();
+        this.setState({loading: true});
+        // Add or update is just the PUT/POST to the org alert-rules api
+        // we're splatting the full rule in, then overwriting all the data?
+        const [data, , resp] = await addOrUpdateRule(
+          this.api,
+          organization.slug,
+          {
+            ...rule, // existing rule
+            ...model.getTransformedData(), // form data
+            ...activatedAlertFields,
+            projects: [project.slug],
+            triggers: sanitizedTriggers,
+            resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+            thresholdType,
+            thresholdPeriod,
+            comparisonDelta: comparisonDelta ?? null,
+            timeWindow,
+            aggregate,
+            // Remove eventTypes as it is no longer required for crash free
+            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            dataset,
+            queryType: DatasetMEPAlertQueryTypes[dataset],
+          },
+          {
+            duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+            wizardV3: 'true',
+            referrer: location?.query?.referrer,
+            sessionId,
+            ...getForceMetricsLayerQueryExtras(organization, dataset),
+          }
+        );
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verify the channel id for Slack.
+        if (resp?.status === 202) {
+          // if we have a uuid in state, no need to start a new polling cycle
+          if (!this.uuid) {
+            this.uuid = data.uuid;
+            this.setState({loading: true});
+            this.fetchStatus(model);
+          }
+        } else {
+          IndicatorStore.remove(loadingIndicator);
+          this.setState({loading: false});
+          addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+          if (onSubmitSuccess) {
+            onSubmitSuccess(data, model);
+          }
         }
-      } else {
+      } catch (err) {
         IndicatorStore.remove(loadingIndicator);
         this.setState({loading: false});
-        addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
-        if (onSubmitSuccess) {
-          onSubmitSuccess(data, model);
-        }
+        const errors = err?.responseJSON
+          ? Array.isArray(err?.responseJSON)
+            ? err?.responseJSON
+            : Object.values(err?.responseJSON)
+          : [];
+        const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
       }
-    } catch (err) {
-      IndicatorStore.remove(loadingIndicator);
-      this.setState({loading: false});
-      const errors = err?.responseJSON
-        ? Array.isArray(err?.responseJSON)
-          ? err?.responseJSON
-          : Object.values(err?.responseJSON)
-        : [];
-      const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
-      this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
-    }
+    });
   };
 
   /**
@@ -792,7 +875,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleRuleSaveFailure = (msg: ReactNode) => {
     addErrorMessage(msg);
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
   };
 
   handleCancel = () => {
@@ -960,6 +1043,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
+      activationCondition,
+      monitorType,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
@@ -1016,6 +1101,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       hasIgnoreArchivedFeatureFlag(organization) &&
       ruleNeedsErrorMigration(rule);
 
+    // Rendering the main form body
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
@@ -1075,12 +1161,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               organization={organization}
               isTransactionMigration={isMigration && !showErrorMigrationWarning}
               isErrorMigration={showErrorMigrationWarning}
+              isForSpanMetric={aggregate.includes(':spans/')}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
               onFilterSearch={this.handleFilterUpdate}
               allowChangeEventTypes={
-                hasDDMFeature(organization)
+                hasCustomMetrics(organization)
                   ? dataset === Dataset.ERRORS
                   : dataset === Dataset.ERRORS || alertType === 'custom_transactions'
               }
@@ -1095,6 +1182,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               disableProjectSelector={disableProjectSelector}
               isExtrapolatedChartData={isExtrapolatedChartData}
+              monitorType={monitorType}
+              activationCondition={activationCondition}
+              onMonitorTypeSelect={this.handleMonitorTypeSelect}
+              isEditing={Boolean(ruleId)}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
@@ -1142,7 +1233,7 @@ const AlertName = styled(HeaderTitleLegend)`
 const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
 `;
 

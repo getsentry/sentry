@@ -1,13 +1,12 @@
-import {browserHistory} from 'react-router';
 import merge from 'lodash/merge';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {GroupStats} from 'sentry-fixture/groupStats';
+import {GroupFixture} from 'sentry-fixture/group';
+import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Search} from 'sentry-fixture/search';
-import {Tags} from 'sentry-fixture/tags';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {SearchFixture} from 'sentry-fixture/search';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -24,6 +23,7 @@ import StreamGroup from 'sentry/components/stream/group';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import * as parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/overview';
@@ -43,7 +43,7 @@ const project = ProjectFixture({
   firstEvent: new Date().toISOString(),
 });
 
-const {organization, router, routerContext} = initializeOrg({
+const {organization, router} = initializeOrg({
   organization: {
     id: '1337',
     slug: 'org-slug',
@@ -54,7 +54,7 @@ const {organization, router, routerContext} = initializeOrg({
     location: {query: {}, search: ''},
     params: {},
   },
-  project,
+  projects: [project],
 });
 
 const routerProps = {
@@ -65,10 +65,10 @@ const routerProps = {
 describe('IssueList', function () {
   let props;
 
-  const tags = Tags();
+  const tags = TagsFixture();
   const group = GroupFixture({project});
-  const groupStats = GroupStats();
-  const savedSearch = Search({
+  const groupStats = GroupStatsFixture();
+  const savedSearch = SearchFixture({
     id: '789',
     query: 'is:unresolved TypeError',
     sort: 'date',
@@ -202,9 +202,7 @@ describe('IssueList', function () {
     });
 
     it('loads group rows with default query (no pinned queries, async and no query in URL)', async function () {
-      render(<IssueListWithStores {...routerProps} />, {
-        context: routerContext,
-      });
+      render(<IssueListWithStores {...routerProps} />, {router});
 
       // Loading saved searches
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -236,7 +234,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          Search({
+          SearchFixture({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -248,7 +246,6 @@ describe('IssueList', function () {
       const location = LocationFixture({query: {query: 'level:foo'}});
 
       render(<IssueListWithStores {...merge({}, routerProps, {location})} />, {
-        context: routerContext,
         router: {location},
       });
 
@@ -274,7 +271,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          Search({
+          SearchFixture({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -284,9 +281,7 @@ describe('IssueList', function () {
         ],
       });
 
-      render(<IssueListWithStores {...routerProps} />, {
-        context: routerContext,
-      });
+      render(<IssueListWithStores {...routerProps} />, {router});
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalledWith(
@@ -305,15 +300,9 @@ describe('IssueList', function () {
     });
 
     it('shows archived tab', async function () {
-      render(
-        <IssueListWithStores
-          {...routerProps}
-          organization={{...organization, features: ['escalating-issues']}}
-        />,
-        {
-          context: routerContext,
-        }
-      );
+      render(<IssueListWithStores {...routerProps} organization={{...organization}} />, {
+        router,
+      });
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalled();
@@ -329,13 +318,13 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          Search({
+          SearchFixture({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
             isGlobal: true,
             query: 'assigned:me',
-            sort: 'priority',
+            sort: 'trends',
             type: 0,
           }),
         ],
@@ -344,7 +333,6 @@ describe('IssueList', function () {
       const localRouter = {params: {searchId: '123'}};
 
       render(<IssueListWithStores {...merge({}, routerProps, localRouter)} />, {
-        context: routerContext,
         router: localRouter,
       });
 
@@ -355,7 +343,7 @@ describe('IssueList', function () {
             // Should be called with default query
             data:
               expect.stringContaining('assigned%3Ame') &&
-              expect.stringContaining('sort=priority'),
+              expect.stringContaining('sort=trends'),
           })
         );
       });
@@ -370,7 +358,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          Search({
+          SearchFixture({
             id: '123',
             name: 'Assigned to Me',
             isPinned: false,
@@ -384,7 +372,7 @@ describe('IssueList', function () {
       const localRouter = {location: {query: {query: 'level:error'}}};
 
       render(<IssueListWithStores {...merge({}, routerProps, localRouter)} />, {
-        context: routerContext,
+        router,
       });
 
       await waitFor(() => {
@@ -407,7 +395,7 @@ describe('IssueList', function () {
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
         body: [
-          Search({
+          SearchFixture({
             id: '123',
             name: 'My Pinned Search',
             isPinned: true,
@@ -421,7 +409,7 @@ describe('IssueList', function () {
         <IssueListWithStores
           {...merge({}, routerProps, {location: {query: {query: undefined}}})}
         />,
-        {context: routerContext}
+        {router}
       );
 
       await waitFor(() => {
@@ -460,13 +448,13 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: Organization({
-          features: ['issue-stream-performance', 'issue-stream-performance-cache'],
+        organization: OrganizationFixture({
+          features: ['issue-stream-performance'],
           projects: [],
         }),
       };
       const {unmount} = render(<IssueListWithStores {...defaultProps} />, {
-        context: routerContext,
+        router,
         organization: defaultProps.organization,
       });
 
@@ -478,7 +466,7 @@ describe('IssueList', function () {
 
       // Mount component again, getting from cache
       render(<IssueListWithStores {...defaultProps} />, {
-        context: routerContext,
+        router,
         organization: defaultProps.organization,
       });
 
@@ -496,7 +484,7 @@ describe('IssueList', function () {
       });
 
       render(<IssueListWithStores {...routerProps} />, {
-        context: routerContext,
+        router,
       });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -516,7 +504,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [
           savedSearch,
-          Search({
+          SearchFixture({
             id: '123',
             name: 'Pinned search',
             isPinned: true,
@@ -527,7 +515,7 @@ describe('IssueList', function () {
       });
 
       render(<IssueListWithStores {...routerProps} />, {
-        context: routerContext,
+        router,
       });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -566,7 +554,7 @@ describe('IssueList', function () {
       });
 
       const {rerender} = render(<IssueListWithStores {...routerProps} />, {
-        context: routerContext,
+        router,
       });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -618,7 +606,7 @@ describe('IssueList', function () {
     });
 
     it('unpins a custom query', async function () {
-      const pinnedSearch = Search({
+      const pinnedSearch = SearchFixture({
         id: '666',
         name: 'My Pinned Search',
         query: 'assigned:me level:fatal',
@@ -640,7 +628,6 @@ describe('IssueList', function () {
       };
 
       render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
-        context: routerContext,
         router: routerWithSavedSearch,
       });
 
@@ -664,7 +651,7 @@ describe('IssueList', function () {
     });
 
     it('pins a saved query', async function () {
-      const assignedToMe = Search({
+      const assignedToMe = SearchFixture({
         id: '234',
         name: 'Assigned to Me',
         isPinned: false,
@@ -690,7 +677,6 @@ describe('IssueList', function () {
       const routerWithSavedSearch = {params: {searchId: '789'}};
 
       render(<IssueListWithStores {...merge({}, routerProps, routerWithSavedSearch)} />, {
-        context: routerContext,
         router: routerWithSavedSearch,
       });
 
@@ -716,7 +702,7 @@ describe('IssueList', function () {
         body: [savedSearch],
       });
 
-      const {routerContext: newRouterContext, router: newRouter} = initializeOrg({
+      const {router: newRouter} = initializeOrg({
         router: {
           location: {
             query: {
@@ -742,7 +728,7 @@ describe('IssueList', function () {
             },
           }}
         />,
-        {context: newRouterContext}
+        {router: newRouter}
       );
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -794,7 +780,7 @@ describe('IssueList', function () {
         method: 'DELETE',
       });
 
-      const {routerContext: newRouterContext, router: newRouter} = initializeOrg(
+      const {router: newRouter} = initializeOrg(
         merge({}, router, {
           router: {
             location: {
@@ -824,7 +810,7 @@ describe('IssueList', function () {
           }}
           savedSearch={localSavedSearch}
         />,
-        {context: newRouterContext}
+        {router: newRouter}
       );
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -849,7 +835,7 @@ describe('IssueList', function () {
 
     it('does not allow pagination to "previous" while on first page and resets cursors when navigating back to initial page', async function () {
       const {rerender} = render(<IssueListWithStores {...routerProps} />, {
-        context: routerContext,
+        router,
       });
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -963,7 +949,7 @@ describe('IssueList', function () {
       });
 
       render(<IssueListOverview {...props} />, {
-        context: routerContext,
+        router,
       });
 
       const queryInput = screen.getByDisplayValue('is:unresolved');
@@ -984,7 +970,7 @@ describe('IssueList', function () {
   });
 
   it('fetches tags and members', async function () {
-    render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
+    render(<IssueListOverview {...routerProps} {...props} />, {router});
 
     await waitFor(() => {
       expect(fetchTagsRequest).toHaveBeenCalled();
@@ -1008,7 +994,7 @@ describe('IssueList', function () {
 
     it('fetches data on selection change', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        context: routerContext,
+        router,
       });
 
       rerender(
@@ -1024,7 +1010,7 @@ describe('IssueList', function () {
 
     it('fetches data on savedSearch change', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        context: routerContext,
+        router,
       });
 
       rerender(
@@ -1040,7 +1026,7 @@ describe('IssueList', function () {
 
     it('uses correct statsPeriod when fetching issues list and no datetime given', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        context: routerContext,
+        router,
       });
       const selection = {projects: [99], environments: [], datetime: {}};
       rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
@@ -1057,7 +1043,7 @@ describe('IssueList', function () {
   describe('componentDidUpdate fetching members', function () {
     it('fetches memberlist and tags list on project change', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
-        context: routerContext,
+        router,
       });
       // Called during componentDidMount
       expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
@@ -1077,7 +1063,7 @@ describe('IssueList', function () {
   describe('render states', function () {
     it('displays the loading icon when saved searches are loading', function () {
       render(<IssueListOverview {...routerProps} {...props} savedSearchLoading />, {
-        context: routerContext,
+        router,
       });
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     });
@@ -1089,7 +1075,7 @@ describe('IssueList', function () {
         statusCode: 500,
       });
       render(<IssueListOverview {...routerProps} {...props} />, {
-        context: routerContext,
+        router,
       });
 
       expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
@@ -1103,7 +1089,7 @@ describe('IssueList', function () {
           Link: DEFAULT_LINKS_HEADER,
         },
       });
-      render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
+      render(<IssueListOverview {...routerProps} {...props} />, {router});
 
       expect(
         await screen.findByText(/We couldn't find any issues that matched your filters/i)
@@ -1119,7 +1105,7 @@ describe('IssueList', function () {
         },
       });
 
-      render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
+      render(<IssueListOverview {...routerProps} {...props} />, {router});
 
       await userEvent.type(
         screen.getByDisplayValue('is:unresolved'),
@@ -1154,14 +1140,12 @@ describe('IssueList', function () {
           params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
-        organization: Organization({
+        organization: OrganizationFixture({
           projects: [],
         }),
         ...moreProps,
       };
-      render(<IssueListOverview {...defaultProps} />, {
-        context: routerContext,
-      });
+      render(<IssueListOverview {...defaultProps} />, {router});
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
     };
@@ -1204,12 +1188,12 @@ describe('IssueList', function () {
       });
 
       await createWrapper({
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });
 
-      expect(screen.getByTestId('awaiting-events')).toBeInTheDocument();
+      expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async function () {
@@ -1245,7 +1229,7 @@ describe('IssueList', function () {
         body: projects,
       });
       await createWrapper({
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });
@@ -1296,7 +1280,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });
@@ -1343,7 +1327,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: Organization({
+        organization: OrganizationFixture({
           projects,
         }),
       });
@@ -1385,9 +1369,9 @@ describe('IssueList', function () {
       },
     };
 
-    const {routerContext: newRouterContext} = initializeOrg();
+    const {router: newRouter} = initializeOrg();
     const {rerender} = render(<IssueListOverview {...props} />, {
-      context: newRouterContext,
+      router: newRouter,
     });
 
     expect(screen.getByText(textWithMarkupMatcher('1-25 of 500'))).toBeInTheDocument();
@@ -1409,8 +1393,8 @@ describe('IssueList', function () {
     expect(screen.getByText(textWithMarkupMatcher('26-50 of 500'))).toBeInTheDocument();
   });
 
-  describe('project low priority queue alert', function () {
-    const {routerContext: newRouterContext} = initializeOrg();
+  describe('project low trends queue alert', function () {
+    const {router: newRouter} = initializeOrg();
 
     beforeEach(function () {
       act(() => ProjectsStore.reset());
@@ -1420,7 +1404,7 @@ describe('IssueList', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
       render(<IssueListOverview {...props} />, {
-        context: newRouterContext,
+        router: newRouter,
       });
 
       expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
@@ -1434,9 +1418,7 @@ describe('IssueList', function () {
           ])
         );
 
-        render(<IssueListOverview {...props} />, {
-          context: routerContext,
-        });
+        render(<IssueListOverview {...props} />, {router});
 
         expect(
           screen.getByText(/Event Processing for this project is currently degraded/i)
@@ -1474,7 +1456,7 @@ describe('IssueList', function () {
             }}
           />,
           {
-            context: newRouterContext,
+            router: newRouter,
           }
         );
 

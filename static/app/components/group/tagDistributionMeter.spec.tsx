@@ -1,14 +1,14 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Tags} from 'sentry-fixture/tags';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import GroupTagDistributionMeter from 'sentry/components/group/tagDistributionMeter';
 
 describe('TagDistributionMeter', function () {
-  const organization = Organization();
-  const tags = Tags();
+  const organization = OrganizationFixture();
+  const tags = TagsFixture();
 
   it('should return "no recent data" if no total values present', function () {
     render(

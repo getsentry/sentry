@@ -1,10 +1,11 @@
-import {Span} from '@sentry/types';
+import * as Sentry from '@sentry/react';
+import type {Span} from '@sentry/types';
 
 import {defined} from 'sentry/utils';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
-import {CallTreeNode} from '../callTreeNode';
+import type {CallTreeNode} from '../callTreeNode';
 
 type FrameIndex = Record<string | number, Frame>;
 
@@ -38,7 +39,7 @@ export function createSentrySampleProfileFrameIndex(
         package: frame.package,
         name: frame.function ?? 'unknown',
         line: frame.lineno,
-        column: frame.colno,
+        column: frame.colno ?? frame?.col ?? frame?.column,
         instructionAddr: frame.instruction_addr,
         symbol: frame.symbol,
         symbolAddr: frame.sym_addr,
@@ -88,6 +89,7 @@ export function createFrameIndex(
     acc[index] = new Frame(
       {
         key: index,
+        column: frame.colno ?? frame?.col ?? frame?.column,
         ...frame,
       },
       type
@@ -159,15 +161,11 @@ export function wrapWithSpan<T>(parentSpan: Span | undefined, fn: () => T, optio
     return fn();
   }
 
-  const sentrySpan = parentSpan.startChild(options);
-  try {
-    return fn();
-  } catch (error) {
-    sentrySpan.setStatus('internal_error');
-    throw error;
-  } finally {
-    sentrySpan.finish();
-  }
+  return Sentry.withActiveSpan(parentSpan, () => {
+    return Sentry.startSpan(options, () => {
+      return fn();
+    });
+  });
 }
 
 export const isSystemCall = (node: CallTreeNode): boolean => {

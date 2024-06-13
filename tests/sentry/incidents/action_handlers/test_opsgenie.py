@@ -4,10 +4,12 @@ import responses
 
 from sentry.incidents.action_handlers import OpsgenieActionHandler
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import AlertRuleTriggerAction, IncidentStatus, IncidentStatusMethod
-from sentry.models.integrations.integration import Integration
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import IncidentStatus, IncidentStatusMethod
+from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.utils import json
 
 from . import FireTest
@@ -24,15 +26,16 @@ class OpsgenieActionHandlerTest(FireTest):
     @responses.activate
     def setUp(self):
         self.og_team = {"id": "123-id", "team": "cool-team", "integration_key": "1234-5678"}
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="opsgenie", name="hello-world", external_id="hello-world", metadata=METADATA
         )
-        self.integration.add_organization(self.organization, self.user)
-        self.org_integration = OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=self.integration.id
-        )
-        self.org_integration.config = {"team_table": [self.og_team]}
-        self.org_integration.save()
+        with assume_test_silo_mode_of(Integration, OrganizationIntegration):
+            self.integration.add_organization(self.organization, self.user)
+            self.org_integration = OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=self.integration.id
+            )
+            self.org_integration.config = {"team_table": [self.og_team]}
+            self.org_integration.save()
 
         resp_data = {
             "result": "Integration [sentry] is valid",
@@ -93,7 +96,10 @@ class OpsgenieActionHandlerTest(FireTest):
 
     @responses.activate
     def run_test(self, incident, method):
-        from sentry.integrations.opsgenie.utils import build_incident_attachment
+        from sentry.integrations.opsgenie.utils import (
+            attach_custom_priority,
+            build_incident_attachment,
+        )
 
         alias = f"incident_{incident.organization_id}_{incident.identifier}"
 
@@ -105,9 +111,11 @@ class OpsgenieActionHandlerTest(FireTest):
                 status=202,
             )
             expected_payload = {}
+            new_status = IncidentStatus.CLOSED
         else:
+            new_status = IncidentStatus.CRITICAL
             update_incident_status(
-                incident, IncidentStatus.CRITICAL, status_method=IncidentStatusMethod.RULE_TRIGGERED
+                incident, new_status, status_method=IncidentStatusMethod.RULE_TRIGGERED
             )
             responses.add(
                 responses.POST,
@@ -115,9 +123,9 @@ class OpsgenieActionHandlerTest(FireTest):
                 json={},
                 status=202,
             )
-            expected_payload = build_incident_attachment(
-                incident, IncidentStatus(incident.status), metric_value=1000
-            )
+            expected_payload = build_incident_attachment(incident, new_status, metric_value=1000)
+            expected_payload = attach_custom_priority(expected_payload, self.action, new_status)
+
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
         with self.tasks():
@@ -134,7 +142,8 @@ class OpsgenieActionHandlerTest(FireTest):
     def test_fire_metric_alert_multiple_teams(self):
         team2 = {"id": "456-id", "team": "cooler-team", "integration_key": "1234-7890"}
         self.org_integration.config["team_table"].append(team2)
-        self.org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            self.org_integration.save()
 
         self.run_fire_test()
 
@@ -167,7 +176,8 @@ class OpsgenieActionHandlerTest(FireTest):
         alert_rule = self.create_alert_rule()
         incident = self.create_incident(alert_rule=alert_rule)
 
-        self.integration.delete()
+        with assume_test_silo_mode_of(Integration):
+            self.integration.delete()
 
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
@@ -187,7 +197,8 @@ class OpsgenieActionHandlerTest(FireTest):
         incident = self.create_incident(alert_rule=alert_rule)
 
         self.org_integration.config = {"team_table": []}
-        self.org_integration.save()
+        with assume_test_silo_mode_of(OrganizationIntegration):
+            self.org_integration.save()
 
         handler = OpsgenieActionHandler(self.action, incident, self.project)
         metric_value = 1000
@@ -213,3 +224,14 @@ class OpsgenieActionHandlerTest(FireTest):
             external_id=str(self.action.target_identifier),
             notification_uuid="",
         )
+
+    @responses.activate
+    def test_custom_priority(self):
+        # default critical incident priority is P1, custom set to P3
+        self.action.update(sentry_app_config={"priority": "P3"})
+        self.run_fire_test()
+
+    @responses.activate
+    def test_custom_priority_resolve(self):
+        self.action.update(sentry_app_config={"priority": "P3"})
+        self.run_fire_test("resolve")

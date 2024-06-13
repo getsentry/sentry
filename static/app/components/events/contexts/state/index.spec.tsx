@@ -1,4 +1,4 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
@@ -69,7 +69,7 @@ describe('StateContext', function () {
     );
 
     expect(screen.getByText('State (Redux)')).toBeInTheDocument();
-    await userEvent.hover(screen.getByText('None'));
+    await userEvent.hover(screen.getByText('null'));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

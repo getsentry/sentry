@@ -4,7 +4,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 
 const ONE_DAY_MS = 60 * 60 * 24 * 1000;
 

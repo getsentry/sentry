@@ -2,7 +2,7 @@ import {createStore} from 'reflux';
 
 import type {ModalOptions, ModalRenderProps} from 'sentry/actionCreators/modal';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 type Renderer = (renderProps: ModalRenderProps) => React.ReactNode;
 
@@ -11,15 +11,15 @@ type State = {
   renderer: Renderer | null;
 };
 
-interface ModalStoreDefinition extends CommonStoreDefinition<State> {
+interface ModalStoreDefinition extends StrictStoreDefinition<State> {
   closeModal(): void;
-  getState(): State;
   init(): void;
   openModal(renderer: Renderer, options: ModalOptions): void;
   reset(): void;
 }
 
 const storeConfig: ModalStoreDefinition = {
+  state: {renderer: null, options: {}},
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
@@ -35,7 +35,7 @@ const storeConfig: ModalStoreDefinition = {
     this.state = {
       renderer: null,
       options: {},
-    } as State;
+    };
   },
 
   closeModal() {

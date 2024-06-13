@@ -1,4 +1,3 @@
-from typing import Optional
 from warnings import warn
 
 from sentry.utils.safe import get_path
@@ -33,7 +32,7 @@ def format_title_from_tree_label(tree_label):
     return " | ".join(get_tree_label_part_details(x) for x in tree_label)
 
 
-def compute_title_with_tree_label(title: Optional[str], metadata: dict):
+def compute_title_with_tree_label(title: str | None, metadata: dict):
     tree_label = None
     if metadata.get("current_tree_label"):
         tree_label = format_title_from_tree_label(metadata["current_tree_label"])

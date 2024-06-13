@@ -1,5 +1,5 @@
-import {RouteComponentProps} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import type {RouteComponentProps} from 'react-router';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -65,7 +65,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         params,
       },
@@ -78,16 +78,16 @@ describe('withDomainRedirect', function () {
         params={params}
         routes={router.routes}
         routeParams={router.params}
-        route={route}
+        route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
   });
 
   it('redirects to sentryUrl on org slug mistmatch', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'bobs-bagels',
       features: ['customer-domains'],
     });
@@ -95,7 +95,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -111,10 +111,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -125,12 +125,12 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirects to sentryUrl on missing customer domain feature', function () {
-    const organization = Organization({slug: 'albertos-apples', features: []});
+    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
 
     const params = {
       orgId: organization.slug,
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -146,10 +146,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -160,7 +160,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirect when :orgId is present in the routes', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });
@@ -169,7 +169,7 @@ describe('withDomainRedirect', function () {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -186,10 +186,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -198,14 +198,14 @@ describe('withDomainRedirect', function () {
   });
 
   it('does not redirect when :orgId is not present in the routes', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });
 
     const params = {};
 
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -230,10 +230,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Org slug: no org slug')).toBeInTheDocument();
@@ -241,7 +241,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('updates path when :orgId is present in the routes and there is no subdomain', function () {
-    const organization = Organization({
+    const organization = OrganizationFixture({
       slug: 'albertos-apples',
       features: ['customer-domains'],
     });
@@ -255,7 +255,7 @@ describe('withDomainRedirect', function () {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -272,10 +272,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(router.replace).toHaveBeenCalledTimes(1);

@@ -1,7 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ProjectFilters as ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
-import {Tombstones} from 'sentry-fixture/tombstones';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
+import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +9,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectFilters from 'sentry/views/settings/project/projectFilters';
 
 describe('ProjectFilters', function () {
-  const {organization, project, routerProps} = initializeOrg({project: {options: {}}});
+  const {organization, project, routerProps} = initializeOrg();
   const PROJECT_URL = `/projects/${organization.slug}/${project.slug}/`;
 
   const getFilterEndpoint = (filter: string) => `${PROJECT_URL}filters/${filter}/`;
@@ -51,7 +51,7 @@ describe('ProjectFilters', function () {
 
     MockApiClient.addMockResponse({
       url: `${PROJECT_URL}tombstones/`,
-      body: Tombstones(),
+      body: TombstonesFixture(),
     });
   });
 
@@ -109,15 +109,19 @@ describe('ProjectFilters', function () {
     renderComponent();
 
     expect(
-      await screen.findByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
+      await screen.findByRole('checkbox', {
+        name: 'Internet Explorer Verison 11 and lower',
+      })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'})
+      await screen.findByRole('checkbox', {
+        name: 'Safari Version 11 and lower',
+      })
     ).toBeChecked();
 
     expect(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 10'})
+      screen.getByRole('checkbox', {name: 'Firefox Version 66 and lower'})
     ).not.toBeChecked();
   });
 
@@ -128,41 +132,23 @@ describe('ProjectFilters', function () {
     const mock = createFilterMock(filter);
 
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Safari Version 5 and lower'})
+      await screen.findByRole('checkbox', {
+        name: 'Firefox Version 66 and lower',
+      })
     );
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     // Have to do this because no jest matcher for JS Set
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
-      'ie_pre_9',
-      'ie9',
-      'safari_pre_6',
+      'ie',
+      'safari',
+      'firefox',
     ]);
 
     // Toggle filter off
     await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 11'})
+      await screen.findByRole('checkbox', {name: 'Firefox Version 66 and lower'})
     );
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
-      'ie_pre_9',
-      'ie9',
-      'safari_pre_6',
-      'ie11',
-    ]);
-
-    mock.mockReset();
-
-    // Click ie9 and < ie9
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 9'})
-    );
-    await userEvent.click(
-      screen.getByRole('checkbox', {name: 'Internet Explorer Version 8 and lower'})
-    );
-
-    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual([
-      'safari_pre_6',
-      'ie11',
-    ]);
+    expect(Array.from(mock.mock.calls[1][1].data.subfilters)).toEqual(['ie', 'safari']);
   });
 
   it('can toggle all/none for legacy browser', async function () {
@@ -174,15 +160,14 @@ describe('ProjectFilters', function () {
     await userEvent.click(await screen.findByRole('button', {name: 'All'}));
     expect(mock.mock.calls[0][0]).toBe(getFilterEndpoint(filter));
     expect(Array.from(mock.mock.calls[0][1].data.subfilters)).toEqual([
-      'ie_pre_9',
-      'ie9',
-      'ie10',
-      'ie11',
-      'safari_pre_6',
-      'opera_pre_15',
-      'opera_mini_pre_8',
-      'android_pre_4',
-      'edge_pre_79',
+      'chrome',
+      'safari',
+      'firefox',
+      'android',
+      'edge',
+      'ie',
+      'opera',
+      'opera_mini',
     ]);
 
     await userEvent.click(screen.getByRole('button', {name: 'None'}));
@@ -267,7 +252,7 @@ describe('ProjectFilters', function () {
         params={{projectId: project.slug, filterType: ''}}
         project={project}
       />,
-      {organization: Organization({access: []})}
+      {organization: OrganizationFixture({access: []})}
     );
 
     const checkboxes = await screen.findAllByRole('checkbox');
@@ -304,7 +289,7 @@ describe('ProjectFilters', function () {
       ...project,
       features: ['discard-groups'],
     });
-    const discardOrg = Organization({access: [], features: ['discard-groups']});
+    const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
 
     render(
       <ProjectFilters

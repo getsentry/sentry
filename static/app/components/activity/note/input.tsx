@@ -1,6 +1,8 @@
 import {useCallback, useMemo, useState} from 'react';
-import {Mention, MentionsInput, MentionsInputProps} from 'react-mentions';
-import {Theme, useTheme} from '@emotion/react';
+import type {MentionsInputProps} from 'react-mentions';
+import {Mention, MentionsInput} from 'react-mentions';
+import type {Theme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -9,14 +11,14 @@ import {IconMarkdown} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import textStyles from 'sentry/styles/text';
-import {NoteType} from 'sentry/types/alerts';
+import type {NoteType} from 'sentry/types/alerts';
 import domId from 'sentry/utils/domId';
 import marked from 'sentry/utils/marked';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeams} from 'sentry/utils/useTeams';
 
 import {mentionStyle} from './mentionStyle';
-import {CreateError, MentionChangeEvent, Mentioned} from './types';
+import type {CreateError, MentionChangeEvent, Mentioned} from './types';
 
 type Props = {
   /**
@@ -152,8 +154,7 @@ function NoteInput({
     (errorJSON &&
       (typeof errorJSON.detail === 'string'
         ? errorJSON.detail
-        : (errorJSON.detail && errorJSON.detail.message) ||
-          t('Unable to post comment'))) ||
+        : errorJSON.detail?.message || t('Unable to post comment'))) ||
     null;
 
   return (

@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, List
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.db import IntegrityError, models, router, transaction
 
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    DefaultFieldsModel,
-    control_silo_only_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -21,11 +19,14 @@ from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.integrations import (
+    from sentry.integrations.base import (
         IntegrationFeatures,
         IntegrationInstallation,
         IntegrationProvider,
     )
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class IntegrationManager(BaseManager["Integration"]):
         )
 
 
-@control_silo_only_model
+@control_silo_model
 class Integration(DefaultFieldsModel):
     """
     An integration tied to a particular instance of a third-party provider (a single Slack
@@ -92,8 +93,8 @@ class Integration(DefaultFieldsModel):
             return super().delete(*args, **kwds)
 
     @staticmethod
-    def outboxes_for_update(identifier: int) -> List[ControlOutbox]:
-        org_ids: List[int] = OrganizationIntegration.objects.filter(
+    def outboxes_for_update(identifier: int) -> list[ControlOutbox]:
+        org_ids: list[int] = OrganizationIntegration.objects.filter(
             integration_id=identifier
         ).values_list("organization_id", flat=True)
         return [
@@ -108,12 +109,15 @@ class Integration(DefaultFieldsModel):
         ]
 
     def add_organization(
-        self, organization_id: int | RpcOrganization, user=None, default_auth_id=None
-    ):
+        self,
+        organization_id: int | Organization | RpcOrganization,
+        user: User | RpcUser | None = None,
+        default_auth_id: int | None = None,
+    ) -> OrganizationIntegration | None:
         """
         Add an organization to this integration.
 
-        Returns False if the OrganizationIntegration was not created
+        Returns None if the OrganizationIntegration was not created
         """
         from sentry.models.integrations.organization_integration import OrganizationIntegration
 
@@ -147,7 +151,7 @@ class Integration(DefaultFieldsModel):
                     "default_auth_id": default_auth_id,
                 },
             )
-            return False
+            return None
 
     def disable(self):
         """
@@ -156,3 +160,14 @@ class Integration(DefaultFieldsModel):
 
         self.update(status=ObjectStatus.DISABLED)
         self.save()
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_string(json, SanitizableField(model_name, "external_id"))
+        sanitizer.set_json(json, SanitizableField(model_name, "metadata"), {})
+        sanitizer.set_string(json, SanitizableField(model_name, "provider"))

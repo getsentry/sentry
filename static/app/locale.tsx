@@ -1,11 +1,9 @@
 import {cloneElement, Fragment, isValidElement} from 'react';
-import * as Sentry from '@sentry/react';
 import Jed from 'jed';
-import isObject from 'lodash/isObject';
 import {sprintf} from 'sprintf-js';
 
+import toArray from 'sentry/utils/array/toArray';
 import localStorage from 'sentry/utils/localStorage';
-import toArray from 'sentry/utils/toArray';
 
 const markerStyles = {
   background: '#ff801790',
@@ -72,8 +70,8 @@ function getClient(): Jed | null {
   if (!i18n) {
     // If this happens, it could mean that an import was added/changed where
     // locale initialization does not happen soon enough.
-    const warning = new Error('Locale not set, defaulting to English');
-    Sentry.captureException(warning);
+    // eslint-disable-next-line no-console
+    console.warn('Locale not set, defaulting to English');
     return setLocale(DEFAULT_LOCALE_DATA);
   }
 
@@ -137,7 +135,7 @@ function argsInvolveReact(args: FormatArg[]): boolean {
     return true;
   }
 
-  if (args.length !== 1 || !isObject(args[0])) {
+  if (args.length !== 1 || !args[0] || typeof args[0] !== 'object') {
     return false;
   }
 
@@ -301,7 +299,8 @@ function mark<T extends React.ReactNode>(node: T): T {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as T;
+  // TODO(TS): Should proxy be created using `React.createElement`?
+  return proxy as any as T;
 }
 
 /**

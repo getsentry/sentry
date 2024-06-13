@@ -1,5 +1,6 @@
 import type {Group, GroupIntegration, OrganizationSummary} from 'sentry/types';
-import {ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 function makeIntegrationsQueryKey(
   group: Group,

@@ -1,17 +1,13 @@
-import {css, keyframes} from '@emotion/react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
+import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {
-  Organization,
-  SentryAppComponent,
-  SentryAppSchemaStacktraceLink,
-} from 'sentry/types';
+import type {SentryAppComponent, SentryAppSchemaStacktraceLink} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
-import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
   components: SentryAppComponent<SentryAppSchemaStacktraceLink>[];
@@ -33,23 +29,23 @@ function OpenInContextLine({lineNo, filename, components}: Props) {
   };
 
   return (
-    <OpenInContainer columnQuantity={components.length + 1}>
+    <OpenInContainer>
       {components.map(component => {
         const url = getUrl(component.schema.url);
         const {slug} = component.sentryApp;
         const onClickRecordInteraction = handleRecordInteraction(slug);
         return (
-          <OpenInLink
-            key={component.uuid}
-            data-test-id={`stacktrace-link-${slug}`}
-            href={url}
-            onClick={onClickRecordInteraction}
-            onContextMenu={onClickRecordInteraction}
-            openInNewTab
-          >
-            <SentryAppComponentIcon sentryAppComponent={component} />
-            <OpenInName>{component.sentryApp.name}</OpenInName>
-          </OpenInLink>
+          <Tooltip key={component.uuid} title={component.sentryApp.name} skipWrapper>
+            <OpenInLink
+              aria-label={component.sentryApp.name}
+              href={url}
+              onClick={onClickRecordInteraction}
+              onContextMenu={onClickRecordInteraction}
+              openInNewTab
+            >
+              <SentryAppComponentIcon sentryAppComponent={component} size={16} />
+            </OpenInLink>
+          </Tooltip>
         );
       })}
     </OpenInContainer>
@@ -63,10 +59,7 @@ const fadeIn = keyframes`
   to { opacity: 1; }
 `;
 
-const OpenInContainer = withOrganization(styled('div')<{
-  columnQuantity: number;
-  organization: Organization;
-}>`
+const OpenInContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
   align-items: center;
@@ -75,41 +68,12 @@ const OpenInContainer = withOrganization(styled('div')<{
   text-indent: initial;
   overflow: auto;
   white-space: nowrap;
-  ${p =>
-    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
-      ? css`
-          color: ${p.theme.linkColor};
-          animation: ${fadeIn} 0.2s ease-in-out forwards;
-          padding: ${space(0)};
-        `
-      : css`
-          color: ${p.theme.subText};
-          background-color: ${p.theme.background};
-          border-bottom: 1px solid ${p.theme.border};
-          padding: ${space(0.25)} ${space(3)};
-          box-shadow: ${p.theme.dropShadowLight};
-        `}
-`);
+  animation: ${fadeIn} 0.2s ease-in-out forwards;
+`;
 
-const OpenInLink = withOrganization(styled(ExternalLink)<{organization: Organization}>`
+const OpenInLink = styled(ExternalLink)`
   display: flex;
   gap: ${space(0.75)};
   align-items: center;
-  ${p =>
-    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
-      ? ``
-      : `color: ${p.theme.gray300};`}
-`);
-
-export const OpenInName = withOrganization(styled('span')<{organization: Organization}>`
-  ${p =>
-    p.organization?.features?.includes('issue-details-stacktrace-link-in-frame')
-      ? `
-    &:hover {
-      text-decoration: underline;
-      text-decoration-color: ${p.theme.linkUnderline};
-      text-underline-offset: ${space(0.5)};
-    }
-    `
-      : ``}
-`);
+  color: ${p => p.theme.gray300};
+`;

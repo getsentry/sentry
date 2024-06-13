@@ -5,7 +5,7 @@ import partition from 'lodash/partition';
 import sortBy from 'lodash/sortBy';
 import {PlatformIcon} from 'platformicons';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import List from 'sentry/components/list';
@@ -17,7 +17,7 @@ import categoryList, {createablePlatforms} from 'sentry/data/platformPickerCateg
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   OnboardingSelectedSDK,
   Organization,
   PlatformIntegration,
@@ -38,6 +38,7 @@ export enum SupportedLanguages {
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
@@ -66,9 +67,9 @@ const topPythonFrameworks: PlatformKey[] = [
 
 const topNodeFrameworks: PlatformKey[] = [
   'node-express',
+  'node-nestjs',
   'node-awslambda',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'node-koa',
 ];
 

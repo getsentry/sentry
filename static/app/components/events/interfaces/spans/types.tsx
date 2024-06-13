@@ -1,9 +1,10 @@
+import type {MRI} from 'sentry/types/metrics';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
 
-import {SpanBarProps} from './spanBar';
-import {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
-import {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
-import SpanTreeModel from './spanTreeModel';
+import type {SpanBarProps} from './spanBar';
+import type {SpanDescendantGroupBarProps} from './spanDescendantGroupBar';
+import type {SpanSiblingGroupBarProps} from './spanSiblingGroupBar';
+import type SpanTreeModel from './spanTreeModel';
 
 export type GapSpanType = {
   isOrphan: boolean;
@@ -29,6 +30,18 @@ interface SpanDatabaseAttributes {
   'db.user'?: string;
 }
 
+export interface MetricsSummaryItem {
+  count: number | null;
+  max: number | null;
+  min: number | null;
+  sum: number | null;
+  tags: Record<string, string> | null;
+}
+
+export interface MetricsSummary {
+  [mri: MRI]: MetricsSummaryItem[] | null;
+}
+
 export type RawSpanType = {
   data: SpanSourceCodeAttributes & SpanDatabaseAttributes & Record<string, any>;
   span_id: string;
@@ -36,6 +49,7 @@ export type RawSpanType = {
   // this is essentially end_timestamp
   timestamp: number;
   trace_id: string;
+  _metrics_summary?: MetricsSummary;
   description?: string;
   exclusive_time?: number;
   hash?: string;
@@ -44,6 +58,10 @@ export type RawSpanType = {
   parent_span_id?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
+  'span.averageResults'?: {
+    'avg(span.duration)'?: number;
+    'avg(span.self_time)'?: number;
+  };
   status?: string;
   tags?: {[key: string]: string};
 };
@@ -51,7 +69,12 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: Array<[string, string]>;
+  samples: Array<{
+    span: string;
+    timestamp: number;
+    trace: string;
+    transaction: string;
+  }>;
   total: number;
   type: 'aggregate';
 };
@@ -78,6 +101,7 @@ export const rawSpanKeys: Set<keyof RawSpanType> = new Set([
   'tags',
   'hash',
   'exclusive_time',
+  '_metrics_summary',
 ]);
 
 export type OrphanSpanType = RawSpanType & {
@@ -184,13 +208,15 @@ export type ParsedTraceType = {
 };
 
 export enum TickAlignment {
-  LEFT,
-  RIGHT,
-  CENTER,
+  LEFT = 0,
+  RIGHT = 1,
+  CENTER = 2,
 }
 
 export type TraceContextType = {
+  client_sample_rate?: number;
   count?: number;
+  data?: Record<string, any>;
   description?: string;
   exclusive_time?: number;
   frequency?: number;
@@ -239,15 +265,15 @@ export type DescendantGroup = {
 };
 
 export enum GroupType {
-  DESCENDANTS,
-  SIBLINGS,
+  DESCENDANTS = 0,
+  SIBLINGS = 1,
 }
 
 export enum SpanTreeNodeType {
-  SPAN,
-  DESCENDANT_GROUP,
-  SIBLING_GROUP,
-  MESSAGE,
+  SPAN = 0,
+  DESCENDANT_GROUP = 1,
+  SIBLING_GROUP = 2,
+  MESSAGE = 3,
 }
 
 type SpanBarNode = {

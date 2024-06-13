@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
+from typing import Protocol
 
 import sentry_sdk
 
@@ -62,7 +63,7 @@ class RedisRuleStore:
             # to be consistent with other stores, clear previous hash entries:
             p.delete(key)
             if len(rules) > 0:
-                p.hmset(key, rules)
+                p.hmset(name=key, mapping=rules)  # type: ignore[arg-type]
             p.execute()
 
     def update_rule(self, project: Project, rule: str, last_used: int) -> None:
@@ -83,7 +84,7 @@ class ProjectOptionRuleStore:
         self._storage = namespace.value.persistent_storage
         self._tracker = namespace.value.tracker
 
-    def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
+    def read_sorted(self, project: Project) -> list[tuple[ReplacementRule, int]]:
         ret = project.get_option(self._storage, default=[])
         # normalize tuple vs. list for json writing
         return [tuple(lst) for lst in ret]
@@ -93,7 +94,7 @@ class ProjectOptionRuleStore:
         self.last_read = rules
         return rules
 
-    def _sort(self, rules: RuleSet) -> List[Tuple[ReplacementRule, int]]:
+    def _sort(self, rules: RuleSet) -> list[tuple[ReplacementRule, int]]:
         """Sort rules by number of slashes, i.e. depth of the rule"""
         return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
 
@@ -112,12 +113,12 @@ class CompositeRuleStore:
     #: Maximum number (non-negative integer) of rules to write to stores.
     MERGE_MAX_RULES: int = 50
 
-    def __init__(self, namespace: ClustererNamespace, stores: List[RuleStore]):
+    def __init__(self, namespace: ClustererNamespace, stores: list[RuleStore]):
         self._namespace = namespace
         self._stores = stores
 
     def read(self, project: Project) -> RuleSet:
-        merged_rules: Dict[ReplacementRule, int] = {}
+        merged_rules: dict[ReplacementRule, int] = {}
         for store in self._stores:
             rules = store.read(project)
             for rule, last_seen in rules.items():
@@ -157,7 +158,7 @@ class CompositeRuleStore:
                     },
                 )
                 sentry_sdk.set_tag("namespace", self._namespace.value.name)
-                sentry_sdk.capture_message("Clusterer discarded rules", level="warn")
+                sentry_sdk.capture_message("Clusterer discarded rules", level="warning")
             sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
 
         return {rule: last_seen for rule, last_seen in sorted_rules}
@@ -190,7 +191,7 @@ def get_redis_rules(namespace: ClustererNamespace, project: Project) -> RuleSet:
 
 def get_sorted_rules(
     namespace: ClustererNamespace, project: Project
-) -> List[Tuple[ReplacementRule, int]]:
+) -> list[tuple[ReplacementRule, int]]:
     """Public interface for fetching rules for a project.
 
     The rules are fetched from project options rather than redis, because

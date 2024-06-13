@@ -1,33 +1,32 @@
 import {useContext} from 'react';
 import omit from 'lodash/omit';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {isMultiSeriesStats} from 'sentry/components/charts/utils';
-import {
+import type {
   EventsStats,
   MultiSeriesEventsStats,
   Organization,
   PageFilters,
 } from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
+import type {Series} from 'sentry/types/echarts';
+import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
-import {
-  MetricsResultsMetaMapKey,
-  useMetricsResultsMeta,
-} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
+import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
 
 import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import {DashboardFilters, Widget} from '../types';
+import type {DashboardFilters, Widget} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
-import GenericWidgetQueries, {
+import type {
   GenericWidgetQueriesChildrenProps,
   OnDataFetchedProps,
 } from './genericWidgetQueries';
+import GenericWidgetQueries from './genericWidgetQueries';
 
 type SeriesResult = EventsStats | MultiSeriesEventsStats;
 type TableResult = TableData | EventsTableData;
@@ -80,7 +79,9 @@ export function flattenMultiSeriesDataWithGrouping(
 
   groupNames.forEach(groupName => {
     // Each group contains an order key which we should ignore
-    const aggregateNames = Object.keys(omit(result[groupName], 'order'));
+    const aggregateNames = Object.keys(
+      omit(result[groupName], ['order', 'isMetricsExtractedData'])
+    );
 
     aggregateNames.forEach(aggregate => {
       const seriesName = `${groupName} : ${aggregate}`;

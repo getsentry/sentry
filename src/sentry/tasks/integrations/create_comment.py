@@ -2,7 +2,7 @@ from sentry import analytics
 from sentry.models.activity import Activity
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.util import region_silo_function
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.integrations import should_comment_sync
 from sentry.types.activity import ActivityType

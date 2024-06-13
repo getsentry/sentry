@@ -1,23 +1,22 @@
-import {Location, LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {
+import type {
   EventLite,
   QuickTraceEvent,
   TraceError,
   TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -38,22 +37,6 @@ export function generateIssueEventTarget(
 ): LocationDescriptor {
   const queryParams = referrer ? '?referrer=' + referrer : '';
   return `/organizations/${organization.slug}/issues/${event.issue_id}/events/${event.event_id}/${queryParams}`;
-}
-
-function generatePerformanceEventTarget(
-  event: EventLite,
-  organization: OrganizationSummary,
-  location: Location
-): LocationDescriptor {
-  const eventSlug = generateEventSlug({
-    id: event.event_id,
-    project: event.project_slug,
-  });
-  const query = {
-    ...location.query,
-    project: String(event.project_id),
-  };
-  return getTransactionDetailsUrl(organization.slug, eventSlug, event.transaction, query);
 }
 
 function generateDiscoverEventTarget(
@@ -98,21 +81,6 @@ export function generateSingleErrorTarget(
   }
 }
 
-export function generateSingleTransactionTarget(
-  event: EventLite,
-  organization: OrganizationSummary,
-  location: Location,
-  destination: TransactionDestination
-): LocationDescriptor {
-  switch (destination) {
-    case 'performance':
-      return generatePerformanceEventTarget(event, organization, location);
-    case 'discover':
-    default:
-      return generateDiscoverEventTarget(event, organization, location);
-  }
-}
-
 export function generateMultiTransactionsTarget(
   currentEvent: Event,
   events: EventLite[],
@@ -144,9 +112,31 @@ export function generateMultiTransactionsTarget(
   return traceEventView.getResultsViewUrlTarget(organization.slug);
 }
 
+const timestampsFieldCandidates = [
+  'dateCreated',
+  'startTimestamp',
+  'timestamp',
+  'endTimestamp',
+];
+
+export function getEventTimestamp(event: Event): string | number | undefined {
+  for (const key of timestampsFieldCandidates) {
+    if (
+      key in event &&
+      (typeof event[key] === 'string' || typeof event[key] === 'number')
+    ) {
+      return event[key];
+    }
+  }
+
+  return undefined;
+}
+
 export function generateTraceTarget(
   event: Event,
-  organization: OrganizationSummary
+  organization: OrganizationSummary,
+  location: Location,
+  source?: string
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
@@ -154,7 +144,15 @@ export function generateTraceTarget(
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
-    return getTraceDetailsUrl(organization, traceId, dateSelection, {});
+    return getTraceDetailsUrl({
+      organization,
+      traceSlug: traceId,
+      dateSelection,
+      timestamp: getEventTimestamp(event),
+      eventId: event.eventID,
+      location,
+      source,
+    });
   }
 
   const eventView = EventView.fromSavedQuery({

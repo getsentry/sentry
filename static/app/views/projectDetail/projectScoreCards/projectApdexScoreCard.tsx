@@ -9,10 +9,10 @@ import ScoreCard from 'sentry/components/scoreCard';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
+import type {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {getTermHelp, PerformanceTerm} from 'sentry/views/performance/data';
 
 import MissingPerformanceButtons from '../missingFeatureButtons/missingPerformanceButtons';

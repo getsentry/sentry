@@ -1,10 +1,17 @@
 import ExternalLink from 'sentry/components/links/externalLink';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getCrashReportPHPInstallStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -30,7 +37,7 @@ const getMetricsConfigureSnippet = () => `
 use function \\Sentry\\init;
 
 \\Sentry\\init([
-    'metric_code_locations' => true,
+    'attach_metric_code_locations' => true,
 ]);`;
 
 const getVerifySnippet = () => `
@@ -39,16 +46,6 @@ try {
 } catch (\\Throwable $exception) {
   \\Sentry\\captureException($exception);
 }`;
-
-const getMetricsVerifySnippet = () => `
-use function \\Sentry\\metrics;
-
-// Add 4 to a counter named 'hits'
-metrics()->increment('hits', 4);
-metrics()->flush();
-
-// We recommend registering the flushing in a shutdownhandler
-register_shutdown_function(static fn () => metrics()->flush());`;
 
 const onboarding: OnboardingConfig = {
   install: params => [
@@ -71,6 +68,16 @@ const onboarding: OnboardingConfig = {
                 description: t('Install the Excimer extension via PECL:'),
                 language: 'bash',
                 code: 'pecl install excimer',
+              },
+              {
+                description: tct(
+                  "The Excimer PHP extension supports PHP 7.2 and up. Excimer requires Linux or macOS and doesn't support Windows. For additional ways to install Excimer, see [sentryPhpDocumentationLink: Sentry documentation].",
+                  {
+                    sentryPhpDocumentationLink: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/php/profiling/#installation" />
+                    ),
+                  }
+                ),
               },
             ]
           : []),
@@ -162,7 +169,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges].",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -173,18 +180,40 @@ const customMetricsOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
-              label: 'PHP',
-              value: 'php',
+              label: 'Counter',
+              value: 'counter',
               language: 'php',
-              code: getMetricsVerifySnippet(),
+              code: exampleSnippets.php.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'php',
+              code: exampleSnippets.php.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'php',
+              code: exampleSnippets.php.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'php',
+              code: exampleSnippets.php.gauge,
             },
           ],
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -192,7 +221,7 @@ const customMetricsOnboarding: OnboardingConfig = {
             'Learn more about metrics and how to configure them, by reading the [docsLink:docs].',
             {
               docsLink: (
-                <ExternalLink href="https://github.com/getsentry/sentry-php/discussions/1666" />
+                <ExternalLink href="https://docs.sentry.io/platforms/php/metrics/" />
               ),
             }
           ),
@@ -202,10 +231,26 @@ const customMetricsOnboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => getCrashReportPHPInstallStep(params),
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/php/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
   customMetricsOnboarding,
+  crashReportOnboarding,
 };
 
 export default docs;

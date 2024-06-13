@@ -1,8 +1,8 @@
-import {fromSorts} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import type {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
 const {TIME_SPENT_PERCENTAGE} = SpanFunction;
@@ -33,7 +33,9 @@ export function useResourceSort(
 ) {
   const location = useLocation<Query>();
 
-  return fromSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback;
+  return (
+    decodeSorts(location.query[sortParameterName]).filter(isAValidSort)[0] ?? fallback
+  );
 }
 
 const DEFAULT_SORT: Sort = {

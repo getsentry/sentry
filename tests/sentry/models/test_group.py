@@ -9,7 +9,6 @@ from django.db.models import ProtectedError
 from django.utils import timezone
 
 from sentry.issues.grouptype import FeedbackGroup, ProfileFileIOGroupType
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group, GroupStatus, get_group_with_redirect
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.grouprelease import GroupRelease
@@ -19,7 +18,6 @@ from sentry.replays.testutils import mock_replay
 from sentry.testutils.cases import ReplaysSnubaTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -27,7 +25,6 @@ from tests.sentry.issues.test_utils import OccurrenceTestMixin
 pytestmark = requires_snuba
 
 
-@region_silo_test
 class GroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -280,12 +277,12 @@ class GroupTest(TestCase, SnubaTestCase):
         last_release = Release.objects.create(
             organization_id=self.organization.id,
             version="100",
-            date_added=iso_format(now - timedelta(seconds=10)),
+            date_added=now - timedelta(seconds=10),
         )
         first_release = Release.objects.create(
             organization_id=self.organization.id,
             version="200",
-            date_added=iso_format(now - timedelta(seconds=100)),
+            date_added=now - timedelta(seconds=100),
         )
         GroupRelease.objects.create(
             project_id=project.id,
@@ -354,7 +351,6 @@ class GroupTest(TestCase, SnubaTestCase):
         assert logger.error.call_count == len(status_substatus_pairs)
 
 
-@region_silo_test
 class GroupIsOverResolveAgeTest(TestCase):
     def test_simple(self):
         group = self.group
@@ -387,9 +383,10 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             project_id=self.project.id,
         )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         group_event = group.get_latest_event()
+        assert group_event is not None
 
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
@@ -407,30 +404,30 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
             data={"event_id": "b" * 32, "fingerprint": ["group-1"], "timestamp": self.min_ago},
             project_id=self.project.id,
         )
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         group_event = group.get_latest_event()
+        assert group_event is not None
 
         assert group_event.event_id == "b" * 32
         assert group_event.occurrence is None
 
     def test_get_latest_event_occurrence(self):
         event_id = uuid.uuid4().hex
-        occurrence_data = self.build_occurrence_data(event_id=event_id, project_id=self.project.id)
-        occurrence = process_event_and_issue_occurrence(
-            occurrence_data,
-            {
-                "event_id": event_id,
+        occurrence, _ = self.process_occurrence(
+            project_id=self.project.id,
+            event_id=event_id,
+            event_data={
                 "fingerprint": ["group-1"],
-                "project_id": self.project.id,
                 "timestamp": before_now(minutes=1).isoformat(),
             },
-        )[0]
+        )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
         group.update(type=ProfileFileIOGroupType.type_id)
 
         group_event = group.get_latest_event()
+        assert group_event is not None
         assert group_event.event_id == event_id
         self.assert_occurrences_identical(group_event.occurrence, occurrence)
 
@@ -457,7 +454,7 @@ class GroupReplaysCacheTest(SnubaTestCase, ReplaysSnubaTestCase):
                 replay1_id,
             )
         )
-        group = Group.objects.first()
+        group = Group.objects.get()
         assert group.has_replays() is True
 
         # test caching

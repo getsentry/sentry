@@ -4,7 +4,6 @@ import {space} from 'sentry/styles/space';
 
 const Wrapper = styled('div')`
   max-width: 769px;
-  max-height: 525px;
   margin-left: auto;
   margin-right: auto;
   padding: ${space(4)};
@@ -18,7 +17,7 @@ const Wrapper = styled('div')`
     border-radius: 8px;
     padding: ${space(0.25)} ${space(0.5)} ${space(0.25)} ${space(0.5)};
     background: ${p => p.theme.gray100};
-    margin-right: ${space(1)};
+    margin-right: ${space(0.5)};
   }
   h2 {
     color: ${p => p.theme.gray500};
@@ -31,6 +30,11 @@ const Wrapper = styled('div')`
   }
   .encrypt-help {
     color: ${p => p.theme.gray500};
+    padding-bottom: ${space(1)};
+  }
+  .encrypt-note {
+    color: ${p => p.theme.gray300};
+    padding-top: ${space(1)};
   }
 `;
 

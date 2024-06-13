@@ -1,25 +1,26 @@
-import {InjectedRouter} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Query} from 'history';
+import type {InjectedRouter} from 'react-router';
+import type {Theme} from '@emotion/react';
+import type {Query} from 'history';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
-import {LineChart, LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
   getDurationUnit,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import {getIntervalLine} from 'sentry/views/performance/utils';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
+import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 import {transformEventStatsSmoothed} from '../../../trends/utils';
 

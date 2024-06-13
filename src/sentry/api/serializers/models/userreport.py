@@ -1,5 +1,3 @@
-from typing import Dict
-
 from sentry import eventstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event
@@ -27,7 +25,7 @@ class UserReportSerializer(Serializer):
             tenant_ids={"organization_id": project.organization_id},
         )
 
-        events_dict: Dict[str, Event] = {event.event_id: event for event in events}
+        events_dict: dict[str, Event] = {event.event_id: event for event in events}
         for item in item_list:
             attrs[item] = {
                 "event_user": EventUser.from_event(events_dict[item.event_id])

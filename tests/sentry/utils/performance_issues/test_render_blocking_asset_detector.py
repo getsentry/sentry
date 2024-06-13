@@ -12,7 +12,6 @@ from sentry.testutils.performance_issues.event_generators import (
     create_span,
     modify_span_start,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.detectors.render_blocking_asset_span_detector import (
     RenderBlockingAssetSpanDetector,
 )
@@ -61,7 +60,6 @@ def find_problems(settings, event: dict[str, Any]) -> list[PerformanceProblem]:
     return list(detector.stored_problems.values())
 
 
-@region_silo_test
 @pytest.mark.django_db
 class RenderBlockingAssetDetectorTest(TestCase):
     def setUp(self):

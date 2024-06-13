@@ -1,7 +1,7 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Plugin} from 'sentry-fixture/plugin';
-import {Plugins} from 'sentry-fixture/plugins';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PluginFixture} from 'sentry-fixture/plugin';
+import {PluginsFixture} from 'sentry-fixture/plugins';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -12,10 +12,10 @@ import ProjectPluginDetailsContainer, {
 } from 'sentry/views/settings/projectPlugins/details';
 
 describe('ProjectPluginDetails', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
-  const plugins = Plugins();
-  const plugin = Plugin();
+  const plugins = PluginsFixture();
+  const plugin = PluginFixture();
   const routerProps = RouteComponentPropsFixture();
 
   beforeAll(function () {
@@ -50,7 +50,7 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <ProjectPluginDetailsContainer
         {...routerProps}
@@ -62,6 +62,7 @@ describe('ProjectPluginDetails', function () {
         }}
       />
     );
+    expect(await screen.findByRole('heading', {name: 'Amazon SQS'})).toBeInTheDocument();
   });
 
   it('resets plugin', async function () {

@@ -1,6 +1,9 @@
+from __future__ import annotations
+
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 from django.utils import timezone
 
@@ -10,13 +13,18 @@ from sentry.issues.escalating import GroupsCountResponse
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import process_occurrence_data, save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.helpers.datetime import iso_format
 
 
 class OccurrenceTestMixin:
-    def assert_occurrences_identical(self, o1: IssueOccurrence, o2: IssueOccurrence) -> None:
+    def assert_occurrences_identical(
+        self, o1: IssueOccurrence | None, o2: IssueOccurrence | None
+    ) -> None:
+        assert o1 is not None
+        assert o2 is not None
         assert o1.id == o2.id
         assert o1.event_id == o2.event_id
         assert o1.fingerprint == o2.fingerprint
@@ -27,6 +35,7 @@ class OccurrenceTestMixin:
         assert o1.evidence_display == o2.evidence_display
         assert o1.type == o2.type
         assert o1.detection_time == o2.detection_time
+        assert o1.initial_issue_priority == o2.initial_issue_priority
 
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
@@ -47,7 +56,7 @@ class OccurrenceTestMixin:
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
         }
-        kwargs.update(overrides)  # type: ignore
+        kwargs.update(overrides)  # type: ignore[typeddict-item]
 
         process_occurrence_data(kwargs)
         return kwargs
@@ -62,6 +71,20 @@ class OccurrenceTestMixin:
 
         return IssueOccurrence.from_dict(self.build_occurrence_data(**overrides))
 
+    def process_occurrence(
+        self, event_data: dict[str, Any], **overrides
+    ) -> tuple[IssueOccurrence, GroupInfo | None]:
+        """
+        Testutil to build and process occurrence data instead of going through Kafka.
+        This ensures the occurrence data is well-formed.
+        """
+        occurrence_data = self.build_occurrence_data(**overrides)
+        if "event_id" not in event_data:
+            event_data["event_id"] = occurrence_data["event_id"]
+        if "project_id" not in event_data:
+            event_data["project_id"] = occurrence_data["project_id"]
+        return process_event_and_issue_occurrence(occurrence_data, event_data)
+
 
 class SearchIssueTestMixin(OccurrenceTestMixin):
     def store_search_issue(
@@ -69,12 +92,14 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         project_id: int,
         user_id: int,
         fingerprints: Sequence[str],
-        environment: Optional[str] = None,
-        insert_time: Optional[datetime] = None,
-        tags: Optional[Sequence[Tuple[str, Any]]] = None,
-        release: Optional[str] = None,
-        user: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[Event, IssueOccurrence, Optional[GroupInfo]]:
+        environment: str | None = None,
+        insert_time: datetime | None = None,
+        tags: Sequence[tuple[str, Any]] | None = None,
+        release: str | None = None,
+        user: dict[str, Any] | None = None,
+        event_data: dict[str, Any] | None = None,
+        override_occurrence_data: dict[str, Any] | None = None,
+    ) -> tuple[Event, IssueOccurrence, GroupInfo | None]:
         from sentry.utils import snuba
 
         insert_timestamp = (insert_time if insert_time else timezone.now()).replace(microsecond=0)
@@ -83,6 +108,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         event_data = {
             "tags": [("sentry:user", user_id_val)],
             "timestamp": iso_format(insert_timestamp),
+            **(event_data or {}),
         }
         if tags:
             event_data["tags"].extend(tags)
@@ -102,7 +128,9 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
             data=event_data,
             project_id=project_id,
         )
-        occurrence = self.build_occurrence(event_id=event.event_id, fingerprint=fingerprints)
+        occurrence = self.build_occurrence(
+            event_id=event.event_id, fingerprint=fingerprints, **(override_occurrence_data or {})
+        )
         saved_occurrence, group_info = save_issue_occurrence(occurrence.to_dict(), event)
         self.assert_occurrences_identical(occurrence, saved_occurrence)
 
@@ -140,8 +168,8 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
 def get_mock_groups_past_counts_response(
     num_days: int,
     num_hours: int,
-    groups: List[Group],
-) -> List[GroupsCountResponse]:
+    groups: list[Group],
+) -> list[GroupsCountResponse]:
     """
     Returns a mocked response of type `GroupsCountResponse` from `query_groups_past_counts`.
     Creates event count data for each group in `groups` for `num_days`, for `num_hours`.

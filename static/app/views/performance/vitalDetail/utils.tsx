@@ -1,19 +1,19 @@
-import {Theme} from '@emotion/react';
-import {Location, Query} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location, Query} from 'history';
 
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {LineChartProps} from 'sentry/components/charts/lineChart';
+import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {getSeriesSelection} from 'sentry/components/charts/utils';
 import {IconHappy, IconMeh, IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Series} from 'sentry/types/echarts';
+import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {Color} from 'sentry/utils/theme';
-import {AlertType} from 'sentry/views/alerts/wizard/options';
+import type {Color} from 'sentry/utils/theme';
+import type {AlertType} from 'sentry/views/alerts/wizard/options';
 
 export function generateVitalDetailRoute({orgSlug}: {orgSlug: string}): string {
   return `/organizations/${orgSlug}/performance/vitaldetail/`;
@@ -168,7 +168,7 @@ export function getMaxOfSeries(series: Series[]) {
 }
 
 export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
-  [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
+  [WebVital.LCP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA, Browser.FIREFOX],
   [WebVital.FID]: [
     Browser.CHROME,
     Browser.EDGE,
@@ -194,6 +194,7 @@ export const vitalSupportedBrowsers: Partial<Record<WebVital, Browser[]>> = {
     Browser.SAFARI,
     Browser.IE,
   ],
+  [WebVital.INP]: [Browser.CHROME, Browser.EDGE, Browser.OPERA],
 };
 
 export function getVitalChartDefinitions({

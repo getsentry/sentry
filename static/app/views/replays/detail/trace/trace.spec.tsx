@@ -2,15 +2,25 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import EventView from 'sentry/utils/discover/eventView';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import {useTransactionData} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import Trace from 'sentry/views/replays/detail/trace/trace';
+
+jest.mock('screenfull', () => ({
+  enabled: true,
+  get isFullscreen() {
+    return false;
+  },
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
 
 jest.mock('sentry/views/replays/detail/trace/replayTransactionContext');
 
 const mockUseTransactionData = jest.mocked(useTransactionData);
-
-const mockTraceFullDetailed = {} as TraceFullDetailed;
 
 function setMockTransactionState({
   didInit = false,
@@ -18,7 +28,7 @@ function setMockTransactionState({
   isFetching = false,
   traces = undefined,
 }: Partial<ReturnType<typeof useTransactionData>['state']>) {
-  const eventView = null;
+  const eventView = EventView.fromSavedQuery(DEFAULT_EVENT_VIEW);
   mockUseTransactionData.mockReturnValue({
     state: {didInit, errors, isFetching, traces},
     eventView,
@@ -27,6 +37,10 @@ function setMockTransactionState({
 
 describe('trace', () => {
   beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/events/`,
+      body: {},
+    });
     mockUseTransactionData.mockReset();
   });
 
@@ -64,7 +78,7 @@ describe('trace', () => {
     setMockTransactionState({
       didInit: true,
       isFetching: true,
-      traces: [mockTraceFullDetailed],
+      traces: [],
       errors: [new Error('Something went wrong')],
     });
 

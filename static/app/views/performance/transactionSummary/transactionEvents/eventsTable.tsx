@@ -1,27 +1,25 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, RouteContextInterface} from 'react-router';
+import type {RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
 import groupBy from 'lodash/groupBy';
 
 import {Client} from 'sentry/api';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumn,
-} from 'sentry/components/gridEditable';
+import type {GridColumn} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {IssueAttachment, Organization} from 'sentry/types';
+import type {IssueAttachment, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import DiscoverQuery, {
-  TableData,
-  TableDataRow,
-} from 'sentry/utils/discover/discoverQuery';
-import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -29,22 +27,25 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 
 import {COLUMN_TITLES} from '../../data';
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import Tab from '../tabs';
 import {
   generateProfileLink,
   generateReplayLink,
   generateTraceLink,
-  generateTransactionLink,
   normalizeSearchConditions,
 } from '../utils';
 
-import OperationSort, {TitleProps} from './operationSort';
+import type {TitleProps} from './operationSort';
+import OperationSort from './operationSort';
 
 function OperationTitle({onClick}: TitleProps) {
   return (
@@ -161,12 +162,29 @@ class EventsTable extends Component<Props, State> {
       const {issueId, isRegressionIssue} = this.props;
       const isIssue: boolean = !!issueId;
       let target: LocationDescriptor = {};
+      const locationWithTab = {...location, query: {...location.query, tab: Tab.EVENTS}};
       // TODO: set referrer properly
       if (isIssue && !isRegressionIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
       } else {
-        const generateLink = field === 'id' ? generateTransactionLink : generateTraceLink;
-        target = generateLink(transactionName)(organization, dataRow, location.query);
+        if (field === 'id') {
+          target = generateLinkToEventInTraceView({
+            traceSlug: dataRow.trace?.toString(),
+            projectSlug: dataRow['project.name']?.toString(),
+            eventId: dataRow.id,
+            timestamp: dataRow.timestamp,
+            location: locationWithTab,
+            organization,
+            transactionName: transactionName,
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+          });
+        } else {
+          target = generateTraceLink(transactionName)(
+            organization,
+            dataRow,
+            locationWithTab
+          );
+        }
       }
 
       return (
@@ -507,7 +525,6 @@ class EventsTable extends Component<Props, State> {
                             ) as any,
                             renderBodyCell: this.renderBodyCellWithData(tableData) as any,
                           }}
-                          location={location}
                         />
                       </VisuallyCompleteWithData>
                       <Pagination

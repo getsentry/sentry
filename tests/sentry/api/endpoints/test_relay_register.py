@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import orjson
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
@@ -7,11 +8,9 @@ from sentry_relay.auth import generate_key_pair
 
 from sentry.models.relay import Relay, RelayUsage
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
+from sentry.testutils.helpers.options import override_options
 
 
-@region_silo_test
 class RelayRegisterTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -48,7 +47,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         data = {
             "token": str(result.get("token")),
@@ -180,7 +179,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         raw_json, signature = self.private_key.pack(result)
 
@@ -211,7 +210,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         raw_json, signature = self.private_key.pack(result)
 
@@ -255,7 +254,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         raw_json, signature = self.private_key.pack(result)
 
@@ -296,7 +295,7 @@ class RelayRegisterTest(APITestCase):
             HTTP_X_SENTRY_RELAY_SIGNATURE=signature,
         )
 
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         resp = self.client.post(
             self.path,
@@ -338,7 +337,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         _, signature = self.private_key.pack(result)
 
@@ -366,7 +365,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         del result["token"]
 
@@ -396,7 +395,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         raw_json, signature = self.private_key.pack(result)
 
@@ -423,7 +422,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         raw_json, signature = self.private_key.pack(result)
 
@@ -463,7 +462,7 @@ class RelayRegisterTest(APITestCase):
         )
 
         assert resp.status_code == 200, resp.content
-        result = json.loads(resp.content)
+        result = orjson.loads(resp.content)
 
         raw_json, signature = self.private_key.pack(result)
 
@@ -569,5 +568,5 @@ class RelayRegisterTest(APITestCase):
         static_auth = {relay_id: {"internal": True, "public_key": str(public_key)}}
 
         with self.assertNumQueries(0):
-            with self.settings(SENTRY_OPTIONS={"relay.static_auth": static_auth}):
+            with override_options({"relay.static_auth": static_auth}):
                 self.register_relay(key_pair, "1.1.1", relay_id)

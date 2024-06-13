@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
+from typing import TypeGuard
 
-from typing_extensions import TypeGuard
+import orjson
 
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import (
@@ -45,8 +46,6 @@ from sentry.integrations.msteams.card_builder.notifications import (
 )
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.rule import Rule
 from sentry.testutils.cases import TestCase
@@ -56,7 +55,6 @@ from sentry.testutils.helpers.notifications import (
 )
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -100,13 +98,13 @@ class MSTeamsMessageBuilderTest(TestCase):
         owner = self.create_user()
         self.org = self.create_organization(owner=owner)
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Fellowship of the Ring",
             external_id="f3ll0wsh1p",
             metadata={},
         )
-        OrganizationIntegration.objects.create(
+        self.create_organization_integration(
             organization_id=self.org.id, integration=self.integration
         )
 
@@ -390,7 +388,7 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert "Assign" == assign_action["card"]["actions"][0]["title"]
 
         # Check if card is serializable to json
-        card_json = json.dumps(issue_card)
+        card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_message_builder_with_escalating_issues(self):
@@ -485,7 +483,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             assert "Assign" == assign_action["card"]["actions"][0]["title"]
 
             # Check if card is serializable to json
-            card_json = json.dumps(issue_card)
+            card_json = orjson.dumps(issue_card).decode()
             assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_without_description(self):

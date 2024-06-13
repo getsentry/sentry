@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import {SessionFieldWithOperation} from 'sentry/types';
 import ProjectStabilityScoreCard from 'sentry/views/projectDetail/projectScoreCards/projectStabilityScoreCard';
 
 describe('ProjectDetail > ProjectStability', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   const selection = {
     projects: [1],

@@ -6,7 +6,7 @@ from django.db import router
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.signals import event_processed, transaction_processed
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba

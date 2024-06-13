@@ -16,7 +16,9 @@ from django.conf import settings
 from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
+from sentry.silo.base import SiloMode
 from sentry.testutils.region import TestEnvRegionDirectory
+from sentry.testutils.silo import monkey_patch_single_process_silo_mode_state
 from sentry.types import region
 from sentry.types.region import Region, RegionCategory
 from sentry.utils.warnings import UnsupportedBackend
@@ -31,10 +33,13 @@ TEST_ROOT = os.path.normpath(
 TEST_REDIS_DB = 9
 
 
+def _use_monolith_dbs() -> bool:
+    return os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
+
+
 def configure_split_db() -> None:
-    SENTRY_USE_MONOLITH_DBS = os.environ.get("SENTRY_USE_MONOLITH_DBS", "0") == "1"
     already_configured = "control" in settings.DATABASES
-    if already_configured or SENTRY_USE_MONOLITH_DBS:
+    if already_configured or _use_monolith_dbs():
         return
 
     # Add connections for the region & control silo databases.
@@ -45,10 +50,19 @@ def configure_split_db() -> None:
     # silo database is the 'default' elsewhere in application logic.
     settings.DATABASES["default"]["NAME"] = "region"
 
-    settings.DATABASE_ROUTERS = ("sentry.db.router.SiloRouter",)
+    # Add a connection for the secondary db
+    settings.DATABASES["secondary"] = settings.DATABASES["default"].copy()
+    settings.DATABASES["secondary"]["NAME"] = "secondary"
+
+    settings.DATABASE_ROUTERS = ("sentry.db.router.TestSiloMultiDatabaseRouter",)
+
+
+def get_default_silo_mode_for_test_cases() -> SiloMode:
+    return SiloMode.MONOLITH if _use_monolith_dbs() else SiloMode.REGION
 
 
 def _configure_test_env_regions() -> None:
+    settings.SILO_MODE = get_default_silo_mode_for_test_cases()
 
     # Assign a random name on every test run, as a reminder that test setup and
     # assertions should not depend on this value. If you need to test behavior that
@@ -70,6 +84,15 @@ def _configure_test_env_regions() -> None:
     settings.SENTRY_SUBNET_SECRET = "secret"
     settings.SENTRY_CONTROL_ADDRESS = "http://controlserver/"
 
+    # Relay integration tests spin up a relay instance in a container
+    # this container then sends requests to the threaded server running
+    # in the pytest process. Without this the requests from relay arrive
+    # in the threaded server with a non-deterministic silo mode causing
+    # flaky test failures.
+    settings.APIGATEWAY_PROXY_SKIP_RELAY = True
+
+    monkey_patch_single_process_silo_mode_state()
+
 
 def pytest_configure(config: pytest.Config) -> None:
     import warnings
@@ -82,6 +105,10 @@ def pytest_configure(config: pytest.Config) -> None:
     )
 
     config.addinivalue_line("markers", "migrations: requires --migrations")
+
+    if not config.getvalue("nomigrations"):
+        # XXX: ignore warnings in historic migrations
+        config.addinivalue_line("filterwarnings", "ignore:.*index_together.*")
 
     if sys.platform == "darwin" and shutil.which("colima"):
         # This is the only way other than pytest --basetemp to change
@@ -98,32 +125,14 @@ def pytest_configure(config: pytest.Config) -> None:
 
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sentry.conf.server")
 
+    # add "ENFORCE_PAGINATION" to the list of environment variables
+    settings.ENFORCE_PAGINATION = True
+
     # override docs which are typically synchronized from an upstream server
     # to ensure tests are consistent
-    os.environ.setdefault(
-        "INTEGRATION_DOC_FOLDER", os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
-    )
     from sentry.utils import integrationdocs
 
-    integrationdocs.DOC_FOLDER = os.environ["INTEGRATION_DOC_FOLDER"]
-
-    if not settings.configured:
-        # only configure the db if its not already done
-        test_db = os.environ.get("DB", "postgres")
-        if test_db == "postgres":
-            settings.DATABASES["default"].update(
-                {
-                    "ENGINE": "sentry.db.postgres",
-                    "USER": "postgres",
-                    "NAME": "sentry",
-                    "HOST": "127.0.0.1",
-                }
-            )
-            # postgres requires running full migration all the time
-            # since it has to install stored functions which come from
-            # an actual migration.
-        else:
-            raise RuntimeError("oops, wrong database: %r" % test_db)
+    integrationdocs.DOC_FOLDER = os.path.join(TEST_ROOT, os.pardir, "fixtures", "integration-docs")
 
     configure_split_db()
 
@@ -265,7 +274,8 @@ def pytest_configure(config: pytest.Config) -> None:
 
     settings.SENTRY_USE_ISSUE_OCCURRENCE = True
 
-    settings.SENTRY_USE_GROUP_ATTRIBUTES = True
+    # TODO: enable this during tests
+    settings.SENTRY_OPTIONS["issues.group_attributes.send_kafka"] = False
 
     # For now, multiprocessing does not work in tests.
     settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING = True
@@ -303,7 +313,6 @@ def register_extensions() -> None:
 
     plugins.register(TestIssuePlugin2)
 
-    from sentry import integrations
     from sentry.integrations.example import (
         AlertRuleIntegrationProvider,
         AliasedIntegrationProvider,
@@ -312,6 +321,7 @@ def register_extensions() -> None:
         FeatureFlagIntegration,
         ServerExampleProvider,
     )
+    from sentry.integrations.manager import default_manager as integrations
 
     integrations.register(ExampleIntegrationProvider)
     integrations.register(AliasedIntegrationProvider)
@@ -336,11 +346,10 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
-    # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
+    from sentry.newsletter.dummy import DummyNewsletter
 
-    if hasattr(newsletter.backend, "clear"):
-        newsletter.backend.clear()
+    newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
     from sentry.utils.redis import clusters
 

@@ -7,8 +7,9 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {space} from 'sentry/styles/space';
-import {ColorOrAlias} from 'sentry/utils/theme';
-import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
+import type {ColorOrAlias} from 'sentry/utils/theme';
+import type {UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
+import {useHoverOverlay} from 'sentry/utils/useHoverOverlay';
 
 interface HovercardProps extends Omit<UseHoverOverlayProps, 'isHoverable'> {
   /**
@@ -167,8 +168,8 @@ const Header = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   background: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
-  border-radius: ${p => p.theme.borderRadiusTop};
-  font-weight: 600;
+  border-radius: 8px 8px 0 0;
+  font-weight: ${p => p.theme.fontWeightBold};
   word-wrap: break-word;
   padding: ${space(1.5)};
 `;

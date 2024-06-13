@@ -1,9 +1,9 @@
-import {Event} from 'sentry-fixture/event';
-import {Project as ProjectMock} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 
 import {EventDisplay} from './eventDisplay';
 
@@ -11,7 +11,11 @@ describe('eventDisplay', () => {
   let mockProject: Project;
 
   beforeEach(() => {
-    mockProject = ProjectMock();
+    mockProject = ProjectFixture();
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${mockProject.slug}/`,
+      body: mockProject,
+    });
   });
 
   it('renders an empty state if no events returned', async () => {
@@ -53,7 +57,7 @@ describe('eventDisplay', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/${mockProject.slug}:mock-id/`,
       method: 'GET',
-      body: Event({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
+      body: EventFixture({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
     });
 
     render(
@@ -67,7 +71,7 @@ describe('eventDisplay', () => {
       />
     );
 
-    expect(await screen.findByText('mock-tag')).toBeInTheDocument();
+    expect(await screen.findByText('mock-tag', {selector: 'div'})).toBeInTheDocument();
     expect(screen.getByText('mock-value')).toBeInTheDocument();
   });
 
@@ -89,7 +93,7 @@ describe('eventDisplay', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/${mockProject.slug}:mock-id/`,
       method: 'GET',
-      body: Event({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
+      body: EventFixture({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
     });
 
     render(
@@ -126,7 +130,7 @@ describe('eventDisplay', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/${mockProject.slug}:mock-id/`,
       method: 'GET',
-      body: Event({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
+      body: EventFixture({tags: [{key: 'mock-tag', value: 'mock-value'}]}),
     });
 
     render(
@@ -142,7 +146,7 @@ describe('eventDisplay', () => {
 
     expect(
       await screen.findByRole('button', {name: 'Full Event Details'})
-    ).toHaveAttribute('href', '/organizations/org-slug/discover/project-slug:1/');
+    ).toHaveAttribute('href', '/organizations/org-slug/performance/project-slug:1/?');
   });
 
   it('allows for pagination if there are more events loaded', async () => {
@@ -168,13 +172,17 @@ describe('eventDisplay', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/${mockProject.slug}:event1/`,
       method: 'GET',
-      body: Event({tags: [{key: 'mock-tag', value: 'mock-value-for-event1'}]}),
+      body: EventFixture({
+        tags: [{key: 'mock-tag', value: 'mock-value-for-event1'}],
+      }),
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/events/${mockProject.slug}:event2/`,
       method: 'GET',
-      body: Event({tags: [{key: 'mock-tag', value: 'mock-value-for-event2'}]}),
+      body: EventFixture({
+        tags: [{key: 'mock-tag', value: 'mock-value-for-event2'}],
+      }),
     });
 
     render(

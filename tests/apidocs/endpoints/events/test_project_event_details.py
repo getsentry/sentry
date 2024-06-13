@@ -2,10 +2,8 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectEventDetailsDocs(APIDocsTestCase):
     endpoint = "sentry-api-0-project-event-details"
 
@@ -19,8 +17,8 @@ class ProjectEventDetailsDocs(APIDocsTestCase):
         self.url = reverse(
             self.endpoint,
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "event_id": event.event_id,
             },
         )

@@ -18,9 +18,10 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
-pytestmark = [requires_snuba]
+pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
 
 INTERVAL_COUNT = 300
 INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
@@ -211,14 +212,47 @@ class UnfurlTest(TestCase):
         assert (
             unfurls[links[1].url]
             == SlackIssuesMessageBuilder(
-                group2, next(iter(event.build_group_events())), link_to_event=True
+                group2, event.for_group(group2), link_to_event=True
             ).build()
         )
 
+    @with_feature("organizations:slack-block-kit")
+    def test_unfurl_issues_block_kit(self):
+        min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={"fingerprint": ["group2"], "timestamp": min_ago}, project_id=self.project.id
+        )
+        assert event.group is not None
+        group2 = event.group
+
+        links = [
+            UnfurlableUrl(
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{self.group.id}/",
+                args={"issue_id": self.group.id, "event_id": None},
+            ),
+            UnfurlableUrl(
+                url=f"https://sentry.io/organizations/{self.organization.slug}/issues/{group2.id}/{event.event_id}/",
+                args={"issue_id": group2.id, "event_id": event.event_id},
+            ),
+        ]
+
+        unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
+
+        assert unfurls[links[0].url] == SlackIssuesMessageBuilder(self.group).build()
+        assert (
+            unfurls[links[1].url]
+            == SlackIssuesMessageBuilder(
+                group2, event.for_group(group2), link_to_event=True
+            ).build()
+        )
+
+    @with_feature({"organizations:slack-block-kit": False})
     def test_escape_issue(self):
+        # wraps text in markdown code block
+        escape_text = "<https://example.com/|*Click Here*>"
         group = self.create_group(
             project=self.project,
-            data={"type": "error", "metadata": {"value": "<https://example.com/|*Click Here*>"}},
+            data={"type": "error", "metadata": {"value": escape_text}},
         )
 
         links = [
@@ -229,7 +263,7 @@ class UnfurlTest(TestCase):
         ]
 
         unfurls = link_handlers[LinkType.ISSUES].fn(self.request, self.integration, links)
-        assert unfurls[links[0].url]["text"] == "&amp;lt;https://example.com/|*Click Here*&amp;gt;"
+        assert unfurls[links[0].url]["blocks"][1]["text"]["text"] == "```" + escape_text + "```"
 
     def test_unfurl_metric_alert(self):
         alert_rule = self.create_alert_rule()
@@ -379,7 +413,7 @@ class UnfurlTest(TestCase):
         alert_rule = self.create_alert_rule(
             query="",
             aggregate="percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate",
-            dataset=Dataset.Sessions,
+            dataset=Dataset.Metrics,
             time_window=60,
             resolve_threshold=10,
             threshold_period=1,

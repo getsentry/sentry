@@ -13,9 +13,10 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.silo import control_silo_test
 
 
-class DiscordIntegrationTest(IntegrationTestCase):
+class DiscordSetupTestCase(IntegrationTestCase):
     provider = DiscordIntegrationProvider
 
     def setUp(self):
@@ -178,6 +179,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert resp.status_code == 200
         self.assertDialogSuccess(resp)
 
+
+@control_silo_test
+class DiscordSetupIntegrationTest(DiscordSetupTestCase):
     @responses.activate
     def test_bot_flow(self):
         with self.tasks():
@@ -231,6 +235,8 @@ class DiscordIntegrationTest(IntegrationTestCase):
         assert integrations[1].external_id == "1234567890"
         assert integrations[1].name == "Cool server"
 
+
+class DiscordIntegrationTest(DiscordSetupTestCase):
     @responses.activate
     def test_get_guild_name(self):
         provider = self.provider()
@@ -258,6 +264,23 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         result = provider.build_integration({"guild_id": "guild_id", "code": user_id})
         assert result["name"] == guild_name
+
+    @responses.activate
+    def test_build_integration_no_code_in_state(self):
+        provider = self.provider()
+        guild_id = "guild_id"
+        guild_name = "guild_name"
+        responses.add(
+            responses.GET,
+            url=f"{DiscordClient.base_url}{GUILD_URL.format(guild_id=guild_id)}",
+            match=[header_matcher({"Authorization": f"Bot {self.bot_token}"})],
+            json={
+                "id": guild_id,
+                "name": guild_name,
+            },
+        )
+        with pytest.raises(IntegrationError):
+            provider.build_integration({"guild_id": "guild_id", "code": ""})
 
     @responses.activate
     def test_get_guild_name_failure(self):

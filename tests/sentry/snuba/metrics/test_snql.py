@@ -34,6 +34,7 @@ from sentry.snuba.metrics.fields.snql import (
     subtraction,
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
+    uniq_if_column_snql,
 )
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
@@ -278,41 +279,13 @@ class DerivedMetricSnQLTestCase(TestCase):
     def test_set_count_aggregation_on_tx_satisfaction(self):
         alias = "transaction.miserable_user"
 
-        assert miserable_users(self.org_id, self.metric_ids, alias) == Function(
-            "uniqIf",
-            [
-                Column("value"),
-                Function(
-                    "and",
-                    [
-                        Function(
-                            "equals",
-                            [
-                                Column(
-                                    resolve_tag_key(
-                                        UseCaseID.TRANSACTIONS,
-                                        self.org_id,
-                                        TransactionTagsKey.TRANSACTION_SATISFACTION.value,
-                                    )
-                                ),
-                                resolve_tag_value(
-                                    UseCaseID.TRANSACTIONS,
-                                    self.org_id,
-                                    TransactionSatisfactionTagValue.FRUSTRATED.value,
-                                ),
-                            ],
-                        ),
-                        Function(
-                            "in",
-                            [
-                                Column("metric_id"),
-                                list(self.metric_ids),
-                            ],
-                        ),
-                    ],
-                ),
-            ],
-            alias,
+        assert miserable_users(self.org_id, self.metric_ids, alias) == uniq_if_column_snql(
+            aggregate_filter=Function("in", [Column("metric_id"), list(self.metric_ids)]),
+            org_id=self.org_id,
+            use_case_id=UseCaseID.TRANSACTIONS,
+            if_column=TransactionTagsKey.TRANSACTION_SATISFACTION.value,
+            if_value=TransactionSatisfactionTagValue.FRUSTRATED.value,
+            alias=alias,
         )
 
     def test_dist_count_aggregation_on_tx_satisfaction(self):

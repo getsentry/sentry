@@ -1,6 +1,6 @@
 import type {ReactNode} from 'react';
 import {useMemo} from 'react';
-import {SerializedStyles, Theme} from '@emotion/react';
+import type {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 type TextProps = {
@@ -10,15 +10,13 @@ type TextProps = {
 
 type Props = React.HTMLAttributes<SVGSVGElement> & {
   backgroundColors: string[];
-  maxValues: number[];
   segmentColors: string[];
   text: React.ReactNode;
-  values: number[];
+  values: {key: string; maxValue: number; value: number; onHoverActions?: () => void}[];
   /**
    * The width of the progress ring bar
    */
   barWidth?: number;
-  onHoverActions?: (() => void)[];
   onUnhover?: () => void;
   /**
    * Endcaps on the progress bar
@@ -46,12 +44,11 @@ const Text = styled('div')<Omit<TextProps, 'theme'>>`
   color: ${p => p.theme.chartLabel};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   transition: color 300ms;
-  ${p => p.textCss && p.textCss(p)}
+  ${p => p.textCss?.(p)}
 `;
 
 function PerformanceScoreRing({
   values,
-  maxValues,
   size = 20,
   barWidth = 3,
   text,
@@ -59,7 +56,6 @@ function PerformanceScoreRing({
   segmentColors,
   backgroundColors,
   progressEndcaps,
-  onHoverActions,
   onUnhover,
   ...p
 }: Props) {
@@ -70,11 +66,13 @@ function PerformanceScoreRing({
   const circumference = 2 * Math.PI * radius;
 
   const rings = useMemo<ReactNode[]>(() => {
-    const sumMaxValues = maxValues.reduce((acc, val) => acc + val, 0);
+    const sumMaxValues = values
+      .map(({maxValue}) => maxValue)
+      .reduce((acc, val) => acc + val, 0);
     let currentRotate = BASE_ROTATE;
 
-    return maxValues.flatMap((maxValue, index) => {
-      const boundedValue = Math.min(Math.max(values[index], 0), maxValue);
+    return values.flatMap(({value, maxValue, key, onHoverActions}, index) => {
+      const boundedValue = Math.min(Math.max(value, 0), maxValue);
       const ringSegmentPadding = values.length > 1 ? PADDING : 0;
       // TODO: Hacky way to add padding to ring segments. Should clean this up so it's more accurate to the value.
       // This only mostly works because we expect values to be somewhere between 0 and 100.
@@ -87,7 +85,6 @@ function PerformanceScoreRing({
       currentRotate += (360 * maxValue) / sumMaxValues;
 
       const cx = radius + barWidth / 2;
-      const key = `${cx}-${backgroundColors[index]}`;
 
       return [
         <RingBackground
@@ -100,7 +97,7 @@ function PerformanceScoreRing({
           cy={cx}
           color={backgroundColors[index]}
           rotate={rotate}
-          onMouseOver={() => onHoverActions?.[index]()}
+          onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}
         />,
         <RingBar
@@ -114,7 +111,7 @@ function PerformanceScoreRing({
           cy={cx}
           color={segmentColors[index]}
           rotate={rotate}
-          onMouseOver={() => onHoverActions?.[index]()}
+          onMouseOver={() => onHoverActions?.()}
           onMouseLeave={() => onUnhover?.()}
         />,
       ];
@@ -123,8 +120,6 @@ function PerformanceScoreRing({
     backgroundColors,
     barWidth,
     circumference,
-    maxValues,
-    onHoverActions,
     onUnhover,
     progressEndcaps,
     radius,

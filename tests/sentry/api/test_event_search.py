@@ -111,7 +111,12 @@ def result_transformer(result):
             return SearchValue(raw_value=[item["value"]["value"] for item in token["items"]])
 
         if token["type"] == "valueNumberList":
-            return SearchValue(raw_value=[item["value"]["rawValue"] for item in token["items"]])
+            return SearchValue(
+                raw_value=[
+                    parse_numeric_value(item["value"]["value"], item["value"]["unit"])
+                    for item in token["items"]
+                ]
+            )
 
         if token["type"] == "valueIso8601Date":
             return SearchValue(raw_value=parse_datetime_string(token["value"]))
@@ -123,7 +128,7 @@ def result_transformer(result):
             return SearchValue(raw_value=parse_duration(token["value"], token["unit"]))
 
         if token["type"] == "valueBoolean":
-            return SearchValue(raw_value=int(token["value"]))
+            return SearchValue(raw_value=int(token["value"].lower() in ("1", "true")))
 
         if token["type"] == "freeText":
             if token["quoted"]:
@@ -425,12 +430,12 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator=">=",
-                value=SearchValue(raw_value=datetime.datetime(2018, 1, 1, tzinfo=timezone.utc)),
+                value=SearchValue(raw_value=datetime.datetime(2018, 1, 1, tzinfo=datetime.UTC)),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
-                value=SearchValue(raw_value=datetime.datetime(2018, 1, 2, tzinfo=timezone.utc)),
+                value=SearchValue(raw_value=datetime.datetime(2018, 1, 2, tzinfo=datetime.UTC)),
             ),
         ]
 
@@ -439,14 +444,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]
@@ -456,14 +461,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="time"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="time"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]
@@ -482,14 +487,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
                 key=SearchKey(name="timestamp.to_hour"),
                 operator=">=",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 1, 7, tzinfo=datetime.UTC)
                 ),
             ),
             SearchFilter(
                 key=SearchKey(name="timestamp.to_hour"),
                 operator="<",
                 value=SearchValue(
-                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=timezone.utc)
+                    raw_value=datetime.datetime(2018, 1, 1, 5, 12, 7, tzinfo=datetime.UTC)
                 ),
             ),
         ]

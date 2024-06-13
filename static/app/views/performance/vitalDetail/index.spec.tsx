@@ -1,8 +1,7 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import type {InjectedRouter} from 'react-router';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -10,6 +9,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
@@ -17,17 +17,12 @@ import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
 const api = new MockApiClient();
-const organization = Organization({
+const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
   projects: [ProjectFixture()],
 });
 
-const {
-  routerContext,
-  organization: org,
-  router,
-  project,
-} = initializeOrg({
+const {organization: org, router} = initializeOrg({
   organization,
   router: {
     location: {
@@ -206,7 +201,7 @@ describe('Performance > VitalDetail', function () {
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/metrics/data/`,
-      body: MetricsField('p75(sentry.transactions.measurements.lcp)'),
+      body: MetricsFieldFixture('p75(sentry.transactions.measurements.lcp)'),
       match: [
         MockApiClient.matchQuery({
           field: ['p75(sentry.transactions.measurements.lcp)'],
@@ -222,7 +217,7 @@ describe('Performance > VitalDetail', function () {
 
   it('renders basic UI elements', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -247,7 +242,7 @@ describe('Performance > VitalDetail', function () {
 
   it('triggers a navigation on search', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -279,17 +274,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -333,17 +319,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -388,17 +365,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -423,7 +391,7 @@ describe('Performance > VitalDetail', function () {
 
   it('renders LCP vital correctly', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -436,16 +404,17 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
   });
 
-  it('correctly renders which browsers support LCP', function () {
+  it('correctly renders which browsers support LCP', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
+    expect(await screen.findAllByText(/Largest Contentful Paint/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.LCP);
   });
 
-  it('correctly renders which browsers support CLS', function () {
+  it('correctly renders which browsers support CLS', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -457,14 +426,15 @@ describe('Performance > VitalDetail', function () {
     };
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
+    expect(await screen.findAllByText(/Cumulative Layout Shift/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.CLS);
   });
 
-  it('correctly renders which browsers support FCP', function () {
+  it('correctly renders which browsers support FCP', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -481,14 +451,15 @@ describe('Performance > VitalDetail', function () {
     });
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
+    expect(await screen.findAllByText(/First Contentful Paint/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.FCP);
   });
 
-  it('correctly renders which browsers support FID', function () {
+  it('correctly renders which browsers support FID', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -505,10 +476,11 @@ describe('Performance > VitalDetail', function () {
     });
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
+    expect(await screen.findAllByText(/First Input Delay/)).toHaveLength(2);
     testSupportedBrowserRendering(WebVital.FID);
   });
 });

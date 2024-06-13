@@ -1,17 +1,17 @@
 import logging
-from typing import Any, Dict, List, MutableMapping, cast
+from collections.abc import MutableMapping
+from typing import Any, cast
 
+import orjson
 import requests
 import sentry_sdk
 from requests import Response
 from rest_framework import status
 
-from sentry.models.outbox import ControlOutbox
 from sentry.silo.base import SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_region_by_name
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -22,22 +22,22 @@ logger = logging.getLogger(__name__)
     silo_mode=SiloMode.CONTROL,
     max_retries=2,
     default_retry_delay=5,
+    record_timing=True,
 )
 def convert_to_async_slack_response(
-    region_names: List[str],
-    payload: Dict[str, Any],
+    region_names: list[str],
+    payload: dict[str, Any],
     response_url: str,
 ):
-    webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
     regions = [get_region_by_name(rn) for rn in region_names]
     region_to_response_map: MutableMapping[str, Response] = {}
     result: MutableMapping[str, Any] = {"response": None, "region": None}
     for region in regions:
         region_response = RegionSiloClient(region=region).request(
-            method=webhook_payload.method,
-            path=webhook_payload.path,
-            headers=webhook_payload.headers,
-            data=webhook_payload.body.encode("utf-8"),
+            method=payload["method"],
+            path=payload["path"],
+            headers=payload["headers"],
+            data=payload["body"].encode("utf-8"),
             json=False,
             raw_response=True,
         )
@@ -60,15 +60,29 @@ def convert_to_async_slack_response(
     if not result["response"]:
         return
 
+    response_body = result["response"].content
+    if response_body == b"":
+        logger.info(
+            "slack.async_empty_body",
+            {
+                "path": payload["path"],
+                "region": result["region"],
+                "response_status": result["response"].status_code,
+            },
+        )
+        return
+
+    response_payload = {}
     try:
-        payload = json.loads(result["response"].content.decode(encoding="utf-8"))
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-    integration_response = requests.post(response_url, json=payload)
+        response_payload = orjson.loads(response_body)
+    except Exception as exc:
+        sentry_sdk.capture_exception(exc)
+
+    integration_response = requests.post(response_url, json=response_payload)
     logger.info(
         "slack.async_integration_response",
         extra={
-            "path": webhook_payload.path,
+            "path": payload["path"],
             "region": result["region"],
             "region_status_code": result["response"].status_code,
             "integration_status_code": integration_response.status_code,
@@ -84,8 +98,8 @@ def convert_to_async_slack_response(
     default_retry_delay=5,
 )
 def convert_to_async_discord_response(
-    region_names: List[str],
-    payload: Dict[str, Any],
+    region_names: list[str],
+    payload: dict[str, Any],
     response_url: str,
 ):
     """
@@ -95,16 +109,15 @@ def convert_to_async_discord_response(
 
     In the event this task finishes prior to returning the above type, the outbound post will fail.
     """
-    webhook_payload = ControlOutbox.get_webhook_payload_from_outbox(payload=payload)
     regions = [get_region_by_name(rn) for rn in region_names]
     region_to_response_map: MutableMapping[str, Response] = {}
     result: MutableMapping[str, Any] = {"response": None, "region": None}
     for region in regions:
         region_response = RegionSiloClient(region=region).request(
-            method=webhook_payload.method,
-            path=webhook_payload.path,
-            headers=webhook_payload.headers,
-            data=webhook_payload.body.encode("utf-8"),
+            method=payload["method"],
+            path=payload["path"],
+            headers=payload["headers"],
+            data=payload["body"].encode("utf-8"),
             json=False,
             raw_response=True,
         )
@@ -127,20 +140,21 @@ def convert_to_async_discord_response(
     if not result["response"]:
         return
 
+    response_payload = {}
     try:
         # Region will return a response assuming it's meant to go directly to Discord. Since we're
         # handling the request asynchronously, we extract only the data, and post it to the webhook
         # that discord provides.
         # https://discord.com/developers/docs/interactions/receiving-and-responding#followup-messages
-        payload = json.loads(result["response"].content.decode(encoding="utf-8")).get("data")
+        response_payload = orjson.loads(result["response"].content).get("data")
     except Exception as e:
         sentry_sdk.capture_exception(e)
-    integration_response = requests.post(response_url, json=payload)
+    integration_response = requests.post(response_url, json=response_payload)
     logger.info(
         "discord.async_integration_response",
         extra={
-            "path": webhook_payload.path,
-            "region": result["region"],
+            "path": payload["path"],
+            "region": result["region"].name,
             "region_status_code": result["response"].status_code,
             "integration_status_code": integration_response.status_code,
         },

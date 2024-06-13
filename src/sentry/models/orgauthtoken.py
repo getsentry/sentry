@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import ClassVar, Optional
+from typing import ClassVar, Self
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
-from typing_extensions import Self
 
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
@@ -16,7 +16,7 @@ from sentry.db.models import (
     ArrayField,
     BaseManager,
     FlexibleForeignKey,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -34,7 +34,7 @@ def validate_scope_list(value):
             raise ValidationError(f"{choice} is not a valid scope.")
 
 
-@control_silo_only_model
+@control_silo_model
 class OrgAuthToken(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Organization
     category = OutboxCategory.ORG_AUTH_TOKEN_UPDATE
@@ -86,7 +86,7 @@ class OrgAuthToken(ReplicatedControlModel):
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
-    ) -> Optional[int]:
+    ) -> int | None:
         # TODO(getsentry/team-ospo#190): Prevents a circular import; could probably split up the
         # source module in such a way that this is no longer an issue.
         from sentry.api.utils import generate_region_url
@@ -149,13 +149,24 @@ def get_org_auth_token_id_from_auth(auth: object) -> int | None:
     return None
 
 
-def update_org_auth_token_last_used(auth: object, project_ids: list[int]):
+def update_org_auth_token_last_used(auth: object, project_ids: list[int]) -> None:
     org_auth_token_id = get_org_auth_token_id_from_auth(auth)
     organization_id = getattr(auth, "organization_id", None)
-    if org_auth_token_id is not None and organization_id is not None:
-        orgauthtoken_service.update_orgauthtoken(
-            organization_id=organization_id,
-            org_auth_token_id=org_auth_token_id,
-            date_last_used=timezone.now(),
-            project_last_used_id=project_ids[0] if len(project_ids) > 0 else None,
-        )
+    if org_auth_token_id is None or organization_id is None:
+        return
+
+    # Debounce updates, as we often get bursts of requests when customer
+    # run CI or deploys and we don't need second level precision here.
+    # We vary on the project ids so that unique requests still make updates
+    project_segment = ",".join(str(i) for i in project_ids)
+    recent_key = f"orgauthtoken:{org_auth_token_id}:last_update:{project_segment}"
+    if cache.get(recent_key):
+        return
+    orgauthtoken_service.update_orgauthtoken(
+        organization_id=organization_id,
+        org_auth_token_id=org_auth_token_id,
+        date_last_used=timezone.now(),
+        project_last_used_id=project_ids[0] if len(project_ids) > 0 else None,
+    )
+    # Only update each minute.
+    cache.set(recent_key, 1, timeout=60)

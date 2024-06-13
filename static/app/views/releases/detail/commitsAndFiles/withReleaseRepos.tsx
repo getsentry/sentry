@@ -1,9 +1,9 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Body, Main} from 'sentry/components/layouts/thirds';
@@ -11,7 +11,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {IconCommit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, Repository} from 'sentry/types';
+import type {Organization, Repository} from 'sentry/types';
 import getDisplayName from 'sentry/utils/getDisplayName';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -68,6 +68,7 @@ function withReleaseRepos<P extends DependentProps>(
       }
     }
 
+    declare context: React.ContextType<typeof ReleaseContext>;
     static contextType = ReleaseContext;
 
     setActiveReleaseRepo(props: P & HoCsProps) {

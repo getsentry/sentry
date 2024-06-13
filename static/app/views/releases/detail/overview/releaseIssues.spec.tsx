@@ -1,7 +1,7 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -18,7 +18,7 @@ describe('ReleaseIssues', function () {
 
   const props = {
     orgId: 'org',
-    organization: Organization(),
+    organization: OrganizationFixture(),
     version: '1.0.0',
     location: LocationFixture({query: {}}),
     releaseBounds: getReleaseBounds(ReleaseFixture({version: '1.0.0'})),
@@ -114,9 +114,9 @@ describe('ReleaseIssues', function () {
   });
 
   it('can switch issue filters', async function () {
-    const {routerContext} = initializeOrg();
+    const {router} = initializeOrg();
 
-    const {rerender} = render(<ReleaseIssues {...props} />, {context: routerContext});
+    const {rerender} = render(<ReleaseIssues {...props} />, {router});
 
     // New
     expect(await screen.findByRole('radio', {name: 'New Issues 0'})).toBeChecked();
@@ -163,7 +163,7 @@ describe('ReleaseIssues', function () {
         location={LocationFixture({query: {issuesType: 'all'}})}
       />
     );
-    expect(screen.getByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
+    expect(await screen.findByRole('button', {name: 'Open in Issues'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/?end=2020-03-24T02%3A04%3A59Z&groupStatsPeriod=auto&query=release%3A1.0.0&sort=freq&start=2020-03-23T01%3A02%3A00Z'
     );
@@ -176,9 +176,9 @@ describe('ReleaseIssues', function () {
       body: [GroupFixture({id: '123'})],
     });
 
-    const {routerContext} = initializeOrg();
+    const {router} = initializeOrg();
 
-    render(<ReleaseIssues {...props} />, {context: routerContext});
+    render(<ReleaseIssues {...props} />, {router});
 
     await userEvent.click(screen.getByRole('radio', {name: /New Issues/}));
 

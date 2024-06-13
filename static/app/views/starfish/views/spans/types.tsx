@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {RATE_UNIT_TITLE, RateUnits} from 'sentry/utils/discover/fields';
+import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 
 export type DataKey =
   | 'change'
@@ -18,7 +18,14 @@ export type DataKey =
   | 'count'
   | 'avg(http.response_content_length)'
   | 'avg(http.decoded_response_content_length)'
-  | 'avg(http.response_transfer_size)';
+  | 'avg(transaction.duration)'
+  | 'avg(http.response_transfer_size)'
+  | 'bundleSize'
+  | 'unsuccessfulHTTPCodes'
+  | 'httpCodeBreakdown'
+  | 'cache_miss_rate()'
+  | 'avg(cache.item_size)'
+  | 'transaction.duration';
 
 export const DataTitles: Record<DataKey, string> = {
   change: t('Change'),
@@ -34,14 +41,21 @@ export const DataTitles: Record<DataKey, string> = {
   slowFrames: t('Slow Frames %'),
   ttid: t('Time To Initial Display'),
   ttfd: t('Time To Full Display'),
+  bundleSize: t('Bundle size'),
   'avg(http.response_content_length)': t('Avg Encoded Size'),
   'avg(http.decoded_response_content_length)': t('Avg Decoded Size'),
   'avg(http.response_transfer_size)': t('Avg Transfer Size'),
+  'avg(transaction.duration)': t('Avg Transaction Duration'),
+  'avg(cache.item_size)': t('Avg Value Size'),
+  unsuccessfulHTTPCodes: t('Response Codes (3XX, 4XX, 5XX)'),
+  httpCodeBreakdown: t('Response Code Breakdown'),
+  'cache_miss_rate()': t('Miss Rate'),
+  'transaction.duration': t('Transaction Duration'),
 };
 
 export const getThroughputTitle = (
   spanOp?: string,
-  throughputUnit = RateUnits.PER_MINUTE
+  throughputUnit = RateUnit.PER_MINUTE
 ) => {
   if (spanOp?.startsWith('db')) {
     return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;
@@ -62,7 +76,7 @@ export const getDurationChartTitle = (spanOp?: string) => {
 
 export const getThroughputChartTitle = (
   spanOp?: string,
-  throughputUnit = RateUnits.PER_MINUTE
+  throughputUnit = RateUnit.PER_MINUTE
 ) => {
   if (spanOp?.startsWith('db')) {
     return `${t('Queries')} ${RATE_UNIT_TITLE[throughputUnit]}`;

@@ -14,13 +14,8 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.charts import fetch_metric_alert_events_timeseries
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
-from sentry.incidents.models import (
-    INCIDENT_STATUS,
-    AlertRuleThresholdType,
-    AlertRuleTriggerAction,
-    IncidentStatus,
-    TriggerStatus,
-)
+from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
@@ -31,6 +26,7 @@ from sentry.snuba.models import SnubaQuery
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 from . import FireTest
 
@@ -108,13 +104,14 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == []
 
     def test_user_alerts_disabled(self):
-        NotificationSettingOption.objects.create(
-            user_id=self.user.id,
-            scope_type="project",
-            scope_identifier=self.project.id,
-            type="alerts",
-            value="never",
-        )
+        with assume_test_silo_mode_of(NotificationSettingOption):
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="project",
+                scope_identifier=self.project.id,
+                type="alerts",
+                value="never",
+            )
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
             target_identifier=str(self.user.id),
@@ -160,21 +157,22 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         assert handler.get_targets() == []
 
     def test_team_alert_disabled(self):
-        NotificationSettingOption.objects.create(
-            user_id=self.user.id,
-            scope_type="project",
-            scope_identifier=self.project.id,
-            type="alerts",
-            value="never",
-        )
-        disabled_user = self.create_user()
-        NotificationSettingOption.objects.create(
-            user_id=disabled_user.id,
-            scope_type="user",
-            scope_identifier=disabled_user.id,
-            type="alerts",
-            value="never",
-        )
+        with assume_test_silo_mode_of(NotificationSettingOption):
+            NotificationSettingOption.objects.create(
+                user_id=self.user.id,
+                scope_type="project",
+                scope_identifier=self.project.id,
+                type="alerts",
+                value="never",
+            )
+            disabled_user = self.create_user()
+            NotificationSettingOption.objects.create(
+                user_id=disabled_user.id,
+                scope_type="user",
+                scope_identifier=disabled_user.id,
+                type="alerts",
+                value="never",
+            )
 
         new_user = self.create_user()
         self.create_team_membership(team=self.team, user=new_user)
@@ -187,13 +185,14 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
     def test_user_email_routing(self):
         new_email = "marcos@sentry.io"
-        UserOption.objects.create(
-            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
-        )
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.create(
+                user=self.user, project_id=self.project.id, key="mail:email", value=new_email
+            )
 
-        useremail = UserEmail.objects.get(email=self.user.email)
-        useremail.email = new_email
-        useremail.save()
+            useremail = UserEmail.objects.get(email=self.user.email)
+            useremail.email = new_email
+            useremail.save()
 
         action = self.create_alert_rule_trigger_action(
             target_type=AlertRuleTriggerAction.TargetType.USER,
@@ -207,16 +206,17 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
         new_user = self.create_user(new_email)
 
-        useremail = UserEmail.objects.get(email=self.user.email)
-        useremail.email = new_email
-        useremail.save()
+        with assume_test_silo_mode_of(UserEmail):
+            useremail = UserEmail.objects.get(email=self.user.email)
+            useremail.email = new_email
+            useremail.save()
 
-        UserOption.objects.create(
-            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
-        )
-        UserOption.objects.create(
-            user=new_user, project_id=self.project.id, key="mail:email", value=new_email
-        )
+            UserOption.objects.create(
+                user=self.user, project_id=self.project.id, key="mail:email", value=new_email
+            )
+            UserOption.objects.create(
+                user=new_user, project_id=self.project.id, key="mail:email", value=new_email
+            )
 
         self.create_team_membership(team=self.team, user=new_user)
         action = self.create_alert_rule_trigger_action(
@@ -474,7 +474,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
 
         est = "America/New_York"
         pst = "US/Pacific"
-        UserOption.objects.set_value(user=self.user, key="timezone", value=est)
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.set_value(user=self.user, key="timezone", value=est)
         result = generate_incident_trigger_email_context(
             self.project,
             incident,
@@ -485,7 +486,8 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
         )
         assert result["timezone"] == est
 
-        UserOption.objects.set_value(user=self.user, key="timezone", value=pst)
+        with assume_test_silo_mode_of(UserOption):
+            UserOption.objects.set_value(user=self.user, key="timezone", value=pst)
         result = generate_incident_trigger_email_context(
             self.project,
             incident,

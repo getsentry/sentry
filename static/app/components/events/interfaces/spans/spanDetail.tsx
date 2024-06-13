@@ -1,18 +1,18 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import map from 'lodash/map';
 import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import DiscoverButton from 'sentry/components/discoverButton';
 import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSummaryButton';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {
   ErrorDot,
   ErrorLevel,
@@ -31,15 +31,15 @@ import {
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {EventTransaction} from 'sentry/types/event';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getDynamicText from 'sentry/utils/getDynamicText';
-import {
+import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -47,7 +47,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import {getPerformanceDuration} from 'sentry/views/performance/utils';
+import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
 import {OpsDot} from '../../opsBreakdown';
 
@@ -55,7 +55,9 @@ import * as SpanEntryContext from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {SpanProfileDetails} from './spanProfileDetails';
-import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
+import type {ParsedTraceType, ProcessedSpanType, RawSpanType} from './types';
+import {rawSpanKeys} from './types';
+import type {SubTimingInfo} from './utils';
 import {
   getCumulativeAlertLevelFromErrors,
   getFormattedTimeRangeWithLeadingAndTrailingZero,
@@ -66,7 +68,6 @@ import {
   isHiddenDataKey,
   isOrphanSpan,
   scrollToSpan,
-  SubTimingInfo,
 } from './utils';
 
 const DEFAULT_ERRORS_VISIBLE = 5;
@@ -75,6 +76,7 @@ const SIZE_DATA_KEYS = [
   'Encoded Body Size',
   'Decoded Body Size',
   'Transfer Size',
+  'http.request_content_length',
   'http.response_content_length',
   'http.decoded_response_content_length',
   'http.response_transfer_size',
@@ -249,7 +251,7 @@ function SpanDetail(props: Props) {
     }
 
     return (
-      <StyledButton size="xs" to={generateTraceTarget(event, organization)}>
+      <StyledButton size="xs" to={generateTraceTarget(event, organization, location)}>
         {t('View Trace')}
       </StyledButton>
     );
@@ -361,7 +363,11 @@ function SpanDetail(props: Props) {
   } {
     const sizeKeys = SIZE_DATA_KEYS.reduce((keys, key) => {
       if (data.hasOwnProperty(key) && defined(data[key])) {
-        keys[key] = data[key];
+        try {
+          keys[key] = parseInt(data[key], 10);
+        } catch (e) {
+          keys[key] = data[key];
+        }
       }
       return keys;
     }, {});
@@ -476,6 +482,7 @@ function SpanDetail(props: Props) {
                   title="Profile ID"
                   extra={
                     <TransactionToProfileButton
+                      event={event}
                       size="xs"
                       projectSlug={project.slug}
                       query={{
@@ -553,7 +560,7 @@ function SpanDetail(props: Props) {
                   header. You may have to enable this collection manually.
                 </TextTr>
               )}
-              {map(sizeKeys, (value, key) => (
+              {Object.entries(sizeKeys).map(([key, value]) => (
                 <Row title={key} key={key}>
                   <Fragment>
                     <FileSize bytes={value} />
@@ -561,7 +568,7 @@ function SpanDetail(props: Props) {
                   </Fragment>
                 </Row>
               ))}
-              {map(nonSizeKeys, (value, key) =>
+              {Object.entries(nonSizeKeys).map(([key, value]) =>
                 !isHiddenDataKey(key) ? (
                   <Row title={key} key={key}>
                     {maybeStringify(value)}
@@ -575,6 +582,13 @@ function SpanDetail(props: Props) {
               ))}
             </tbody>
           </table>
+          {span._metrics_summary && (
+            <CustomMetricsEventData
+              projectId={event.projectID}
+              metricsSummary={span._metrics_summary}
+              startTimestamp={span.start_timestamp}
+            />
+          )}
         </SpanDetails>
       </Fragment>
     );

@@ -3,29 +3,36 @@ from __future__ import annotations
 import base64
 import logging
 import os
-import random
 from copy import deepcopy
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import jsonschema
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.urls import reverse
+from rediscluster import RedisCluster
 
 from sentry import features, options
 from sentry.auth.system import get_system_token
-from sentry.debug_files.artifact_bundle_indexing import FlatFileIdentifier, FlatFileMeta
-from sentry.models.artifactbundle import NULL_STRING
 from sentry.models.project import Project
-from sentry.utils import json, redis, safe
+from sentry.utils import metrics, redis, safe
 from sentry.utils.http import get_origins
 
 logger = logging.getLogger(__name__)
 
 INTERNAL_SOURCE_NAME = "sentry:project"
 
-VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "unified", "debuginfod")
+VALID_LAYOUTS = (
+    "native",
+    "symstore",
+    "symstore_index2",
+    "ssqp",
+    "unified",
+    "debuginfod",
+    "slashsymbols",
+)
 
 VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
 
@@ -131,6 +138,19 @@ SOURCES_SCHEMA = {
     "items": SOURCE_SCHEMA,
 }
 
+# TODO(@anonrig): Remove this when AppStore connect integration is sunset.
+# Ref: https://github.com/getsentry/sentry/issues/51994
+SOURCES_WITHOUT_APPSTORE_CONNECT = {
+    "type": "array",
+    "items": {
+        "oneOf": [
+            HTTP_SOURCE_SCHEMA,
+            S3_SOURCE_SCHEMA,
+            GCS_SOURCE_SCHEMA,
+        ]
+    },
+}
+
 
 # Schemas for sources with redacted secrets
 HIDDEN_SECRET_SCHEMA = {
@@ -139,13 +159,13 @@ HIDDEN_SECRET_SCHEMA = {
 }
 
 
-def _redact_schema(schema: Dict, keys_to_redact: List[str]) -> Dict:
+def _redact_schema(schema: dict, keys_to_redact: list[str]) -> dict:
     """
     Returns a deepcopy of the input schema, overriding any keys in keys_to_redact
     with HIDDEN_SECRET_SCHEMA. Works on nested dictionaries.
     """
 
-    def override_key(schema: Dict, keys_to_redact: List[str]) -> None:
+    def override_key(schema: dict, keys_to_redact: list[str]) -> None:
         for key, value in schema.items():
             if key in keys_to_redact:
                 schema[key] = HIDDEN_SECRET_SCHEMA
@@ -181,9 +201,9 @@ REDACTED_SOURCES_SCHEMA = {
 LAST_UPLOAD_TTL = 24 * 3600
 
 
-def _get_cluster():
+def _get_cluster() -> RedisCluster:
     cluster_key = settings.SENTRY_DEBUG_FILES_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def _last_upload_key(project_id: int) -> str:
@@ -231,7 +251,10 @@ def get_internal_source(project: Project):
         get_internal_url_prefix(),
         reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         ),
     )
 
@@ -259,52 +282,18 @@ def get_internal_artifact_lookup_source_url(project: Project):
         reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         ),
     )
 
 
-def get_bundle_index_urls(
-    project: Project, release: Optional[str], dist: Optional[str]
-) -> Tuple[Optional[str], Optional[str]]:
-    if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-sample-rate"):
-        return None, None
-
-    base_url = get_internal_artifact_lookup_source_url(project)
-
-    def make_download_url(flat_file_meta: FlatFileMeta):
-        # NOTE: The `download` query-parameter is both used by symbolicator as a cache key,
-        # and it is also used as the download key for the artifact-lookup API.
-        # The artifact-lookup API will ignore the additional timestamp on download.
-        return f"{base_url}?download={flat_file_meta.to_string()}"
-
-    url_index = None
-    identifier = FlatFileIdentifier(
-        project_id=project.id, release=release or NULL_STRING, dist=dist or NULL_STRING
-    )
-    if identifier.is_indexing_by_release():
-        url_meta = identifier.get_flat_file_meta()
-        if url_meta is not None:
-            url_index = make_download_url(url_meta)
-
-    # We query the empty release/dist which is a marker for the debug-id index,
-    # as well as the normal release index if we have a release.
-    debug_id_index = None
-    debug_id_meta = FlatFileIdentifier.for_debug_id(
-        project_id=identifier.project_id
-    ).get_flat_file_meta()
-    if debug_id_meta is not None:
-        debug_id_index = make_download_url(debug_id_meta)
-
-    return debug_id_index, url_index
-
-
-def get_scraping_config(project: Project) -> Dict[str, Any]:
+def get_scraping_config(project: Project) -> dict[str, Any]:
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
+    verify_ssl = project.get_option("sentry:verify_ssl", True)
 
     allowed_origins = []
     scraping_headers = {}
@@ -320,6 +309,7 @@ def get_scraping_config(project: Project) -> Dict[str, Any]:
         "enabled": allow_scraping,
         "headers": scraping_headers,
         "allowed_origins": allowed_origins,
+        "verify_ssl": verify_ssl,
     }
 
 
@@ -378,13 +368,13 @@ def secret_fields(source_type):
     yield from []
 
 
-def validate_sources(sources):
+def validate_sources(sources, schema=SOURCES_SCHEMA):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
     """
     try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
+        jsonschema.validate(sources, schema)
     except jsonschema.ValidationError as e:
         raise InvalidSourcesError(f"{e}")
 
@@ -406,7 +396,7 @@ def parse_sources(config, filter_appconnect=True):
         return []
 
     try:
-        sources = json.loads(config)
+        sources = orjson.loads(config)
     except Exception as e:
         raise InvalidSourcesError(f"{e}")
 
@@ -429,7 +419,7 @@ def parse_backfill_sources(sources_json, original_sources):
         return []
 
     try:
-        sources = json.loads(sources_json)
+        sources = orjson.loads(sources_json)
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
@@ -463,9 +453,9 @@ def backfill_source(source, original_sources_by_id):
                 source[secret] = secret_value
 
 
-def redact_source_secrets(config_sources: json.JSONData) -> json.JSONData:
+def redact_source_secrets(config_sources: Any) -> Any:
     """
-    Returns a JSONData with all of the secrets redacted from every source.
+    Returns a json data with all of the secrets redacted from every source.
 
     The original value is not mutated in the process; A clone is created
     and returned by this function.
@@ -695,6 +685,10 @@ def sources_for_symbolication(project):
         sources, hide information about unknown sources and add names to sources rather then
         just have their IDs.
         """
+        try:
+            capture_apple_symbol_stats(json)
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
         for module in json.get("modules") or ():
             for candidate in module.get("candidates") or ():
                 # Reverse internal source aliases from the response.
@@ -711,3 +705,76 @@ def sources_for_symbolication(project):
         return json
 
     return (sources, _process_response)
+
+
+def capture_apple_symbol_stats(json):
+    eligible_symbols = 0
+    neither_has_symbol = 0
+    both_have_symbol = 0
+    old_has_symbol = 0
+    symx_has_symbol = 0
+
+    for module in json.get("modules") or ():
+        if (
+            module.get("debug_status", "unused") == "unused"
+            and module.get("unwind_status", "unused") == "unused"
+        ):
+            continue
+        if module["type"] != "macho":
+            continue
+        eligible_symbols += 1
+
+        old_has_this_symbol = False
+        symx_has_this_symbol = False
+        for candidate in module.get("candidates") or ():
+            if candidate["download"]["status"] == "ok":
+                source_id = candidate["source"]
+                if source_id.startswith("sentry:symx"):
+                    symx_has_this_symbol = True
+                elif source_id.startswith("sentry:") and source_id.endswith("os-source"):
+                    old_has_this_symbol = True
+
+        # again, I miss a good Rust `match`
+        if symx_has_this_symbol:
+            if old_has_this_symbol:
+                both_have_symbol += 1
+            else:
+                symx_has_symbol += 1
+        elif old_has_this_symbol:
+            old_has_symbol += 1
+        else:
+            neither_has_symbol += 1
+
+            # NOTE: It might be possible to apply a heuristic based on `code_file` here to figure out if this is supposed
+            # to be a system symbol, and maybe also log those cases specifically as internal messages.
+            # For now, we are only interested in rough numbers.
+
+    if eligible_symbols:
+        # This metric was added to test some discrepancy between internal metrics. We want to remove this after the
+        # investigation is done.
+        metrics.incr("symbol_test_metric", amount=1, sample_rate=1.0)
+
+        metrics.incr(
+            "apple_symbol_availability",
+            amount=neither_has_symbol,
+            tags={"availability": "neither"},
+            sample_rate=1.0,
+        )
+        metrics.incr(
+            "apple_symbol_availability",
+            amount=both_have_symbol,
+            tags={"availability": "both"},
+            sample_rate=1.0,
+        )
+        metrics.incr(
+            "apple_symbol_availability",
+            amount=old_has_symbol,
+            tags={"availability": "old"},
+            sample_rate=1.0,
+        )
+        metrics.incr(
+            "apple_symbol_availability",
+            amount=symx_has_symbol,
+            tags={"availability": "symx"},
+            sample_rate=1.0,
+        )

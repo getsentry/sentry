@@ -1,5 +1,5 @@
-import {AuditLogsApiEventNames} from 'sentry-fixture/auditLogsApiEventNames';
-import {User} from 'sentry-fixture/user';
+import {AuditLogsApiEventNamesFixture} from 'sentry-fixture/auditLogsApiEventNames';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -7,14 +7,14 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Config, User as UserType} from 'sentry/types';
+import type {Config, User as UserType} from 'sentry/types';
 import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 
 describe('OrganizationAuditLog', function () {
   const user: UserType = {
-    ...User(),
+    ...UserFixture(),
     options: {
-      ...User().options,
+      ...UserFixture().options,
       clock24Hours: true,
       timezone: 'America/Los_Angeles',
     },
@@ -34,7 +34,7 @@ describe('OrganizationAuditLog', function () {
         rows: [
           {
             id: '4500000',
-            actor: User(),
+            actor: UserFixture(),
             event: 'project.remove',
             ipAddress: '127.0.0.1',
             note: 'removed project test',
@@ -45,7 +45,7 @@ describe('OrganizationAuditLog', function () {
           },
           {
             id: '430000',
-            actor: User(),
+            actor: UserFixture(),
             event: 'org.create',
             ipAddress: '127.0.0.1',
             note: 'created the organization',
@@ -55,11 +55,11 @@ describe('OrganizationAuditLog', function () {
             dateCreated: '2016-11-21T04:02:45.929313Z',
           },
         ],
-        options: AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNamesFixture(),
       },
     });
 
-    const {routerContext, router} = initializeOrg({
+    const {router} = initializeOrg({
       projects: [],
       router: {
         params: {orgId: 'org-slug'},
@@ -67,7 +67,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('project.remove')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('OrganizationAuditLog', function () {
   });
 
   it('Displays pretty dynamic sampling logs', async function () {
-    const {routerContext, router, project, projects, organization} = initializeOrg({
+    const {router, project, projects, organization} = initializeOrg({
       router: {
         params: {orgId: 'org-slug'},
       },
@@ -91,7 +91,7 @@ describe('OrganizationAuditLog', function () {
       body: {
         rows: [
           {
-            actor: User(),
+            actor: UserFixture(),
             event: 'sampling_priority.enabled',
             ipAddress: '127.0.0.1',
             id: '14',
@@ -107,7 +107,7 @@ describe('OrganizationAuditLog', function () {
             },
           },
           {
-            actor: User(),
+            actor: UserFixture(),
             event: 'sampling_priority.disabled',
             ipAddress: '127.0.0.1',
             id: '15',
@@ -123,12 +123,12 @@ describe('OrganizationAuditLog', function () {
             },
           },
         ],
-        options: AuditLogsApiEventNames(),
+        options: AuditLogsApiEventNamesFixture(),
       },
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     // Enabled dynamic sampling priority

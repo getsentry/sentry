@@ -1,6 +1,6 @@
 import range from 'lodash/range';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -84,7 +84,7 @@ describe('TeamMisery', () => {
 
     render(
       <TeamMisery
-        organization={Organization()}
+        organization={OrganizationFixture()}
         projects={[project]}
         period="8w"
         teamId="0"
@@ -112,7 +112,7 @@ describe('TeamMisery', () => {
   it('should render empty state', () => {
     render(
       <TeamMisery
-        organization={Organization()}
+        organization={OrganizationFixture()}
         projects={[]}
         period="8w"
         teamId="0"
@@ -134,7 +134,7 @@ describe('TeamMisery', () => {
 
     render(
       <TeamMisery
-        organization={Organization()}
+        organization={OrganizationFixture()}
         projects={[ProjectFixture()]}
         period="8w"
         teamId="0"

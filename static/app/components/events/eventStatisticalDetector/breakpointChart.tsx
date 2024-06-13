@@ -1,23 +1,16 @@
-import {useMemo} from 'react';
-
+import {ChartType} from 'sentry/chartcuterie/types';
 import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
-import {Event, EventsStatsData} from 'sentry/types';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {Event, EventsStatsData} from 'sentry/types';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {transformEventStats} from 'sentry/views/performance/trends/chart';
-import {
-  NormalizedTrendsTransaction,
-  TrendFunctionField,
-} from 'sentry/views/performance/trends/types';
-import {generateTrendFunctionAsString} from 'sentry/views/performance/trends/utils';
+import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
 
 import {DataSection} from '../styles';
 
@@ -80,23 +73,15 @@ function EventBreakpointChart({event}: EventBreakpointChartProps) {
     }),
   });
 
-  const p95Series = useMemo(
-    () =>
-      transformEventStats(
-        data?.['p95(transaction.duration)']?.data ?? [],
-        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
-      ),
-    [data]
-  );
-
   return (
     <DataSection>
       <TransitionChart loading={isLoading} reloading>
         <TransparentLoadingMask visible={isLoading} />
         <Chart
-          percentileSeries={p95Series}
+          percentileData={data?.['p95(transaction.duration)']?.data ?? []}
           evidenceData={normalizedOccurrenceEvent}
           datetime={datetime}
+          chartType={ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION}
         />
       </TransitionChart>
     </DataSection>

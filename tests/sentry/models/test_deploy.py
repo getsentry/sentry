@@ -5,11 +5,9 @@ from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class DeployNotifyTest(TestCase):
     def test_notify_if_ready_long_release(self):
         org = self.create_organization()
@@ -24,6 +22,7 @@ class DeployNotifyTest(TestCase):
 
         # make sure activity has been created
         record = Activity.objects.get(type=ActivityType.DEPLOY.value, project=project)
+        assert record.ident is not None
         assert release.version.startswith(record.ident)
 
     def test_already_notified(self):

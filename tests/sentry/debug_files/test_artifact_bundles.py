@@ -71,7 +71,7 @@ def get_indexed_files(project, release_name="", dist_name="", distinct=False):
         artifact_bundle__projectartifactbundle__project_id=project.id,
         artifact_bundle__releaseartifactbundle__release_name=release_name,
         artifact_bundle__releaseartifactbundle__dist_name=dist_name,
-    ).order_by("url", "-date_last_modified")
+    ).order_by("url", "-artifact_bundle__date_last_modified")
     if distinct:
         query = query.distinct("url")
     return list(query)

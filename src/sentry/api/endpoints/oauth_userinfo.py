@@ -20,7 +20,7 @@ class InsufficientScopesError(SentryAPIException):
 @control_silo_endpoint
 class OAuthUserInfoEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
     authentication_classes = ()

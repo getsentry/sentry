@@ -7,13 +7,13 @@ import GlobalModal from 'sentry/components/globalModal';
 import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectContext';
 import {DEBUG_SOURCE_TYPES} from 'sentry/data/debugFileSources';
 import ModalStore from 'sentry/stores/modalStore';
-import {
+import type {
   AppStoreConnectCredentialsStatus,
   CustomRepo,
   CustomRepoAppStoreConnect,
   CustomRepoHttp,
-  CustomRepoType,
 } from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 import CustomRepositories from 'sentry/views/settings/projectDebugFiles/sources/customRepositories';
 
 function TestComponent({
@@ -60,7 +60,7 @@ function TestComponent({
 }
 
 function getProps(props?: Parameters<typeof initializeOrg>[0]) {
-  const {organization, router, project, routerContext} = initializeOrg({
+  const {organization, router, project} = initializeOrg({
     router: props?.router,
   });
 
@@ -71,7 +71,6 @@ function getProps(props?: Parameters<typeof initializeOrg>[0]) {
     router,
     isLoading: false,
     location: router.location,
-    routerContext,
   };
 }
 
@@ -108,106 +107,13 @@ describe('Custom Repositories', function () {
     await import('sentry/components/modals/debugFileCustomRepository');
   });
 
-  it('renders', async function () {
-    const props = getProps();
-
-    const {rerender} = render(<TestComponent {...props} />, {
-      context: props.routerContext,
-    });
-
-    // Section title
-    expect(screen.getByText('Custom Repositories')).toBeInTheDocument();
-
-    // Enabled button
-    expect(screen.getByText('Add Repository').closest('button')).toBeEnabled();
-
-    // Content
-    expect(screen.getByText('No custom repositories configured')).toBeInTheDocument();
-
-    // Choose an App Store Connect source
-    await userEvent.click(screen.getByText('Add Repository'));
-
-    await userEvent.click(screen.getByText('App Store Connect'));
-
-    // Display modal content
-    // A single instance of App Store Connect is available on free plans
-    expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
-
-    // Close Modal
-    await userEvent.click(screen.getByLabelText('Close Modal'));
-
-    // Choose another source
-    await userEvent.click(screen.getByText('Add Repository'));
-
-    await userEvent.click(screen.getByText('Amazon S3'));
-
-    // Feature disabled warning
-    expect(
-      await screen.findByText('This feature is not enabled on your Sentry installation.')
-    ).toBeInTheDocument();
-
-    // Help content
-    expect(
-      screen.getByText(
-        "# Enables the Custom Symbol Sources feature SENTRY_FEATURES['custom-symbol-sources'] = True"
-      )
-    ).toBeInTheDocument();
-
-    // Close Modal
-    await userEvent.click(screen.getByLabelText('Close Modal'));
-
-    await waitFor(() => {
-      expect(screen.queryByText('App Store Connect credentials')).not.toBeInTheDocument();
-    });
-
-    // Renders disabled repository list
-    rerender(
-      <TestComponent
-        {...props}
-        customRepositories={[httpRepository, appStoreConnectRepository]}
-      />
-    );
-
-    // Content
-    const actions = screen.queryAllByLabelText('Actions');
-    expect(actions).toHaveLength(2);
-
-    // HTTP Repository
-    expect(screen.getByText(httpRepository.name)).toBeInTheDocument();
-    expect(screen.getByText(DEBUG_SOURCE_TYPES.http)).toBeInTheDocument();
-    expect(actions[0]).toBeDisabled();
-
-    // App Store Connect Repository
-    expect(screen.getByText(appStoreConnectRepository.name)).toBeInTheDocument();
-    expect(screen.getByText(DEBUG_SOURCE_TYPES.appStoreConnect)).toBeInTheDocument();
-    expect(actions[1]).toBeEnabled();
-
-    // A new App Store Connect instance is not available on free plans
-    // Choose an App Store Connect source
-    await userEvent.click(screen.getByText('Add Repository'));
-
-    await userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
-
-    // Feature disabled warning
-    expect(
-      await screen.findByText('This feature is not enabled on your Sentry installation.')
-    ).toBeInTheDocument();
-
-    // Help content
-    expect(
-      screen.getByText(
-        "# Enables the App Store Connect Multiple feature SENTRY_FEATURES['app-store-connect-multiple'] = True"
-      )
-    ).toBeInTheDocument();
-  });
-
   it('renders with custom-symbol-sources feature enabled', async function () {
     const props = getProps();
     const newOrganization = {...props.organization, features: ['custom-symbol-sources']};
 
     const {rerender} = render(
       <TestComponent {...props} organization={newOrganization} />,
-      {context: props.routerContext}
+      {router: props.router}
     );
 
     // Section title
@@ -256,7 +162,7 @@ describe('Custom Repositories', function () {
     expect(actions[1]).toBeEnabled();
   });
 
-  it('renders with app-store-connect-multiple feature enabled', async function () {
+  it('renders with app-store-connect-multiple feature enabled', function () {
     const props = getProps();
 
     const newOrganization = {
@@ -270,7 +176,7 @@ describe('Custom Repositories', function () {
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
       />,
-      {context: props.routerContext}
+      {router: props.router}
     );
 
     // Section title
@@ -292,17 +198,6 @@ describe('Custom Repositories', function () {
 
     // Enabled button
     expect(screen.getByText('Add Repository').closest('button')).toBeEnabled();
-
-    await userEvent.click(screen.getByText('Add Repository'));
-
-    await userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
-
-    // Display modal content
-    // A new App Store Connect instance is available
-    expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
-
-    // Close Modal
-    await userEvent.click(screen.getByLabelText('Close Modal'));
   });
 
   it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', function () {
@@ -319,7 +214,7 @@ describe('Custom Repositories', function () {
         organization={newOrganization}
         customRepositories={[httpRepository, appStoreConnectRepository]}
       />,
-      {context: props.routerContext}
+      {router: props.router}
     );
 
     // Content
@@ -356,7 +251,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[httpRepository, appStoreConnectRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
@@ -410,7 +305,7 @@ describe('Custom Repositories', function () {
           customRepositories={[httpRepository, appStoreConnectRepository]}
           credetialsStatus={{status: 'invalid', code: 'app-connect-authentication-error'}}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
@@ -436,7 +331,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[httpRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       expect(screen.queryByRole('button', {name: 'Sync Now'})).not.toBeInTheDocument();
@@ -488,7 +383,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[appStoreConnectRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       // Display modal content
@@ -530,7 +425,7 @@ describe('Custom Repositories', function () {
           organization={props.organization}
           customRepositories={[appStoreConnectRepository]}
         />,
-        {context: props.routerContext}
+        {router: props.router}
       );
 
       // Display modal content

@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
 import {pinFilter} from 'sentry/actionCreators/pageFilters';
-import {Button, ButtonProps} from 'sentry/components/button';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Organization, PinnedPageFilter} from 'sentry/types';
+import type {Organization, PinnedPageFilter} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -37,7 +38,7 @@ function PageFilterPinButton({organization, filter, size, className}: Props) {
       size={size}
       pinned={pinned}
       borderless={size === 'zero'}
-      icon={<IconLock isSolid={pinned} size="xs" />}
+      icon={<IconLock locked={pinned} size="xs" />}
       title={t("Once locked, Sentry will remember this filter's value across pages.")}
       tooltipProps={{delay: 500}}
     >

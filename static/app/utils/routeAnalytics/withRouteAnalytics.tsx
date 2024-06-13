@@ -22,4 +22,4 @@ const withRouteAnalytics = <P extends WithRouteAnalyticsProps>(
 };
 
 export default withRouteAnalytics;
-export {WithRouteAnalyticsProps};
+export type {WithRouteAnalyticsProps};

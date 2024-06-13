@@ -1,22 +1,23 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import {TabList} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import useReplayCountForTransactions from 'sentry/utils/replayCount/useReplayCountForTransactions';
@@ -28,7 +29,7 @@ import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 import Tab from './tabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
-import {TransactionThresholdMetric} from './transactionThresholdModal';
+import type {TransactionThresholdMetric} from './transactionThresholdModal';
 
 type Props = {
   currentTab: Tab;
@@ -78,7 +79,7 @@ function TransactionHeader({
     isProfilingSupportedOrProjectHasProfiles(project);
 
   const hasAggregateWaterfall = organization.features.includes(
-    'starfish-aggregate-span-waterfall'
+    'insights-initial-modules'
   );
 
   const getWebVitals = useCallback(
@@ -110,7 +111,9 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
-  const {getReplayCountForTransaction} = useReplayCountForTransactions();
+  const {getReplayCountForTransaction} = useReplayCountForTransactions({
+    statsPeriod: '90d',
+  });
   const replaysCount = getReplayCountForTransaction(transactionName);
 
   return (

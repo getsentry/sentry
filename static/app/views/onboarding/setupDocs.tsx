@@ -1,14 +1,14 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
-import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import {decodeList} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -18,7 +18,7 @@ import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo
 
 import FirstEventFooter from './components/firstEventFooter';
 import IntegrationSetup from './integrationSetup';
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 function SetupDocs({location, recentCreatedProject: project}: StepProps) {
   const organization = useOrganization();

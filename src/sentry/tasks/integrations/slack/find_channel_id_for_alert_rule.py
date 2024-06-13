@@ -11,14 +11,14 @@ from sentry.incidents.logic import (
     InvalidTriggerActionError,
     get_slack_channel_ids,
 )
-from sentry.incidents.models import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")

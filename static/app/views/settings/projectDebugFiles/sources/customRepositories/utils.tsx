@@ -2,7 +2,8 @@ import forEach from 'lodash/forEach';
 import set from 'lodash/set';
 
 import {t} from 'sentry/locale';
-import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepo} from 'sentry/types/debugFiles';
+import {CustomRepoType} from 'sentry/types/debugFiles';
 
 export const customRepoTypeLabel = {
   [CustomRepoType.APP_STORE_CONNECT]: 'App Store Connect',
@@ -26,11 +27,6 @@ export const dropDownItems = [
     value: CustomRepoType.HTTP,
     label: customRepoTypeLabel[CustomRepoType.HTTP],
     searchKey: t('http symbol server ssqp symstore symsrv'),
-  },
-  {
-    value: CustomRepoType.APP_STORE_CONNECT,
-    label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
-    searchKey: t('apple store connect itunes ios'),
   },
 ];
 

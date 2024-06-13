@@ -1,5 +1,4 @@
 import {useCallback, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -16,11 +15,12 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Organization, OrgAuthToken} from 'sentry/types';
+import type {Organization, OrgAuthToken} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useMutation, useQueryClient} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';

@@ -1,8 +1,5 @@
-import {memo} from 'react';
-import isObject from 'lodash/isObject';
-
-import {OnExpandCallback} from 'sentry/components/objectInspector';
-import {objectIsEmpty} from 'sentry/utils';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
+import {defined} from 'sentry/utils';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
 import {isConsoleFrame} from 'sentry/utils/replays/types';
 import Format from 'sentry/views/replays/detail/console/format';
@@ -25,21 +22,22 @@ function isSerializedError(frame: ConsoleFrame) {
     typeof frame.message === 'string' &&
     Array.isArray(args) &&
     args.length <= 2 &&
-    isObject(args[0]) &&
-    objectIsEmpty(args[0])
+    args[0] &&
+    typeof args[0] === 'object' &&
+    Object.keys(args[0]).length === 0
   );
 }
 
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function UnmemoizedMessageFormatter({frame, expandPaths, onExpand}: Props) {
+export default function MessageFormatter({frame, expandPaths, onExpand}: Props) {
   if (!isConsoleFrame(frame)) {
     return (
       <Format
         expandPaths={expandPaths}
         onExpand={onExpand}
-        args={[frame.category, frame.data]}
+        args={[frame.category, frame.message, frame.data].filter(defined)}
       />
     );
   }
@@ -84,6 +82,3 @@ function UnmemoizedMessageFormatter({frame, expandPaths, onExpand}: Props) {
     />
   );
 }
-
-const MessageFormatter = memo(UnmemoizedMessageFormatter);
-export default MessageFormatter;

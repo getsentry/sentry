@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any, List, Mapping, Optional, Sequence
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -63,7 +63,9 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     type = DetectorType.CONSECUTIVE_DB_OP
     settings_key = DetectorType.CONSECUTIVE_DB_OP
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems: dict[str, PerformanceProblem] = {}
         self.consecutive_db_spans: list[Span] = []
         self.independent_db_spans: list[Span] = []
@@ -81,7 +83,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
     def _add_problem_span(self, span: Span) -> None:
         self.consecutive_db_spans.append(span)
 
-    def _validate_and_store_performance_problem(self):
+    def _validate_and_store_performance_problem(self) -> None:
         self._set_independent_spans(self.consecutive_db_spans)
         if not len(self.independent_db_spans):
             return
@@ -174,7 +176,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         return (end - start) * 1000
 
-    def _get_parallelizable_spans(self) -> List[str]:
+    def _get_parallelizable_spans(self) -> list[str]:
         if not self.independent_db_spans or len(self.independent_db_spans) < 1:
             return [""]
 
@@ -186,7 +188,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
 
         return self.consecutive_db_spans[0].get("description", "")
 
-    def _set_independent_spans(self, spans: list[Span]):
+    def _set_independent_spans(self, spans: list[Span]) -> None:
         """
         Given a list of spans, checks if there is at least a single span that is independent of the rest.
         To start, we are just checking for a span in a list of consecutive span without a WHERE clause
@@ -253,15 +255,13 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         self._validate_and_store_performance_problem()
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-consecutive-db-issue", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project: Optional[Project] = None) -> bool:
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         request = event.get("request", None) or None
         sdk_name = get_sdk_name(event) or ""
 
@@ -276,7 +276,7 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
         return "php" not in sdk_name.lower()
 
 
-def contains_complete_query(span: Span, is_source: Optional[bool] = False) -> bool:
+def contains_complete_query(span: Span, is_source: bool | None = False) -> bool:
     # Remove the truncation check from the n_plus_one db detector.
     query = span.get("description", None)
     if is_source and query:

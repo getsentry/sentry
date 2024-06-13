@@ -1,5 +1,6 @@
-import {Broadcast} from 'sentry-fixture/broadcast';
-import {Project} from 'sentry-fixture/project';
+import type {UseQueryResult} from '@tanstack/react-query';
+import {BroadcastFixture} from 'sentry-fixture/broadcast';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -11,31 +12,33 @@ import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import type {PlatformKey, Project, StatuspageIncident} from 'sentry/types';
+import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
 import {generateDocKeys} from './utils';
 
-jest.mock('sentry/actionCreators/serviceIncidents');
+jest.mock('sentry/utils/useServiceIncidents');
 
 describe('Sidebar > Performance Onboarding Checklist', function () {
-  const {organization, routerContext, router} = initializeOrg({
+  const {organization, router} = initializeOrg({
     router: {
       location: {query: {}, search: '', pathname: '/test/'},
     },
   });
-  const broadcast = Broadcast();
+  const broadcast = BroadcastFixture();
 
   const apiMocks: any = {};
 
-  const getElement = (props: React.ComponentProps<typeof SidebarContainer>) => {
+  const getElement = () => {
     return (
       <OnboardingContextProvider>
-        <SidebarContainer organization={props.organization} {...props} />
+        <SidebarContainer />
       </OnboardingContextProvider>
     );
   };
 
   const renderSidebar = props =>
-    render(getElement(props), {organization: props.organization, context: routerContext});
+    render(getElement(), {organization: props.organization, router});
 
   beforeEach(function () {
     jest.resetAllMocks();
@@ -52,6 +55,13 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
       url: `/organizations/${organization.slug}/broadcasts/`,
       body: [broadcast],
     });
+
+    const statusPageData: StatuspageIncident[] = [];
+    jest
+      .spyOn(incidentsHook, 'useServiceIncidents')
+      .mockImplementation(
+        () => ({data: statusPageData}) as UseQueryResult<StatuspageIncident[]>
+      );
   });
 
   afterEach(() => {
@@ -59,6 +69,9 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('displays boost performance card', async function () {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
+    ]);
     renderSidebar({
       organization: {
         ...organization,
@@ -82,7 +95,10 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
     expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
   });
 
-  it('checklist feature disabled', async function () {
+  it('checklist feature supported by platform but disabled', async function () {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
+    ]);
     renderSidebar({
       organization: {
         ...organization,
@@ -114,7 +130,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project with onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      Project({platform: 'javascript-react', firstTransactionEvent: false}),
+      ProjectFixture({platform: 'javascript-react', firstTransactionEvent: false}),
     ]);
     renderSidebar({
       organization: {
@@ -146,7 +162,7 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
   it('checklist feature enabled > navigate to performance page > project without onboarding support', async function () {
     ProjectsStore.loadInitialData([
-      Project({platform: 'javascript-angular', firstTransactionEvent: false}),
+      ProjectFixture({platform: 'javascript-angular', firstTransactionEvent: false}),
     ]);
     renderSidebar({
       organization: {
@@ -177,15 +193,18 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
   });
 
   it('checklist feature enabled > navigate to performance page > project without performance support', async function () {
-    ProjectsStore.loadInitialData([
-      Project({platform: 'elixir', firstTransactionEvent: false}),
-    ]);
+    const project = ProjectFixture({
+      platform: 'elixir',
+      firstTransactionEvent: false,
+    }) as Project & {platform: PlatformKey};
+    ProjectsStore.loadInitialData([project]);
     renderSidebar({
       organization: {
         ...organization,
         features: ['onboarding', 'performance-onboarding-checklist'],
       },
     });
+
     window.open = jest.fn().mockImplementation(() => true);
 
     const quickStart = await screen.findByText('Quick Start');
@@ -198,16 +217,11 @@ describe('Sidebar > Performance Onboarding Checklist', function () {
 
     expect(screen.getByText('Capture your first error')).toBeInTheDocument();
     expect(screen.getByText('Level Up')).toBeInTheDocument();
-    expect(screen.getByText('Boost performance')).toBeInTheDocument();
-    const performanceCard = screen.getByTestId('setup_transactions');
-
-    await userEvent.click(performanceCard);
-    expect(window.open).not.toHaveBeenCalled();
-    expect(router.push).toHaveBeenCalledWith('/organizations/org-slug/performance/');
+    expect(screen.queryByText('Boost performance')).not.toBeInTheDocument();
   });
 
   it('displays checklist', async function () {
-    const project = Project({
+    const project = ProjectFixture({
       platform: 'javascript-react',
       firstTransactionEvent: false,
     });

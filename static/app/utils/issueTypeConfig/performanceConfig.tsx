@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types';
-import {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const performanceConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -23,6 +23,7 @@ const performanceConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: false},
+    autofix: false,
     mergedIssues: {enabled: false},
     replays: {enabled: true},
     similarIssues: {enabled: false},

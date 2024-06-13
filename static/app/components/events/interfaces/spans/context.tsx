@@ -1,5 +1,5 @@
 import {createContext} from 'react';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
 type ChildTransaction = {
   eventSlug: string;

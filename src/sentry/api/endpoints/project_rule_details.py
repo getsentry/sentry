@@ -7,11 +7,11 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import analytics, audit_log
+from sentry import analytics, audit_log, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.rule import RuleEndpoint
-from sentry.api.endpoints.project_rules import find_duplicate_rule
+from sentry.api.endpoints.project_rules import find_duplicate_rule, send_confirmation_notification
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.rule import RuleSerializer
@@ -25,32 +25,25 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.examples.issue_alert_examples import IssueAlertExamples
 from sentry.apidocs.parameters import GlobalParams, IssueAlertParams
-from sentry.constants import ObjectStatus, SentryAppStatus
+from sentry.constants import ObjectStatus
 from sentry.integrations.jira.actions.create_ticket import JiraCreateTicketAction
 from sentry.integrations.jira_server.actions.create_ticket import JiraServerCreateTicketAction
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.mediators.project_rules.updater import Updater
-from sentry.models.apiapplication import ApiApplication
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import (
-    SentryAppInstallation,
-    prepare_ui_component,
-)
 from sentry.models.rule import NeglectedRule, RuleActivity, RuleActivityType
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.rules.actions import trigger_sentry_app_action_creators_for_issues
+from sentry.rules.actions.utils import get_changed_data, get_updated_rule_data
 from sentry.signals import alert_rule_edited
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
-from sentry.web.decorators import transaction_start
+from sentry.types.actor import Actor
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
 class ProjectRuleDetailsPutSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     actionMatch = serializers.ChoiceField(
         choices=(
             ("all", "All conditions must evaluate to true."),
@@ -106,8 +99,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Retrieve an Issue Alert Rule for a Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={
@@ -118,7 +111,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.GET_PROJECT_RULE,
     )
-    @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """
         Return details on an individual issue alert rule.
@@ -129,65 +121,14 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
         # Serialize Rule object
-        serialized_rule = serialize(
-            rule, request.user, RuleSerializer(request.GET.getlist("expand", []))
+        rule_serializer = RuleSerializer(
+            expand=request.GET.getlist("expand", []),
+            prepare_component_fields=True,
+            project_slug=project.slug,
         )
-
-        errors = []
+        serialized_rule = serialize(rule, request.user, rule_serializer)
         # Prepare Rule Actions that are SentryApp components using the meta fields
         for action in serialized_rule.get("actions", []):
-            if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-                # TODO(hybridcloud) This is nasty and should be fixed.
-                # Because all of the prepare_* functions currently operate on ORM
-                # records we need to convert our RpcSentryApp and dict data into detached
-                # ORM models and stitch together relations used in preparing UI components.
-                installation = SentryAppInstallation(
-                    **action.get("_sentry_app_installation", {}),
-                )
-                # The api_token_id field is nulled out to prevent relation traversal as these
-                # ORM objects are turned back into RPC objects.
-                installation.api_token_id = None
-
-                rpc_app = action.get("_sentry_app")
-                installation.sentry_app = SentryApp(
-                    id=rpc_app.id,
-                    scope_list=rpc_app.scope_list,
-                    application_id=rpc_app.application_id,
-                    application=ApiApplication(
-                        id=rpc_app.application.id,
-                        client_id=rpc_app.application.client_id,
-                        client_secret=rpc_app.application.client_secret,
-                    ),
-                    proxy_user_id=rpc_app.proxy_user_id,
-                    owner_id=rpc_app.owner_id,
-                    name=rpc_app.name,
-                    slug=rpc_app.slug,
-                    uuid=rpc_app.uuid,
-                    events=rpc_app.events,
-                    webhook_url=rpc_app.webhook_url,
-                    status=SentryAppStatus.as_int(rpc_app.status),
-                    metadata=rpc_app.metadata,
-                )
-                component = prepare_ui_component(
-                    installation,
-                    SentryAppComponent(**action.get("_sentry_app_component")),
-                    project.slug,
-                    action.get("settings"),
-                )
-
-                if component is None:
-                    errors.append(
-                        {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
-                    )
-                    action["disabled"] = True
-                    continue
-
-                action["formFields"] = component.schema.get("settings", {})
-
-                # Delete meta fields
-                del action["_sentry_app_installation"]
-                del action["_sentry_app_component"]
-
             # TODO(nisanthan): This is a temporary fix. We need to save both the label and value of
             #                  the selected choice and not save all the choices.
             if action.get("id") in (JiraCreateTicketAction.id, JiraServerCreateTicketAction.id):
@@ -199,16 +140,13 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                             if isinstance(p[0], str) and isinstance(p[1], str)
                         ]
 
-        if len(errors):
-            serialized_rule["errors"] = errors
-
         return Response(serialized_rule)
 
     @extend_schema(
         operation_id="Update an Issue Alert Rule",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         request=ProjectRuleDetailsPutSerializer,
@@ -220,7 +158,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         },
         examples=IssueAlertExamples.UPDATE_PROJECT_RULE,
     )
-    @transaction_start("ProjectRuleDetailsEndpoint")
     def put(self, request: Request, project, rule) -> Response:
         """
         Updates an issue alert rule.
@@ -231,6 +168,15 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
         - Filters - help control noise by triggering an alert only if the issue matches the specified criteria.
         - Actions - specify what should happen when the trigger conditions are met and the filters match.
         """
+        rule_data_before = dict(rule.data)
+        if rule.environment_id:
+            rule_data_before["environment_id"] = rule.environment_id
+        if rule.owner_team_id or rule.owner_user_id:
+            rule_data_before["owner"] = Actor.from_id(
+                user_id=rule.owner_user_id, team_id=rule.owner_team_id
+            )
+        rule_data_before["label"] = rule.label
+
         serializer = DrfRuleSerializer(
             context={"project": project, "organization": project.organization},
             data=request.data,
@@ -319,13 +265,7 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
 
             owner = data.get("owner")
             if owner:
-                try:
-                    kwargs["owner"] = owner.resolve_to_actor().id
-                except (User.DoesNotExist, Team.DoesNotExist):
-                    return Response(
-                        "Could not resolve owner",
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
+                kwargs["owner"] = owner
 
             if rule.status == ObjectStatus.DISABLED:
                 rule.status = ObjectStatus.ACTIVE
@@ -367,7 +307,16 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
                 sender=self,
                 is_api_token=request.auth is not None,
             )
-
+            if features.has(
+                "organizations:rule-create-edit-confirm-notification", project.organization
+            ):
+                new_rule_data = get_updated_rule_data(rule)
+                changed_data = get_changed_data(rule, new_rule_data, rule_data_before)
+                send_confirmation_notification(rule=rule, new=False, changed=changed_data)
+                metrics.incr(
+                    "rule_confirmation.edit.notification.sent",
+                    skip_internal=False,
+                )
             return Response(serialize(updated_rule, request.user))
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -375,8 +324,8 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
     @extend_schema(
         operation_id="Delete an Issue Alert Rule",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             IssueAlertParams.ISSUE_RULE_ID,
         ],
         responses={
@@ -386,7 +335,6 @@ class ProjectRuleDetailsEndpoint(RuleEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    @transaction_start("ProjectRuleDetailsEndpoint")
     def delete(self, request: Request, project, rule) -> Response:
         """
         Delete a specific issue alert rule.

@@ -1,28 +1,33 @@
-import {useCallback, useRef, useState} from 'react';
-import first from 'lodash/first';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import {ApiResult} from 'sentry/api';
+import type {ApiResult} from 'sentry/api';
 import {defined} from 'sentry/utils';
-import {ApiQueryKey, fetchDataQuery, useQueryClient} from 'sentry/utils/queryClient';
+import {uniq} from 'sentry/utils/array/uniq';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {fetchDataQuery, QueryObserver, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 const BUFFER_WAIT_MS = 20;
 
-interface Props<QueryKeyAggregate, Data> {
+type Subscription = () => void;
+
+interface Props<AggregatableQueryKey, Data> {
   /**
    * The queryKey reducer
    *
-   * Takes the buffered "aggregates" and outputs an ApiQueryKey
-   *
-   * The returned key must have a stable url in the first index of the returned
-   * array. This is used as a cache id.
+   * Takes the buffered "aggregates" and outputs an ApiQueryKey.
+   * Must not have side-effects.
    */
-  getQueryKey: (ids: ReadonlyArray<QueryKeyAggregate>) => ApiQueryKey;
+  getQueryKey: (ids: ReadonlyArray<AggregatableQueryKey>) => ApiQueryKey;
 
   /**
    * Data reducer, to integrate new requests with the previous state
    */
-  responseReducer: (prev: undefined | Data, result: ApiResult<unknown>) => Data;
+  responseReducer: (
+    prevState: undefined | Data,
+    result: ApiResult,
+    aggregates: ReadonlyArray<AggregatableQueryKey>
+  ) => undefined | Data;
 
   /**
    * Maximun number of items to keep in the buffer before flushing
@@ -32,9 +37,21 @@ interface Props<QueryKeyAggregate, Data> {
   bufferLimit?: number;
 
   /**
+   * Optional key for caching requested and in-flight aggregates.
+   * Cache keys shoudl be unique across every useAggregatedQueryKeys callsites.
+   *
+   * Defaults to the first index of the queryKey result.
+   */
+  cacheKey?: string;
+
+  /**
    * Optional callback, should an error happen while fetching or reducing the data
    */
   onError?: (error: Error) => void;
+}
+
+function isQueryKeyInList<AggregatableQueryKey>(queryList: AggregatableQueryKey[]) {
+  return ({queryKey}) => queryList.includes(queryKey[4] as AggregatableQueryKey);
 }
 
 /**
@@ -62,87 +79,98 @@ interface Props<QueryKeyAggregate, Data> {
  * - You will implement `responseReducer(prev: Data, result: ApiResult)` which
  *   combines `defaultData` with the data that was fetched with the queryKey.
  */
-export default function useAggregatedQueryKeys<QueryKeyAggregate, Data>({
+export default function useAggregatedQueryKeys<AggregatableQueryKey, Data>({
+  cacheKey,
   getQueryKey,
   onError,
   responseReducer,
   bufferLimit = 50,
-}: Props<QueryKeyAggregate, Data>) {
+}: Props<AggregatableQueryKey, Data>) {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
-  const key = first(getQueryKey([]));
+  const key = getQueryKey([]).at(0);
 
-  const [data, setData] = useState<undefined | Data>(() =>
-    cache
-      .findAll({queryKey: [key]})
-      .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
-      .filter(defined)
-      .reduce(responseReducer, undefined)
+  const subscriptions = useRef<Subscription[]>([]);
+  useEffect(() => {
+    const subs = subscriptions.current;
+    return () => {
+      subs.forEach(unsubscribe => unsubscribe());
+    };
+  }, []);
+
+  // The query keys that this instance cares about
+  const prevQueryKeys = useRef<AggregatableQueryKey[]>([]);
+
+  const readCache = useCallback(
+    () =>
+      cache
+        .findAll({queryKey: [key]})
+        .map(({queryKey}) => queryClient.getQueryData<ApiResult>(queryKey))
+        .filter(defined)
+        .reduce(
+          (prevValue, val) => responseReducer(prevValue, val, prevQueryKeys.current),
+          undefined as Data | undefined
+        ),
+    [cache, key, queryClient, responseReducer]
   );
+
+  // The counts for each query key that this instance cares about
+  const [data, setData] = useState<undefined | Data>(readCache);
 
   const timer = useRef<null | NodeJS.Timeout>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(() => {
     const allQueuedQueries = cache.findAll({
-      queryKey: ['aggregate', key, 'queued'],
+      queryKey: ['aggregate', cacheKey, key, 'queued'],
     });
 
-    const selectedQueuedQueries = allQueuedQueries.slice(0, bufferLimit);
-    if (!selectedQueuedQueries.length) {
+    const queuedQueriesBatch = allQueuedQueries.slice(0, bufferLimit);
+    if (!queuedQueriesBatch.length) {
       return;
     }
 
-    const queuedAggregates = selectedQueuedQueries.map(
-      ({queryKey}) => queryKey[3] as QueryKeyAggregate
+    const queuedAggregatableBatch = queuedQueriesBatch.map(
+      ({queryKey}) => queryKey[4] as AggregatableQueryKey
     );
+
+    const isQueryKeyInBatch = isQueryKeyInList(queuedAggregatableBatch);
 
     try {
       queryClient.removeQueries({
-        queryKey: ['aggregate', key, 'queued'],
-        predicate: ({queryKey}) =>
-          queuedAggregates.includes(queryKey[3] as QueryKeyAggregate),
+        queryKey: ['aggregate', cacheKey, key, 'queued'],
+        predicate: isQueryKeyInBatch,
       });
-      selectedQueuedQueries.forEach(({queryKey}) => {
-        const inFlightQueryKey = ['aggregate', key, 'inFlight', queryKey[3]];
-        queryClient.setQueryData(inFlightQueryKey, true);
+      queuedAggregatableBatch.forEach(queryKey => {
+        queryClient.setQueryData(
+          ['aggregate', cacheKey, key, 'inFlight', queryKey],
+          true
+        );
       });
 
-      const promise = queryClient.fetchQuery({
-        queryKey: getQueryKey(queuedAggregates),
+      const queryKey = getQueryKey(queuedAggregatableBatch);
+      queryClient.fetchQuery({
+        queryKey,
         queryFn: fetchDataQuery(api),
       });
 
-      if (allQueuedQueries.length > selectedQueuedQueries.length) {
+      const observer = new QueryObserver(queryClient, {queryKey});
+      const unsubscribe = observer.subscribe(_result => {
+        queryClient.removeQueries({
+          queryKey: ['aggregate', cacheKey, key, 'inFlight'],
+          predicate: isQueryKeyInBatch,
+        });
+      });
+      subscriptions.current.push(unsubscribe);
+
+      if (allQueuedQueries.length > queuedQueriesBatch.length) {
         fetchData();
       }
-
-      setData(responseReducer(data, await promise));
-
-      queryClient.removeQueries({
-        queryKey: ['aggregate', key, 'inFlight'],
-        predicate: ({queryKey}) =>
-          queuedAggregates.includes(queryKey[3] as QueryKeyAggregate),
-      });
-      selectedQueuedQueries.forEach(({queryKey}) => {
-        const doneQueryKey = ['aggregate', key, 'done', queryKey[3]];
-        queryClient.setQueryData(doneQueryKey, true);
-      });
     } catch (error) {
       onError?.(error);
     }
-  }, [
-    api,
-    bufferLimit,
-    cache,
-    data,
-    getQueryKey,
-    key,
-    onError,
-    queryClient,
-    responseReducer,
-  ]);
+  }, [api, bufferLimit, cache, cacheKey, getQueryKey, key, onError, queryClient]);
 
   const clearTimer = useCallback(() => {
     if (timer.current) {
@@ -160,20 +188,37 @@ export default function useAggregatedQueryKeys<QueryKeyAggregate, Data>({
   }, [clearTimer, fetchData]);
 
   const buffer = useCallback(
-    (aggregates: ReadonlyArray<QueryKeyAggregate>) => {
-      const foundQueries = cache.findAll({
-        queryKey: ['aggregate', key],
-        predicate: ({queryKey}) => aggregates.includes(queryKey[3] as QueryKeyAggregate),
-      });
-      const foundAggregates = foundQueries.map(({queryKey}) => queryKey[3]);
+    (aggregates: readonly AggregatableQueryKey[]) => {
+      // Track AggregatableQueryKey that we care about in this hook instance
+      const queryKeys = uniq([...prevQueryKeys.current, ...aggregates]);
+      if (queryKeys.length === prevQueryKeys.current.length) {
+        return;
+      }
+      prevQueryKeys.current = queryKeys;
 
-      const newCacheKeys = aggregates
-        .filter(aggregate => !foundAggregates.includes(aggregate))
-        .map(aggregate => ['aggregate', key, 'queued', aggregate])
-        .map(queryKey => queryClient.setQueryData(queryKey, true));
+      // Get queryKeys for any cached data related to these aggregates.
+      const existingQueryKeys = cache
+        .findAll({
+          queryKey: ['aggregate', cacheKey, key],
+          predicate: isQueryKeyInList(prevQueryKeys.current),
+        })
+        .map(({queryKey}) => queryKey[4] as AggregatableQueryKey);
 
-      if (newCacheKeys.length) {
-        if (foundQueries.length + newCacheKeys.length >= bufferLimit) {
+      // Don't request aggregates multiple times.
+      const newQueryKeys = queryKeys.filter(agg => !existingQueryKeys.includes(agg));
+
+      // Cache sentinel data for the new cacheKeys
+      newQueryKeys
+        .map(agg => ['aggregate', cacheKey, key, 'queued', agg])
+        .forEach(queryKey => queryClient.setQueryData(queryKey, true));
+
+      if (newQueryKeys.length) {
+        setData(readCache());
+        // Grab anything in the queue, including the newQueryKeys
+        const existingQueuedQueries = cache.findAll({
+          queryKey: ['aggregate', cacheKey, key, 'queued'],
+        });
+        if (existingQueuedQueries.length >= bufferLimit) {
           clearTimer();
           fetchData();
         } else {
@@ -181,8 +226,27 @@ export default function useAggregatedQueryKeys<QueryKeyAggregate, Data>({
         }
       }
     },
-    [bufferLimit, cache, clearTimer, fetchData, key, queryClient, setTimer]
+    [
+      bufferLimit,
+      cache,
+      cacheKey,
+      clearTimer,
+      fetchData,
+      key,
+      queryClient,
+      readCache,
+      setTimer,
+    ]
   );
 
-  return {data, buffer};
+  useEffect(() => {
+    const unsubscribe = cache.subscribe(result => {
+      if (result.type === 'updated' && result.query.queryKey.at(0) === key) {
+        setData(readCache());
+      }
+    });
+    return unsubscribe;
+  }, [key, cache, queryClient, readCache]);
+
+  return useMemo(() => ({buffer, data}), [buffer, data]);
 }

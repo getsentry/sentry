@@ -68,8 +68,8 @@ function EventAttachmentActions({
             !url
               ? t('Insufficient permissions to preview attachments')
               : !hasPreview
-              ? t('This attachment cannot be previewed')
-              : undefined
+                ? t('This attachment cannot be previewed')
+                : undefined
           }
         >
           {t('Preview')}

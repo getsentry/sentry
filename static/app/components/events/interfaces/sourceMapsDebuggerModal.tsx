@@ -1,11 +1,13 @@
-import {Fragment, PropsWithChildren, ReactNode, useState} from 'react';
+import type {PropsWithChildren, ReactNode} from 'react';
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {openModal} from 'sentry/actionCreators/modal';
 import Alert from 'sentry/components/alert';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import FeatureBadge from 'sentry/components/featureBadge';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -23,9 +25,9 @@ import {
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
+import type {SourceMapWizardBlueThunderAnalyticsParams} from 'sentry/utils/analytics/stackTraceAnalyticsEvents';
 
 const SOURCE_MAP_SCRAPING_REASON_MAP = {
   not_found: {
@@ -136,7 +138,7 @@ export interface FrameSourceMapDebuggerData {
   uploadedSourceMapWithCorrectDebugId: boolean;
 }
 
-interface SourceMapsDebuggerModalProps extends ModalRenderProps {
+export interface SourceMapsDebuggerModalProps extends ModalRenderProps {
   analyticsParams: SourceMapWizardBlueThunderAnalyticsParams & {
     organization: Organization | null;
   };
@@ -893,16 +895,18 @@ function ReleaseSourceFileMatchingChecklistItem({
   }
 
   if (sourceResolutionResults.stackFramePath === null) {
-    <CheckListItem status="alert" title={errorMessage}>
-      <CheckListInstruction type="muted">
-        <h6>{t('Stack Frame Without Path')}</h6>
-        <p>
-          {t(
-            "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
-          )}
-        </p>
-      </CheckListInstruction>
-    </CheckListItem>;
+    return (
+      <CheckListItem status="alert" title={errorMessage}>
+        <CheckListInstruction type="muted">
+          <h6>{t('Stack Frame Without Path')}</h6>
+          <p>
+            {t(
+              "This stack frame doesn't have a path. Check your SDK configuration to send a stack frame path!"
+            )}
+          </p>
+        </CheckListInstruction>
+      </CheckListItem>
+    );
   }
 
   return (
@@ -948,7 +952,7 @@ function ReleaseSourceFileMatchingChecklistItem({
         {/* TODO: Link to uploaded files for this release. */}
         <p>
           {tct(
-            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the the stack frame path.',
+            'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',
             {
               link: (
                 <ExternalLinkWithIcon href="https://docs.sentry.io/platforms/javascript/configuration/integrations/rewriteframes/" />
@@ -1328,7 +1332,7 @@ const ListItemTitleWrapper = styled('div')`
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p =>
     ({
       none: p.theme.gray300,
@@ -1361,7 +1365,7 @@ const MonoBlock = styled('code')`
   border: 1px solid ${p => p.theme.gray200};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   white-space: nowrap;
 `;
 

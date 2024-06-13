@@ -1,14 +1,15 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {Profile} from 'sentry/utils/profiling/profile/profile';
+import type {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';
 
 export interface FlamegraphThreadSelectorProps {

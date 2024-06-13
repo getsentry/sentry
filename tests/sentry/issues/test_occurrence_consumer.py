@@ -1,12 +1,14 @@
 import datetime
 import logging
 import uuid
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timezone
-from typing import Any, Dict, Optional, Sequence, Type
+from typing import Any
 from unittest import mock
 
 import pytest
+from django.core.cache import cache
 from jsonschema import ValidationError
 
 from sentry import eventstore
@@ -18,12 +20,19 @@ from sentry.issues.occurrence_consumer import (
     InvalidEventPayloadError,
     _get_kwargs,
     _process_message,
+    process_occurrence_group,
 )
-from sentry.models.group import Group
+from sentry.issues.producer import _prepare_status_change_message
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.models.group import Group, GroupStatus
+from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -32,7 +41,7 @@ logger = logging.getLogger(__name__)
 
 def get_test_message(
     project_id: int, include_event: bool = True, **overrides: Any
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     now = datetime.datetime.now()
     event_id = uuid.uuid4().hex
     payload = {
@@ -87,6 +96,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
@@ -110,6 +120,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
+        assert occurrence is not None
 
         event = eventstore.backend.get_event_by_id(project_id, event_data["event"]["event_id"])
         event = event.for_group(event.group)
@@ -153,6 +164,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
             result = _process_message(message)
         assert result is not None
         occurrence = result[0]
+        assert occurrence is not None
 
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, self.project.id)
         assert fetched_occurrence is not None
@@ -165,6 +177,71 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert fetched_event.get_event_type() == "generic"
 
         assert Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).exists()
+
+    @with_feature("projects:issue-priority")
+    def test_issue_platform_default_priority(self) -> None:
+        # test default priority of LOW
+        message = get_test_message(self.project.id)
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.LOW
+
+    @with_feature("projects:issue-priority")
+    @with_feature("projects:first-event-severity-calculation")
+    @mock.patch("sentry.event_manager._get_severity_score")
+    def test_issue_platform_override_priority(
+        self, mock_get_severity_score: mock.MagicMock
+    ) -> None:
+        # test explicitly set priority of HIGH
+        message = get_test_message(self.project.id)
+        message["initial_issue_priority"] = PriorityLevel.HIGH.value
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        assert mock_get_severity_score.call_count == 0
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assert group.priority == PriorityLevel.HIGH
+        assert "severity" not in group.data["metadata"]
+
+    def test_new_group_with_user_assignee(self) -> None:
+        message = get_test_message(self.project.id, assignee=f"user:{self.user.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assignee = GroupAssignee.objects.get(group=group)
+        assert assignee.user_id == self.user.id
+
+    def test_new_group_with_team_assignee(self) -> None:
+        message = get_test_message(self.project.id, assignee=f"team:{self.team.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        assignee = GroupAssignee.objects.get(group=group)
+        assert assignee.team_id == self.team.id
+
+    def test_new_group_with_invalid_user_assignee(self) -> None:
+        other_user = self.create_user()
+        message = get_test_message(self.project.id, assignee=f"user:{other_user.id}")
+        with self.feature("organizations:profile-file-io-main-thread-ingest"):
+            result = _process_message(message)
+        assert result is not None
+        occurrence = result[0]
+        assert occurrence is not None
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
+        with pytest.raises(GroupAssignee.DoesNotExist):
+            GroupAssignee.objects.get(group=group)
 
 
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
@@ -198,6 +275,7 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             processed = _process_message(message)
         assert processed is not None
         occurrence, _ = processed[0], processed[1]
+        assert occurrence is not None
 
         fetched_event = self.eventstore.get_event_by_id(self.project.id, occurrence.event_id)
         assert fetched_event is not None
@@ -205,20 +283,20 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
 
 
 class ParseEventPayloadTest(IssueOccurrenceTestBase):
-    def run_test(self, message: Dict[str, Any]) -> None:
+    def run_test(self, message: dict[str, Any]) -> None:
         _get_kwargs(message)
 
     def run_invalid_schema_test(
-        self, message: Dict[str, Any], expected_error: Type[Exception]
+        self, message: dict[str, Any], expected_error: type[Exception]
     ) -> None:
         with pytest.raises(expected_error):
             self.run_test(message)
 
     def run_invalid_payload_test(
         self,
-        remove_event_fields: Optional[Sequence[str]] = None,
-        update_event_fields: Optional[Dict[str, Any]] = None,
-        expected_error: Type[Exception] = InvalidEventPayloadError,
+        remove_event_fields: Sequence[str] | None = None,
+        update_event_fields: dict[str, Any] | None = None,
+        expected_error: type[Exception] = InvalidEventPayloadError,
     ) -> None:
         message = deepcopy(get_test_message(self.project.id))
         if remove_event_fields:
@@ -351,8 +429,8 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
     def test_project_ids_mismatch(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        message["project_id"] = 1
-        message["event"]["project_id"] = 2
+        message["project_id"] = self.project.id
+        message["event"]["project_id"] = 999999999999
         with pytest.raises(InvalidEventPayloadError):
             _get_kwargs(message)
 
@@ -405,3 +483,113 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["culprit"] = "i did it"
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["culprit"] == "i did it"
+
+    def test_priority(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_defaults_to_grouptype(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = None
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.LOW
+
+    def test_priority_overrides_defaults(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["initial_issue_priority"] = PriorityLevel.HIGH
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["initial_issue_priority"] == PriorityLevel.HIGH
+
+    def test_assignee(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = f"user:{self.user.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] == f"user:{self.user.id}"
+
+    def test_assignee_perms(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        random_user = self.create_user()
+        message["assignee"] = f"user:{random_user.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = "user:99999999999"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+        other_org = self.create_organization()
+        random_team = self.create_team(other_org)
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = f"team:{random_team.id}"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+    def test_assignee_none(self) -> None:
+        kwargs = _get_kwargs(deepcopy(get_test_message(self.project.id)))
+        assert kwargs["occurrence_data"]["assignee"] is None
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = None
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+        message = deepcopy(get_test_message(self.project.id))
+        message["assignee"] = ""
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["assignee"] is None
+
+    @mock.patch("sentry.issues.occurrence_consumer._process_message")
+    def test_validate_cache(self, mock_process_message: mock.MagicMock) -> None:
+        # Test to ensure cache is set properly after processing an occurrence group
+        with mock.patch("django.core.cache.cache.set", side_effect=cache.set) as mock_cache_set:
+            process_occurrence_group([{"id": 1}, {"id": 2}, {"id": 2}])
+
+            # Check if cache.set is called with the correct parameters
+            expected_calls = [
+                mock.call("occurrence_consumer.process_occurrence_group.1", 1, 300),
+                mock.call("occurrence_consumer.process_occurrence_group.2", 1, 300),
+            ]
+            mock_cache_set.assert_has_calls(expected_calls, any_order=True)
+            assert mock_process_message.call_count == 2
+
+    def test_status_change(self) -> None:
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": iso_format(datetime.datetime.now()),
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        group = event.group
+        assert group.status == GroupStatus.UNRESOLVED
+        status = GroupStatus.RESOLVED
+
+        status_change = StatusChangeMessage(
+            fingerprint=["group-1"],
+            project_id=group.project_id,
+            new_status=status,
+            new_substatus=None,
+        )
+        message = _prepare_status_change_message(status_change)
+        assert message is not None
+        process_occurrence_group([message])
+
+        group = Group.objects.get(id=group.id)
+        assert group.status == status
+
+
+@override_options({"issues.occurrence_consumer.use_orjson": True})
+class IssueOccurrenceProcessMessageWithOrjsonTest(IssueOccurrenceProcessMessageTest):
+    pass
+
+
+@override_options({"issues.occurrence_consumer.use_orjson": True})
+class IssueOccurrenceLookupEventIdWithOrjsonTest(IssueOccurrenceLookupEventIdTest):
+    pass
+
+
+@override_options({"issues.occurrence_consumer.use_orjson": True})
+class ParseEventPayloadWithOrjsonTest(ParseEventPayloadTest):
+    pass

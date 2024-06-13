@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-from uuid import uuid4
+import uuid
 
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
@@ -18,77 +17,359 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
     Once span ingestion is on by default this will no longer need to be done
     """
 
-    # Some base data for create_span
-    base_span = {
-        "is_segment": False,
-        "retention_days": 90,
-        "tags": {},
-        "sentry_tags": {},
-        "measurements": {},
-    }
-
     def setUp(self):
         super().setUp()
         self.features = {
             "organizations:starfish-view": True,
         }
 
-    def create_span(
-        self, extra_data=None, organization=None, project=None, start_ts=None, duration=1000
-    ):
-        """Create span json, not required for store_span, but with no params passed should just work out of the box"""
-        if organization is None:
-            organization = self.organization
-        if project is None:
-            project = self.project
-        if start_ts is None:
-            start_ts = datetime.now() - timedelta(minutes=1)
-        if extra_data is None:
-            extra_data = {}
-        span = self.base_span.copy()
-        # Load some defaults
-        span.update(
-            {
-                "event_id": uuid4().hex,
-                "organization_id": organization.id,
-                "project_id": project.id,
-                "trace_id": uuid4().hex,
-                "span_id": uuid4().hex[:16],
-                "parent_span_id": uuid4().hex[:16],
-                "segment_id": uuid4().hex[:16],
-                "group_raw": uuid4().hex[:16],
-                "profile_id": uuid4().hex,
-                # Multiply by 1000 cause it needs to be ms
-                "start_timestamp_ms": int(start_ts.timestamp() * 1000),
-                "received": start_ts.timestamp(),
-                "duration_ms": duration,
-                "exclusive_time_ms": duration,
-            }
-        )
-        # Load any specific custom data
-        span.update(extra_data)
-        return span
-
     def test_simple(self):
         self.store_spans(
             [
-                self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago),
-                self.create_span({"description": "bar"}, start_ts=self.ten_mins_ago),
+                self.create_span(
+                    {"description": "foo", "sentry_tags": {"status": "success"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "bar", "sentry_tags": {"status": "invalid_argument"}},
+                    start_ts=self.ten_mins_ago,
+                ),
             ]
         )
         response = self.do_request(
             {
-                "field": ["description", "count()"],
+                "field": ["span.status", "description", "count()"],
                 "query": "",
                 "orderby": "description",
                 "project": self.project.id,
                 "dataset": "spansIndexed",
             }
         )
+
         assert response.status_code == 200, response.content
         data = response.data["data"]
         meta = response.data["meta"]
         assert len(data) == 2
-        assert data[0]["description"] == "bar"
-        assert data[1]["description"] == "foo"
+        assert data == [
+            {
+                "span.status": "invalid_argument",
+                "description": "bar",
+                "count()": 1,
+            },
+            {
+                "span.status": "ok",
+                "description": "foo",
+                "count()": 1,
+            },
+        ]
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_sentry_tags_vs_tags(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["transaction.method", "count()"],
+                "query": "",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["transaction.method"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_sentry_tags_syntax(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction.method": "foo"}}, start_ts=self.ten_mins_ago
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["sentry_tags[transaction.method]", "count()"],
+                "query": "",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["sentry_tags[transaction.method]"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_module_alias(self):
+        # Delegates `span.module` to `sentry_tags[category]`. Maps `"db.redis"` spans to the `"cache"` module
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "op": "db.redis",
+                        "description": "EXEC *",
+                        "sentry_tags": {
+                            "description": "EXEC *",
+                            "category": "db",
+                            "op": "db.redis",
+                            "transaction": "/app/index",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.module", "span.description"],
+                "query": "span.module:cache",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.module"] == "cache"
+        assert data[0]["span.description"] == "EXEC *"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_device_class_filter_unknown(self):
+        self.store_spans(
+            [
+                self.create_span({"sentry_tags": {"device.class": ""}}, start_ts=self.ten_mins_ago),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["device.class", "count()"],
+                "query": "device.class:Unknown",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["device.class"] == "Unknown"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_network_span(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "action": "GET",
+                            "category": "http",
+                            "description": "GET https://*.resource.com",
+                            "domain": "*.resource.com",
+                            "op": "http.client",
+                            "status_code": "200",
+                            "transaction": "/api/0/data/",
+                            "transaction.method": "GET",
+                            "transaction.op": "http.server",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        response = self.do_request(
+            {
+                "field": ["span.op", "span.status_code"],
+                "query": "span.module:http span.status_code:200",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.op"] == "http.client"
+        assert data[0]["span.status_code"] == "200"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_inp_span(self):
+        replay_id = uuid.uuid4().hex
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": replay_id,
+                            "browser.name": "Chrome",
+                            "transaction": "/pageloads/",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["replay.id", "browser.name", "origin.transaction", "count()"],
+                "query": f"replay.id:{replay_id} AND browser.name:Chrome AND origin.transaction:/pageloads/",
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["replay.id"] == replay_id
+        assert data[0]["browser.name"] == "Chrome"
+        assert data[0]["origin.transaction"] == "/pageloads/"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_id_filtering(self):
+        span = self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)
+        self.store_span(span)
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": f"id:{span['span_id']}",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+        response = self.do_request(
+            {
+                "field": ["description", "count()"],
+                "query": f"transaction.id:{span['event_id']}",
+                "orderby": "description",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["description"] == "foo"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_span_op_casing(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "sentry_tags": {
+                            "replay_id": "abc123",
+                            "browser.name": "Chrome",
+                            "transaction": "/pageloads/",
+                            "op": "this is a transaction",
+                        }
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": ["span.op", "count()"],
+                "query": 'span.op:"ThIs Is a TraNSActiON"',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["span.op"] == "this is a transaction"
+        assert meta["dataset"] == "spansIndexed"
+
+    def test_queue_span(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "measurements": {
+                            "messaging.message.body.size": {"value": 1024, "unit": "byte"},
+                            "messaging.message.receive.latency": {
+                                "value": 1000,
+                                "unit": "millisecond",
+                            },
+                            "messaging.message.retry.count": {"value": 2, "unit": "none"},
+                        },
+                        "sentry_tags": {
+                            "transaction": "queue-processor",
+                            "messaging.destination.name": "events",
+                            "messaging.message.id": "abc123",
+                            "trace.status": "ok",
+                        },
+                    },
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "messaging.destination.name",
+                    "messaging.message.id",
+                    "measurements.messaging.message.receive.latency",
+                    "measurements.messaging.message.body.size",
+                    "measurements.messaging.message.retry.count",
+                    "trace.status",
+                    "count()",
+                ],
+                "query": 'messaging.destination.name:"events"',
+                "orderby": "count()",
+                "project": self.project.id,
+                "dataset": "spansIndexed",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0]["transaction"] == "queue-processor"
+        assert data[0]["messaging.destination.name"] == "events"
+        assert data[0]["messaging.message.id"] == "abc123"
+        assert data[0]["trace.status"] == "ok"
+        assert data[0]["measurements.messaging.message.receive.latency"] == 1000
+        assert data[0]["measurements.messaging.message.body.size"] == 1024
+        assert data[0]["measurements.messaging.message.retry.count"] == 2
         assert meta["dataset"] == "spansIndexed"

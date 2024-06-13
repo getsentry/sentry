@@ -24,7 +24,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
@@ -141,6 +141,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             version=data["version"],
+            dataset=data["query_dataset"],
             created_by_id=request.user.id if request.user.is_authenticated else None,
         )
 

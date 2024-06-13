@@ -1,32 +1,26 @@
-import React, {
-  Fragment,
-  ReactElement,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
+import type {ReactElement} from 'react';
+import type React from 'react';
+import {Fragment, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {mat3, vec2} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
+import {vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import {Flex} from 'sentry/components/profiling/flex';
 import SwitchButton from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
-  CanvasScheduler,
   useCanvasScheduler,
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {
-  Flamegraph,
-  Flamegraph as FlamegraphModel,
-} from 'sentry/utils/profiling/flamegraph';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
@@ -35,7 +29,7 @@ import {
   useMutateFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
   initializeFlamegraphRenderer,
@@ -97,13 +91,16 @@ export function DeprecatedAggregateFlamegraph(
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
-    const transaction = Sentry.startTransaction({
-      op: 'import',
-      name: 'flamegraph.constructor',
-    });
+    const span = Sentry.withScope(scope => {
+      scope.setTag('sorting', sorting.split(' ').join('_'));
+      scope.setTag('view', view.split(' ').join('_'));
 
-    transaction.setTag('sorting', sorting.split(' ').join('_'));
-    transaction.setTag('view', view.split(' ').join('_'));
+      return Sentry.startInactiveSpan({
+        op: 'import',
+        name: 'flamegraph.constructor',
+        forceTransaction: true,
+      });
+    });
 
     const newFlamegraph = new FlamegraphModel(profile, {
       inverted: view === 'bottom up',
@@ -111,7 +108,7 @@ export function DeprecatedAggregateFlamegraph(
       configSpace: undefined,
     });
 
-    transaction.finish();
+    span?.end();
 
     return newFlamegraph;
   }, [profile, sorting, threadId, view]);

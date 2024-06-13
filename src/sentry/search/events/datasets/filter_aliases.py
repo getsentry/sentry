@@ -1,22 +1,24 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from functools import reduce
-from typing import List, Mapping, Optional
 
-from snuba_sdk import Column, Condition, Op
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
-from sentry.models.release import Release, SemverFilter
+from sentry.models.release import Release
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events import builder, constants
 from sentry.search.events.filter import (
     _flip_field_sort,
     handle_operator_negation,
     parse_semver,
     to_list,
+    translate_transaction_status,
 )
 from sentry.search.events.types import WhereType
-from sentry.search.utils import DEVICE_CLASS, parse_release
+from sentry.search.utils import DEVICE_CLASS, parse_release, validate_snuba_array_parameter
 from sentry.utils.strings import oxfordize_list
 
 
@@ -42,7 +44,7 @@ def team_key_transaction_filter(
 
 def release_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """Parse releases for potential aliases like `latest`"""
     if search_filter.value.is_wildcard():
         operator = search_filter.operator
@@ -52,7 +54,7 @@ def release_filter_converter(
         operator = operator_conversions.get(search_filter.operator, search_filter.operator)
         value = SearchValue(
             reduce(
-                lambda x, y: x + y,  # type: ignore
+                lambda x, y: x + y,  # type: ignore[operator]
                 [
                     parse_release(
                         v,
@@ -71,7 +73,7 @@ def release_filter_converter(
 
 def project_slug_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """Convert project slugs to ids and create a filter based on those.
     This is cause we only store project ids in clickhouse.
     """
@@ -88,7 +90,7 @@ def project_slug_converter(
         for slug, project_id in builder.params.project_slug_map.items()
         if slug in slugs
     }
-    missing: List[str] = [slug for slug in slugs if slug not in project_slugs]
+    missing: list[str] = [slug for slug in slugs if slug not in project_slugs]
     if missing and search_filter.operator in constants.EQUALITY_OPERATORS:
         raise InvalidSearchQuery(
             f"Invalid query. Project(s) {oxfordize_list(missing)} do not exist or are not actively selected."
@@ -112,7 +114,7 @@ def project_slug_converter(
     return None
 
 
-def span_is_segment_converter(search_filter: SearchFilter) -> Optional[WhereType]:
+def span_is_segment_converter(search_filter: SearchFilter) -> WhereType | None:
     """Convert the search filter from a string to a boolean
     and unalias the filter key.
     """
@@ -128,7 +130,7 @@ def span_is_segment_converter(search_filter: SearchFilter) -> Optional[WhereType
 
 def release_stage_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Parses a release stage search and returns a snuba condition to filter to the
     requested releases.
@@ -154,12 +156,17 @@ def release_stage_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "There are too many releases that match your release.stage filter, please try again with a narrower range"
+        )
+
     return Condition(builder.column("release"), Op.IN, versions)
 
 
 def semver_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Parses a semver query search and returns a snuba condition to filter to the
     requested releases.
@@ -220,6 +227,11 @@ def semver_filter_converter(
             final_operator = Op.NOT_IN
             versions = exclude_versions
 
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "There are too many releases that match your release.version filter, please try again with a narrower range"
+        )
+
     if not versions:
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
@@ -229,7 +241,7 @@ def semver_filter_converter(
 
 def semver_package_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -250,12 +262,17 @@ def semver_package_filter_converter(
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
 
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "There are too many releases that match your release.package filter, please try again with a narrower range"
+        )
+
     return Condition(builder.column("release"), Op.IN, versions)
 
 
 def semver_build_filter_converter(
     builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+) -> WhereType | None:
     """
     Applies a semver build filter to the search. Note that if the query returns more than
     `MAX_SEARCH_RELEASES` here we arbitrarily return a subset of the releases.
@@ -279,6 +296,11 @@ def semver_build_filter_converter(
         ).values_list("version", flat=True)[: constants.MAX_SEARCH_RELEASES]
     )
 
+    if not validate_snuba_array_parameter(versions):
+        raise InvalidSearchQuery(
+            "There are too many releases that match your release.build filter, please try again with a narrower range"
+        )
+
     if not versions:
         # XXX: Just return a filter that will return no results if we have no versions
         versions = [constants.SEMVER_EMPTY_RELEASE]
@@ -287,9 +309,82 @@ def semver_build_filter_converter(
 
 
 def device_class_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> Optional[WhereType]:
+    builder: builder.QueryBuilder,
+    search_filter: SearchFilter,
+    device_class_map: Mapping[str, set[str]] | None = None,
+) -> WhereType | None:
+    if not device_class_map:
+        device_class_map = DEVICE_CLASS
+
     value = search_filter.value.value
-    if value not in DEVICE_CLASS:
+    if value not in device_class_map:
         raise InvalidSearchQuery(f"{value} is not a supported device.class")
-    return Condition(builder.column("device.class"), Op.IN, list(DEVICE_CLASS[value]))
+    return Condition(builder.column("device.class"), Op.IN, list(device_class_map[value]))
+
+
+def lowercase_search(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    """Convert the search value to lower case"""
+    raw_value = search_filter.value.raw_value
+    if isinstance(raw_value, list):
+        raw_value = [val.lower() for val in raw_value]
+    else:
+        raw_value = raw_value.lower()
+    return builder.default_filter_converter(
+        SearchFilter(search_filter.key, search_filter.operator, SearchValue(raw_value))
+    )
+
+
+def span_status_filter_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    # Handle "has" queries
+    if search_filter.value.raw_value == "":
+        return Condition(
+            builder.resolve_field(search_filter.key.name),
+            Op.IS_NULL if search_filter.operator == "=" else Op.IS_NOT_NULL,
+        )
+    internal_value = (
+        [translate_transaction_status(val) for val in search_filter.value.raw_value]
+        if search_filter.is_in_filter
+        else translate_transaction_status(search_filter.value.raw_value)
+    )
+    return Condition(
+        builder.resolve_field(search_filter.key.name),
+        Op(search_filter.operator),
+        internal_value,
+    )
+
+
+def message_filter_converter(
+    builder: builder.QueryBuilder, search_filter: SearchFilter
+) -> WhereType | None:
+    value = search_filter.value.value
+    if search_filter.value.is_wildcard():
+        # XXX: We don't want the '^$' values at the beginning and end of
+        # the regex since we want to find the pattern anywhere in the
+        # message. Strip off here
+        value = search_filter.value.value[1:-1]
+        return Condition(
+            Function("match", [builder.column("message"), f"(?i){value}"]),
+            Op(search_filter.operator),
+            1,
+        )
+    elif value == "":
+        operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
+        return Condition(Function("equals", [builder.column("message"), value]), operator, 1)
+    else:
+        if search_filter.is_in_filter:
+            return Condition(
+                builder.column("message"),
+                Op(search_filter.operator),
+                value,
+            )
+
+        # make message search case insensitive
+        return Condition(
+            Function("positionCaseInsensitive", [builder.column("message"), value]),
+            Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+            0,
+        )

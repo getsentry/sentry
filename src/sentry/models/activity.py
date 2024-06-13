@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import logging
+from collections.abc import Mapping, Sequence
 from enum import Enum
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models
@@ -9,6 +11,7 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
+from sentry import features, options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BaseManager,
@@ -16,12 +19,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
+from sentry.types.group import PriorityLevel
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -29,17 +33,33 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
+_default_logger = logging.getLogger(__name__)
+
+
 class ActivityManager(BaseManager["Activity"]):
-    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
+    def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
+        initial_priority = None
+
+        if not features.has("projects:issue-priority", group.project):
+            activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
+        else:
+            # Check if 'initial_priority' is available and the feature flag is on
+            initial_priority_value = group.get_event_metadata().get(
+                "initial_priority", None
+            ) or group.get_event_metadata().get("initial_priority", None)
+
+            initial_priority = (
+                PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
+            )
 
         prev_sig = None
         sig = None
         # we select excess so we can filter dupes
         for item in activity_qs[: num * 2]:
             prev_sig = sig
-            sig = (item.type, item.ident, item.user_id)
+            sig = (item.type, item.ident, item.user_id, item.data)
 
             if item.type == ActivityType.NOTE.value:
                 activities.append(item)
@@ -54,6 +74,7 @@ class ActivityManager(BaseManager["Activity"]):
                 project=group.project,
                 group=group,
                 type=ActivityType.FIRST_SEEN.value,
+                data={"priority": initial_priority},
                 datetime=group.first_seen,
             )
         )
@@ -64,9 +85,9 @@ class ActivityManager(BaseManager["Activity"]):
         self,
         group: Group,
         type: ActivityType,
-        user: Optional[User | RpcUser] = None,
-        user_id: Optional[int] = None,
-        data: Optional[Mapping[str, Any]] = None,
+        user: User | RpcUser | None = None,
+        user_id: int | None = None,
+        data: Mapping[str, Any] | None = None,
         send_notification: bool = True,
     ) -> Activity:
         if user:
@@ -86,7 +107,7 @@ class ActivityManager(BaseManager["Activity"]):
         return activity
 
 
-@region_silo_only_model
+@region_silo_model
 class Activity(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -105,7 +126,7 @@ class Activity(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_activity"
-        index_together = (("project", "datetime"),)
+        indexes = (models.Index(fields=("project", "datetime")),)
 
     __repr__ = sane_repr("project_id", "group_id", "event_id", "user_id", "type", "ident")
 
@@ -130,6 +151,23 @@ class Activity(Model):
 
         super().save(*args, **kwargs)
 
+        # The receiver for the post_save signal was not working in production, so just execute directly and safely
+        try:
+            from sentry.integrations.slack.tasks.send_notifications_on_activity import (
+                activity_created_receiver,
+            )
+
+            activity_created_receiver(self, created)
+        except Exception as err:
+            _default_logger.info(
+                "there was an error trying to kick off activity receiver",
+                exc_info=err,
+                extra={
+                    "activity_id": self.id,
+                },
+            )
+            pass
+
         if not created:
             return
 
@@ -138,9 +176,10 @@ class Activity(Model):
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") + 1)
-            post_save.send_robust(
-                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-            )
+            if not options.get("groups.enable-post-update-signal"):
+                post_save.send_robust(
+                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+                )
 
     def delete(self, *args, **kwargs):
         super().delete(*args, **kwargs)
@@ -150,9 +189,10 @@ class Activity(Model):
             from sentry.models.group import Group
 
             self.group.update(num_comments=F("num_comments") - 1)
-            post_save.send_robust(
-                sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
-            )
+            if not options.get("groups.enable-post-update-signal"):
+                post_save.send_robust(
+                    sender=Group, instance=self.group, created=True, update_fields=["num_comments"]
+                )
 
     def send_notification(self):
         activity.send_activity_notifications.delay(self.id)

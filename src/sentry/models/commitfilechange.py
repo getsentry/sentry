@@ -1,4 +1,5 @@
-from typing import Any, ClassVar, Iterable
+from collections.abc import Iterable
+from typing import Any, ClassVar
 
 from django.db import models, router, transaction
 from django.db.models.signals import post_save
@@ -9,7 +10,7 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
@@ -21,7 +22,7 @@ class CommitFileChangeManager(BaseManager["CommitFileChange"]):
         return int(self.filter(commit__in=commits).values("filename").distinct().count())
 
 
-@region_silo_only_model
+@region_silo_model
 class CommitFileChange(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

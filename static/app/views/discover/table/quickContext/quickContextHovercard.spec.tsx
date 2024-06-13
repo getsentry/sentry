@@ -1,14 +1,15 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {ReleaseStatus} from 'sentry/types';
 import {EventOrGroupType} from 'sentry/types/event';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {ReleaseStatus} from 'sentry/types/release';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -21,7 +22,7 @@ const renderQuickContextContent = (
   contextType: ContextType = ContextType.ISSUE,
   eventView?: EventView
 ) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <QuickContextHoverWrapper

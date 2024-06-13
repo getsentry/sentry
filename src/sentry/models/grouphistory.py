@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, ClassVar, List, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
+from django.conf import settings
 from django.db import models
-from django.db.models import SET_NULL, Q
+from django.db.models import Q
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -11,11 +12,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
-from sentry.models.actor import get_actor_id_for_user
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS
 
 if TYPE_CHECKING:
@@ -58,6 +60,10 @@ class GroupHistoryStatus:
     # Just reserving this for us with queries, we don't store the first time a group is created in
     # `GroupHistoryStatus`
     NEW = 20
+
+    PRIORITY_HIGH = 21
+    PRIORITY_MEDIUM = 22
+    PRIORITY_LOW = 23
 
 
 STRING_TO_STATUS_LOOKUP = {
@@ -143,7 +149,7 @@ ACTIVITY_STATUS_TO_GROUP_HISTORY_STATUS = {
 
 
 class GroupHistoryManager(BaseManager["GroupHistory"]):
-    def filter_to_team(self, team):
+    def filter_to_team(self, team: "Team"):
         from sentry.models.groupassignee import GroupAssignee
         from sentry.models.project import Project
 
@@ -158,7 +164,7 @@ class GroupHistoryManager(BaseManager["GroupHistory"]):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupHistory(Model):
     """
     This model is used to track certain status changes for groups,
@@ -176,7 +182,9 @@ class GroupHistory(Model):
     group = FlexibleForeignKey("sentry.Group", db_constraint=False)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     release = FlexibleForeignKey("sentry.Release", null=True, db_constraint=False)
-    actor = FlexibleForeignKey("sentry.Actor", null=True, on_delete=SET_NULL)
+
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
+    team = FlexibleForeignKey("sentry.Team", null=True, on_delete=models.SET_NULL)
 
     status = BoundedPositiveIntegerField(
         default=0,
@@ -209,13 +217,28 @@ class GroupHistory(Model):
     class Meta:
         db_table = "sentry_grouphistory"
         app_label = "sentry"
-        index_together = (
-            ("project", "status", "release"),
-            ("group", "status"),
-            ("project", "date_added"),
+        indexes = (
+            models.Index(fields=("project", "status", "release")),
+            models.Index(fields=("group", "status")),
+            models.Index(fields=("project", "date_added")),
         )
 
     __repr__ = sane_repr("group_id", "release_id")
+
+    @property
+    def owner(self) -> Actor | None:
+        """Part of ActorOwned protocol"""
+        return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
+
+    @owner.setter
+    def owner(self, actor: Actor | None) -> None:
+        """Part of ActorOwned protocol"""
+        self.team_id = None
+        self.user_id = None
+        if actor and actor.is_user:
+            self.user_id = actor.id
+        if actor and actor.is_team:
+            self.team_id = actor.id
 
 
 def get_prev_history(group, status):
@@ -235,7 +258,7 @@ def get_prev_history(group, status):
 def record_group_history_from_activity_type(
     group: "Group",
     activity_type: int,
-    actor: Optional[Union["User", "Team"]] = None,
+    actor: Union["User", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     """
@@ -257,7 +280,7 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: "Group",
     status: int,
-    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     from sentry.models.team import Team
@@ -265,12 +288,13 @@ def record_group_history(
     from sentry.services.hybrid_cloud.user import RpcUser
 
     prev_history = get_prev_history(group, status)
-    actor_id = None
+    user_id = None
+    team_id = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            user_id = actor.id
         elif isinstance(actor, Team):
-            actor_id = actor.actor_id
+            team_id = actor.id
         else:
             raise ValueError("record_group_history actor argument must be RPCUser or Team")
 
@@ -279,7 +303,8 @@ def record_group_history(
         group=group,
         project=group.project,
         release=release,
-        actor_id=actor_id,
+        user_id=user_id,
+        team_id=team_id,
         status=status,
         prev_history=prev_history,
         prev_history_date=prev_history.date_added if prev_history else None,
@@ -287,9 +312,9 @@ def record_group_history(
 
 
 def bulk_record_group_history(
-    groups: List["Group"],
+    groups: list["Group"],
     status: int,
-    actor: Optional[Union["User", "RpcUser", "Team"]] = None,
+    actor: Union["User", "RpcUser", "Team"] | None = None,
     release: Optional["Release"] = None,
 ):
     from sentry.models.team import Team
@@ -300,12 +325,13 @@ def bulk_record_group_history(
         prev_history = get_prev_history(group, status)
         return prev_history.date_added if prev_history else None
 
-    actor_id = None
+    user_id: int | None = None
+    team_id: int | None = None
     if actor:
         if isinstance(actor, RpcUser) or isinstance(actor, User):
-            actor_id = get_actor_id_for_user(actor)
+            user_id = actor.id
         elif isinstance(actor, Team):
-            actor_id = actor.actor_id
+            team_id = actor.id
         else:
             raise ValueError("record_group_history actor argument must be RPCUser or Team")
 
@@ -316,7 +342,8 @@ def bulk_record_group_history(
                 group=group,
                 project=group.project,
                 release=release,
-                actor_id=actor_id,
+                team_id=team_id,
+                user_id=user_id,  # type:ignore[misc]
                 status=status,
                 prev_history=get_prev_history(group, status),
                 prev_history_date=get_prev_history_date(group, status),

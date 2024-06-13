@@ -4,9 +4,9 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t} from 'sentry/locale';
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import type {KeyValueTuple} from 'sentry/views/replays/detail/accessibility/details/components';
 import {
   keyValueTableOrNotFound,
-  KeyValueTuple,
   SectionItem,
 } from 'sentry/views/replays/detail/accessibility/details/components';
 

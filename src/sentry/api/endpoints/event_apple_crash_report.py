@@ -14,9 +14,9 @@ from sentry.utils.safe import get_path
 
 @region_silo_endpoint
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, project, event_id) -> HttpResponseBase:

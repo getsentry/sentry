@@ -3,25 +3,20 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {Client, ResponseMeta} from 'sentry/api';
+import type {Client, ResponseMeta} from 'sentry/api';
 import {isSelectionEqual} from 'sentry/components/organizations/pageFilters/utils';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {Organization, PageFilters} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 
-import {DatasetConfig} from '../datasetConfig/base';
-import {
-  DashboardFilters,
-  DEFAULT_TABLE_LIMIT,
-  DisplayType,
-  Widget,
-  WidgetQuery,
-} from '../types';
+import type {DatasetConfig} from '../datasetConfig/base';
+import type {DashboardFilters, Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 
 function getReferrer(displayType: DisplayType) {
   let referrer: string = '';
@@ -85,6 +80,9 @@ export type GenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
     timeseriesResultsTypes,
   }: OnDataFetchedProps) => void;
   onDemandControlContext?: OnDemandControlContext;
+  // Skips adding parens before applying dashboard filters
+  // Used for datasets that do not support parens/boolean logic
+  skipDashboardFilterParens?: boolean;
 };
 
 type State<SeriesResponse> = {
@@ -128,45 +126,33 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
 
     // We do not fetch data whenever the query name changes.
     // Also don't count empty fields when checking for field changes
-    const [prevWidgetQueryNames, prevWidgetQueries] = prevProps.widget.queries
-      .map((query: WidgetQuery) => {
-        query.aggregates = query.aggregates.filter(field => !!field);
-        query.columns = query.columns.filter(field => !!field);
-        return query;
-      })
-      .reduce(
-        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-          names.push(name);
-          rest.fields = rest.fields?.filter(field => !!field) ?? [];
+    const previousQueries = prevProps.widget.queries;
+    const [prevWidgetQueryNames, prevWidgetQueries] = previousQueries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
-          // Ignore aliases because changing alias does not need a query
-          rest = omit(rest, 'fieldAliases');
-          queries.push(rest);
-          return [names, queries];
-        },
-        [[], []]
-      );
+        // Ignore aliases because changing alias does not need a query
+        rest = omit(rest, 'fieldAliases');
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
 
-    const [widgetQueryNames, widgetQueries] = widget.queries
-      .map((query: WidgetQuery) => {
-        query.aggregates = query.aggregates.filter(
-          field => !!field && field !== 'equation|'
-        );
-        query.columns = query.columns.filter(field => !!field && field !== 'equation|');
-        return query;
-      })
-      .reduce(
-        ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
-          names.push(name);
-          rest.fields = rest.fields?.filter(field => !!field) ?? [];
+    const nextQueries = widget.queries;
+    const [widgetQueryNames, widgetQueries] = nextQueries.reduce(
+      ([names, queries]: [string[], Omit<WidgetQuery, 'name'>[]], {name, ...rest}) => {
+        names.push(name);
+        rest.fields = rest.fields?.filter(field => !!field) ?? [];
 
-          // Ignore aliases because changing alias does not need a query
-          rest = omit(rest, 'fieldAliases');
-          queries.push(rest);
-          return [names, queries];
-        },
-        [[], []]
-      );
+        // Ignore aliases because changing alias does not need a query
+        rest = omit(rest, 'fieldAliases');
+        queries.push(rest);
+        return [names, queries];
+      },
+      [[], []]
+    );
 
     if (
       customDidUpdateComparator
@@ -211,16 +197,24 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
   private _isMounted: boolean = false;
 
   applyDashboardFilters(widget: Widget): Widget {
-    const {dashboardFilters} = this.props;
+    const {dashboardFilters, skipDashboardFilterParens} = this.props;
 
     const dashboardFilterConditions = dashboardFiltersToString(dashboardFilters);
     widget.queries.forEach(query => {
-      query.conditions =
-        query.conditions +
-        (dashboardFilterConditions === '' ? '' : ` ${dashboardFilterConditions}`);
+      if (dashboardFilterConditions) {
+        // If there is no base query, there's no need to add parens
+        if (query.conditions && !skipDashboardFilterParens) {
+          query.conditions = `(${query.conditions})`;
+        }
+        query.conditions = query.conditions + ` ${dashboardFilterConditions}`;
+      }
     });
-
     return widget;
+  }
+
+  widgetForRequest(widget: Widget): Widget {
+    widget = this.applyDashboardFilters(widget);
+    return cleanWidgetForRequest(widget);
   }
 
   async fetchTableData(queryFetchID: symbol) {
@@ -237,7 +231,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       onDemandControlContext,
       mepSetting,
     } = this.props;
-    const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
+    const widget = this.widgetForRequest(cloneDeep(originalWidget));
     const responses = await Promise.all(
       widget.queries.map(query => {
         const requestLimit: number | undefined = limit ?? DEFAULT_TABLE_LIMIT;
@@ -311,7 +305,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       mepSetting,
       onDemandControlContext,
     } = this.props;
-    const widget = this.applyDashboardFilters(cloneDeep(originalWidget));
+    const widget = this.widgetForRequest(cloneDeep(originalWidget));
 
     const responses = await Promise.all(
       widget.queries.map((_query, index) => {
@@ -421,6 +415,16 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       timeseriesResultsTypes,
     });
   }
+}
+
+export function cleanWidgetForRequest(widget: Widget): Widget {
+  const _widget = cloneDeep(widget);
+  _widget.queries.forEach(query => {
+    query.aggregates = query.aggregates.filter(field => !!field && field !== 'equation|');
+    query.columns = query.columns.filter(field => !!field && field !== 'equation|');
+  });
+
+  return _widget;
 }
 
 export default GenericWidgetQueries;

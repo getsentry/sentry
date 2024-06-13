@@ -3,10 +3,10 @@ from __future__ import annotations
 import functools
 import logging
 from datetime import datetime, timedelta, timezone
-from typing import Tuple
 
 import isodate
 from croniter import croniter
+from django.conf import settings
 from isodate.isoerror import ISO8601Error
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -32,7 +32,7 @@ def _track_deprecated_metrics(request: Request, deprecation_date: datetime):
     request.deprecation_date = deprecation_date
 
 
-def _serialize_key(key: str) -> Tuple[str, str]:
+def _serialize_key(key: str) -> tuple[str, str]:
     """Converts the key into an option manager key used for the schedule crontab and blackout duration"""
     return f"{key}-cron", f"{key}-duration"
 
@@ -106,16 +106,26 @@ def deprecated(
     def get(self, request):
 
     This decorator does 3 things:
-    1) Add additional metrics to be tracked for deprecated endpoints
-    2) Add headers indicating deprecation date to requests on deprecated endpoints
-    3) Reject requests if they fall within a brownout window
+    1) Add additional metrics to be tracked for deprecated endpoints;
+    2) Add headers indicating deprecation date to requests on deprecated endpoints;
+    3) Start brownouts after the deprectation date, which reject requests if they
+       fall within a brownout's blackout window defined by a cron schedule and duration.
+
+    This decorator will do nothing if the environment is self-hosted and not set to 'development'.
+
+    :param deprecation_date: The date at which the endpoint is starts brownouts;
+    :param suggested_api: The suggested API to use instead of the deprecated one;
+    :param key: The key prefix for an option use for the brownout schedule and duration
+                If not set 'api.deprecation.brownout' will be used, which currently
+                is using schedule of a 1 minute blackout at noon UTC.
     """
 
     def decorator(func):
         @functools.wraps(func)
         def endpoint_method(self, request: Request, *args, **kwargs):
             # Don't do anything for deprecated endpoints on self hosted
-            if is_self_hosted():
+            # but allow testing deprecation in development
+            if is_self_hosted() and not settings.ENVIRONMENT == "development":
                 return func(self, request, *args, **kwargs)
 
             now = datetime.now(timezone.utc)

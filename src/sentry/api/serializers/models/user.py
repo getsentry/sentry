@@ -3,30 +3,19 @@ from __future__ import annotations
 import itertools
 import warnings
 from collections import defaultdict
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import Any, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import QuerySet
-from typing_extensions import TypedDict
 
 from sentry import experiments
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.types import SerializedAvatarFields
 from sentry.app import env
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.authenticator import Authenticator
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.avatars.user_avatar import UserAvatar
@@ -45,7 +34,7 @@ from sentry.utils.avatar import get_gravatar_url
 
 
 def manytoone_to_dict(
-    queryset: QuerySet, key: str, filter_func: Optional[Callable[[Any], bool]] = None
+    queryset: QuerySet, key: str, filter_func: Callable[[Any], bool] | None = None
 ) -> MutableMapping[Any, Any]:
     result = defaultdict(list)
     for row in queryset:
@@ -87,12 +76,13 @@ class _UserOptions(TypedDict):
     defaultIssueEvent: str
     timezone: str
     clock24Hours: bool
+    issueDetailsNewExperienceQ42023: bool
 
 
 class UserSerializerResponseOptional(TypedDict, total=False):
-    identities: List[_Identity]
+    identities: list[_Identity]
     avatar: SerializedAvatarFields
-    authenticators: List[Any]  # TODO: find out what type this is
+    authenticators: list[Any]  # TODO: find out what type this is
     canReset2fa: bool
 
 
@@ -111,8 +101,8 @@ class UserSerializerResponse(UserSerializerResponseOptional):
     lastActive: datetime
     isSuperuser: bool
     isStaff: bool
-    experiments: Dict[str, Any]  # TODO
-    emails: List[_UserEmails]
+    experiments: dict[str, Any]  # TODO
+    emails: list[_UserEmails]
 
 
 class UserSerializerResponseSelf(UserSerializerResponse):
@@ -131,8 +121,9 @@ class UserSerializer(Serializer):
 
     def _get_identities(
         self, item_list: Sequence[User], user: User
-    ) -> Dict[int, List[AuthIdentity]]:
-        if not (env.request and is_active_superuser(env.request)):
+    ) -> dict[int, list[AuthIdentity]]:
+
+        if not (env.request and has_elevated_mode(env.request)):
             item_list = [x for x in item_list if x.id == user.id]
 
         queryset = AuthIdentity.objects.filter(
@@ -141,7 +132,7 @@ class UserSerializer(Serializer):
             "auth_provider",
         )
 
-        results: Dict[int, List[AuthIdentity]] = {i.id: [] for i in item_list}
+        results: dict[int, list[AuthIdentity]] = {i.id: [] for i in item_list}
         for item in queryset:
             results[item.user_id].append(item)
         return results
@@ -166,7 +157,7 @@ class UserSerializer(Serializer):
 
     def serialize(
         self, obj: User, attrs: MutableMapping[str, Any], user: User | AnonymousUser | RpcUser
-    ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
+    ) -> UserSerializerResponse | UserSerializerResponseSelf:
         experiment_assignments = experiments.all(user=user)
 
         d: UserSerializerResponse = {
@@ -206,6 +197,10 @@ class UserSerializer(Serializer):
                 "defaultIssueEvent": options.get("default_issue_event") or "recommended",
                 "timezone": options.get("timezone") or settings.SENTRY_DEFAULT_TIME_ZONE,
                 "clock24Hours": options.get("clock_24_hours") or False,
+                "issueDetailsNewExperienceQ42023": options.get(
+                    "issue_details_new_experience_q4_2023"
+                )
+                or False,
             }
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
@@ -252,7 +247,7 @@ class UserSerializer(Serializer):
 
 
 class DetailedUserSerializerResponse(UserSerializerResponse):
-    authenticators: List[Any]  # TODO
+    authenticators: list[Any]  # TODO
     canReset2fa: bool
 
 
@@ -296,8 +291,10 @@ class DetailedUserSerializer(UserSerializer):
     ) -> DetailedUserSerializerResponse:
         d = cast(DetailedUserSerializerResponse, super().serialize(obj, attrs, user))
 
-        # XXX(dcramer): we don't use is_active_superuser here as we simply
-        # want to tell the UI that we're an authenticated superuser, and
+        # TODO(schew2381): Remove mention of superuser below once the staff feature flag is removed
+
+        # XXX(dcramer): we don't check for active superuser/staff here as we simply
+        # want to tell the UI that we're an authenticated superuser/staff, and
         # for requests that require an *active* session, they should prompt
         # on-demand. This ensures things like links to the Sentry admin can
         # still easily be rendered.
@@ -317,7 +314,7 @@ class DetailedUserSerializer(UserSerializer):
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
     permissions: Any
-    authenticators: List[Any]  # TODO
+    authenticators: list[Any]  # TODO
 
 
 class DetailedSelfUserSerializer(UserSerializer):
@@ -363,9 +360,10 @@ class DetailedSelfUserSerializer(UserSerializer):
         d = cast(DetailedSelfUserSerializerResponse, super().serialize(obj, attrs, user))
 
         # safety check to never return this information if the acting user is not 1) this user, 2) an admin
-        if user.id == obj.id or user.is_superuser:
-            # XXX(dcramer): we don't use is_active_superuser here as we simply
-            # want to tell the UI that we're an authenticated superuser, and
+        # TODO(schew2381): Remove user.is_superuser once the staff feature flag is removed
+        if user.id == obj.id or user.is_superuser or user.is_staff:
+            # XXX(dcramer): we don't check for active superuser/staff here as we simply
+            # want to tell the UI that we're an authenticated superuser/staff, and
             # for requests that require an *active* session, they should prompt
             # on-demand. This ensures things like links to the Sentry admin can
             # still easily be rendered.

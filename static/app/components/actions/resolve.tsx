@@ -4,24 +4,23 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {Chevron} from 'sentry/components/chevron';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChevron, IconReleases} from 'sentry/icons';
+import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  GroupStatus,
-  GroupStatusResolution,
-  GroupSubstatus,
-  Project,
-  ResolvedStatusDetails,
-} from 'sentry/types';
+import type {GroupStatusResolution, ResolvedStatusDetails} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatVersion, isSemverRelease} from 'sentry/utils/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 function SetupReleasesPrompt() {
   return (
@@ -203,10 +202,10 @@ function ResolveActions({
         details: actionTitle
           ? actionTitle
           : latestRelease
-          ? `${formatVersion(latestRelease.version)} (${
-              isSemver ? t('semver') : t('non-semver')
-            })`
-          : null,
+            ? `${formatVersion(latestRelease.version)} (${
+                isSemver ? t('semver') : t('non-semver')
+              })`
+            : null,
         onAction: () => onActionOrConfirm(handleCurrentReleaseResolution),
       },
       {
@@ -227,13 +226,13 @@ function ResolveActions({
       <StyledDropdownMenu
         itemsHidden={shouldDisplayCta}
         items={items}
-        trigger={triggerProps => (
+        trigger={(triggerProps, isOpen) => (
           <DropdownTrigger
             {...triggerProps}
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
-            icon={<IconChevron direction="down" />}
+            icon={<Chevron weight="medium" direction={isOpen ? 'up' : 'down'} />}
             disabled={isDisabled}
           />
         )}
@@ -241,8 +240,8 @@ function ResolveActions({
           multipleProjectsSelected
             ? ['next-release', 'current-release', 'another-release', 'a-commit']
             : disabled || !hasRelease
-            ? ['next-release', 'current-release', 'another-release']
-            : []
+              ? ['next-release', 'current-release', 'another-release']
+              : []
         }
         menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
         isDisabled={isDisabled}
@@ -359,7 +358,7 @@ const SetupReleases = styled('div')`
   color: ${p => p.theme.gray400};
   width: 250px;
   white-space: normal;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const SetupReleasesHeader = styled('h6')`

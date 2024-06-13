@@ -1,7 +1,9 @@
 import mapValues from 'lodash/mapValues';
 
 import {t} from 'sentry/locale';
-import type {Organization, TagCollection} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import type {TagCollection} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {
   FieldKey,
   makeTagCollection,
@@ -11,7 +13,7 @@ import {
   SpanOpBreakdown,
   WebVital,
 } from 'sentry/utils/fields';
-import {hasDDMFeature} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {DEFAULT_METRIC_ALERT_FIELD} from 'sentry/utils/metrics/mri';
 import {ON_DEMAND_METRICS_UNSUPPORTED_TAGS} from 'sentry/utils/onDemandMetrics/constants';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
@@ -20,6 +22,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
+import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'
@@ -35,7 +38,9 @@ export type AlertType =
   | 'crash_free_sessions'
   | 'crash_free_users'
   | 'custom_transactions'
-  | 'custom_metrics';
+  | 'custom_metrics'
+  | 'llm_tokens'
+  | 'llm_cost';
 
 export enum MEPAlertsQueryType {
   ERROR = 0,
@@ -74,43 +79,55 @@ export const AlertWizardAlertNames: Record<AlertType, string> = {
   custom_transactions: t('Custom Measurement'),
   crash_free_sessions: t('Crash Free Session Rate'),
   crash_free_users: t('Crash Free User Rate'),
+  llm_cost: t('LLM cost'),
+  llm_tokens: t('LLM token usage'),
 };
 
 type AlertWizardCategory = {
   categoryHeading: string;
   options: AlertType[];
 };
-export const getAlertWizardCategories = (org: Organization): AlertWizardCategory[] => [
-  {
-    categoryHeading: t('Errors'),
-    options: ['issues', 'num_errors', 'users_experiencing_errors'],
-  },
-  ...(org.features.includes('crash-rate-alerts')
-    ? [
-        {
-          categoryHeading: t('Sessions'),
-          options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
-        },
-      ]
-    : []),
-  {
-    categoryHeading: t('Performance'),
-    options: [
-      'throughput',
-      'trans_duration',
-      'apdex',
-      'failure_rate',
-      'lcp',
-      'fid',
-      'cls',
-      ...(hasDDMFeature(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
-    ],
-  },
-  {
-    categoryHeading: hasDDMFeature(org) ? t('Metrics') : t('Custom'),
-    options: [hasDDMFeature(org) ? 'custom_metrics' : 'custom_transactions'],
-  },
-];
+export const getAlertWizardCategories = (org: Organization) => {
+  const result: AlertWizardCategory[] = [
+    {
+      categoryHeading: t('Errors'),
+      options: ['issues', 'num_errors', 'users_experiencing_errors'],
+    },
+  ];
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  if (!isSelfHostedErrorsOnly) {
+    if (org.features.includes('crash-rate-alerts')) {
+      result.push({
+        categoryHeading: t('Sessions'),
+        options: ['crash_free_sessions', 'crash_free_users'] satisfies AlertType[],
+      });
+    }
+    result.push({
+      categoryHeading: t('Performance'),
+      options: [
+        'throughput',
+        'trans_duration',
+        'apdex',
+        'failure_rate',
+        'lcp',
+        'fid',
+        'cls',
+        ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
+      ],
+    });
+    if (org.features.includes('ai-analytics')) {
+      result.push({
+        categoryHeading: LLM_MONITORING_MODULE_TITLE,
+        options: ['llm_tokens', 'llm_cost'],
+      });
+    }
+    result.push({
+      categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
+      options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
+    });
+  }
+  return result;
+};
 
 export type WizardRuleTemplate = {
   aggregate: string;
@@ -175,6 +192,16 @@ export const AlertWizardRuleTemplates: Record<
   },
   custom_metrics: {
     aggregate: DEFAULT_METRIC_ALERT_FIELD,
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  llm_tokens: {
+    aggregate: 'sum(ai.total_tokens.used)',
+    dataset: Dataset.GENERIC_METRICS,
+    eventTypes: EventTypes.TRANSACTION,
+  },
+  llm_cost: {
+    aggregate: 'sum(ai.total_cost)',
     dataset: Dataset.GENERIC_METRICS,
     eventTypes: EventTypes.TRANSACTION,
   },

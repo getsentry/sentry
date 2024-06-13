@@ -6,7 +6,7 @@ various backends to see if their external behavior makes sense, and that e.g.
 the mock indexer actually behaves the same as the postgres indexer.
 """
 
-from typing import Mapping, Set
+from collections.abc import Mapping
 
 import pytest
 
@@ -65,7 +65,7 @@ def writes_limiter_option_name(use_case_id):
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
 ):
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 

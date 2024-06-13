@@ -93,8 +93,8 @@ export function EventDataSection({
 
   return (
     <DataSection ref={scrollToSection} className={className || ''} {...props}>
-      {title && (
-        <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+      <SectionHeader id={type} data-test-id={`event-section-${type}`}>
+        {title && (
           <Title>
             {showPermalink ? (
               <Permalink className="permalink">
@@ -110,9 +110,9 @@ export function EventDataSection({
               <QuestionTooltip size="xs" title={help} isHoverable={isHelpHoverable} />
             )}
           </Title>
-          {actions && <ActionContainer>{actions}</ActionContainer>}
-        </SectionHeader>
-      )}
+        )}
+        {actions && <ActionContainer>{actions}</ActionContainer>}
+      </SectionHeader>
       <SectionContents>{children}</SectionContents>
     </DataSection>
   );
@@ -163,7 +163,7 @@ const SectionHeader = styled('div')`
   & h3 a {
     color: ${p => p.theme.subText};
     font-size: ${p => p.theme.fontSizeMedium};
-    font-weight: 600;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
 
   & h3 {
@@ -179,7 +179,7 @@ const SectionHeader = styled('div')`
   }
   & small > span {
     color: ${p => p.theme.textColor};
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
   }
 
   @media (min-width: ${p => p.theme.breakpoints.large}) {

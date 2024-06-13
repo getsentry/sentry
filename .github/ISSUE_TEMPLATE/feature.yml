@@ -34,9 +34,7 @@ body:
         - 'Projects - Project Creation'
         - 'Projects - Project Details'
         - 'Performance'
-        - 'Performance - Queries'
-        - 'Performance - Interactions'
-        - 'Performance - Web Vitals'
+        - 'Insights'
         - 'Profiling'
         - 'DDM'
         - 'Replays'
@@ -65,6 +63,7 @@ body:
         - "What's New"
         - 'Footer'
         - 'APIs'
+        - 'Ingestion and Filtering'
         - 'Org Relocation'
         - 'Other'
         # end product areas

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Iterable, Mapping
 from dataclasses import field
 from itertools import chain
-from typing import Any, Iterable, List, Mapping, Set
+from typing import Any
 
 import sentry_sdk
 from django.db import IntegrityError, router, transaction
@@ -15,6 +16,7 @@ from sentry_sdk.api import push_scope
 
 from sentry import analytics, audit_log
 from sentry.api.helpers.slugs import sentry_slugify
+from sentry.auth.staff import has_staff_option
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -42,11 +44,11 @@ from sentry.services.hybrid_cloud.user.model import RpcUser
 Schema = Mapping[str, Any]
 
 
-def _get_schema_types(schema: Schema | None) -> Set[str]:
+def _get_schema_types(schema: Schema | None) -> set[str]:
     return {element["type"] for element in (schema or {}).get("elements", [])}
 
 
-def consolidate_events(raw_events: Iterable[str]) -> Set[str]:
+def consolidate_events(raw_events: Iterable[str]) -> set[str]:
     """
     Consolidate a list of raw event types ('issue.created', etc) into a list of
     rolled up events ('issue', etc).
@@ -58,7 +60,7 @@ def consolidate_events(raw_events: Iterable[str]) -> Set[str]:
     }
 
 
-def expand_events(rolled_up_events: List[str]) -> Set[str]:
+def expand_events(rolled_up_events: list[str]) -> set[str]:
     """
     Convert a list of rolled up events ('issue', etc) into a list of raw event
     types ('issue.created', etc.)
@@ -68,23 +70,33 @@ def expand_events(rolled_up_events: List[str]) -> Set[str]:
     )
 
 
+# TODO(schew2381): Delete this method after staff is GA'd and the options are removed
+def _is_elevated_user(user) -> bool:
+    """
+    This is a temporary helper method that checks if the user can become staff
+    if staff mode is enabled. Otherwise, it defaults to checking that the user
+    can become a superuser.
+    """
+    return user.is_staff if has_staff_option(user) else user.is_superuser
+
+
 @dataclasses.dataclass
 class SentryAppUpdater:
     sentry_app: SentryApp
     name: str | None = None
     author: str | None = None
     status: str | None = None
-    scopes: List[str] | None = None
-    events: List[str] | None = None
+    scopes: list[str] | None = None
+    events: list[str] | None = None
     webhook_url: str | None = None
     redirect_url: str | None = None
     is_alertable: bool | None = None
     verify_install: bool | None = None
     schema: Schema | None = None
     overview: str | None = None
-    allowed_origins: List[str] | None = None
+    allowed_origins: list[str] | None = None
     popularity: int | None = None
-    features: List[str] | None = None
+    features: list[int] | None = None
 
     def run(self, user: User) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)):
@@ -109,7 +121,7 @@ class SentryAppUpdater:
 
     def _update_features(self, user: User) -> None:
         if self.features is not None:
-            if not user.is_superuser and self.sentry_app.status == SentryAppStatus.PUBLISHED:
+            if not _is_elevated_user(user) and self.sentry_app.status == SentryAppStatus.PUBLISHED:
                 raise APIError("Cannot update features on a published integration.")
 
             IntegrationFeature.objects.clean_update(
@@ -128,7 +140,7 @@ class SentryAppUpdater:
 
     def _update_status(self, user: User) -> None:
         if self.status is not None:
-            if user.is_superuser:
+            if _is_elevated_user(user):
                 if self.status == SentryAppStatus.PUBLISHED_STR:
                     self.sentry_app.status = SentryAppStatus.PUBLISHED
                     self.sentry_app.date_published = timezone.now()
@@ -226,10 +238,10 @@ class SentryAppUpdater:
 
     def _update_popularity(self, user: User) -> None:
         if self.popularity is not None:
-            if user.is_superuser:
+            if _is_elevated_user(user):
                 self.sentry_app.popularity = self.popularity
 
-    def _update_schema(self) -> Set[str] | None:
+    def _update_schema(self) -> set[str] | None:
         if self.schema is not None:
             self.sentry_app.schema = self.schema
             new_schema_elements = self._get_new_schema_elements()
@@ -238,7 +250,7 @@ class SentryAppUpdater:
             return new_schema_elements
         return None
 
-    def _get_new_schema_elements(self) -> Set[str]:
+    def _get_new_schema_elements(self) -> set[str]:
         current = SentryAppComponent.objects.filter(sentry_app=self.sentry_app).values_list(
             "type", flat=True
         )
@@ -254,7 +266,7 @@ class SentryAppUpdater:
                     type=element["type"], sentry_app_id=self.sentry_app.id, schema=element
                 )
 
-    def record_analytics(self, user: User, new_schema_elements: Set[str] | None) -> None:
+    def record_analytics(self, user: User, new_schema_elements: set[str] | None) -> None:
         analytics.record(
             "sentry_app.updated",
             user_id=user.id,
@@ -270,15 +282,15 @@ class SentryAppCreator:
     author: str
     organization_id: int
     is_internal: bool
-    scopes: List[str] = dataclasses.field(default_factory=list)
-    events: List[str] = dataclasses.field(default_factory=list)
+    scopes: list[str] = dataclasses.field(default_factory=list)
+    events: list[str] = dataclasses.field(default_factory=list)
     webhook_url: str | None = None
     redirect_url: str | None = None
     is_alertable: bool = False
     verify_install: bool = True
     schema: Schema = dataclasses.field(default_factory=dict)
     overview: str | None = None
-    allowed_origins: List[str] = dataclasses.field(default_factory=list)
+    allowed_origins: list[str] = dataclasses.field(default_factory=list)
     popularity: int | None = None
     metadata: dict | None = field(default_factory=dict)
 
@@ -288,7 +300,13 @@ class SentryAppCreator:
                 not self.verify_install
             ), "Internal apps should not require installation verification"
 
-    def run(self, *, user: User | RpcUser, request: HttpRequest | None = None) -> SentryApp:
+    def run(
+        self,
+        *,
+        user: User | RpcUser,
+        request: HttpRequest | None = None,
+        skip_default_auth_token: bool = False,
+    ) -> SentryApp:
         with transaction.atomic(router.db_for_write(User)), in_test_hide_transaction_boundary():
             slug = self._generate_and_validate_slug()
             proxy = self._create_proxy_user(slug=slug)
@@ -299,7 +317,8 @@ class SentryAppCreator:
 
             if self.is_internal:
                 install = self._install(slug=slug, user=user, request=request)
-                self._create_access_token(user=user, install=install, request=request)
+                if not skip_default_auth_token:
+                    self._create_access_token(user=user, install=install, request=request)
 
             self.audit(request=request, sentry_app=sentry_app)
         self.record_analytics(user=user, sentry_app=sentry_app)

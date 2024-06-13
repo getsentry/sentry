@@ -1,6 +1,6 @@
 import type {RefObject} from 'react';
 import {useCallback} from 'react';
-import {Replayer} from '@sentry-internal/rrweb';
+import type {Replayer} from '@sentry-internal/rrweb';
 
 import {
   clearAllHighlights,

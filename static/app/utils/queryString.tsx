@@ -1,6 +1,8 @@
 import * as qs from 'query-string';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(query: string): string {
@@ -11,11 +13,9 @@ export function addQueryParamsToExistingUrl(
   origUrl: string,
   queryParams: object
 ): string {
-  let url;
+  const url = safeURL(origUrl);
 
-  try {
-    url = new URL(origUrl);
-  } catch {
+  if (!url) {
     return '';
   }
 
@@ -43,8 +43,8 @@ export function appendTagCondition(
   let currentQuery = Array.isArray(query)
     ? query.pop()
     : typeof query === 'string'
-    ? query
-    : '';
+      ? query
+      : '';
 
   if (typeof value === 'string' && /[:\s\(\)\\"]/g.test(value)) {
     value = `"${escapeDoubleQuotes(value)}"`;
@@ -66,8 +66,8 @@ export function appendExcludeTagValuesCondition(
   let currentQuery = Array.isArray(query)
     ? query.pop()
     : typeof query === 'string'
-    ? query
-    : '';
+      ? query
+      : '';
   const filteredValuesCondition = `[${values
     .map(value => {
       if (typeof value === 'string' && /[\s"]/g.test(value)) {
@@ -97,8 +97,8 @@ export function decodeScalar(value: QueryValue, fallback?: string): string | und
     Array.isArray(value) && value.length > 0
       ? value[0]
       : typeof value === 'string'
-      ? value
-      : fallback;
+        ? value
+        : fallback;
   return typeof unwrapped === 'string' ? unwrapped : fallback;
 }
 
@@ -126,10 +126,25 @@ export function decodeInteger(value: QueryValue, fallback?: number): number | un
   return fallback;
 }
 
+export function decodeSorts(value: QueryValue): Sort[];
+export function decodeSorts(value: QueryValue, fallback: string): Sort[];
+export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
+  const sorts = decodeList(value).filter(Boolean);
+  if (!sorts.length) {
+    return fallback ? decodeSorts(fallback) : [];
+  }
+  return sorts.map(sort =>
+    sort.startsWith('-')
+      ? {kind: 'desc', field: sort.substring(1)}
+      : {kind: 'asc', field: sort}
+  );
+}
+
 const queryString = {
   decodeInteger,
   decodeList,
   decodeScalar,
+  decodeSorts,
   formatQueryString,
   addQueryParamsToExistingUrl,
   appendTagCondition,

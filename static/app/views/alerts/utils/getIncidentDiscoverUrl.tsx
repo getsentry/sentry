@@ -1,8 +1,8 @@
-import {NewQuery, Project} from 'sentry/types';
+import type {NewQuery, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {Incident, IncidentStats} from 'sentry/views/alerts/types';
+import type {Incident, IncidentStats} from 'sentry/views/alerts/types';
 import {getStartEndFromStats} from 'sentry/views/alerts/utils';
 /**
  * Gets the URL for a discover view of the incident with the following default
@@ -33,7 +33,7 @@ export function getIncidentDiscoverUrl(opts: {
 
   const discoverQuery: NewQuery = {
     id: undefined,
-    name: (incident && incident.title) || '',
+    name: incident?.title || '',
     orderby: `-${getAggregateAlias(incident.alertRule.aggregate)}`,
     yAxis: incident.alertRule.aggregate ? [incident.alertRule.aggregate] : undefined,
     query: incident?.discoverQuery ?? '',

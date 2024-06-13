@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {EventTags} from 'sentry/components/events/eventTags';
 import {MINIMAP_HEIGHT} from 'sentry/components/events/interfaces/spans/constants';
@@ -21,12 +21,12 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Project} from 'sentry/types';
+import type {EventTransaction, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -141,8 +141,8 @@ function EventDisplay({
   transaction,
   durationBaseline,
 }: EventDisplayProps) {
-  const location = useLocation();
   const organization = useOrganization();
+  const location = useLocation();
   const [selectedEventId, setSelectedEventId] = useState<string>('');
 
   const {data, isLoading, isError} = useFetchSampleEvents({
@@ -166,8 +166,7 @@ function EventDisplay({
     }
   }, [eventIds, selectedEventId]);
 
-  const eventIdIndex =
-    eventIds && eventIds.findIndex(eventId => eventId === selectedEventId);
+  const eventIdIndex = eventIds?.findIndex(eventId => eventId === selectedEventId);
   const hasNext =
     defined(eventIdIndex) && defined(eventIds) && eventIdIndex + 1 < eventIds.length;
   const hasPrev = defined(eventIdIndex) && eventIdIndex - 1 >= 0;
@@ -191,6 +190,15 @@ function EventDisplay({
   }
 
   const waterfallModel = new WaterfallModel(eventData);
+  const traceSlug = eventData.contexts?.trace?.trace_id ?? '';
+  const fullEventTarget = generateLinkToEventInTraceView({
+    eventId: eventData.id,
+    projectSlug: project.slug,
+    traceSlug,
+    timestamp: eventData.endTimestamp,
+    location,
+    organization,
+  });
   return (
     <EventDisplayContainer>
       <div>
@@ -220,10 +228,7 @@ function EventDisplay({
             <LinkButton
               title={t('Full Event Details')}
               size={BUTTON_SIZE}
-              to={eventDetailsRoute({
-                eventSlug: generateEventSlug({project: project.slug, id: eventData.id}),
-                orgSlug: organization.slug,
-              })}
+              to={fullEventTarget}
               aria-label={t('Full Event Details')}
               icon={<IconOpen />}
             />
@@ -254,12 +259,7 @@ function EventDisplay({
           </div>
         </StyledControlBar>
         <ComparisonContentWrapper>
-          <Link
-            to={eventDetailsRoute({
-              eventSlug: generateEventSlug({project: project.slug, id: selectedEventId}),
-              orgSlug: organization.slug,
-            })}
-          >
+          <Link to={fullEventTarget}>
             <MinimapContainer>
               <MinimapPositioningContainer>
                 <ActualMinimap
@@ -282,12 +282,7 @@ function EventDisplay({
         </ComparisonContentWrapper>
       </div>
 
-      <EventTags
-        event={eventData}
-        organization={organization}
-        projectSlug={project.slug}
-        location={location}
-      />
+      <EventTags event={eventData} projectSlug={project.slug} />
     </EventDisplayContainer>
   );
 }
@@ -352,7 +347,7 @@ const EmptyStateWrapper = styled('div')`
 `;
 
 const SelectionTextWrapper = styled('span')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const StyledNavButton = styled(Button)`

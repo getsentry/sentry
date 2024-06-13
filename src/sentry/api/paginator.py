@@ -2,8 +2,9 @@ import bisect
 import functools
 import logging
 import math
+from collections.abc import Callable, Sequence
 from datetime import datetime, timezone
-from typing import Any, Callable, Optional, Sequence
+from typing import Any
 from urllib.parse import quote
 
 from django.core.exceptions import EmptyResultSet, ObjectDoesNotExist
@@ -30,7 +31,7 @@ def count_hits(queryset, max_hits):
     # clear out any select fields (include select_related) and pull just the id
     hits_query.clear_select_clause()
     hits_query.add_fields(["id"])
-    hits_query.clear_ordering(force_empty=True)
+    hits_query.clear_ordering(force=True, clear_default=True)
     try:
         h_sql, h_params = hits_query.sql_with_params()
     except EmptyResultSet:
@@ -42,6 +43,16 @@ def count_hits(queryset, max_hits):
 
 class BadPaginationError(Exception):
     pass
+
+
+class MissingPaginationError(Exception):
+    error_message: str = """Response is not paginated correctly in {func_name}.
+                    List API response should be paginated, as lack of pagination can break the product in the future due to eventual growth.
+                    Learn more about pagination in https://develop.sentry.dev/api/concepts/#paginating-responses and reach out to #discuss-api if you have any questions."""
+
+    def __init__(self, func_name: str) -> None:
+        self.func_name = func_name
+        super().__init__(self.error_message.format(func_name=func_name))
 
 
 class BasePaginator:
@@ -756,13 +767,13 @@ class CallbackPaginator:
     def __init__(
         self,
         callback: Callable[[int, int], Sequence[Any]],
-        on_results: Optional[Callable[[Sequence[Any]], Any]] = None,
+        on_results: Callable[[Sequence[Any]], Any] | None = None,
     ):
         self.offset = 0
         self.callback = callback
         self.on_results = on_results
 
-    def get_result(self, limit: int, cursor: Cursor = None):
+    def get_result(self, limit: int, cursor: Cursor | None = None):
         if cursor is None:
             cursor = Cursor(0, 0, 0)
 

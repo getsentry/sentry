@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING
 
 from sentry import features
 from sentry.models.group import Group

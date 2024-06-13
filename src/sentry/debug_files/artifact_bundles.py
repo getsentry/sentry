@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import random
 from datetime import datetime, timedelta
-from typing import Dict, List, Set, Tuple
 
 import sentry_sdk
 from django.conf import settings
 from django.db import router
 from django.db.models import Count
 from django.utils import timezone
+from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.models.artifactbundle import (
@@ -17,7 +17,6 @@ from sentry.models.artifactbundle import (
     ArtifactBundleIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
-    FlatFileIndexState,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
 )
@@ -43,9 +42,9 @@ INDEXING_CACHE_TIMEOUT = 600
 # ===== Indexing of Artifact Bundles =====
 
 
-def get_redis_cluster_for_artifact_bundles():
+def get_redis_cluster_for_artifact_bundles() -> RedisCluster:
     cluster_key = settings.SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER
-    return redis.redis_clusters.get(cluster_key)
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
 def get_refresh_key() -> str:
@@ -69,7 +68,7 @@ def set_artifact_bundle_being_indexed_if_null(
     #
     # For now the state will just contain one, since it's unary but in case we would like to expand it, it will be
     # straightforward by just using a set of integers.
-    return redis_client.set(cache_key, 1, ex=INDEXING_CACHE_TIMEOUT, nx=True)
+    return redis_client.set(cache_key, 1, ex=INDEXING_CACHE_TIMEOUT, nx=True) or False
 
 
 def remove_artifact_bundle_indexing_state(organization_id: int, artifact_bundle_id: int) -> None:
@@ -82,7 +81,7 @@ def remove_artifact_bundle_indexing_state(organization_id: int, artifact_bundle_
 
 def index_artifact_bundles_for_release(
     organization_id: int,
-    artifact_bundles: List[Tuple[ArtifactBundle, ArtifactBundleArchive | None]],
+    artifact_bundles: list[tuple[ArtifactBundle, ArtifactBundleArchive | None]],
 ) -> None:
     """
     This indexes the contents of `artifact_bundles` into the database, using the given `release` and `dist` pair.
@@ -144,13 +143,6 @@ def index_urls_in_bundle(
                         # metadata:
                         organization_id=organization_id,
                         date_added=artifact_bundle.date_added,
-                        # legacy:
-                        # TODO: We fill these in with empty-ish values before they are
-                        # dropped for good
-                        release_name="",
-                        dist_name="",
-                        date_last_modified=artifact_bundle.date_last_modified
-                        or artifact_bundle.date_added,
                     )
                 )
     finally:
@@ -195,7 +187,8 @@ def index_urls_in_bundle(
 
 
 @sentry_sdk.tracing.trace
-def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: List[str]):
+def maybe_renew_artifact_bundles_from_processing(project_id: int, used_download_ids: list[str]):
+    # Note: This random rollout is reversed because it is an early return
     if random.random() >= options.get("symbolicator.sourcemaps-bundle-index-refresh-sample-rate"):
         return
 
@@ -240,7 +233,7 @@ def refresh_artifact_bundles_in_use():
             break
 
 
-def maybe_renew_artifact_bundles(used_artifact_bundles: Dict[int, datetime]):
+def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
@@ -266,7 +259,6 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
             router.db_for_write(ReleaseArtifactBundle),
             router.db_for_write(DebugIdArtifactBundle),
             router.db_for_write(ArtifactBundleIndex),
-            router.db_for_write(FlatFileIndexState),
         )
     ):
         # We check again for the date_added condition in order to achieve consistency, this is done because
@@ -288,9 +280,6 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
             ArtifactBundleIndex.objects.filter(
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
-            FlatFileIndexState.objects.filter(
-                artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
-            ).update(date_added=now)
 
     # If the transaction succeeded, and we did actually modify some rows, we want to track the metric.
     if updated_rows_count > 0:
@@ -301,8 +290,8 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
 
 
 def _maybe_renew_and_return_bundles(
-    bundles: Dict[int, Tuple[datetime, str]]
-) -> List[Tuple[int, str]]:
+    bundles: dict[int, tuple[datetime, str]]
+) -> list[tuple[int, str]]:
     maybe_renew_artifact_bundles(
         {id: date_added for id, (date_added, _resolved) in bundles.items()}
     )
@@ -316,7 +305,7 @@ def query_artifact_bundles_containing_file(
     dist: str,
     url: str,
     debug_id: str | None,
-) -> List[Tuple[int, str]]:
+) -> list[tuple[int, str]]:
     """
     This looks up the artifact bundles that satisfy the query consisting of
     `release`, `dist`, `url` and `debug_id`.
@@ -360,9 +349,9 @@ def query_artifact_bundles_containing_file(
     # We keep track of all the discovered artifact bundles, by the various means of lookup.
     # We are intentionally overwriting the `resolved` flag, as we want to rank these from
     # coarse-grained to fine-grained.
-    artifact_bundles: Dict[int, Tuple[datetime, str]] = dict()
+    artifact_bundles: dict[int, tuple[datetime, str]] = dict()
 
-    def update_bundles(bundles: Set[Tuple[int, datetime]], resolved: str):
+    def update_bundles(bundles: set[tuple[int, datetime]], resolved: str):
         for bundle_id, date_added in bundles:
             artifact_bundles[bundle_id] = (date_added, resolved)
 
@@ -399,7 +388,7 @@ def query_artifact_bundles_containing_file(
 
 def get_bundles_indexing_state(
     org_or_project: Project | Organization, release_name: str, dist_name: str
-) -> Tuple[int, int]:
+) -> tuple[int, int]:
     """
     Returns the number of total bundles, and the number of fully indexed bundles
     associated with the given `release` / `dist`.
@@ -432,7 +421,7 @@ def get_bundles_indexing_state(
 
 def get_artifact_bundles_containing_debug_id(
     project: Project, debug_id: str
-) -> Set[Tuple[int, datetime]]:
+) -> set[tuple[int, datetime]]:
     """
     Returns the most recently uploaded artifact bundle containing the given `debug_id`.
     """
@@ -449,7 +438,7 @@ def get_artifact_bundles_containing_debug_id(
 
 def get_artifact_bundles_containing_url(
     project: Project, release_name: str, dist_name: str, url: str
-) -> Set[Tuple[int, datetime]]:
+) -> set[tuple[int, datetime]]:
     """
     Returns the most recently uploaded bundle containing a file matching the `release`, `dist` and `url`.
     """
@@ -472,7 +461,7 @@ def get_artifact_bundles_by_release(
     project: Project,
     release_name: str,
     dist_name: str,
-) -> Set[Tuple[int, datetime]]:
+) -> set[tuple[int, datetime]]:
     """
     Returns up to N most recently uploaded bundles for the given `release` and `dist`.
     """

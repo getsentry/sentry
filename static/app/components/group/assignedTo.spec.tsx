@@ -1,11 +1,11 @@
-import {Commit} from 'sentry-fixture/commit';
-import {CommitAuthor} from 'sentry-fixture/commitAuthor';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {CommitFixture} from 'sentry-fixture/commit';
+import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -34,19 +34,19 @@ describe('Group > AssignedTo', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    organization = Organization();
-    USER_1 = User({
+    organization = OrganizationFixture();
+    USER_1 = UserFixture({
       id: '1',
       name: 'Jane Bloggs',
       email: 'janebloggs@example.com',
     });
-    USER_2 = User({
+    USER_2 = UserFixture({
       id: '2',
       name: 'John Smith',
       email: 'johnsmith@example.com',
     });
 
-    TEAM_1 = Team({
+    TEAM_1 = TeamFixture({
       id: '3',
       name: 'COOL TEAM',
       slug: 'cool-team',
@@ -146,7 +146,11 @@ describe('Group > AssignedTo', () => {
         })
       )
     );
-    expect(onAssign).toHaveBeenCalledWith('team', TEAM_1, undefined);
+    expect(onAssign).toHaveBeenCalledWith(
+      'team',
+      {id: `team:${TEAM_1.id}`, name: TEAM_1.slug, type: 'team'},
+      undefined
+    );
 
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
@@ -189,7 +193,7 @@ describe('Group > AssignedTo', () => {
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
-    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
@@ -204,13 +208,13 @@ describe('Group > AssignedTo', () => {
 
   it('displays suggested assignees from committers and owners', async () => {
     const onAssign = jest.fn();
-    const author = CommitAuthor({id: USER_2.id});
+    const author = CommitAuthorFixture({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
       body: {
         committers: [
           {
-            commits: [Commit({author})],
+            commits: [CommitFixture({author})],
             author,
           },
         ],
@@ -242,7 +246,7 @@ describe('Group > AssignedTo', () => {
     await openMenu();
 
     expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
-    expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
+    expect(screen.getByText('Codeowners:/./app/components')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Suspect commit author'));
 
@@ -255,7 +259,7 @@ describe('Group > AssignedTo', () => {
       )
     );
     expect(onAssign).toHaveBeenCalledWith(
-      'member',
+      'user',
       USER_2,
       expect.objectContaining({
         suggestedReason: 'suspectCommit',

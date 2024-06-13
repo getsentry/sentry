@@ -3,8 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
-import {ButtonProps, StyledButton} from 'sentry/components/button';
-import {space, ValidSize} from 'sentry/styles/space';
+import type {ButtonProps} from 'sentry/components/button';
+import {StyledButton} from 'sentry/components/button';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type ButtonBarProps = {
   children: React.ReactNode;

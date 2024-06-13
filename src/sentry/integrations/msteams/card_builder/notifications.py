@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from sentry.integrations.message_builder import (
     build_attachment_text,
@@ -10,11 +11,11 @@ from sentry.integrations.message_builder import (
 from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
 from sentry.integrations.msteams.card_builder.block import OpenUrlAction
+from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.activity.base import GroupActivityNotification
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 from .block import (
     Action,
@@ -34,7 +35,7 @@ from .block import (
 
 class MSTeamsNotificationsMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
-        self, notification: BaseNotification, context: Mapping[str, Any], recipient: RpcActor
+        self, notification: BaseNotification, context: Mapping[str, Any], recipient: Actor
     ):
         self.notification = notification
         self.context = context
@@ -123,7 +124,7 @@ class MSTeamsIssueNotificationsMessageBuilder(MSTeamsNotificationsMessageBuilder
         self,
         notification: GroupActivityNotification,
         context: Mapping[str, Any],
-        recipient: RpcActor,
+        recipient: Actor,
     ):
         super().__init__(notification, context, recipient)
         self.group = notification.group

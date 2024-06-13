@@ -1,16 +1,20 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
-import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportModalConfigDescription,
+  getCrashReportModalIntroduction,
+  getCrashReportSDKInstallFirstStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -52,11 +56,15 @@ public class MvcApplication : HttpApplication
             o.AddAspNet();
             o.Dsn = "${params.dsn}";
             // When configuring for the first time, to see what the SDK is doing:
-            o.Debug = true;
+            o.Debug = true;${
+              params.isPerformanceSelected
+                ? `
             // Set TracesSampleRate to 1.0 to capture 100%
             // of transactions for performance monitoring.
             // We recommend adjusting this value in production
-            o.TracesSampleRate = 1.0;
+            o.TracesSampleRate = 1.0;`
+                : ''
+            }
             // If you are using EF (and installed the NuGet package):
             o.AddEntityFramework();
         });
@@ -65,6 +73,9 @@ public class MvcApplication : HttpApplication
     // Global error catcher
     protected void Application_Error() => Server.CaptureLastError();
 
+    ${
+      params.isPerformanceSelected
+        ? `
     protected void Application_BeginRequest()
     {
         Context.StartSentryTransaction();
@@ -73,6 +84,8 @@ public class MvcApplication : HttpApplication
     protected void Application_EndRequest()
     {
         Context.FinishSentryTransaction();
+    }`
+        : ''
     }
 
     protected void Application_End()
@@ -104,14 +117,6 @@ const onboarding: OnboardingConfig = {
           code: getInstallSnippetEntityFramework(params),
         },
       ],
-      additionalInfo: (
-        <AlertWithoutMarginBottom type="info">
-          {tct(
-            '[strong:Using .NET Framework prior to 4.6.1?] Our legacy SDK supports .NET Framework as early as 3.5.',
-            {strong: <strong />}
-          )}
-        </AlertWithoutMarginBottom>
-      ),
     },
   ],
   configure: params => [
@@ -178,13 +183,52 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+const crashReportOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportModalIntroduction(),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      configurations: [
+        getCrashReportSDKInstallFirstStep(params),
+        {
+          description: tct(
+            'If you are rendering the page from the server, for example on ASP.NET MVC, the [code:Error.cshtml] razor page can be:',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'cshtml',
+              value: 'html',
+              language: 'html',
+              code: `@if (SentrySdk.LastEventId != SentryId.Empty) {
+  <script>
+    Sentry.init({ dsn: "${params.dsn}" });
+    Sentry.showReportDialog({ eventId: "@SentrySdk.LastEventId" });
+  </script>
+}`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [
+    {
+      type: StepType.CONFIGURE,
+      description: getCrashReportModalConfigDescription({
+        link: 'https://docs.sentry.io/platforms/dotnet/guides/aspnet/user-feedback/configuration/#crash-report-modal',
+      }),
+    },
+  ],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNet'}),
+  crashReportOnboarding,
 };
 
 export default docs;
-
-const AlertWithoutMarginBottom = styled(Alert)`
-  margin-bottom: 0;
-`;

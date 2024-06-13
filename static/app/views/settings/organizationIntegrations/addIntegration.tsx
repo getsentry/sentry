@@ -4,7 +4,11 @@ import * as qs from 'query-string';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {IntegrationProvider, IntegrationWithConfig, Organization} from 'sentry/types';
+import type {
+  IntegrationProvider,
+  IntegrationWithConfig,
+  Organization,
+} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
@@ -48,14 +52,14 @@ export default class AddIntegration extends Component<Props> {
     const innerWidth = window.innerWidth
       ? window.innerWidth
       : document.documentElement.clientWidth
-      ? document.documentElement.clientWidth
-      : screen.width;
+        ? document.documentElement.clientWidth
+        : screen.width;
 
     const innerHeight = window.innerHeight
       ? window.innerHeight
       : document.documentElement.clientHeight
-      ? document.documentElement.clientHeight
-      : screen.height;
+        ? document.documentElement.clientHeight
+        : screen.height;
 
     const left = innerWidth / 2 - width / 2 + screenLeft;
     const top = innerHeight / 2 - height / 2 + screenTop;
@@ -90,7 +94,7 @@ export default class AddIntegration extends Component<Props> {
     const opts = `scrollbars=yes,width=${width},height=${height},top=${top},left=${left}`;
 
     this.dialog = window.open(installUrl, name, opts);
-    this.dialog && this.dialog.focus();
+    this.dialog?.focus();
   };
 
   didReceiveMessage = (message: MessageEvent) => {

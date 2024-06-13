@@ -1,4 +1,5 @@
 from django.db import router
+from django.utils.functional import cached_property
 
 from sentry.coreapi import APIUnauthorized
 from sentry.mediators.external_issues.creator import Creator
@@ -9,7 +10,6 @@ from sentry.models.group import Group
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.utils.cache import memoize
 
 
 class IssueLinkCreator(Mediator):
@@ -50,6 +50,6 @@ class IssueLinkCreator(Mediator):
             identifier=self.response["identifier"],
         )
 
-    @memoize
+    @cached_property
     def sentry_app(self):
         return self.install.sentry_app

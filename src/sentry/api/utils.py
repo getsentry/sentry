@@ -5,28 +5,33 @@ import logging
 import re
 import sys
 import traceback
+from collections.abc import Generator, Mapping, MutableMapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Generator, List, Literal, Mapping, Tuple, overload
+from typing import Any, Literal, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
 from django.conf import settings
-from django.http import HttpResponseNotAllowed
+from django.http import HttpRequest, HttpResponseNotAllowed
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import APIException, ParseError
 from rest_framework.request import Request
 from sentry_sdk import Scope
+from urllib3.exceptions import MaxRetryError, ReadTimeoutError
 
 from sentry import options
+from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import is_active_superuser
+from sentry.discover.arithmetic import ArithmeticError
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidParams, InvalidSearchQuery
 from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.types import ParamsType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -35,6 +40,8 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.silo.base import SiloMode
+from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 from sentry.utils.snuba import (
@@ -84,7 +91,7 @@ def default_start_end_dates(
 
 @overload
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: Literal[False] = ...,
     default_stats_period: datetime.timedelta = ...,
 ) -> tuple[datetime.datetime, datetime.datetime]:
@@ -93,7 +100,7 @@ def get_date_range_from_params(
 
 @overload
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: bool = ...,
     default_stats_period: datetime.timedelta = ...,
 ) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
@@ -101,7 +108,7 @@ def get_date_range_from_params(
 
 
 def get_date_range_from_params(
-    params: dict[str, Any],
+    params: Mapping[str, Any],
     optional: bool = False,
     default_stats_period: datetime.timedelta = MAX_STATS_PERIOD,
 ) -> tuple[None, None] | tuple[datetime.datetime, datetime.datetime]:
@@ -127,7 +134,15 @@ def get_date_range_from_params(
     :return: A length 2 tuple containing start/end or raises an `InvalidParams`
     exception
     """
-    mutable_params = params.copy()
+    mutable_params = {
+        k: params[k]
+        for k in (
+            *("timeframe", "timeframeStart", "timeframeEnd"),
+            *("statsPeriod", "statsPeriodStart", "statsPeriodEnd"),
+            *("start", "end"),
+        )
+        if k in params
+    }
     timeframe = mutable_params.get("timeframe")
     timeframe_start = mutable_params.get("timeframeStart")
     timeframe_end = mutable_params.get("timeframeEnd")
@@ -237,8 +252,8 @@ def is_member_disabled_from_limit(
     if getattr(user, "is_sentry_app", False):
         return False
 
-    # don't limit super users
-    if is_active_superuser(request):
+    # don't limit superuser or staff
+    if is_active_superuser(request) or is_active_staff(request):
         return False
 
     # must be a simple user at this point
@@ -277,25 +292,32 @@ def generate_organization_url(org_slug: str) -> str:
 
 def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
-    if region_name is None:
+    if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
+        region_name = get_local_region().name
+    # TODO(hybridcloud) Remove this once the silo split is complete.
+    if (
+        region_name is None
+        and SiloMode.get_current_mode() == SiloMode.MONOLITH
+        and settings.SENTRY_REGION
+    ):
         region_name = settings.SENTRY_REGION
     if not region_url_template or not region_name:
         return options.get("system.url-prefix")
     return region_url_template.replace("{region}", region_name)
 
 
-_path_patterns: List[Tuple[re.Pattern[str], str]] = [
+_path_patterns: list[tuple[re.Pattern[str], str]] = [
     # /organizations/slug/section, but not /organizations/new
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
-        re.compile(r"\/settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/?$"),
+        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^\/]+\/?$"),
         "/settings/organization/",
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
     (
-        re.compile(r"^\/?settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/(.*)"),
+        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^\/]+\/(.*)"),
         r"/settings/\1",
     ),
     (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
@@ -320,7 +342,7 @@ def customer_domain_path(path: str) -> str:
 
 def method_dispatch(**dispatch_mapping):
     """
-    Dispatches a incoming request to a different handler based on the HTTP method
+    Dispatches an incoming request to a different handler based on the HTTP method
 
     >>> re_path('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
     """
@@ -331,6 +353,10 @@ def method_dispatch(**dispatch_mapping):
     def dispatcher(request, *args, **kwargs):
         handler = dispatch_mapping.get(request.method, invalid_method)
         return handler(request, *args, **kwargs)
+
+    # This allows us to surface the mapping when iterating through the URL patterns
+    # Check `test_id_or_slug_path_params.py` for usage
+    dispatcher.dispatch_mapping = dispatch_mapping  # type: ignore[attr-defined]
 
     if dispatch_mapping.get("csrf_exempt"):
         return csrf_exempt(dispatcher)
@@ -368,10 +394,8 @@ def get_auth_api_token_type(auth: object) -> str | None:
     return None
 
 
-# NOTE: This duplicates OrganizationEventsEndpointBase.handle_query_errors
-# TODO: move other references over to this implementation rather than the organization_events implementation
 @contextmanager
-def handle_query_errors(self) -> Generator[None, None, None]:
+def handle_query_errors() -> Generator[None, None, None]:
     try:
         yield
     except InvalidSearchQuery as error:
@@ -401,6 +425,7 @@ def handle_query_errors(self) -> Generator[None, None, None]:
         raise ParseError(detail=message)
     except SnubaError as error:
         message = "Internal error. Please try again."
+        arg = error.args[0] if len(error.args) > 0 else None
         if isinstance(
             error,
             (
@@ -409,6 +434,9 @@ def handle_query_errors(self) -> Generator[None, None, None]:
                 QueryExecutionTimeMaximum,
                 QueryTooManySimultaneous,
             ),
+        ) or isinstance(
+            arg,
+            ReadTimeoutError,
         ):
             sentry_sdk.set_tag("query.error_reason", "Timeout")
             raise ParseError(detail=TIMEOUT_ERROR_MESSAGE)
@@ -428,6 +456,36 @@ def handle_query_errors(self) -> Generator[None, None, None]:
         ):
             sentry_sdk.capture_exception(error)
             message = "Internal error. Your query failed to run."
+        elif isinstance(
+            arg,
+            (MaxRetryError),
+        ):
+            sentry_sdk.capture_message(str(error), level="warning")
+            message = "Internal error. Your query failed to run. This may be temporary please try again later."
         else:
             sentry_sdk.capture_exception(error)
         raise APIException(detail=message)
+
+
+def update_snuba_params_with_timestamp(
+    request: HttpRequest,
+    params: MutableMapping[str, Any] | ParamsType,
+    timestamp_key: str = "timestamp",
+) -> None:
+    """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
+    send the timestamp of something in that event or trace and we'll query data near that event only which should be
+    faster than the default 7d or 14d queries"""
+    # during the transition this is optional but it will become required for the trace view
+    sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
+    if timestamp_key in request.GET and "start" in params and "end" in params:
+        example_timestamp = parse_datetime_string(request.GET[timestamp_key])
+        # While possible, the majority of traces shouldn't take more than a week
+        # Starting with 3d for now, but potentially something we can increase if this becomes a problem
+        time_buffer = options.get("performance.traces.transaction_query_timebuffer_days")
+        sentry_sdk.set_measurement("trace_view.transactions.time_buffer", time_buffer)
+        example_start = example_timestamp - timedelta(days=time_buffer)
+        example_end = example_timestamp + timedelta(days=time_buffer)
+        # If timestamp is being passed it should always overwrite the statsperiod or start & end
+        # the client should just not pass a timestamp if we need to overwrite this logic for any reason
+        params["start"] = max(params["start"], example_start)
+        params["end"] = min(params["end"], example_end)

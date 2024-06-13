@@ -6,10 +6,11 @@ from sentry.backup.dependencies import (
     ModelRelations,
     NormalizedModelName,
     dependencies,
+    get_exportable_sentry_models,
+    get_final_derivations_of,
     get_model,
     get_model_name,
 )
-from sentry.backup.helpers import get_exportable_sentry_models, get_final_derivations_of
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BaseModel
 

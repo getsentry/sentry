@@ -4,10 +4,12 @@ import {Button} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {DataSection} from 'sentry/components/events/styles';
 import {t} from 'sentry/locale';
-import {Event, Group, IssueType, KeyValueListData, Organization} from 'sentry/types';
+import type {Event, Group, KeyValueListData, Organization} from 'sentry/types';
+import {IssueType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   DisplayModes,

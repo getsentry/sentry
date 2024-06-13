@@ -1,5 +1,5 @@
-import {MetricRule} from 'sentry-fixture/metricRule';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
@@ -7,7 +7,7 @@ import {getMetricRuleDiscoverQuery} from './getMetricRuleDiscoverUrl';
 
 describe('getMetricRuleDiscoverQuery', () => {
   it('should use metric aggregate in discover query', () => {
-    const rule = MetricRule({
+    const rule = MetricRuleFixture({
       aggregate: 'failure_rate()',
       dataset: Dataset.TRANSACTIONS,
     });

@@ -5,28 +5,29 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Group} from 'sentry/types/group';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-type Props = {
-  groupId: string;
-};
+interface Props {
+  group: Group;
+}
 
 /**
  * Show the count of how many replays are associated to an issue.
  */
-function IssueReplayCount({groupId}: Props) {
+function IssueReplayCount({group}: Props) {
   const organization = useOrganization();
   const {getReplayCountForIssue} = useReplayCountForIssues();
-  const count = getReplayCountForIssue(groupId);
+  const count = getReplayCountForIssue(group.id, group.issueCategory);
 
   if (count === undefined || count === 0) {
     return null;
   }
 
   const countDisplay = count > 50 ? '50+' : count;
-  const titleOver50 = t('This issue has 50+ replay available to view');
+  const titleOver50 = t('This issue has 50+ replays available to view');
   const title50OrLess = tn(
     'This issue has %s replay available to view',
     'This issue has %s replays available to view',
@@ -37,9 +38,9 @@ function IssueReplayCount({groupId}: Props) {
     <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
       <ReplayCountLink
         to={normalizeUrl(
-          `/organizations/${organization.slug}/issues/${groupId}/replays/`
+          `/organizations/${organization.slug}/issues/${group.id}/replays/`
         )}
-        aria-label="replay-count"
+        aria-label={t('replay-count')}
       >
         <IconPlay size="xs" />
         {countDisplay}

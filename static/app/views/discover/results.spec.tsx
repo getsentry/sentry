@@ -1,14 +1,14 @@
-import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import * as PageFilterPersistence from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import Results from 'sentry/views/discover/results';
 
@@ -233,12 +233,12 @@ describe('Results', function () {
   describe('Events', function () {
     const features = ['discover-basic'];
     it('loads data when moving from an invalid to valid EventView', function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
       // Start off with an invalid view (empty is invalid)
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {query: 'tag:value'}},
@@ -251,13 +251,13 @@ describe('Results', function () {
 
       render(
         <Results
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -277,11 +277,11 @@ describe('Results', function () {
     });
 
     it('pagination cursor should be cleared when making a search', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {
@@ -300,19 +300,19 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
 
       // ensure cursor query string is initially present in the location
-      expect(initialData.router.location).toEqual({
+      expect(router.location).toEqual({
         query: {
           ...generateFields(),
           cursor: '0%3A50%3A0',
@@ -334,7 +334,7 @@ describe('Results', function () {
       expect(mockRequests.mockVisit).not.toHaveBeenCalled();
 
       // cursor query string should be omitted from the query string
-      expect(initialData.router.push).toHaveBeenCalledWith({
+      expect(router.push).toHaveBeenCalledWith({
         pathname: undefined,
         query: {
           ...generateFields(),
@@ -345,11 +345,11 @@ describe('Results', function () {
     });
 
     it('renders a y-axis selector', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), yAxis: 'count()'}},
@@ -363,13 +363,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -382,11 +382,11 @@ describe('Results', function () {
     });
 
     it('renders a display selector', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
@@ -400,13 +400,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -419,11 +419,11 @@ describe('Results', function () {
     });
 
     it('excludes top5 options when plan does not include discover-query', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), display: 'previous'}},
@@ -437,13 +437,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -455,11 +455,11 @@ describe('Results', function () {
     });
 
     it('needs confirmation on long queries', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), statsPeriod: '60d', project: '-1'}},
@@ -473,13 +473,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -491,11 +491,11 @@ describe('Results', function () {
     });
 
     it('needs confirmation on long query with explicit projects', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {
@@ -515,13 +515,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -533,11 +533,11 @@ describe('Results', function () {
     });
 
     it('does not need confirmation on short queries', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), statsPeriod: '30d', project: '-1'}},
@@ -551,13 +551,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -569,11 +569,11 @@ describe('Results', function () {
     });
 
     it('does not need confirmation with to few projects', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {
@@ -593,13 +593,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -611,12 +611,12 @@ describe('Results', function () {
     });
 
     it('creates event view from saved query', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
         slug: 'org-slug',
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {id: '1', statsPeriod: '24h'}},
@@ -630,13 +630,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -653,9 +653,10 @@ describe('Results', function () {
         'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
       );
 
+      // NOTE: This uses a legacy redirect for project event to the issue group event link
       expect(screen.getByRole('link', {name: 'deadbeef'})).toHaveAttribute(
         'href',
-        '/organizations/org-slug/discover/project-slug:deadbeef/?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-user.display&statsPeriod=24h&topEvents=5&yAxis=count%28%29'
+        '/org-slug/project-slug/events/deadbeef/?id=1&referrer=discover-events-table&statsPeriod=24h'
       );
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
@@ -670,11 +671,11 @@ describe('Results', function () {
     });
 
     it('overrides saved query params with location query params', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
         slug: 'org-slug',
       });
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {
@@ -695,13 +696,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -715,11 +716,11 @@ describe('Results', function () {
     });
 
     it('updates chart whenever yAxis parameter changes', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), yAxis: 'count()'}},
@@ -733,13 +734,13 @@ describe('Results', function () {
       const {rerender} = render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -765,10 +766,10 @@ describe('Results', function () {
         <Results
           organization={organization}
           location={{
-            ...initialData.router.location,
+            ...router.location,
             query: {...generateFields(), yAxis: 'count_unique(user)'},
           }}
-          router={initialData.router}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />
@@ -792,11 +793,11 @@ describe('Results', function () {
     });
 
     it('updates chart whenever display parameter changes', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
@@ -810,13 +811,13 @@ describe('Results', function () {
       const {rerender} = render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -842,10 +843,10 @@ describe('Results', function () {
         <Results
           organization={organization}
           location={{
-            ...initialData.router.location,
+            ...router.location,
             query: {...generateFields(), display: 'previous', yAxis: 'count()'},
           }}
-          router={initialData.router}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />
@@ -869,11 +870,11 @@ describe('Results', function () {
     });
 
     it('updates chart whenever display and yAxis parameters change', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count()'}},
@@ -887,13 +888,13 @@ describe('Results', function () {
       const {rerender} = render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -919,14 +920,14 @@ describe('Results', function () {
         <Results
           organization={organization}
           location={{
-            ...initialData.router.location,
+            ...router.location,
             query: {
               ...generateFields(),
               display: 'previous',
               yAxis: 'count_unique(user)',
             },
           }}
-          router={initialData.router}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />
@@ -950,11 +951,11 @@ describe('Results', function () {
     });
 
     it('appends tag value to existing query when clicked', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
@@ -968,13 +969,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -1002,11 +1003,11 @@ describe('Results', function () {
     });
 
     it('respects pinned filters for prebuilt queries', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: [...features, 'global-views'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), display: 'default', yAxis: 'count'}},
@@ -1032,12 +1033,12 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       const projectPageFilter = await screen.findByTestId('page-filter-project-selector');
@@ -1059,11 +1060,11 @@ describe('Results', function () {
         },
       });
 
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features,
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {...generateFields(), yAxis: 'count()'}},
@@ -1075,23 +1076,23 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       expect(await screen.findByText('this is a tip')).toBeInTheDocument();
     });
 
     it('renders metric fallback alert', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {fromMetric: 'true', id: '1'}},
@@ -1105,13 +1106,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -1124,11 +1125,11 @@ describe('Results', function () {
     });
 
     it('renders unparameterized data banner', async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {showUnparameterizedBanner: 'true', id: '1'}},
@@ -1142,13 +1143,13 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
         {
-          context: initialData.routerContext,
+          router: router,
           organization,
         }
       );
@@ -1165,11 +1166,11 @@ describe('Results', function () {
         statusCode: 200,
       });
 
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           // These fields take priority and should be sent in the request
@@ -1183,12 +1184,12 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       await waitFor(() =>
@@ -1231,11 +1232,11 @@ describe('Results', function () {
           orderby: '-user.display',
         },
       });
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {id: '1'}},
@@ -1250,10 +1251,10 @@ describe('Results', function () {
           loading={false}
           setSavedQuery={jest.fn()}
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       await waitFor(() =>
@@ -1268,7 +1269,7 @@ describe('Results', function () {
       const rerenderData = initializeOrg({
         organization,
         router: {
-          location: {query: {...initialData.router.location.query, display: 'previous'}},
+          location: {query: {...router.location.query, display: 'previous'}},
         },
       });
 
@@ -1292,11 +1293,11 @@ describe('Results', function () {
         statusCode: 200,
         body: {...TRANSACTION_VIEWS[0], name: ''},
       });
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {
@@ -1317,12 +1318,12 @@ describe('Results', function () {
       const {rerender} = render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       await screen.findAllByText(TRANSACTION_VIEWS[0].name);
@@ -1334,7 +1335,7 @@ describe('Results', function () {
       const rerenderData = initializeOrg({
         organization,
         router: {
-          location: {query: {...initialData.router.location.query, display: 'previous'}},
+          location: {query: {...router.location.query, display: 'previous'}},
         },
       });
 
@@ -1352,11 +1353,11 @@ describe('Results', function () {
     });
 
     it('links back to the homepage through the Discover breadcrumb', async () => {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {id: '1'}},
@@ -1369,12 +1370,12 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       await waitFor(() => {
@@ -1388,11 +1389,11 @@ describe('Results', function () {
     });
 
     it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {query: {id: '1'}},
@@ -1403,12 +1404,12 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       await waitFor(() => {
@@ -1422,11 +1423,11 @@ describe('Results', function () {
     });
 
     it('allows users to Set As Default on the All Events query', async () => {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
 
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {
@@ -1447,12 +1448,12 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       await waitFor(() => {
@@ -1463,10 +1464,10 @@ describe('Results', function () {
     });
 
     it("doesn't render sample data alert", async function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['discover-basic', 'discover-query'],
       });
-      const initialData = initializeOrg({
+      const {router} = initializeOrg({
         organization,
         router: {
           location: {
@@ -1485,12 +1486,12 @@ describe('Results', function () {
       render(
         <Results
           organization={organization}
-          location={initialData.router.location}
-          router={initialData.router}
+          location={router.location}
+          router={router}
           loading={false}
           setSavedQuery={jest.fn()}
         />,
-        {context: initialData.routerContext, organization}
+        {router: router, organization}
       );
 
       await waitFor(() => {

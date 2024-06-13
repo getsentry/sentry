@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Sequence
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
-from typing import Any, Dict, List, Sequence
+from typing import Any
 
 from django.db.models import Q
 from django.utils import timezone
@@ -67,14 +68,18 @@ def _get_missing_organization_members(
     provider: str,
     integration_ids: Sequence[int],
     shared_domain: str | None,
-) -> List[Any]:
+) -> list[Any]:
     org_id = organization.id
     domain_query = ""
     if shared_domain:
-        domain_query = f"AND sentry_commitauthor.email::text LIKE '%%{shared_domain}'"
+        domain_query = (
+            f"AND (UPPER(sentry_commitauthor.email::text) LIKE UPPER('%%{shared_domain}'))"
+        )
     else:
         for filtered_email in FILTERED_EMAILS:
-            domain_query += f"AND sentry_commitauthor.email::text NOT LIKE '{filtered_email}' "
+            domain_query += (
+                f"AND (UPPER(sentry_commitauthor.email::text) NOT LIKE UPPER('{filtered_email}')) "
+            )
 
     date_added = (timezone.now() - timedelta(days=30)).strftime("%Y-%m-%d, %H:%M:%S")
 
@@ -99,7 +104,7 @@ def _get_missing_organization_members(
             (select id from sentry_commitauthor
                 WHERE sentry_commitauthor.organization_id = %(org_id)s
                 AND NOT (
-                    (sentry_commitauthor.email IN (select coalesce(email, user_email) from sentry_organizationmember where organization_id = %(org_id)s and (email is not null or user_email is not null)
+                    (UPPER(sentry_commitauthor.email::text) IN (select coalesce(UPPER(email), UPPER(user_email)) from sentry_organizationmember where organization_id = %(org_id)s and (email is not null or user_email is not null)
                 )
         OR sentry_commitauthor.external_id IS NULL))
     """
@@ -169,7 +174,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             return dict
 
-        integration_provider_to_ids: Dict[str, Sequence[int]] = reduce(
+        integration_provider_to_ids: dict[str, Sequence[int]] = reduce(
             provider_reducer, integrations, defaultdict(list)
         )
 

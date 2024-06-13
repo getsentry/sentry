@@ -1,5 +1,4 @@
 import datetime
-from typing import List, Optional
 
 from pydantic import Field
 
@@ -11,6 +10,6 @@ class RpcOrgAuthToken(RpcModel):
     id: int = -1
     token_hashed: str = ""
     name: str = ""
-    scope_list: List[str] = Field(default_factory=list)
-    created_by_id: Optional[int] = None
-    date_deactivated: Optional[datetime.datetime] = None
+    scope_list: list[str] = Field(default_factory=list)
+    created_by_id: int | None = None
+    date_deactivated: datetime.datetime | None = None

@@ -24,27 +24,14 @@ jobs:
       modified: ${{ steps.changes.outputs.migrations_modified }}
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
 
       - name: Match migration files
-        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
         id: changes
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
-
-  modified-migration:
-    name: check if modified migration
-    runs-on: ubuntu-22.04
-    timeout-minutes: 4
-    needs: did-migration-change
-    if: needs.did-migration-change.outputs.modified == 'true'
-
-    steps:
-      - name: Failure because of modified migration
-        run: |
-          echo "If you have a valid reason to modify a migration please get approval"
-          echo "from @getsentry/owners-migrations." && exit 1
 
   sql:
     name: Generate SQL
@@ -59,7 +46,7 @@ jobs:
 
     steps:
       # Checkout master to run all merged migrations.
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           ref: master
 
@@ -73,7 +60,7 @@ jobs:
           sentry upgrade --noinput
 
       # Checkout the current ref
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           clean: false
 
@@ -81,7 +68,7 @@ jobs:
         id: file
         run: |
           echo 'added<<EOF' >> "$GITHUB_OUTPUT"
-          git diff --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/' 'src/sentry/migrations/' >> "$GITHUB_OUTPUT"
+          git diff --diff-filter=A --name-only origin/master HEAD -- 'src/sentry/*/migrations/*' 'src/sentry/migrations/*' >> "$GITHUB_OUTPUT"
           echo 'EOF' >> "$GITHUB_OUTPUT"
 
       - name: Generate SQL for migration

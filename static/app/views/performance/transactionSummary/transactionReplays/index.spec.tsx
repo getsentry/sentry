@@ -1,17 +1,16 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ReplayList} from 'sentry-fixture/replayList';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReplayListFixture} from 'sentry-fixture/replayList';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {
   SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import TransactionReplays from 'sentry/views/performance/transactionSummary/transactionReplays';
-import {RouteContext} from 'sentry/views/routeContext';
 
 type InitializeOrgProps = {
   location?: {
@@ -31,20 +30,14 @@ jest.mock('sentry/utils/useMedia', () => ({
 const mockEventsUrl = '/organizations/org-slug/events/';
 const mockReplaysUrl = '/organizations/org-slug/replays/';
 
-let mockRouterContext: {
-  childContextTypes?: any;
-  context?: any;
-} = {};
-
-const getComponent = ({
+const renderComponent = ({
   location,
   organizationProps = {features: ['performance-view', 'session-replay']},
-}: InitializeOrgProps) => {
-  const {router, organization, routerContext} = initializeOrg({
+}: InitializeOrgProps = {}) => {
+  const {organization, router} = initializeOrg({
     organization: {
       ...organizationProps,
     },
-    project: ProjectFixture(),
     projects: [ProjectFixture()],
     router: {
       routes: [
@@ -66,26 +59,7 @@ const getComponent = ({
   ProjectsStore.init();
   ProjectsStore.loadInitialData(organization.projects);
 
-  mockRouterContext = routerContext;
-
-  return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider
-        value={{
-          router,
-          location: router.location,
-          params: router.params,
-          routes: router.routes,
-        }}
-      >
-        <TransactionReplays />
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
-  );
-};
-
-const renderComponent = (componentProps: InitializeOrgProps = {}) => {
-  return render(getComponent(componentProps), {context: mockRouterContext});
+  return render(<TransactionReplays />, {router, organization});
 };
 
 describe('TransactionReplays', () => {
@@ -126,6 +100,7 @@ describe('TransactionReplays', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+    resetMockDate();
   });
 
   it('should query the events endpoint for replayIds of a transaction', async () => {
@@ -206,7 +181,7 @@ describe('TransactionReplays', () => {
       body: {
         data: [
           {
-            ...ReplayList()[0],
+            ...ReplayListFixture()[0],
             count_errors: 1,
             duration: 52346,
             finished_at: new Date('2022-09-15T06:54:00+00:00'),
@@ -218,7 +193,7 @@ describe('TransactionReplays', () => {
             ],
           },
           {
-            ...ReplayList()[0],
+            ...ReplayListFixture()[0],
             count_errors: 4,
             duration: 400,
             finished_at: new Date('2022-09-21T21:40:38+00:00'),
@@ -239,7 +214,7 @@ describe('TransactionReplays', () => {
     });
 
     // Mock the system date to be 2022-09-28
-    jest.useFakeTimers().setSystemTime(new Date('Sep 28, 2022 11:29:13 PM UTC'));
+    setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
     renderComponent();
 

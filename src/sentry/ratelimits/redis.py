@@ -106,8 +106,11 @@ class RedisRateLimiter(RateLimiter):
         # Reset Time = next time bucket's start time
         reset_time = _bucket_start_time(_time_bucket(request_time, window) + 1, window)
         try:
-            result = self.client.incr(redis_key)
-            self.client.expire(redis_key, expiration)
+            pipe = self.client.pipeline()
+            pipe.incr(redis_key)
+            pipe.expire(redis_key, expiration)
+            pipeline_result = pipe.execute()
+            result = pipeline_result[0]
         except RedisError:
             # We don't want rate limited endpoints to fail when ratelimits
             # can't be updated. We do want to know when that happens.

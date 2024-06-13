@@ -1,4 +1,3 @@
-import copy
 from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
@@ -8,9 +7,8 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
@@ -18,7 +16,6 @@ from sentry.utils.http import absolute_uri
 pytestmark = [requires_snuba]
 
 
-@region_silo_test
 class GroupIntegrationDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -28,9 +25,9 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "event_id": "a" * 32,
                 "timestamp": iso_format(self.min_ago),
                 "message": "message",
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         self.group = self.event.group
 

@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sentry.constants import SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
@@ -14,7 +12,7 @@ from sentry.services.hybrid_cloud.app import (
 )
 
 
-def serialize_api_application(api_app: Optional[ApiApplication]) -> Optional[RpcApiApplication]:
+def serialize_api_application(api_app: ApiApplication | None) -> RpcApiApplication | None:
     if not api_app:
         return None
     return RpcApiApplication(
@@ -48,7 +46,7 @@ def serialize_sentry_app(app: SentryApp) -> RpcSentryApp:
 
 
 def serialize_sentry_app_installation(
-    installation: SentryAppInstallation, app: Optional[SentryApp] = None
+    installation: SentryAppInstallation, app: SentryApp | None = None
 ) -> RpcSentryAppInstallation:
     if app is None:
         app = installation.sentry_app

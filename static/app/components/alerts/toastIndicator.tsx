@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import {motion} from 'framer-motion';
 
-import {Indicator} from 'sentry/actionCreators/indicator';
+import type {Indicator} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconCheckmark, IconClose} from 'sentry/icons';

@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-import dataclasses
 import logging
-from typing import Sequence
+from collections.abc import Sequence
 
 import sentry_sdk
 from django.http import HttpResponse, JsonResponse
@@ -13,13 +12,17 @@ from sentry.integrations.discord.requests.base import DiscordRequest, DiscordReq
 from sentry.integrations.discord.views.link_identity import DiscordLinkIdentityView
 from sentry.integrations.discord.views.unlink_identity import DiscordUnlinkIdentityView
 from sentry.integrations.discord.webhooks.base import DiscordInteractionsEndpoint
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
+from sentry.integrations.middleware.hybrid_cloud.parser import (
+    BaseRequestParser,
+    create_async_request_payload,
+)
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.middleware.integrations.tasks import convert_to_async_discord_response
 from sentry.models.integrations import Integration
-from sentry.models.outbox import ControlOutbox, WebhookProviderIdentifier
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.types.region import Region
-from sentry.utils.signing import unsign
+from sentry.web.frontend.discord_extension_configuration import DiscordExtensionConfigurationView
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +34,7 @@ class DiscordRequestParser(BaseRequestParser):
     control_classes = [
         DiscordLinkIdentityView,
         DiscordUnlinkIdentityView,
+        DiscordExtensionConfigurationView,
     ]
 
     # Dynamically set to avoid RawPostDataException from double reads
@@ -50,12 +54,11 @@ class DiscordRequestParser(BaseRequestParser):
         return self._discord_request
 
     def get_async_region_response(self, regions: Sequence[Region]) -> HttpResponse:
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=self.request)
         if self.discord_request:
             convert_to_async_discord_response.apply_async(
                 kwargs={
                     "region_names": [r.name for r in regions],
-                    "payload": dataclasses.asdict(webhook_payload),
+                    "payload": create_async_request_payload(self.request),
                     "response_url": self.discord_request.response_url,
                 }
             )
@@ -64,10 +67,8 @@ class DiscordRequestParser(BaseRequestParser):
 
     def get_integration_from_request(self) -> Integration | None:
         if self.view_class in self.control_classes:
-            params = unsign(self.match.kwargs.get("signed_params"))
-            integration_id = params.get("integration_id")
-
-            return Integration.objects.filter(id=integration_id).first()
+            # We don't need to identify an integration since we're handling these on Control
+            return None
 
         discord_request = self.discord_request
         if self.view_class == DiscordInteractionsEndpoint and discord_request:
@@ -113,10 +114,10 @@ class DiscordRequestParser(BaseRequestParser):
             if self.discord_request.is_ping():
                 return DiscordInteractionsEndpoint.respond_ping()
 
-        regions = self.get_regions_from_organizations()
-        if len(regions) == 0:
-            logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
-            return self.get_response_from_control_silo()
+        try:
+            regions = self.get_regions_from_organizations()
+        except (Integration.DoesNotExist, OrganizationIntegration.DoesNotExist):
+            return self.get_default_missing_integration_response()
 
         if is_discord_interactions_endpoint and self.discord_request:
             if self.discord_request.is_command():

@@ -2,22 +2,11 @@ from __future__ import annotations
 
 import re
 from abc import ABC
+from collections.abc import Collection, Generator, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
-from typing import (
-    Collection,
-    Dict,
-    Generator,
-    List,
-    Literal,
-    Mapping,
-    Optional,
-    Sequence,
-    Tuple,
-    TypedDict,
-    Union,
-    overload,
-)
+from typing import Literal, TypedDict, overload
 
+from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
 
 __all__ = (
@@ -101,6 +90,7 @@ MetricOperationType = Literal[
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_unique",
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 ]
@@ -193,12 +183,55 @@ GENERIC_OP_TO_SNUBA_FUNCTION = {
     },
 }
 
+USE_CASE_ID_TO_ENTITY_KEYS = {
+    UseCaseID.SESSIONS: {
+        EntityKey.MetricsCounters,
+        EntityKey.MetricsSets,
+        EntityKey.MetricsDistributions,
+    },
+    UseCaseID.SPANS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
+    },
+    UseCaseID.TRANSACTIONS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
+    UseCaseID.PROFILES: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+    },
+    UseCaseID.CUSTOM: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsSets,
+        EntityKey.GenericMetricsDistributions,
+        EntityKey.GenericMetricsGauges,
+    },
+    UseCaseID.METRIC_STATS: {
+        EntityKey.GenericMetricsCounters,
+        EntityKey.GenericMetricsGauges,
+    },
+}
+
 # This set contains all the operations that require the "rhs" condition to be resolved
 # in a "MetricConditionField". This solution is the simplest one and doesn't require any
 # changes in the transformer, however it requires this list to be discovered and updated
 # in case new operations are added, which is not ideal but given the fact that we already
 # define operations in this file, it is not a deal-breaker.
 REQUIRES_RHS_CONDITION_RESOLUTION = {"transform_null_to_unparameterized"}
+
+
+def get_entity_keys_of_use_case_id(use_case_id: UseCaseID) -> set[EntityKey] | None:
+    """
+    Returns a set of entity keys that are available for the use_case_id.
+
+    In case the use case id doesn't have known entities, the function will return `None`.
+    """
+    return USE_CASE_ID_TO_ENTITY_KEYS.get(use_case_id)
 
 
 def get_timestamp_column_name() -> str:
@@ -245,7 +278,6 @@ GENERIC_OPERATIONS_TO_ENTITY = {
     op: entity for entity, operations in AVAILABLE_GENERIC_OPERATIONS.items() for op in operations
 }
 
-# ToDo add gauges/summaries
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "counter": EntityKey.MetricsCounters,
     "set": EntityKey.MetricsSets,
@@ -253,6 +285,7 @@ METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     "generic_counter": EntityKey.GenericMetricsCounters,
     "generic_set": EntityKey.GenericMetricsSets,
     "generic_distribution": EntityKey.GenericMetricsDistributions,
+    "generic_gauge": EntityKey.GenericMetricsGauges,
 }
 
 FIELD_ALIAS_MAPPINGS = {"project": "project_id"}
@@ -273,6 +306,21 @@ FILTERABLE_TAGS = {
 }
 
 
+def entity_key_to_metric_type(entity_key: EntityKey) -> MetricType | None:
+    """
+    Returns the `MetricType` corresponding to the supplied `EntityKey`.
+
+    This function traverses in reverse the `METRIC_TYPE_TO_ENTITY` to avoid duplicating it
+    with the inverted values. Access still remains O(1) given that the size of the dictionary
+    is assumed to be fixed during the lifecycle of the program.
+    """
+    for metric_type, inner_entity_key in METRIC_TYPE_TO_ENTITY.items():
+        if entity_key == inner_entity_key:
+            return metric_type
+
+    return None
+
+
 class Tag(TypedDict):
     key: str  # Called key here to be consistent with JS type
 
@@ -282,13 +330,20 @@ class TagValue(TypedDict):
     value: str
 
 
+class BlockedMetric(TypedDict):
+    isBlocked: bool
+    blockedTags: Sequence[str]
+    projectId: int
+
+
 class MetricMeta(TypedDict):
     name: str
     type: MetricType
     operations: Collection[MetricOperationType]
-    unit: Optional[MetricUnit]
+    unit: MetricUnit | None
     mri: str
-    project_ids: Sequence[int]
+    projectIds: Sequence[int]
+    blockingStatus: Sequence[BlockedMetric] | None
 
 
 class MetricMetaWithTagKeys(MetricMeta):
@@ -320,6 +375,7 @@ DERIVED_OPERATIONS = (
     "on_demand_eps",
     "on_demand_failure_count",
     "on_demand_failure_rate",
+    "on_demand_count_unique",
     "on_demand_count_web_vitals",
     "on_demand_user_misery",
 )
@@ -329,7 +385,7 @@ OPERATIONS = (
     + DERIVED_OPERATIONS
 )
 
-DEFAULT_AGGREGATES: Dict[MetricOperationType, Optional[Union[int, List[Tuple[float]]]]] = {
+DEFAULT_AGGREGATES: dict[MetricOperationType, int | list[tuple[float]] | None] = {
     "avg": None,
     "count_unique": 0,
     "count": 0,
@@ -420,7 +476,7 @@ def to_intervals(
 
 
 def to_intervals(
-    start: Optional[datetime], end: Optional[datetime], interval_seconds: int
+    start: datetime | None, end: datetime | None, interval_seconds: int
 ) -> tuple[datetime, datetime, int] | tuple[None, None, int]:
     """
     Given a `start` date, `end` date and an alignment interval in seconds returns the aligned start, end and
@@ -458,10 +514,10 @@ def to_intervals(
 
 
 def get_num_intervals(
-    start: Optional[datetime],
-    end: Optional[datetime],
+    start: datetime | None,
+    end: datetime | None,
     granularity: int,
-    interval: Optional[int] = None,
+    interval: int | None = None,
 ) -> int:
     """
     Calculates the number of intervals from start to end.
@@ -483,7 +539,7 @@ def get_num_intervals(
 
 
 def get_intervals(
-    start: datetime, end: datetime, granularity: int, interval: Optional[int] = None
+    start: datetime, end: datetime, granularity: int, interval: int | None = None
 ) -> Generator[datetime, None, None]:
     if interval is None:
         interval = granularity

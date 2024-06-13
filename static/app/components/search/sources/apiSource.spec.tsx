@@ -1,11 +1,11 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import omit from 'lodash/omit';
-import {EventIdQueryResult} from 'sentry-fixture/eventIdQueryResult';
-import {Members} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {ShortIdQueryResult} from 'sentry-fixture/shortIdQueryResult';
-import {Team} from 'sentry-fixture/team';
+import {EventIdQueryResultFixture} from 'sentry-fixture/eventIdQueryResult';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ShortIdQueryResultFixture} from 'sentry-fixture/shortIdQueryResult';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -37,12 +37,12 @@ describe('ApiSource', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'test-org'})],
+      body: [OrganizationFixture({slug: 'test-org'})],
     });
 
     orgsMock = MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization({slug: 'foo-org'})],
+      body: [OrganizationFixture({slug: 'foo-org'})],
     });
     projectsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
@@ -50,19 +50,19 @@ describe('ApiSource', function () {
     });
     teamsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/teams/',
-      body: [Team({slug: 'foo-team'})],
+      body: [TeamFixture({slug: 'foo-team'})],
     });
     membersMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
-      body: Members(),
+      body: MembersFixture(),
     });
     shortIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/shortids/test-1/',
-      body: ShortIdQueryResult(),
+      body: ShortIdQueryResultFixture(),
     });
     eventIdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/eventids/12345678901234567890123456789012/',
-      body: EventIdQueryResult(),
+      body: EventIdQueryResultFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/plugins/?plugins=_all',
@@ -95,7 +95,7 @@ describe('ApiSource', function () {
     ConfigStore.loadInitialData(configState);
   });
 
-  it('queries all API endpoints', function () {
+  it('queries all API endpoints', async function () {
     const mock = jest.fn().mockReturnValue(null);
     render(
       <ApiSource {...defaultProps} query="foo">
@@ -103,7 +103,7 @@ describe('ApiSource', function () {
       </ApiSource>
     );
 
-    expect(orgsMock).toHaveBeenCalled();
+    await waitFor(() => expect(orgsMock).toHaveBeenCalled());
     expect(projectsMock).toHaveBeenCalled();
     expect(teamsMock).toHaveBeenCalled();
     expect(membersMock).toHaveBeenCalled();
@@ -111,11 +111,11 @@ describe('ApiSource', function () {
     expect(eventIdMock).not.toHaveBeenCalled();
   });
 
-  it('queries multiple regions for organization lists', function () {
+  it('queries multiple regions for organization lists', async function () {
     const mock = jest.fn().mockReturnValue(null);
     ConfigStore.loadInitialData({
       ...configState,
-      regions: [
+      memberRegions: [
         {name: 'us', url: 'https://us.sentry.io'},
         {name: 'de', url: 'https://de.sentry.io'},
       ],
@@ -127,7 +127,7 @@ describe('ApiSource', function () {
       </ApiSource>
     );
 
-    expect(orgsMock).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(orgsMock).toHaveBeenCalledTimes(2));
     expect(orgsMock).toHaveBeenCalledWith(
       '/organizations/',
       expect.objectContaining({host: 'https://us.sentry.io'})
@@ -211,26 +211,28 @@ describe('ApiSource', function () {
     expect(teamsMock).toHaveBeenCalled();
     expect(membersMock).toHaveBeenCalled();
     expect(shortIdMock).not.toHaveBeenCalled();
-    expect(mock).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        results: [
-          {
-            item: expect.objectContaining({
-              title: 'event type',
-              description: 'event description',
-              sourceType: 'event',
-              resultType: 'event',
-              to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
-            }),
-            score: 1,
-            refIndex: 0,
-          },
-        ],
-      })
+    await waitFor(() =>
+      expect(mock).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          results: [
+            {
+              item: expect.objectContaining({
+                title: 'event type',
+                description: 'event description',
+                sourceType: 'event',
+                resultType: 'event',
+                to: '/org-slug/project-slug/issues/1/events/12345678901234567890123456789012/',
+              }),
+              score: 1,
+              refIndex: 0,
+            },
+          ],
+        })
+      )
     );
   });
 
-  it('only queries org endpoint if there is no org in context', function () {
+  it('only queries org endpoint if there is no org in context', async function () {
     const mock = jest.fn().mockReturnValue(null);
     render(
       <ApiSource {...omit(defaultProps, 'organization')} params={{orgId: ''}} query="foo">
@@ -238,7 +240,7 @@ describe('ApiSource', function () {
       </ApiSource>
     );
 
-    expect(orgsMock).toHaveBeenCalled();
+    await waitFor(() => expect(orgsMock).toHaveBeenCalled());
     expect(projectsMock).not.toHaveBeenCalled();
     expect(teamsMock).not.toHaveBeenCalled();
     expect(membersMock).not.toHaveBeenCalled();
@@ -415,40 +417,54 @@ describe('ApiSource', function () {
   });
 
   describe('API queries', function () {
-    it('calls API based on query string', function () {
+    it('calls API based on query string', async function () {
       const {rerender} = render(<ApiSource {...defaultProps} query="" />);
 
-      expect(projectsMock).toHaveBeenCalledTimes(1);
+      await waitFor(() => {
+        expect(projectsMock).toHaveBeenCalledTimes(1);
+      });
 
       rerender(<ApiSource {...defaultProps} query="f" />);
 
       // calls API when query string length is 1 char
-      expect(projectsMock).toHaveBeenCalledTimes(2);
+      await waitFor(() => {
+        expect(projectsMock).toHaveBeenCalledTimes(2);
+      });
 
       rerender(<ApiSource {...defaultProps} query="fo" />);
 
       // calls API when query string length increases from 1 -> 2
-      expect(projectsMock).toHaveBeenCalledTimes(3);
+      await waitFor(() => {
+        expect(projectsMock).toHaveBeenCalledTimes(3);
+      });
 
       rerender(<ApiSource {...defaultProps} query="foo" />);
 
       // Should not query API when query is > 2 chars
-      expect(projectsMock).toHaveBeenCalledTimes(3);
+      await waitFor(() => {
+        expect(projectsMock).toHaveBeenCalledTimes(3);
+      });
 
       // re-queries API if first 2 characters are different
       rerender(<ApiSource {...defaultProps} query="ba" />);
 
-      expect(projectsMock).toHaveBeenCalledTimes(4);
+      await waitFor(() => {
+        expect(projectsMock).toHaveBeenCalledTimes(4);
+      });
 
       // Does not requery when query stays the same
       rerender(<ApiSource {...defaultProps} query="ba" />);
 
-      expect(projectsMock).toHaveBeenCalledTimes(4);
+      await waitFor(() => {
+        expect(projectsMock).toHaveBeenCalledTimes(4);
+      });
 
       // queries if we go from 2 chars -> 1 char
       rerender(<ApiSource {...defaultProps} query="b" />);
 
-      expect(projectsMock).toHaveBeenCalledTimes(5);
+      await waitFor(() => {
+        expect(projectsMock).toHaveBeenCalledTimes(5);
+      });
     });
   });
 });

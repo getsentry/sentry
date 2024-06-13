@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {
@@ -12,7 +12,9 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PluginConfig from 'sentry/components/pluginConfig';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Plugin, Project} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import withPlugins from 'sentry/utils/withPlugins';
@@ -65,7 +67,7 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
 
   getTitle() {
     const {plugin} = this.state;
-    if (plugin && plugin.name) {
+    if (plugin?.name) {
       return plugin.name;
     }
     return 'Sentry';
@@ -145,12 +147,11 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
     const {pluginDetails} = this.state;
     const {plugins} = this.props;
 
-    const plugin =
-      plugins &&
-      plugins.plugins &&
-      plugins.plugins.find(({slug}) => slug === this.props.params.pluginId);
+    const plugin = plugins?.plugins?.find(
+      ({slug}) => slug === this.props.params.pluginId
+    );
 
-    return plugin ? plugin.enabled : pluginDetails && pluginDetails.enabled;
+    return plugin ? plugin.enabled : pluginDetails?.enabled;
   }
 
   renderActions() {
@@ -185,7 +186,7 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
   }
 
   renderBody() {
-    const {organization, project} = this.props;
+    const {project} = this.props;
     const {pluginDetails} = this.state;
     if (!pluginDetails) {
       return null;
@@ -197,9 +198,8 @@ class ProjectPluginDetails extends DeprecatedAsyncView<Props, State> {
         <div className="row">
           <div className="col-md-7">
             <PluginConfig
-              organization={organization}
               project={project}
-              data={pluginDetails}
+              plugin={pluginDetails}
               enabled={this.getEnabled()}
               onDisablePlugin={this.handleDisable}
             />

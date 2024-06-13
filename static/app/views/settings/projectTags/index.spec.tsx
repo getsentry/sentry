@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Tags} from 'sentry-fixture/tags';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -17,9 +17,14 @@ describe('ProjectTags', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: project,
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/browser/`,
@@ -34,6 +39,11 @@ describe('ProjectTags', function () {
   it('renders empty', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: project,
+    });
+    MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
       method: 'GET',
       body: [],
@@ -45,7 +55,7 @@ describe('ProjectTags', function () {
 
   it('disables delete button for users without access', async function () {
     render(<ProjectTags {...routerProps} />, {
-      organization: Organization({access: []}),
+      organization: OrganizationFixture({access: []}),
     });
 
     (await screen.findAllByRole('button', {name: 'Remove tag'})).forEach(button =>

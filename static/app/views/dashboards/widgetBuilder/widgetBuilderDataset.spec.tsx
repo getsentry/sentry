@@ -1,8 +1,7 @@
-import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
-import {MetricsField} from 'sentry-fixture/metrics';
-import {SessionsField} from 'sentry-fixture/sessions';
-import {Tags} from 'sentry-fixture/tags';
+import {MetricsFieldFixture} from 'sentry-fixture/metrics';
+import {SessionsFieldFixture} from 'sentry-fixture/sessions';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -12,17 +11,19 @@ import {
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
 import {
-  DashboardDetails,
   DashboardWidgetSource,
   DisplayType,
-  // Widget,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import WidgetBuilder, {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import type {WidgetBuilderProps} from 'sentry/views/dashboards/widgetBuilder';
+import WidgetBuilder from 'sentry/views/dashboards/widgetBuilder';
 
 const defaultOrgFeatures = [
   'performance-view',
@@ -32,18 +33,18 @@ const defaultOrgFeatures = [
   'dashboards-rh-widget',
 ];
 
-// function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
-//   return {
-//     id: '1',
-//     title: 'Dashboard',
-//     createdBy: undefined,
-//     dateCreated: '2020-01-01T00:00:00.000Z',
-//     widgets: [],
-//     projects: [],
-//     filters: {},
-//     ...dashboard,
-//   };
-// }
+function mockDashboard(dashboard: Partial<DashboardDetails>): DashboardDetails {
+  return {
+    id: '1',
+    title: 'Dashboard',
+    createdBy: undefined,
+    dateCreated: '2020-01-01T00:00:00.000Z',
+    widgets: [],
+    projects: [],
+    filters: {},
+    ...dashboard,
+  };
+}
 
 function renderTestComponent({
   dashboard,
@@ -58,7 +59,7 @@ function renderTestComponent({
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
 } = {}) {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -99,7 +100,7 @@ function renderTestComponent({
       }}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -211,19 +212,19 @@ describe('WidgetBuilder', function () {
     sessionsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/sessions/',
-      body: SessionsField(`sum(session)`),
+      body: SessionsFieldFixture(`sum(session)`),
     });
 
     metricsDataMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/metrics/data/',
-      body: MetricsField('session.all'),
+      body: MetricsFieldFixture('session.all'),
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
-      body: Tags(),
+      body: TagsFixture(),
     });
 
     measurementsMetaMock = MockApiClient.addMockResponse({
@@ -270,7 +271,7 @@ describe('WidgetBuilder', function () {
   afterEach(function () {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
-    jest.useRealTimers();
+    resetMockDate();
   });
 
   describe('Release Widgets', function () {
@@ -362,7 +363,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('does not allow sort on tags except release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -403,7 +404,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('makes the appropriate sessions call', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -435,7 +436,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls the session endpoint with the right limit', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -473,7 +474,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('calls sessions api when session.status is selected as a groupby', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       expect(
@@ -532,7 +533,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('sets widgetType to release', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
@@ -543,43 +544,42 @@ describe('WidgetBuilder', function () {
       expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked();
     });
 
-    // TODO(ddm): check why this test fails
-    // it('does not display "add an equation" button', async function () {
-    //   const widget: Widget = {
-    //     title: 'Release Widget',
-    //     displayType: DisplayType.TABLE,
-    //     widgetType: WidgetType.RELEASE,
-    //     queries: [
-    //       {
-    //         name: 'errors',
-    //         conditions: '',
-    //         fields: ['session.crash_free_rate'],
-    //         columns: ['scount_abnormal(session)'],
-    //         aggregates: ['session.crash_free_rate'],
-    //         orderby: '-session.crash_free_rate',
-    //       },
-    //     ],
-    //     interval: '1d',
-    //     id: '1',
-    //   };
+    it('does not display "add an equation" button', async function () {
+      const widget: Widget = {
+        title: 'Release Widget',
+        displayType: DisplayType.TABLE,
+        widgetType: WidgetType.RELEASE,
+        queries: [
+          {
+            name: 'errors',
+            conditions: '',
+            fields: ['session.crash_free_rate'],
+            columns: ['scount_abnormal(session)'],
+            aggregates: ['session.crash_free_rate'],
+            orderby: '-session.crash_free_rate',
+          },
+        ],
+        interval: '1d',
+        id: '1',
+      };
 
-    //   const dashboard = mockDashboard({widgets: [widget]});
+      const dashboard = mockDashboard({widgets: [widget]});
 
-    //   renderTestComponent({
-    //     dashboard,
-    //     params: {
-    //       widgetIndex: '0',
-    //     },
-    //   });
+      renderTestComponent({
+        dashboard,
+        params: {
+          widgetIndex: '0',
+        },
+      });
 
-    //   // Select line chart display
-    //   await userEvent.click(await screen.findByText('Table'));
-    //   await userEvent.click(screen.getByText('Line Chart'));
+      // Select line chart display
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
 
-    //   await waitFor(() =>
-    //     expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument()
-    //   );
-    // });
+      await waitFor(() =>
+        expect(screen.queryByLabelText('Add an Equation')).not.toBeInTheDocument()
+      );
+    });
 
     it('renders with a release search bar', async function () {
       renderTestComponent();
@@ -605,7 +605,7 @@ describe('WidgetBuilder', function () {
     });
 
     it('adds a function when the only column chosen in a table is a tag', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
+      setMockDate(new Date('2022-08-02'));
       renderTestComponent();
 
       await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {

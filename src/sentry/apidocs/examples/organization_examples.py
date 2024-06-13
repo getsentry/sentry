@@ -2,11 +2,46 @@ from drf_spectacular.utils import OpenApiExample
 
 
 class OrganizationExamples:
-    LIST_PROJECTS = [
+    LIST_ORGANIZATIONS = [
         OpenApiExample(
-            "Success",
+            "List your organizations",
             value=[
                 {
+                    "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+                    "dateCreated": "2018-11-06T21:19:55.101Z",
+                    "features": [
+                        "session-replay-video",
+                        "onboarding",
+                        "advanced-search",
+                        "monitor-seat-billing",
+                        "issue-platform",
+                    ],
+                    "hasAuthProvider": False,
+                    "id": "2",
+                    "isEarlyAdopter": False,
+                    "links": {
+                        "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
+                        "regionUrl": "https://us.sentry.io",
+                    },
+                    "name": "The Interstellar Jurisdiction",
+                    "require2FA": False,
+                    "requireEmailVerification": False,
+                    "slug": "the-interstellar-jurisdiction",
+                    "status": {"id": "active", "name": "active"},
+                }
+            ],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    LIST_PROJECTS = [
+        OpenApiExample(
+            "List an organization's projects",
+            value=[
+                {
+                    "slug": "prime-mover",
+                    "name": "Prime Mover",
                     "dateCreated": "2018-11-06T21:19:58.536Z",
                     "firstEvent": None,
                     "access": [],
@@ -14,10 +49,8 @@ class OrganizationExamples:
                     "id": "3",
                     "isBookmarked": False,
                     "isMember": True,
-                    "name": "Prime Mover",
                     "platform": "",
                     "platforms": [],
-                    "slug": "prime-mover",
                     "team": {
                         "id": "2",
                         "name": "Powerful Abolitionist",
@@ -51,7 +84,7 @@ class OrganizationExamples:
 
     RETRIEVE_EVENT_COUNTS_V2 = [
         OpenApiExample(
-            "Successful response",
+            "Retrieve event counts v2",
             value={
                 "start": "2022-02-14T19:00:00Z",
                 "end": "2022-02-28T18:03:00Z",
@@ -89,6 +122,7 @@ class OrganizationExamples:
                                     "invalid": 0,
                                     "abuse": 1938113,
                                     "client_discard": 1942414,
+                                    "cardinality_limited": 0,
                                 },
                                 "totals": {"dropped": 2506132, "sum(quantity)": 10252111},
                             },
@@ -101,6 +135,7 @@ class OrganizationExamples:
                                     "invalid": 0,
                                     "abuse": 1927179,
                                     "client_discard": 1931595,
+                                    "cardinality_limited": 0,
                                 },
                                 "totals": {"dropped": 2458946, "sum(quantity)": 10174711},
                             },
@@ -115,7 +150,7 @@ class OrganizationExamples:
 
     UPDATE_ORG_MEMBER = [
         OpenApiExample(
-            "Update Successful",
+            "Update organization member",
             value={
                 "id": "57377908164",
                 "email": "sirpenguin@antarcticarocks.com",
@@ -367,4 +402,242 @@ class OrganizationExamples:
             status_codes=["200"],
             response_only=True,
         ),
+    ]
+
+    RELEASE_DETAILS = [
+        OpenApiExample(
+            "Retrieve release details",
+            value={
+                "id": 1122684517,
+                "version": "control@abc123",
+                "status": "open",
+                "shortVersion": "control@abc123",
+                "versionInfo": {
+                    "package": "control",
+                    "version": {"raw": "abc123"},
+                    "description": "abc123",
+                    "buildHash": "abc123",
+                },
+                "ref": None,
+                "url": None,
+                "dateReleased": None,
+                "dateCreated": "2024-05-21T11:26:16.190281Z",
+                "data": {},
+                "newGroups": 0,
+                "owner": None,
+                "commitCount": 2,
+                "lastCommit": {
+                    "id": "xyz123",
+                    "message": "feat(raspberries): Made raspberries even more delicious",
+                    "dateCreated": "2024-05-21T11:04:55Z",
+                    "pullRequest": {
+                        "id": "70214",
+                        "title": "feat(raspberries): Made raspberries even more delicious",
+                        "message": "Made raspberries even more delicious",
+                        "dateCreated": "2024-05-03T07:32:28.205043Z",
+                        "repository": {
+                            "id": "1",
+                            "name": "raj/raspberries",
+                            "url": "https://raspberries.raspberries/raj/raspberries",
+                            "provider": {"id": "integrations:github", "name": "GitHub"},
+                            "status": "active",
+                            "dateCreated": "2016-10-10T21:36:42.414678Z",
+                            "integrationId": "2933",
+                            "externalSlug": "raj/raspberries",
+                            "externalId": "873328",
+                        },
+                        "author": {
+                            "id": "2837091",
+                            "name": "Raj's Raspberries",
+                            "username": "rajraspberry",
+                            "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
+                            "isActive": True,
+                            "hasPasswordAuth": False,
+                            "isManaged": False,
+                            "dateJoined": "2023-08-07T12:32:09.091427Z",
+                            "lastLogin": "2024-05-21T05:46:23.824074Z",
+                            "has2fa": True,
+                            "lastActive": "2024-05-21T13:59:10.614891Z",
+                            "isSuperuser": True,
+                            "isStaff": True,
+                            "experiments": {},
+                            "emails": [
+                                {
+                                    "id": "2972219",
+                                    "email": "raj@raspberries",
+                                    "is_verified": True,
+                                }
+                            ],
+                            "avatar": {
+                                "avatarType": "upload",
+                                "avatarUuid": "xyz123",
+                                "avatarUrl": "https://sentry.io/avatar/xyz123/",
+                            },
+                        },
+                        "externalUrl": "https://github.com/raj/raspberries/pull/70214",
+                    },
+                    "suspectCommitType": "",
+                    "repository": {
+                        "id": "1",
+                        "name": "raj/raspberries",
+                        "url": "https://github.com/raj/raspberries",
+                        "provider": {"id": "integrations:github", "name": "GitHub"},
+                        "status": "active",
+                        "dateCreated": "2016-10-10T21:36:42.414678Z",
+                        "integrationId": "2933",
+                        "externalSlug": "raj/raspberries",
+                        "externalId": "873328",
+                    },
+                    "author": {
+                        "id": "2837091",
+                        "name": "Raj's Raspberries",
+                        "username": "rajraspberry",
+                        "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
+                        "isActive": True,
+                        "hasPasswordAuth": False,
+                        "isManaged": False,
+                        "dateJoined": "2023-08-07T12:32:09.091427Z",
+                        "lastLogin": "2024-05-21T05:46:23.824074Z",
+                        "has2fa": True,
+                        "lastActive": "2024-05-21T13:59:10.614891Z",
+                        "isSuperuser": True,
+                        "isStaff": True,
+                        "experiments": {},
+                        "emails": [
+                            {"id": "2972219", "email": "raj@raspberries", "is_verified": True}
+                        ],
+                        "avatar": {
+                            "avatarType": "upload",
+                            "avatarUuid": "xyz123",
+                            "avatarUrl": "https://sentry.io/avatar/xyz123/",
+                        },
+                    },
+                    "releases": [
+                        {
+                            "version": "control@abc123",
+                            "shortVersion": "control@abc123",
+                            "ref": None,
+                            "url": None,
+                            "dateReleased": None,
+                            "dateCreated": "2024-05-21T11:26:16.190281Z",
+                        },
+                        {
+                            "version": "backend@abc123",
+                            "shortVersion": "backend@abc123",
+                            "ref": None,
+                            "url": None,
+                            "dateReleased": None,
+                            "dateCreated": "2024-05-21T11:56:36.790866Z",
+                        },
+                        {
+                            "version": "control@def789",
+                            "shortVersion": "control@def789",
+                            "ref": None,
+                            "url": None,
+                            "dateReleased": None,
+                            "dateCreated": "2024-05-21T12:44:25.923663Z",
+                        },
+                        {
+                            "version": "frontend@ghi012",
+                            "shortVersion": "frontend@ghi012",
+                            "ref": None,
+                            "url": None,
+                            "dateReleased": None,
+                            "dateCreated": "2024-05-21T12:46:42.338358Z",
+                        },
+                    ],
+                },
+                "deployCount": 1,
+                "lastDeploy": {
+                    "id": 53070941,
+                    "environment": "canary-test-control",
+                    "dateStarted": None,
+                    "dateFinished": "2024-05-21T11:26:17.597793Z",
+                    "name": "control@abc123 to canary-test-",
+                    "url": None,
+                },
+                "authors": [
+                    {
+                        "id": 2837091,
+                        "name": "Raj's Raspberries",
+                        "username": "rajraspberry",
+                        "email": "raj@raspberries",
+                        "avatarUrl": "https://gravatar.com/avatar/bf99685de539465db9208ab3a888843ba0e5e85b1f156084484c7c6c31312be5?s=32&d=mm",
+                        "isActive": True,
+                        "hasPasswordAuth": False,
+                        "isManaged": False,
+                        "dateJoined": "2023-08-07T12:32:09.091427Z",
+                        "lastLogin": "2024-05-21T05:46:23.824074Z",
+                        "has2fa": True,
+                        "lastActive": "2024-05-21T13:59:10.614891Z",
+                        "isSuperuser": True,
+                        "isStaff": True,
+                        "experiments": {},
+                        "emails": [
+                            {"id": "2972219", "email": "raj@raspberries", "is_verified": True}
+                        ],
+                        "avatar": {
+                            "avatarType": "upload",
+                            "avatarUuid": "xyz123",
+                            "avatarUrl": "https://sentry.io/avatar/xyz123/",
+                        },
+                    }
+                ],
+                "projects": [
+                    {
+                        "id": 1,
+                        "slug": "sentry",
+                        "name": "Backend",
+                        "newGroups": 0,
+                        "platform": "python",
+                        "platforms": ["native", "other", "python"],
+                        "hasHealthData": False,
+                        "healthData": {
+                            "durationP50": None,
+                            "durationP90": None,
+                            "crashFreeUsers": None,
+                            "crashFreeSessions": None,
+                            "sessionsCrashed": 0,
+                            "sessionsErrored": 0,
+                            "totalUsers": None,
+                            "totalUsers24h": None,
+                            "totalProjectUsers24h": None,
+                            "totalSessions": None,
+                            "totalSessions24h": None,
+                            "totalProjectSessions24h": None,
+                            "adoption": None,
+                            "sessionsAdoption": None,
+                            "stats": {
+                                "24h": [
+                                    [1715126400, 0],
+                                    [1715212800, 0],
+                                    [1715299200, 0],
+                                    [1715385600, 0],
+                                    [1715472000, 0],
+                                    [1715558400, 0],
+                                    [1715644800, 0],
+                                    [1715731200, 0],
+                                    [1715817600, 0],
+                                    [1715904000, 0],
+                                    [1715990400, 0],
+                                    [1716076800, 0],
+                                    [1716163200, 0],
+                                    [1716249600, 0],
+                                ]
+                            },
+                            "hasHealthData": False,
+                        },
+                    }
+                ],
+                "firstEvent": None,
+                "lastEvent": None,
+                "currentProjectMeta": {},
+                "userAgent": "Python-urllib/3.11",
+                "adoptionStages": {
+                    "sentry": {"stage": "low_adoption", "adopted": None, "unadopted": None}
+                },
+            },
+            status_codes=["200"],
+            response_only=True,
+        )
     ]

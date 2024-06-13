@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, List, Sequence, Tuple
+from typing import Any
 
 from sentry import features
 from sentry.eventstore.models import Event
@@ -146,7 +147,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         card_title: str,
         input_id: str,
         submit_button_title: str,
-        choices: Sequence[Tuple[str, Any]],
+        choices: Sequence[tuple[str, Any]],
         default_choice: Any = None,
     ) -> AdaptiveCard:
         return MSTeamsMessageBuilder().build(
@@ -181,7 +182,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         card = self.build_input_choice_card(data=data, **card_kwargs)
         return ShowCardAction(type=ActionType.SHOW_CARD, title=action_title, card=card)
 
-    def get_teams_choices(self) -> Sequence[Tuple[str, str]]:
+    def get_teams_choices(self) -> Sequence[tuple[str, str]]:
         teams = self.group.project.teams.all().order_by("slug")
         return [("Me", ME)] + [
             (team["text"], team["value"]) for team in format_actor_options(teams)
@@ -286,7 +287,7 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
             futher reveal cards with dropdowns for selecting options.
         """
         # Explicit typing to satisfy mypy.
-        fields: List[Block | None] = [
+        fields: list[Block | None] = [
             self.build_group_descr(),
             self.build_group_footer(),
             self.build_assignee_note(),

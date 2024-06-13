@@ -1,4 +1,4 @@
-import {MouseEvent, ReactNode} from 'react';
+import type {MouseEvent, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -6,7 +6,7 @@ import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import type {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
 
 interface Props extends Omit<ReturnType<typeof useResizableDrawer>, 'size' | 'setSize'> {

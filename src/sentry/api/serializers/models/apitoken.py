@@ -1,5 +1,6 @@
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.apitoken import ApiToken
+from sentry.types.token import AuthTokenType
 
 
 @register(ApiToken)
@@ -21,6 +22,7 @@ class ApiTokenSerializer(Serializer):
         data = {
             "id": str(obj.id),
             "scopes": obj.get_scopes(),
+            "name": obj.name,
             "application": attrs["application"],
             "expiresAt": obj.expires_at,
             "dateCreated": obj.date_added,
@@ -29,11 +31,15 @@ class ApiTokenSerializer(Serializer):
         if not attrs["application"]:
             include_token = kwargs.get("include_token", True)
             if include_token:
-                data["token"] = obj.token
+                data["token"] = obj.plaintext_token
 
-            data["refreshToken"] = obj.refresh_token
+                if not obj.token_type == AuthTokenType.USER:
+                    data["refreshToken"] = obj.plaintext_refresh_token
 
-        data["tokenLastCharacters"] = (
-            obj.token_last_characters if obj.token_last_characters else obj.token[-4:]
-        )
+        """
+        While this is a nullable column at the db level, this should never be empty. If it is, it's a sign that the
+        token was created through improper channels, and might actually be invalid. If that's the case, it can be
+        considered a security risk, and better for this to throw an exception than to leak a dangerous token.
+        """
+        data["tokenLastCharacters"] = obj.token_last_characters
         return data

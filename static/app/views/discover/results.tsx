@@ -1,8 +1,8 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
@@ -27,14 +27,15 @@ import {
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -42,6 +43,7 @@ import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/field
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
 import marked from 'sentry/utils/marked';
@@ -51,10 +53,11 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
-import {DEFAULT_EVENT_VIEW} from './data';
+import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './data';
 import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
 import {SampleDataAlert} from './sampleDataAlert';
@@ -298,12 +301,16 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const isReplayEnabled = organization.features.includes('session-replay');
-    const defaultEventView = Object.assign({}, DEFAULT_EVENT_VIEW, {
-      fields: isReplayEnabled
-        ? DEFAULT_EVENT_VIEW.fields.concat(['replayId'])
-        : DEFAULT_EVENT_VIEW.fields,
-    });
+
+    const hasDatasetSelector = organization.features.includes(
+      'performance-discover-dataset-selector'
+    );
+    const value = (decodeScalar(location.query[DATASET_PARAM]) ??
+      savedQuery?.queryDataset ??
+      'error-events') as SavedQueryDatasets;
+    const defaultEventView = hasDatasetSelector
+      ? DEFAULT_EVENT_VIEW_MAP[value]
+      : DEFAULT_EVENT_VIEW;
 
     const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
@@ -584,6 +591,7 @@ export class Results extends Component<Props, State> {
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
       : eventView.fields;
+
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
@@ -700,7 +708,7 @@ export class Results extends Component<Props, State> {
 }
 
 const StyledPageFilterBar = styled(PageFilterBar)`
-  margin-bottom: ${space(1)};
+  margin-bottom: ${space(2)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`

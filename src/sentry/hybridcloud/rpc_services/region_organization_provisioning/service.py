@@ -6,7 +6,7 @@ from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
 from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.organization import OrganizationProvisioningOptions
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class RegionOrganizationProvisioningRpcService(RpcService):
@@ -38,7 +38,6 @@ class RegionOrganizationProvisioningRpcService(RpcService):
         :param organization_id: The desired organization's ID, which must be a snowflake ID.
         :param provision_payload: The provisioning options for the organization.
         """
-        pass
 
     @regional_rpc_method(resolve=ByRegionName())
     @abstractmethod
@@ -58,7 +57,6 @@ class RegionOrganizationProvisioningRpcService(RpcService):
         :param org_slug_temporary_alias_res: OrganizationSlugReservation for the new temporary alias.
         :return: True if provisioning succeeded, False if a conflict occurred
         """
-        pass
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

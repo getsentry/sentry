@@ -6,10 +6,11 @@ import useStacktraceLink from 'sentry/components/events/interfaces/frame/useStac
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrationUtil';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {MODULE_DOC_LINK} from 'sentry/views/performance/database/settings';
 import {useEventDetails} from 'sentry/views/starfish/queries/useEventDetails';
 
 interface Props {
@@ -61,9 +62,7 @@ export function MissingFrame() {
         {tct(
           'Could not find query source in the selected date range. Learn more in our [documentation:documentation].',
           {
-            documentation: (
-              <ExternalLink href="https://docs.sentry.io/product/performance/queries/#query-sources" />
-            ),
+            documentation: <ExternalLink href={`${MODULE_DOC_LINK}#query-sources`} />,
           }
         )}
       </Deemphasize>
@@ -71,8 +70,9 @@ export function MissingFrame() {
   );
 }
 
-const FrameContainer = styled('div')`
+export const FrameContainer = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: ${space(0.5)};
   padding: ${space(1.5)} ${space(2)};
@@ -120,7 +120,7 @@ function SourceCodeIntegrationLink({
     projectSlug: project.slug,
   });
 
-  if (match && match.config && match.sourceUrl && frame.lineNo && !isLoading) {
+  if (match?.config && match.sourceUrl && frame.lineNo && !isLoading) {
     return (
       <DeemphasizedExternalLink
         href={getIntegrationSourceUrl(

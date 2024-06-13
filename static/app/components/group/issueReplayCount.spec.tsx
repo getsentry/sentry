@@ -1,3 +1,5 @@
+import {GroupFixture} from 'sentry-fixture/group';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
@@ -19,37 +21,38 @@ function mockCount(count: undefined | number) {
 
 describe('IssueReplayCount', function () {
   const groupId = '3363325111';
-  const {organization, routerContext} = initializeOrg();
+  const group = GroupFixture({id: groupId});
+  const {organization, router} = initializeOrg();
 
   it('does not render when a group has undefined count', async function () {
     const mockGetReplayCountForIssue = mockCount(undefined);
 
-    const {container} = render(<IssueReplayCount groupId={groupId} />);
+    const {container} = render(<IssueReplayCount group={group} />);
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
+    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId, 'error');
   });
 
   it('does not render when a group has a count of zero', async function () {
     const mockGetReplayCountForIssue = mockCount(0);
 
-    const {container} = render(<IssueReplayCount groupId={groupId} />);
+    const {container} = render(<IssueReplayCount group={group} />);
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
+    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId, 'error');
   });
 
   it('renders the correct replay count', async function () {
     const mockGetReplayCountForIssue = mockCount(2);
 
-    const {container} = render(<IssueReplayCount groupId={groupId} />, {
-      context: routerContext,
+    const {container} = render(<IssueReplayCount group={group} />, {
+      router,
     });
 
     await waitFor(() => {
@@ -62,6 +65,6 @@ describe('IssueReplayCount', function () {
       'href',
       `/organizations/${organization.slug}/issues/${groupId}/replays/`
     );
-    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId);
+    expect(mockGetReplayCountForIssue).toHaveBeenCalledWith(groupId, 'error');
   });
 });

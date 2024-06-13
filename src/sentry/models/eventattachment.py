@@ -1,17 +1,30 @@
+from __future__ import annotations
+
+import mimetypes
+from dataclasses import dataclass
+from hashlib import sha1
+from io import BytesIO
+from typing import IO, Any
+
+import zstandard
+from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.utils import timezone
 
+from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
+from sentry.features.rollout import in_random_rollout
+from sentry.models.files.utils import get_size_and_checksum, get_storage
 
 # Attachment file types that are considered a crash report (PII relevant)
 CRASH_REPORT_TYPES = ("event.minidump", "event.applecrashreport")
 
 
-def get_crashreport_key(group_id):
+def get_crashreport_key(group_id: int) -> str:
     """
     Returns the ``django.core.cache`` key for groups that have exceeded their
     configured crash report limit.
@@ -19,7 +32,9 @@ def get_crashreport_key(group_id):
     return f"cr:{group_id}"
 
 
-def event_attachment_screenshot_filter(queryset):
+def event_attachment_screenshot_filter(
+    queryset: models.QuerySet[EventAttachment],
+) -> models.QuerySet[EventAttachment]:
     # Intentionally a hardcoded list instead of a regex since current usecases do not have more 3 screenshots
     return queryset.filter(
         name__in=[
@@ -29,8 +44,41 @@ def event_attachment_screenshot_filter(queryset):
     )
 
 
-@region_silo_only_model
+@dataclass(frozen=True)
+class PutfileResult:
+    content_type: str
+    size: int
+    sha1: str
+    file_id: int | None = None
+    blob_path: str | None = None
+
+
+def can_store_inline(data: bytes) -> bool:
+    """
+    Determines whether `data` can be stored inline
+
+    That is the case when it is shorter than 192 bytes,
+    and all the bytes are non-NULL ASCII.
+    """
+    return len(data) < 192 and all(byte > 0x00 and byte < 0x7F for byte in data)
+
+
+@region_silo_model
 class EventAttachment(Model):
+    """Attachment Metadata and Storage
+
+    The actual attachment data can be saved in different backing stores:
+    - Using the :class:`File` model using the `file_id` field.
+      This stores attachments chunked and deduplicated.
+    - When the `blob_path` field has a `:` prefix:
+      It is saved inline in `blob_path` following the `:` prefix.
+      This happens for "small" and ASCII-only (see `can_store_inline`) attachments.
+    - When the `blob_path` field has a `eventattachments/v1/` prefix:
+      In this case, the default :func:`get_storage` is used as the backing store.
+      The attachment data is not chunked or deduplicated in this case.
+      However, it is `zstd` compressed.
+    """
+
     __relocation_scope__ = RelocationScope.Excluded
 
     # the things we want to look up attachments by:
@@ -55,13 +103,14 @@ class EventAttachment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_eventattachment"
-        index_together = ("project_id", "date_added")
+        indexes = (
+            models.Index(fields=("project_id", "date_added")),
+            models.Index(fields=("project_id", "event_id")),
+        )
 
     __repr__ = sane_repr("event_id", "name")
 
-    def delete(self, *args, **kwargs):
-        from sentry.models.files.file import File
-
+    def delete(self, *args: Any, **kwargs: Any) -> tuple[int, dict[str, int]]:
         rv = super().delete(*args, **kwargs)
 
         if self.group_id and self.type in CRASH_REPORT_TYPES:
@@ -70,7 +119,20 @@ class EventAttachment(Model):
             # repopulated with the next incoming crash report.
             cache.delete(get_crashreport_key(self.group_id))
 
+        if self.blob_path:
+            if self.blob_path.startswith(":"):
+                return rv
+            elif self.blob_path.startswith("eventattachments/v1/"):
+                storage = get_storage()
+            else:
+                raise NotImplementedError()
+
+            storage.delete(self.blob_path)
+            return rv
+
         try:
+            from sentry.models.files.file import File
+
             file = File.objects.get(id=self.file_id)
         except ObjectDoesNotExist:
             # It's possible that the File itself was deleted
@@ -82,3 +144,73 @@ class EventAttachment(Model):
             file.delete()
 
         return rv
+
+    def getfile(self) -> IO[bytes]:
+        if self.size == 0:
+            return BytesIO(b"")
+
+        if self.blob_path:
+            if self.blob_path.startswith(":"):
+                return BytesIO(self.blob_path[1:].encode())
+
+            elif self.blob_path.startswith("eventattachments/v1/"):
+                storage = get_storage()
+                compressed_blob = storage.open(self.blob_path)
+                dctx = zstandard.ZstdDecompressor()
+                return dctx.stream_reader(compressed_blob, read_across_frames=True)
+
+            else:
+                raise NotImplementedError()
+
+        from sentry.models.files.file import File
+
+        file = File.objects.get(id=self.file_id)
+        return file.getfile()
+
+    @classmethod
+    def putfile(cls, project_id: int, attachment: CachedAttachment) -> PutfileResult:
+        from sentry.models.files import File, FileBlob
+
+        content_type = normalize_content_type(attachment.content_type, attachment.name)
+        data = attachment.data
+
+        if len(data) == 0:
+            return PutfileResult(content_type=content_type, size=0, sha1=sha1().hexdigest())
+
+        blob = BytesIO(data)
+
+        # NOTE: we still keep the old code around for a while before complete removing it
+        store_blobs = True
+
+        if store_blobs:
+            size, checksum = get_size_and_checksum(blob)
+
+            if can_store_inline(data) and in_random_rollout("eventattachments.store-small-inline"):
+                blob_path = ":" + data.decode()
+            else:
+                blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
+
+                storage = get_storage()
+                compressed_blob = BytesIO(zstandard.compress(data))
+                storage.save(blob_path, compressed_blob)
+
+            return PutfileResult(
+                content_type=content_type, size=size, sha1=checksum, blob_path=blob_path
+            )
+
+        file = File.objects.create(
+            name=attachment.name,
+            type=attachment.type,
+            headers={"Content-Type": content_type},
+        )
+        file.putfile(blob, blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
+
+        return PutfileResult(
+            content_type=content_type, size=file.size, sha1=file.checksum, file_id=file.id
+        )
+
+
+def normalize_content_type(content_type: str | None, name: str) -> str:
+    if content_type:
+        return content_type.split(";")[0].strip()
+    return mimetypes.guess_type(name)[0] or "application/octet-stream"

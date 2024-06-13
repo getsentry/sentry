@@ -1,13 +1,14 @@
-from sentry.api.fields.sentry_slug import DEFAULT_SLUG_ERROR_MESSAGE
+from unittest.mock import Mock
+
+from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.notifications.types import FallthroughChoiceType
+from sentry.signals import alert_rule_created
+from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class TeamProjectsListTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "get"
@@ -37,7 +38,6 @@ class TeamProjectsListTest(APITestCase):
         assert str(proj3.id) not in response.data
 
 
-@region_silo_test
 class TeamProjectsCreateTest(APITestCase):
     endpoint = "sentry-api-0-team-project-index"
     method = "post"
@@ -106,6 +106,9 @@ class TeamProjectsCreateTest(APITestCase):
         assert response.data["detail"] == "A project with this slug already exists."
 
     def test_default_rules(self):
+        signal_handler = Mock()
+        alert_rule_created.connect(signal_handler)
+
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -115,23 +118,16 @@ class TeamProjectsCreateTest(APITestCase):
         )
 
         project = Project.objects.get(id=response.data["id"])
-        assert Rule.objects.filter(project=project).exists()
+        rule = Rule.objects.get(project=project)
 
-    @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_default_rule_fallback_targeting(self):
-        response = self.get_success_response(
-            self.organization.slug,
-            self.team.slug,
-            **self.data,
-            default_rules=True,
-            status_code=201,
-        )
-
-        project = Project.objects.get(id=response.data["id"])
-        rule = Rule.objects.filter(project=project).first()
         assert (
             rule.data["actions"][0]["fallthroughType"] == FallthroughChoiceType.ACTIVE_MEMBERS.value
         )
+
+        # Ensure that creating the default alert rule does not trigger the
+        # alert_rule_created signal to avoid fake recording fake analytics.
+        assert signal_handler.call_count == 0
+        alert_rule_created.disconnect(signal_handler)
 
     def test_without_default_rules_disable_member_project_creation(self):
         response = self.get_success_response(
@@ -167,3 +163,53 @@ class TeamProjectsCreateTest(APITestCase):
             **self.data,
             status_code=201,
         )
+
+    def test_default_inbound_filters(self):
+        filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
+        python_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=201,
+        )
+
+        python_project = Project.objects.get(id=python_response.data["id"])
+
+        python_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, python_project)
+            for filter_id in filters
+        }
+
+        assert not python_filter_states["browser-extensions"]
+        assert not python_filter_states["legacy-browsers"]
+        assert not python_filter_states["web-crawlers"]
+        assert python_filter_states["filtered-transaction"]
+
+        project_data = {"name": "foo", "slug": "baz", "platform": "javascript-react"}
+        javascript_response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            **project_data,
+            status_code=201,
+        )
+
+        javascript_project = Project.objects.get(id=javascript_response.data["id"])
+
+        javascript_filter_states = {
+            filter_id: inbound_filters.get_filter_state(filter_id, javascript_project)
+            for filter_id in filters
+        }
+
+        assert javascript_filter_states["browser-extensions"]
+        assert set(javascript_filter_states["legacy-browsers"]) == {
+            "ie",
+            "firefox",
+            "chrome",
+            "safari",
+            "opera",
+            "opera_mini",
+            "android",
+            "edge",
+        }
+        assert javascript_filter_states["web-crawlers"]
+        assert javascript_filter_states["filtered-transaction"]

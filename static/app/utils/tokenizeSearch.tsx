@@ -1,9 +1,16 @@
 import {escapeDoubleQuotes} from 'sentry/utils';
 
+export const ALLOWED_WILDCARD_FIELDS = [
+  'span.description',
+  'span.domain',
+  'span.status_code',
+];
+export const EMPTY_OPTION_VALUE = '(empty)' as const;
+
 export enum TokenType {
-  OPERATOR,
-  FILTER,
-  FREE_TEXT,
+  OPERATOR = 0,
+  FILTER = 1,
+  FREE_TEXT = 2,
 }
 
 export type Token = {
@@ -35,6 +42,39 @@ function isParen(token: Token, character: '(' | ')') {
 
 export class MutableSearch {
   tokens: Token[];
+
+  /**
+   * Creates a `MutableSearch` from a key-value mapping of field:value.
+   * This construct doesn't support conditions like `OR` and `AND` or
+   * parentheses, so it's only useful for simple queries.
+   * @param params
+   * @returns {MutableSearch}
+   */
+  static fromQueryObject(params: {
+    [key: string]: string[] | string | number | undefined;
+  }): MutableSearch {
+    const query = new MutableSearch('');
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (!value) {
+        return;
+      }
+
+      if (value === EMPTY_OPTION_VALUE) {
+        query.addFilterValue('!has', key);
+      } else if (Array.isArray(value)) {
+        query.addFilterValues(key, value, !ALLOWED_WILDCARD_FIELDS.includes(key));
+      } else {
+        query.addFilterValue(
+          key,
+          value.toString(),
+          !ALLOWED_WILDCARD_FIELDS.includes(key)
+        );
+      }
+    });
+
+    return query;
+  }
 
   /**
    * Creates a MutableSearch from a string query
@@ -135,6 +175,21 @@ export class MutableSearch {
     return formattedTokens.join(' ').trim();
   }
 
+  /**
+   * Adds the filters from a string query to the current MutableSearch query.
+   * The string query may consist of multiple key:value pairs separated
+   * by spaces.
+   */
+  addStringMultiFilter(multiFilter: string, shouldEscape = true) {
+    Object.entries(new MutableSearch(multiFilter).filters).forEach(([key, values]) => {
+      this.addFilterValues(key, values, shouldEscape);
+    });
+  }
+
+  /**
+   * Adds a string filter to the current MutableSearch query. The filter should follow
+   * the format key:value.
+   */
   addStringFilter(filter: string, shouldEscape = true) {
     const [key, value] = parseFilter(filter);
     this.addFilterValues(key, [value], shouldEscape);

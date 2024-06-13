@@ -1,9 +1,14 @@
-import {RouteContextInterface} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 
-import {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
-import {Category} from 'sentry/components/platformPicker';
-import type {PlatformKey} from 'sentry/types';
-import {Group, Organization, PlatformIntegration, Project} from 'sentry/types';
+import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
+import type {Category} from 'sentry/components/platformPicker';
+import type {
+  Group,
+  Organization,
+  PlatformIntegration,
+  PlatformKey,
+  Project,
+} from 'sentry/types';
 
 import type {AvatarUser} from './user';
 
@@ -84,7 +89,7 @@ interface OnboardingTaskDescriptorBase {
 }
 
 interface OnboardingTypeDescriptorWithAction extends OnboardingTaskDescriptorBase {
-  action: (props: RouteContextInterface) => void;
+  action: (props: InjectedRouter) => void;
   actionType: 'action';
 }
 

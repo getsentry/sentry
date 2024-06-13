@@ -1,20 +1,19 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Tags} from 'sentry-fixture/tags';
+import {GroupFixture} from 'sentry-fixture/group';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types';
 import GroupTags from 'sentry/views/issueDetails/groupTags';
 
 describe('GroupTags', function () {
-  const {routerProps, routerContext, router, organization} = initializeOrg();
+  const {routerProps, router, organization} = initializeOrg();
   const group = GroupFixture();
   let tagsMock;
   beforeEach(function () {
     tagsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
-      body: Tags(),
+      body: TagsFixture(),
     });
   });
 
@@ -26,7 +25,7 @@ describe('GroupTags', function () {
         environments={['dev']}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const headers = await screen.findAllByTestId('tag-title');
@@ -54,28 +53,6 @@ describe('GroupTags', function () {
     });
   });
 
-  it('navigates correctly when duration regression issue > tags key is clicked', async function () {
-    render(
-      <GroupTags
-        {...routerProps}
-        group={{...group, issueType: IssueType.PERFORMANCE_ENDPOINT_REGRESSION}}
-        environments={['dev']}
-        baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
-      />,
-      {context: routerContext, organization}
-    );
-
-    await screen.findAllByTestId('tag-title');
-    await userEvent.click(screen.getByText('browser'));
-
-    expect(router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/performance/summary/tags/',
-      query: expect.objectContaining({
-        tagKey: 'browser',
-      }),
-    });
-  });
-
   it('shows an error message when the request fails', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
@@ -89,7 +66,7 @@ describe('GroupTags', function () {
         environments={['dev']}
         baseUrl={`/organizations/${organization.slug}/issues/${group.id}/`}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     expect(

@@ -1,8 +1,8 @@
 import {useLayoutEffect, useState} from 'react';
 import {mat3, vec2} from 'gl-matrix';
 
-import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
-import {ViewNode} from 'sentry/components/events/viewHierarchy/wireframe';
+import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
+import type {ViewNode} from 'sentry/components/events/viewHierarchy/wireframe';
 import {defined} from 'sentry/utils';
 import {watchForResize} from 'sentry/utils/profiling/gl/utils';
 import {Rect} from 'sentry/utils/profiling/speedscope';

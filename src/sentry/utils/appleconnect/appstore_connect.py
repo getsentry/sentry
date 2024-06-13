@@ -6,39 +6,33 @@ import logging
 import pathlib
 import time
 from collections import namedtuple
+from collections.abc import Callable, Generator, Mapping
 from http import HTTPStatus
-from typing import Any, Callable, Dict, Generator, List, Mapping, NewType, Optional, Tuple, Union
+from typing import Any, NewType
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
 from requests import Session, Timeout
 
 from sentry.utils import jwt, safe, sdk
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
 
 AppConnectCredentials = namedtuple("AppConnectCredentials", ["key_id", "key", "issuer_id"])
 
-REQUEST_TIMEOUT = 30.0
+REQUEST_TIMEOUT = 60.0
 
 
 class RequestError(Exception):
     """An error from the response."""
 
-    pass
-
 
 class UnauthorizedError(RequestError):
     """Unauthorised: invalid, expired or revoked authentication token."""
 
-    pass
-
 
 class ForbiddenError(RequestError):
     """Forbidden: authentication token does not have sufficient permissions."""
-
-    pass
 
 
 class NoDsymUrl(enum.Enum):
@@ -83,11 +77,11 @@ class BuildInfo:
     #
     # Empty string if no dSYMs exist, None if there are dSYMs but they're not immediately available,
     # and is some string value if there are dSYMs and they're available.
-    dsym_url: Union[NoDsymUrl, str]
+    dsym_url: NoDsymUrl | str
 
 
 def _get_authorization_header(
-    credentials: AppConnectCredentials, expiry_sec: Optional[int] = None
+    credentials: AppConnectCredentials, expiry_sec: int | None = None
 ) -> Mapping[str, str]:
     """Creates a JWT (javascript web token) for use with app store connect API
 
@@ -137,8 +131,7 @@ def _get_appstore_json(
             full_url = ""
         full_url += url
         logger.debug("GET %s", full_url)
-        with sentry_sdk.start_transaction(op="http", description="AppStoreConnect request"):
-            response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
+        response = session.get(full_url, headers=headers, timeout=REQUEST_TIMEOUT)
         if not response.ok:
             err_info = {
                 "url": full_url,
@@ -166,14 +159,14 @@ def _get_appstore_json(
             ) from e
 
 
-def _get_next_page(response_json: Mapping[str, Any]) -> Optional[str]:
+def _get_next_page(response_json: Mapping[str, Any]) -> str | None:
     """Gets the URL for the next page from an App Store Connect paged response."""
     return safe.get_path(response_json, "links", "next")
 
 
 def _get_appstore_info_paged(
     session: Session, credentials: AppConnectCredentials, url: str
-) -> Generator[JSONData, None, None]:
+) -> Generator[Any, None, None]:
     """Iterates through all the pages from a paged response.
 
     App Store Connect responses shares the general format:
@@ -191,7 +184,7 @@ def _get_appstore_info_paged(
 
     :return: a generator with the pages.
     """
-    next_url: Optional[str] = url
+    next_url: str | None = url
     while next_url is not None:
         response = _get_appstore_json(session, credentials, next_url)
         yield response
@@ -214,14 +207,14 @@ class _IncludedRelations:
        from this.
     """
 
-    def __init__(self, page_data: JSONData):
-        self._items: Dict[Tuple[_RelType, _RelId], JSONData] = {}
+    def __init__(self, page_data: Any):
+        self._items: dict[tuple[_RelType, _RelId], Any] = {}
         for relation in page_data.get("included", []):
             rel_type = _RelType(relation["type"])
             rel_id = _RelId(relation["id"])
             self._items[(rel_type, rel_id)] = relation
 
-    def get_related(self, data: JSONData, relation: str) -> Optional[JSONData]:
+    def get_related(self, data: Any, relation: str) -> Any | None:
         """Returns the named relation of the object.
 
         ``data`` must be a JSON object which has a ``relationships`` object and
@@ -242,7 +235,7 @@ class _IncludedRelations:
         rel_id = _RelId(rel_ptr_data["id"])
         return self._items[(rel_type, rel_id)]
 
-    def get_multiple_related(self, data: JSONData, relation: str) -> Optional[List[JSONData]]:
+    def get_multiple_related(self, data: Any, relation: str) -> list[Any] | None:
         """Returns a list of all the related objects of the named relation type.
 
         This is like :meth:`get_related` but is for relation types which have a list of
@@ -273,7 +266,7 @@ def get_build_info(
     app_id: str,
     *,
     include_expired: bool = False,
-) -> List[BuildInfo]:
+) -> list[BuildInfo]:
     """Returns the build infos for an application.
 
     The release build version information has the following structure:
@@ -361,7 +354,7 @@ def get_build_info(
         return build_info
 
 
-def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
+def _get_dsym_url(bundles: list[Any] | None) -> NoDsymUrl | str:
     """Returns the dSYMs URL from the extracted from the build bundles."""
     # https://developer.apple.com/documentation/appstoreconnectapi/build/relationships/buildbundles
     # https://developer.apple.com/documentation/appstoreconnectapi/buildbundle/attributes
@@ -378,7 +371,7 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
     if not bundles:
         return NoDsymUrl.NOT_NEEDED
 
-    get_bundle_url: Callable[[JSONData], Any] = lambda bundle: safe.get_path(
+    get_bundle_url: Callable[[Any], Any] = lambda bundle: safe.get_path(
         bundle, "attributes", "dSYMUrl", default=NoDsymUrl.NOT_NEEDED
     )
 
@@ -415,7 +408,7 @@ def _get_dsym_url(bundles: Optional[List[JSONData]]) -> Union[NoDsymUrl, str]:
 AppInfo = namedtuple("AppInfo", ["name", "bundle_id", "app_id"])
 
 
-def get_apps(session: Session, credentials: AppConnectCredentials) -> Optional[List[AppInfo]]:
+def get_apps(session: Session, credentials: AppConnectCredentials) -> list[AppInfo] | None:
     """
     Returns the available applications from an account
     :return: a list of available applications or None if the login failed, an empty list

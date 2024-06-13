@@ -1,8 +1,10 @@
 import isEqual from 'lodash/isEqual';
-import {action, computed, makeObservable, observable, ObservableMap} from 'mobx';
+import type {ObservableMap} from 'mobx';
+import {action, computed, makeObservable, observable} from 'mobx';
 
 import {addErrorMessage, saveOnBlurUndoMessage} from 'sentry/actionCreators/indicator';
-import {APIRequestMethod, Client} from 'sentry/api';
+import type {APIRequestMethod} from 'sentry/api';
+import {Client} from 'sentry/api';
 import FormState from 'sentry/components/forms/state';
 import {t} from 'sentry/locale';
 import type {Choice} from 'sentry/types';
@@ -11,7 +13,14 @@ import {defined} from 'sentry/utils';
 type Snapshot = Map<string, FieldValue>;
 type SaveSnapshot = (() => number) | null;
 
-export type FieldValue = string | number | boolean | Choice | undefined; // is undefined valid here?
+export type FieldValue =
+  | string
+  | string[]
+  | Set<string>
+  | number
+  | boolean
+  | Choice
+  | undefined; // is undefined valid here?
 
 export type FormOptions = {
   /**
@@ -603,7 +612,7 @@ class FormModel {
         // API can return a JSON object with either:
         // 1) map of {[fieldName] => Array<ErrorMessages>}
         // 2) {'non_field_errors' => Array<ErrorMessages>}
-        if (resp && resp.responseJSON) {
+        if (resp?.responseJSON) {
           // non-field errors can be camelcase or snake case
           const nonFieldErrors =
             resp.responseJSON.non_field_errors || resp.responseJSON.nonFieldErrors;
@@ -632,7 +641,7 @@ class FormModel {
         }
 
         // eslint-disable-next-line no-console
-        console.error('Error saving form field', resp && resp.responseJSON);
+        console.error('Error saving form field', resp?.responseJSON);
       });
 
     return request;

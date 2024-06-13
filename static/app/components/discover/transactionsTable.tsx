@@ -1,31 +1,30 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  Alignments,
-  fieldAlignment,
-  getAggregateAlias,
-} from 'sentry/utils/discover/fields';
+import type {Alignments} from 'sentry/utils/discover/fields';
+import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
-import CellAction, {Actions} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {Actions} from 'sentry/views/discover/table/cellAction';
+import CellAction from 'sentry/views/discover/table/cellAction';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 import {GridCell, GridCellNumber} from 'sentry/views/performance/styles';
-import {TrendsDataEvents} from 'sentry/views/performance/trends/types';
+import type {TrendsDataEvents} from 'sentry/views/performance/trends/types';
 
 type Props = {
   columnOrder: TableColumn<React.ReactText>[];
@@ -40,7 +39,7 @@ type Props = {
     (
       organization: Organization,
       tableRow: TableDataRow,
-      query: Query
+      location: Location
     ) => LocationDescriptor
   >;
   handleCellAction?: (
@@ -130,7 +129,7 @@ class TransactionsTable extends PureComponent<Props> {
     } = this.props;
     const fields = eventView.getFields();
 
-    if (titles && titles.length) {
+    if (titles?.length) {
       // Slice to match length of given titles
       columnOrder = columnOrder.slice(0, titles.length);
     }
@@ -144,9 +143,9 @@ class TransactionsTable extends PureComponent<Props> {
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
       let rendered = fieldRenderer(row, {organization, location});
 
-      const target = generateLink?.[field]?.(organization, row, location.query);
+      const target = generateLink?.[field]?.(organization, row, location);
 
-      if (target && !objectIsEmpty(target)) {
+      if (target && !isEmptyObject(target)) {
         if (fields[index] === 'replayId') {
           rendered = (
             <ViewReplayLink replayId={row.replayId} to={target}>
@@ -222,8 +221,7 @@ class TransactionsTable extends PureComponent<Props> {
   render() {
     const {isLoading, tableData} = this.props;
 
-    const hasResults =
-      tableData && tableData.data && tableData.meta && tableData.data.length > 0;
+    const hasResults = tableData?.meta && tableData.data?.length > 0;
 
     // Custom set the height so we don't have layout shift when results are loaded.
     const loader = <LoadingIndicator style={{margin: '70px auto'}} />;

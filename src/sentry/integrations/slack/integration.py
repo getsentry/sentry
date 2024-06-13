@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from django.views import View
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -20,7 +23,6 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 
 from .client import SlackClient
 from .notifications import SlackNotifyBasicMixin
@@ -70,9 +72,7 @@ metadata = IntegrationMetadata(
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
     def get_client(self) -> SlackClient:
-        if not self.org_integration:
-            raise IntegrationError("Organization Integration does not exist")
-        return SlackClient(org_integration_id=self.org_integration.id, integration_id=self.model.id)
+        return SlackClient(integration_id=self.model.id)
 
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
@@ -133,8 +133,21 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         return [identity_pipeline_view]
 
-    def _get_team_info(self, access_token: str) -> JSONData:
+    def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation
+
+        # first try with new SDK client (not attached to integration)
+        try:
+            client = WebClient(token=access_token)
+            sdk_response = client.team_info()
+
+            logger.info("slack.install.team-info.success")
+            return sdk_response.get("team")
+        except SlackApiError as e:
+            logger.error("slack.install.team-info.error", extra={"error": str(e)})
+            # don't raise error, try with old method
+
+        # TODO(cathy): deprecate this method
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
             resp = SlackClient().get("/team.info", headers=headers)

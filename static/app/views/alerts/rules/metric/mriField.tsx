@@ -1,12 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Tag from 'sentry/components/tag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
-import {getReadableMetricType, isAllowedOp} from 'sentry/utils/metrics';
+import type {MetricMeta, MRI, ParsedMRI, Project} from 'sentry/types';
+import {isAllowedOp} from 'sentry/utils/metrics';
+import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {
   DEFAULT_METRIC_ALERT_FIELD,
   formatMRI,
@@ -15,7 +16,7 @@ import {
   parseMRI,
 } from 'sentry/utils/metrics/mri';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
-import {middleEllipsis} from 'sentry/utils/middleEllipsis';
+import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 interface Props {
   aggregate: string;
@@ -28,7 +29,9 @@ function filterAndSortOperations(operations: string[]) {
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const {data: meta, isLoading} = useMetricsMeta([parseInt(project.id, 10)], ['custom']);
+  const {data: meta, isLoading} = useMetricsMeta({projects: [parseInt(project.id, 10)]}, [
+    'custom',
+  ]);
 
   const metaArr = useMemo(() => {
     return meta.map(

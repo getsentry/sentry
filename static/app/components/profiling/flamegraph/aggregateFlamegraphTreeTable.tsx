@@ -7,21 +7,19 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {filterFlamegraphTree} from 'sentry/utils/profiling/filterFlamegraphTree';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {
-  useVirtualizedTree,
-  UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
-import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -136,8 +134,8 @@ export function AggregateFlamegraphTreeTable({
       return frameFilter === 'application'
         ? !frame.frame.is_application
         : frameFilter === 'system'
-        ? frame.frame.is_application
-        : false;
+          ? frame.frame.is_application
+          : false;
     }
 
     const maybeFilteredRoots =

@@ -1,9 +1,15 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
-import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TransactionSpans from 'sentry/views/performance/transactionSummary/transactionSpans';
@@ -12,10 +18,13 @@ import {
   SpanSortPercentiles,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/types';
 
-function initializeData({query} = {query: {}}) {
-  const features = ['performance-view'];
-  const organization = Organization({
-    features,
+function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
+  const {query, additionalFeatures} = options;
+
+  const defaultFeatures = ['performance-view'];
+
+  const organization = OrganizationFixture({
+    features: [...defaultFeatures, ...(additionalFeatures ? additionalFeatures : [])],
     projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
@@ -44,7 +53,7 @@ describe('Performance > Transaction Spans', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -67,6 +76,10 @@ describe('Performance > Transaction Spans', function () {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
   });
 
   afterEach(function () {
@@ -87,7 +100,7 @@ describe('Performance > Transaction Spans', function () {
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -110,7 +123,7 @@ describe('Performance > Transaction Spans', function () {
         query: {sort: SpanSortOthers.SUM_EXCLUSIVE_TIME},
       });
       render(<TransactionSpans location={initialData.router.location} />, {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -140,7 +153,7 @@ describe('Performance > Transaction Spans', function () {
       it('renders the right percentile header', async function () {
         const initialData = initializeData({query: {sort}});
         render(<TransactionSpans location={initialData.router.location} />, {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         });
 
@@ -156,7 +169,7 @@ describe('Performance > Transaction Spans', function () {
     it('renders the right avg occurrence header', async function () {
       const initialData = initializeData({query: {sort: SpanSortOthers.AVG_OCCURRENCE}});
       render(<TransactionSpans location={initialData.router.location} />, {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       });
 
@@ -167,6 +180,34 @@ describe('Performance > Transaction Spans', function () {
       expect(await within(grid).findByText('Frequency')).toBeInTheDocument();
       expect(await within(grid).findByText('P75 Self Time')).toBeInTheDocument();
       expect(await within(grid).findByText('Total Self Time')).toBeInTheDocument();
+    });
+  });
+
+  describe('Spans Tab V2', function () {
+    it('does not propagate transaction search query and properly tokenizes span query', async function () {
+      const initialData = initializeData({
+        query: {query: 'http.method:POST', spansQuery: 'span.op:db span.action:SELECT'},
+        additionalFeatures: [
+          'performance-view',
+          'performance-spans-new-ui',
+          'insights-initial-modules',
+        ],
+      });
+
+      render(<TransactionSpans location={initialData.router.location} />, {
+        router: initialData.router,
+        organization: initialData.organization,
+      });
+
+      await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+      const searchTokens = await screen.findAllByTestId('filter-token');
+      expect(searchTokens).toHaveLength(2);
+      expect(searchTokens[0]).toHaveTextContent('span.op:db');
+      expect(searchTokens[1]).toHaveTextContent('span.action:SELECT');
+      expect(await screen.findByTestId('smart-search-bar')).not.toHaveTextContent(
+        'http.method:POST'
+      );
     });
   });
 });

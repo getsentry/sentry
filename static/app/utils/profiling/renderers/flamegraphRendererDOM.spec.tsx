@@ -7,7 +7,7 @@ import {LightFlamegraphTheme as theme} from 'sentry/utils/profiling/flamegraph/f
 import {FlamegraphRendererDOM} from 'sentry/utils/profiling/renderers/flamegraphRendererDOM';
 
 import {CanvasView} from '../canvasView';
-import {Flamegraph} from '../flamegraph';
+import type {Flamegraph} from '../flamegraph';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
 
 const originalDpr = window.devicePixelRatio;

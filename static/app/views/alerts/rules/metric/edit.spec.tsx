@@ -1,5 +1,5 @@
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {MetricRule as MetricRuleFixture} from 'sentry-fixture/metricRule';
+import {MemberFixture} from 'sentry-fixture/member';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -11,13 +11,13 @@ import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics', () => ({
   metric: {
-    startTransaction: jest.fn(() => ({
+    startSpan: jest.fn(() => ({
       setTag: jest.fn(),
       setData: jest.fn(),
     })),
     mark: jest.fn(),
     measure: jest.fn(),
-    endTransaction: jest.fn(),
+    endSpan: jest.fn(),
   },
 }));
 
@@ -112,7 +112,7 @@ describe('MetricRulesEdit', function () {
     // Save Trigger
     await userEvent.click(screen.getByLabelText('Save Rule'));
 
-    expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+    expect(metric.startSpan).toHaveBeenCalledWith({name: 'saveAlertRule'});
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),

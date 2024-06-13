@@ -1,6 +1,8 @@
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.silo import no_silo_test
 
 
+@no_silo_test
 class ApiApplicationTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()

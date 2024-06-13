@@ -9,10 +9,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.fields.actor import ActorField
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import (
-    AlertRuleSerializer,
-    DetailedAlertRuleSerializer,
-)
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -23,6 +19,10 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams, MetricAlertParams
 from sentry.incidents.endpoints.bases import OrganizationAlertRuleEndpoint
+from sentry.incidents.endpoints.serializers.alert_rule import (
+    AlertRuleSerializer,
+    DetailedAlertRuleSerializer,
+)
 from sentry.incidents.logic import (
     AlreadyDeletedError,
     delete_alert_rule,
@@ -31,9 +31,6 @@ from sentry.incidents.logic import (
 from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSerializer
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
-from sentry.models.integrations.sentry_app_component import SentryAppComponent
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
@@ -44,35 +41,10 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
     # Serialize Alert Rule
     expand = request.GET.getlist("expand", [])
     serialized_rule = serialize(
-        alert_rule, request.user, DetailedAlertRuleSerializer(expand=expand)
+        alert_rule,
+        request.user,
+        DetailedAlertRuleSerializer(expand=expand, prepare_component_fields=True),
     )
-
-    # Prepare AlertRuleTriggerActions that are SentryApp components
-    errors = []
-    for trigger in serialized_rule.get("triggers", []):
-        for action in trigger.get("actions", []):
-            if action.get("_sentry_app_installation") and action.get("_sentry_app_component"):
-                installation = SentryAppInstallation(**action.get("_sentry_app_installation", {}))
-                component = installation.prepare_ui_component(
-                    SentryAppComponent(**action.get("_sentry_app_component")),
-                    None,
-                    action.get("settings"),
-                )
-                if component is None:
-                    errors.append(
-                        {"detail": f"Could not fetch details from {installation.sentry_app.name}"}
-                    )
-                    action["disabled"] = True
-                    continue
-
-                action["formFields"] = component.schema.get("settings", {})
-
-                # Delete meta fields
-                del action["_sentry_app_installation"]
-                del action["_sentry_app_component"]
-
-    if len(errors):
-        serialized_rule["errors"] = errors
 
     rule_snooze = RuleSnooze.objects.filter(
         Q(user_id=request.user.id) | Q(user_id=None), alert_rule=alert_rule
@@ -82,9 +54,10 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
         if request.user.id == rule_snooze.owner_id:
             serialized_rule["snoozeCreatedBy"] = "You"
         else:
-            user = user_service.get_user(rule_snooze.owner_id)
-            if user:
-                serialized_rule["snoozeCreatedBy"] = user.get_display_name()
+            if rule_snooze.owner_id:
+                user = user_service.get_user(rule_snooze.owner_id)
+                if user:
+                    serialized_rule["snoozeCreatedBy"] = user.get_display_name()
         serialized_rule["snoozeForEveryone"] = rule_snooze.user_id is None
 
     return Response(serialized_rule)
@@ -92,17 +65,6 @@ def fetch_alert_rule(request: Request, organization, alert_rule):
 
 def update_alert_rule(request: Request, organization, alert_rule):
     data = request.data
-    organization_id = data.get("organizationId")
-    if not organization_id:
-        project_slugs = data.get("projects")
-        if project_slugs:
-            projects = Project.objects.filter(slug__in=project_slugs)
-            if not projects:
-                return Response(
-                    "Must pass organizationId or projects in request data",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-            organization_id = projects[0].organization_id
     serializer = DrfAlertRuleSerializer(
         context={
             "organization": organization,
@@ -110,7 +72,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             "user": request.user,
             "ip_address": request.META.get("REMOTE_ADDR"),
             "installations": app_service.get_installed_for_organization(
-                organization_id=organization_id
+                organization_id=organization.id
             ),
         },
         instance=alert_rule,
@@ -123,7 +85,7 @@ def update_alert_rule(request: Request, organization, alert_rule):
             # need to kick off an async job for Slack
             client = RedisRuleStatus()
             task_args = {
-                "organization_id": organization_id,
+                "organization_id": organization.id,
                 "uuid": client.uuid,
                 "data": data,
                 "alert_rule_id": alert_rule.id,
@@ -149,7 +111,7 @@ def remove_alert_rule(request: Request, organization, alert_rule):
 
 @extend_schema_serializer(exclude_fields=["excludedProjects", "thresholdPeriod"])
 class OrganizationAlertRuleDetailsPutSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=64, help_text="The name for the rule.")
+    name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     aggregate = serializers.CharField(
         help_text="A string representing the aggregate function used in this alert rule. Valid aggregate functions are `count`, `count_unique`, `percentage`, `avg`, `apdex`, `failure_rate`, `p50`, `p75`, `p95`, `p99`, `p100`, and `percentile`. See **Metric Alert Rule Types** under [Create a Metric Alert Rule](/api/alerts/create-a-metric-alert-rule-for-an-organization/#metric-alert-rule-types) for valid configurations."
     )
@@ -215,6 +177,7 @@ Metric alert rule trigger actions follow the following structure:
 - `inputChannelId`: The ID of the Slack channel. This is only used for the Slack action, and can be used as an alternative to providing the `targetIdentifier`.
 - `integrationId`: The integration ID. This is required for every action type except `email` and `sentry_app.`
 - `sentryAppId`: The ID of the Sentry app. This is required when `type` is `sentry_app`.
+- `priority`: The severity of the Pagerduty alert or the priority of the Opsgenie alert (optional). Defaults for Pagerduty are `critical` for critical and `warning` for warning. Defaults for Opsgenie are `P1` for critical and `P2` for warning.
 """,
     )
     environment = serializers.CharField(
@@ -251,6 +214,17 @@ Metric alert rule trigger actions follow the following structure:
         child=ProjectField(scope="project:read"), required=False
     )
     thresholdPeriod = serializers.IntegerField(required=False, default=1, min_value=1, max_value=20)
+    monitorType = serializers.IntegerField(
+        required=False,
+        min_value=0,
+        help_text="Monitor type represents whether the alert rule is actively being monitored or is monitored given a specific activation condition.",
+    )
+    activationCondition = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        min_value=0,
+        help_text="Optional int that represents a trigger condition for when to start monitoring",
+    )
 
 
 @extend_schema(tags=["Alerts"])
@@ -265,8 +239,13 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     def check_project_access(func):
         def wrapper(self, request: Request, organization, alert_rule):
-            # a metric alert is only associated with one project at a time
-            project = alert_rule.snuba_query.subscriptions.get().project
+            project = None
+
+            try:
+                # check to see if there's a project associated with the alert rule
+                project = alert_rule.projects.get()
+            except Exception:
+                pass
 
             if not request.access.has_project_access(project):
                 return Response(status=status.HTTP_403_FORBIDDEN)
@@ -279,7 +258,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Metric Alert Rule for an Organization",
-        parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             200: AlertRuleSerializer,
             401: RESPONSE_UNAUTHORIZED,
@@ -304,7 +283,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     @extend_schema(
         operation_id="Update a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         request=OrganizationAlertRuleDetailsPutSerializer,
         responses={
             200: AlertRuleSerializer,
@@ -335,7 +314,7 @@ class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
 
     @extend_schema(
         operation_id="Delete a Metric Alert Rule",
-        parameters=[GlobalParams.ORG_SLUG, MetricAlertParams.METRIC_RULE_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, MetricAlertParams.METRIC_RULE_ID],
         responses={
             202: RESPONSE_ACCEPTED,
             401: RESPONSE_UNAUTHORIZED,

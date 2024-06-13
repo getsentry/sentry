@@ -10,14 +10,12 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
 pytestmark = requires_snuba
 
 
-@region_silo_test
 class GroupAssigneeTestCase(TestCase):
     def test_constraints(self):
         # Can't both be assigned

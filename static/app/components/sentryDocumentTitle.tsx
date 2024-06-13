@@ -67,7 +67,7 @@ function SentryDocumentTitle({
   }, [noSuffix, pageTitle]);
 
   // NOTE: We do this OUTSIDE of a use effect so that the update order is
-  // correct, otherwsie the inner most SentryDocumentTitle will have it's
+  // correct, otherwsie the inner most SentryDocumentTitle will have its
   // useEffect called first followed by the parents, which will cause the wrong
   // title be set.
   if (document.title !== documentTitle) {

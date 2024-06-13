@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 from sentry.api.exceptions import ParameterValidationError
 from sentry.notifications.helpers import validate as helper_validate
 from sentry.notifications.types import (
@@ -9,16 +7,14 @@ from sentry.notifications.types import (
 )
 
 
-def validate_type(type: str, context: Optional[List[str]] = None) -> NotificationSettingEnum:
+def validate_type(type: str, context: list[str] | None = None) -> NotificationSettingEnum:
     try:
         return NotificationSettingEnum(type)
     except ValueError:
         raise ParameterValidationError(f"Unknown type: {type}", context)
 
 
-def validate_scope_type(
-    scope_type: str, context: Optional[List[str]] = None
-) -> NotificationScopeEnum:
+def validate_scope_type(scope_type: str, context: list[str] | None = None) -> NotificationScopeEnum:
     try:
         return NotificationScopeEnum(scope_type)
     except ValueError:

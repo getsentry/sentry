@@ -1,12 +1,12 @@
-import {DataScrubbingRelayPiiConfig} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
-import {EventStacktraceFrame} from 'sentry-fixture/eventStacktraceFrame';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {DataScrubbingRelayPiiConfigFixture} from 'sentry-fixture/dataScrubbingRelayPiiConfig';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -14,20 +14,20 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {Content} from 'sentry/components/events/interfaces/crashContent/exception/content';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 
 describe('Exception Content', function () {
-  const organization = Organization();
-  const project = Project({});
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({});
   const integration = GitHubIntegrationFixture();
-  const repo = Repository({integrationId: integration.id});
-  const config = RepositoryProjectPathConfig({project, repo, integration});
+  const repo = RepositoryFixture({integrationId: integration.id});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/prompts-activity/`,
+      url: `/organizations/${organization.slug}/prompts-activity/`,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
@@ -37,20 +37,16 @@ describe('Exception Content', function () {
   });
 
   it('display redacted values from exception entry', async function () {
-    const projectDetails = Project({
+    const projectDetails = ProjectFixture({
       ...project,
-      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfig()),
+      relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
     });
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/`,
       body: projectDetails,
     });
 
-    const {
-      organization: org,
-      router,
-      routerContext,
-    } = initializeOrg({
+    const {organization: org, router} = initializeOrg({
       router: {
         location: {query: {project: project.id}},
       },
@@ -145,7 +141,7 @@ describe('Exception Content', function () {
         meta={event._meta!.entries[0].data.values}
         projectSlug={project.slug}
       />,
-      {organization: org, router, context: routerContext}
+      {organization: org, router}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
@@ -186,12 +182,12 @@ describe('Exception Content', function () {
             values: [
               {
                 stacktrace: {
-                  frames: [EventStacktraceFrame({platform: null})],
+                  frames: [EventStacktraceFrameFixture({platform: null})],
                 },
               },
               {
                 stacktrace: {
-                  frames: [EventStacktraceFrame({platform: 'cocoa'})],
+                  frames: [EventStacktraceFrameFixture({platform: 'cocoa'})],
                 },
               },
             ],
@@ -232,7 +228,7 @@ describe('Exception Content', function () {
         snoozed_ts: undefined,
       };
       MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
+        url: `/organizations/${organization.slug}/prompts-activity/`,
         body: promptResponse,
       });
       MockApiClient.addMockResponse({

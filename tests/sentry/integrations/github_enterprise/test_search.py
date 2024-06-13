@@ -1,10 +1,11 @@
 from datetime import datetime, timedelta
 
-from sentry.models.integrations.integration import Integration
+from sentry.testutils.silo import control_silo_test
 
 from ..github import test_search
 
 
+@control_silo_test
 class GithubEnterpriseSearchTest(test_search.GithubSearchTest):
     # Inherit test methods/scenarios from GithubSearchTest
     # and fill out the slots that customize it to use github:enterprise
@@ -13,7 +14,7 @@ class GithubEnterpriseSearchTest(test_search.GithubSearchTest):
 
     def create_integration(self):
         future = datetime.now() + timedelta(hours=1)
-        return Integration.objects.create(
+        return self.create_provider_integration(
             provider=self.provider,
             name="test",
             external_id=9999,

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -20,9 +22,7 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
 from sentry.utils.urls import parse_link
-from sentry.web.decorators import transaction_start
 
 from ..utils import logger
 from .base import SlackDMEndpoint
@@ -133,7 +133,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             )
             organization_id = ois[0].organization_id if len(ois) > 0 else None
             organization_context = (
-                organization_service.get_organization_by_id(id=organization_id, user_id=None)
+                organization_service.get_organization_by_id(
+                    id=organization_id, user_id=None, include_projects=False, include_teams=False
+                )
                 if organization_id
                 else None
             )
@@ -154,7 +156,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps((link_type, args)))
+            seen_marker = hash(orjson.dumps((link_type, list(args))).decode())
             if seen_marker in links_seen:
                 continue
 
@@ -179,22 +181,31 @@ class SlackEventEndpoint(SlackDMEndpoint):
         if not results:
             return False
 
+        # XXX(isabella): we use our message builders to create the blocks for each link to be
+        # unfurled, so the original result will include the fallback text string, however, the
+        # unfurl endpoint does not accept fallback text.
+        if features.has("organizations:slack-block-kit", organization):
+            for link_info in results.values():
+                if "text" in link_info:
+                    del link_info["text"]
+
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
-            "unfurls": json.dumps(results),
+            "unfurls": orjson.dumps(results).decode(),
         }
 
         client = SlackClient(integration_id=slack_request.integration.id)
         try:
             client.post("/chat.unfurl", data=payload)
         except ApiError as e:
-            logger.exception("slack.event.unfurl-error", extra={"error": str(e)})
+            logger.exception(
+                "slack.event.unfurl-error", extra={"error": str(e), "payload": payload}
+            )
 
         return True
 
     # TODO(dcramer): implement app_uninstalled and tokens_revoked
-    @transaction_start("SlackEventEndpoint")
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)

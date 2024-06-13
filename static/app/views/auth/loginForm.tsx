@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
@@ -12,7 +11,8 @@ import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {AuthConfig} from 'sentry/types';
+import type {AuthConfig} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 type LoginProvidersProps = Partial<
   Pick<AuthConfig, 'vstsLoginLink' | 'githubLoginLink' | 'googleLoginLink'>
@@ -124,7 +124,7 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
 const ProviderHeading = styled('div')`
   margin: 0;
   font-size: 15px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 24px;
 `;
 

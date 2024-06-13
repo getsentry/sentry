@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import useScrollToTop from 'sentry/utils/useScrollToTop';
 import {BreadcrumbProvider} from 'sentry/views/settings/components/settingsBreadcrumb/context';

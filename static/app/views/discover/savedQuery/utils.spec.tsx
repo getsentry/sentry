@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {ALL_VIEWS} from 'sentry/views/discover/data';
@@ -11,7 +11,7 @@ import {
 
 describe('SavedQueries API helpers', () => {
   const api = new MockApiClient();
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   const errorsQuery = ALL_VIEWS.find(view => view.name === 'Errors by Title')!;
   const errorsView = EventView.fromSavedQuery(errorsQuery);

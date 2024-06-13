@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, MutableMapping, Sequence
+from collections.abc import MutableMapping, Sequence
+from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
@@ -35,7 +36,7 @@ class SentryAppInstallationSerializer(Serializer):
             }
         return result
 
-    def serialize(self, install, attrs, user):
+    def serialize(self, install, attrs, user, access=None):
         data = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
             "organization": {"slug": attrs["organization"].slug},
@@ -43,7 +44,7 @@ class SentryAppInstallationSerializer(Serializer):
             "status": SentryAppInstallationStatus.as_str(install.status),
         }
 
-        if install.api_grant:
+        if install.api_grant and access and access.has_scope("org:integrations"):
             data["code"] = install.api_grant.code
 
         return data

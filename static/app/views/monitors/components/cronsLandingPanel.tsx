@@ -1,8 +1,8 @@
-import {useEffect} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -10,16 +10,15 @@ import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import MonitorCreateForm from 'sentry/views/monitors/components/monitorCreateForm';
 
-import {
-  CRON_SDK_PLATFORMS,
-  PlatformPickerPanel,
-  SupportedPlatform,
-} from './platformPickerPanel';
+import type {SupportedPlatform} from './platformPickerPanel';
+import {CRON_SDK_PLATFORMS, PlatformPickerPanel} from './platformPickerPanel';
+import type {QuickStartProps} from './quickStartEntries';
 import {
   CeleryBeatAutoDiscovery,
   GoUpsertPlatformGuide,
@@ -27,7 +26,6 @@ import {
   LaravelUpsertPlatformGuide,
   NodeJsUpsertPlatformGuide,
   PHPUpsertPlatformGuide,
-  QuickStartProps,
   RubyRailsMixinPlatformGuide,
   RubySidekiqAutoPlatformGuide,
   RubyUpsertPlatformGuide,
@@ -127,6 +125,11 @@ export function CronsLandingPanel() {
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
 
+  const OnboardingPanelHook = HookOrDefault({
+    hookName: 'component:crons-onboarding-panel',
+    defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
+  });
+
   useEffect(() => {
     if (!platform || !guide) {
       return;
@@ -161,7 +164,11 @@ export function CronsLandingPanel() {
   };
 
   if (!isValidPlatform(platform) || !isValidGuide(guide)) {
-    return <PlatformPickerPanel onSelect={navigateToPlatformGuide} />;
+    return (
+      <OnboardingPanelHook>
+        <PlatformPickerPanel onSelect={navigateToPlatformGuide} />
+      </OnboardingPanelHook>
+    );
   }
 
   const platformText = CRON_SDK_PLATFORMS.find(
@@ -171,52 +178,54 @@ export function CronsLandingPanel() {
   const guides = platformGuides[platform];
 
   return (
-    <Panel>
-      <BackButton
-        icon={<IconChevron direction="left" />}
-        onClick={() => navigateToPlatformGuide(null)}
-        borderless
-      >
-        {t('Back to Platforms')}
-      </BackButton>
-      <PanelBody withPadding>
-        <h3>{t('Get Started with %s', platformText)}</h3>
-        <Tabs
-          onChange={guideKey => navigateToPlatformGuide(platform, guideKey)}
-          value={guide}
+    <OnboardingPanelHook>
+      <Panel>
+        <BackButton
+          icon={<IconChevron direction="left" />}
+          onClick={() => navigateToPlatformGuide(null)}
+          borderless
         >
-          <TabList>
-            {[
-              ...guides.map(({key, title}) => (
-                <TabList.Item key={key}>{title}</TabList.Item>
-              )),
-              <TabList.Item key={GuideKey.MANUAL}>{t('Manual')}</TabList.Item>,
-            ]}
-          </TabList>
-          <TabPanels>
-            {[
-              ...guides.map(({key, Guide}) => (
-                <TabPanels.Item key={key}>
+          {t('Back to Platforms')}
+        </BackButton>
+        <PanelBody withPadding>
+          <h3>{t('Get Started with %s', platformText)}</h3>
+          <Tabs
+            onChange={guideKey => navigateToPlatformGuide(platform, guideKey)}
+            value={guide}
+          >
+            <TabList>
+              {[
+                ...guides.map(({key, title}) => (
+                  <TabList.Item key={key}>{title}</TabList.Item>
+                )),
+                <TabList.Item key={GuideKey.MANUAL}>{t('Manual')}</TabList.Item>,
+              ]}
+            </TabList>
+            <TabPanels>
+              {[
+                ...guides.map(({key, Guide}) => (
+                  <TabPanels.Item key={key}>
+                    <GuideContainer>
+                      <Guide />
+                    </GuideContainer>
+                  </TabPanels.Item>
+                )),
+                <TabPanels.Item key={GuideKey.MANUAL}>
                   <GuideContainer>
-                    <Guide />
+                    <MonitorCreateForm />
                   </GuideContainer>
-                </TabPanels.Item>
-              )),
-              <TabPanels.Item key={GuideKey.MANUAL}>
-                <GuideContainer>
-                  <MonitorCreateForm />
-                </GuideContainer>
-              </TabPanels.Item>,
-            ]}
-          </TabPanels>
-        </Tabs>
-      </PanelBody>
-    </Panel>
+                </TabPanels.Item>,
+              ]}
+            </TabPanels>
+          </Tabs>
+        </PanelBody>
+      </Panel>
+    </OnboardingPanelHook>
   );
 }
 
 const BackButton = styled(Button)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.subText};
   margin: ${space(1)} 0 0 ${space(1)};
   padding-left: ${space(0.5)};

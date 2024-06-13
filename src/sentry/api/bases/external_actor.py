@@ -1,4 +1,5 @@
-from typing import Any, Mapping, MutableMapping, Optional
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from django.db import IntegrityError
 from django.http import Http404
@@ -15,13 +16,14 @@ from sentry.api.validators.external_actor import (
     validate_integration_id,
 )
 from sentry.api.validators.integrations import validate_provider
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_choices
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB,
@@ -51,7 +53,7 @@ class ExternalActorSerializerBase(CamelSnakeModelSerializer):
     def validate_integration_id(self, integration_id: str) -> str:
         return validate_integration_id(integration_id, self.organization)
 
-    def validate_external_id(self, external_id: str) -> Optional[str]:
+    def validate_external_id(self, external_id: str) -> str | None:
         return validate_external_id_option(external_id)
 
     def validate_external_name(self, external_name: str) -> str:

@@ -1,8 +1,10 @@
-from typing import Iterable, Mapping, Optional, Tuple
+import logging
+from collections.abc import Iterable, Mapping
 
 from django.http import Http404
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
@@ -10,7 +12,8 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+
+_logger = logging.getLogger(__name__)
 
 
 @control_silo_function
@@ -18,20 +21,30 @@ def get_identity_or_404(
     provider: ExternalProviders,
     user: User,
     integration_id: int,
-    organization_id: Optional[int] = None,
-) -> Tuple[RpcOrganization, Integration, IdentityProvider]:
+    organization_id: int | None = None,
+) -> tuple[RpcOrganization, Integration, IdentityProvider]:
+    logger_metadata = {
+        "integration_provider": provider,
+        "integration_id": integration_id,
+        "organization_id": organization_id,
+        "user_id": user.id,
+    }
     """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
     if provider not in EXTERNAL_PROVIDERS:
+        _logger.info("provider is not part of supported external providers", extra=logger_metadata)
         raise Http404
 
     integration = Integration.objects.filter(id=integration_id).first()
     if integration is None:
+        _logger.info("failed to find an integration", extra=logger_metadata)
         raise Http404
 
     idp = IdentityProvider.objects.filter(
         external_id=integration.external_id, type=EXTERNAL_PROVIDERS[provider]
     ).first()
+    logger_metadata["external_id"] = integration.external_id
     if idp is None:
+        _logger.info("failed to find an identity provider", extra=logger_metadata)
         raise Http404
 
     organization_integrations = OrganizationIntegration.objects.filter(
@@ -43,16 +56,24 @@ def get_identity_or_404(
     organizations = user_service.get_organizations(user_id=user.id, only_visible=True)
     valid_organization_ids = [o.id for o in organizations if o.id in organization_ids]
     if len(valid_organization_ids) <= 0:
+        _logger.info(
+            "failed to find any valid organization integrations for user", extra=logger_metadata
+        )
         raise Http404
 
     selected_organization_id = (
         organization_id if organization_id is not None else valid_organization_ids[0]
     )
     context = organization_service.get_organization_by_id(
-        id=selected_organization_id, user_id=user.id
+        id=selected_organization_id,
+        user_id=user.id,
+        include_projects=False,
+        include_teams=False,
     )
 
+    logger_metadata["selected_organization_id"] = selected_organization_id
     if context is None:
+        _logger.info("failed to get a context", extra=logger_metadata)
         raise Http404
     return context.organization, integration, idp
 

@@ -2,6 +2,7 @@ import ipaddress
 import logging
 from datetime import timezone
 
+import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
@@ -18,7 +19,6 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.utils import json
 from sentry.utils.email import parse_email
 
 logger = logging.getLogger("sentry.webhooks")
@@ -113,7 +113,7 @@ class PushEventWebhook(Webhook):
 class BitbucketWebhookEndpoint(Endpoint):
     owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     permission_classes = ()
     _handlers = {"repo:push": PushEventWebhook}
@@ -176,8 +176,8 @@ class BitbucketWebhookEndpoint(Endpoint):
             return HttpResponse(status=401)
 
         try:
-            event = json.loads(body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(body)
+        except orjson.JSONDecodeError:
             logger.exception(
                 "%s.webhook.invalid-json",
                 PROVIDER_NAME,

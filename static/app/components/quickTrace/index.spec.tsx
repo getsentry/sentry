@@ -1,11 +1,9 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import QuickTrace from 'sentry/components/quickTrace';
-import {Event} from 'sentry/types/event';
-import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
+import type {Event} from 'sentry/types/event';
+import type {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 
 describe('Quick Trace', function () {
   let location;
@@ -34,15 +32,16 @@ describe('Quick Trace', function () {
           generation === 0
             ? null
             : parentId === null
-            ? `s${generation - 1}${parentId}`
-            : `s${parentId}`,
+              ? `s${generation - 1}${parentId}`
+              : `s${parentId}`,
         performance_issues: [],
+        timestamp: 1615921516.132774,
       });
     }
     return events;
   }
 
-  function makeTransactionEvent(id) {
+  function makeTransactionEventFixture(id) {
     return {
       id: `e${id}`,
       type: 'transaction',
@@ -51,13 +50,8 @@ describe('Quick Trace', function () {
     };
   }
 
-  function makeTransactionHref(
-    pid: string,
-    eid: string,
-    transaction: string,
-    project: string
-  ) {
-    return `/organizations/${organization.slug}/performance/${pid}:${eid}/?project=${project}&transaction=${transaction}`;
+  function makeTransactionHref(pid: string, eid: string, transaction: string) {
+    return `/organizations/${organization.slug}/performance/${pid}:${eid}/?transaction=${transaction}`;
   }
 
   beforeEach(function () {
@@ -72,7 +66,7 @@ describe('Quick Trace', function () {
     it('renders nothing for empty trace', function () {
       const {container} = render(
         <QuickTrace
-          event={makeTransactionEvent(1) as Event}
+          event={makeTransactionEventFixture(1) as Event}
           quickTrace={{
             type: 'empty',
             trace: [],
@@ -92,7 +86,7 @@ describe('Quick Trace', function () {
     it('renders nothing when partial trace is empty', function () {
       const {container} = render(
         <QuickTrace
-          event={makeTransactionEvent(1) as Event}
+          event={makeTransactionEventFixture(1) as Event}
           quickTrace={{
             type: 'partial',
             trace: null,
@@ -110,7 +104,7 @@ describe('Quick Trace', function () {
     it('renders nothing when partial trace missing current event', function () {
       const {container} = render(
         <QuickTrace
-          event={makeTransactionEvent('not-1') as Event}
+          event={makeTransactionEventFixture('not-1') as Event}
           quickTrace={{
             type: 'partial',
             trace: makeQuickTraceEvents(1),
@@ -134,7 +128,7 @@ describe('Quick Trace', function () {
 
       render(
         <QuickTrace
-          event={makeTransactionEvent(4) as Event}
+          event={makeTransactionEventFixture(4) as Event}
           quickTrace={{
             type: 'partial',
             trace: makeQuickTraceEvents(4),
@@ -154,7 +148,7 @@ describe('Quick Trace', function () {
     it('renders partial trace with single child', async function () {
       render(
         <QuickTrace
-          event={makeTransactionEvent(4) as Event}
+          event={makeTransactionEventFixture(4) as Event}
           quickTrace={{
             type: 'partial',
             trace: [...makeQuickTraceEvents(4), ...makeQuickTraceEvents(5)],
@@ -181,7 +175,7 @@ describe('Quick Trace', function () {
 
       render(
         <QuickTrace
-          event={makeTransactionEvent(4) as Event}
+          event={makeTransactionEventFixture(4) as Event}
           quickTrace={{
             type: 'partial',
             trace: [...makeQuickTraceEvents(4), ...makeQuickTraceEvents(5, {n: 3})],
@@ -203,7 +197,7 @@ describe('Quick Trace', function () {
     it('renders full trace with root as parent', async function () {
       render(
         <QuickTrace
-          event={makeTransactionEvent(1) as Event}
+          event={makeTransactionEventFixture(1) as Event}
           quickTrace={{
             type: 'partial',
             trace: [...makeQuickTraceEvents(0), ...makeQuickTraceEvents(1)],
@@ -227,7 +221,7 @@ describe('Quick Trace', function () {
     it('renders full trace with single ancestor', async function () {
       render(
         <QuickTrace
-          event={makeTransactionEvent(3) as Event}
+          event={makeTransactionEventFixture(3) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -259,7 +253,7 @@ describe('Quick Trace', function () {
 
       render(
         <QuickTrace
-          event={makeTransactionEvent(5) as Event}
+          event={makeTransactionEventFixture(5) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -288,7 +282,7 @@ describe('Quick Trace', function () {
     it('renders full trace with single descendant', async function () {
       render(
         <QuickTrace
-          event={makeTransactionEvent(0) as Event}
+          event={makeTransactionEventFixture(0) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -319,7 +313,7 @@ describe('Quick Trace', function () {
 
       render(
         <QuickTrace
-          event={makeTransactionEvent(0) as Event}
+          event={makeTransactionEventFixture(0) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -352,7 +346,7 @@ describe('Quick Trace', function () {
 
       render(
         <QuickTrace
-          event={makeTransactionEvent(5) as Event}
+          event={makeTransactionEventFixture(5) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -385,10 +379,9 @@ describe('Quick Trace', function () {
 
   describe('Event Node Clicks', function () {
     it('renders single event targets', async function () {
-      const routerContext = RouterContextFixture();
       render(
         <QuickTrace
-          event={makeTransactionEvent(3) as Event}
+          event={makeTransactionEventFixture(3) as Event}
           quickTrace={{
             type: 'full',
             trace: [
@@ -405,18 +398,17 @@ describe('Quick Trace', function () {
           transactionDest="performance"
           location={location}
           organization={organization}
-        />,
-        {context: routerContext}
+        />
       );
       const nodes = await screen.findAllByTestId('event-node');
       expect(nodes.length).toEqual(6);
       [
-        makeTransactionHref('p0', 'e0', 't0', '0'),
-        makeTransactionHref('p1', 'e1', 't1', '1'),
-        makeTransactionHref('p2', 'e2', 't2', '2'),
+        makeTransactionHref('p0', 'e0', 't0'),
+        makeTransactionHref('p1', 'e1', 't1'),
+        makeTransactionHref('p2', 'e2', 't2'),
         undefined, // the "This Event" node has no target
-        makeTransactionHref('p4', 'e4', 't4', '4'),
-        makeTransactionHref('p5', 'e5', 't5', '5'),
+        makeTransactionHref('p4', 'e4', 't4'),
+        makeTransactionHref('p5', 'e5', 't5'),
       ].forEach((target, i) => {
         const linkNode = nodes[i].children[0];
         if (target) {
@@ -435,7 +427,7 @@ describe('Quick Trace', function () {
 
       render(
         <QuickTrace
-          event={makeTransactionEvent(0) as Event}
+          event={makeTransactionEventFixture(0) as Event}
           quickTrace={{
             type: 'full',
             trace: [...makeQuickTraceEvents(0), ...makeQuickTraceEvents(1, {n: 3})],

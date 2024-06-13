@@ -1,4 +1,4 @@
-import {PlainRoute} from 'react-router';
+import type {PlainRoute} from 'react-router';
 
 /**
  * For all routes with a `path`, find the first route without a route param (e.g. :apiKey)

@@ -3,14 +3,13 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
-from typing import Optional, Set, Tuple
 
 from sentry.hybridcloud.rpc_services.control_organization_provisioning.model import (
     RpcOrganizationSlugReservation,
 )
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.organization.model import OrganizationProvisioningOptions
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class ControlOrganizationProvisioningRpcService(RpcService):
@@ -30,13 +29,12 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         :param org_provision_args: Provisioning and post-provisioning options for the organization.
         :return: RpcOrganizationSlugReservation containing the organization ID and slug.
         """
-        pass
 
     @abstractmethod
     @rpc_method
     def idempotent_provision_organization(
         self, *, region_name: str, org_provision_args: OrganizationProvisioningOptions
-    ) -> Optional[RpcOrganizationSlugReservation]:
+    ) -> RpcOrganizationSlugReservation | None:
         """
         Provisions an organization, an organization member, and team based on the provisioning args passed.
 
@@ -49,7 +47,6 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         :param org_provision_args: Provisioning and post-provisioning options for the organization.
         :return: RpcOrganization the organization ID and slug.
         """
-        pass
 
     @abstractmethod
     @rpc_method
@@ -76,12 +73,14 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         case of a slug collision.
         :return:
         """
-        pass
 
     @abstractmethod
     @rpc_method
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: Set[Tuple[int, str]]
+        self,
+        *,
+        region_name: str,
+        slug_mapping: dict[int, str],
     ) -> None:
         """
         Only really intended for bulk organization import usage. Creates unique organization slug
@@ -89,10 +88,11 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         in the provided region.
 
         :param region_name: The region where the imported organization exist
-        :param organization_ids_and_slugs: A set of ID and base slug tuples to reserve slugs for
+        :param organization_ids_and_slugs: A set of ID and base slug tuples to reserve slugs for.
+            This parameter is deprecated. Use slug_mapping instead.
+        :param slug_mapping: A map of organization id -> slug to reserve.
         :return:
         """
-        pass
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:

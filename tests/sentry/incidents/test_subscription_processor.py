@@ -1,5 +1,6 @@
+import copy
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from functools import cached_property
 from random import randint
 from unittest import mock
@@ -7,7 +8,7 @@ from unittest.mock import Mock, call, patch
 from uuid import uuid4
 
 import pytest
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -16,11 +17,15 @@ from sentry.incidents.logic import (
     create_alert_rule_trigger_action,
     update_alert_rule,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
+    alert_subscription_callback_registry,
+)
+from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
     IncidentStatus,
@@ -38,16 +43,16 @@ from sentry.incidents.subscription_processor import (
     partition,
     update_alert_rule_stats,
 )
-from sentry.models.integrations.integration import Integration
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.postgres.models import MetricsKeyIndexer
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
+from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
-from sentry.utils.dates import to_timestamp
 
 EMPTY = object()
 
@@ -204,6 +209,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
+            monitor_type=AlertRuleMonitorType.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
@@ -249,10 +255,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     def build_subscription_update(self, subscription, time_delta=None, value=EMPTY):
         if time_delta is not None:
-            timestamp = django_timezone.now() + time_delta
+            timestamp = timezone.now() + time_delta
         else:
-            timestamp = django_timezone.now()
-        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(microsecond=0)
 
         data = {}
 
@@ -276,9 +282,10 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             subscription = self.sub
         processor = SubscriptionProcessor(subscription)
         message = self.build_subscription_update(subscription, value=value, time_delta=time_delta)
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             processor.process_update(message)
         return processor
 
@@ -362,8 +369,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         assert incident.date_started == (
-            django_timezone.now().replace(microsecond=0)
-            - timedelta(seconds=rule.snuba_query.time_window)
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         latest_activity = self.latest_activity(incident)
@@ -399,8 +405,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_counts(processor, self.trigger, 0, 0)
         incident = self.assert_active_incident(rule)
         assert incident.date_started == (
-            django_timezone.now().replace(microsecond=0)
-            - timedelta(seconds=rule.snuba_query.time_window)
+            timezone.now().replace(microsecond=0) - timedelta(seconds=rule.snuba_query.time_window)
         )
         self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
         self.assert_actions_fired_for_incident(
@@ -1524,7 +1529,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = Integration.objects.create(
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1533,7 +1540,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.project.organization, self.user)
 
         # Register Slack Handler
         AlertRuleTriggerAction.register_type(
@@ -1592,7 +1598,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = Integration.objects.create(
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1601,7 +1609,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.project.organization, self.user)
 
         # Register Slack Handler
         AlertRuleTriggerAction.register_type(
@@ -1670,7 +1677,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         slack_handler = SlackActionHandler
 
         # Create Slack Integration
-        integration = Integration.objects.create(
+        integration, _ = self.create_provider_integration_for(
+            self.project.organization,
+            self.user,
             provider="slack",
             name="Team A",
             external_id="TXXXXXXX1",
@@ -1679,7 +1688,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 "installation_type": "born_as_bot",
             },
         )
-        integration.add_organization(self.project.organization, self.user)
 
         # Register Slack Handler
         AlertRuleTriggerAction.register_type(
@@ -1921,7 +1929,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = django_timezone.now() - comparison_delta
+        comparison_date = timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -1989,7 +1997,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = django_timezone.now() - comparison_delta
+        comparison_date = timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -2040,6 +2048,94 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident, [self.action], [(50.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
+    @with_feature("organizations:metric-alert-ignore-archived")
+    def test_is_unresolved_comparison_query(self):
+        """
+        Test that uses the ErrorsQueryBuilder (because of the specific query) and requires an entity
+        """
+        rule = self.comparison_rule_above
+        comparison_delta = timedelta(seconds=rule.comparison_delta)
+        update_alert_rule(rule, query="(event.type:error) AND (is:unresolved)")
+        trigger = self.trigger
+        processor = self.send_update(
+            rule, trigger.alert_threshold + 1, timedelta(minutes=-10), subscription=self.sub
+        )
+        # Shouldn't trigger, since there should be no data in the comparison period
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        self.metrics.incr.assert_has_calls(
+            [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
+                call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
+            ]
+        )
+        comparison_date = timezone.now() - comparison_delta
+
+        with self.options({"issues.group_attributes.send_kafka": True}):
+            for i in range(4):
+                data = {
+                    "timestamp": iso_format(comparison_date - timedelta(minutes=30 + i)),
+                    "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
+                    "fingerprint": ["group2"],
+                    "level": "error",
+                    "exception": {
+                        "values": [
+                            {
+                                "type": "IntegrationError",
+                                "value": "Identity not found.",
+                            }
+                        ]
+                    },
+                }
+                self.store_event(
+                    data=data,
+                    project_id=self.project.id,
+                )
+
+        self.metrics.incr.reset_mock()
+        processor = self.send_update(rule, 2, timedelta(minutes=-9), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+        assert self.metrics.incr.call_count == 0
+
+        processor = self.send_update(rule, 4, timedelta(minutes=-8), subscription=self.sub)
+        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%, so
+        # no change
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 6, timedelta(minutes=-7), subscription=self.sub)
+        # Shouldn't trigger, 6/4 == 150%, but we want > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_does_not_exist(trigger)
+        self.assert_action_handler_called_with_actions(None, [])
+
+        processor = self.send_update(rule, 7, timedelta(minutes=-6), subscription=self.sub)
+        # Should trigger, 7/4 == 175% > 150%
+        self.assert_trigger_counts(processor, trigger, 0, 0)
+        incident = self.assert_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.ACTIVE)
+        self.assert_actions_fired_for_incident(
+            incident, [self.action], [(175.0, IncidentStatus.CRITICAL, mock.ANY)]
+        )
+
+        # Check we successfully resolve
+        processor = self.send_update(rule, 6, timedelta(minutes=-5), subscription=self.sub)
+        self.assert_trigger_counts(processor, self.trigger, 0, 0)
+        self.assert_no_active_incident(rule)
+        self.assert_trigger_exists_with_status(incident, trigger, TriggerStatus.RESOLVED)
+        self.assert_actions_resolved_for_incident(
+            incident, [self.action], [(150, IncidentStatus.CLOSED, mock.ANY)]
+        )
+
     def test_comparison_alert_different_aggregate(self):
         rule = self.comparison_rule_above
         update_alert_rule(rule, aggregate="count_unique(tags[sentry:user])")
@@ -2059,7 +2155,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = django_timezone.now() - comparison_delta
+        comparison_date = timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
@@ -2176,6 +2272,15 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_trigger_exists_with_status(new_incident, trigger, TriggerStatus.ACTIVE)
         self.assert_incident_is_latest_for_rule(new_incident)
 
+    def test_invoke_alert_subscription_callback(self):
+        mock = Mock()
+        alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] = mock
+
+        self.send_update(self.rule, 1, subscription=self.sub)
+
+        assert mock.call_count == 1
+        assert mock.call_args[0][0] == self.sub
+
 
 class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetricsTestCase):
     @pytest.fixture(autouse=True)
@@ -2251,14 +2356,15 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
         processor = SubscriptionProcessor(subscription)
 
         if time_delta is not None:
-            timestamp = django_timezone.now() + time_delta
+            timestamp = timezone.now() + time_delta
         else:
-            timestamp = django_timezone.now()
-        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2270,9 +2376,9 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {
@@ -2728,7 +2834,7 @@ class MetricsCrashRateAlertProcessUpdateTest(ProcessUpdateBaseClass, BaseMetrics
                         }
                     ]
                 },
-                "timestamp": django_timezone.now(),
+                "timestamp": timezone.now(),
             }
         )
         self.assert_no_active_incident(rule)
@@ -2760,14 +2866,15 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
         processor = SubscriptionProcessor(subscription)
 
         if time_delta is not None:
-            timestamp = django_timezone.now() + time_delta
+            timestamp = timezone.now() + time_delta
         else:
-            timestamp = django_timezone.now()
-        timestamp = timestamp.replace(tzinfo=timezone.utc, microsecond=0)
+            timestamp = timezone.now()
+        timestamp = timestamp.replace(microsecond=0)
 
-        with self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
-        ), self.capture_on_commit_callbacks(execute=True):
+        with (
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             if value is None:
                 numerator, denominator = 0, 0
             else:
@@ -2782,9 +2889,9 @@ class MetricsCrashRateAlertProcessUpdateV1Test(MetricsCrashRateAlertProcessUpdat
             processor.process_update(
                 {
                     "entity": "entity",
-                    "subscription_id": subscription.subscription_id
-                    if subscription
-                    else uuid4().hex,
+                    "subscription_id": (
+                        subscription.subscription_id if subscription else uuid4().hex
+                    ),
                     "values": {
                         "data": [
                             {"project_id": 8, session_status: tag_value_init, "value": denominator},
@@ -2845,8 +2952,8 @@ class TestGetAlertRuleStats(TestCase):
         triggers = [AlertRuleTrigger(id=3), AlertRuleTrigger(id=4)]
         client = get_redis_client()
         pipeline = client.pipeline()
-        timestamp = datetime.now().replace(tzinfo=timezone.utc, microsecond=0)
-        pipeline.set("{alert_rule:1:project:2}:last_update", int(to_timestamp(timestamp)))
+        timestamp = timezone.now().replace(microsecond=0)
+        pipeline.set("{alert_rule:1:project:2}:last_update", int(timestamp.timestamp()))
         pipeline.set("{alert_rule:1:project:2}:resolve_triggered", 20)
         for key, value in [
             ("{alert_rule:1:project:2}:trigger:3:alert_triggered", 1),
@@ -2867,7 +2974,7 @@ class TestUpdateAlertRuleStats(TestCase):
     def test(self):
         alert_rule = AlertRule(id=1)
         sub = QuerySubscription(project_id=2)
-        date = datetime.utcnow().replace(tzinfo=timezone.utc)
+        date = timezone.now()
         update_alert_rule_stats(alert_rule, sub, date, {3: 20, 4: 3}, {3: 10, 4: 15})
         client = get_redis_client()
         results = [
@@ -2884,4 +2991,4 @@ class TestUpdateAlertRuleStats(TestCase):
             if v is not None
         ]
 
-        assert results == [int(to_timestamp(date)), 20, 10, 3, 15]
+        assert results == [int(date.timestamp()), 20, 10, 3, 15]

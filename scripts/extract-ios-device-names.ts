@@ -1,9 +1,7 @@
-/* eslint-disable import/no-nodejs-modules */
 /* eslint-env node */
-import fs from 'fs';
-import path from 'path';
-
-import prettier from 'prettier';
+import {existsSync, unlinkSync} from 'node:fs';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 // joining path of directory
 const tmpOutputPath = path.join(
@@ -13,29 +11,28 @@ const tmpOutputPath = path.join(
 const outputPath = path.join(__dirname, '../static/app/constants/ios-device-list.tsx');
 const directoryPath = path.join(__dirname, '../node_modules/ios-device-list/');
 
+type Generation = string;
+type Identifier = string;
+type Mapping = Record<Identifier, Generation>;
+
 async function getDefinitionFiles(): Promise<string[]> {
   const files: string[] = [];
 
-  const maybeJSONFiles = await fs.readdirSync(directoryPath);
+  const maybeJSONFiles = await fs.readdir(directoryPath);
 
   // listing all files using forEach
-  maybeJSONFiles.forEach(file => {
+  for (const file of maybeJSONFiles) {
     if (!file.endsWith('.json') || file === 'package.json') {
-      return;
+      continue;
     }
 
     files.push(path.join(path.resolve(directoryPath), file));
-  });
+  }
 
   return files;
 }
 
-type Generation = string;
-type Identifier = string;
-
-type Mapping = Record<Identifier, Generation>;
-
-function collectDefinitions(files: string[]): Mapping {
+async function collectDefinitions(files: string[]): Promise<Mapping> {
   const definitions: Mapping = {};
 
   const queue = [...files];
@@ -47,7 +44,7 @@ function collectDefinitions(files: string[]): Mapping {
       throw new Error('Empty queue');
     }
 
-    const contents = fs.readFileSync(file, 'utf-8');
+    const contents = await fs.readFile(file, 'utf8');
     const content = JSON.parse(contents);
 
     if (typeof content?.[0]?.Identifier === 'undefined') {
@@ -55,11 +52,9 @@ function collectDefinitions(files: string[]): Mapping {
     }
 
     for (let i = 0; i < content.length; i++) {
-      if (!content[i].Identifier) {
-        continue;
+      if (content[i].Identifier) {
+        definitions[content[i].Identifier] = content[i].Generation;
       }
-
-      definitions[content[i].Identifier] = content[i].Generation;
     }
   }
 
@@ -73,6 +68,8 @@ const HEADER = `
 // and discard the rest of the JSON so we do not end up bloating bundle size.
 `;
 
+// The formatting issues will be picked up by the CI and can quickly be fixed by
+// running `yarn fix` command that triggers the linter and formatter.
 const template = (contents: string) => {
   return `
       ${HEADER}
@@ -82,37 +79,30 @@ const template = (contents: string) => {
   `;
 };
 
-const formatOutput = async (unformatted: string) => {
-  const config = await prettier.resolveConfig(outputPath);
-  if (config) {
-    return prettier.format(unformatted, {...config, parser: 'typescript'});
-  }
-
-  return unformatted;
-};
-
-export async function extractIOSDeviceNames() {
+async function run() {
   const files = await getDefinitionFiles();
-  const definitions = collectDefinitions(files);
-  const formatted = await formatOutput(
-    template(JSON.stringify(definitions, undefined, 2))
-  );
+  const definitions = await collectDefinitions(files);
+  const formatted = template(JSON.stringify(definitions, undefined, 2));
 
   // All exit code has to synchronous
-  const cleanup = () => {
-    if (fs.existsSync(tmpOutputPath)) {
-      fs.unlinkSync(tmpOutputPath);
+  function cleanup() {
+    if (existsSync(tmpOutputPath)) {
+      unlinkSync(tmpOutputPath);
     }
-  };
+  }
 
-  process.on('exit', cleanup);
-  process.on('SIGINT', () => {
+  process.once('exit', cleanup);
+  process.once('SIGINT', () => {
     cleanup();
     process.exit(1);
   });
 
   // Write to tmp output path
-  fs.writeFileSync(tmpOutputPath, formatted);
+  await fs.writeFile(tmpOutputPath, formatted);
   // Rename the file (atomic)
-  fs.renameSync(tmpOutputPath, outputPath);
+  await fs.rename(tmpOutputPath, outputPath);
 }
+
+run()
+  // eslint-disable-next-line no-console
+  .catch(error => console.error(`Failed to run extract-ios-device-names`, error));

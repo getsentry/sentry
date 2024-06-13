@@ -1,10 +1,9 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {DetailedOrganization} from 'sentry/types';
+import type {DetailedOrganization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ResourcesLandingPage from 'sentry/views/performance/browser/resources';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
@@ -23,21 +22,16 @@ const {SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/utils/useOrganization');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
 describe('ResourcesLandingPage', function () {
-  const organization = Organization({
-    features: [
-      'starfish-browser-resource-module-ui',
-      'starfish-view',
-      'performance-database-view',
-    ],
+  const organization = OrganizationFixture({
+    features: ['insights-initial-modules'],
   });
 
   beforeEach(() => {
-    setupMocks(organization);
+    setupMocks();
     setupMockRequests(organization);
   });
 
@@ -46,7 +40,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   it('renders a list of resources', async () => {
-    render(<ResourcesLandingPage />);
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
@@ -59,7 +53,7 @@ describe('ResourcesLandingPage', function () {
   });
 
   it('contains correct query in charts', async () => {
-    render(<ResourcesLandingPage />);
+    render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(requestMocks.mainTable.mock.calls).toMatchInlineSnapshot(`
@@ -79,7 +73,6 @@ describe('ResourcesLandingPage', function () {
           "avg(span.self_time)",
           "spm()",
           "span.group",
-          "span.domain",
           "avg(http.response_content_length)",
           "project.id",
           "time_spent_percentage()",
@@ -87,7 +80,7 @@ describe('ResourcesLandingPage', function () {
         ],
         "per_page": 100,
         "project": [],
-        "query": "!span.description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] ) ",
+        "query": "!span.description:"browser-extension://*" ( span.op:resource.script OR file_extension:css OR file_extension:[woff,woff2,ttf,otf,eot] OR file_extension:[jpg,jpeg,png,gif,svg,webp,apng,avif] OR span.op:resource.img ) ",
         "referrer": "api.performance.browser.resources.main-table",
         "sort": "-time_spent_percentage()",
         "statsPeriod": "10d",
@@ -101,7 +94,7 @@ describe('ResourcesLandingPage', function () {
   });
 });
 
-const setupMocks = (organization: DetailedOrganization) => {
+const setupMocks = () => {
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
@@ -128,8 +121,6 @@ const setupMocks = (organization: DetailedOrganization) => {
     action: 'PUSH',
     key: '',
   });
-
-  jest.mocked(useOrganization).mockReturnValue(organization);
 };
 
 const setupMockRequests = (organization: DetailedOrganization) => {
@@ -185,6 +176,22 @@ const setupMockRequests = (organization: DetailedOrganization) => {
     ],
     body: {
       data: [{transaction: '/page/123/', 'count()': 1}],
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    method: 'GET',
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.performance.resource.resource-landing',
+      }),
+    ],
+    body: {
+      data: [{'count()': 43374}],
+      meta: {
+        fields: {'count()': 'integer'},
+      },
     },
   });
 

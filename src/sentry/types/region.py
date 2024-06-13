@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Collection, Container, Iterable
 from enum import Enum
-from typing import Any, Collection, Container, Dict, Iterable, List, Optional, Set
+from typing import Any
 from urllib.parse import urljoin
 
 import sentry_sdk
@@ -12,7 +13,7 @@ from pydantic.tools import parse_obj_as
 
 from sentry import options
 from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo import SiloMode, single_process_silo_mode_state
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.utils import json
 from sentry.utils.env import in_test_environment
 
@@ -61,8 +62,8 @@ class Region:
     category: RegionCategory
     """The region's category."""
 
-    api_token: Optional[str] = None
-    """Unused will be removed in the future"""
+    visible: bool = True
+    """Whether the region is visible in API responses"""
 
     def validate(self) -> None:
         from sentry.utils.snowflake import REGION_ID
@@ -85,7 +86,7 @@ class Region:
 
         return urljoin(base_url, path)
 
-    def api_serialize(self) -> Dict[str, Any]:
+    def api_serialize(self) -> dict[str, Any]:
         return {
             "name": self.name,
             "url": self.to_url(""),
@@ -137,6 +138,9 @@ class RegionDirectory:
     def get_by_name(self, region_name: str) -> Region | None:
         return self._by_name.get(region_name)
 
+    def get_regions(self, category: RegionCategory | None = None) -> Iterable[Region]:
+        return (r for r in self.regions if (category is None or r.category == category))
+
     def get_region_names(self, category: RegionCategory | None = None) -> Iterable[str]:
         return (r.name for r in self.regions if (category is None or r.category == category))
 
@@ -148,7 +152,7 @@ class RegionDirectory:
 def _parse_raw_config(region_config: Any) -> Iterable[Region]:
     if isinstance(region_config, (str, bytes)):
         json_config_values = json.loads(region_config)
-        config_values = parse_obj_as(List[Region], json_config_values)
+        config_values = parse_obj_as(list[Region], json_config_values)
     else:
         config_values = region_config
 
@@ -240,7 +244,7 @@ def get_region_by_name(name: str) -> Region:
     if region is not None:
         return region
     else:
-        region_names = global_regions.get_region_names(RegionCategory.MULTI_TENANT)
+        region_names = list(global_regions.get_region_names(RegionCategory.MULTI_TENANT))
         raise RegionResolutionError(
             f"No region with name: {name!r} "
             f"(expected one of {region_names!r} or a single-tenant name)"
@@ -259,13 +263,21 @@ def subdomain_is_region(request: HttpRequest) -> bool:
 
 
 @control_silo_function
-def get_region_for_organization(organization_slug: str) -> Region:
+def get_region_for_organization(organization_id_or_slug: str) -> Region:
     """Resolve an organization to the region where its data is stored."""
     from sentry.models.organizationmapping import OrganizationMapping
 
-    mapping = OrganizationMapping.objects.filter(slug=organization_slug).first()
+    if organization_id_or_slug.isdecimal():
+        mapping = OrganizationMapping.objects.filter(
+            organization_id=organization_id_or_slug
+        ).first()
+    else:
+        mapping = OrganizationMapping.objects.filter(slug=organization_id_or_slug).first()
+
     if not mapping:
-        raise RegionResolutionError(f"Organization {organization_slug} has no associated mapping.")
+        raise RegionResolutionError(
+            f"Organization {organization_id_or_slug} has no associated mapping."
+        )
 
     return get_region_by_name(name=mapping.region_name)
 
@@ -287,8 +299,9 @@ def get_local_region() -> Region:
     # context when passing through test rpc calls, but we can't rely on settings because
     # django settings are not thread safe :'(
     # We use this thread local instead which is managed by the SiloMode context managers
-    if single_process_silo_mode_state.region:
-        return single_process_silo_mode_state.region
+    single_process_region = SingleProcessSiloModeState.get_region()
+    if single_process_region is not None:
+        return single_process_region
 
     if not settings.SENTRY_REGION:
         if in_test_environment():
@@ -299,7 +312,7 @@ def get_local_region() -> Region:
 
 
 @control_silo_function
-def _find_orgs_for_user(user_id: int) -> Set[int]:
+def _find_orgs_for_user(user_id: int) -> set[int]:
     from sentry.models.organizationmembermapping import OrganizationMemberMapping
 
     return {
@@ -309,7 +322,7 @@ def _find_orgs_for_user(user_id: int) -> Set[int]:
 
 
 @control_silo_function
-def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
+def find_regions_for_orgs(org_ids: Container[int]) -> set[str]:
     from sentry.models.organizationmapping import OrganizationMapping
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
@@ -323,7 +336,7 @@ def find_regions_for_orgs(org_ids: Container[int]) -> Set[str]:
 
 
 @control_silo_function
-def find_regions_for_user(user_id: int) -> Set[str]:
+def find_regions_for_user(user_id: int) -> set[str]:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         return {settings.SENTRY_MONOLITH_REGION}
 
@@ -335,8 +348,12 @@ def find_all_region_names() -> Iterable[str]:
     return get_global_directory().get_region_names()
 
 
-def find_all_multitenant_region_names() -> List[str]:
-    return list(get_global_directory().get_region_names(RegionCategory.MULTI_TENANT))
+def find_all_multitenant_region_names() -> list[str]:
+    """
+    Return all visible multi_tenant regions.
+    """
+    regions = get_global_directory().get_regions(RegionCategory.MULTI_TENANT)
+    return list([r.name for r in regions if r.visible])
 
 
 def find_all_region_addresses() -> Iterable[str]:

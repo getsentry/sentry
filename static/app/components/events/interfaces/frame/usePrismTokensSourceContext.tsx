@@ -8,27 +8,43 @@ import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 import useOrganization from 'sentry/utils/useOrganization';
 import {breakTokensByLine} from 'sentry/utils/usePrismTokens';
 
-type MultilineSyntax = {
-  end: string;
-  start: string;
+type ComplexSyntax = {
+  example: string;
+  search: RegExp;
 };
 
-const JS_MULTILINE_COMMENT_SYNTAX = [{start: '/*', end: '*/'}];
+type BlockCommentSyntax = {
+  end: string | ComplexSyntax;
+  start: string | ComplexSyntax;
+};
+
+// Most languages use C-style block comments, so we default to that unless otherwise specified.
+const DEFAULT_BLOCK_COMMENT_SYNTAX = [{start: '/*', end: '*/'}];
 
 /**
- * Mappings for languages that have block comments or multiline strings.
- * Only syntaxes that can span multiple lines should be included.
- * For example, Python has triple-quoted strings, and JavaScript has block comments.
+ * Mappings for languages use non-C-style block comments.
+ * For example, Python has triple-quoted strings. See wikipedia for a full list [1].
+ *
+ * Some syntaxes are more complex than a simple start/end string. For example, Perl
+ * begins block comments with a `=` and any number of characters. For dynamic syntaxes
+ * like these, we use a ComplexSyntax object, which contains a search regex and an example
+ * which is used when beginning/terminating the open code block.
+ *
+ * [1]: https://en.wikipedia.org/wiki/Comparison_of_programming_languages_(syntax)#Comment_comparison
  */
-const MULTILINE_SYNTAX_BY_LANGUAGE: Record<string, MultilineSyntax[]> = {
+const BLOCK_COMMENT_SYNTAX_BY_LANGUAGE: Record<string, BlockCommentSyntax[]> = {
+  bash: [],
+  elixir: [{start: '"""', end: '"""'}],
+  haskell: [{start: '{-', end: '-}'}],
+  julia: [{start: '#=', end: '=#'}],
+  lua: [{start: '--[[', end: ']]'}],
+  perl: [{start: {example: '=comment', search: /^\s*?=\S+/m}, end: '=cut'}],
+  powershell: [{start: '<#', end: '#>'}],
   python: [
     {start: '"""', end: '"""'},
     {start: "'''", end: "'''"},
   ],
-  tsx: JS_MULTILINE_COMMENT_SYNTAX,
-  jsx: JS_MULTILINE_COMMENT_SYNTAX,
-  javascript: JS_MULTILINE_COMMENT_SYNTAX,
-  typescript: JS_MULTILINE_COMMENT_SYNTAX,
+  ruby: [{start: '=begin', end: '=end'}],
 };
 
 const isTokenStringOrComment = (token: Prism.Token) => {
@@ -47,7 +63,21 @@ const isTokenStringOrComment = (token: Prism.Token) => {
   return false;
 };
 
-const checkCodeForOpenMultilineSyntax = ({
+const containsBlockCommentSyntax = ({
+  code,
+  syntax,
+}: {
+  code: string;
+  syntax: string | ComplexSyntax;
+}) => {
+  if (typeof syntax === 'string') {
+    return code.includes(syntax);
+  }
+
+  return syntax.search.test(code);
+};
+
+const checkCodeForOpenBlockComment = ({
   code,
   syntax,
   grammar,
@@ -56,9 +86,9 @@ const checkCodeForOpenMultilineSyntax = ({
   code: string;
   grammar: Prism.Grammar;
   searchFrom: 'start' | 'end';
-  syntax: string;
+  syntax: string | ComplexSyntax;
 }) => {
-  if (!code.includes(syntax)) {
+  if (!containsBlockCommentSyntax({code, syntax})) {
     return false;
   }
 
@@ -73,10 +103,13 @@ const checkCodeForOpenMultilineSyntax = ({
     // as a comment or string. We only mark the syntax as open if it's not within
     // those token types.
     if (typeof token === 'string') {
-      if (token.includes(syntax)) {
+      if (containsBlockCommentSyntax({code: token, syntax})) {
         return true;
       }
-    } else if (typeof token.content === 'string' && token.content.includes(syntax)) {
+    } else if (
+      typeof token.content === 'string' &&
+      containsBlockCommentSyntax({code: token.content, syntax})
+    ) {
       return !isTokenStringOrComment(token);
     }
   }
@@ -85,11 +118,11 @@ const checkCodeForOpenMultilineSyntax = ({
 };
 
 /**
- * Because we know that the executed line will _not_ be inside of a multiline
- * comment or string, we can check the before portion of the code to see if
- * it contains the end of a multline comment/string. If it does, we can see
- * assume that the multiline comment/string started before the recorded context.
- * We can do the same in reverse for the after portion of the code.
+ * Because we know that the executed line will _not_ be inside of a block
+ * comment, we can check the before portion of the code to see if it contains
+ * the end of a block comment. If it does, we can assume that the block comment
+ * started before the recorded context. We can do the same in reverse for the
+ * after portion of the code.
  */
 const tokenizeSourceContext = ({
   preCode: codeBefore,
@@ -104,7 +137,8 @@ const tokenizeSourceContext = ({
   postCode: string;
   preCode: string;
 }) => {
-  const multilineSyntaxes = MULTILINE_SYNTAX_BY_LANGUAGE[language] ?? [];
+  const multilineSyntaxes =
+    BLOCK_COMMENT_SYNTAX_BY_LANGUAGE[language] ?? DEFAULT_BLOCK_COMMENT_SYNTAX;
 
   let prependedCode = '';
   let appendedCode = '';
@@ -113,46 +147,49 @@ const tokenizeSourceContext = ({
     // Test before portion of code
     if (
       !prependedCode &&
-      checkCodeForOpenMultilineSyntax({
+      checkCodeForOpenBlockComment({
         code: codeBefore,
         grammar,
         syntax: end,
         searchFrom: 'start',
       })
     ) {
+      const beginBlockCommentSyntax = typeof start === 'string' ? start : start.example;
       const linesBeforeModification = breakTokensByLine(
         Prism.tokenize(codeBefore, grammar)
       );
       const linesAfterModification = breakTokensByLine(
-        Prism.tokenize(start + '\n' + codeBefore, grammar)
+        Prism.tokenize(beginBlockCommentSyntax + '\n' + codeBefore, grammar)
       );
       if (!isEqual(linesBeforeModification, linesAfterModification.slice(1))) {
-        prependedCode = start + '\n';
+        prependedCode = beginBlockCommentSyntax + '\n';
       }
     }
 
     // Test the after portion of the code
     if (
       !appendedCode &&
-      checkCodeForOpenMultilineSyntax({
+      checkCodeForOpenBlockComment({
         code: codeAfter,
         grammar,
         syntax: start,
         searchFrom: 'end',
       })
     ) {
+      const endBlockCommentSyntax = typeof end === 'string' ? end : end.example;
       const linesBeforeModification = breakTokensByLine(
         Prism.tokenize(codeAfter, grammar)
       );
       const linesAfterModification = breakTokensByLine(
-        Prism.tokenize(codeAfter + '\n' + end, grammar)
+        Prism.tokenize(codeAfter + '\n' + endBlockCommentSyntax, grammar)
       );
       if (!isEqual(linesBeforeModification, linesAfterModification.slice(-1))) {
-        appendedCode = end;
+        appendedCode = endBlockCommentSyntax;
       }
     }
   }
 
+  // Tokenize with the prepended and appended code account for any open block comments
   const tokens = Prism.tokenize(
     prependedCode + codeBefore + executedCode + codeAfter + appendedCode,
     grammar
@@ -160,6 +197,7 @@ const tokenizeSourceContext = ({
 
   const lines = breakTokensByLine(tokens);
 
+  // Clean up any prepended/appended code to ensure the content is unchanged
   return lines.slice(prependedCode ? 1 : 0, appendedCode ? -1 : undefined);
 };
 

@@ -1,8 +1,8 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import moment from 'moment';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';

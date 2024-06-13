@@ -5,17 +5,16 @@
 
 import datetime
 from enum import IntEnum
-from typing import Any, FrozenSet, List, Optional
+from typing import Any, TypedDict
 
 from pydantic.fields import Field
-from typing_extensions import TypedDict
 
 from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
 
 
 class RpcAvatar(RpcModel):
     id: int = 0
-    file_id: Optional[int] = None
+    file_id: int | None = None
     ident: str = ""
     avatar_type: str = "letter_avatar"
 
@@ -30,19 +29,20 @@ class RpcAuthenticator(RpcModel):
     id: int = 0
     user_id: int = -1
     created_at: datetime.datetime = DEFAULT_DATE
-    last_used_at: Optional[datetime.datetime] = None
+    last_used_at: datetime.datetime | None = None
     type: int = -1
     config: Any = None
 
 
-class RpcUser(RpcModel):
+class RpcUserProfile(RpcModel):
+    """Minimal set of user attributes that can be fetched efficiently."""
+
     id: int = -1
     pk: int = -1
     name: str = ""
     email: str = ""
-    emails: FrozenSet[str] = frozenset()
     username: str = ""
-    actor_id: Optional[int] = None
+    actor_id: int | None = None
     display_name: str = ""
     label: str = ""
     is_superuser: bool = False
@@ -50,17 +50,21 @@ class RpcUser(RpcModel):
     is_anonymous: bool = False
     is_active: bool = False
     is_staff: bool = False
-    last_active: Optional[datetime.datetime] = None
+    is_unclaimed: bool = False
+    last_active: datetime.datetime | None = None
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
-    session_nonce: Optional[str] = None
+    session_nonce: str | None = None
 
-    roles: FrozenSet[str] = frozenset()
-    permissions: FrozenSet[str] = frozenset()
-    avatar: Optional[RpcAvatar] = None
-    useremails: List[RpcUserEmail] = Field(default_factory=list)
-    authenticators: List[RpcAuthenticator] = Field(default_factory=list)
+
+class RpcUser(RpcUserProfile):
+    roles: frozenset[str] = frozenset()
+    permissions: frozenset[str] = frozenset()
+    avatar: RpcAvatar | None = None
+    emails: frozenset[str] = frozenset()
+    useremails: list[RpcUserEmail] = Field(default_factory=list)
+    authenticators: list[RpcAuthenticator] = Field(default_factory=list)
 
     def __hash__(self) -> int:
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
@@ -68,7 +72,7 @@ class RpcUser(RpcModel):
         # TODO: Remove the need for this
         return hash((self.id, self.pk))
 
-    def __str__(self):  # API compatibility with ORM User
+    def __str__(self) -> str:  # API compatibility with ORM User
         return self.get_username()
 
     def by_email(self, email: str) -> "RpcUser":
@@ -82,10 +86,10 @@ class RpcUser(RpcModel):
     def has_verified_emails(self) -> bool:
         return len(self.get_verified_emails()) > 0
 
-    def get_unverified_emails(self) -> List[RpcUserEmail]:
+    def get_unverified_emails(self) -> list[RpcUserEmail]:
         return [e for e in self.useremails if not e.is_verified]
 
-    def get_verified_emails(self) -> List[RpcUserEmail]:
+    def get_verified_emails(self) -> list[RpcUserEmail]:
         return [e for e in self.useremails if e.is_verified]
 
     def has_usable_password(self) -> bool:
@@ -120,6 +124,11 @@ class RpcUser(RpcModel):
         return len(self.authenticators) > 0
 
 
+class UserCreateResult(RpcModel):
+    user: RpcUser
+    created: bool
+
+
 class UserSerializeType(IntEnum):  # annoying
     SIMPLE = 0
     DETAILED = 1
@@ -127,13 +136,26 @@ class UserSerializeType(IntEnum):  # annoying
 
 
 class UserFilterArgs(TypedDict, total=False):
-    user_ids: List[int]
+    user_ids: list[int]
+    """List of user ids to search with"""
+
     is_active: bool
+    """Whether the user needs to be active"""
+
     organization_id: int
-    emails: List[str]
+    """Organization to check membership in"""
+
+    emails: list[str]
+    """list of emails to match with"""
+
     email_verified: bool
+    """Whether emails have to be verified or not"""
+
     query: str
-    authenticator_types: Optional[List[int]]
+    """Filter by email or name"""
+
+    authenticator_types: list[int] | None
+    """The type of MFA authenticator you want to query by"""
 
 
 class UserUpdateArgs(TypedDict, total=False):

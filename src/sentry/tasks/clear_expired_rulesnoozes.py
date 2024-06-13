@@ -1,7 +1,7 @@
 from django.utils import timezone
 
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 

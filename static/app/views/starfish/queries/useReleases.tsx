@@ -1,10 +1,12 @@
 import chunk from 'lodash/chunk';
 
-import {NewQuery, Release} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {NewQuery} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ApiQueryKey, useApiQuery, useQueries} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
@@ -32,13 +34,10 @@ export function useReleases(searchTerm?: string) {
         },
       },
     ],
-    {staleTime: Infinity, enabled: isReady}
+    {staleTime: Infinity, enabled: isReady, retry: false}
   );
 
-  const chunks =
-    releaseResults.data && releaseResults.data.length
-      ? chunk(releaseResults.data, 10)
-      : [];
+  const chunks = releaseResults.data?.length ? chunk(releaseResults.data, 10) : [];
 
   const releaseMetrics = useQueries({
     queries: chunks.map(releases => {
@@ -69,7 +68,9 @@ export function useReleases(searchTerm?: string) {
             method: 'GET',
             query: queryKey[1]?.query,
           }) as Promise<TableData>,
-        ...{staleTime: Infinity, enabled: isReady && !releaseResults.isLoading},
+        staleTime: Infinity,
+        enabled: isReady && !releaseResults.isLoading,
+        retry: false,
       };
     }),
   });
@@ -78,11 +79,10 @@ export function useReleases(searchTerm?: string) {
 
   const metricsStats: {[version: string]: {count: number}} = {};
   if (metricsFetched) {
-    releaseMetrics.forEach(
-      c =>
-        c.data?.data?.forEach(release => {
-          metricsStats[release.release] = {count: release['count()'] as number};
-        })
+    releaseMetrics.forEach(c =>
+      c.data?.data?.forEach(release => {
+        metricsStats[release.release] = {count: release['count()'] as number};
+      })
     );
   }
 
@@ -91,7 +91,7 @@ export function useReleases(searchTerm?: string) {
     version: string;
     count?: number;
   }[] =
-    releaseResults.data && releaseResults.data.length && metricsFetched
+    releaseResults.data?.length && metricsFetched
       ? releaseResults.data.flatMap(release => {
           const releaseVersion = release.version;
           const dateCreated = release.dateCreated;
@@ -121,12 +121,16 @@ export function useReleaseSelection(): {
   const location = useLocation();
 
   const {data: releases, isLoading} = useReleases();
-  const primaryRelease =
-    decodeScalar(location.query.primaryRelease) ?? releases?.[0]?.version ?? undefined;
 
+  // If there are more than 1 release, the first one should be the older one
+  const primaryRelease =
+    decodeScalar(location.query.primaryRelease) ??
+    (releases && releases.length > 1 ? releases?.[1]?.version : releases?.[0]?.version);
+
+  // If there are more than 1 release, the second one should be the newest one
   const secondaryRelease =
     decodeScalar(location.query.secondaryRelease) ??
-    (releases && releases.length > 1 ? releases?.[1]?.version : undefined);
+    (releases && releases.length > 1 ? releases?.[0]?.version : undefined);
 
   return {primaryRelease, secondaryRelease, isLoading};
 }

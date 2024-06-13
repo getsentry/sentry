@@ -7,16 +7,16 @@ import {updateOrganization} from 'sentry/actionCreators/organizations';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AvatarChooser from 'sentry/components/avatarChooser';
+import Tag from 'sentry/components/badge/tag';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import Tag from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -53,7 +53,9 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       {
         name: 'codecovAccess',
         type: 'boolean',
-        disabled: !organization.features.includes('codecov-integration'),
+        disabled:
+          !organization.features.includes('codecov-integration') ||
+          !access.has('org:write'),
         label: (
           <PoweredByCodecov>
             {t('Enable Code Coverage Insights')}{' '}
@@ -69,7 +71,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
                     />
                   }
                 >
-                  <Tag role="status" icon={<IconLock isSolid />}>
+                  <Tag role="status" icon={<IconLock locked />}>
                     {t('disabled')}
                   </Tag>
                 </Hovercard>
@@ -93,7 +95,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       },
     ];
     return formsConfig;
-  }, [organization]);
+  }, [access, organization]);
 
   return (
     <Form

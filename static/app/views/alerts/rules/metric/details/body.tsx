@@ -15,25 +15,28 @@ import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import {RuleActionsCategories} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
-import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import {Dataset, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
-import {AlertRuleStatus, Incident} from 'sentry/views/alerts/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {AlertRuleStatus} from 'sentry/views/alerts/types';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
 
+import type {TimePeriodType} from './constants';
 import {
   API_INTERVAL_POINTS_LIMIT,
   SELECTOR_RELATIVE_PERIODS,
   TIME_WINDOWS,
-  TimePeriodType,
 } from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
@@ -192,6 +195,7 @@ export default function MetricDetailsBody({
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
+          {/* TODO: add activation start/stop into chart */}
           <MetricChart
             api={api}
             rule={rule}
@@ -207,7 +211,7 @@ export default function MetricDetailsBody({
           />
           <DetailWrapper>
             <ActivityWrapper>
-              <MetricHistory incidents={incidents} />
+              <MetricHistory incidents={incidents} activations={rule.activations} />
               {[Dataset.METRICS, Dataset.SESSIONS, Dataset.ERRORS].includes(dataset) && (
                 <RelatedIssues
                   organization={organization}
@@ -219,8 +223,8 @@ export default function MetricDetailsBody({
                       ? // Not using (query) AND (event.type:x) because issues doesn't support it yet
                         `${extractEventTypeFilterFromRule(rule)} ${query}`.trim()
                       : isCrashFreeAlert(dataset)
-                      ? `${query} error.unhandled:true`.trim()
-                      : undefined
+                        ? `${query} error.unhandled:true`.trim()
+                        : undefined
                   }
                 />
               )}

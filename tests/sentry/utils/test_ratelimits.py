@@ -5,7 +5,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 # Produce faster tests by reducing the limits so we don't have to generate so many.
 RELAXED_CONFIG = {
@@ -15,7 +14,6 @@ RELAXED_CONFIG = {
 }
 
 
-@region_silo_test
 class ForOrganizationMemberTestCase(TestCase):
     def test_by_email(self):
         organization = Organization(id=1)

@@ -1,4 +1,4 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,7 +10,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {OrgAuthToken} from 'sentry/types';
+import type {OrgAuthToken} from 'sentry/types';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
 
 describe('OrganizationAuthTokensAuthTokenRow', function () {

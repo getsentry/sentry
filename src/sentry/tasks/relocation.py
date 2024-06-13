@@ -2,36 +2,42 @@ from __future__ import annotations
 
 import logging
 import re
+from collections import defaultdict
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from string import Template
-from typing import Any, Optional
+from typing import Any
 from zipfile import ZipFile
 
 import yaml
 from celery.app.task import Task
 from cryptography.fernet import Fernet
+from django.core.exceptions import ValidationError
 from django.db import router, transaction
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google.cloud.devtools.cloudbuild_v1 import CloudBuildClient as CloudBuildClient
+from sentry_sdk import capture_exception
 
+from sentry import analytics
+from sentry.api.helpers.slugs import validate_sentry_slug
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
-from sentry.backup.dependencies import NormalizedModelName, get_model
-from sentry.backup.exports import export_in_config_scope, export_in_user_scope
-from sentry.backup.helpers import (
+from sentry.backup.crypto import (
     GCPKMSDecryptor,
     GCPKMSEncryptor,
-    ImportFlags,
     get_default_crypto_key_version,
     unwrap_encrypted_export_tarball,
 )
+from sentry.backup.dependencies import NormalizedModelName, get_model
+from sentry.backup.exports import export_in_config_scope, export_in_user_scope
+from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
-from sentry.models.files.utils import get_relocation_storage, get_storage
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.relocation import (
     Relocation,
     RelocationFile,
@@ -43,8 +49,8 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.signals import relocated
-from sentry.silo import SiloMode
+from sentry.signals import relocated, relocation_redeem_promo_code
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
@@ -65,21 +71,23 @@ logger = logging.getLogger(__name__)
 
 # Time limits for various steps in the process.
 RETRY_BACKOFF = 60  # So the 1st retry is after ~1 min, 2nd after ~2 min, 3rd after ~4 min, etc.
-FAST_TIME_LIMIT = 60
-MEDIUM_TIME_LIMIT = 60 * 5
-SLOW_TIME_LIMIT = 60 * 30
+FAST_TIME_LIMIT = 60  # 1 minute
+MEDIUM_TIME_LIMIT = 60 * 5  # 5 minutes
+SLOW_TIME_LIMIT = 60 * 60  # 1 hour
 DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
 
-# All pre and post processing tasks have the same number of retries.
-MAX_FAST_TASK_RETRIES = 2
+# All pre and post processing tasks have the same number of retries. A "fast" task is one that almost always completes in <=5 minutes, and does relatively little bulk writing to the database.
+MAX_FAST_TASK_RETRIES = 3
 MAX_FAST_TASK_ATTEMPTS = MAX_FAST_TASK_RETRIES + 1
+MAX_SLOW_TASK_RETRIES = 4
+MAX_SLOW_TASK_ATTEMPTS = MAX_SLOW_TASK_RETRIES + 1
 MAX_VALIDATION_POLLS = 60
 MAX_VALIDATION_POLL_ATTEMPTS = MAX_VALIDATION_POLLS + 1
 MAX_VALIDATION_RUNS = 3
 
 # Some reasonable limits on the amount of data we import - we can adjust these as needed.
 MAX_ORGS_PER_RELOCATION = 20
-MAX_USERS_PER_RELOCATION = 200
+MAX_USERS_PER_RELOCATION = 2000
 
 RELOCATION_FILES_TO_BE_VALIDATED = [
     RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
@@ -94,25 +102,27 @@ ERR_PREPROCESSING_DECRYPTION = """Could not decrypt the imported JSON - are you 
                                   correct public key?"""
 ERR_PREPROCESSING_INTERNAL = "Internal error during preprocessing."
 ERR_PREPROCESSING_INVALID_JSON = "Invalid input JSON."
+ERR_PREPROCESSING_INVALID_ORG_SLUG = Template(
+    "You asked to import an organization with the slug $slug, which is not formatted correctly."
+)
 ERR_PREPROCESSING_INVALID_TARBALL = "The import tarball you provided was invalid."
 ERR_PREPROCESSING_NO_USERS = "The provided JSON must contain at least one user."
 ERR_PREPROCESSING_TOO_MANY_USERS = Template(
-    f"The provided JSON must contain $count users but must not exceed the limit of {MAX_USERS_PER_RELOCATION}."
+    f"The provided JSON contains $count users who are members of at least one of the organizations you specified, but must not exceed the limit of {MAX_USERS_PER_RELOCATION}."
 )
-ERR_PREPROCESSING_NO_ORGS = "The provided JSON must contain at least one organization."
 ERR_PREPROCESSING_TOO_MANY_ORGS = Template(
-    f"The provided JSON must contain $count organizations, but must not exceed the limit of {MAX_ORGS_PER_RELOCATION}."
+    f"The provided JSON contains $count organizations matching one of the slugs you specified, but must not exceed the limit of {MAX_ORGS_PER_RELOCATION}."
 )
 ERR_PREPROCESSING_MISSING_ORGS = Template(
     "The following organization slug imports were requested, but could not be found in your submitted JSON: $orgs."
 )
 
-ERR_VALIDATING_ATTEMPT_MISSING = "Internal error during validating - validation attempt missing."
-ERR_VALIDATING_INSTANCE_MISSING = "Internal error during validating - validation instance missing."
-ERR_VALIDATING_INTERNAL = "Internal error during validating."
+ERR_VALIDATING_ATTEMPT_MISSING = "Internal error while validating - validation attempt missing."
+ERR_VALIDATING_INSTANCE_MISSING = "Internal error while validating - validation instance missing."
+ERR_VALIDATING_INTERNAL = "Internal error while validating."
 ERR_VALIDATING_MAX_RUNS = "All validation attempts timed out."
 
-ERR_IMPORTING_INTERNAL = "Internal error during importing."
+ERR_IMPORTING_INTERNAL = "Internal error while importing."
 
 ERR_POSTPROCESSING_INTERNAL = "Internal error during postprocessing."
 
@@ -127,6 +137,7 @@ ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 @instrumented_task(
     name="sentry.relocation.uploading_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -138,7 +149,7 @@ def uploading_complete(uuid: str) -> None:
     before we try to do all sorts of fun stuff with it.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -174,6 +185,7 @@ def uploading_complete(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_scan",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -199,7 +211,7 @@ def preprocessing_scan(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -252,19 +264,23 @@ def preprocessing_scan(uuid: str) -> None:
                 fernet = Fernet(plaintext_data_encryption_key)
                 json_data = fernet.decrypt(unwrapped.encrypted_json_blob).decode("utf-8")
 
-            # Grab usernames and org slugs from the JSON data.
-            usernames = []
-            org_slugs = []
+            # Grab usernames and org slugs from the JSON data, and record which users are members of
+            # which orgs.
+            found_user_org_memberships: dict[int, list[int]] = defaultdict(list)
+            found_org_slugs: dict[int, str] = dict()
+            found_usernames: dict[int, str] = dict()
             try:
                 for json_model in json.loads(json_data):
                     model_name = NormalizedModelName(json_model["model"])
                     if get_model(model_name) == Organization:
-                        org_slugs.append(json_model["fields"]["slug"])
-                        # TODO(getsentry/team-ospo#190): Validate slug using regex, so that we can
-                        # fail early on obviously invalid slugs. Also keeps the database `JSONField`
-                        # from ballooning on bad input.
+                        found_org_slugs[json_model["pk"]] = json_model["fields"]["slug"]
+                    if get_model(model_name) == OrganizationMember:
+                        if json_model["fields"]["user_id"] is not None:
+                            found_user_org_memberships[json_model["fields"]["user_id"]].append(
+                                json_model["fields"]["organization"]
+                            )
                     if get_model(model_name) == User:
-                        usernames.append(json_model["fields"]["username"])
+                        found_usernames[json_model["pk"]] = json_model["fields"]["username"]
                         # TODO(getsentry/team-ospo#190): Validate username using regex, so that we
                         # can fail early on obviously invalid usernames. Also keeps the database
                         # `JSONField` from ballooning on bad input.
@@ -273,33 +289,36 @@ def preprocessing_scan(uuid: str) -> None:
                     relocation, OrderedTask.PREPROCESSING_SCAN, ERR_PREPROCESSING_INVALID_JSON
                 )
 
+            # Discard `found_org_slugs` that were not explicitly requested by the user.
+            want_org_slugs = set(relocation.want_org_slugs)
+            found_org_slugs = {k: v for k, v in found_org_slugs.items() if v in want_org_slugs}
+            found_org_ids = set(found_org_slugs.keys())
+            for slug in want_org_slugs:
+                try:
+                    validate_sentry_slug(slug)
+                except ValidationError:
+                    return fail_relocation(
+                        relocation,
+                        OrderedTask.PREPROCESSING_SCAN,
+                        ERR_PREPROCESSING_INVALID_ORG_SLUG.substitute(slug=slug),
+                    )
+
+            # Discard users that are not members of at least one of the `found_org_slugs`.
+            want_usernames = {
+                v
+                for k, v in found_usernames.items()
+                if found_org_ids & set(found_user_org_memberships[k])
+            }
+
             # Ensure that the data is reasonable and within our set bounds before we start on the
             # next task.
-            if len(usernames) == 0:
+            missing_org_slugs = want_org_slugs - set(found_org_slugs.values())
+            if len(found_usernames) == 0:
                 return fail_relocation(
                     relocation,
                     OrderedTask.PREPROCESSING_SCAN,
                     ERR_PREPROCESSING_NO_USERS,
                 )
-            if len(usernames) > MAX_USERS_PER_RELOCATION:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=len(usernames)),
-                )
-            if len(org_slugs) == 0:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_NO_ORGS,
-                )
-            if len(org_slugs) > MAX_ORGS_PER_RELOCATION:
-                return fail_relocation(
-                    relocation,
-                    OrderedTask.PREPROCESSING_SCAN,
-                    ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(count=len(org_slugs)),
-                )
-            missing_org_slugs = set(relocation.want_org_slugs) - set(org_slugs)
             if len(missing_org_slugs):
                 return fail_relocation(
                     relocation,
@@ -308,8 +327,20 @@ def preprocessing_scan(uuid: str) -> None:
                         orgs=",".join(sorted(missing_org_slugs))
                     ),
                 )
+            if len(found_org_slugs) > MAX_ORGS_PER_RELOCATION:
+                return fail_relocation(
+                    relocation,
+                    OrderedTask.PREPROCESSING_SCAN,
+                    ERR_PREPROCESSING_TOO_MANY_ORGS.substitute(count=len(found_org_slugs)),
+                )
+            if len(want_usernames) > MAX_USERS_PER_RELOCATION:
+                return fail_relocation(
+                    relocation,
+                    OrderedTask.PREPROCESSING_SCAN,
+                    ERR_PREPROCESSING_TOO_MANY_USERS.substitute(count=len(want_usernames)),
+                )
 
-            relocation.want_usernames = sorted(usernames)
+            relocation.want_usernames = sorted(want_usernames)
             relocation.save()
 
             # The user's import data looks basically okay - we can use this opportunity to send a
@@ -330,6 +361,7 @@ def preprocessing_scan(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_transfer",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -344,7 +376,7 @@ def preprocessing_transfer(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -374,6 +406,15 @@ def preprocessing_transfer(uuid: str) -> None:
         cloudbuild_zip.seek(0)
         relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.yaml", cloudbuild_yaml)
         relocation_storage.save(f"runs/{uuid}/conf/cloudbuild.zip", cloudbuild_zip)
+
+        # Only test existing users for collision and mutation.
+        existing_usernames = user_service.get_existing_usernames(
+            usernames=relocation.want_usernames
+        )
+        relocation_storage.save(
+            f"runs/{uuid}/in/filter-usernames.txt",
+            BytesIO(",".join(existing_usernames or []).encode("utf-8")),
+        )
 
         # Upload the `key-config.json` file we'll use to identify the correct KMS resource use
         # during validation.
@@ -410,6 +451,7 @@ def preprocessing_transfer(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_baseline_config",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -423,7 +465,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -462,6 +504,7 @@ def preprocessing_baseline_config(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_colliding_users",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -476,7 +519,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -512,6 +555,7 @@ def preprocessing_colliding_users(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.preprocessing_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -528,7 +572,7 @@ def preprocessing_complete(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -549,6 +593,8 @@ def preprocessing_complete(uuid: str) -> None:
             raise FileNotFoundError("Could not locate `cloudbuild.yaml` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/conf/cloudbuild.zip"):
             raise FileNotFoundError("Could not locate `cloudbuild.zip` in relocation bucket.")
+        if not relocation_storage.exists(f"runs/{uuid}/in/filter-usernames.txt"):
+            raise FileNotFoundError("Could not locate `filter-usernames.txt` in relocation bucket.")
         if not relocation_storage.exists(f"runs/{uuid}/in/kms-config.json"):
             raise FileNotFoundError("Could not locate `kms-config.json` in relocation bucket.")
         for kind in RELOCATION_FILES_TO_BE_VALIDATED:
@@ -660,7 +706,10 @@ def _update_relocation_validation_attempt(
                 relocation_validation_attempt.status = status.value
                 relocation_validation_attempt.save()
 
+                # Go back to `validating_start`; since this is a new attempt at that task, we reset
+                # the `latest_task_attempts` counter to 0.
                 relocation.latest_task = OrderedTask.VALIDATING_START.name
+                relocation.latest_task_attempts = 0
                 relocation.save()
 
                 logger.info(
@@ -723,6 +772,7 @@ def _update_relocation_validation_attempt(
 @instrumented_task(
     name="sentry.relocation.validating_start",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -736,7 +786,7 @@ def validating_start(uuid: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -799,6 +849,7 @@ def validating_start(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.validating_poll",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_VALIDATION_POLLS,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -812,7 +863,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -852,7 +903,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
             if relocation_validation_attempt.date_added is not None
             else datetime.fromtimestamp(0)
         )
-        timeout_limit = datetime.now(tz=timezone.utc) - DEFAULT_VALIDATION_TIMEOUT
+        timeout_limit = datetime.now(UTC) - DEFAULT_VALIDATION_TIMEOUT
 
         if build.status == Build.Status.SUCCESS:
             next_task = NextTask(
@@ -898,6 +949,7 @@ def validating_poll(uuid: str, build_id: str) -> None:
 @instrumented_task(
     name="sentry.relocation.validating_complete",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -913,7 +965,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     This function is meant to be idempotent, and should be retried with an exponential backoff.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -940,7 +992,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
         attempts_left,
         ERR_VALIDATING_INTERNAL,
     ):
-        storage = get_storage()
+        storage = get_relocation_storage()
         final_status = ValidationStatus.VALID
         (_, findings_files) = storage.listdir(f"runs/{uuid}/findings")
         for file in sorted(findings_files, reverse=True):
@@ -970,7 +1022,27 @@ def validating_complete(uuid: str, build_id: str) -> None:
 @instrumented_task(
     name="sentry.relocation.importing",
     queue="relocation",
-    max_retries=0,
+    autoretry_for=(Exception,),
+    # At first blush, it would seem that retrying a failed import will leave a bunch of "abandoned"
+    # data from the previous one, but that is not actually the case: because we use this relocation
+    # UUID as the `import_uuid` for the `import...` call, we'll be able to re-use all of the
+    # already-written import chunks (and, by extension, their models). This is due to each import
+    # write operation atomically checking the relevant `ImportChunk` table for collisions at
+    # database write time. So it will attempt to write a new copy, realize that this `(import_uuid,
+    # model, ordinal)` three-tuple has already been written, and return that information instead.
+    # Basically, all of the already completed write operations will be no-ops that return the
+    # already-written models and pk maps, and we'll pick up right where we left off.
+    #
+    # The main reason to have this at all is to guard against transient errors, especially with RPC
+    # or task timeouts.
+    max_retries=MAX_SLOW_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    # Setting `acks_late` here allows us to retry the potentially long-lived task if the k8s pod if
+    # the worker received SIGKILL/TERM/QUIT. Since the `Relocation` model itself is counting the
+    # number of attempts using `latest_task_attempts` anyway, we ensure that this won't result in an
+    # infinite loop of very long-lived tasks being continually retried.
+    acks_late=True,
     soft_time_limit=SLOW_TIME_LIMIT,
     silo_mode=SiloMode.REGION,
 )
@@ -982,12 +1054,12 @@ def importing(uuid: str) -> None:
     trying it again!
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
         task=OrderedTask.IMPORTING,
-        allowed_task_attempts=1,
+        allowed_task_attempts=MAX_SLOW_TASK_ATTEMPTS,
     )
     if relocation is None:
         return
@@ -1028,6 +1100,7 @@ def importing(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.postprocessing",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1039,7 +1112,7 @@ def postprocessing(uuid: str) -> None:
     Make the owner of this relocation an owner of all of the organizations we just imported.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1093,12 +1166,34 @@ def postprocessing(uuid: str) -> None:
             if isinstance(result, Exception):
                 raise result
 
+        # This signal must come after the relocated signal, to ensure that the subscription and
+        # customer models have been appropriately set up before attempting to redeem a promo code.
+        relocation_redeem_promo_code.send_robust(
+            sender=postprocessing,
+            user_id=relocation.owner_id,
+            relocation_uuid=uuid,
+            orgs=list(imported_orgs),
+        )
+
+        for org in imported_orgs:
+            try:
+                analytics.record(
+                    "relocation.organization_imported",
+                    organization_id=org.id,
+                    relocation_uuid=str(relocation.uuid),
+                    slug=org.slug,
+                    owner_id=relocation.owner_id,
+                )
+            except Exception as e:
+                capture_exception(e)
+
     notifying_users.apply_async(args=[uuid])
 
 
 @instrumented_task(
     name="sentry.relocation.notifying_users",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1110,7 +1205,7 @@ def notifying_users(uuid: str) -> None:
     Send an email to all users that have been imported, telling them to claim their accounts.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1133,6 +1228,12 @@ def notifying_users(uuid: str) -> None:
         for chunk in chunks:
             imported_user_ids = imported_user_ids.union(set(chunk.inserted_map.values()))
 
+        imported_org_slugs: set[int] = set()
+        for chunk in RegionImportChunk.objects.filter(
+            import_uuid=str(uuid), model="sentry.organization"
+        ):
+            imported_org_slugs = imported_org_slugs.union(set(chunk.inserted_identifiers.values()))
+
         # Do a sanity check on pk-mapping before we go and reset the passwords of random users - are
         # all of these usernames plausibly ones that were included in the import, based on username
         # prefix matching?
@@ -1150,10 +1251,15 @@ def notifying_users(uuid: str) -> None:
 
         # Okay, everything seems fine - go ahead and send those emails.
         for user in imported_users:
-            hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
-            LostPasswordHash.send_relocate_account_email(user, hash, relocation.want_org_slugs)
+            # Sometimes, we merge users together before unpausing a relocation. No need to send an
+            # email to these users!
+            if not user.is_unclaimed:
+                continue
 
-        relocation.latest_unclaimed_emails_sent_at = datetime.now()
+            hash = lost_password_hash_service.get_or_create(user_id=user.id).hash
+            LostPasswordHash.send_relocate_account_email(user, hash, list(imported_org_slugs))
+
+        relocation.latest_unclaimed_emails_sent_at = datetime.now(UTC)
         relocation.save()
 
     notifying_owner.apply_async(args=[uuid])
@@ -1162,6 +1268,7 @@ def notifying_users(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.notifying_owner",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1173,7 +1280,7 @@ def notifying_owner(uuid: str) -> None:
     Send an email to the creator and owner, telling them that their relocation was successful.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,
@@ -1189,12 +1296,18 @@ def notifying_owner(uuid: str) -> None:
         attempts_left,
         ERR_NOTIFYING_INTERNAL,
     ):
+        imported_org_slugs: set[int] = set()
+        for chunk in RegionImportChunk.objects.filter(
+            import_uuid=str(uuid), model="sentry.organization"
+        ):
+            imported_org_slugs = imported_org_slugs.union(set(chunk.inserted_identifiers.values()))
+
         send_relocation_update_email(
             relocation,
             Relocation.EmailKind.SUCCEEDED,
             {
                 "uuid": str(relocation.uuid),
-                "orgs": relocation.want_org_slugs,
+                "orgs": list(imported_org_slugs),
             },
         )
 
@@ -1204,6 +1317,7 @@ def notifying_owner(uuid: str) -> None:
 @instrumented_task(
     name="sentry.relocation.completed",
     queue="relocation",
+    autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
@@ -1215,7 +1329,7 @@ def completed(uuid: str) -> None:
     Finish up a relocation by marking it a success.
     """
 
-    relocation: Optional[Relocation]
+    relocation: Relocation | None
     attempts_left: int
     (relocation, attempts_left) = start_relocation_task(
         uuid=uuid,

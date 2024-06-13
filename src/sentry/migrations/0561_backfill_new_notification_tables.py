@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from django.db import ProgrammingError, migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -35,7 +36,7 @@ EXTERNAL_PROVIDERS = {
 }
 
 
-def get_provider_name(value: int) -> Optional[str]:
+def get_provider_name(value: int) -> str | None:
     return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
 
 
@@ -48,11 +49,11 @@ integers to their string values.
 """
 
 
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
+def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> str | None:
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
-def get_notification_scope_name(value: int) -> Optional[str]:
+def get_notification_scope_name(value: int) -> str | None:
     return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
@@ -212,7 +213,9 @@ End of copied over code
 """
 
 
-def backfill_notification_settings(apps, schema_editor):
+def backfill_notification_settings(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
     try:
         NotificationSetting = apps.get_model("sentry", "NotificationSetting")
         NotificationSettingOption = apps.get_model("sentry", "NotificationSettingOption")
@@ -294,13 +297,13 @@ class Migration(CheckedMigration):
     # the most part, this should only be used for operations where it's safe to run the migration
     # after your code has deployed. So this should not be used for most operations that alter the
     # schema of a table.
-    # Here are some things that make sense to mark as dangerous:
+    # Here are some things that make sense to mark as post deployment:
     # - Large data migrations. Typically we want these to be run manually by ops so that they can
     #   be monitored and not block the deploy for a long period of time while they run.
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0560_add_monitorincident_table"),

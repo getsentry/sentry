@@ -15,13 +15,14 @@ from sentry.integrations.jira.webhooks import (
     JiraSentryInstalledWebhook,
     JiraSentryUninstalledWebhook,
 )
+from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
     parse_integration_from_request,
 )
-from sentry.middleware.integrations.parsers.base import BaseRequestParser
 from sentry.models.integrations import Integration
 from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +54,12 @@ class JiraRequestParser(BaseRequestParser):
         if self.view_class in self.control_classes:
             return self.get_response_from_control_silo()
 
+        integration = self.get_integration_from_request()
+        if not integration:
+            raise Integration.DoesNotExist()
+
         regions = self.get_regions_from_organizations()
+
         if len(regions) == 0:
             logger.info("%s.no_regions", self.provider, extra={"path": self.request.path})
             return self.get_response_from_control_silo()
@@ -66,12 +72,17 @@ class JiraRequestParser(BaseRequestParser):
                 self.provider,
                 extra={"path": self.request.path, "regions": regions},
             )
-            return self.get_response_from_control_silo()
 
         if self.view_class in self.immediate_response_region_classes:
-            return self.get_response_from_region_silo(region=regions[0])
+            try:
+                return self.get_response_from_region_silo(region=regions[0])
+            except ApiError as err:
+                sentry_sdk.capture_exception(err)
+                return self.get_response_from_control_silo()
 
         if self.view_class in self.outbox_response_region_classes:
-            return self.get_response_from_outbox_creation(regions=regions)
+            return self.get_response_from_webhookpayload(
+                regions=regions, identifier=integration.id, integration_id=integration.id
+            )
 
         return self.get_response_from_control_silo()

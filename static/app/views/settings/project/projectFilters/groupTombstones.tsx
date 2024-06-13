@@ -17,7 +17,8 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {GroupTombstone, Project} from 'sentry/types';
+import type {GroupTombstone} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,7 +38,6 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: GroupTombstoneRowProps
       <StyledBox>
         <EventOrGroupHeader
           hideIcons
-          size="normal"
           data={{...data, isTombstone: true}}
           source="group-tombstome"
         />

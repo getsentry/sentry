@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
@@ -16,7 +15,8 @@ import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
@@ -24,9 +24,11 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AvatarProject, Organization, Project} from 'sentry/types';
+import type {AvatarProject, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatPercentage, getDuration} from 'sentry/utils/formatters';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -39,22 +41,22 @@ import {
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
 import {PerformanceChangeExplorer} from 'sentry/views/performance/trends/changeExplorer';
-import {getSelectedTransaction} from 'sentry/views/performance/utils';
+import getSelectedQueryKey from 'sentry/views/performance/trends/utils/getSelectedQueryKey';
+import {getSelectedTransaction} from 'sentry/views/performance/utils/getSelectedTransaction';
 
 import Chart from './chart';
-import {
+import type {
   NormalizedTrendsTransaction,
-  TrendChangeType,
   TrendFunctionField,
   TrendParameter,
   TrendParameterColumn,
   TrendsStats,
   TrendView,
 } from './types';
+import {TrendChangeType} from './types';
 import {
   getCurrentTrendFunction,
   getCurrentTrendParameter,
-  getSelectedQueryKey,
   getTrendProjectId,
   modifyTrendView,
   normalizeTrends,
@@ -254,9 +256,7 @@ function ChangedTransactions(props: Props) {
           projects,
           trendView.project
         );
-        const events = normalizeTrends(
-          (trendsData && trendsData.events && trendsData.events.data) || []
-        );
+        const events = normalizeTrends(trendsData?.events?.data || []);
         const selectedTransaction = getSelectedTransaction(
           location,
           trendChangeType,
@@ -264,7 +264,7 @@ function ChangedTransactions(props: Props) {
         );
 
         const statsData = trendsData?.stats || {};
-        const transactionsList = events && events.slice ? events.slice(0, 5) : [];
+        const transactionsList = events?.slice ? events.slice(0, 5) : [];
 
         const currentTrendFunction =
           isLoading && previousTrendFunction

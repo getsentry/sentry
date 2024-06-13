@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
+import type {GridCellProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';

@@ -1,8 +1,8 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import NotFound from 'sentry/components/errors/notFound';
 import {BorderlessEventEntries} from 'sentry/components/events/eventEntries';
 import Footer from 'sentry/components/footer';
@@ -11,9 +11,9 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import SentryTypes from 'sentry/sentryTypes';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import {space} from 'sentry/styles/space';
-import {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import withApi from 'sentry/utils/withApi';
 
 import {OrganizationContext} from '../organizationContext';
@@ -32,7 +32,7 @@ type State = {
 
 class SharedGroupDetails extends Component<Props, State> {
   static childContextTypes = {
-    group: SentryTypes.Group,
+    group: SentryPropTypeValidators.isGroup,
   };
 
   state: State = this.getInitialState();
@@ -120,7 +120,6 @@ class SharedGroupDetails extends Component<Props, State> {
       return <LoadingError onRetry={this.handleRetry} />;
     }
 
-    const {location} = this.props;
     const {permalink, latestEvent, project} = group;
     const title = this.getTitle();
     // project.organization is not a real organization, it's just the slug and name
@@ -148,7 +147,6 @@ class SharedGroupDetails extends Component<Props, State> {
                   <SharedGroupHeader group={group} />
                   <Container className="group-overview event-details-container">
                     <BorderlessEventEntries
-                      location={location}
                       organization={org}
                       group={group}
                       event={latestEvent}

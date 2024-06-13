@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import timezone
-from typing import Any, Dict, Mapping, Optional, Sequence, TypedDict
+from typing import Any, TypedDict
 
 from django.utils.datastructures import OrderedSet
 from isodate import parse_datetime
@@ -14,13 +15,13 @@ logger = logging.getLogger("sentry.integrations.github")
 
 
 class GitHubAuthor(TypedDict):
-    name: Optional[str]
-    email: Optional[str]
+    name: str | None
+    email: str | None
 
 
 class GitHubFileBlameCommit(TypedDict):
     oid: str
-    author: Optional[GitHubAuthor]
+    author: GitHubAuthor | None
     message: str
     committedDate: str
 
@@ -45,8 +46,8 @@ class GitHubGraphQlResponse(TypedDict):
     errors: list[dict[str, str]]
 
 
-FilePathMapping = Dict[str, Dict[str, OrderedSet]]
-GitHubRepositoryResponse = Dict[str, GitHubRefResponse]
+FilePathMapping = dict[str, dict[str, OrderedSet]]
+GitHubRepositoryResponse = dict[str, GitHubRefResponse]
 
 
 def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMapping:
@@ -65,22 +66,16 @@ def generate_file_path_mapping(files: Sequence[SourceLineInfo]) -> FilePathMappi
     return file_path_mapping
 
 
-def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, Any]) -> str:
+def create_blame_query(
+    file_path_mapping: FilePathMapping, extra: Mapping[str, Any]
+) -> tuple[str, dict[str, str]]:
     """
     Create a GraphQL query to get blame information for a list of files
     """
     repo_queries = ""
+    variable_names: list[str] = []
+    variable_data: dict[str, str] = {}
     for repo_index, (full_repo_name, ref) in enumerate(file_path_mapping.items()):
-        ref_queries = ""
-        for ref_index, (ref_name, file_paths) in enumerate(ref.items()):
-            blame_queries = "".join(
-                [
-                    _make_blame_query(file_path, file_path_index)
-                    for file_path_index, file_path in enumerate(file_paths)
-                ]
-            )
-            ref_queries += _make_ref_query(ref_name, blame_queries, ref_index)
-
         try:
             [repo_owner, repo_name] = full_repo_name.split("/", maxsplit=1)
         except ValueError:
@@ -90,15 +85,36 @@ def create_blame_query(file_path_mapping: FilePathMapping, extra: Mapping[str, A
             )
             continue
 
-        repo_queries += _make_repo_query(repo_name, repo_owner, ref_queries, repo_index)
+        var_repo_name = f"repo_name_{repo_index}"
+        var_repo_owner = f"repo_owner_{repo_index}"
+        variable_names.append(f"${var_repo_name}: String!")
+        variable_names.append(f"${var_repo_owner}: String!")
+        variable_data[var_repo_name] = repo_name
+        variable_data[var_repo_owner] = repo_owner
 
-    query = f"""query {{{repo_queries}\n}}"""
+        ref_queries = ""
 
-    logger.info(
-        "get_blame_for_files.create_blame_query.created_query", extra={**extra, "query": query}
-    )
+        for ref_index, (ref_name, file_paths) in enumerate(ref.items()):
+            var_ref = f"ref_{repo_index}_{ref_index}"
+            variable_names.append(f"${var_ref}: String!")
+            variable_data[var_ref] = ref_name
 
-    return query
+            blame_queries = ""
+            for file_path_index, file_path in enumerate(file_paths):
+                var_path = f"path_{repo_index}_{ref_index}_{file_path_index}"
+                blame_queries += _make_blame_query(var_path, file_path_index)
+                variable_names.append(f"${var_path}: String!")
+                variable_data[var_path] = file_path.strip("/")
+            ref_queries += _make_ref_query(var_ref, blame_queries, ref_index)
+
+        repo_queries += _make_repo_query(
+            var_repo_name=var_repo_name,
+            var_repo_owner=var_repo_owner,
+            ref_queries=ref_queries,
+            index=repo_index,
+        )
+
+    return f"""query ({", ".join(variable_names)}) {{{repo_queries}\n}}""", variable_data
 
 
 def extract_commits_from_blame_response(
@@ -113,9 +129,8 @@ def extract_commits_from_blame_response(
     back to the correct file.
     """
     file_blames: list[FileBlameInfo] = []
-    logger.info("get_blame_for_files.extract_commits_from_blame.missing_repository", extra=extra)
     for repo_index, (full_repo_name, ref_mapping) in enumerate(file_path_mapping.items()):
-        repo_mapping: Optional[GitHubRepositoryResponse] = response.get("data", {}).get(
+        repo_mapping: GitHubRepositoryResponse | None = response.get("data", {}).get(
             f"repository{repo_index}"
         )
         if not repo_mapping:
@@ -125,7 +140,7 @@ def extract_commits_from_blame_response(
             )
             continue
         for ref_index, (ref_name, file_paths) in enumerate(ref_mapping.items()):
-            ref: Optional[GitHubRefResponse] = repo_mapping.get(f"ref{ref_index}")
+            ref: GitHubRefResponse | None = repo_mapping.get(f"ref{ref_index}")
             if not isinstance(ref, dict):
                 logger.warning(
                     "get_blame_for_files.extract_commits_from_blame.missing_branch",
@@ -133,7 +148,7 @@ def extract_commits_from_blame_response(
                 )
                 continue
             for file_path_index, file_path in enumerate(file_paths):
-                blame: Optional[GitHubBlameResponse] = ref.get("target", {}).get(
+                blame: GitHubBlameResponse | None = ref.get("target", {}).get(
                     f"blame{file_path_index}"
                 )
                 if not blame:
@@ -175,7 +190,7 @@ def _get_matching_file_blame(
     file: SourceLineInfo,
     blame_ranges: Sequence[GitHubFileBlameRange],
     extra: dict[str, str | int | None],
-) -> Optional[FileBlameInfo]:
+) -> FileBlameInfo | None:
     """
     Generates a FileBlameInfo object for the given file. Searches the given blame range
     and validates that the commit is valid before creating the FileBlameInfo object.
@@ -191,7 +206,7 @@ def _get_matching_file_blame(
         )
         return None
 
-    commit: Optional[GitHubFileBlameCommit] = matching_blame_range.get("commit", None)
+    commit: GitHubFileBlameCommit | None = matching_blame_range.get("commit", None)
     if not commit:
         logger.error(
             "get_blame_for_files.extract_commits_from_blame.no_commit_data",
@@ -251,9 +266,9 @@ def _get_matching_file_blame(
     return blame
 
 
-def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
+def _make_ref_query(var_ref: str, blame_queries: str, index: int) -> str:
     return f"""
-        ref{index}: ref(qualifiedName: "{ref}") {{
+        ref{index}: ref(qualifiedName: ${var_ref}) {{
             target {{
                 ... on Commit {{{blame_queries}
                 }}
@@ -261,9 +276,9 @@ def _make_ref_query(ref: str, blame_queries: str, index: int) -> str:
         }}"""
 
 
-def _make_blame_query(path: str, index: int) -> str:
+def _make_blame_query(var_repo: str, blame_index: int) -> str:
     return f"""
-                    blame{index}: blame(path: "{path.strip('/')}") {{
+                    blame{blame_index}: blame(path: ${var_repo}) {{
                         ranges {{
                             commit {{
                                 oid
@@ -281,7 +296,7 @@ def _make_blame_query(path: str, index: int) -> str:
                     }}"""
 
 
-def _make_repo_query(repo_name: str, repo_owner: str, ref_queries: str, index: int) -> str:
+def _make_repo_query(var_repo_name: str, var_repo_owner: str, ref_queries: str, index: int) -> str:
     return f"""
-    repository{index}: repository(name: "{repo_name}", owner: "{repo_owner}") {{{ref_queries}
+    repository{index}: repository(name: ${var_repo_name}, owner: ${var_repo_owner}) {{{ref_queries}
     }}"""

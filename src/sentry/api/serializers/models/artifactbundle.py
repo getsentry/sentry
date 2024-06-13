@@ -1,5 +1,4 @@
 import base64
-from typing import Dict, List, Tuple
 
 from sentry.api.serializers import Serializer
 from sentry.models.artifactbundle import ReleaseArtifactBundle, SourceFileType
@@ -30,7 +29,7 @@ class ArtifactBundlesSerializer(Serializer):
             artifact_bundle_id__in=[r[0] for r in item_list]
         ).order_by("-id")
 
-        grouped_bundles: Dict[int, List[Tuple[str, str]]] = {}
+        grouped_bundles: dict[int, list[tuple[str, str]]] = {}
         for release in release_artifact_bundles:
             bundles = grouped_bundles.setdefault(release.artifact_bundle_id, [])
             bundles.append((release.release_name, release.dist_name))
@@ -83,9 +82,7 @@ class ArtifactBundleFilesSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": base64.urlsafe_b64encode(bytes(attrs["file_path"].encode("utf-8"))).decode(
-                "utf-8"
-            ),
+            "id": base64.urlsafe_b64encode(attrs["file_path"].encode()).decode(),
             # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
             "fileType": attrs["file_type"].value
             if attrs["file_type"] is not None

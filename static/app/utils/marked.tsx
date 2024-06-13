@@ -1,5 +1,6 @@
 import dompurify from 'dompurify';
-import marked from 'marked'; // eslint-disable-line no-restricted-imports
+import type {MarkedOptions} from 'marked'; // eslint-disable-line no-restricted-imports
+import {marked} from 'marked'; // eslint-disable-line no-restricted-imports
 import Prism from 'prismjs';
 
 import {NODE_ENV} from 'sentry/constants';
@@ -42,6 +43,16 @@ class SafeRenderer extends marked.Renderer {
   }
 }
 
+class LimitedRenderer extends marked.Renderer {
+  link(href: string) {
+    return href;
+  }
+
+  image(href: string) {
+    return href;
+  }
+}
+
 class NoParagraphRenderer extends SafeRenderer {
   paragraph(text: string) {
     return text;
@@ -62,7 +73,7 @@ marked.setOptions({
     }
 
     loadPrismLanguage(lang, {
-      onLoad: () => callback?.(null, Prism.highlight(code, Prism.languages[lang], lang)),
+      onLoad: () => callback?.(null!, Prism.highlight(code, Prism.languages[lang], lang)),
       onError: error => callback?.(error, code),
       suppressExistenceWarning: true,
     });
@@ -80,11 +91,15 @@ marked.setOptions({
   silent: NODE_ENV === 'test',
 });
 
-const sanitizedMarked = (...args: Parameters<typeof marked>) =>
-  dompurify.sanitize(marked(...args));
+const limitedMarked = (text: string, options: MarkedOptions = {}) =>
+  sanitizedMarked(text, {...options, renderer: new LimitedRenderer()});
 
-const singleLineRenderer = (text: string, options: marked.MarkedOptions = {}) =>
+const sanitizedMarked = (src: string, options?: MarkedOptions) => {
+  return dompurify.sanitize(marked(src, options));
+};
+
+const singleLineRenderer = (text: string, options: MarkedOptions = {}) =>
   sanitizedMarked(text, {...options, renderer: new NoParagraphRenderer()});
 
-export {singleLineRenderer};
+export {singleLineRenderer, limitedMarked};
 export default sanitizedMarked;

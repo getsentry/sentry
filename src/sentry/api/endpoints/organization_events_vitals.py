@@ -7,6 +7,7 @@ from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 
@@ -14,7 +15,7 @@ from sentry.snuba import discover
 @region_silo_endpoint
 class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     VITALS = {
         "measurements.lcp": {"thresholds": [0, 2500, 4000]},
@@ -64,7 +65,7 @@ class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
                     ]
                 )
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             events_results = dataset.query(
                 selected_columns=selected_columns,
                 query=request.GET.get("query"),

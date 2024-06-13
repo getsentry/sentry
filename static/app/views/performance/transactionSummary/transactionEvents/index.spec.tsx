@@ -1,12 +1,9 @@
-import {browserHistory} from 'react-router';
-
-import {
-  initializeData as _initializeData,
-  InitializeDataSettings,
-} from 'sentry-test/performance/initializePerformanceData';
+import type {InitializeDataSettings} from 'sentry-test/performance/initializePerformanceData';
+import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import TransactionEvents from 'sentry/views/performance/transactionSummary/transactionEvents';
 
@@ -147,7 +144,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should contain all transaction events', async () => {
     const data = initializeData();
 
-    render(<WrappedComponent data={data} />, {context: data.routerContext});
+    render(<WrappedComponent data={data} />, {router: data.router});
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(await screen.findByText('moreuhoh@example.com')).toBeInTheDocument();
   });
@@ -157,7 +154,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
       query: {project: '1', transaction: 'transaction', showTransactions: 'p50'},
     });
 
-    render(<WrappedComponent data={data} />, {context: data.routerContext});
+    render(<WrappedComponent data={data} />, {router: data.router});
     expect(await screen.findByText('uhoh@example.com')).toBeInTheDocument();
     expect(screen.queryByText('moreuhoh@example.com')).not.toBeInTheDocument();
   });
@@ -165,7 +162,7 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
   it('should update transaction percentile query if selected', async () => {
     const data = initializeData();
 
-    render(<WrappedComponent data={data} />, {context: data.routerContext});
+    render(<WrappedComponent data={data} />, {router: data.router});
     const percentileButton = await screen.findByRole('button', {
       name: /percentile p100/i,
     });

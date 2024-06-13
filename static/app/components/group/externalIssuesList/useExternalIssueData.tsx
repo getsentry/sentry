@@ -1,12 +1,14 @@
-import {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
+import type {ExternalIssueComponent} from 'sentry/components/group/externalIssuesList/types';
 import useFetchIntegrations from 'sentry/components/group/externalIssuesList/useFetchIntegrations';
 import useFetchSentryAppData from 'sentry/components/group/externalIssuesList/useFetchSentryAppData';
 import useIssueTrackingFilter from 'sentry/components/group/externalIssuesList/useIssueTrackingFilter';
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
 import SentryAppInstallationStore from 'sentry/stores/sentryAppInstallationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Group, GroupIntegration, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {GroupIntegration} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import useSentryAppComponentsStore from 'sentry/utils/useSentryAppComponentsStore';
 

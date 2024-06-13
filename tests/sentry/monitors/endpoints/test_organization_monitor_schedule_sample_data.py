@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import zoneinfo
 from datetime import datetime
-from unittest.mock import patch
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.helpers.datetime import freeze_time
 
 
-@region_silo_test
 class SampleScheduleDataTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitors-schedule-sample-data"
 
@@ -15,9 +14,8 @@ class SampleScheduleDataTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    @patch("django.utils.timezone.now")
-    def test_simple_crontab(self, mock_now):
-        mock_now.return_value = datetime(2023, 10, 26, 12, 32)
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_simple_crontab(self):
 
         expected_ticks = [
             int(datetime(2023, 10, 26, 13, 00).timestamp()),
@@ -33,10 +31,32 @@ class SampleScheduleDataTest(APITestCase):
         )
         assert response.data == expected_ticks
 
-    @patch("django.utils.timezone.now")
-    def test_simple_interval(self, mock_now):
-        mock_now.return_value = datetime(2023, 10, 26, 12, 32)
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_crontab_with_timezone(self):
+        tz = "US/Pacific"
+        zone = zoneinfo.ZoneInfo(tz)
 
+        expected_ticks = [
+            int(datetime(2023, 10, 27, 00, 00, tzinfo=zone).timestamp()),
+            int(datetime(2023, 10, 28, 00, 00, tzinfo=zone).timestamp()),
+            int(datetime(2023, 10, 29, 00, 00, tzinfo=zone).timestamp()),
+            int(datetime(2023, 10, 30, 00, 00, tzinfo=zone).timestamp()),
+            int(datetime(2023, 10, 31, 00, 00, tzinfo=zone).timestamp()),
+        ]
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={
+                "num_ticks": 5,
+                "schedule_type": "crontab",
+                "schedule": "0 0 * * *",
+                "timezone": tz,
+            },
+        )
+        assert response.data == expected_ticks
+
+    @freeze_time("2023-10-26T12:32:25Z")
+    def test_simple_interval(self):
         expected_ticks = [
             int(datetime(2023, 10, 26, 12, 00).timestamp()),
             int(datetime(2023, 10, 26, 13, 00).timestamp()),

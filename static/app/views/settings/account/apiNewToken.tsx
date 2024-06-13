@@ -1,14 +1,15 @@
 import {Component} from 'react';
-import {browserHistory} from 'react-router';
 
 import ApiForm from 'sentry/components/forms/apiForm';
+import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {InternalAppApiToken, Permissions} from 'sentry/types';
+import type {NewInternalAppApiToken, Permissions} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
@@ -18,7 +19,8 @@ import PermissionSelection from 'sentry/views/settings/organizationDeveloperSett
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 type State = {
-  newToken: InternalAppApiToken | null;
+  name: string | null;
+  newToken: NewInternalAppApiToken | null;
   permissions: Permissions;
 };
 
@@ -26,6 +28,7 @@ export default class ApiNewToken extends Component<{}, State> {
   constructor(props: {}) {
     super(props);
     this.state = {
+      name: null,
       permissions: {
         Event: 'no-access',
         Team: 'no-access',
@@ -75,12 +78,11 @@ export default class ApiNewToken extends Component<{}, State> {
               handleGoBack={this.handleGoBack}
             />
           ) : (
-            <Panel>
-              <PanelHeader>{t('Permissions')}</PanelHeader>
+            <div>
               <ApiForm
                 apiMethod="POST"
                 apiEndpoint="/api-tokens/"
-                initialData={{scopes: []}}
+                initialData={{scopes: [], name: ''}}
                 onSubmitSuccess={response => {
                   this.setState({newToken: response});
                 }}
@@ -94,17 +96,33 @@ export default class ApiNewToken extends Component<{}, State> {
                 )}
                 submitLabel={t('Create Token')}
               >
-                <PanelBody>
-                  <PermissionSelection
-                    appPublished={false}
-                    permissions={permissions}
-                    onChange={value => {
-                      this.setState({permissions: value});
-                    }}
-                  />
-                </PanelBody>
+                <Panel>
+                  <PanelHeader>{t('General')}</PanelHeader>
+                  <PanelBody>
+                    <TextField
+                      name="name"
+                      label={t('Name')}
+                      help={t('A name to help you identify this token.')}
+                      onChange={value => {
+                        this.setState({name: value});
+                      }}
+                    />
+                  </PanelBody>
+                </Panel>
+                <Panel>
+                  <PanelHeader>{t('Permissions')}</PanelHeader>
+                  <PanelBody>
+                    <PermissionSelection
+                      appPublished={false}
+                      permissions={permissions}
+                      onChange={value => {
+                        this.setState({permissions: value});
+                      }}
+                    />
+                  </PanelBody>
+                </Panel>
               </ApiForm>
-            </Panel>
+            </div>
           )}
         </div>
       </SentryDocumentTitle>

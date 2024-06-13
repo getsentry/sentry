@@ -1,4 +1,4 @@
-import {Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Panel from 'sentry/components/panels/panel';
@@ -88,7 +88,7 @@ export const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.headingColor};
   ${p => p.theme.overflowEllipsis};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const HeaderWrapper = styled('div')`

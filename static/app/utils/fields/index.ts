@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -67,6 +67,7 @@ export enum FieldKey {
   IS = 'is',
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
+  ISSUE_PRIORITY = 'issue.priority',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -144,6 +145,7 @@ export enum WebVital {
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   REQUEST_TIME = 'measurements.ttfb.requesttime',
 }
 
@@ -470,6 +472,11 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
+  [WebVital.INP]: {
+    desc: t('Web Vital Interaction to Next Paint'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
 };
 
 export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
@@ -513,7 +520,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.ASSIGNED]: {
     desc: t('Assignee of the issue as a user ID'),
@@ -743,6 +750,12 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
+  },
+  [FieldKey.ISSUE_PRIORITY]: {
+    desc: t('The priority of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['high', 'medium', 'low'],
   },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
@@ -1069,6 +1082,7 @@ export const ISSUE_FIELDS = [
   FieldKey.IS,
   FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_PRIORITY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
@@ -1223,7 +1237,9 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
+  SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
+  VIEWED_BY_ME = 'viewed_by_me',
 }
 
 export enum ReplayClickFieldKey {
@@ -1239,6 +1255,7 @@ export enum ReplayClickFieldKey {
   CLICK_TESTID = 'click.testid',
   CLICK_TEXT_CONTENT = 'click.textContent',
   CLICK_TITLE = 'click.title',
+  CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
 /**
@@ -1263,7 +1280,6 @@ export const REPLAY_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
-
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
@@ -1273,12 +1289,14 @@ export const REPLAY_FIELDS = [
   FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
+  ReplayFieldKey.SEEN_BY_ME,
   FieldKey.TRACE,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.VIEWED_BY_ME,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -1342,10 +1360,20 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.SEEN_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [ReplayFieldKey.URLS]: {
-    desc: t('List of urls that were visited within the Replay'),
+    desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.VIEWED_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -1362,6 +1390,7 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
   ReplayClickFieldKey.CLICK_TESTID,
+  ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
@@ -1429,6 +1458,11 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
   [ReplayClickFieldKey.CLICK_TITLE]: {
     desc: t('`title` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
+    desc: t('the name of the frontend component that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

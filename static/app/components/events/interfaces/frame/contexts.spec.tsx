@@ -1,4 +1,4 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -6,7 +6,7 @@ import {DeviceEventContext} from 'sentry/components/events/contexts/device';
 import {commonDisplayResolutions} from 'sentry/components/events/contexts/device/utils';
 import {UserEventContext} from 'sentry/components/events/contexts/user';
 import {FILTER_MASK} from 'sentry/constants';
-import {DeviceContext} from 'sentry/types';
+import type {DeviceContext} from 'sentry/types';
 
 describe('User', function () {
   it("displays filtered values but doesn't use them for avatar", function () {

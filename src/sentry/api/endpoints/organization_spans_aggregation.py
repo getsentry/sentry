@@ -1,7 +1,8 @@
 import hashlib
 from collections import defaultdict, namedtuple
-from datetime import datetime
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple, TypedDict
+from collections.abc import Mapping
+from datetime import datetime, timezone
+from typing import Any, Optional, TypedDict
 
 import sentry_sdk
 from rest_framework import status
@@ -9,10 +10,11 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Function
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -20,6 +22,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 ALLOWED_BACKENDS = ["indexedSpans", "nodestore"]
+CUTOVER_DATE = datetime(2024, 3, 22, tzinfo=timezone.utc)
 
 EventSpan = namedtuple(
     "EventSpan",
@@ -40,7 +43,14 @@ EventSpan = namedtuple(
 
 class EventSpans(TypedDict):
     transaction_id: str
-    spans: List[EventSpan]
+    spans: list[EventSpan]
+
+
+class SpanSample(TypedDict):
+    transaction: str | None
+    trace: str | None
+    timestamp: int
+    span: str
 
 
 AggregateSpanRow = TypedDict(
@@ -59,7 +69,9 @@ AggregateSpanRow = TypedDict(
         "avg(absolute_offset)": float,
         "avg(relative_offset)": float,
         "count()": int,
-        "samples": Set[Tuple[Optional[str], str]],
+        # samples is deprecated in favour of sample_spans
+        "samples": set[tuple[Optional[str], str]],
+        "sample_spans": list[SpanSample],
     },
 )
 
@@ -68,8 +80,9 @@ NULL_GROUP = "00"
 
 class BaseAggregateSpans:
     def __init__(self) -> None:
-        self.aggregated_tree: Dict[str, AggregateSpanRow] = {}
-        self.current_transaction: Optional[str] = None
+        self.aggregated_tree: dict[str, AggregateSpanRow] = {}
+        self.current_transaction: str | None = None
+        self.current_trace: str | None = None
 
     def fingerprint_nodes(
         self,
@@ -140,10 +153,31 @@ class BaseAggregateSpans:
                 else node["avg(relative_offset)"]
             )
             node["count()"] += 1
+            # TODO: will need a better way to check we don't add dupes once samples is gone
             if len(node["samples"]) < 5:
                 node["samples"].add((self.current_transaction, span_tree["span_id"]))
+                node["sample_spans"].append(
+                    SpanSample(
+                        {
+                            "transaction": self.current_transaction,
+                            "timestamp": start_timestamp / 1000,
+                            "span": span_tree["span_id"],
+                            "trace": self.current_trace,
+                        }
+                    )
+                )
         else:
             sample = {(self.current_transaction, span_tree["span_id"])}
+            span_sample = [
+                SpanSample(
+                    {
+                        "transaction": self.current_transaction,
+                        "timestamp": start_timestamp / 1000,
+                        "span": span_tree["span_id"],
+                        "trace": self.current_trace,
+                    }
+                )
+            ]
             self.aggregated_tree[node_fingerprint] = {
                 "node_fingerprint": node_fingerprint,
                 "parent_node_fingerprint": parent_node_fingerprint,
@@ -156,18 +190,19 @@ class BaseAggregateSpans:
                 "avg(duration)": span_tree["duration"],
                 "is_segment": span_tree["is_segment"],
                 "avg(relative_offset)": start_timestamp - parent_timestamp,
-                "avg(absolute_offset)": parent_node["avg(absolute_offset)"]
-                + start_timestamp
-                - parent_timestamp
-                if parent_node
-                else start_timestamp - parent_timestamp,
+                "avg(absolute_offset)": (
+                    parent_node["avg(absolute_offset)"] + start_timestamp - parent_timestamp
+                    if parent_node
+                    else start_timestamp - parent_timestamp
+                ),
                 "count()": 1,
                 "samples": sample,
+                "sample_spans": span_sample,
             }
 
         # Handles sibling spans that have the same group
         span_tree["children"].sort(key=lambda s: s["start_timestamp_ms"])
-        span_hash_seen: Dict[str, int] = defaultdict(lambda: 0)
+        span_hash_seen: dict[str, int] = defaultdict(int)
 
         for child in span_tree["children"]:
             child_span_hash = child["key"]
@@ -189,6 +224,8 @@ class AggregateIndexedSpans(BaseAggregateSpans):
             spans = event["spans"]
 
             self.current_transaction = event["transaction_id"]
+            self.current_trace = event["trace_id"]
+
             for span_ in spans:
                 span = EventSpan(*span_)
                 span_id = getattr(span, "span_id")
@@ -211,8 +248,8 @@ class AggregateIndexedSpans(BaseAggregateSpans):
                     span_tree[span_id]["children"] = []
 
             for span_ in span_tree.values():
-                parent_id = span_["parent_span_id"]
-                if parent_id in span_tree:
+                parent_id = span_.get("parent_span_id")
+                if parent_id is not None and parent_id in span_tree:
                     parent_span = span_tree[parent_id]
                     children = parent_span["children"]
                     children.append(span_)
@@ -231,6 +268,8 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
             span_tree = {}
 
             self.current_transaction = event["event_id"]
+            self.current_trace = event["contexts"]["trace"]["trace_id"]
+
             root_span_id = event["contexts"]["trace"]["span_id"]
             span_tree[root_span_id] = {
                 "span_id": root_span_id,
@@ -256,7 +295,7 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                     spans_dict = {
                         "span_id": span["span_id"],
                         "is_segment": False,
-                        "parent_span_id": span["parent_span_id"],
+                        "parent_span_id": span.get("parent_span_id"),
                         "group": span.get("sentry_tags", {}).get("group")
                         or span.get("data", {}).get("span.group", NULL_GROUP),
                         "description": span.get("sentry_tags", {}).get("description", ""),
@@ -278,8 +317,8 @@ class AggregateNodestoreSpans(BaseAggregateSpans):
                     span_tree[span_id]["children"] = []
 
             for span_ in span_tree.values():
-                parent_id = span_["parent_span_id"]
-                if parent_id in span_tree:
+                parent_id = span_.get("parent_span_id")
+                if parent_id is not None and parent_id in span_tree:
                     parent_span = span_tree[parent_id]
                     children = parent_span["children"]
                     children.append(span_)
@@ -299,7 +338,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
-            "organizations:starfish-aggregate-span-waterfall", organization, actor=request.user
+            "organizations:insights-initial-modules", organization, actor=request.user
         ):
             return Response(status=404)
 
@@ -308,6 +347,14 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response(status=404)
 
+        enable_indexed_spans = options.get("indexed-spans.agg-span-waterfall.enable")
+
+        start = params["start"]
+        if start and start >= CUTOVER_DATE and enable_indexed_spans:
+            backend = "indexedSpans"
+        else:
+            backend = "nodestore"
+
         transaction = request.query_params.get("transaction", None)
         http_method = request.query_params.get("http.method", None)
         if transaction is None:
@@ -315,51 +362,50 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
                 status=status.HTTP_400_BAD_REQUEST, data={"details": "Transaction not provided"}
             )
 
-        backend = request.query_params.get("backend", "nodestore")
-        if backend not in ALLOWED_BACKENDS:
-            return Response(
-                status=status.HTTP_400_BAD_REQUEST, data={"details": "Backend not supported"}
-            )
+        sentry_sdk.set_tag("aggregate_spans.backend", backend)
 
         query = f"transaction:{transaction}"
         if http_method is not None:
             query += f" transaction.method:{http_method}"
 
         if backend == "indexedSpans":
-            builder = SpansIndexedQueryBuilder(
-                dataset=Dataset.SpansIndexed,
-                params=params,
-                selected_columns=["transaction_id", "count()"],
-                query=query,
-                limit=100,
-            )
-
-            builder.columns.append(
-                Function(
-                    "groupArray",
-                    parameters=[
-                        Function(
-                            "tuple",
-                            parameters=[
-                                Column("span_id"),
-                                Column("is_segment"),
-                                Column("parent_span_id"),
-                                Column("group"),
-                                Column("description"),
-                                Column("op"),
-                                Column("start_timestamp"),
-                                Column("start_ms"),
-                                Column("duration"),
-                                Column("exclusive_time"),
-                            ],
-                        )
-                    ],
-                    alias="spans",
+            with handle_query_errors():
+                builder = SpansIndexedQueryBuilder(
+                    dataset=Dataset.SpansIndexed,
+                    params=params,
+                    selected_columns=["transaction_id", "trace_id", "count()", "any(timestamp)"],
+                    query=query,
+                    limit=100,
                 )
-            )
-            snql_query = builder.get_snql_query()
-            snql_query.tenant_ids = {"organization_id": organization.id}
-            results = raw_snql_query(snql_query, Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value)
+
+                builder.columns.append(
+                    Function(
+                        "groupArray",
+                        parameters=[
+                            Function(
+                                "tuple",
+                                parameters=[
+                                    Column("span_id"),
+                                    Column("is_segment"),
+                                    Column("parent_span_id"),
+                                    Column("group"),
+                                    Column("description"),
+                                    Column("op"),
+                                    Column("start_timestamp"),
+                                    Column("start_ms"),
+                                    Column("duration"),
+                                    Column("exclusive_time"),
+                                ],
+                            )
+                        ],
+                        alias="spans",
+                    )
+                )
+                snql_query = builder.get_snql_query()
+                snql_query.tenant_ids = {"organization_id": organization.id}
+                results = raw_snql_query(
+                    snql_query, Referrer.API_ORGANIZATION_SPANS_AGGREGATION.value
+                )
 
             with sentry_sdk.start_span(
                 op="span.aggregation", description="AggregateIndexedSpans.build_aggregate_span_tree"
@@ -368,15 +414,18 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
 
             return Response(data=aggregated_tree)
 
-        conditions = [["transaction", "=", transaction]]
+        conditions: list[list[object]] = [["transaction", "=", transaction]]
         if http_method is not None:
             conditions.append(["http.method", "=", http_method])
 
         environments = params.get("environment", None)
-        if environments and len(environments) > 1:
-            conditions.append(["environment", "IN", environments])
-        elif environments and len(environments) == 1:
-            conditions.append(["environment", "=", environments[0]])
+        if environments:
+            if isinstance(environments, str):
+                conditions.append(["environment", "=", environments])
+            elif len(environments) == 1:
+                conditions.append(["environment", "=", environments[0]])
+            elif len(environments) > 1:
+                conditions.append(["environment", "IN", environments])
 
         events = eventstore.backend.get_events(
             filter=eventstore.Filter(

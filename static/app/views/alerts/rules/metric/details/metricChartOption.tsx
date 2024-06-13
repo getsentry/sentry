@@ -10,18 +10,15 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {SessionApiResponse} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import type {SessionApiResponse} from 'sentry/types/organization';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {getCrashFreeRateSeries} from 'sentry/utils/sessions';
 import {lightTheme as theme} from 'sentry/utils/theme';
-import {
-  AlertRuleTriggerType,
-  Dataset,
-  MetricRule,
-  Trigger,
-} from 'sentry/views/alerts/rules/metric/types';
-import {Incident, IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
+import type {MetricRule, Trigger} from 'sentry/views/alerts/rules/metric/types';
+import {AlertRuleTriggerType, Dataset} from 'sentry/views/alerts/rules/metric/types';
+import type {Incident} from 'sentry/views/alerts/types';
+import {IncidentActivityType, IncidentStatus} from 'sentry/views/alerts/types';
 import {
   ALERT_CHART_MIN_MAX_BUFFER,
   alertAxisFormatter,
@@ -389,8 +386,8 @@ export function getMetricAlertChartOption({
     max: isCrashFreeAlert(rule.dataset)
       ? 100
       : maxThresholdValue > maxSeriesValue
-      ? maxThresholdValue
-      : undefined,
+        ? maxThresholdValue
+        : undefined,
     min: minChartValue || undefined,
   };
 

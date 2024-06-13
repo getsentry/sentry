@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
 import ApiForm from 'sentry/components/forms/apiForm';

@@ -1,9 +1,11 @@
-import {Actor} from 'sentry-fixture/actor';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Project, Project as ProjectFixture} from 'sentry-fixture/project';
+import {ActorFixture} from 'sentry-fixture/actor';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, GroupActivityType, GroupStats, TimeseriesValue} from 'sentry/types';
+import type {TimeseriesValue} from 'sentry/types/core';
+import type {Group, GroupStats} from 'sentry/types/group';
+import {GroupActivityType} from 'sentry/types/group';
 
 const MOCK_PROJECT = ProjectFixture();
 
@@ -162,6 +164,14 @@ describe('GroupStore', function () {
     });
   });
 
+  describe('getState()', function () {
+    it('returns a stable reference', () => {
+      GroupStore.add([g('1'), g('2')]);
+      const state = GroupStore.getState();
+      expect(Object.is(state, GroupStore.getState())).toBe(true);
+    });
+  });
+
   describe('update methods', function () {
     beforeEach(function () {
       jest.spyOn(GroupStore, 'trigger');
@@ -223,7 +233,7 @@ describe('GroupStore', function () {
     describe('onAssignToSuccess()', function () {
       it("should treat undefined itemIds argument as 'all'", function () {
         GroupStore.items = [g('1')];
-        const assignedGroup = g('1', {assignedTo: Actor()});
+        const assignedGroup = g('1', {assignedTo: ActorFixture()});
         GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
@@ -241,7 +251,7 @@ describe('GroupStore', function () {
                 id: '1',
                 type: GroupActivityType.NOTE,
                 dateCreated: '',
-                project: Project(),
+                project: ProjectFixture(),
                 data: {text: 'Orginal Text'},
               },
             ],

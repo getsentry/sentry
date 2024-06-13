@@ -16,9 +16,7 @@ import {divide} from 'sentry/components/replays/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-type Props = {};
-
-function ReplayTimeline({}: Props) {
+export default function ReplayTimeline() {
   const {replay, currentTime, timelineScale} = useReplayContext();
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -35,7 +33,7 @@ function ReplayTimeline({}: Props) {
   }
 
   const durationMs = replay.getDurationMs();
-  const startTimestampMs = replay.getReplay().started_at.getTime();
+  const startTimestampMs = replay.getStartTimestampMs();
   const chapterFrames = replay.getChapterFrames();
 
   // timeline is in the middle
@@ -91,5 +89,3 @@ const TimelineEventsContainer = styled('div')`
   padding-top: 10px;
   padding-bottom: 10px;
 `;
-
-export default ReplayTimeline;

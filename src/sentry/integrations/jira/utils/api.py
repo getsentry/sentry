@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from rest_framework import status
 from rest_framework.response import Response
@@ -89,10 +90,8 @@ def handle_status_change(integration, data):
         logger.info("jira.missing-changelog-status", extra=log_context)
         return
 
-    _, org_integrations = integration_service.get_organization_contexts(
-        integration_id=integration.id
-    )
-    for oi in org_integrations:
+    result = integration_service.organization_contexts(integration_id=integration.id)
+    for oi in result.organization_integrations:
         install = integration.get_installation(organization_id=oi.organization_id)
         if isinstance(install, IssueSyncMixin):
             install.sync_status_inbound(issue_key, {"changelog": changelog, "issue": data["issue"]})

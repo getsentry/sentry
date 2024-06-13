@@ -1,4 +1,4 @@
-import dataclasses
+from unittest.mock import patch
 
 import responses
 from django.test import RequestFactory
@@ -6,11 +6,11 @@ from django.urls import reverse
 from responses import matchers
 
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
+from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.middleware.integrations.tasks import (
     convert_to_async_discord_response,
     convert_to_async_slack_response,
 )
-from sentry.models.outbox import ControlOutbox
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions
 from sentry.testutils.silo import control_silo_test
@@ -31,8 +31,7 @@ class AsyncSlackResponseTest(TestCase):
         slack_payload = {"team_id": "TXXXXXXX1", "response_url": self.response_url}
         data = {"payload": json.dumps(slack_payload)}
         action_request = self.factory.post(reverse("sentry-integration-slack-action"), data=data)
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=action_request)
-        self.payload = dataclasses.asdict(webhook_payload)
+        self.payload = create_async_request_payload(action_request)
 
     @responses.activate
     @override_regions(region_config)
@@ -117,6 +116,34 @@ class AsyncSlackResponseTest(TestCase):
         )
         assert slack_response.call_count == 0
 
+    @responses.activate
+    @override_regions(region_config)
+    @patch("sentry.middleware.integrations.tasks.logger.info")
+    def test_empty_request_bdoy(self, mock_logger_info):
+        responses.add(
+            responses.POST,
+            "https://us.testserver/extensions/slack/action/",
+            status=404,
+            json={},
+        )
+        responses.add(
+            responses.POST,
+            "https://eu.testserver/extensions/slack/action/",
+            status=204,
+        )
+        slack_response = responses.add(
+            responses.POST,
+            self.response_url,
+            status=200,
+        )
+        convert_to_async_slack_response(
+            region_names=["us", "eu"],
+            payload=self.payload,
+            response_url=self.response_url,
+        )
+        assert slack_response.call_count == 0
+        mock_logger_info.assert_called
+
 
 @control_silo_test
 class AsyncDiscordResponseTest(TestCase):
@@ -144,8 +171,7 @@ class AsyncDiscordResponseTest(TestCase):
             HTTP_X_SIGNATURE_ED25519="signature",
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
         )
-        webhook_payload = ControlOutbox.get_webhook_payload_from_request(request=action_request)
-        self.payload = dataclasses.asdict(webhook_payload)
+        self.payload = create_async_request_payload(action_request)
 
     @responses.activate
     @override_regions(region_config)

@@ -11,13 +11,16 @@ export default storyBook(NegativeSpaceContainer, story => {
   story('Empty', () => (
     <Fragment>
       <p>
-        A <JSXNode name="NegativeSpaceContainer" /> is a container that will preserve the
-        aspect ratio of whatever is inside it. It's a flex element, so the children are
-        free to expand/contract depending on whether things like <kbd>flex-grow: 1</kbd>{' '}
-        are set.
+        A <JSXNode name="NegativeSpaceContainer" /> is a container with a diagonal pattern
+        for a background. It will preserve the aspect ratio of whatever is inside it. It's
+        a flex element, so the children are free to expand/contract depending on whether
+        things like <kbd>flex-grow: 1</kbd> are set.
       </p>
       <p>Here's one with nothing inside it:</p>
-      <NegativeSpaceContainer style={{width: '100%', height: '100px'}} />
+      <NegativeSpaceContainer
+        style={{width: '100%', height: '100px'}}
+        testId="empty-container"
+      />
     </Fragment>
   ));
 

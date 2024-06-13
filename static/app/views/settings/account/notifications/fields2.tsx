@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
@@ -76,7 +76,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
       ['always', t('On')],
       ['never', t('Off')],
     ],
-    help: t('Error, transaction, and attachment quota limits.'),
+    help: t('Error, transaction, replay, attachment, and cron monitor quota limits.'),
   },
   reports: {
     name: 'reports',
@@ -127,6 +127,7 @@ export const NOTIFICATION_SETTING_FIELDS: Record<string, Field> = {
   },
 };
 
+// TODO(isabella): Once spend vis notifs are GA, remove this
 // partial field definition for quota sub-categories
 export const QUOTA_FIELDS = [
   {
@@ -164,6 +165,17 @@ export const QUOTA_FIELDS = [
     ] as const,
   },
   {
+    name: 'quotaSpans',
+    label: t('Spans'),
+    help: tct('Receive notifications about your spans quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('span')} />,
+    }),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
     name: 'quotaReplays',
     label: t('Replays'),
     help: tct('Receive notifications about your replay quotas. [learnMore:Learn more]', {
@@ -189,6 +201,20 @@ export const QUOTA_FIELDS = [
     ] as const,
   },
   {
+    name: 'quotaMonitorSeats',
+    label: t('Cron Monitors'),
+    help: tct(
+      'Receive notifications about your cron monitor quotas. [learnMore:Learn more]',
+      {
+        learnMore: <ExternalLink href={getDocsLinkForEventType('monitorSeat')} />,
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
     name: 'quotaSpendAllocations',
     label: (
       <Fragment>
@@ -202,4 +228,28 @@ export const QUOTA_FIELDS = [
       ['never', t('Off')],
     ] as const,
   },
+];
+
+export const SPEND_FIELDS = [
+  {
+    name: 'quota',
+    label: t('Spend Notifications'),
+    help: tct(
+      'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
+      {
+        learnMore: (
+          <ExternalLink
+            href={
+              'https://docs.sentry.io/product/alerts/notifications/#spend-notifications'
+            }
+          />
+        ),
+      }
+    ),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  ...QUOTA_FIELDS.slice(1),
 ];

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django import forms
 from django.core.signing import BadSignature, SignatureExpired
@@ -10,6 +11,7 @@ from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry import analytics, features
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
@@ -18,9 +20,7 @@ from sentry.notifications.types import NotificationSettingEnum
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -69,7 +69,6 @@ class SlackLinkTeamView(BaseView):
     Django view for linking team to slack channel. Creates an entry on ExternalActor table.
     """
 
-    @transaction_start("SlackLinkTeamView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponseBase:
         if request.method not in ALLOWED_METHODS:
@@ -168,7 +167,7 @@ class SlackLinkTeamView(BaseView):
         analytics.record(
             "integrations.identity_linked",
             provider="slack",
-            actor_id=team.actor_id,
+            actor_id=team.id,
             actor_type="team",
         )
 

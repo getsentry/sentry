@@ -2,19 +2,8 @@ from __future__ import annotations
 
 import contextlib
 import logging
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Collection,
-    Iterable,
-    List,
-    Mapping,
-    Optional,
-    Protocol,
-    Tuple,
-    Type,
-    TypeVar,
-)
+from collections.abc import Collection, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Protocol, TypeVar
 
 from django.db import connections, router, transaction
 from django.dispatch import receiver
@@ -22,10 +11,10 @@ from sentry_sdk.api import capture_exception
 
 from sentry.db.models import BaseManager, Model
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import find_regions_for_orgs, find_regions_for_user
 from sentry.utils.env import in_test_environment
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import uses_snowflake_id
 
 if TYPE_CHECKING:
     from sentry.models.outbox import ControlOutboxBase, OutboxCategory, RegionOutboxBase
@@ -51,7 +40,7 @@ class RegionOutboxProducingModel(Model):
     replication_version: int = 1
 
     @contextlib.contextmanager
-    def prepare_outboxes(self, *, outbox_before_super: bool, flush: Optional[bool] = None):
+    def prepare_outboxes(self, *, outbox_before_super: bool, flush: bool | None = None):
         from sentry.models.outbox import outbox_context
 
         if flush is None:
@@ -75,7 +64,7 @@ class RegionOutboxProducingModel(Model):
         with self.prepare_outboxes(outbox_before_super=False):
             return super().update(*args, **kwds)
 
-    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
+    def delete(self, *args: Any, **kwds: Any) -> tuple[int, dict[str, Any]]:
         with self.prepare_outboxes(outbox_before_super=True, flush=False):
             return super().delete(*args, **kwds)
 
@@ -91,19 +80,17 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
     Provides bulk update and delete methods that respect outbox creation.
     """
 
-    def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> Collection[_RM]:
+    def bulk_create(self, objs: Iterable[_RM], *args: Any, **kwds: Any) -> list[_RM]:
         from sentry.models.outbox import outbox_context
 
-        tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
+        tuple_of_objs: tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-        model: Type[_RM] = type(tuple_of_objs[0])
+        model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
 
-        assert not issubclass(
-            model, SnowflakeIdMixin
-        ), "bulk_create cannot work for SnowflakeIdMixin models!"
+        assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models!"
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
                 cursor.execute(
@@ -112,7 +99,7 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
                 )
                 ids = [i for i, in cursor.fetchall()]
 
-            outboxes: List[RegionOutboxBase] = []
+            outboxes: list[RegionOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):
                 obj.id = row_id
                 outboxes.append(obj.outbox_for_update())
@@ -120,34 +107,36 @@ class RegionOutboxProducingManager(BaseManager[_RM]):
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-    def bulk_update(self, objs: Iterable[_RM], fields: List[str], *args: Any, **kwds: Any) -> Any:
+    def bulk_update(
+        self, objs: Iterable[_RM], fields: Sequence[str], *args: Any, **kwds: Any
+    ) -> Any:
         from sentry.models.outbox import outbox_context
 
-        tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
+        tuple_of_objs: tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
             return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
-        model: Type[_RM] = type(tuple_of_objs[0])
+        model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: List[RegionOutboxBase] = []
+            outboxes: list[RegionOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
-    def bulk_delete(self, objs: Iterable[_RM]) -> Tuple[int, Mapping[str, int]]:
+    def bulk_delete(self, objs: Iterable[_RM]) -> tuple[int, Mapping[str, int]]:
         from sentry.models.outbox import outbox_context
 
-        tuple_of_objs: Tuple[_RM, ...] = tuple(objs)
+        tuple_of_objs: tuple[_RM, ...] = tuple(objs)
         if not tuple_of_objs:
             return 0, {}
 
-        model: Type[_RM] = type(tuple_of_objs[0])
+        model: type[_RM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: List[RegionOutboxBase] = []
+            outboxes: list[RegionOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.append(obj.outbox_for_update())
 
@@ -167,7 +156,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
     """
 
     category: OutboxCategory
-    outbox_type: Type[RegionOutboxBase] | None = None
+    outbox_type: type[RegionOutboxBase] | None = None
 
     class Meta:
         abstract = True
@@ -207,7 +196,6 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
         for instance, failure to process the outbox will result in a retry.  Thus, all operations
         in this method must be entirely idempotent and safe to async / stale states that can occur.
         """
-        pass
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         """
@@ -218,7 +206,6 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
         Also keep in mind that any errors or failures will force a retry of processing, so be certain all
         operations are idempotent!
         """
-        pass
 
 
 class ControlOutboxProducingModel(Model):
@@ -261,11 +248,11 @@ class ControlOutboxProducingModel(Model):
         with self._maybe_prepare_outboxes(outbox_before_super=False):
             return super().update(*args, **kwds)
 
-    def delete(self, *args: Any, **kwds: Any) -> Tuple[int, dict[str, Any]]:
+    def delete(self, *args: Any, **kwds: Any) -> tuple[int, dict[str, Any]]:
         with self._maybe_prepare_outboxes(outbox_before_super=True):
             return super().delete(*args, **kwds)
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         raise NotImplementedError
 
 
@@ -277,19 +264,16 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
     Provides bulk update and delete methods that respect outbox creation.
     """
 
-    def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> Collection[_CM]:
+    def bulk_create(self, objs: Iterable[_CM], *args: Any, **kwds: Any) -> list[_CM]:
         from sentry.models.outbox import outbox_context
 
-        tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
+        tuple_of_objs: tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-        model: Type[_CM] = type(tuple_of_objs[0])
+        model: type[_CM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
-
-        assert not issubclass(
-            model, SnowflakeIdMixin
-        ), "bulk_create cannot work for SnowflakeIdMixin models!"
+        assert not uses_snowflake_id(model), "bulk_create cannot work for snowflake models"
 
         with outbox_context(transaction.atomic(using=using), flush=False):
             with connections[using].cursor() as cursor:
@@ -299,7 +283,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
                 )
                 ids = [i for i, in cursor.fetchall()]
 
-            outboxes: List[ControlOutboxBase] = []
+            outboxes: list[ControlOutboxBase] = []
             for row_id, obj in zip(ids, tuple_of_objs):
                 obj.id = row_id
                 outboxes.extend(obj.outboxes_for_update())
@@ -307,34 +291,36 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_create(tuple_of_objs, *args, **kwds)
 
-    def bulk_update(self, objs: Iterable[_CM], fields: List[str], *args: Any, **kwds: Any) -> Any:
+    def bulk_update(
+        self, objs: Iterable[_CM], fields: Sequence[str], *args: Any, **kwds: Any
+    ) -> Any:
         from sentry.models.outbox import outbox_context
 
-        tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
+        tuple_of_objs: tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
             return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
-        model: Type[_CM] = type(tuple_of_objs[0])
+        model: type[_CM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: List[ControlOutboxBase] = []
+            outboxes: list[ControlOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.extend(obj.outboxes_for_update())
 
             type(outboxes[0]).objects.bulk_create(outboxes)
             return super().bulk_update(tuple_of_objs, fields, *args, **kwds)
 
-    def bulk_delete(self, objs: Iterable[_CM]) -> Tuple[int, Mapping[str, int]]:
+    def bulk_delete(self, objs: Iterable[_CM]) -> tuple[int, Mapping[str, int]]:
         from sentry.models.outbox import outbox_context
 
-        tuple_of_objs: Tuple[_CM, ...] = tuple(objs)
+        tuple_of_objs: tuple[_CM, ...] = tuple(objs)
         if not tuple_of_objs:
             return 0, {}
 
-        model: Type[_CM] = type(tuple_of_objs[0])
+        model: type[_CM] = type(tuple_of_objs[0])
         using = router.db_for_write(model)
         with outbox_context(transaction.atomic(using=using), flush=False):
-            outboxes: List[ControlOutboxBase] = []
+            outboxes: list[ControlOutboxBase] = []
             for obj in tuple_of_objs:
                 outboxes.extend(obj.outboxes_for_update())
 
@@ -344,7 +330,7 @@ class ControlOutboxProducingManager(BaseManager[_CM]):
 
 class ReplicatedControlModel(ControlOutboxProducingModel):
     """
-    An extension of RegionOutboxProducingModel that provides a default implementation for `outboxes_for_update`
+    An extension of ControlOutboxProducingModel that provides a default implementation for `outboxes_for_update`
     based on the category nd outbox type configured as class variables.  It also provides a default signal handler
     that invokes either of handle_async_replication or handle_async_deletion based on wether the object has
     been deleted or not.  Subclasses can and often should override these methods to configure outbox processing.
@@ -354,7 +340,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
     """
 
     category: OutboxCategory
-    outbox_type: Type[ControlOutboxBase] | None = None
+    outbox_type: type[ControlOutboxBase] | None = None
 
     class Meta:
         abstract = True
@@ -380,7 +366,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         """
         return None
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         """
         Returns outboxes that result from this model's creation, update, or deletion.
         Subclasses generally should override outbox_region_names or payload_for_update to customize
@@ -410,7 +396,6 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         for instance, failure to process the outbox will result in a retry.  Thus, all operations
         in this method must be entirely idempotent and safe to async / stale states that can occur.
         """
-        pass
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         """
@@ -421,7 +406,6 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         Also keep in mind that any errors or failures will force a retry of processing, so be certain all
         operations are idempotent!
         """
-        pass
 
 
 class HasControlReplicationHandlers(Protocol):
@@ -462,7 +446,7 @@ def run_outbox_replications_for_self_hosted(*args: Any, **kwds: Any):
 
     for outbox_name in (name for names in settings.SENTRY_OUTBOX_MODELS.values() for name in names):
         logger.info("Processing %ss...", outbox_name)
-        outbox_model: Type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
+        outbox_model: type[OutboxBase] = OutboxBase.from_outbox_name(outbox_name)
         for shard_attrs in outbox_model.find_scheduled_shards():
             next_outbox: OutboxBase | None = outbox_model.prepare_next_from_shard(shard_attrs)
             if next_outbox is None:

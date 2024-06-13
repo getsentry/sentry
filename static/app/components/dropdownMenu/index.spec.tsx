@@ -30,7 +30,7 @@ describe('DropdownMenu', function () {
     // Open the mneu
     await userEvent.click(screen.getByRole('button', {name: 'This is a Menu'}));
 
-    // The mneu is open
+    // The menu is open
     expect(screen.getByRole('menu')).toBeInTheDocument();
 
     // There are two menu items
@@ -147,7 +147,7 @@ describe('DropdownMenu', function () {
 
     await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
-    // Sub item won't be visible until we hover over it's parent
+    // Sub item won't be visible until we hover over its parent
     expect(
       screen.queryByRole('menuitemradio', {name: 'Sub Item'})
     ).not.toBeInTheDocument();
@@ -203,5 +203,39 @@ describe('DropdownMenu', function () {
       'aria-expanded',
       'false'
     );
+  });
+
+  it('renders disabled', async function () {
+    const onAction = jest.fn();
+
+    render(
+      <DropdownMenu
+        isDisabled
+        items={[
+          {
+            key: 'item1',
+            label: 'Item',
+            isSubmenu: true,
+            children: [
+              {
+                key: 'subitem',
+                label: 'Sub Item',
+                onAction,
+              },
+            ],
+          },
+          {
+            key: 'item2',
+            label: 'Item Two',
+          },
+        ]}
+        triggerLabel="Menu"
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+
+    // Items should not appear
+    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
   });
 });

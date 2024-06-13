@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectAndStaffPermission, ProjectEndpoint
 from sentry.api.paginator import CallbackPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.eventuser import EventUserSerializer
@@ -19,9 +19,10 @@ class ProjectUsersEndpoint(ProjectEndpoint):
     }
     rate_limits = {
         "GET": {
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=60),
         },
     }
+    permission_classes = (ProjectAndStaffPermission,)
 
     def get(self, request: Request, project) -> Response:
         """
@@ -30,8 +31,8 @@ class ProjectUsersEndpoint(ProjectEndpoint):
 
         Return a list of users seen within this project.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :pparam string key: the tag key to look up.
         :auth: required
         :qparam string query: Limit results to users matching the given query.

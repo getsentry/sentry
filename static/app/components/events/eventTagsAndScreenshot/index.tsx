@@ -10,9 +10,10 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
-import {EventAttachment} from 'sentry/types/group';
-import {objectIsEmpty} from 'sentry/utils';
+import type {EventAttachment} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
@@ -29,23 +30,14 @@ const SCREENSHOT_NAMES = [
   'screenshot-2.png',
 ];
 
-type Props = Omit<
-  React.ComponentProps<typeof Tags>,
-  'projectSlug' | 'hasEventContext'
-> & {
-  projectSlug: string;
+type Props = React.ComponentProps<typeof Tags> & {
   isShare?: boolean;
 };
 
-export function EventTagsAndScreenshot({
-  projectSlug,
-  location,
-  event,
-  organization,
-  isShare = false,
-}: Props) {
+export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Props) {
+  const location = useLocation();
+  const organization = useOrganization();
   const {tags = []} = event;
-  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const {data: attachments} = useFetchEventAttachments(
     {
       orgSlug: organization.slug,
@@ -60,15 +52,13 @@ export function EventTagsAndScreenshot({
 
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
-  if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
+  if (!tags.length && (isShare || !screenshots.length)) {
     return null;
   }
 
   const showScreenshot = !isShare && !!screenshots.length;
   const screenshot = screenshots[screenshotInFocus];
-  // Check for context bailout condition. No context is rendered if only user is provided
-  const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
-  const showTags = !!tags.length || hasContext;
+  const showTags = !!tags.length;
 
   const handleDeleteScreenshot = (attachmentId: string) => {
     deleteAttachment({
@@ -129,17 +119,7 @@ export function EventTagsAndScreenshot({
 
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
-      <TagWrapper>
-        {showTags && (
-          <Tags
-            organization={organization}
-            event={event}
-            projectSlug={projectSlug}
-            location={location}
-            hasEventContext={hasEventContext}
-          />
-        )}
-      </TagWrapper>
+      <div>{showTags && <Tags event={event} projectSlug={projectSlug} />}</div>
       {showScreenshot && (
         <div>
           <ScreenshotWrapper>
@@ -171,9 +151,8 @@ export function EventTagsAndScreenshot({
 }
 
 /**
- * Used to adjust padding based on which 3 elements are shown
+ * Used to adjust padding based on which elements are shown
  * - screenshot
- * - context
  * - tags
  */
 const Wrapper = styled(DataSection)<{
@@ -201,8 +180,4 @@ const ScreenshotWrapper = styled('div')`
     border: 0;
     height: 100%;
   }
-`;
-
-const TagWrapper = styled('div')`
-  overflow: hidden;
 `;

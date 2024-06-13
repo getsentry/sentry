@@ -1,6 +1,11 @@
-import {ApiToken as ApiTokenFixture} from 'sentry-fixture/apiToken';
+import {ApiTokenFixture} from 'sentry-fixture/apiToken';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
@@ -12,8 +17,10 @@ describe('ApiTokenRow', () => {
   it('calls onRemove callback when trash can is clicked', async () => {
     const cb = jest.fn();
     render(<ApiTokenRow onRemove={cb} token={ApiTokenFixture()} />);
+    renderGlobalModal();
 
     await userEvent.click(screen.getByLabelText('Remove'));
+    await userEvent.click(screen.getByLabelText('Confirm'));
     expect(cb).toHaveBeenCalled();
   });
 
@@ -24,13 +31,5 @@ describe('ApiTokenRow', () => {
     const cb = jest.fn();
     render(<ApiTokenRow onRemove={cb} token={token} />);
     expect(screen.queryByLabelText('Token preview')).toBeInTheDocument();
-  });
-
-  it('uses old logic when lastTokenCharacters field is not found', () => {
-    const token = ApiTokenFixture();
-
-    const cb = jest.fn();
-    render(<ApiTokenRow onRemove={cb} token={token} />);
-    expect(screen.queryByLabelText('Token preview')).not.toBeInTheDocument();
   });
 });

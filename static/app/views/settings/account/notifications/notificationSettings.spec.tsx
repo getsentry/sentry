@@ -1,3 +1,5 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -18,12 +20,12 @@ function renderMockRequests({}: {}) {
 
 describe('NotificationSettings', function () {
   it('should render', async function () {
-    const {routerContext, organization} = initializeOrg();
+    const {router, organization} = initializeOrg();
 
     renderMockRequests({});
 
     render(<NotificationSettings organizations={[organization]} />, {
-      context: routerContext,
+      router,
     });
 
     // There are 8 notification setting Selects/Toggles.
@@ -44,16 +46,16 @@ describe('NotificationSettings', function () {
   });
 
   it('renders quota section with feature flag', async function () {
-    const {routerContext, organization} = initializeOrg({
+    const {router, organization} = initializeOrg({
       organization: {
-        features: ['slack-overage-notifications'],
+        features: ['user-spend-notifications-settings'],
       },
     });
 
     renderMockRequests({});
 
     render(<NotificationSettings organizations={[organization]} />, {
-      context: routerContext,
+      router,
     });
 
     // There are 9 notification setting Selects/Toggles.
@@ -73,5 +75,26 @@ describe('NotificationSettings', function () {
       ).toBeInTheDocument();
     }
     expect(screen.getByText('Issue Alerts')).toBeInTheDocument();
+  });
+
+  it('renders spend section instead of quota section with feature flag', async function () {
+    const {router, organization} = initializeOrg({
+      organization: {
+        features: ['user-spend-notifications-settings', 'spend-visibility-notifications'],
+      },
+    });
+
+    const organizationNoFlag = OrganizationFixture();
+    organizationNoFlag.features.push('user-spend-notifications-settings');
+
+    renderMockRequests({});
+
+    render(<NotificationSettings organizations={[organization, organizationNoFlag]} />, {
+      router,
+    });
+
+    expect(await screen.findByText('Spend')).toBeInTheDocument();
+
+    expect(screen.queryByText('Quota')).not.toBeInTheDocument();
   });
 });

@@ -1,7 +1,7 @@
 import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {HookName, Hooks} from 'sentry/types/hooks';
+import type {HookName, Hooks} from 'sentry/types/hooks';
 
 type Props<H extends HookName> = {
   /**

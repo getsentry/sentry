@@ -84,7 +84,7 @@ const SwitchButton = styled('button')<StyleProps>`
   }
 
   &:focus,
-  &.focus-visible {
+  &:focus-visible {
     outline: none;
     border-color: ${p => p.theme.focusBorder};
     box-shadow: ${p => p.theme.focusBorder} 0 0 0 1px;

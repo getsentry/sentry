@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
-import {Organization} from 'sentry-fixture/organization';
-import {Tags} from 'sentry-fixture/tags';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
   act,
@@ -22,18 +22,20 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(Tags());
+    TagStore.loadTagsSuccess([
+      ...TagsFixture(),
+      {
+        key: 'firstRelease',
+        name: 'firstRelease',
+      },
+      {
+        key: 'is',
+        name: 'is',
+      },
+    ]);
     const supportedTags = TagStore.getState();
-    supportedTags.firstRelease = {
-      key: 'firstRelease',
-      name: 'firstRelease',
-    };
-    supportedTags.is = {
-      key: 'is',
-      name: 'is',
-    };
 
-    const organization = Organization({id: '123'});
+    const organization = OrganizationFixture({id: '123'});
 
     const location = {
       pathname: '/organizations/org-slug/recent-searches/',
@@ -287,7 +289,7 @@ describe('SmartSearchBar', function () {
   });
 
   describe('pasting', function () {
-    it('trims pasted content', function () {
+    it('trims pasted content', async function () {
       const mockOnChange = jest.fn();
       render(<SmartSearchBar {...defaultProps} onChange={mockOnChange} />);
 
@@ -296,7 +298,9 @@ describe('SmartSearchBar', function () {
       fireEvent.paste(textbox, {clipboardData: {getData: () => ' something'}});
 
       expect(textbox).toHaveValue('something');
-      expect(mockOnChange).toHaveBeenCalledWith('something', expect.anything());
+      await waitFor(() =>
+        expect(mockOnChange).toHaveBeenCalledWith('something', expect.anything())
+      );
     });
   });
 

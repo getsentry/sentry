@@ -1,4 +1,4 @@
-from typing import List, Sequence
+from collections.abc import Sequence
 
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -8,7 +8,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 
 
-def add_scope_hierarchy(curr_scopes: Sequence[str]) -> List[str]:
+def add_scope_hierarchy(curr_scopes: Sequence[str]) -> list[str]:
     """
     Adds missing hierarchy scopes to the list of scopes. Returns an
     alphabetically sorted list of final scopes.

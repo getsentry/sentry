@@ -4,9 +4,10 @@ import moment from 'moment';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -15,10 +16,10 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import Tag from 'sentry/components/tag';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
+import type {UserIdentityConfig} from 'sentry/types';
+import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -109,8 +110,8 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
                     'You need this identity to sign into your account. If you want to disconnect it, set a password first.'
                   )
                 : identity.status === UserIdentityStatus.NEEDED_FOR_ORG_AUTH
-                ? t('You need this identity to access your organization.')
-                : null
+                  ? t('You need this identity to access your organization.')
+                  : null
             }
           >
             {t('Disconnect')}
@@ -240,7 +241,7 @@ const IdentityText = styled('div')<{isSingleLine?: boolean}>`
   margin-left: ${space(1.5)};
 `;
 const IdentityName = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 const IdentityDateTime = styled(DateTime)`
   font-size: ${p => p.theme.fontSizeRelativeSmall};

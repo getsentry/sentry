@@ -2,10 +2,8 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectServiceHooksDocs(APIDocsTestCase):
     def setUp(self):
         self.create_service_hook(project=self.project, events=("event.created",))
@@ -13,7 +11,10 @@ class ProjectServiceHooksDocs(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-service-hooks",
-            kwargs={"organization_slug": self.organization.slug, "project_slug": self.project.slug},
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "project_id_or_slug": self.project.slug,
+            },
         )
 
         self.login_as(user=self.user)

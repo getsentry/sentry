@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import ipaddress
 import socket
-from hashlib import sha1
-from typing import TYPE_CHECKING, Any, Iterable, Mapping, Set
+from collections.abc import Iterable, Mapping
+from hashlib import sha256
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 import urllib3
@@ -12,7 +13,9 @@ from django.http import HttpResponse
 from django.http.request import HttpRequest
 from django.utils.encoding import force_str
 from requests import Request
+from requests.adapters import Retry
 
+from sentry import options
 from sentry.http import build_session
 from sentry.net.http import SafeSession
 from sentry.shared_integrations.client.base import BaseApiClient, BaseApiResponseX
@@ -30,10 +33,10 @@ from sentry.types.region import (
 )
 
 if TYPE_CHECKING:
-    from typing import FrozenSet
+    pass
 
 REQUEST_ATTEMPTS_LIMIT = 10
-CACHE_TIMEOUT = 600  # 10 minutes = 600 seconds
+CACHE_TIMEOUT = 43200  # 12 hours = 60 * 60 * 12 seconds
 
 
 class SiloClientError(Exception):
@@ -126,11 +129,11 @@ class BaseSiloClient(BaseApiClient):
         return client_response
 
 
-def get_region_ip_addresses() -> FrozenSet[ipaddress.IPv4Address | ipaddress.IPv6Address]:
+def get_region_ip_addresses() -> frozenset[ipaddress.IPv4Address | ipaddress.IPv6Address]:
     """
     Infers the Region Silo IP addresses from the SENTRY_REGION_CONFIG setting.
     """
-    region_ip_addresses: Set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
+    region_ip_addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
 
     for address in find_all_region_addresses():
         url = urllib3.util.parse_url(address)
@@ -175,7 +178,7 @@ class RegionSiloClient(BaseSiloClient):
     log_path = "sentry.silo.client.region"
     silo_client_name = "region"
 
-    def __init__(self, region: Region) -> None:
+    def __init__(self, region: Region, retry: bool = False) -> None:
         super().__init__()
         if not isinstance(region, Region):
             raise SiloClientError(f"Invalid region provided. Received {type(region)} type instead.")
@@ -183,13 +186,27 @@ class RegionSiloClient(BaseSiloClient):
         # Ensure the region is registered
         self.region = get_region_by_name(region.name)
         self.base_url = self.region.address
+        self.retry = retry
 
     def build_session(self) -> SafeSession:
         """
         Generates a safe Requests session for the API client to use.
         This injects a custom is_ipaddress_permitted function to allow only connections to Region Silo IP addresses.
         """
-        return build_session(is_ipaddress_permitted=validate_region_ip_address)
+        if not self.retry:
+            return build_session(
+                is_ipaddress_permitted=validate_region_ip_address,
+            )
+
+        return build_session(
+            is_ipaddress_permitted=validate_region_ip_address,
+            max_retries=Retry(
+                total=options.get("hybridcloud.regionsiloclient.retries"),
+                backoff_factor=0.1,
+                status_forcelist=[503],
+                allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+            ),
+        )
 
     def _get_hash_cache_key(self, hash: str) -> str:
         return f"region_silo_client:request_attempts:{hash}"
@@ -204,18 +221,21 @@ class RegionSiloClient(BaseSiloClient):
         if not isinstance(request_attempts, int):
             request_attempts = 0
 
-        if request_attempts < REQUEST_ATTEMPTS_LIMIT:
-            request_attempts += 1
-            cache.set(cache_key, request_attempts, timeout=CACHE_TIMEOUT)
-        else:
-            cache.delete(cache_key)
-            raise SiloClientError(f"Request attempts limit reached for: {method} {path}")
+        self.logger.info(
+            "silo_client.check_request_attempts",
+            extra={
+                "path": path,
+                "method": method,
+                "request_hash": hash,
+                "request_attempts": request_attempts,
+                "configured_attempt_limit": REQUEST_ATTEMPTS_LIMIT,
+            },
+        )
+        request_attempts += 1
+        cache.set(cache_key, request_attempts, timeout=CACHE_TIMEOUT)
 
-    def cleanup_request_attempts(self, hash: str | None) -> None:
-        if hash is None:
-            return
-        cache_key = self._get_hash_cache_key(hash=hash)
-        cache.delete(cache_key)
+        if request_attempts > REQUEST_ATTEMPTS_LIMIT:
+            raise SiloClientError(f"Request attempts limit reached for: {method} {path}")
 
     def request(
         self,
@@ -234,20 +254,17 @@ class RegionSiloClient(BaseSiloClient):
         """
         hash = None
         if prefix_hash is not None:
-            hash = sha1(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
+            hash = sha256(f"{prefix_hash}{self.region.name}{method}{path}".encode()).hexdigest()
 
-        try:
-            response = super().request(
-                method=method,
-                path=path,
-                headers=headers,
-                data=data,
-                params=params,
-                json=json,
-                raw_response=raw_response,
-            )
-        except Exception as error:
-            self.check_request_attempts(hash=hash, method=method, path=path)
-            raise error
-        self.cleanup_request_attempts(hash=hash)
+        self.check_request_attempts(hash=hash, method=method, path=path)
+        response = super().request(
+            method=method,
+            path=path,
+            headers=headers,
+            data=data,
+            params=params,
+            json=json,
+            raw_response=raw_response,
+        )
+
         return response

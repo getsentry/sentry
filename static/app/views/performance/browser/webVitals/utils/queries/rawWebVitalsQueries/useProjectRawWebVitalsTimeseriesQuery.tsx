@@ -1,12 +1,12 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import {Tag} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {Tag} from 'sentry/types';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -22,6 +22,7 @@ export type WebVitalsScoreBreakdown = {
   cls: SeriesDataUnit[];
   fcp: SeriesDataUnit[];
   fid: SeriesDataUnit[];
+  inp: SeriesDataUnit[];
   lcp: SeriesDataUnit[];
   total: SeriesDataUnit[];
   ttfb: SeriesDataUnit[];
@@ -35,6 +36,13 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const search = new MutableSearch(['transaction.op:pageload']);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
+  if (tag) {
+    search.addFilterValue(tag.key, tag.name);
+  }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
@@ -46,11 +54,7 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
         'count()',
       ],
       name: 'Web Vitals',
-      query: [
-        'transaction.op:pageload',
-        transaction ? `transaction:"${transaction}"` : '',
-        tag ? `${tag.key}:"${tag.name}"` : '',
-      ].join(' '),
+      query: search.formatString(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
@@ -92,6 +96,7 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
     cls: [],
     ttfb: [],
     fid: [],
+    inp: [],
     total: [],
   };
 

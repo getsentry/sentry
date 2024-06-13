@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from django.db import router, transaction
 
@@ -8,7 +8,7 @@ from sentry.models.organizationslugreservation import (
 )
 from sentry.models.organizationslugreservationreplica import OrganizationSlugReservationReplica
 from sentry.models.outbox import outbox_context
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
@@ -28,25 +28,25 @@ class TestOrganizationSlugReservationReplication(TestCase):
         return matches
 
     def assert_all_replicas_match_slug_reservations(self):
-        org_slug_reservations: Dict[str, OrganizationSlugReservation] = {
+        org_slug_reservations: dict[str, OrganizationSlugReservation] = {
             org_slug.slug: org_slug for org_slug in list(OrganizationSlugReservation.objects.all())
         }
 
         with assume_test_silo_mode(SiloMode.REGION):
-            org_slug_replicas: Dict[str, OrganizationSlugReservationReplica] = {
+            org_slug_replicas: dict[str, OrganizationSlugReservationReplica] = {
                 org_slug_r.slug: org_slug_r
                 for org_slug_r in list(OrganizationSlugReservationReplica.objects.all())
             }
 
-        slug_reservations_missing_replicas: List[OrganizationSlugReservation] = []
-        mismatched_slug_res_replicas: List[OrganizationSlugReservationReplica] = []
+        slug_reservations_missing_replicas: list[OrganizationSlugReservation] = []
+        mismatched_slug_res_replicas: list[OrganizationSlugReservationReplica] = []
         for slug in org_slug_reservations:
             slug_res = org_slug_reservations.get(slug)
             assert slug_res is not None
 
-            org_slug_reservation_replica: Optional[
+            org_slug_reservation_replica: None | (
                 OrganizationSlugReservationReplica
-            ] = org_slug_replicas.pop(slug, None)
+            ) = org_slug_replicas.pop(slug, None)
 
             if org_slug_reservation_replica is None:
                 slug_reservations_missing_replicas.append(slug_res)

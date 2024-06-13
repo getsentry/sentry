@@ -2,11 +2,14 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import FeatureBadge from 'sentry/components/featureBadge';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -15,15 +18,18 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorListErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 
 import {
   CronsLandingPanel,
@@ -32,24 +38,40 @@ import {
 } from './components/cronsLandingPanel';
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
-import {Monitor} from './types';
+import {OwnerFilter} from './components/ownerFilter';
+import type {CheckinProcessingError, Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
+
+const CronsListPageHeader = HookOrDefault({
+  hookName: 'component:crons-list-page-header',
+});
 
 export default function Monitors() {
   const organization = useOrganization();
-  const router = useRouter();
-  const platform = decodeScalar(router.location.query?.platform) ?? null;
-  const guide = decodeScalar(router.location.query?.guide);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const platform = decodeScalar(location.query?.platform) ?? null;
+  const guide = decodeScalar(location.query?.guide);
+  const project = decodeList(location.query?.project);
 
-  const queryKey = makeMonitorListQueryKey(organization, router.location);
+  const queryKey = makeMonitorListQueryKey(organization, location.query);
 
   const {
     data: monitorList,
     getResponseHeader: monitorListHeaders,
     isLoading,
+    refetch,
   } = useApiQuery<Monitor[]>(queryKey, {
     staleTime: 0,
   });
+
+  const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
+  const {data: processingErrors} = useApiQuery<CheckinProcessingError[]>(
+    processingErrorQueryKey,
+    {
+      staleTime: 0,
+    }
+  );
 
   useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
@@ -57,18 +79,18 @@ export default function Monitors() {
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(router.location.query ?? {}), cursor: undefined};
-    router.push({
+    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
 
-  // Only show the add monitor button if there is no currently displayed guide
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
   return (
     <SentryDocumentTitle title={`Crons — ${organization.slug}`}>
+      <CronsListPageHeader organization={organization} />
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -80,12 +102,24 @@ export default function Monitors() {
                 )}
                 docsUrl="https://docs.sentry.io/product/crons/"
               />
-              <FeatureBadge type="beta" />
             </Layout.Title>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
               <FeedbackWidgetButton />
+              <Button
+                icon={<IconList />}
+                size="sm"
+                onClick={() =>
+                  openBulkEditMonitorsModal({
+                    onClose: refetch,
+                  })
+                }
+                analyticsEventKey="crons.bulk_edit_modal_button_clicked"
+                analyticsEventName="Crons: Bulk Edit Modal Button Clicked"
+              >
+                {t('Manage Monitors')}
+              </Button>
               {showAddMonitor && (
                 <NewMonitorButton size="sm" icon={<IconAdd isCircled />}>
                   {t('Add Monitor')}
@@ -97,9 +131,22 @@ export default function Monitors() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Filters>
+              <OwnerFilter
+                selectedOwners={decodeList(location.query.owner)}
+                onChangeFilter={owner => {
+                  navigate(
+                    {
+                      ...location,
+                      query: {...location.query, owner},
+                    },
+                    {replace: true}
+                  );
+                }}
+              />
               <PageFilterBar>
                 <ProjectPageFilter resetParamsOnChange={['cursor']} />
                 <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
+                <DatePageFilter resetParamsOnChange={['cursor']} />
               </PageFilterBar>
               <SearchBar
                 query={decodeScalar(qs.parse(location.search)?.query, '')}
@@ -107,6 +154,13 @@ export default function Monitors() {
                 onSearch={handleSearch}
               />
             </Filters>
+            {!!processingErrors?.length && (
+              <MonitorProcessingErrors checkinErrors={processingErrors}>
+                {t(
+                  'Errors were encountered while ingesting check-ins for the selected projects'
+                )}
+              </MonitorProcessingErrors>
+            )}
             {isLoading ? (
               <LoadingIndicator />
             ) : monitorList?.length ? (
@@ -125,8 +179,11 @@ export default function Monitors() {
 }
 
 const Filters = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
+  display: flex;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+
+  > :last-child {
+    flex-grow: 1;
+  }
 `;

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List, Optional, Set, Tuple, Union
+from typing import Union
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -24,23 +24,17 @@ class ArithmeticError(Exception):
 class MaxOperatorError(ArithmeticError):
     """Exceeded the maximum allowed operators"""
 
-    pass
-
 
 class ArithmeticParseError(ArithmeticError):
     """Encountered an error trying to parse an equation"""
-
-    pass
 
 
 class ArithmeticValidationError(ArithmeticError):
     """The math itself isn't valid"""
 
-    pass
-
 
 OperandType = Union["Operation", float, str]
-JsonQueryType = List[Union[str, List[Union[str, float, None, "JsonQueryType"]]]]
+JsonQueryType = list[Union[str, list[Union[str, float, None, "JsonQueryType"]]]]
 
 
 class Operation:
@@ -49,12 +43,12 @@ class Operation:
     def __init__(
         self,
         operator: str,
-        lhs: Optional[OperandType] = None,
-        rhs: Optional[OperandType] = None,
+        lhs: OperandType | None = None,
+        rhs: OperandType | None = None,
     ) -> None:
         self.operator = operator
-        self.lhs: Optional[OperandType] = lhs
-        self.rhs: Optional[OperandType] = rhs
+        self.lhs: OperandType | None = lhs
+        self.rhs: OperandType | None = rhs
         self.validate()
 
     def validate(self) -> None:
@@ -65,7 +59,7 @@ class Operation:
         if self.operator == "divide" and self.rhs == 0:
             raise ArithmeticValidationError("division by 0 is not allowed")
 
-    def to_snuba_json(self, alias: Optional[str] = None) -> JsonQueryType:
+    def to_snuba_json(self, alias: str | None = None) -> JsonQueryType:
         """Convert this tree of Operations to the equivalent snuba json"""
         lhs = self.lhs.to_snuba_json() if isinstance(self.lhs, Operation) else self.lhs
         # TODO(snql): This is a hack so the json syntax doesn't turn lhs into a function
@@ -157,10 +151,21 @@ class ArithmeticVisitor(NodeVisitor):
         "spans.resource",
         "spans.browser",
         "spans.total.time",
-        "measurements.fp",
+        "measurements.app_start_cold",
+        "measurements.app_start_warm",
+        "measurements.cls",
         "measurements.fcp",
-        "measurements.lcp",
         "measurements.fid",
+        "measurements.fp",
+        "measurements.frames_frozen",
+        "measurements.frames_slow",
+        "measurements.frames_total",
+        "measurements.lcp",
+        "measurements.stall_count",
+        "measurements.stall_stall_longest_time",
+        "measurements.stall_stall_total_time",
+        "measurements.time_to_full_display",
+        "measurements.time_to_initial_display",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
         TOTAL_COUNT_ALIAS,
@@ -190,7 +195,7 @@ class ArithmeticVisitor(NodeVisitor):
         "percentile_range",
     }
 
-    def __init__(self, max_operators: int | None, custom_measurements: Optional[Set[str]]):
+    def __init__(self, max_operators: int | None, custom_measurements: set[str] | None):
         super().__init__()
         self.operators: int = 0
         self.terms: int = 0
@@ -289,9 +294,9 @@ class ArithmeticVisitor(NodeVisitor):
 
 def parse_arithmetic(
     equation: str,
-    max_operators: Optional[int] = None,
-    custom_measurements: Optional[Set[str]] = None,
-) -> Tuple[Operation, List[str], List[str]]:
+    max_operators: int | None = None,
+    custom_measurements: set[str] | None = None,
+) -> tuple[Operation, list[str], list[str]]:
     """Given a string equation try to parse it into a set of Operations"""
     try:
         tree = arithmetic_grammar.parse(equation)
@@ -317,13 +322,13 @@ def parse_arithmetic(
 
 
 def resolve_equation_list(
-    equations: List[str],
-    selected_columns: List[str],
+    equations: list[str],
+    selected_columns: list[str],
     aggregates_only: bool = False,
     auto_add: bool = False,
     plain_math: bool = False,
-    custom_measurements: Optional[Set[str]] = None,
-) -> Tuple[List[str], List[ParsedEquation]]:
+    custom_measurements: set[str] | None = None,
+) -> tuple[list[str], list[ParsedEquation]]:
     """Given a list of equation strings, resolve them to their equivalent snuba json query formats
     :param equations: list of equations strings that haven't been parsed yet
     :param selected_columns: list of public aliases from the endpoint, can be a mix of fields and aggregates
@@ -333,8 +338,8 @@ def resolve_equation_list(
         selected_columns and return a new list with them added
     :param plain_math: Allow equations that don't include any fields or functions, disabled by default
     """
-    parsed_equations: List[ParsedEquation] = []
-    resolved_columns: List[str] = selected_columns[:]
+    parsed_equations: list[ParsedEquation] = []
+    resolved_columns: list[str] = selected_columns[:]
     for index, equation in enumerate(equations):
         parsed_equation, fields, functions = parse_arithmetic(equation, None, custom_measurements)
 
@@ -379,7 +384,7 @@ def strip_equation(field: str) -> str:
     return field[len(EQUATION_PREFIX) :]
 
 
-def categorize_columns(columns) -> Tuple[List[str], List[str]]:
+def categorize_columns(columns) -> tuple[list[str], list[str]]:
     """equations have a prefix so that they can be easily included alongside our existing fields"""
     equations = []
     fields = []

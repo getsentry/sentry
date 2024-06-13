@@ -4,12 +4,10 @@ from rest_framework import status
 
 from sentry.integrations.discord.requests.base import DiscordRequestError
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
 
 
-@region_silo_test
 class DiscordWebhookTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
     def test_ping_interaction(self, mock_verify_signature):

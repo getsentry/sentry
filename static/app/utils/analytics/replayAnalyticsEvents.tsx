@@ -1,12 +1,13 @@
 import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
-import {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
+import type {Output} from 'sentry/views/replays/detail/network/details/getOutputType';
+import type {ReferrerTableType} from 'sentry/views/replays/replayTable/tableCell';
 
 export type ReplayEventParameters = {
   'replay.accessibility-issue-clicked': {
     issue_description: string;
     issue_impact: string | undefined;
   };
+  'replay.canvas-detected-banner-clicked': {};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -46,6 +47,9 @@ export type ReplayEventParameters = {
     layout: LayoutKey;
     slide_motion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
   };
+  'replay.details-resource-docs-clicked': {
+    title: string;
+  };
   'replay.details-tab-changed': {
     tab: string;
   };
@@ -59,7 +63,7 @@ export type ReplayEventParameters = {
     platform: string | undefined;
     project_id: string | undefined;
     referrer: string;
-    referrer_table: ReferrerTableType;
+    referrer_table?: ReferrerTableType;
   };
   'replay.list-paginated': {
     direction: 'next' | 'prev';
@@ -73,6 +77,7 @@ export type ReplayEventParameters = {
   };
   'replay.list-view-setup-sidebar': {};
   'replay.play-pause': {
+    context: string;
     play: boolean;
     user_email: string;
   };
@@ -89,6 +94,7 @@ export type ReplayEventParameters = {
   };
   'replay.render-player': {
     aspect_ratio: 'portrait' | 'landscape';
+    context: string;
     // What scale is the video as a percent, bucketed into ranges of 10% increments
     // example:
     //  - The video is shown at 25% the normal size
@@ -100,6 +106,7 @@ export type ReplayEventParameters = {
     search_keys: string;
   };
   'replay.toggle-fullscreen': {
+    context: string;
     fullscreen: boolean;
     user_email: string;
   };
@@ -109,6 +116,7 @@ export type ReplayEventKey = keyof ReplayEventParameters;
 
 export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.accessibility-issue-clicked': 'Clicked Replay Accessibility Issue',
+  'replay.canvas-detected-banner-clicked': 'Clicked Canvas Detected in Replay Banner',
   'replay.details-data-loaded': 'Replay Details Data Loaded',
   'replay.details-has-hydration-error': 'Replay Details Has Hydration Error',
   'replay.details-layout-changed': 'Changed Replay Details Layout',
@@ -116,6 +124,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-network-panel-opened': 'Opened Replay Network Details Panel',
   'replay.details-network-tab-changed': 'Changed Replay Network Details Tab',
   'replay.details-resized-panel': 'Resized Replay Details Panel',
+  'replay.details-resource-docs-clicked': 'Replay Details Resource Docs Clicked',
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',

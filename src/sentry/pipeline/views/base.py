@@ -1,5 +1,6 @@
 import abc
-from typing import TYPE_CHECKING, Any, Mapping
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from django.http.response import HttpResponseBase
 from rest_framework.request import Request
@@ -24,7 +25,6 @@ class PipelineView(BaseView, abc.ABC):
         Called on request, the active pipeline is passed in which can and
         should be used to bind data and traverse the pipeline.
         """
-        pass
 
     @staticmethod
     def render_react_view(

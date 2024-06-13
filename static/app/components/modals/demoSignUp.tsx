@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import habitsSuccessfulCustomer from 'sentry-images/spot/habitsSuccessfulCustomer.jpg';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
@@ -106,7 +106,7 @@ export const modalCss = css`
 const Subheader = styled('h4')`
   margin-bottom: ${space(2)};
   text-transform: uppercase;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeMedium};
 `;

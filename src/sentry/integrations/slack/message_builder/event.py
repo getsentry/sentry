@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections.abc import Sequence
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder

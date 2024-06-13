@@ -1,4 +1,4 @@
-import {EventsStats} from 'sentry-fixture/events';
+import {EventsStatsFixture} from 'sentry-fixture/events';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +16,7 @@ describe('Incident Rules Create', () => {
   beforeEach(() => {
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: EventsStats(),
+      body: EventsStatsFixture(),
     });
 
     eventCountsMock = MockApiClient.addMockResponse({
@@ -65,7 +65,7 @@ describe('Incident Rules Create', () => {
           interval: '1m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '9999m',
+          statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
@@ -78,7 +78,7 @@ describe('Incident Rules Create', () => {
         query: {
           project: ['2'],
           query: 'event.type:error',
-          statsPeriod: '9999m',
+          statsPeriod: '9998m',
           environment: [],
         },
       })
@@ -119,7 +119,7 @@ describe('Incident Rules Create', () => {
           interval: '1m',
           project: [2],
           query: 'event.type:error',
-          statsPeriod: '9999m',
+          statsPeriod: '9998m',
           yAxis: 'count()',
           referrer: 'api.organization-event-stats',
         },
@@ -132,7 +132,7 @@ describe('Incident Rules Create', () => {
         query: {
           project: ['2'],
           query: 'event.type:error',
-          statsPeriod: '9999m',
+          statsPeriod: '9998m',
           environment: [],
         },
       })

@@ -9,19 +9,18 @@ and the producer needs to be flushed to avoid loosing data.
 
 import atexit
 import logging
-from typing import Optional
 
 from arroyo.backends.abstract import Producer
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
-from django.conf import settings
 from usageaccountant import UsageAccumulator, UsageUnit
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.options import get
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
-_accountant_backend: Optional[UsageAccumulator] = None
+_accountant_backend: UsageAccumulator | None = None
 
 
 def init_backend(producer: Producer[KafkaPayload]) -> None:
@@ -72,7 +71,7 @@ def record(
 
     if _accountant_backend is None:
         cluster_name = get_topic_definition(
-            settings.KAFKA_SHARED_RESOURCES_USAGE,
+            Topic.SHARED_RESOURCES_USAGE,
         )["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
         producer = KafkaProducer(

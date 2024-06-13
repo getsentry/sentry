@@ -1,7 +1,7 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -105,13 +105,20 @@ describe('Discover > EventDetails', function () {
       statusCode: 404,
       body: {},
     });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/events/1234/actionable-items/',
+      body: {
+        errors: [],
+      },
+    });
   });
 
   it('renders', async function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -126,7 +133,7 @@ describe('Discover > EventDetails', function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:abad1'}}
         location={{
           ...LocationFixture(),
@@ -142,7 +149,7 @@ describe('Discover > EventDetails', function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -163,7 +170,7 @@ describe('Discover > EventDetails', function () {
     render(
       <EventDetails
         {...RouteComponentPropsFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={{
           ...LocationFixture(),
@@ -179,8 +186,8 @@ describe('Discover > EventDetails', function () {
   });
 
   it('navigates when tag values are clicked', async function () {
-    const {organization, routerContext} = initializeOrg({
-      organization: Organization(),
+    const {organization, router} = initializeOrg({
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -198,7 +205,7 @@ describe('Discover > EventDetails', function () {
           query: allEventsView.generateQueryStringObject(),
         }}
       />,
-      {context: routerContext}
+      {router}
     );
 
     // Get the first link as we wrap react-router's link
@@ -222,8 +229,8 @@ describe('Discover > EventDetails', function () {
   });
 
   it('navigates to homepage when tag values are clicked', async function () {
-    const {organization, routerContext, router} = initializeOrg({
-      organization: Organization(),
+    const {organization, router} = initializeOrg({
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -238,7 +245,7 @@ describe('Discover > EventDetails', function () {
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     // Get the first link as we wrap react-router's link
@@ -262,8 +269,8 @@ describe('Discover > EventDetails', function () {
   });
 
   it('appends tag value to existing query when clicked', async function () {
-    const {organization, routerContext} = initializeOrg({
-      organization: Organization(),
+    const {organization, router} = initializeOrg({
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -281,7 +288,7 @@ describe('Discover > EventDetails', function () {
           query: {...allEventsView.generateQueryStringObject(), query: 'Dumpster'},
         }}
       />,
-      {context: routerContext}
+      {router}
     );
 
     // Get the first link as we wrap react-router's link
@@ -304,8 +311,8 @@ describe('Discover > EventDetails', function () {
   });
 
   it('links back to the homepage if the query param contains homepage flag', async () => {
-    const {organization, router, routerContext} = initializeOrg({
-      organization: Organization(),
+    const {organization, router} = initializeOrg({
+      organization: OrganizationFixture(),
       router: {
         location: {
           pathname: '/organizations/org-slug/discover/project-slug:deadbeef',
@@ -321,7 +328,7 @@ describe('Discover > EventDetails', function () {
         params={{eventSlug: 'project-slug:deadbeef'}}
         location={router.location}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const breadcrumb = await screen.findByTestId('breadcrumb-link');

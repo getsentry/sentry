@@ -1,10 +1,10 @@
-import selectEvent from 'react-select-event';
 import styled from '@emotion/styled';
-import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
-import {User} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
 import {makeCloseButton} from 'sentry/components/globalModal/components';
@@ -12,12 +12,12 @@ import ConfigStore from 'sentry/stores/configStore';
 
 describe('CustomResolutionModal', () => {
   let releasesMock;
-  const organization = Organization();
+  const organization = OrganizationFixture();
   beforeEach(() => {
     ConfigStore.init();
     releasesMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/releases/',
-      body: [ReleaseFixture({authors: [User()]})],
+      body: [ReleaseFixture({authors: [UserFixture()]})],
     });
   });
 
@@ -43,7 +43,7 @@ describe('CustomResolutionModal', () => {
     );
     expect(releasesMock).toHaveBeenCalled();
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
     await userEvent.click(screen.getByText('1.2.0'));
 
@@ -54,7 +54,7 @@ describe('CustomResolutionModal', () => {
   });
 
   it('indicates which releases had commits from the user', async () => {
-    const user = User();
+    const user = UserFixture();
     ConfigStore.set('user', user);
     render(
       <CustomResolutionModal
@@ -70,7 +70,7 @@ describe('CustomResolutionModal', () => {
     );
     expect(releasesMock).toHaveBeenCalled();
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText(/You committed/)).toBeInTheDocument();
   });
 
@@ -120,7 +120,7 @@ describe('CustomResolutionModal', () => {
       />
     );
 
-    selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
+    await selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(
       await screen.findByRole('menuitemradio', {name: 'abcdef (non-semver)'})
     ).toBeInTheDocument();

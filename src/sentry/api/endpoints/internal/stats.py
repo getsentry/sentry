@@ -13,7 +13,7 @@ from sentry.tsdb.base import TSDBModel
 class InternalStatsEndpoint(Endpoint, StatsMixin):
     owner = ApiOwner.OPEN_SOURCE
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (SuperuserPermission,)
 

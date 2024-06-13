@@ -1,39 +1,81 @@
-import {Broadcast} from 'sentry-fixture/broadcast';
-import {Organization} from 'sentry-fixture/organization';
-import {ServiceIncident} from 'sentry-fixture/serviceIncident';
-import {User} from 'sentry-fixture/user';
+import type {UseQueryResult} from '@tanstack/react-query';
+import {BroadcastFixture} from 'sentry-fixture/broadcast';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ServiceIncidentFixture} from 'sentry-fixture/serviceIncident';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as incidentActions from 'sentry/actionCreators/serviceIncidents';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import SidebarContainer from 'sentry/components/sidebar';
 import ConfigStore from 'sentry/stores/configStore';
-import {SentryServiceStatus} from 'sentry/types';
+import type {Organization, StatuspageIncident} from 'sentry/types';
+import localStorage from 'sentry/utils/localStorage';
+import {useLocation} from 'sentry/utils/useLocation';
+import * as incidentsHook from 'sentry/utils/useServiceIncidents';
 
-jest.mock('sentry/actionCreators/serviceIncidents');
+jest.mock('sentry/utils/useServiceIncidents');
+jest.mock('sentry/utils/useLocation');
+
+const mockUseLocation = jest.mocked(useLocation);
+
+const ALL_AVAILABLE_FEATURES = [
+  'insights-entry-points',
+  'discover',
+  'discover-basic',
+  'discover-query',
+  'dashboards-basic',
+  'dashboards-edit',
+  'custom-metrics',
+  'user-feedback-ui',
+  'session-replay-ui',
+  'performance-view',
+  'performance-trace-explorer',
+  'ai-analytics',
+  'performance-queues-view',
+  'performance-cache-view',
+  'starfish-mobile-ui-module',
+  'profiling',
+];
 
 describe('Sidebar', function () {
-  const {organization, routerContext} = initializeOrg();
-  const broadcast = Broadcast();
-  const user = User();
+  const organization = OrganizationFixture();
+  const broadcast = BroadcastFixture();
+  const user = UserFixture();
   const apiMocks = {
     broadcasts: jest.fn(),
     broadcastsMarkAsSeen: jest.fn(),
     sdkUpdates: jest.fn(),
   };
 
-  const getElement = (props: React.ComponentProps<typeof SidebarContainer>) => (
+  const getElement = () => (
     <OnboardingContextProvider>
-      <SidebarContainer organization={organization} {...props} />
+      <SidebarContainer />
     </OnboardingContextProvider>
   );
 
-  const renderSidebar = (props: React.ComponentProps<typeof SidebarContainer> = {}) =>
-    render(getElement(props), {context: routerContext, organization});
+  const renderSidebar = ({organization: org}: {organization: Organization | null}) =>
+    render(getElement(), {organization: org});
+
+  const renderSidebarWithFeatures = (features: string[] = []) => {
+    return renderSidebar({
+      organization: {
+        ...organization,
+        features: [...organization.features, ...features],
+      },
+    });
+  };
 
   beforeEach(function () {
+    mockUseLocation.mockReset();
+    jest.spyOn(incidentsHook, 'useServiceIncidents').mockImplementation(
+      () =>
+        ({
+          data: [ServiceIncidentFixture()],
+        }) as UseQueryResult<StatuspageIncident[]>
+    );
+
     apiMocks.broadcasts = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/broadcasts/`,
       body: [broadcast],
@@ -49,12 +91,12 @@ describe('Sidebar', function () {
   });
 
   it('renders', async function () {
-    renderSidebar();
+    renderSidebar({organization});
     expect(await screen.findByTestId('sidebar-dropdown')).toBeInTheDocument();
   });
 
   it('renders without org', async function () {
-    renderSidebar({organization: undefined});
+    renderSidebar({organization: null});
 
     // no org displays user details
     expect(await screen.findByText(user.name)).toBeInTheDocument();
@@ -72,7 +114,7 @@ describe('Sidebar', function () {
     jest.spyOn(window.location, 'assign').mockImplementation(() => {});
 
     renderSidebar({
-      organization: Organization({access: ['member:read']}),
+      organization: OrganizationFixture({access: ['member:read']}),
     });
 
     await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
@@ -84,7 +126,7 @@ describe('Sidebar', function () {
   });
 
   it('can toggle help menu', async function () {
-    renderSidebar();
+    renderSidebar({organization});
     await userEvent.click(await screen.findByText('Help'));
 
     expect(screen.getByText('Visit Help Center')).toBeInTheDocument();
@@ -92,7 +134,7 @@ describe('Sidebar', function () {
 
   describe('SidebarDropdown', function () {
     it('can open Sidebar org/name dropdown menu', async function () {
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
 
@@ -101,7 +143,7 @@ describe('Sidebar', function () {
     });
     it('has link to Members settings with `member:write`', async function () {
       renderSidebar({
-        organization: Organization({access: ['member:read']}),
+        organization: OrganizationFixture({access: ['member:read']}),
       });
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
@@ -112,7 +154,7 @@ describe('Sidebar', function () {
     it('can open "Switch Organization" sub-menu', async function () {
       act(() => void ConfigStore.set('features', new Set(['organizations:create'])));
 
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByTestId('sidebar-dropdown'));
 
@@ -128,17 +170,15 @@ describe('Sidebar', function () {
 
   describe('SidebarPanel', function () {
     it('hides when path changes', async function () {
-      const {rerender} = renderSidebar();
+      const {rerender} = renderSidebar({organization});
 
       await userEvent.click(await screen.findByText("What's new"));
       expect(await screen.findByRole('dialog')).toBeInTheDocument();
       expect(screen.getByText("What's new in Sentry")).toBeInTheDocument();
 
-      const oldPath = routerContext.context.location.pathname;
-      routerContext.context.location.pathname = '/other/path';
-      rerender(getElement({}));
+      mockUseLocation.mockReturnValue({...LocationFixture(), pathname: '/other/path'});
+      rerender(getElement());
       expect(screen.queryByText("What's new in Sentry")).not.toBeInTheDocument();
-      routerContext.context.location.pathname = oldPath;
     });
 
     it('can have onboarding feature', async function () {
@@ -164,7 +204,7 @@ describe('Sidebar', function () {
         url: `/organizations/${organization.slug}/broadcasts/`,
         body: [],
       });
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByText("What's new"));
 
@@ -182,7 +222,7 @@ describe('Sidebar', function () {
 
     it('can display Broadcasts panel and mark as seen', async function () {
       jest.useFakeTimers();
-      renderSidebar();
+      renderSidebar({organization});
 
       expect(apiMocks.broadcasts).toHaveBeenCalled();
 
@@ -214,10 +254,10 @@ describe('Sidebar', function () {
 
     it('can unmount Sidebar (and Broadcasts) and kills Broadcast timers', async function () {
       jest.useFakeTimers();
-      const {unmount} = renderSidebar();
+      const {unmount} = renderSidebar({organization});
 
       // This will start timer to mark as seen
-      await userEvent.click(await screen.findByRole('link', {name: "What's new"}), {
+      await userEvent.click(await screen.findByTestId('sidebar-broadcasts'), {
         delay: null,
       });
       expect(await screen.findByText("What's new in Sentry")).toBeInTheDocument();
@@ -235,17 +275,7 @@ describe('Sidebar', function () {
     });
 
     it('can show Incidents in Sidebar Panel', async function () {
-      jest
-        .spyOn(incidentActions, 'loadIncidents')
-        .mockImplementation((): Promise<SentryServiceStatus | null> => {
-          return Promise.resolve({
-            incidents: [ServiceIncident()],
-            indicator: 'none',
-            url: '',
-          });
-        });
-
-      renderSidebar();
+      renderSidebar({organization});
 
       await userEvent.click(await screen.findByText('Service status'));
       await screen.findByText('Recent service updates');
@@ -253,7 +283,7 @@ describe('Sidebar', function () {
   });
 
   it('can toggle collapsed state', async function () {
-    renderSidebar();
+    renderSidebar({organization});
 
     expect(await screen.findByText(user.name)).toBeInTheDocument();
     expect(screen.getByText(organization.name)).toBeInTheDocument();
@@ -266,5 +296,160 @@ describe('Sidebar', function () {
     // Un-collapse he sidebar and make sure the org name is visible again
     await userEvent.click(screen.getByTestId('sidebar-collapse'));
     expect(await screen.findByText(organization.name)).toBeInTheDocument();
+  });
+
+  describe('sidebar links', () => {
+    beforeEach(function () {
+      ConfigStore.init();
+      ConfigStore.set('features', new Set([]));
+      ConfigStore.set('user', user);
+
+      mockUseLocation.mockReturnValue(LocationFixture());
+    });
+
+    it('renders navigation', async function () {
+      renderSidebar({organization});
+
+      await waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      expect(
+        screen.getByRole('navigation', {name: 'Primary Navigation'})
+      ).toBeInTheDocument();
+    });
+
+    it('in self-hosted-errors-only mode, only shows links to basic features', async function () {
+      ConfigStore.set('isSelfHostedErrorsOnly', true);
+
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
+
+      await waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      const links = screen.getAllByRole('link');
+      expect(links).toHaveLength(12);
+
+      [
+        'Issues',
+        'Projects',
+        'Alerts',
+        'Discover',
+        'Dashboards',
+        'Releases',
+        'Stats',
+        'Settings',
+        'Help',
+        /What's new/,
+        'Service status',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
+    });
+
+    it('in regular mode, also shows links to Performance and Crons', async function () {
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
+
+      await waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      const links = screen.getAllByRole('link');
+      expect(links).toHaveLength(29);
+
+      [
+        'Issues',
+        'Projects',
+        /Performance/,
+        'Queries',
+        'Requests',
+        /Caches/,
+        'Web Vitals',
+        /Queues/,
+        'Screen Loads',
+        'App Starts',
+        'Resources',
+        /Mobile UI/,
+        /Traces/,
+        'Profiling',
+        /Metrics/,
+        'Replays',
+        /LLM Monitoring/,
+        'User Feedback',
+        'Crons',
+        'Alerts',
+        'Discover',
+        'Dashboards',
+        'Releases',
+        'Stats',
+        'Settings',
+        'Help',
+        /What's new/,
+        'Service status',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
+    });
+
+    it('if Insights are on, shows links to Explore and Insights', async function () {
+      localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
+      renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES, 'performance-insights']);
+
+      await waitFor(function () {
+        expect(apiMocks.broadcasts).toHaveBeenCalled();
+      });
+
+      const links = screen.getAllByRole('link');
+      expect(links).toHaveLength(31);
+
+      [
+        'Issues',
+        'Projects',
+        /Explore/,
+        /Traces/,
+        /Metrics/,
+        'Profiles',
+        'Replays',
+        'Discover',
+        /Insights/,
+        'Requests',
+        'Queries',
+        'Assets',
+        'App Starts',
+        'Screen Loads',
+        'Web Vitals',
+        /Caches/,
+        /Queues/,
+        /Mobile UI/,
+        /LLM Monitoring/,
+        'Performance',
+        'User Feedback',
+        'Crons',
+        'Alerts',
+        'Dashboards',
+        'Releases',
+        'Stats',
+        'Settings',
+        'Help',
+        /What's new/,
+        'Service status',
+      ].forEach((title, index) => {
+        expect(links[index]).toHaveAccessibleName(title);
+      });
+    });
+
+    it('should not render floating accordion when expanded', async () => {
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
+      await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
+      expect(screen.queryByTestId('floating-accordion')).not.toBeInTheDocument();
+    });
+
+    it('should render floating accordion when collapsed', async () => {
+      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
+      await userEvent.click(screen.getByTestId('sidebar-collapse'));
+      await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
+      expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
+    });
   });
 });

@@ -1,6 +1,7 @@
+from collections.abc import Mapping
 from datetime import datetime, timedelta
 from functools import reduce
-from typing import Any, List, Mapping, Optional
+from typing import Any, Optional
 
 from django.utils import timezone
 
@@ -8,13 +9,14 @@ from sentry import features
 from sentry.api import client
 from sentry.api.base import logger
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.alert_rule import AlertRuleSerializer
-from sentry.api.serializers.models.incident import DetailedIncidentSerializer
 from sentry.api.utils import get_datetime_from_stats_period
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
+from sentry.incidents.endpoints.serializers.alert_rule import AlertRuleSerializer
+from sentry.incidents.endpoints.serializers.incident import DetailedIncidentSerializer
 from sentry.incidents.logic import translate_aggregate_field
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.user import User
@@ -81,7 +83,7 @@ def fetch_metric_alert_sessions_data(
             "Failed to load sessions for chart: %s",
             exc,
         )
-        raise exc
+        raise
 
 
 def fetch_metric_alert_events_timeseries(
@@ -89,7 +91,7 @@ def fetch_metric_alert_events_timeseries(
     rule_aggregate: str,
     query_params: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -119,7 +121,7 @@ def fetch_metric_alert_events_timeseries(
             exc,
             exc_info=True,
         )
-        raise exc
+        raise
 
 
 def fetch_metric_alert_incidents(
@@ -127,7 +129,7 @@ def fetch_metric_alert_incidents(
     alert_rule: AlertRule,
     time_period: Mapping[str, str],
     user: Optional["User"] = None,
-) -> List[Any]:
+) -> list[Any]:
     try:
         resp = client.get(
             auth=ApiKey(organization_id=organization.id, scope_list=["org:read"]),
@@ -154,13 +156,13 @@ def fetch_metric_alert_incidents(
 def build_metric_alert_chart(
     organization: Organization,
     alert_rule: AlertRule,
-    selected_incident: Optional[Incident] = None,
-    period: Optional[str] = None,
-    start: Optional[str] = None,
-    end: Optional[str] = None,
+    selected_incident: Incident | None = None,
+    period: str | None = None,
+    start: str | None = None,
+    end: str | None = None,
     user: Optional["User"] = None,
-    size: Optional[ChartSize] = None,
-) -> Optional[str]:
+    size: ChartSize | None = None,
+) -> str | None:
     """Builds the dataset required for metric alert chart the same way the frontend would"""
     snuba_query: SnubaQuery = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
@@ -195,7 +197,7 @@ def build_metric_alert_chart(
     }
 
     allow_mri = features.has(
-        "organizations:ddm-experimental",
+        "organizations:custom-metrics",
         organization,
         actor=user,
     )

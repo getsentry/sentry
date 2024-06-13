@@ -1,35 +1,45 @@
 import React, {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import pickBy from 'lodash/pickBy';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
-import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
+import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {fromSorts} from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
-import {ModulePageProviders} from 'sentry/views/performance/database/modulePageProviders';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
+import {
+  BASE_FILTERS,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
+import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useSpanMetrics';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
+import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
@@ -48,12 +58,17 @@ export function DatabaseLandingPage() {
 
   const sortField = decodeScalar(location.query?.[QueryParameterNames.SPANS_SORT]);
 
-  let sort = fromSorts(sortField).filter(isAValidSort)[0];
+  let sort = decodeSorts(sortField).filter(isAValidSort)[0];
   if (!sort) {
     sort = DEFAULT_SORT;
   }
 
   const handleSearch = (newQuery: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newQuery,
+      source: ModuleName.DB,
+    });
     browserHistory.push({
       ...location,
       query: {
@@ -64,47 +79,64 @@ export function DatabaseLandingPage() {
     });
   };
 
-  const chartFilters = {
-    'span.module': ModuleName.DB,
-  };
+  const chartFilters = BASE_FILTERS;
 
   const tableFilters = {
-    'span.module': ModuleName.DB,
+    ...BASE_FILTERS,
     'span.action': spanAction,
     'span.domain': spanDomain,
     'span.description': spanDescription ? `*${spanDescription}*` : undefined,
-    has: 'span.description',
   };
 
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
 
   const queryListResponse = useSpanMetrics(
-    pickBy(tableFilters, value => value !== undefined),
-    [
-      'project.id',
-      'span.group',
-      'span.description',
-      'spm()',
-      'avg(span.self_time)',
-      'sum(span.self_time)',
-      'time_spent_percentage()',
-    ],
-    [sort],
-    LIMIT,
-    cursor,
+    {
+      search: MutableSearch.fromQueryObject(tableFilters),
+      fields: [
+        'project.id',
+        'span.group',
+        'span.description',
+        'spm()',
+        'avg(span.self_time)',
+        'sum(span.self_time)',
+        'time_spent_percentage()',
+      ],
+      sorts: [sort],
+      limit: LIMIT,
+      cursor,
+    },
     'api.starfish.use-span-list'
   );
 
-  const {isLoading: isThroughputDataLoading, data: throughputData} = useSpanMetricsSeries(
-    chartFilters,
-    ['spm()'],
+  const {
+    isLoading: isThroughputDataLoading,
+    data: throughputData,
+    error: throughputError,
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: ['spm()'],
+    },
     'api.starfish.span-landing-page-metrics-chart'
   );
 
-  const {isLoading: isDurationDataLoading, data: durationData} = useSpanMetricsSeries(
-    chartFilters,
-    [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+  const {
+    isLoading: isDurationDataLoading,
+    data: durationData,
+    error: durationError,
+  } = useSpanMetricsSeries(
+    {
+      search: MutableSearch.fromQueryObject(chartFilters),
+      yAxis: [`${selectedAggregate}(${SpanMetricsField.SPAN_SELF_TIME})`],
+    },
     'api.starfish.span-landing-page-metrics-chart'
+  );
+
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    'api.performance.database.database-landing',
+    'insight.page_loads.db'
   );
 
   const isCriticalDataLoading =
@@ -119,75 +151,98 @@ export function DatabaseLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
+  const crumbs = useModuleBreadcrumbs('db');
+
   return (
     <React.Fragment>
       <Layout.Header>
         <Layout.HeaderContent>
-          <Breadcrumbs
-            crumbs={[
-              {
-                label: 'Performance',
-                to: normalizeUrl(`/organizations/${organization.slug}/performance/`),
-                preservePageFilters: true,
-              },
-              {
-                label: 'Queries',
-              },
-            ]}
-          />
+          <Breadcrumbs crumbs={crumbs} />
 
-          <Layout.Title>{t('Queries')}</Layout.Title>
+          <Layout.Title>
+            {MODULE_TITLE}
+            <PageHeadingQuestionTooltip
+              docsUrl={MODULE_DOC_LINK}
+              title={MODULE_DESCRIPTION}
+            />
+          </Layout.Title>
         </Layout.HeaderContent>
+        <Layout.HeaderActions>
+          <ButtonBar gap={1}>
+            <FeedbackWidgetButton />
+          </ButtonBar>
+        </Layout.HeaderActions>
       </Layout.Header>
 
       <Layout.Body>
         <Layout.Main fullWidth>
-          {!onboardingProject && !isCriticalDataLoading && (
-            <NoDataMessage
-              Wrapper={AlertBanner}
-              isDataAvailable={isAnyCriticalDataAvailable}
-            />
-          )}
-          <FloatingFeedbackWidget />
-          <PaddedContainer>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
-          </PaddedContainer>
-
-          {onboardingProject && (
-            <Onboarding organization={organization} project={onboardingProject} />
-          )}
-          {!onboardingProject && (
-            <Fragment>
-              <ChartContainer>
-                <ThroughputChart
-                  series={throughputData['spm()']}
-                  isLoading={isThroughputDataLoading}
+          <ModuleLayout.Layout>
+            {!onboardingProject && !isCriticalDataLoading && (
+              <ModuleLayout.Full>
+                <NoDataMessage
+                  Wrapper={AlertBanner}
+                  isDataAvailable={isAnyCriticalDataAvailable}
                 />
-                <DurationChart
-                  series={durationData[`${selectedAggregate}(span.self_time)`]}
-                  isLoading={isDurationDataLoading}
-                />
-              </ChartContainer>
-              <FilterOptionsContainer>
-                <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+              </ModuleLayout.Full>
+            )}
 
-                <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-              </FilterOptionsContainer>
-              <SearchBarContainer>
-                <SearchBar
-                  query={spanDescription}
-                  placeholder={t('Search for more Queries')}
-                  onSearch={handleSearch}
-                />
-              </SearchBarContainer>
+            <ModuleLayout.Full>
+              <PageFilterBar condensed>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter />
+                <DatePageFilter />
+              </PageFilterBar>
+            </ModuleLayout.Full>
 
-              <QueriesTable response={queryListResponse} sort={sort} />
-            </Fragment>
-          )}
+            {onboardingProject && (
+              <ModuleLayout.Full>
+                <Onboarding organization={organization} project={onboardingProject} />
+              </ModuleLayout.Full>
+            )}
+            {!onboardingProject && (
+              <Fragment>
+                <ModuleLayout.Half>
+                  <ThroughputChart
+                    series={throughputData['spm()']}
+                    isLoading={isThroughputDataLoading}
+                    error={throughputError}
+                  />
+                </ModuleLayout.Half>
+
+                <ModuleLayout.Half>
+                  <DurationChart
+                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
+                    isLoading={isDurationDataLoading}
+                    error={durationError}
+                  />
+                </ModuleLayout.Half>
+
+                <ModuleLayout.Full>
+                  <FilterOptionsContainer>
+                    <SelectorContainer>
+                      <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                    </SelectorContainer>
+
+                    <SelectorContainer>
+                      <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                    </SelectorContainer>
+                  </FilterOptionsContainer>
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <SearchBar
+                    query={spanDescription}
+                    placeholder={t('Search for more Queries')}
+                    onSearch={handleSearch}
+                  />
+                </ModuleLayout.Full>
+
+                <ModuleLayout.Full>
+                  <QueriesTable response={queryListResponse} sort={sort} />
+                </ModuleLayout.Full>
+              </Fragment>
+            )}
+          </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
     </React.Fragment>
@@ -199,40 +254,36 @@ const DEFAULT_SORT = {
   kind: 'desc' as const,
 };
 
-const PaddedContainer = styled('div')`
-  margin-bottom: ${space(2)};
-`;
-
-const ChartContainer = styled('div')`
-  display: grid;
-  gap: ${space(2)};
-  grid-template-columns: 1fr 1fr;
-`;
-
 function AlertBanner(props) {
   return <Alert {...props} type="info" showIcon />;
 }
 
 const FilterOptionsContainer = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: ${space(2)};
-  margin-bottom: ${space(2)};
-  max-width: 800px;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex-wrap: nowrap;
+  }
 `;
 
-const SearchBarContainer = styled('div')`
-  margin-bottom: ${space(2)};
+const SelectorContainer = styled('div')`
+  flex-basis: 100%;
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    flex-basis: auto;
+  }
 `;
 
 const LIMIT: number = 25;
 
-function LandingPageWithProviders() {
+function PageWithProviders() {
   return (
-    <ModulePageProviders title={[t('Performance'), t('Database')].join(' — ')}>
+    <ModulePageProviders moduleName="db" features="insights-initial-modules">
       <DatabaseLandingPage />
     </ModulePageProviders>
   );
 }
 
-export default LandingPageWithProviders;
+export default PageWithProviders;

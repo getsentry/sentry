@@ -1,22 +1,24 @@
 import {Component, Fragment} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, Query} from 'history';
+import type {Location, Query} from 'history';
 import moment from 'moment';
 
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Pagination from 'sentry/components/pagination';
 import TimeSince from 'sentry/components/timeSince';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedQuery} from 'sentry/types';
+import type {Organization, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
@@ -305,11 +307,7 @@ class QueryList extends Component<Props> {
               eventView={eventView}
               organization={organization}
               referrer={referrer}
-              yAxis={
-                savedQuery.yAxis && savedQuery.yAxis.length
-                  ? savedQuery.yAxis
-                  : ['count()']
-              }
+              yAxis={savedQuery.yAxis?.length ? savedQuery.yAxis : ['count()']}
             />
           )}
           renderContextMenu={() => (

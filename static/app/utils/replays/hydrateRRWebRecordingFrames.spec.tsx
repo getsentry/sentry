@@ -4,7 +4,7 @@ import {
   recordingEndFrame,
   recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
-import {RecordingFrame} from 'sentry/utils/replays/types';
+import type {RecordingFrame} from 'sentry/utils/replays/types';
 
 describe('hydrateRRWebRecordingFrames', () => {
   const replayRecord = ReplayRecordFixture();

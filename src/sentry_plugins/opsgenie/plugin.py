@@ -3,7 +3,7 @@ import logging
 from django import forms
 
 import sentry
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases import notify
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
@@ -38,6 +38,7 @@ class OpsGenieOptionsForm(notify.NotificationConfigurationForm):
             attrs={"class": "span6", "placeholder": "e.g. https://api.opsgenie.com/v2/alerts"}
         ),
         help_text="It must be visible to the Sentry server",
+        assume_scheme="https",
         required=True,
     )
 

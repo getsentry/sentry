@@ -1,20 +1,22 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import type React from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {
+  CanvasPoolManager,
+  CanvasScheduler,
+} from 'sentry/utils/profiling/canvasScheduler';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {
-  useVirtualizedTree,
-  UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import {useVirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
+import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {relativeWeight} from 'sentry/utils/profiling/units/units';
 
 import {

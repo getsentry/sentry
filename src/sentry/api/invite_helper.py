@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 from logging import Logger
-from typing import Dict, Optional
 
 from django.http.request import HttpRequest
 from django.utils.crypto import constant_time_compare
@@ -40,9 +39,9 @@ def remove_invite_details_from_session(request: HttpRequest) -> None:
 
 @dataclasses.dataclass
 class InviteDetails:
-    invite_token: Optional[str]
-    invite_member_id: Optional[int]
-    invite_organization_id: Optional[int]
+    invite_token: str | None
+    invite_member_id: int | None
+    invite_organization_id: int | None
 
 
 def get_invite_details(request: HttpRequest) -> InviteDetails:
@@ -221,10 +220,11 @@ class ApiInviteHelper:
 
         if self.member_already_exists:
             self.handle_member_already_exists()
-            organization_service.delete_organization_member(
-                organization_member_id=self.invite_context.invite_organization_member_id,
-                organization_id=self.invite_context.organization.id,
-            )
+            if self.invite_context.invite_organization_member_id is not None:
+                organization_service.delete_organization_member(
+                    organization_member_id=self.invite_context.invite_organization_member_id,
+                    organization_id=self.invite_context.organization.id,
+                )
             return None
 
         try:
@@ -289,7 +289,7 @@ class ApiInviteHelper:
         )
         return not primary_email_is_verified
 
-    def get_onboarding_steps(self) -> Dict[str, bool]:
+    def get_onboarding_steps(self) -> dict[str, bool]:
         return {
             "needs2fa": self._needs_2fa(),
             "needsEmailVerification": self._needs_email_verification(),

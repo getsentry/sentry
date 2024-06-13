@@ -1,5 +1,5 @@
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {
   render,

@@ -79,7 +79,10 @@ class ErrorIdScalar(ComputedBase):
 
     @classmethod
     def visit_eq(cls, value: UUID) -> Condition:
+        from sentry.replays.usecases.query.conditions.error_ids import ErrorIdsArray
+
         conditions = _make_conditions_from_column_names(cls.event_id_columns, Op.EQ, to_uuid(value))
+        conditions.append(translate_condition_to_function(ErrorIdsArray.visit_eq(value)))
 
         return Condition(
             Function("or", conditions),
@@ -89,9 +92,12 @@ class ErrorIdScalar(ComputedBase):
 
     @classmethod
     def visit_neq(cls, value: UUID) -> Condition:
+        from sentry.replays.usecases.query.conditions.error_ids import ErrorIdsArray
+
         conditions = _make_conditions_from_column_names(
             cls.event_id_columns, Op.NEQ, to_uuid(value)
         )
+        conditions.append(translate_condition_to_function(ErrorIdsArray.visit_neq(value)))
 
         return Condition(
             Function("and", conditions),
@@ -101,9 +107,13 @@ class ErrorIdScalar(ComputedBase):
 
     @classmethod
     def visit_in(cls, value: list[UUID]) -> Condition:
+        from sentry.replays.usecases.query.conditions.error_ids import ErrorIdsArray
+
         conditions = _make_conditions_from_column_names(
             cls.event_id_columns, Op.IN, [str(v) for v in value]
         )
+        conditions.append(translate_condition_to_function(ErrorIdsArray.visit_in(value)))
+
         return Condition(
             Function("or", conditions),
             Op.EQ,
@@ -112,9 +122,13 @@ class ErrorIdScalar(ComputedBase):
 
     @classmethod
     def visit_not_in(cls, value: list[UUID]) -> Condition:
+        from sentry.replays.usecases.query.conditions.error_ids import ErrorIdsArray
+
         conditions = _make_conditions_from_column_names(
             cls.event_id_columns, Op.NOT_IN, [str(v) for v in value]
         )
+        conditions.append(translate_condition_to_function(ErrorIdsArray.visit_not_in(value)))
+
         return Condition(
             Function("and", conditions),
             Op.EQ,

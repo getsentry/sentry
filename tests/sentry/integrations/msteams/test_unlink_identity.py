@@ -3,9 +3,7 @@ import time
 import responses
 
 from sentry.integrations.msteams.unlink_identity import build_unlinking_url
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.models.identity import Identity, IdentityStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils.signing import unsign
@@ -22,7 +20,7 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
 
         self.login_as(self.user1)
 
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="msteams",
             name="Hogwarts",
             external_id="1_50l3mnly_5w34r",
@@ -32,13 +30,11 @@ class MsTeamsIntegrationUnlinkIdentityTest(TestCase):
                 "expires_at": int(time.time()) + 86400,
             },
         )
-        OrganizationIntegration.objects.create(
+        self.create_organization_integration(
             organization_id=self.org.id, integration=self.integration
         )
 
-        self.idp = IdentityProvider.objects.create(
-            type="msteams", external_id="1_50l3mnly_5w34r", config={}
-        )
+        self.idp = self.create_identity_provider(type="msteams", external_id="1_50l3mnly_5w34r")
         self.conversation_id = "my_conversation_id"
 
         access_json = {"expires_in": 86399, "access_token": "3ld3rw4nd"}

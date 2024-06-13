@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, List, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from sentry_sdk import configure_scope
 
@@ -39,7 +40,7 @@ def clear_tags_and_context() -> None:
 
 def get_org_integrations(
     integration_id: int,
-) -> List[RpcOrganizationIntegration]:
+) -> list[RpcOrganizationIntegration]:
     """
     Given the id of an `Integration`, return a list of associated `RpcOrganizationIntegration` objects.
 
@@ -49,11 +50,9 @@ def get_org_integrations(
     can be shared by multiple orgs.
     """
 
-    _, org_integrations = integration_service.get_organization_contexts(
-        integration_id=integration_id
-    )
+    result = integration_service.organization_contexts(integration_id=integration_id)
 
-    return org_integrations
+    return result.organization_integrations
 
 
 def bind_org_context_from_integration(
@@ -88,7 +87,9 @@ def bind_org_context_from_integration(
         check_tag_for_scope_bleed("integration_id", integration_id, add_to_scope=False)
     elif len(org_integrations) == 1:
         org_integration = org_integrations[0]
-        org = organization_service.get_organization_by_id(id=org_integration.organization_id)
+        org = organization_service.get_organization_by_id(
+            id=org_integration.organization_id, include_teams=False, include_projects=False
+        )
         if org is not None:
             bind_organization_context(org.organization)
         else:

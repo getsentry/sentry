@@ -1,11 +1,11 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReleaseFixture} from 'sentry-fixture/release';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {ReleaseStatus} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types/release';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import ReleaseContext from './releaseContext';
@@ -26,7 +26,7 @@ export const mockedReleaseWithHealth = ReleaseFixture({
 });
 
 const renderReleaseContext = () => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <ReleaseContext dataRow={defaultRow} organization={organization} />

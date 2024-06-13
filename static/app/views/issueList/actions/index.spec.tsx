@@ -1,24 +1,18 @@
 import {Fragment} from 'react';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  fireEvent,
-  render,
-  screen,
-  userEvent,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import GlobalModal from 'sentry/components/globalModal';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import * as analytics from 'sentry/utils/analytics';
 import {IssueListActions} from 'sentry/views/issueList/actions';
 
-const organization = Organization();
+const organization = OrganizationFixture();
 
 const defaultProps = {
   allResultsVisible: false,
@@ -71,13 +65,13 @@ describe('IssueListActions', function () {
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
       });
 
       it('can bulk select', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
       });
 
@@ -88,11 +82,11 @@ describe('IssueListActions', function () {
         });
 
         render(<WrappedComponent queryCount={1500} />);
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         await screen.findByRole('dialog');
 
@@ -108,20 +102,51 @@ describe('IssueListActions', function () {
           })
         );
       });
+
+      it('bulk sets priority', async function () {
+        const apiMock = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/issues/',
+          method: 'PUT',
+        });
+
+        render(<WrappedComponent queryCount={1500} />, {
+          organization: OrganizationFixture({features: ['issue-priority-ui']}),
+        });
+
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(await screen.findByRole('button', {name: 'Set Priority'}));
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+        expect(
+          within(screen.getByRole('dialog')).getByText(
+            'Are you sure you want to reprioritize to high the first 1,000 issues that match the search?'
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Bulk reprioritize issues'})
+        );
+
+        expect(apiMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              project: [1],
+            },
+            data: {priority: 'high'},
+          })
+        );
+      });
     });
 
     describe('Total results less than bulk limit', function () {
       it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={15} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
-      });
-
-      it('can bulk select', async function () {
-        render(<WrappedComponent queryCount={15} />);
-
-        await userEvent.click(screen.getByRole('checkbox'));
-
+        const checkbox = screen.getByRole('checkbox', {name: 'Select all'});
+        await userEvent.click(checkbox);
+        expect(checkbox).toBeChecked();
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
       });
 
@@ -133,11 +158,11 @@ describe('IssueListActions', function () {
 
         render(<WrappedComponent queryCount={15} />);
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -183,75 +208,44 @@ describe('IssueListActions', function () {
           })
         );
       });
-
-      it('can ignore selected items (custom)', async function () {
-        const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-        const apiMock = MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/issues/',
-          method: 'PUT',
-        });
-        jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
-
-        render(<WrappedComponent {...defaultProps} />);
-
-        await userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
-        fireEvent.click(screen.getByText(/Until this affects an additional/));
-        await screen.findByTestId('until-affect-custom');
-        await userEvent.click(screen.getByTestId('until-affect-custom'));
-
-        const modal = screen.getByRole('dialog');
-
-        await userEvent.clear(
-          within(modal).getByRole('spinbutton', {name: 'Number of users'})
-        );
-        await userEvent.type(
-          within(modal).getByRole('spinbutton', {name: 'Number of users'}),
-          '300'
-        );
-
-        await userEvent.click(within(modal).getByRole('textbox'));
-        await userEvent.click(within(modal).getByText('per week'));
-
-        await userEvent.click(within(modal).getByRole('button', {name: 'Ignore'}));
-
-        expect(apiMock).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({
-            query: {
-              id: ['1'],
-              project: [1],
-            },
-            data: {
-              status: 'ignored',
-              statusDetails: {
-                ignoreUserCount: 300,
-                ignoreUserWindow: 10080,
-              },
-              substatus: 'archived_until_condition_met',
-            },
-          })
-        );
-
-        expect(analyticsSpy).toHaveBeenCalledWith(
-          'issues_stream.archived',
-          expect.objectContaining({
-            action_status_details: 'ignoreUserCount',
-          })
-        );
-      });
     });
   });
 
-  it('can archive an issue until escalating', async () => {
-    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
-    const org_escalating = {...organization, features: ['escalating-issues']};
+  it('can set priority', async function () {
     const apiMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org_escalating.slug}/issues/`,
+      url: '/organizations/org-slug/issues/',
       method: 'PUT',
     });
     jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
-    render(<WrappedComponent {...defaultProps} />, {organization: org_escalating});
+    render(<WrappedComponent {...defaultProps} />, {
+      organization: OrganizationFixture({features: ['issue-priority-ui']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Set Priority'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+
+    expect(apiMock).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        query: {
+          id: ['1'],
+          project: [1],
+        },
+        data: {priority: 'high'},
+      })
+    );
+  });
+
+  it('can archive an issue until escalating', async () => {
+    const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
+    const apiMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      method: 'PUT',
+    });
+    jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
+
+    render(<WrappedComponent {...defaultProps} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Archive'}));
 
@@ -279,15 +273,14 @@ describe('IssueListActions', function () {
   });
 
   it('can unarchive an issue when the query contains is:archived', async () => {
-    const org_escalating = {...organization, features: ['escalating-issues']};
     const apiMock = MockApiClient.addMockResponse({
-      url: `/organizations/${org_escalating.slug}/issues/`,
+      url: `/organizations/${organization.slug}/issues/`,
       method: 'PUT',
     });
     jest.spyOn(SelectedGroupStore, 'getSelectedIds').mockReturnValue(new Set(['1']));
 
     render(<WrappedComponent {...defaultProps} query="is:archived" />, {
-      organization: org_escalating,
+      organization,
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
@@ -296,12 +289,12 @@ describe('IssueListActions', function () {
       expect.anything(),
       expect.objectContaining({
         query: expect.objectContaining({id: ['1'], project: [1]}),
-        data: {status: 'unresolved'},
+        data: {status: 'unresolved', statusDetails: {}},
       })
     );
   });
 
-  it('can resolve but not merge issues from different projects', function () {
+  it('can resolve but not merge issues from different projects', async function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')
       .mockImplementation(() => new Set(['1', '2', '3']));
@@ -317,13 +310,13 @@ describe('IssueListActions', function () {
     render(<WrappedComponent />);
 
     // Can resolve but not merge issues from multiple projects
-    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
     expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
   });
 
   describe('mark reviewed', function () {
     it('acknowledges group', async function () {
-      const mockOnMarkReviewed = jest.fn();
+      const mockOnActionTaken = jest.fn();
 
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -343,23 +336,23 @@ describe('IssueListActions', function () {
           },
         });
       });
-      render(<WrappedComponent onMarkReviewed={mockOnMarkReviewed} />);
+      render(<WrappedComponent onActionTaken={mockOnActionTaken} />);
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
       expect(reviewButton).toBeEnabled();
       await userEvent.click(reviewButton);
 
-      expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
+      expect(mockOnActionTaken).toHaveBeenCalledWith(['1', '2', '3'], {inbox: false});
     });
 
-    it('mark reviewed disabled for group that is already reviewed', function () {
+    it('mark reviewed disabled for group that is already reviewed', async function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([GroupFixture({id: '1', inbox: null})]);
 
       render(<WrappedComponent {...defaultProps} />);
 
-      expect(screen.getByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
+      expect(await screen.findByRole('button', {name: 'Mark Reviewed'})).toBeDisabled();
     });
   });
 
@@ -398,7 +391,7 @@ describe('IssueListActions', function () {
 
       // Resolve and ignore are supported
       expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
-      expect(screen.getByRole('button', {name: 'Ignore'})).toBeEnabled();
+      expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
 
       // Merge is not supported and should be disabled
       expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
@@ -419,7 +412,7 @@ describe('IssueListActions', function () {
     });
 
     describe('bulk action performance issues', function () {
-      const orgWithPerformanceIssues = Organization({
+      const orgWithPerformanceIssues = OrganizationFixture({
         features: ['performance-issues'],
       });
 
@@ -437,11 +430,13 @@ describe('IssueListActions', function () {
           {organization: orgWithPerformanceIssues}
         );
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.click(
+          await screen.findByRole('button', {name: 'More issue actions'})
+        );
         await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
         const modal = screen.getByRole('dialog');
@@ -483,7 +478,7 @@ describe('IssueListActions', function () {
           {organization: orgWithPerformanceIssues}
         );
 
-        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 

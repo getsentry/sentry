@@ -1,6 +1,6 @@
 import type {AlertProps} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import {EventGroupingConfig, Project} from 'sentry/types';
+import type {EventGroupingConfig, Project} from 'sentry/types';
 
 export function getGroupingChanges(
   project: Project,

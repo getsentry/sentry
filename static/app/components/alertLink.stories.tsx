@@ -73,6 +73,19 @@ export default storyBook(AlertLink, story => {
     );
   });
 
+  story('system', () => {
+    return (
+      <Fragment>
+        <p>
+          The <JSXProperty name="system" value /> prop is a boolean that's{' '}
+          <code>false</code> by default.
+        </p>
+        <AlertLink>The default style.</AlertLink>
+        <AlertLink system>This is in the system style.</AlertLink>
+      </Fragment>
+    );
+  });
+
   story('withoutMarginBottom', () => {
     return (
       <Fragment>

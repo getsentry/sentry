@@ -1,13 +1,13 @@
 import {Fragment, PureComponent} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {AnimatePresence} from 'framer-motion';
-import {Location} from 'history';
+import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -15,21 +15,24 @@ import Banner from 'sentry/components/banner';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Hovercard} from 'sentry/components/hovercard';
 import InputControl from 'sentry/components/input';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IconBookmark, IconDelete, IconEllipsis, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project, SavedQuery} from 'sentry/types';
+import type {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
+import {DatasetSelector} from 'sentry/views/discover/savedQuery/datasetSelector';
 import {handleAddQueryToDashboard} from 'sentry/views/discover/utils';
 
 import {DEFAULT_EVENT_VIEW} from '../data';
@@ -185,8 +188,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       !savedQuery.yAxis
         ? ['count()']
         : typeof savedQuery.yAxis === 'string'
-        ? [savedQuery.yAxis]
-        : savedQuery.yAxis
+          ? [savedQuery.yAxis]
+          : savedQuery.yAxis
     );
     return {
       isNewQuery: false,
@@ -440,8 +443,8 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
     const analyticsEventSource = isHomepage
       ? 'homepage'
       : eventView.id
-      ? 'saved-query'
-      : 'prebuilt-query';
+        ? 'saved-query'
+        : 'prebuilt-query';
     if (
       homepageQuery &&
       eventView.isEqualTo(EventView.fromSavedQuery(homepageQuery), ['id', 'name'])
@@ -573,6 +576,16 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
 
     return (
       <ResponsiveButtonBar gap={1}>
+        <Feature
+          organization={organization}
+          features="performance-discover-dataset-selector"
+        >
+          {({hasFeature}) =>
+            hasFeature && (
+              <DatasetSelector isHomepage={isHomepage} savedQuery={savedQuery} />
+            )
+          }
+        </Feature>
         {this.renderQueryButton(disabled => this.renderSaveAsHomepage(disabled))}
         {this.renderQueryButton(disabled => this.renderButtonSave(disabled))}
         <Feature organization={organization} features="incidents">

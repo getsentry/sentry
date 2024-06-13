@@ -4,14 +4,8 @@ import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  PageFilters,
-  SavedSearchType,
-  Tag,
-  TagCollection,
-  TagValue,
-} from 'sentry/types';
+import type {Organization, PageFilters, Tag, TagCollection, TagValue} from 'sentry/types';
+import {SavedSearchType} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
@@ -78,7 +72,7 @@ type Props = React.ComponentProps<typeof SmartSearchBar> & {
 function ReplaySearchBar(props: Props) {
   const {organization, pageFilters, placeholder} = props;
   const api = useApi();
-  const projectIdStrings = pageFilters.projects?.map(String);
+  const projectIds = pageFilters.projects;
   const tags = useTags();
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, pageFilters);
@@ -97,7 +91,7 @@ function ReplaySearchBar(props: Props) {
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIdStrings,
+        projectIds: projectIds?.map(String),
         includeReplays: true,
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
@@ -106,7 +100,7 @@ function ReplaySearchBar(props: Props) {
         }
       );
     },
-    [api, organization.slug, projectIdStrings]
+    [api, organization.slug, projectIds]
   );
 
   return (
@@ -124,6 +118,7 @@ function ReplaySearchBar(props: Props) {
       savedSearchType={SavedSearchType.REPLAY}
       maxMenuHeight={500}
       hasRecentSearches
+      projectIds={projectIds}
       fieldDefinitionGetter={getReplayFieldDefinition}
       mergeSearchGroupWith={{
         click: {

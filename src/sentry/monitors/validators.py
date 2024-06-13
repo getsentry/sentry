@@ -1,4 +1,5 @@
-import pytz
+from typing import Literal
+
 import sentry_sdk
 from croniter import CroniterBadDateError, croniter
 from django.core.exceptions import ValidationError
@@ -8,14 +9,18 @@ from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 
 from sentry import quotas
+from sentry.api.fields.actor import ActorField
 from sentry.api.fields.empty_integer import EmptyIntegerField
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.monitors.constants import MAX_SLUG_LENGTH, MAX_THRESHOLD, MAX_TIMEOUT
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorType, ScheduleType
+from sentry.monitors.schedule import get_next_schedule, get_prev_schedule
+from sentry.monitors.types import CrontabSchedule
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -28,6 +33,8 @@ SCHEDULE_TYPES = {
     "crontab": ScheduleType.CRONTAB,
     "interval": ScheduleType.INTERVAL,
 }
+
+IntervalNames = Literal["year", "month", "week", "day", "hour", "minute"]
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
 
@@ -122,7 +129,7 @@ class ConfigValidator(serializers.Serializer):
     )
 
     timezone = serializers.ChoiceField(
-        choices=pytz.all_timezones,
+        choices=sorted(AVAILABLE_TIMEZONES),
         required=False,
         allow_blank=True,
         help_text="tz database style timezone string",
@@ -212,10 +219,13 @@ class ConfigValidator(serializers.Serializer):
             if not croniter.is_valid(schedule):
                 raise ValidationError({"schedule": "Schedule was not parseable"})
 
-            # check to make sure schedule actually has a next valid expected check-in
+            # XXX(epurkhiser): Make sure we can traverse forward and back in
+            # the schedule. croniter is good, but there are some very edge case
+            # schedules that give it trouble
+            now = timezone.now()
             try:
-                itr = croniter(schedule, timezone.now())
-                next(itr)
+                get_next_schedule(now, CrontabSchedule(schedule))
+                get_prev_schedule(now, now, CrontabSchedule(schedule))
             except CroniterBadDateError:
                 raise ValidationError({"schedule": "Schedule is invalid"})
 
@@ -235,7 +245,7 @@ class MonitorValidator(CamelSnakeSerializer):
         max_length=128,
         help_text="Name of the monitor. Used for notifications.",
     )
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         max_length=MAX_SLUG_LENGTH,
         required=False,
         help_text="Uniquely identifies your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.",
@@ -244,6 +254,11 @@ class MonitorValidator(CamelSnakeSerializer):
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
         default="active",
         help_text="Status of the monitor. Disabled monitors will not accept events and will not count towards the monitor quota.",
+    )
+    owner = ActorField(
+        required=False,
+        allow_null=True,
+        help_text="The ID of the team or user that owns the monitor. (eg. user:51 or team:6)",
     )
     is_muted = serializers.BooleanField(
         required=False,
@@ -379,3 +394,19 @@ class MonitorCheckInValidator(serializers.Serializer):
             del attrs["monitor_config"]
 
         return attrs
+
+
+class MonitorBulkEditValidator(MonitorValidator):
+    slugs = serializers.ListField(
+        child=SentrySerializerSlugField(
+            max_length=MAX_SLUG_LENGTH,
+        ),
+        required=True,
+    )
+
+    def validate_slugs(self, value):
+        if Monitor.objects.filter(
+            slug__in=value, organization_id=self.context["organization"].id
+        ).count() != len(value):
+            raise ValidationError("Not all slugs are valid for this organization.")
+        return value

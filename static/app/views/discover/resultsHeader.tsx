@@ -1,12 +1,12 @@
 import {Component, Fragment} from 'react';
-import {InjectedRouter} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import {stringify} from 'query-string';
 
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,7 +14,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedQuery} from 'sentry/types';
+import type {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 
@@ -206,7 +206,7 @@ class ResultsHeader extends Component<Props, State> {
 
 const Subtitle = styled('h4')`
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
   margin: ${space(0.5)} 0 0 0;
 `;

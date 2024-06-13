@@ -1,29 +1,32 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import {Observer} from 'mobx-react';
 import scrollToElement from 'scroll-to-element';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {
   addSentryAppToken,
   removeSentryAppToken,
 } from 'sentry/actionCreators/sentryAppTokens';
+import {Alert} from 'sentry/components/alert';
 import Avatar from 'sentry/components/avatar';
-import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
+import type {Model} from 'sentry/components/avatarChooser';
+import AvatarChooser from 'sentry/components/avatarChooser';
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import FormModel, {FieldValue} from 'sentry/components/forms/model';
+import type {FieldValue} from 'sentry/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
-import PanelItem from 'sentry/components/panels/panelItem';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
@@ -31,14 +34,23 @@ import {
   internalIntegrationForms,
   publicIntegrationForms,
 } from 'sentry/data/forms/sentryApplication';
-import {IconAdd, IconDelete} from 'sentry/icons';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types';
+import type {
+  InternalAppApiToken,
+  NewInternalAppApiToken,
+  Organization,
+  Scope,
+  SentryApp,
+} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
+import NewTokenHandler from 'sentry/views/settings/components/newTokenHandler';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionsObserver from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
 
@@ -144,6 +156,7 @@ type Props = RouteComponentProps<{appSlug?: string}, {}> & {
 
 type State = DeprecatedAsyncView['state'] & {
   app: SentryApp | null;
+  newTokens: NewInternalAppApiToken[];
   tokens: InternalAppApiToken[];
 };
 
@@ -155,16 +168,18 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       ...super.getDefaultState(),
       app: null,
       tokens: [],
+      newTokens: [],
     };
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
     const {appSlug} = this.props.params;
     if (appSlug) {
-      return [
-        ['app', `/sentry-apps/${appSlug}/`],
-        ['tokens', `/sentry-apps/${appSlug}/api-tokens/`],
-      ];
+      const endpoints = [['app', `/sentry-apps/${appSlug}/`]];
+      if (this.hasTokenAccess) {
+        endpoints.push(['tokens', `/sentry-apps/${appSlug}/api-tokens/`]);
+      }
+      return endpoints as [string, string][];
     }
 
     return [];
@@ -219,23 +234,27 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     }
   };
 
+  get hasTokenAccess() {
+    return this.props.organization.access.includes('org:write');
+  }
+
   get isInternal() {
     const {app} = this.state;
     if (app) {
       // if we are editing an existing app, check the status of the app
       return app.status === 'internal';
     }
-    return this.props.route.path === 'new-internal/';
+    return this.props.location.pathname.endsWith('new-internal/');
   }
 
   get showAuthInfo() {
     const {app} = this.state;
-    return !(app && app.clientSecret && app.clientSecret[0] === '*');
+    return !(app?.clientSecret && app.clientSecret[0] === '*');
   }
 
   onAddToken = async (evt: React.MouseEvent): Promise<void> => {
     evt.preventDefault();
-    const {app, tokens} = this.state;
+    const {app, newTokens} = this.state;
     if (!app) {
       return;
     }
@@ -243,64 +262,86 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
     const api = this.api;
 
     const token = await addSentryAppToken(api, app);
-    const newTokens = tokens.concat(token);
-    this.setState({tokens: newTokens});
+    const updatedNewTokens = newTokens.concat(token);
+    this.setState({newTokens: updatedNewTokens});
   };
 
-  onRemoveToken = async (token: InternalAppApiToken, evt: React.MouseEvent) => {
-    evt.preventDefault();
+  onRemoveToken = async (token: InternalAppApiToken) => {
     const {app, tokens} = this.state;
     if (!app) {
       return;
     }
 
     const api = this.api;
-    const newTokens = tokens.filter(tok => tok.token !== token.token);
+    const newTokens = tokens.filter(tok => tok.id !== token.id);
 
-    await removeSentryAppToken(api, app, token.token);
+    await removeSentryAppToken(api, app, token.id);
     this.setState({tokens: newTokens});
   };
 
+  handleFinishNewToken = (newToken: NewInternalAppApiToken) => {
+    const {tokens, newTokens} = this.state;
+    const updatedNewTokens = newTokens.filter(token => token.id !== newToken.id);
+    const updatedTokens = tokens.concat(newToken as InternalAppApiToken);
+    this.setState({tokens: updatedTokens, newTokens: updatedNewTokens});
+  };
+
   renderTokens = () => {
-    const {tokens} = this.state;
-    if (tokens.length > 0) {
-      return tokens.map(token => (
-        <StyledPanelItem key={token.token}>
-          <TokenItem>
-            <Tooltip
-              disabled={this.showAuthInfo}
-              position="right"
-              containerDisplayMode="inline"
-              title={t(
-                'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
-              )}
-            >
-              <TextCopyInput aria-label={t('Token value')}>
-                {getDynamicText({value: token.token, fixed: 'xxxxxx'})}
-              </TextCopyInput>
-            </Tooltip>
-          </TokenItem>
-          <CreatedDate>
-            <CreatedTitle>Created:</CreatedTitle>
-            <DateTime
-              date={getDynamicText({
-                value: token.dateCreated,
-                fixed: new Date(1508208080000),
-              })}
-            />
-          </CreatedDate>
-          <Button
-            onClick={this.onRemoveToken.bind(this, token)}
-            size="sm"
-            icon={<IconDelete />}
-            data-test-id="token-delete"
-          >
-            {t('Revoke')}
-          </Button>
-        </StyledPanelItem>
-      ));
+    const {tokens, newTokens} = this.state;
+    if (!this.hasTokenAccess) {
+      return (
+        <EmptyMessage description={t('You do not have access to view these tokens.')} />
+      );
     }
-    return <EmptyMessage description={t('No tokens created yet.')} />;
+    if (tokens.length < 1 && newTokens.length < 1) {
+      return <EmptyMessage description={t('No tokens created yet.')} />;
+    }
+    const tokensToDisplay = tokens.map(token => (
+      <ApiTokenRow
+        data-test-id="api-token"
+        key={token.id}
+        token={token}
+        onRemove={this.onRemoveToken}
+      />
+    ));
+    tokensToDisplay.push(
+      ...newTokens.map(newToken => (
+        <NewTokenHandler
+          data-test-id="new-api-token"
+          key={newToken.id}
+          token={getDynamicText({value: newToken.token, fixed: 'ORG_AUTH_TOKEN'})}
+          handleGoBack={() => this.handleFinishNewToken(newToken)}
+        />
+      ))
+    );
+
+    return tokensToDisplay;
+  };
+
+  rotateClientSecret = async () => {
+    try {
+      const rotateResponse = await this.api.requestPromise(
+        `/sentry-apps/${this.props.params.appSlug}/rotate-secret/`,
+        {
+          method: 'POST',
+        }
+      );
+      openModal(({Body, Header}) => (
+        <Fragment>
+          <Header>{t('Your new Client Secret')}</Header>
+          <Body>
+            <Alert type="info" showIcon>
+              {t('This will be the only time your client secret is visible!')}
+            </Alert>
+            <TextCopyInput aria-label={t('new-client-secret')}>
+              {rotateResponse.clientSecret}
+            </TextCopyInput>
+          </Body>
+        </Fragment>
+      ));
+    } catch {
+      addErrorMessage(t('Error rotating secret'));
+    }
   };
 
   onFieldChange = (name: string, value: FieldValue): void => {
@@ -435,6 +476,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                     appPublished={app ? app.status === 'published' : false}
                     scopes={scopes}
                     events={events}
+                    newApp={!app}
                   />
                 </Fragment>
               );
@@ -443,17 +485,21 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 
           {app && app.status === 'internal' && (
             <Panel>
-              <PanelHeader hasButtons>
-                {t('Tokens')}
-                <Button
-                  size="xs"
-                  icon={<IconAdd isCircled />}
-                  onClick={evt => this.onAddToken(evt)}
-                  data-test-id="token-add"
-                >
-                  {t('New Token')}
-                </Button>
-              </PanelHeader>
+              {this.hasTokenAccess ? (
+                <PanelHeader hasButtons>
+                  {t('Tokens')}
+                  <Button
+                    size="xs"
+                    icon={<IconAdd isCircled />}
+                    onClick={evt => this.onAddToken(evt)}
+                    data-test-id="token-add"
+                  >
+                    {t('New Token')}
+                  </Button>
+                </PanelHeader>
+              ) : (
+                <PanelHeader>{t('Tokens')}</PanelHeader>
+              )}
               <PanelBody>{this.renderTokens()}</PanelBody>
             </Panel>
           )}
@@ -471,7 +517,12 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                     )}
                   </FormField>
                 )}
-                <FormField name="clientSecret" label="Client Secret">
+                <FormField
+                  name="clientSecret"
+                  label="Client Secret"
+                  help={t(`Your secret is only available briefly after integration creation. Make
+                    sure to save this value!`)}
+                >
                   {({value, id}) =>
                     value ? (
                       <Tooltip
@@ -479,7 +530,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                         position="right"
                         containerDisplayMode="inline"
                         title={t(
-                          'You do not have access to view these credentials because the permissions for this integration exceed those of your role.'
+                          'Only Manager or Owner can view these credentials, or the permissions for this integration exceed those of your role.'
                         )}
                       >
                         <TextCopyInput id={id}>
@@ -487,7 +538,19 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
                         </TextCopyInput>
                       </Tooltip>
                     ) : (
-                      <em>hidden</em>
+                      <ClientSecret>
+                        <HiddenSecret>{t('hidden')}</HiddenSecret>
+                        {this.hasTokenAccess ? (
+                          <Confirm
+                            onConfirm={this.rotateClientSecret}
+                            message={t(
+                              'Are you sure you want to rotate the client secret? The current one will not be usable anymore, and this cannot be undone.'
+                            )}
+                          >
+                            <Button priority="danger">Rotate client secret</Button>
+                          </Confirm>
+                        ) : undefined}
+                      </ClientSecret>
                     )
                   }
                 </FormField>
@@ -501,28 +564,6 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
 }
 
 export default withOrganization(SentryApplicationDetails);
-
-const StyledPanelItem = styled(PanelItem)`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const TokenItem = styled('div')`
-  width: 70%;
-`;
-
-const CreatedTitle = styled('span')`
-  color: ${p => p.theme.gray300};
-  margin-bottom: 2px;
-`;
-
-const CreatedDate = styled('div')`
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
-  margin: 0 10px;
-`;
 
 const AvatarPreview = styled('div')`
   flex: 1;
@@ -539,11 +580,23 @@ const AvatarPreviewTitle = styled('span')`
   display: block;
   grid-area: 1 / 2 / 2 / 3;
   padding-left: ${space(2)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const AvatarPreviewText = styled('span')`
   display: block;
   grid-area: 2 / 2 / 3 / 3;
   padding-left: ${space(2)};
+`;
+
+const HiddenSecret = styled('span')`
+  width: 100px;
+  font-style: italic;
+`;
+
+const ClientSecret = styled('div')`
+  display: flex;
+  justify-content: right;
+  align-items: center;
+  margin-right: 0;
 `;

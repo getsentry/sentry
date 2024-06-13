@@ -2,12 +2,13 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {AreaChart, AreaChartProps} from 'sentry/components/charts/areaChart';
+import type {AreaChartProps} from 'sentry/components/charts/areaChart';
+import {AreaChart} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PageFilters} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
+import type {PageFilters} from 'sentry/types/core';
+import type {Series} from 'sentry/types/echarts';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
@@ -193,7 +194,7 @@ export function ProfilesSummaryChart({
 const ProfilesChartTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.textColor};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   padding: ${space(0.25)} ${space(1)};
 `;
 

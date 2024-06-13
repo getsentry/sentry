@@ -15,6 +15,7 @@ describe('PermissionsObserver', () => {
         <PermissionsObserver
           scopes={['project:read', 'project:write', 'project:releases', 'org:admin']}
           events={['issue']}
+          newApp={false}
         />
       </Form>
     );

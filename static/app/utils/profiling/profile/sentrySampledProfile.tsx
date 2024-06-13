@@ -1,11 +1,12 @@
 import moment from 'moment';
 
-import {defined, lastOfArray} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
-import {Frame} from './../frame';
+import type {Frame} from './../frame';
 import {Profile} from './profile';
-import {createSentrySampleProfileFrameIndex} from './utils';
+import type {createSentrySampleProfileFrameIndex} from './utils';
 
 type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & {
   weight: number;

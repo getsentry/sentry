@@ -5,7 +5,7 @@ import orderBy from 'lodash/orderBy';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';

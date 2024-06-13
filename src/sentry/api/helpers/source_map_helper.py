@@ -1,4 +1,6 @@
-from urllib.parse import urlparse
+from collections.abc import Mapping
+from typing import Any
+from urllib.parse import ParseResult, ParseResultBytes, urlparse
 
 from django.utils.encoding import force_bytes, force_str
 from packaging.version import Version
@@ -6,7 +8,11 @@ from rest_framework.exceptions import NotFound, ParseError
 
 from sentry import eventstore
 from sentry.api.endpoints.project_release_files import ArtifactSource
+from sentry.eventstore.models import BaseEvent
+from sentry.interfaces.exception import Exception as ExceptionInterface
+from sentry.interfaces.stacktrace import Frame
 from sentry.models.distribution import Distribution
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.models.sourcemapprocessingissue import SourceMapProcessingIssue
@@ -23,7 +29,25 @@ NO_DEBUG_ID_FRAMEWORKS = {
 }
 
 
-def source_map_debug(project, event_id, exception_idx, frame_idx):
+class SourceMapDebug:
+    def __init__(self, issue: str | None = None, data: Mapping[str, Any] | None = None) -> None:
+        self.issue = issue
+        self.data = data
+
+
+class SourceMapException(Exception):
+    def __init__(self, issue: str, data: Mapping[str, Any] | None = None) -> None:
+        super().__init__(issue, data)
+        self.issue = issue
+        self.data = data
+
+
+def source_map_debug(
+    project: Project,
+    event_id: str,
+    exception_idx: int,
+    frame_idx: int,
+) -> SourceMapDebug:
     event = eventstore.backend.get_event_by_id(project.id, event_id)
     if event is None:
         raise NotFound(detail="Event not found")
@@ -126,7 +150,9 @@ def source_map_debug(project, event_id, exception_idx, frame_idx):
     return SourceMapDebug()
 
 
-def _get_frame_filename_and_path(exception, frame_idx):
+def _get_frame_filename_and_path(
+    exception: ExceptionInterface, frame_idx: int
+) -> tuple[Frame, str, str]:
     frame_list = exception.stacktrace.frames
     try:
         frame = frame_list[frame_idx]
@@ -137,7 +163,14 @@ def _get_frame_filename_and_path(exception, frame_idx):
     return frame, filename, abs_path
 
 
-def _find_matches(release_artifacts, abs_path, unified_path, filename, release, event):
+def _find_matches(
+    release_artifacts: list[ReleaseFile],
+    abs_path: str | None,
+    unified_path: str,
+    filename: str,
+    release: Release,
+    event: BaseEvent,
+) -> tuple[list[ReleaseFile], list[ReleaseFile]]:
     full_matches = [
         artifact
         for artifact in release_artifacts
@@ -148,7 +181,7 @@ def _find_matches(release_artifacts, abs_path, unified_path, filename, release, 
     return full_matches, partial_matches
 
 
-def _find_partial_matches(unified_path, artifacts):
+def _find_partial_matches(unified_path: str, artifacts: list[ReleaseFile]) -> list[ReleaseFile]:
     filename = unified_path.split("/")[-1]
     filename_matches = [
         artifact for artifact in artifacts if artifact.name.split("/")[-1] == filename
@@ -162,7 +195,7 @@ def _find_partial_matches(unified_path, artifacts):
     return []
 
 
-def _extract_release(event, project):
+def _extract_release(event: BaseEvent, project: Project) -> Release:
     release_version = event.get_tag("sentry:release")
 
     if not release_version:
@@ -170,7 +203,9 @@ def _extract_release(event, project):
     return Release.objects.get(organization=project.organization, version=release_version)
 
 
-def _verify_dist_matches(release, event, artifact, filename):
+def _verify_dist_matches(
+    release: Release, event: BaseEvent, artifact: ReleaseFile, filename: str
+) -> bool:
     try:
         if event.dist is None and artifact.dist_id is None:
             return True
@@ -188,7 +223,14 @@ def _verify_dist_matches(release, event, artifact, filename):
     return True
 
 
-def _find_matching_artifact(release_artifacts, urlparts, abs_path, filename, release, event):
+def _find_matching_artifact(
+    release_artifacts: list[ReleaseFile],
+    urlparts: ParseResult | ParseResultBytes,
+    abs_path: str | None,
+    filename: str,
+    release: Release,
+    event: BaseEvent,
+) -> ReleaseFile:
     unified_path = _unify_url(urlparts)
     full_matches, partial_matches = _find_matches(
         release_artifacts, abs_path, unified_path, filename, release, event
@@ -225,7 +267,7 @@ def _find_matching_artifact(release_artifacts, urlparts, abs_path, filename, rel
     return full_matches[0]
 
 
-def _discover_sourcemap_url(artifact, filename):
+def _discover_sourcemap_url(artifact: ReleaseFile, filename: str) -> str | None:
     file = artifact.file
     # Code adapted from sentry/lang/javascript/processor.py
     sourcemap_header = file.headers.get("Sourcemap", file.headers.get("X-SourceMap"))
@@ -240,11 +282,11 @@ def _discover_sourcemap_url(artifact, filename):
     return force_str(sourcemap) if sourcemap is not None else None
 
 
-def _unify_url(urlparts):
-    return "~" + urlparts.path
+def _unify_url(urlparts: ParseResult | ParseResultBytes) -> str:
+    return "~" + str(urlparts.path)
 
 
-def _get_releasefiles(release, organization_id):
+def _get_releasefiles(release: Release, organization_id: int) -> list[ReleaseFile]:
     data_sources = []
 
     file_list = ReleaseFile.public_objects.filter(release_id=release.id).exclude(artifact_count=0)
@@ -267,7 +309,7 @@ def _get_releasefiles(release, organization_id):
     return data_sources
 
 
-def _find_url_prefix(filepath, artifact_name):
+def _find_url_prefix(filepath_str: str, artifact_name_str: str) -> str | None:
     # Right now, we only support 3 cases for finding the url prefix:
     # 1. If the file name is a suffix of the artifact name, return the missing prefix
     # Example : "/static/app.js" and "~/dist/static/app/js"
@@ -275,13 +317,13 @@ def _find_url_prefix(filepath, artifact_name):
     # Example : "~/dist/static/header/app.js" and "~/dist/static/footer/app.js"
     # 3. If there is only 1 difference that needs to be added to make the file name and artifact name match
     # Example : "~/dist/app.js" and "~/dist/static/header/app.js"
-    idx = artifact_name.find(filepath)
+    idx = artifact_name_str.find(filepath_str)
     # If file name is suffix of artifact name, return the missing prefix
     if idx != -1:
-        return artifact_name[:idx]
+        return artifact_name_str[:idx]
 
-    filepath = filepath.split("/")
-    artifact_name = artifact_name.split("/")
+    filepath = filepath_str.split("/")
+    artifact_name = artifact_name_str.split("/")
     if len(filepath) == len(artifact_name):
         matches = [filepath[i] != artifact_name[i] for i in range(len(filepath))]
         if sum(matches) == 1:
@@ -290,22 +332,11 @@ def _find_url_prefix(filepath, artifact_name):
 
     if len(filepath) + 1 == len(artifact_name):
         # If not suffix, find the missing parts and return them
-        filepath = set(filepath)
-        artifact_name = set(artifact_name)
+        filepath_set = set(filepath)
+        artifact_name_set = set(artifact_name)
 
-        differences = list(filepath.symmetric_difference(artifact_name))
+        differences = list(filepath_set.symmetric_difference(artifact_name_set))
         if len(differences) == 1:
             return "/".join(differences + [""])
 
-
-class SourceMapException(Exception):
-    def __init__(self, issue, data=None):
-        super().__init__(issue, data)
-        self.issue = issue
-        self.data = data
-
-
-class SourceMapDebug:
-    def __init__(self, issue=None, data=None):
-        self.issue = issue
-        self.data = data
+    return None

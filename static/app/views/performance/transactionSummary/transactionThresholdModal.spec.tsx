@@ -1,8 +1,8 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {
   makeClosableHeader,
@@ -11,7 +11,7 @@ import {
   ModalFooter,
 } from 'sentry/components/globalModal/components';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization as TOrganization} from 'sentry/types';
+import type {Organization as TOrganization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionThresholdModal, {
   TransactionThresholdMetric,
@@ -40,7 +40,7 @@ function mountModal(
 }
 
 describe('TransactionThresholdModal', function () {
-  const organization = Organization({features: ['performance-view']});
+  const organization = OrganizationFixture({features: ['performance-view']});
   const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '1',

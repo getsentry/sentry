@@ -3,7 +3,6 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-from typing import Optional
 
 from django.db import IntegrityError, router, transaction
 
@@ -18,7 +17,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
@@ -80,7 +79,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
                 )
 
                 if existing is None:
-                    raise e
+                    raise
                 else:
                     orm_mapping = existing
 
@@ -95,7 +94,7 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         self,
         organization_id: int,
         organizationmember_id: int,
-    ) -> Optional[OrganizationMemberMapping]:
+    ) -> OrganizationMemberMapping | None:
         return OrganizationMemberMapping.objects.filter(
             organization_id=organization_id, organizationmember_id=organizationmember_id
         ).first()

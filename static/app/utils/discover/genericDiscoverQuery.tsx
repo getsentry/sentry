@@ -1,16 +1,15 @@
 import {Component, useContext} from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {EventQuery} from 'sentry/actionCreators/events';
-import {Client, ResponseMeta} from 'sentry/api';
+import type {EventQuery} from 'sentry/actionCreators/events';
+import type {ResponseMeta} from 'sentry/api';
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import EventView, {
-  ImmutableEventView,
-  isAPIPayloadSimilar,
-  LocationQuery,
-} from 'sentry/utils/discover/eventView';
-import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {ImmutableEventView, LocationQuery} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
+import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {PerformanceEventViewContext} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 
 import useApi from '../useApi';
@@ -23,10 +22,12 @@ export interface DiscoverQueryExtras {
 interface _DiscoverQueryExtras {
   queryExtras?: DiscoverQueryExtras;
 }
-export class QueryError {
+export class QueryError extends Error {
   message: string;
   private originalError: any; // For debugging in case parseError picks a value that doesn't make sense.
   constructor(errorMessage: string, originalError?: any) {
+    super(errorMessage);
+
     this.message = errorMessage;
     this.originalError = originalError;
   }

@@ -1,22 +1,26 @@
-import {Fragment, ReactNode, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 import keyBy from 'lodash/keyBy';
 
-import {Tag} from 'sentry/actionCreators/events';
-import {GroupTagResponseItem} from 'sentry/actionCreators/group';
+import type {Tag} from 'sentry/actionCreators/events';
+import type {GroupTagResponseItem} from 'sentry/actionCreators/group';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import LoadingError from 'sentry/components/loadingError';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event, Organization, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useFetchIssueTagsForDetailsPage} from 'sentry/views/issueDetails/utils';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
@@ -241,7 +245,9 @@ function WrapperWithTitle({children}: {children: ReactNode}) {
   return (
     <SidebarSection.Wrap>
       <SidebarSection.Title>
-        {t('All Tags')}
+        <GuideAnchor target="issue_sidebar_tags" position="left">
+          {t('All Tags')}
+        </GuideAnchor>
         <QuestionTooltip
           size="xs"
           position="top"

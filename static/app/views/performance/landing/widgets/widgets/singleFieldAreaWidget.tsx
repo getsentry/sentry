@@ -8,12 +8,10 @@ import {t} from 'sentry/locale';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {
-  QueryBatchNode,
-  Transform,
-} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {Transform} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import {QueryBatchNode} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {usePageError} from 'sentry/utils/performance/contexts/pageError';
+import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
 import DurationChart from 'sentry/views/performance/charts/chart';
@@ -21,7 +19,7 @@ import DurationChart from 'sentry/views/performance/charts/chart';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
 import {transformDiscoverToSingleValue} from '../transforms/transformDiscoverToSingleValue';
 import {transformEventsRequestToArea} from '../transforms/transformEventsToArea';
-import {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
+import type {PerformanceWidgetProps, QueryDefinition, WidgetDataResult} from '../types';
 import {eventsRequestQueryProps, getMEPQueryParams, QUERY_LIMIT_PARAM} from '../utils';
 
 type DataType = {
@@ -33,7 +31,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const {ContainerActions, InteractiveTitle} = props;
   const globalSelection = props.eventView.getPageFilters();
-  const pageError = usePageError();
+  const {setPageError} = usePageAlert();
   const mepSetting = useMEPSettingContext();
 
   if (props.fields.length !== 1) {
@@ -66,7 +64,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
                 'medium'
               )}
               hideError
-              onError={pageError.setPageError}
+              onError={setPageError}
               queryExtras={getMEPQueryParams(mepSetting)}
             />
           )}

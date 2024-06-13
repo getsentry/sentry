@@ -42,7 +42,7 @@ def test_interface_is_relabeled():
     manager.normalize()
     data = manager.get_data()
 
-    assert data["user"] == {"id": "1"}
+    assert data["user"] == {"id": "1", "sentry_user": "id:1"}
 
 
 @pytest.mark.parametrize("user", ["missing", None, {}, {"ip_address": None}])
@@ -197,17 +197,6 @@ def test_deprecated_attrs(key):
 
     assert key not in data
     assert not data.get("errors")
-
-
-def test_returns_canonical_dict():
-    from sentry.utils.canonical import CanonicalKeyDict
-
-    event = make_event()
-
-    manager = EventManager(event)
-    assert isinstance(manager.get_data(), CanonicalKeyDict)
-    manager.normalize()
-    assert isinstance(manager.get_data(), CanonicalKeyDict)
 
 
 @pytest.mark.parametrize("environment", ["", None, "production"])

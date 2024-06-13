@@ -1,4 +1,4 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import SentryAppComponentsStore from 'sentry/stores/sentryAppComponentsStore';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
@@ -17,20 +17,22 @@ describe('withSentryAppComponents HoC', function () {
 
     MyComponent.mockClear();
 
-    SentryAppComponentsStore.loadComponents([
-      {
-        type: 'issue-link',
-        sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
-        uuid: '',
-        schema: {uri: '', url: '', type: 'stacktrace-link'},
-      },
-      {
-        type: 'stacktrace-link',
-        sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
-        uuid: '',
-        schema: {uri: '', url: '', type: 'stacktrace-link'},
-      },
-    ]);
+    act(() =>
+      SentryAppComponentsStore.loadComponents([
+        {
+          type: 'issue-link',
+          sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
+          uuid: '',
+          schema: {uri: '', url: '', type: 'stacktrace-link'},
+        },
+        {
+          type: 'stacktrace-link',
+          sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
+          uuid: '',
+          schema: {uri: '', url: '', type: 'stacktrace-link'},
+        },
+      ])
+    );
 
     expect(MyComponent).toHaveBeenCalledWith(
       {
@@ -52,20 +54,22 @@ describe('withSentryAppComponents HoC', function () {
 
     expect(MyComponent).toHaveBeenCalledWith({components: []}, {});
 
-    SentryAppComponentsStore.loadComponents([
-      {
-        type: 'issue-link',
-        sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
-        uuid: '',
-        schema: {uri: '', url: '', type: 'stacktrace-link'},
-      },
-      {
-        type: 'stacktrace-link',
-        sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
-        uuid: '',
-        schema: {uri: '', url: '', type: 'stacktrace-link'},
-      },
-    ]);
+    act(() =>
+      SentryAppComponentsStore.loadComponents([
+        {
+          type: 'issue-link',
+          sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
+          uuid: '',
+          schema: {uri: '', url: '', type: 'stacktrace-link'},
+        },
+        {
+          type: 'stacktrace-link',
+          sentryApp: {uuid: 'uuid', name: '', slug: '', avatars: []},
+          uuid: '',
+          schema: {uri: '', url: '', type: 'stacktrace-link'},
+        },
+      ])
+    );
 
     expect(MyComponent).toHaveBeenCalledWith(
       {

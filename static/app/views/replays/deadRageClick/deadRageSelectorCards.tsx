@@ -1,19 +1,19 @@
-import {ComponentProps, ReactNode, useState} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
-import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import Accordion from 'sentry/components/replays/accordion';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -50,7 +50,6 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -73,7 +72,6 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -135,7 +133,6 @@ function AccordionWidget({
       ) : (
         <LeftAlignedContentContainer>
           <Accordion
-            buttonOnLeft
             collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
@@ -144,7 +141,7 @@ function AccordionWidget({
                 d.dom_element.fullSelector
               )}"`;
               return {
-                header: () => (
+                header: (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
                     selector={d.dom_element.selector}
@@ -153,7 +150,7 @@ function AccordionWidget({
                     id={d.project_id}
                   />
                 ),
-                content: () => (
+                content: (
                   <ExampleReplaysList
                     location={location}
                     clickType={clickType}
@@ -281,6 +278,7 @@ const StyledButton = styled(LinkButton)`
   border-left: none;
   border-right: none;
   font-size: ${p => p.theme.fontSizeMedium};
+  background-color: transparent;
 `;
 
 const StyledAccordionHeader = styled('div')`

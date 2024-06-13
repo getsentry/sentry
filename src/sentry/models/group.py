@@ -5,11 +5,12 @@ import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
 from operator import or_
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.core.cache import cache
 from django.db import models
@@ -21,7 +22,7 @@ from django.utils.http import urlencode
 from django.utils.translation import gettext_lazy as _
 from snuba_sdk import Column, Condition, Op
 
-from sentry import eventstore, eventtypes, tagstore
+from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
@@ -32,16 +33,23 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
-from sentry.models.grouphistory import record_group_history_from_activity_type
+from sentry.issues.priority import (
+    PRIORITY_TO_GROUP_HISTORY_STATUS,
+    PriorityChangeReason,
+    get_priority_for_ongoing_group,
+)
+from sentry.models.commit import Commit
+from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.group import (
     IGNORED_SUBSTATUS_CHOICES,
     UNRESOLVED_SUBSTATUS_CHOICES,
@@ -60,8 +68,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_short_id_re = re.compile(r"^(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
-
+_short_id_re = re.compile(r"^(?:issue+:)?(.*?)(?:[\s_-])([A-Za-z0-9]+)$")
 ShortId = namedtuple("ShortId", ["project_slug", "short_id"])
 
 
@@ -206,7 +213,7 @@ class EventOrdering(Enum):
     LATEST = ["-timestamp", "-event_id"]
     OLDEST = ["timestamp", "event_id"]
     MOST_HELPFUL = [
-        "-replayId",
+        "-replay.id",
         "-profile.id",
         "num_processing_errors",
         "-trace.sampled",
@@ -249,7 +256,7 @@ def get_oldest_or_latest_event_for_environments(
 def get_recommended_event_for_environments(
     environments: Sequence[Environment],
     group: Group,
-    conditions: Optional[Sequence[Condition]] = None,
+    conditions: Sequence[Condition] | None = None,
 ) -> GroupEvent | None:
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
@@ -299,6 +306,13 @@ def get_recommended_event_for_environments(
 class GroupManager(BaseManager["Group"]):
     use_for_related_fields = True
 
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .with_post_update_signal(options.get("groups.enable-post-update-signal"))
+        )
+
     def by_qualified_short_id(self, organization_id: int, short_id: str):
         return self.by_qualified_short_id_bulk(organization_id, [short_id])[0]
 
@@ -341,19 +355,6 @@ class GroupManager(BaseManager["Group"]):
                 raise Group.DoesNotExist()
         return groups
 
-    def from_kwargs(self, project, **kwargs):
-        from sentry.event_manager import EventManager
-        from sentry.exceptions import HashDiscarded
-
-        manager = EventManager(kwargs)
-        manager.normalize()
-        try:
-            return manager.save(project)
-
-        # TODO(jess): this method maybe isn't even used?
-        except HashDiscarded as e:
-            logger.info("discarded.hash", extra={"project_id": project, "description": str(e)})
-
     def from_event_id(self, project, event_id):
         """Resolves the 32 character event_id string into a Group for which it is found."""
         group_id = None
@@ -389,7 +390,7 @@ class GroupManager(BaseManager["Group"]):
         integration: RpcIntegration,
         organizations: Sequence[Organization],
         external_issue_key: str,
-    ) -> QuerySet:
+    ) -> QuerySet[Group]:
         from sentry.models.grouplink import GroupLink
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.services.hybrid_cloud.integration import integration_service
@@ -420,8 +421,9 @@ class GroupManager(BaseManager["Group"]):
         status: int,
         substatus: int | None,
         activity_type: ActivityType,
-        activity_data: Optional[Mapping[str, Any]] = None,
+        activity_data: Mapping[str, Any] | None = None,
         send_activity_notification: bool = True,
+        from_substatus: int | None = None,
     ) -> None:
         """For each groups, update status to `status` and create an Activity."""
         from sentry.models.activity import Activity
@@ -431,12 +433,24 @@ class GroupManager(BaseManager["Group"]):
             status=status, substatus=substatus
         )
 
+        should_update_priority = (
+            from_substatus == GroupSubStatus.ESCALATING
+            and activity_type == ActivityType.AUTO_SET_ONGOING
+        )
+
+        updated_priority = {}
         for group in selected_groups:
             group.status = status
             group.substatus = substatus
+            if should_update_priority:
+                priority = get_priority_for_ongoing_group(group)
+                if priority and group.priority != priority:
+                    group.priority = priority
+                    updated_priority[group.id] = priority
+
             modified_groups_list.append(group)
 
-        Group.objects.bulk_update(modified_groups_list, ["status", "substatus"])
+        Group.objects.bulk_update(modified_groups_list, ["status", "substatus", "priority"])
 
         for group in modified_groups_list:
             Activity.objects.create_group_activity(
@@ -445,8 +459,19 @@ class GroupManager(BaseManager["Group"]):
                 data=activity_data,
                 send_notification=send_activity_notification,
             )
-
             record_group_history_from_activity_type(group, activity_type.value)
+
+            if group.id in updated_priority:
+                new_priority = updated_priority[group.id]
+                Activity.objects.create_group_activity(
+                    group=group,
+                    type=ActivityType.SET_PRIORITY,
+                    data={
+                        "priority": new_priority.to_str(),
+                        "reason": PriorityChangeReason.ONGOING,
+                    },
+                )
+                record_group_history(group, PRIORITY_TO_GROUP_HISTORY_STATUS[new_priority])
 
     def from_share_id(self, share_id: str) -> Group:
         if not share_id or len(share_id) != 32:
@@ -485,7 +510,7 @@ class GroupManager(BaseManager["Group"]):
         }
 
 
-@region_silo_only_model
+@region_silo_model
 class Group(Model):
     """
     Aggregated message which summarizes a set of Events.
@@ -543,6 +568,8 @@ class Group(Model):
     data: models.Field[dict[str, Any], dict[str, Any]] = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
     type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
+    priority = models.PositiveSmallIntegerField(null=True)
+    priority_locked_at = models.DateTimeField(null=True)
 
     objects: ClassVar[GroupManager] = GroupManager(cache_fields=("id",))
 
@@ -552,16 +579,17 @@ class Group(Model):
         verbose_name_plural = _("grouped messages")
         verbose_name = _("grouped message")
         permissions = (("can_view", "Can view"),)
-        index_together = [
-            ("project", "first_release"),
-            ("project", "id"),
-            ("project", "status", "last_seen", "id"),
-            ("project", "status", "type", "last_seen", "id"),
-            ("project", "status", "substatus", "last_seen", "id"),
-            ("project", "status", "substatus", "type", "last_seen", "id"),
-            ("project", "status", "substatus", "id"),
-            ("status", "substatus", "id"),  # TODO: Remove this
-            ("status", "substatus", "first_seen"),
+        indexes = [
+            models.Index(fields=("project", "first_release")),
+            models.Index(fields=("project", "id")),
+            models.Index(fields=("project", "status", "last_seen", "id")),
+            models.Index(fields=("project", "status", "type", "last_seen", "id")),
+            models.Index(fields=("project", "status", "substatus", "last_seen", "id")),
+            models.Index(fields=("project", "status", "substatus", "type", "last_seen", "id")),
+            models.Index(fields=("project", "status", "substatus", "id")),
+            models.Index(fields=("status", "substatus", "id")),  # TODO: Remove this
+            models.Index(fields=("status", "substatus", "first_seen")),
+            models.Index(fields=("project", "status", "priority", "last_seen", "id")),
         ]
         unique_together = (
             ("project", "short_id"),
@@ -692,7 +720,7 @@ class Group(Model):
             data_source=data_source,
         )
 
-        has_replays = counts.get(self.id, 0) > 0  # type: ignore
+        has_replays = counts.get(self.id, 0) > 0  # type: ignore[call-overload]
         # need to refactor counts so that the type of the key returned in the dict is always a str
         # for typing
         metrics.incr(
@@ -763,7 +791,7 @@ class Group(Model):
     def get_recommended_event_for_environments(
         self,
         environments: Sequence[Environment] = (),
-        conditions: Optional[Sequence[Condition]] = None,
+        conditions: Sequence[Condition] | None = None,
     ) -> GroupEvent | None:
         maybe_event = get_recommended_event_for_environments(
             environments,
@@ -775,6 +803,30 @@ class Group(Model):
             if maybe_event
             else self.get_latest_event_for_environments([env.name for env in environments])
         )
+
+    def get_suspect_commit(self) -> Commit | None:
+        from sentry.models.groupowner import GroupOwner, GroupOwnerType
+
+        suspect_commit_owner = (
+            GroupOwner.objects.filter(
+                group_id=self.id,
+                project_id=self.project_id,
+                type=GroupOwnerType.SUSPECT_COMMIT.value,
+                context__isnull=False,
+            )
+            .order_by("-date_added")
+            .first()
+        )
+
+        if not suspect_commit_owner:
+            return None
+
+        commit_id = suspect_commit_owner.context.get("commitId")
+        if not commit_id:
+            return None
+
+        commit = Commit.objects.filter(id=commit_id)
+        return commit.first()
 
     def get_first_release(self) -> str | None:
         from sentry.models.release import Release
@@ -812,8 +864,15 @@ class Group(Model):
 
     @property
     def title(self) -> str:
-        et = eventtypes.get(self.get_event_type())()
-        return et.get_title(self.get_event_metadata())
+        title = self.data.get("title")
+        event_type = self.get_event_type()
+
+        # TODO: It may be that we don't have to restrict this to just default and error types
+        if title and event_type in ["default", "error"]:
+            return title
+
+        event_type_instance = eventtypes.get(event_type)()
+        return event_type_instance.get_title(self.get_event_metadata())
 
     def location(self):
         et = eventtypes.get(self.get_event_type())()
@@ -845,13 +904,14 @@ class Group(Model):
     def get_email_subject(self):
         return f"{self.qualified_short_id} - {self.title}"
 
-    def count_users_seen(self):
+    def count_users_seen(self, referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value):
         return tagstore.backend.get_groups_user_counts(
             [self.project_id],
             [self.id],
             environment_ids=None,
             start=self.first_seen,
             tenant_ids={"organization_id": self.project.organization_id},
+            referrer=referrer,
         )[self.id]
 
     @classmethod
@@ -866,7 +926,7 @@ class Group(Model):
         except GroupAssignee.DoesNotExist:
             return None
 
-        assigned_actor: RpcActor = group_assignee.assigned_actor()
+        assigned_actor: Actor = group_assignee.assigned_actor()
 
         return assigned_actor.resolve()
 

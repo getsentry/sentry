@@ -7,29 +7,29 @@ import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
-import {Field} from 'sentry/components/forms/types';
+import type {Field} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {OrganizationIntegration} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {
+import type {
   DefaultSettings,
   NotificationOptionsObject,
   NotificationProvidersObject,
-  SUPPORTED_PROVIDERS,
   SupportedProviders,
 } from './constants';
+import {SUPPORTED_PROVIDERS} from './constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
-import {NOTIFICATION_SETTING_FIELDS, QUOTA_FIELDS} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS, QUOTA_FIELDS, SPEND_FIELDS} from './fields2';
 import NotificationSettingsByEntity from './notificationSettingsByEntity';
-import {Identity} from './types';
+import type {Identity} from './types';
 import UnlinkedAlert from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
 
@@ -52,8 +52,10 @@ const typeMappedChildren = {
     'quotaTransactions',
     'quotaAttachments',
     'quotaReplays',
+    'quotaMonitorSeats',
     'quotaWarnings',
     'quotaSpendAllocations',
+    'quotaSpans',
   ],
 };
 
@@ -182,30 +184,82 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   }
 
   getFields(): Field[] {
-    const {notificationType} = this.props;
+    const {notificationType, organizations} = this.props;
 
     const help = isGroupedByProject(notificationType)
       ? t('This is the default for all projects.')
       : t('This is the default for all organizations.');
 
     const fields: Field[] = [];
+
+    // at least one org exists with am3 tiered plan
+    const hasOrgWithAm3 = organizations.some(organization =>
+      organization.features?.includes('am3-tier')
+    );
+
+    // at least one org exists without am3 tier plan
+    const hasOrgWithoutAm3 = organizations.some(
+      organization => !organization.features?.includes('am3-tier')
+    );
+
+    const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
+    const includeSpans = hasOrgWithAm3;
+
     // if a quota notification is not disabled, add in our dependent fields
     // but do not show the top level controller
     if (notificationType === 'quota') {
-      fields.push(
-        ...QUOTA_FIELDS.map(field => ({
-          ...field,
-          type: 'select' as const,
-          getData: data => {
-            return {
-              type: field.name,
-              scopeType: 'user',
-              scopeIdentifier: ConfigStore.get('user').id,
-              value: data[field.name],
-            };
-          },
-        }))
-      );
+      if (
+        organizations.some(organization =>
+          organization.features?.includes('spend-visibility-notifications')
+        )
+      ) {
+        fields.push(
+          ...SPEND_FIELDS.filter(field => {
+            if (field.name === 'quotaSpans' && !includeSpans) {
+              return false;
+            }
+            if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            return true;
+          }).map(field => ({
+            ...field,
+            type: 'select' as const,
+            getData: data => {
+              return {
+                type: field.name,
+                scopeType: 'user',
+                scopeIdentifier: ConfigStore.get('user').id,
+                value: data[field.name],
+              };
+            },
+          }))
+        );
+      } else {
+        // TODO(isabella): Once GA, remove this case
+        fields.push(
+          ...QUOTA_FIELDS.filter(field => {
+            if (field.name === 'quotaSpans' && !includeSpans) {
+              return false;
+            }
+            if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            return true;
+          }).map(field => ({
+            ...field,
+            type: 'select' as const,
+            getData: data => {
+              return {
+                type: field.name,
+                scopeType: 'user',
+                scopeIdentifier: ConfigStore.get('user').id,
+                value: data[field.name],
+              };
+            },
+          }))
+        );
+      }
     } else {
       const defaultField: Field = Object.assign(
         {},
@@ -341,10 +395,23 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   };
 
   renderBody() {
-    const {notificationType} = this.props;
+    const {notificationType, organizations} = this.props;
     const {notificationOptions} = this.state;
     const unlinkedSlackOrgs = this.getUnlinkedOrgs('slack');
-    const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    // TODO(isabella): Once GA, remove this
+    if (
+      notificationType === 'quota' &&
+      organizations.some(org => org.features?.includes('spend-visibility-notifications'))
+    ) {
+      notificationDetails = {
+        ...notificationDetails,
+        title: t('Spend Notifications'),
+        description: t('Control the notifications you receive for organization spend.'),
+      };
+    }
+    const {title, description} = notificationDetails;
+
     const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
     return (
       <Fragment>

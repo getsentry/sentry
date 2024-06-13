@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useCallback, useEffect, useMemo} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,9 +12,10 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey} from 'sentry/types/project';
 import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -75,8 +77,32 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   android: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-ios': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   bun: [ProductSolution.PERFORMANCE_MONITORING],
+  dotnet: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-aspnet': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-aspnetcore': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+  ],
+  'dotnet-awslambda': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-gcpfunctions': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-maui': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-uwp': [ProductSolution.PERFORMANCE_MONITORING],
+  'dotnet-winforms': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-wpf': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'dotnet-xamarin': [ProductSolution.PERFORMANCE_MONITORING],
+  flutter: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   kotlin: [ProductSolution.PERFORMANCE_MONITORING],
+  go: [ProductSolution.PERFORMANCE_MONITORING],
+  'go-echo': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-fasthttp': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-gin': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-http': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-iris': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-martini': [ProductSolution.PERFORMANCE_MONITORING],
+  'go-negroni': [ProductSolution.PERFORMANCE_MONITORING],
   java: [ProductSolution.PERFORMANCE_MONITORING],
   'java-spring-boot': [ProductSolution.PERFORMANCE_MONITORING],
   javascript: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.SESSION_REPLAY],
@@ -117,20 +143,24 @@ export const platformProductAvailability = {
   'node-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-connect': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-express': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-fastify': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-gcpfunctions': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
   ],
+  'node-hapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'node-koa': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'node-nestjs': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   php: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'php-laravel': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   ['php-symfony']: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   python: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-aiohttp': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING],
+  'python-asgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-awslambda': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-bottle': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-celery': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'python-chalice': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-django': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-falcon': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-fastapi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
@@ -148,6 +178,10 @@ export const platformProductAvailability = {
   'python-tornado': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-starlette': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
   'python-wsgi': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'react-native': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  ruby: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rack': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
+  'ruby-rails': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
 } as Record<PlatformKey, ProductSolution[]>;
 
 type ProductProps = {
@@ -193,8 +227,8 @@ function Product({
   const ProductWrapper = permanentDisabled
     ? PermanentDisabledProductWrapper
     : disabled
-    ? DisabledProductWrapper
-    : ProductButtonWrapper;
+      ? DisabledProductWrapper
+      : ProductButtonWrapper;
 
   return (
     <Tooltip
@@ -317,15 +351,22 @@ export function ProductSelection({
         }
       }
 
+      const selectedProducts = [...newProduct] as ProductSolution[];
       router.replace({
         pathname: router.location.pathname,
         query: {
           ...router.location.query,
-          product: [...newProduct],
+          product: selectedProducts,
         },
       });
+
+      if (organization.features.includes('project-create-replay-feedback')) {
+        HookStore.get('callback:on-create-project-product-selection').map(cb =>
+          cb({defaultProducts, organization, selectedProducts})
+        );
+      }
     },
-    [router, urlProducts, defaultProducts]
+    [defaultProducts, organization, router, urlProducts]
   );
 
   if (!products) {
@@ -412,13 +453,13 @@ export function ProductSelection({
       </Products>
       {showPackageManagerInfo && lazyLoader && (
         <AlternativeInstallationAlert type="info" showIcon>
-          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere].', {
+          {tct('Prefer to set up Sentry using [npm:npm] or [yarn:yarn]? [goHere]', {
             npm: <strong />,
             yarn: <strong />,
             goHere: (
-              <Button onClick={skipLazyLoader} priority="link">
-                {t('Go here')}
-              </Button>
+              <SkipLazyLoaderButton onClick={skipLazyLoader} size="xs" priority="default">
+                {t('View npm instructions')}
+              </SkipLazyLoaderButton>
             ),
           })}
         </AlternativeInstallationAlert>
@@ -426,6 +467,10 @@ export function ProductSelection({
     </Fragment>
   );
 }
+
+const SkipLazyLoaderButton = styled(Button)`
+  margin-left: ${space(1)};
+`;
 
 const Products = styled('div')`
   display: flex;

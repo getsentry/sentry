@@ -12,12 +12,12 @@ jobs:
     name: labels pull requests (frontend / backend)
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
         with:
           persist-credentials: false
 
       - name: Check for file changes
-        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
+        uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
         id: changes
         with:
           token: ${{ github.token }}
@@ -25,7 +25,7 @@ jobs:
 
       - name: Add frontend label
         uses: getsentry/action-add-labels@54d0cba498c1eaf8bd34985d715504d1b6e2935f
-        if: steps.changes.outputs.frontend_src == 'true'
+        if: steps.changes.outputs.frontend_all == 'true'
         with:
           labels: 'Scope: Frontend'
 
@@ -46,7 +46,7 @@ jobs:
       - name: Add frontend/backend warning comment
         uses: peter-evans/create-or-update-comment@b95e16d2859ad843a14218d1028da5b2c4cbc4b4
         if: >
-          steps.changes.outputs.frontend_src == 'true' &&
+          steps.changes.outputs.frontend_all == 'true' &&
           steps.changes.outputs.backend_src == 'true' &&
           steps.fc.outputs.comment-id == 0
         with:

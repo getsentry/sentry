@@ -1,6 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Team} from 'sentry-fixture/team';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,7 +13,7 @@ describe('OrganizationTeamProjects', function () {
   let postMock!: jest.Mock;
   let deleteMock!: jest.Mock;
 
-  const team = Team({slug: 'team-slug'});
+  const team = TeamFixture({slug: 'team-slug'});
   const project = ProjectFixture({
     teams: [team],
     access: ['project:read', 'project:write', 'project:admin'],
@@ -25,8 +25,8 @@ describe('OrganizationTeamProjects', function () {
     access: ['project:read', 'project:write', 'project:admin'],
   });
 
-  const {routerContext, routerProps, organization} = initializeOrg({
-    organization: Organization({slug: 'org-slug'}),
+  const {router, routerProps, organization} = initializeOrg({
+    organization: OrganizationFixture({slug: 'org-slug'}),
     projects: [project, project2],
     router: {params: {teamId: team.slug}},
   });
@@ -64,7 +64,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('should fetch linked and unlinked projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -78,7 +78,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('should allow bookmarking', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -101,7 +101,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('should allow adding and removing projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -121,7 +121,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('handles filtering unlinked projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 

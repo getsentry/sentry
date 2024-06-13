@@ -1,9 +1,18 @@
+import type {LocationDescriptor} from 'history';
+
+import type {TitledPlugin} from 'sentry/components/group/pluginActions';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
 import type {Event, EventMetadata, EventOrGroupType, Level} from './event';
-import type {Commit, PullRequest, Repository} from './integrations';
+import type {
+  Commit,
+  ExternalIssue,
+  PlatformExternalIssue,
+  PullRequest,
+  Repository,
+} from './integrations';
 import type {Team} from './organization';
 import type {PlatformKey, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -54,6 +63,7 @@ export enum IssueCategory {
   ERROR = 'error',
   CRON = 'cron',
   PROFILE = 'profile',
+  REPLAY = 'replay',
 }
 
 export enum IssueType {
@@ -84,9 +94,14 @@ export enum IssueType {
   PROFILE_FRAME_DROP_EXPERIMENTAL = 'profile_frame_drop_experimental',
   PROFILE_FUNCTION_REGRESSION = 'profile_function_regression',
   PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'profile_function_regression_exp',
+
+  // Replay
+  REPLAY_RAGE_CLICK = 'replay_click_rage',
+  REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 }
 
 export enum IssueTitle {
+  // Performance
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'Consecutive DB Queries',
   PERFORMANCE_CONSECUTIVE_HTTP = 'Consecutive HTTP',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'File IO on Main Thread',
@@ -99,6 +114,56 @@ export enum IssueTitle {
   PERFORMANCE_LARGE_HTTP_PAYLOAD = 'Large HTTP payload',
   PERFORMANCE_HTTP_OVERHEAD = 'HTTP/1.1 Overhead',
   PERFORMANCE_DURATION_REGRESSION = 'Duration Regression',
+  PERFORMANCE_ENDPOINT_REGRESSION = 'Endpoint Regression',
+
+  // Profile
+  PROFILE_FILE_IO_MAIN_THREAD = 'File I/O on Main Thread',
+  PROFILE_IMAGE_DECODE_MAIN_THREAD = 'Image Decoding on Main Thread',
+  PROFILE_JSON_DECODE_MAIN_THREAD = 'JSON Decoding on Main Thread',
+  PROFILE_REGEX_MAIN_THREAD = 'Regex on Main Thread',
+  PROFILE_FRAME_DROP = 'Frame Drop',
+  PROFILE_FRAME_DROP_EXPERIMENTAL = 'Frame Drop',
+  PROFILE_FUNCTION_REGRESSION = 'Function Regression',
+  PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL = 'Function Duration Regression (Experimental)',
+
+  // Replay
+  REPLAY_RAGE_CLICK = 'Rage Click Detected',
+  REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
+}
+
+const ISSUE_TYPE_TO_ISSUE_TITLE = {
+  performance_consecutive_db_queries: IssueTitle.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+  performance_consecutive_http: IssueTitle.PERFORMANCE_CONSECUTIVE_HTTP,
+  performance_file_io_main_thread: IssueTitle.PERFORMANCE_FILE_IO_MAIN_THREAD,
+  performance_db_main_thread: IssueTitle.PERFORMANCE_DB_MAIN_THREAD,
+  performance_n_plus_one_api_calls: IssueTitle.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+  performance_n_plus_one_db_queries: IssueTitle.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+  performance_slow_db_query: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
+  performance_render_blocking_asset_span: IssueTitle.PERFORMANCE_RENDER_BLOCKING_ASSET,
+  performance_uncompressed_assets: IssueTitle.PERFORMANCE_UNCOMPRESSED_ASSET,
+  performance_large_http_payload: IssueTitle.PERFORMANCE_LARGE_HTTP_PAYLOAD,
+  performance_http_overhead: IssueTitle.PERFORMANCE_HTTP_OVERHEAD,
+  performance_duration_regression: IssueTitle.PERFORMANCE_DURATION_REGRESSION,
+  performance_p95_endpoint_regression: IssueTitle.PERFORMANCE_ENDPOINT_REGRESSION,
+
+  profile_file_io_main_thread: IssueTitle.PROFILE_FILE_IO_MAIN_THREAD,
+  profile_image_decode_main_thread: IssueTitle.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+  profile_json_decode_main_thread: IssueTitle.PROFILE_JSON_DECODE_MAIN_THREAD,
+  profile_regex_main_thread: IssueTitle.PROFILE_REGEX_MAIN_THREAD,
+  profile_frame_drop: IssueTitle.PROFILE_FRAME_DROP,
+  profile_frame_drop_experimental: IssueTitle.PROFILE_FRAME_DROP_EXPERIMENTAL,
+  profile_function_regression: IssueTitle.PROFILE_FUNCTION_REGRESSION,
+  profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
+
+  replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
+  replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
+};
+
+export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
+  if (issueType in ISSUE_TYPE_TO_ISSUE_TITLE) {
+    return ISSUE_TYPE_TO_ISSUE_TITLE[issueType];
+  }
+  return undefined;
 }
 
 const OCCURRENCE_TYPE_TO_ISSUE_TYPE = {
@@ -174,6 +239,7 @@ export type EventAttachment = IssueAttachment;
 export type Tag = {
   key: string;
   name: string;
+  alias?: string;
 
   isInput?: boolean;
 
@@ -311,6 +377,8 @@ export enum GroupActivityType {
   MARK_REVIEWED = 'mark_reviewed',
   AUTO_SET_ONGOING = 'auto_set_ongoing',
   SET_ESCALATING = 'set_escalating',
+  SET_PRIORITY = 'set_priority',
+  DELETED_ATTACHMENT = 'deleted_attachment',
 }
 
 interface GroupActivityBase {
@@ -322,7 +390,7 @@ interface GroupActivityBase {
   user?: null | User;
 }
 
-interface GroupActivityNote extends GroupActivityBase {
+export interface GroupActivityNote extends GroupActivityBase {
   data: {
     text: string;
   };
@@ -330,12 +398,55 @@ interface GroupActivityNote extends GroupActivityBase {
 }
 
 interface GroupActivitySetResolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: {};
+  type: GroupActivityType.SET_RESOLVED;
+}
+
+/**
+ * An integration marks an issue as resolved
+ */
+interface GroupActivitySetResolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_RESOLVED;
 }
 
 interface GroupActivitySetUnresolved extends GroupActivityBase {
-  data: Record<string, any>;
+  data: {};
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
+  data: {
+    forecast: number;
+  };
+  type: GroupActivityType.SET_UNRESOLVED;
+}
+
+/**
+ * An integration marks an issue as unresolved
+ */
+interface GroupActivitySetUnresolvedIntegration extends GroupActivityBase {
+  data: {
+    integration_id: number;
+    /**
+     * Human readable name of the integration
+     */
+    provider: string;
+    /**
+     * The key of the integration
+     */
+    provider_key: string;
+  };
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -488,6 +599,14 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
   type: GroupActivityType.SET_ESCALATING;
 }
 
+export interface GroupActivitySetPriority extends GroupActivityBase {
+  data: {
+    priority: PriorityLevel;
+    reason: string;
+  };
+  type: GroupActivityType.SET_PRIORITY;
+}
+
 export interface GroupActivityAssigned extends GroupActivityBase {
   data: {
     assignee: string;
@@ -497,7 +616,12 @@ export interface GroupActivityAssigned extends GroupActivityBase {
     /**
      * If the user was assigned via an integration
      */
-    integration?: 'projectOwnership' | 'codeowners' | 'slack' | 'msteams';
+    integration?:
+      | 'projectOwnership'
+      | 'codeowners'
+      | 'slack'
+      | 'msteams'
+      | 'suspectCommitter';
     /** Codeowner or Project owner rule as a string */
     rule?: string;
   };
@@ -513,10 +637,18 @@ export interface GroupActivityCreateIssue extends GroupActivityBase {
   type: GroupActivityType.CREATE_ISSUE;
 }
 
+interface GroupActivityDeletedAttachment extends GroupActivityBase {
+  data: {};
+  type: GroupActivityType.DELETED_ATTACHMENT;
+}
+
 export type GroupActivity =
   | GroupActivityNote
   | GroupActivitySetResolved
+  | GroupActivitySetResolvedIntegration
   | GroupActivitySetUnresolved
+  | GroupActivitySetUnresolvedForecast
+  | GroupActivitySetUnresolvedIntegration
   | GroupActivitySetIgnored
   | GroupActivitySetByAge
   | GroupActivitySetByResolvedInRelease
@@ -536,7 +668,9 @@ export type GroupActivity =
   | GroupActivityAssigned
   | GroupActivityCreateIssue
   | GroupActivityAutoSetOngoing
-  | GroupActivitySetEscalating;
+  | GroupActivitySetEscalating
+  | GroupActivitySetPriority
+  | GroupActivityDeletedAttachment;
 
 export type Activity = GroupActivity;
 
@@ -631,6 +765,12 @@ export const enum GroupSubstatus {
   NEW = 'new',
 }
 
+export const enum PriorityLevel {
+  HIGH = 'high',
+  MEDIUM = 'medium',
+  LOW = 'low',
+}
+
 // TODO(ts): incomplete
 export interface BaseGroup {
   activity: GroupActivity[];
@@ -653,9 +793,11 @@ export interface BaseGroup {
   participants: Array<UserParticipant | TeamParticipant>;
   permalink: string;
   platform: PlatformKey;
-  pluginActions: any[]; // TODO(ts)
+  pluginActions: TitledPlugin[];
   pluginContexts: any[]; // TODO(ts)
-  pluginIssues: any[]; // TODO(ts)
+  pluginIssues: TitledPlugin[];
+  priority: PriorityLevel;
+  priorityLockedAt: string | null;
   project: Project;
   seenBy: User[];
   shareId: string;
@@ -667,8 +809,11 @@ export interface BaseGroup {
   type: EventOrGroupType;
   userReportCount: number;
   inbox?: InboxDetails | null | false;
+  integrationIssues?: ExternalIssue[];
   latestEvent?: Event;
+  latestEventHasAttachments?: boolean;
   owners?: SuggestedOwner[] | null;
+  sentryAppIssues?: PlatformExternalIssue[];
   substatus?: GroupSubstatus | null;
 }
 
@@ -758,7 +903,7 @@ export type ChunkType = {
 };
 
 /**
- * User Feedback
+ * Old User Feedback
  */
 export type UserReport = {
   comments: string;
@@ -775,13 +920,17 @@ export type UserReport = {
 export type KeyValueListDataItem = {
   key: string;
   subject: string;
+  action?: {
+    link?: string | LocationDescriptor;
+  };
   actionButton?: React.ReactNode;
   isContextData?: boolean;
   isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
-  value?: React.ReactNode;
+  subjectNode?: React.ReactNode;
+  value?: React.ReactNode | Record<string, string | number>;
 };
 
 export type KeyValueListData = KeyValueListDataItem[];

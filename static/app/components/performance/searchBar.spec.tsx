@@ -1,16 +1,17 @@
 import {Fragment} from 'react';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
+import type {SearchBarProps} from 'sentry/components/performance/searchBar';
+import SearchBar from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 describe('SearchBar', () => {
   let eventsMock;
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   const testProps: SearchBarProps = {
     onSearch: jest.fn(),

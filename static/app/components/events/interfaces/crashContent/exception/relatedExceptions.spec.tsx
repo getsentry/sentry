@@ -1,4 +1,4 @@
-import {EventEntryExceptionGroup as EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
+import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryExceptionGroup';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
@@ -13,8 +13,9 @@ describe('ExceptionGroupContext', function () {
   const exceptionGroup2Mechanism = entry.data.values?.find(
     ({type}) => type === 'ExceptionGroup 2'
   )?.mechanism;
-  const typeErrorMechanism = entry.data.values?.find(({type}) => type === 'TypeError')
-    ?.mechanism;
+  const typeErrorMechanism = entry.data.values?.find(
+    ({type}) => type === 'TypeError'
+  )?.mechanism;
 
   const defaultProps = {
     allExceptions: entry.data.values ?? [],

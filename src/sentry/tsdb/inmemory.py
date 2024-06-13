@@ -1,9 +1,11 @@
 from collections import Counter, defaultdict
+from collections.abc import Mapping, Sequence
+from datetime import datetime
 
 from django.utils import timezone
 
-from sentry.tsdb.base import BaseTSDB
-from sentry.utils.dates import to_datetime, to_timestamp
+from sentry.tsdb.base import BaseTSDB, TSDBKey, TSDBModel
+from sentry.utils.dates import to_datetime
 
 
 class InMemoryTSDB(BaseTSDB):
@@ -17,7 +19,7 @@ class InMemoryTSDB(BaseTSDB):
         super().__init__(*args, **kwargs)
         self.flush()
 
-    def incr(self, model, key, timestamp=None, count=1, environment_id=None):
+    def incr(self, model, key: TSDBKey, timestamp=None, count=1, environment_id=None):
         self.validate_arguments([model], [environment_id])
 
         environment_ids = {environment_id, None}
@@ -62,17 +64,18 @@ class InMemoryTSDB(BaseTSDB):
 
     def get_range(
         self,
-        model,
-        keys,
-        start,
-        end,
-        rollup=None,
-        environment_ids=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
-    ):
+        model: TSDBModel,
+        keys: Sequence[TSDBKey],
+        start: datetime,
+        end: datetime,
+        rollup: int | None = None,
+        environment_ids: list[int] | None = None,
+        conditions=None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+        referrer_suffix: str | None = None,
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -89,7 +92,7 @@ class InMemoryTSDB(BaseTSDB):
                         int(self.data[model][(key, environment_id)][norm_epoch])
                         for environment_id in environment_ids
                     )
-                results.append((to_timestamp(timestamp), key, value))
+                results.append((timestamp.timestamp(), key, value))
 
         results_by_key = defaultdict(dict)
         for epoch, key, count in results:
@@ -113,7 +116,7 @@ class InMemoryTSDB(BaseTSDB):
                 self.sets[model][(key, environment_id)][r].update(values)
 
     def get_distinct_counts_series(
-        self, model, keys, start, end=None, rollup=None, environment_id=None
+        self, model, keys: Sequence[int], start, end=None, rollup=None, environment_id=None
     ):
         self.validate_arguments([model], [environment_id])
 
@@ -132,7 +135,7 @@ class InMemoryTSDB(BaseTSDB):
     def get_distinct_counts_totals(
         self,
         model,
-        keys,
+        keys: Sequence[int],
         start,
         end=None,
         rollup=None,
@@ -217,7 +220,12 @@ class InMemoryTSDB(BaseTSDB):
         # self.frequencies[model][key][rollup] = Counter()
         self.frequencies = defaultdict(lambda: defaultdict(lambda: defaultdict(Counter)))
 
-    def record_frequency_multi(self, requests, timestamp=None, environment_id=None):
+    def record_frequency_multi(
+        self,
+        requests: Sequence[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]],
+        timestamp=None,
+        environment_id=None,
+    ):
         environment_ids = {environment_id, None}
 
         self.validate_arguments([model for model, request in requests], [environment_id])
@@ -234,7 +242,14 @@ class InMemoryTSDB(BaseTSDB):
                         source[self.normalize_to_rollup(timestamp, rollup)].update(items)
 
     def get_most_frequent(
-        self, model, keys, start, end=None, rollup=None, limit=None, environment_id=None
+        self,
+        model,
+        keys: Sequence[TSDBKey],
+        start,
+        end=None,
+        rollup=None,
+        limit=None,
+        environment_id=None,
     ):
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
@@ -269,7 +284,15 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_series(
+        self,
+        model,
+        items: Mapping[str, Sequence[str]],
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+    ):
         self.validate_arguments([model], [environment_id])
 
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
@@ -284,7 +307,15 @@ class InMemoryTSDB(BaseTSDB):
 
         return results
 
-    def get_frequency_totals(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_totals(
+        self,
+        model,
+        items: Mapping[str, Sequence[str]],
+        start,
+        end=None,
+        rollup=None,
+        environment_id=None,
+    ):
         self.validate_arguments([model], [environment_id])
 
         results = {}

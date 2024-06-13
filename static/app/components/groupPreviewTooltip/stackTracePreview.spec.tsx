@@ -1,9 +1,9 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {EventError} from 'sentry/types';
-import {EntryType, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import type {EventError, ExceptionType, ExceptionValue, Frame} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 import {StackTracePreview} from './stackTracePreview';
 

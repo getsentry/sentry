@@ -1,5 +1,5 @@
 import random
-from typing import Any, Optional
+from typing import Any
 
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
@@ -31,7 +31,7 @@ class MetricsSchemaValidator:
         messages of that use case based on the sample rate defined in the configuration option.
     """
 
-    def __init__(self, input_codec: Optional[Codec[Any]], validation_option: Optional[str]) -> None:
+    def __init__(self, input_codec: Codec[Any] | None, validation_option: str | None) -> None:
         self.input_codec = input_codec
         self.validation_option = validation_option
         if self.validation_option:

@@ -22,10 +22,10 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastDetailsEndpoint(Endpoint):
-    owner = ApiOwner.ISSUES
+    owner = ApiOwner.UNOWNED
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (IsAuthenticated,)
 

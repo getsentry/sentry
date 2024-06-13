@@ -110,8 +110,8 @@ def get_serializer_field_metadata(serializer, fields=None):
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ENTERPRISE
 
@@ -187,7 +187,10 @@ class UserAuthenticatorEnrollEndpoint(UserEndpoint):
                 status=429,
             )
 
-        # Using `request.user` here because superuser should not be able to set a user's 2fa
+        # TODO: Investigate the behavior below and see if it makes more sense to
+        # error rather than silently switch to the superuser/staff user.
+
+        # Using `request.user` here because superuser/staff should not be able to set a user's 2fa
         if user.id != request.user.id:
             user = User.objects.get(id=request.user.id)
 

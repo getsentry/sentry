@@ -13,6 +13,7 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
+from sentry.api.utils import handle_query_errors
 from sentry.snuba import spans_indexed, spans_metrics
 from sentry.snuba.referrer import Referrer
 
@@ -31,7 +32,7 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
 
         dataset = self.get_dataset(request)
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             result = dataset.query(
                 selected_columns=["count()"],
                 params=params,
@@ -70,7 +71,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                     status=400,
                 )
 
-        with self.handle_query_errors():
+        with handle_query_errors():
             with sentry_sdk.start_span(op="discover.endpoint", description="filter_creation"):
                 projects = self.get_projects(request, organization)
                 query_kwargs = build_query_params_from_request(
@@ -92,10 +93,10 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                 query_kwargs["actor"] = request.user
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
-                results = search.query(**query_kwargs)
+                results_cursor = search.backend.query(**query_kwargs)
 
         with sentry_sdk.start_span(op="discover.endpoint", description="serialize_results") as span:
-            results = list(results)
+            results = list(results_cursor)
             span.set_data("result_length", len(results))
             context = serialize(
                 results,
@@ -111,7 +112,7 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
 @region_silo_endpoint
 class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, organization) -> Response:
@@ -133,6 +134,7 @@ class OrganizationSpansSamplesEndpoint(OrganizationEventsEndpointBase):
             "timestamp",
             "span_id",
             "profile_id",
+            "trace",
         ]
 
         if lower_bound is None or upper_bound is None:

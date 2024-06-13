@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Any
 
 from rest_framework.request import Request
 
@@ -14,7 +14,7 @@ class RuleEndpoint(ProjectEndpoint):
 
     def convert_args(
         self, request: Request, rule_id: str, *args: Any, **kwargs: Any
-    ) -> Tuple[Any, Any]:
+    ) -> tuple[Any, Any]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
         project = kwargs["project"]
 

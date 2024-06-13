@@ -1,7 +1,7 @@
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {getMeta} from 'sentry/components/events/meta/metaProxy';
+import type {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {t} from 'sentry/locale';
-import {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
 
 type Props = {
   frame: Frame;

@@ -1,12 +1,10 @@
-import {Event} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  UserEventContext,
-  UserEventContextData,
-} from 'sentry/components/events/contexts/user';
+import type {UserEventContextData} from 'sentry/components/events/contexts/user';
+import {UserEventContext} from 'sentry/components/events/contexts/user';
 
 // the values of this mock are correct and the types need to be updated
 export const userMockData = {
@@ -51,7 +49,7 @@ export const userMetaMockData = {
 };
 
 const event = {
-  ...Event(),
+  ...EventFixture(),
   _meta: {
     user: userMetaMockData,
   },
@@ -74,8 +72,8 @@ describe('user event context', function () {
 
     expect(screen.getByText('IP Address')).toBeInTheDocument(); // subject
     await userEvent.hover(document.body);
-    expect(screen.getByText('None')).toBeInTheDocument(); // value
-    await userEvent.hover(screen.getByText('None'));
+    expect(screen.getByText('null')).toBeInTheDocument(); // value
+    await userEvent.hover(screen.getByText('null'));
 
     // The content of the first tooltip is not removed from the DOM when it is hidden
     // therefore we explicitly need to wait for both tooltips to be visible

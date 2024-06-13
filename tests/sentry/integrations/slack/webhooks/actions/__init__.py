@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
+import orjson
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import add_identity, install_slack
-from sentry.utils import json
 
 
 class BaseEventTest(APITestCase):
@@ -16,6 +17,8 @@ class BaseEventTest(APITestCase):
         self.response_url = (
             "https://hooks.slack.com/actions/T47563693/6204672533/x7ZLaiVMoECAW50Gw1ZYAXEM"
         )
+        self.project = self.create_project()
+        self.rule = self.create_project_rule(project=self.project)
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",
@@ -37,7 +40,7 @@ class BaseEventTest(APITestCase):
             slack_user = {"id": self.external_id, "domain": "example"}
 
         if callback_id is None:
-            callback_id = json.dumps({"issue": self.group.id})
+            callback_id = orjson.dumps({"issue": self.group.id, "rule": self.rule.id}).decode()
 
         if original_message is None:
             original_message = {}
@@ -59,7 +62,7 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
 
-        payload = {"payload": json.dumps(payload)}
+        payload = {"payload": orjson.dumps(payload).decode()}
 
         return self.client.post("/extensions/slack/action/", data=payload)
 
@@ -117,7 +120,7 @@ class BaseEventTest(APITestCase):
                     {
                         "type": "section",
                         "block_id": "a6HD+",
-                        "text": {"type": "mrkdwn", "text": "Resolve in", "verbatim": False},
+                        "text": {"type": "mrkdwn", "text": "Resolve", "verbatim": False},
                         "accessory": {
                             "type": "static_select",
                             "action_id": "static_select-action",
@@ -220,5 +223,5 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
 
-        payload = {"payload": json.dumps(payload)}
+        payload = {"payload": orjson.dumps(payload).decode()}
         return self.client.post("/extensions/slack/action/", data=payload)

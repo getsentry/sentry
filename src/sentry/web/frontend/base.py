@@ -3,7 +3,8 @@ from __future__ import annotations
 import abc
 import inspect
 import logging
-from typing import Any, Callable, Iterable, Mapping, Protocol, Type
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, Protocol
 
 from django.conf import settings
 from django.contrib.auth import REDIRECT_FIELD_NAME
@@ -18,6 +19,7 @@ from django.http.response import HttpResponseBase
 from django.middleware.csrf import CsrfViewMiddleware
 from django.template.context_processors import csrf
 from django.urls import reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 from rest_framework.request import Request
@@ -38,8 +40,7 @@ from sentry.services.hybrid_cloud.organization import (
     organization_service,
 )
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloLimit
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.region import subdomain_is_region
 from sentry.utils import auth
 from sentry.utils.audit import create_audit_entry
@@ -54,7 +55,7 @@ audit_logger = logging.getLogger("sentry.audit.ui")
 
 
 class ViewSiloLimit(SiloLimit):
-    def modify_endpoint_class(self, decorated_class: Type[View]) -> type:
+    def modify_endpoint_class(self, decorated_class: type[View]) -> type:
         dispatch_override = self.create_override(decorated_class.dispatch)
         new_class = type(
             decorated_class.__name__,
@@ -247,10 +248,12 @@ class OrganizationMixin:
         return is_member_disabled_from_limit(request, organization)
 
     def get_active_project(
-        self, request: HttpRequest, organization: RpcOrganization, project_slug: str
+        self, request: HttpRequest, organization: RpcOrganization, project_id_or_slug: int | str
     ) -> Project | None:
         try:
-            project = Project.objects.get(slug=project_slug, organization=organization)
+            project = Project.objects.get(
+                slug__id_or_slug=project_id_or_slug, organization=organization
+            )
         except Project.DoesNotExist:
             return None
 
@@ -281,7 +284,11 @@ class OrganizationMixin:
             if using_customer_domain and request.user and request.user.is_authenticated:
                 requesting_org_slug = request.subdomain
                 org_context = organization_service.get_organization_by_slug(
-                    slug=requesting_org_slug, only_visible=False, user_id=request.user.id
+                    slug=requesting_org_slug,
+                    only_visible=False,
+                    user_id=request.user.id,
+                    include_projects=False,
+                    include_teams=False,
                 )
                 if org_context and org_context.organization:
                     if org_context.organization.status == OrganizationStatus.PENDING_DELETION:
@@ -325,7 +332,7 @@ class BaseView(View, OrganizationMixin):
             self.csrf_protect = csrf_protect
         super().__init__(*args, **kwargs)
 
-    @csrf_exempt
+    @method_decorator(csrf_exempt)
     def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         """
         A note on the CSRF protection process.
@@ -546,8 +553,8 @@ class AbstractOrganizationView(BaseView, abc.ABC):
             # Require auth if we there is an organization associated with the slug that we just cannot access
             # for some reason.
             return (
-                organization_service.get_organization_by_slug(
-                    user_id=None, slug=organization_slug, only_visible=True
+                organization_service.check_organization_by_slug(
+                    slug=organization_slug, only_visible=True
                 )
                 is not None
             )
@@ -665,7 +672,7 @@ class ControlSiloOrganizationView(AbstractOrganizationView):
 class ProjectView(OrganizationView):
     """
     Any view acting on behalf of a project should inherit from this base and the
-    matching URL pattern must pass 'org_slug' as well as 'project_slug'.
+    matching URL pattern must pass 'org_slug' as well as 'project_id_or_slug'.
 
     Three keyword arguments are added to the resulting dispatch:
 
@@ -704,7 +711,7 @@ class ProjectView(OrganizationView):
             return False
         return True
 
-    def convert_args(self, request: HttpRequest, organization_slug: str, project_slug: str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
+    def convert_args(self, request: HttpRequest, organization_slug: str, project_id_or_slug: int | str, *args: Any, **kwargs: Any) -> tuple[tuple[Any, ...], dict[str, Any]]:  # type: ignore[override]
         organization: Organization | None = None
         active_project: Project | None = None
         if self.active_organization:
@@ -712,7 +719,9 @@ class ProjectView(OrganizationView):
 
             if organization:
                 active_project = self.get_active_project(
-                    request=request, organization=organization, project_slug=project_slug
+                    request=request,
+                    organization=organization,
+                    project_id_or_slug=project_id_or_slug,
                 )
 
         kwargs["project"] = active_project

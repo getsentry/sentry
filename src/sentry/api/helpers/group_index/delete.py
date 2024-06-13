@@ -1,13 +1,13 @@
 import logging
 from collections import defaultdict
-from typing import List, Sequence
+from collections.abc import Sequence
 from uuid import uuid4
 
 import rest_framework
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import eventstream
+from sentry import audit_log, eventstream
 from sentry.api.base import audit_logger
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group, GroupStatus
@@ -27,7 +27,7 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 def delete_group_list(
     request: Request,
     project: "Project",
-    group_list: List["Group"],
+    group_list: list["Group"],
     delete_type: str,
 ) -> None:
     if not group_list:
@@ -73,6 +73,11 @@ def delete_group_list(
             logger=audit_logger,
             organization_id=project.organization_id,
             target_object=group.id,
+            event=audit_log.get_event_id("ISSUE_DELETE"),
+            data={
+                "issue_id": group.id,
+                "project_slug": project.slug,
+            },
         )
 
         delete_logger.info(

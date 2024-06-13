@@ -10,12 +10,13 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
+from sentry.models.activity import Activity
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.models.organizationmember import OrganizationMember
+from sentry.types.activity import ActivityType
 
 
 class EventAttachmentDetailsPermission(ProjectPermission):
@@ -25,7 +26,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
         if not result:
             return result
 
-        if is_system_auth(request.auth) or is_active_superuser(request):
+        if is_system_auth(request.auth) or superuser_has_permission(request):
             return True
 
         if not request.user.is_authenticated:
@@ -42,14 +43,13 @@ class EventAttachmentDetailsPermission(ProjectPermission):
             return False
 
         required_role = roles.get(required_role)
-        return any(
-            role.priority >= required_role.priority for role in om.get_all_org_roles_sorted()
-        )
+        om_role = roles.get(om.role)
+        return om_role.priority >= required_role.priority
 
 
 @region_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
-    owner = ApiOwner.OWNERS_PROCESSING
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -57,22 +57,20 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):
-        file = File.objects.get(id=attachment.file_id)
-
-        content_type = attachment.content_type or file.headers.get(
-            "content-type", "application/octet-stream"
-        )
-        size = attachment.size or file.size
-
-        fp = file.getfile()
-        response = StreamingHttpResponse(
-            iter(lambda: fp.read(4096), b""),
-            content_type=content_type,
-        )
-
-        response["Content-Length"] = size
         name = posixpath.basename(" ".join(attachment.name.split()))
+
+        def stream_attachment():
+            with attachment.getfile() as fp:
+                while chunk := fp.read(4096):
+                    yield chunk
+
+        response = StreamingHttpResponse(
+            stream_attachment(),
+            content_type=attachment.content_type,
+        )
+        response["Content-Length"] = attachment.size
         response["Content-Disposition"] = f'attachment; filename="{name}"'
+
         return response
 
     def get(self, request: Request, project, event_id, attachment_id) -> Response:
@@ -80,9 +78,9 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         Retrieve an Attachment
         ``````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the id of the event.
         :pparam string attachment_id: the id of the attachment.
@@ -132,5 +130,14 @@ class EventAttachmentDetailsEndpoint(ProjectEndpoint):
         except EventAttachment.DoesNotExist:
             return self.respond({"detail": "Attachment not found"}, status=404)
 
+        # an activity with no group cannot be associated with an issue or displayed in an issue details page
+        if attachment.group_id is not None:
+            Activity.objects.create(
+                group_id=attachment.group_id,
+                project=project,
+                type=ActivityType.DELETED_ATTACHMENT.value,
+                user_id=request.user.id,
+                data={},
+            )
         attachment.delete()
         return self.respond(status=204)

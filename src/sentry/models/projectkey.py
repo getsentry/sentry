@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import enum
 import re
 import secrets
-from typing import Any, ClassVar, Optional, Tuple
+from typing import Any, ClassVar
 from urllib.parse import urlparse
 
 import petname
@@ -24,7 +25,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.silo.base import SiloMode
@@ -51,8 +52,29 @@ class ProjectKeyManager(BaseManager["ProjectKey"]):
             public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
+    def for_request(self, request):
+        """Return objects that the given request user is allowed to access"""
+        from sentry.auth.superuser import is_active_superuser
 
-@region_silo_only_model
+        qs = self.get_queryset()
+        if not is_active_superuser(request):
+            qs = qs.filter(use_case=UseCase.USER.value)
+
+        return qs
+
+
+class UseCase(enum.Enum):
+    """What the DSN is used for (user vs. internal submissions)"""
+
+    """A user-visible project key"""
+    USER = "user"
+    """An internal project key for submitting aggregate function metrics."""
+    PROFILING = "profiling"
+    """ An internal project key for submitting escalating issues metrics."""
+    ESCALATING_ISSUES = "escalating_issues"
+
+
+@region_silo_model
 class ProjectKey(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -95,6 +117,12 @@ class ProjectKey(Model):
     )
 
     data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
+
+    use_case = models.CharField(
+        max_length=32,
+        choices=[(v.value, v.value) for v in UseCase],
+        default=UseCase.USER.value,
+    )
 
     # support legacy project keys in API
     scopes = (
@@ -231,6 +259,10 @@ class ProjectKey(Model):
         return f"{self.get_endpoint()}/api/{self.project_id}/unreal/{self.public_key}/"
 
     @property
+    def crons_endpoint(self):
+        return f"{self.get_endpoint()}/api/{self.project_id}/cron/___MONITOR_SLUG___/{self.public_key}/"
+
+    @property
     def js_sdk_loader_cdn_url(self) -> str:
         if settings.JS_SDK_LOADER_CDN_URL:
             return f"{settings.JS_SDK_LOADER_CDN_URL}{self.public_key}.min.js"
@@ -257,7 +289,7 @@ class ProjectKey(Model):
         has_org_subdomain = False
         try:
             has_org_subdomain = features.has(
-                "organizations:org-subdomains", self.project.organization
+                "organizations:org-ingest-subdomains", self.project.organization
             )
         except ProgrammingError:
             # This happens during migration generation for the organization model.
@@ -298,7 +330,7 @@ class ProjectKey(Model):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # If there is a key collision, generate new keys.
         matching_public_key = self.__class__.objects.filter(public_key=self.public_key).first()
         if not self.public_key or matching_public_key:

@@ -2,10 +2,11 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
-import {CompactSelect, MultipleSelectProps} from 'sentry/components/compactSelect';
-import {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
+import type {MultipleSelectProps} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import type {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
-import {Organization, Project, Team} from 'sentry/types';
+import type {Organization, Project, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
 

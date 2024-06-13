@@ -4,36 +4,35 @@ import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
 import {openModal} from 'sentry/actionCreators/modal';
+import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
+import {Chevron} from 'sentry/components/chevron';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/analyzeFrames';
 import LeadHint from 'sentry/components/events/interfaces/frame/line/leadHint';
 import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {
-  FrameSourceMapDebuggerData,
-  SourceMapsDebuggerModal,
-} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import StrictClick from 'sentry/components/strictClick';
-import Tag from 'sentry/components/tag';
-import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconFix, IconRefresh} from 'sentry/icons';
+import {IconFix, IconRefresh} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   Frame,
   Organization,
   PlatformKey,
   SentryAppComponent,
   SentryAppSchemaStacktraceLink,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
-import DebugImage from '../debugMeta/debugImage';
+import type DebugImage from '../debugMeta/debugImage';
 import {combineStatus} from '../debugMeta/utils';
 
 import Context from './context';
@@ -55,7 +54,9 @@ const VALID_SOURCE_MAP_DEBUGGER_FILE_ENDINGS = [
   '.js',
   '.mjs',
   '.cjs',
-  '.jsbundle', // React Native file ending
+  '.jsbundle', // React Native iOS file ending
+  '.bundle', // React Native Android file ending
+  '.hbc', // Hermes Bytecode (from Expo updates) file ending
   '.js.gz', // file ending idiomatic for Ember.js
 ];
 
@@ -144,7 +145,7 @@ export class DeprecatedLine extends Component<Props, State> {
   };
 
   toggleContext = evt => {
-    evt && evt.preventDefault();
+    evt?.preventDefault();
 
     this.setState({
       isExpanded: !this.state.isExpanded,
@@ -221,26 +222,24 @@ export class DeprecatedLine extends Component<Props, State> {
       return null;
     }
 
-    const {isHoverPreviewed} = this.props;
     const {isExpanded} = this.state;
 
     return (
       <ToggleContextButton
-        className="btn-toggle"
         data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
         size="zero"
-        title={t('Toggle Context')}
-        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        aria-label={t('Toggle Context')}
         onClick={this.toggleContext}
+        borderless
       >
-        <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
+        <Chevron direction={isExpanded ? 'up' : 'down'} size="medium" />
       </ToggleContextButton>
     );
   }
 
   leadsToApp() {
     const {data, nextFrame} = this.props;
-    return !data.inApp && ((nextFrame && nextFrame.inApp) || !nextFrame);
+    return !data.inApp && (nextFrame?.inApp || !nextFrame);
   }
 
   isFoundByStackScanning() {
@@ -303,15 +302,8 @@ export class DeprecatedLine extends Component<Props, State> {
   }
 
   renderDefaultLine() {
-    const {
-      isHoverPreviewed,
-      data,
-      isANR,
-      threadId,
-      lockAddress,
-      isSubFrame,
-      hiddenFrameCount,
-    } = this.props;
+    const {isHoverPreviewed, data, isANR, threadId, lockAddress, isSubFrame, event} =
+      this.props;
     const {isHovering, isExpanded} = this.state;
     const organization = this.props.organization;
     const anrCulprit =
@@ -346,24 +338,25 @@ export class DeprecatedLine extends Component<Props, State> {
 
     const activeLineNumber = data.lineNo;
     const contextLine = (data?.context || []).find(l => l[0] === activeLineNumber);
-    const hasStacktraceLink = data.inApp && !!data.filename && (isHovering || isExpanded);
-    const hasStacktraceLinkInFrameFeatureFlag =
-      organization?.features?.includes('issue-details-stacktrace-link-in-frame') ?? false;
-    const showStacktraceLinkInFrame =
-      hasStacktraceLink && hasStacktraceLinkInFrameFeatureFlag;
+    // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
+    const hasStacktraceLink =
+      (data.inApp || event.platform === 'csharp') &&
+      !!data.filename &&
+      (isHovering || isExpanded);
     const showSentryAppStacktraceLinkInFrame =
-      showStacktraceLinkInFrame && this.props.components.length > 0;
+      hasStacktraceLink && this.props.components.length > 0;
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine
-          className="title"
           data-test-id="title"
           isSubFrame={!!isSubFrame}
-          hasToggle={!!hiddenFrameCount}
           onMouseEnter={() => this.handleMouseEnter()}
           onMouseLeave={() => this.handleMouseLeave()}
+          isExpanded={this.state.isExpanded ?? false}
+          isExpandable={this.isExpandable()}
         >
+          {this.isExpandable() ? <InteractionStateLayer /> : null}
           <DefaultLineTitleWrapper isInAppFrame={data.inApp}>
             <LeftLineTitle>
               <div>
@@ -384,6 +377,24 @@ export class DeprecatedLine extends Component<Props, State> {
                 {t('Suspect Frame')}
               </Tag>
             ) : null}
+            {hasStacktraceLink && !shouldShowSourceMapDebuggerButton && (
+              <ErrorBoundary>
+                <StacktraceLink
+                  frame={data}
+                  line={contextLine ? contextLine[1] : ''}
+                  event={this.props.event}
+                />
+              </ErrorBoundary>
+            )}
+            {showSentryAppStacktraceLinkInFrame && (
+              <ErrorBoundary mini>
+                <OpenInContextLine
+                  lineNo={data.lineNo}
+                  filename={data.filename || ''}
+                  components={this.props.components}
+                />
+              </ErrorBoundary>
+            )}
             {this.renderShowHideToggle()}
             {shouldShowSourceMapDebuggerButton ? (
               <Fragment>
@@ -429,24 +440,6 @@ export class DeprecatedLine extends Component<Props, State> {
                 </SourceMapDebuggerModalButton>
               </Fragment>
             ) : null}
-            {showStacktraceLinkInFrame && (
-              <ErrorBoundary>
-                <StacktraceLink
-                  frame={data}
-                  line={contextLine ? contextLine[1] : ''}
-                  event={this.props.event}
-                />
-              </ErrorBoundary>
-            )}
-            {showSentryAppStacktraceLinkInFrame && (
-              <ErrorBoundary mini>
-                <OpenInContextLine
-                  lineNo={data.lineNo}
-                  filename={data.filename || ''}
-                  components={this.props.components}
-                />
-              </ErrorBoundary>
-            )}
             {data.inApp ? <Tag type="info">{t('In App')}</Tag> : null}
             {this.renderExpander()}
           </DefaultLineTagWrapper>
@@ -484,6 +477,7 @@ export class DeprecatedLine extends Component<Props, State> {
           isExpanded={this.state.isExpanded}
           registersMeta={this.props.registersMeta}
           frameMeta={this.props.frameMeta}
+          platform={this.props.platform}
         />
       </StyledLi>
     );
@@ -516,13 +510,24 @@ const RepeatedContent = styled(LeftLineTitle)`
 `;
 
 const DefaultLine = styled('div')<{
-  hasToggle: boolean;
+  isExpandable: boolean;
+  isExpanded: boolean;
   isSubFrame: boolean;
 }>`
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : '')};
+  background: ${p => (p.isSubFrame ? `${p.theme.surface100}` : `${p.theme.surface200}`)};
+  min-height: 32px;
+  word-break: break-word;
+  padding: ${space(0.75)} ${space(1.5)};
+  font-size: ${p => p.theme.fontSizeSmall};
+  line-height: 16px;
+  cursor: ${p => (p.isExpandable ? 'pointer' : 'default')};
+  code {
+    font-family: ${p => p.theme.text.family};
+  }
 `;
 
 const StyledIconRefresh = styled(IconRefresh)`
@@ -535,11 +540,8 @@ const DefaultLineTagWrapper = styled('div')`
   gap: ${space(1)};
 `;
 
-// the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
-  span:first-child {
-    padding: 3px;
-  }
+  color: ${p => p.theme.subText};
 `;
 
 const StyledLi = styled('li')`
@@ -562,7 +564,7 @@ const StyledLi = styled('li')`
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-style: italic;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};
 
   &:hover {

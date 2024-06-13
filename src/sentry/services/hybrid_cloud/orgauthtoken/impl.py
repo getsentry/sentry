@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.services.hybrid_cloud.orgauthtoken.service import OrgAuthTokenService
 
 if TYPE_CHECKING:
@@ -16,15 +16,16 @@ class DatabaseBackedOrgAuthTokenService(OrgAuthTokenService):
         *,
         organization_id: int,
         org_auth_token_id: int,
-        date_last_used: Optional[datetime] = None,
-        project_last_used_id: Optional[int] = None,
+        date_last_used: datetime | None = None,
+        project_last_used_id: int | None = None,
     ) -> None:
         token = OrgAuthToken.objects.filter(id=org_auth_token_id).first()
 
         if token is None:
             return
 
-        token.update(date_last_used=date_last_used, project_last_used_id=project_last_used_id)
+        with outbox_context(flush=False):
+            token.update(date_last_used=date_last_used, project_last_used_id=project_last_used_id)
 
 
 class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
@@ -33,8 +34,8 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
         *,
         organization_id: int,
         org_auth_token_id: int,
-        date_last_used: Optional[datetime] = None,
-        project_last_used_id: Optional[int] = None,
+        date_last_used: datetime | None = None,
+        project_last_used_id: int | None = None,
     ) -> None:
         RegionOutbox(
             shard_scope=OutboxScope.ORGANIZATION_SCOPE,
@@ -46,5 +47,5 @@ class OutboxBackedOrgAuthTokenService(OrgAuthTokenService):
                 "org_auth_token_id": org_auth_token_id,
                 "date_last_used": date_last_used,
                 "project_last_used_id": project_last_used_id,
-            },  # type:ignore
+            },  # type: ignore[misc]
         ).save()

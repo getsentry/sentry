@@ -29,7 +29,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
 
     permission_classes = (
         IsAuthenticated,
@@ -92,6 +92,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             name="",
             query=data["query"],
             version=data["version"],
+            dataset=data["query_dataset"],
             created_by_id=request.user.id,
             is_homepage=True,
         )

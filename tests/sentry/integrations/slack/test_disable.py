@@ -1,34 +1,32 @@
 import time
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from django.core import mail
-from django.test import override_settings
+from slack_sdk.errors import SlackApiError
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
-control_address = "http://controlserver"
-secret = "hush-hush-im-invisible"
 
-
-@override_settings(
-    SENTRY_SUBNET_SECRET=secret,
-    SENTRY_CONTROL_ADDRESS=control_address,
-)
 class SlackClientDisable(TestCase):
     def setUp(self):
         self.resp = responses.mock
@@ -36,7 +34,9 @@ class SlackClientDisable(TestCase):
 
         self.organization = self.create_organization(owner=self.user)
 
-        self.integration = Integration.objects.create(
+        self.integration, _ = self.create_provider_integration_for(
+            self.event.project.organization,
+            self.user,
             provider="slack",
             name="Awesome Team",
             external_id="TXXXXXXX1",
@@ -45,7 +45,6 @@ class SlackClientDisable(TestCase):
                 "installation_type": "born_as_bot",
             },
         )
-        self.integration.add_organization(self.event.project.organization, self.user)
         self.payload = {"channel": "#announcements", "message": "i'm ooo next week"}
 
     def tearDown(self):
@@ -63,21 +62,45 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
 
-        with self.tasks() and pytest.raises(ApiError):
+        with outbox_runner(), self.tasks(), pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        integration = Integration.objects.get(id=self.integration.id)
-        assert integration.status == ObjectStatus.DISABLED
-        assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
-        assert len(buffer._get_all_from_buffer()) == 0
-        assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("INTEGRATION_DISABLED"),
-            organization_id=self.organization.id,
-        ).exists()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=self.integration.id)
+            assert integration.status == ObjectStatus.DISABLED
+            assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
+            assert len(buffer._get_all_from_buffer()) == 0
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("INTEGRATION_DISABLED"),
+                organization_id=self.organization.id,
+            ).exists()
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_fatal_and_disable_integration_sdk(self, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "account_inactive"}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        client = SlackSdkClient(integration_id=self.integration.id)
+
+        with outbox_runner(), self.tasks(), pytest.raises(SlackApiError):
+            client.chat_postMessage(channel=self.payload["channel"], text=self.payload["message"])
+        buffer = IntegrationRequestBuffer(f"sentry-integration-error:{self.integration.id}")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = Integration.objects.get(id=self.integration.id)
+            assert integration.status == ObjectStatus.DISABLED
+            assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
+            assert len(buffer._get_all_from_buffer()) == 0
+            assert AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("INTEGRATION_DISABLED"),
+                organization_id=self.organization.id,
+            ).exists()
 
     @responses.activate
     def test_email(self):
@@ -111,14 +134,14 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         self.resp.add(
             method=responses.POST,
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         with pytest.raises(ApiError):
@@ -141,7 +164,7 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
@@ -153,7 +176,8 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is False
-        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_a_slow_integration_is_broken(self):
@@ -168,7 +192,7 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
@@ -179,7 +203,8 @@ class SlackClientDisable(TestCase):
         with pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         assert buffer.is_integration_broken() is True
-        assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            assert Integration.objects.get(id=self.integration.id).status == ObjectStatus.ACTIVE
 
     @responses.activate
     def test_expiry(self):
@@ -192,7 +217,7 @@ class SlackClientDisable(TestCase):
             url="https://slack.com/api/chat.postMessage",
             status=404,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
         client = SlackClient(integration_id=self.integration.id)
         buffer = IntegrationRequestBuffer(client._get_redis_key())

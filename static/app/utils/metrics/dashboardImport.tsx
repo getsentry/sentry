@@ -1,8 +1,10 @@
 import {Client} from 'sentry/api';
-import {MetricDisplayType, MetricsQuery} from 'sentry/utils/metrics';
-
-import {MetricMeta, MRI} from '../../types/metrics';
-
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
+import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
+import type {MetricsQuery} from 'sentry/utils/metrics/types';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
+import type {Widget} from 'sentry/views/dashboards/types';
 // import types
 export type ImportDashboard = {
   description: string;
@@ -43,16 +45,9 @@ type Formula = {
   alias?: string;
 };
 
-// result types
-type MetricWidget = Pick<MetricsQuery, 'mri' | 'op' | 'query' | 'groupBy'> & {
-  displayType: MetricDisplayType;
-  title: string;
-};
-
 type MetricWidgetReport = {
   errors: string[];
   id: number;
-  notes: string[];
   outcome: ImportOutcome;
   title: string;
 }[];
@@ -60,13 +55,16 @@ type MetricWidgetReport = {
 type ImportOutcome = 'success' | 'warning' | 'error';
 
 export type ParseResult = {
+  description: string;
   report: MetricWidgetReport;
-  widgets: MetricWidget[];
+  title: string;
+  widgets: Widget[];
 };
 
 export async function parseDashboard(
   dashboard: ImportDashboard,
-  availableMetrics: MetricMeta[]
+  availableMetrics: MetricMeta[],
+  orgSlug: string
 ): Promise<ParseResult> {
   const {widgets = []} = dashboard;
 
@@ -80,13 +78,15 @@ export async function parseDashboard(
 
   const results = await Promise.all(
     flatWidgets.map(widget => {
-      const parser = new WidgetParser(widget, availableMetrics);
+      const parser = new WidgetParser(widget, availableMetrics, orgSlug);
       return parser.parse();
     })
   );
 
   return {
-    widgets: results.flatMap(r => r.widgets),
+    title: dashboard.title,
+    description: dashboard.description,
+    widgets: results.map(r => r.widget).filter(Boolean) as Widget[],
     report: results.flatMap(r => r.report),
   };
 }
@@ -110,11 +110,19 @@ const METRIC_SUFFIX_TO_OP = {
 export class WidgetParser {
   private errors: string[] = [];
   private api = new Client();
+  private importedWidget: ImportWidget;
+  private availableMetrics: MetricMeta[];
+  private orgSlug: string;
 
   constructor(
-    private importedWidget: ImportWidget,
-    private availableMetrics: MetricMeta[]
-  ) {}
+    importedWidget: ImportWidget,
+    availableMetrics: MetricMeta[],
+    orgSlug: string
+  ) {
+    this.importedWidget = importedWidget;
+    this.availableMetrics = availableMetrics;
+    this.orgSlug = orgSlug;
+  }
 
   // Parsing functions
   public async parse() {
@@ -127,28 +135,22 @@ export class WidgetParser {
       if (!SUPPORTED_WIDGET_TYPES.has(widgetType)) {
         throw new Error(`widget - unsupported type ${widgetType}`);
       }
-      const widgets = await this.parseWidget();
+      const widget = await this.parseWidget();
 
-      const notes: string[] = [];
-      if (!widgets.length) {
-        throw new Error('widget - no queries found');
-      }
-      if (widgets.length > 1) {
-        notes.push(`Exploded widget into ${widgets.length} widgets`);
+      if (!widget || !widget.queries.length) {
+        throw new Error('widget - no parseable queries found');
       }
 
-      const outcome: ImportOutcome =
-        this.errors.length || notes.length ? 'warning' : 'success';
+      const outcome: ImportOutcome = this.errors.length ? 'warning' : 'success';
 
       return {
         report: {
           id,
           title,
           errors: this.errors,
-          notes,
           outcome,
         },
-        widgets,
+        widget,
       };
     } catch (e) {
       return {
@@ -156,10 +158,9 @@ export class WidgetParser {
           id,
           title,
           errors: [e.message, ...this.errors],
-          notes: [],
           outcome: 'error' as const,
         },
-        widgets: [],
+        widget: null,
       };
     }
   }
@@ -167,24 +168,35 @@ export class WidgetParser {
   private async parseWidget() {
     this.parseLegendColumns();
 
-    const {requests = []} = this.importedWidget.definition as WidgetDefinition;
+    const {title, requests = []} = this.importedWidget.definition as WidgetDefinition;
 
-    const parsedWidgets = requests
-      .map(r => this.parseRequest(r))
-      .flatMap(request => {
-        const {displayType, queries} = request;
-        return queries.map(query => ({
-          title: this.importedWidget.definition.title,
-          displayType,
-          ...query,
-        }));
-      });
+    const parsedRequests = requests.map(r => this.parseRequest(r));
+    const parsedQueries = parsedRequests.flatMap(request => request.queries);
 
-    const metricWidgets = await Promise.all(
-      parsedWidgets.map(widget => this.mapToMetricWidget(widget))
+    const metricsQueries = await Promise.all(
+      parsedQueries.map(async query => {
+        const mapped = await this.mapToMetricsQuery(query);
+        return {
+          ...mapped,
+        };
+      })
     );
 
-    return metricWidgets.filter(Boolean) as MetricWidget[];
+    const nonEmptyQueries = metricsQueries.filter(query => query.mri) as MetricsQuery[];
+
+    if (!nonEmptyQueries.length) {
+      return null;
+    }
+
+    const metricsEquations = parsedRequests
+      .flatMap(request => request.equations)
+      .map(equation => this.mapToMetricsEquation(equation.formula));
+
+    return convertToDashboardWidget(
+      [...nonEmptyQueries, ...metricsEquations],
+      parsedRequests[0].displayType,
+      title
+    );
   }
 
   private parseLegendColumns() {
@@ -198,17 +210,21 @@ export class WidgetParser {
   private parseRequest(request: Request) {
     const {queries, formulas = [], response_format, display_type} = request;
 
-    const parsedFormulas = formulas.map(f => this.parseFormula(f));
-
     const parsedQueries = queries
-      .filter(q => parsedFormulas.includes(q.name))
-      .map(q => this.parseQuery(q));
+      .map(query => this.parseQuery(query))
+      .sort((a, b) => a!.name.localeCompare(b!.name));
 
     if (response_format !== 'timeseries') {
       this.errors.push(
         `widget.request.response_format - unsupported: ${response_format}`
       );
     }
+
+    const equationFormulas = formulas.filter(f =>
+      // indicates a more complex formula and not just a reference to a query
+      f.formula.trim().includes(' ')
+    );
+    const parsedEquations = this.parseEquations(parsedQueries, equationFormulas);
 
     const displayType = this.parseDisplayType(display_type);
 
@@ -217,23 +233,31 @@ export class WidgetParser {
     return {
       displayType,
       queries: parsedQueries,
+      equations: parsedEquations,
     };
   }
 
-  private parseFormula(formula: Formula) {
-    if (!formula.formula.includes('(')) {
-      return formula.formula;
-    }
+  // swaps query names with query symbols in formulas eg. query1 + $query0 => $b + $a
+  private parseEquations(queries: any[], formulas: Formula[]) {
+    const queryNames = queries.map(q => q.name);
+    const queryNameMap = queries.reduce((acc, query, index) => {
+      acc[query.name] = getQuerySymbol(index);
+      return acc;
+    }, {});
 
-    const [functionName, ...args] = formula.formula
-      .split(/\(|\)|,/)
-      .filter(Boolean)
-      .map(s => s.trim());
+    const equations = formulas.map(formula => {
+      const {formula: formulaString, alias} = formula;
+      const mapped = queryNames.reduce((acc, queryName) => {
+        return acc.replaceAll(queryName, `$${queryNameMap[queryName]}`);
+      }, formulaString);
 
-    this.errors.push(`widget.request.formula - unsupported function ${functionName}`);
+      return {
+        formula: mapped,
+        alias,
+      };
+    });
 
-    // TODO: check if there are functions with more than 1 argument and if they are supported
-    return args[0];
+    return equations;
   }
 
   private parseDisplayType(displayType: string) {
@@ -260,8 +284,8 @@ export class WidgetParser {
     }
   }
 
-  private parseQuery(query: {query: string}) {
-    return this.parseQueryString(query.query);
+  private parseQuery(query: {name: string; query: string}) {
+    return {...this.parseQueryString(query.query), name: query.name};
   }
 
   private parseQueryString(str: string) {
@@ -271,7 +295,7 @@ export class WidgetParser {
     const metricNameMatch = str.match(/:(\S*){/);
     let metric = metricNameMatch ? metricNameMatch[1] : undefined;
 
-    if (metric && metric.includes('.')) {
+    if (metric?.includes('.')) {
       const lastIndex = metric.lastIndexOf('.');
       const metricName = metric.slice(0, lastIndex);
       const operationSuffix = metric.slice(lastIndex + 1);
@@ -341,7 +365,9 @@ export class WidgetParser {
         this.errors.push(
           `widget.request.query.filter - unsupported value: ${value}, using ${stripped}`
         );
-        filters.push({key: key.trim(), value: stripped.trim()});
+        if (stripped) {
+          filters.push({key: key.trim(), value: stripped.trim()});
+        }
         continue;
       }
 
@@ -356,7 +382,7 @@ export class WidgetParser {
   }
 
   // Mapping functions
-  private async mapToMetricWidget(widget): Promise<MetricWidget | null> {
+  private async mapToMetricsQuery(widget): Promise<MetricsQuery | null> {
     const {metric, op, filters} = widget;
 
     // @ts-expect-error name is actually defined on MetricMeta
@@ -372,25 +398,31 @@ export class WidgetParser {
     const query = this.constructMetricQueryFilter(filters, availableTags);
     const groupBy = this.constructMetricGroupBy(widget.groupBy, availableTags);
 
-    const result = {
-      title: widget.title,
-      displayType: widget.displayType,
+    return {
       mri: metricMeta.mri,
       op,
       query,
       groupBy,
     };
+  }
 
-    return result;
+  private mapToMetricsEquation(formula: string) {
+    return {
+      type: 'formula',
+      formula,
+    };
   }
 
   private async fetchAvailableTags(mri: MRI) {
-    const tagsRes = await this.api.requestPromise(`/organizations/sentry/metrics/tags/`, {
-      query: {
-        metric: mri,
-        useCase: 'custom',
-      },
-    });
+    const tagsRes = await this.api.requestPromise(
+      `/organizations/${this.orgSlug}/metrics/tags/`,
+      {
+        query: {
+          metric: mri,
+          useCase: 'custom',
+        },
+      }
+    );
 
     return (tagsRes ?? []).map(tag => tag.key);
   }

@@ -1,4 +1,4 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +7,7 @@ import Version from 'sentry/components/version';
 const VERSION = 'foo.bar.Baz@1.0.0+20200101';
 
 describe('Version', () => {
-  const context = RouterContextFixture();
+  const router = RouterFixture();
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -25,11 +25,11 @@ describe('Version', () => {
 
   it('links to release page', async () => {
     render(<Version version={VERSION} projectId="1" />, {
-      context,
+      router,
     });
 
     await userEvent.click(screen.getByText('1.0.0 (20200101)'));
-    expect(context.context.router.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/releases/foo.bar.Baz%401.0.0%2B20200101/',
       query: {project: '1'},
     });
@@ -38,7 +38,7 @@ describe('Version', () => {
   it('shows raw version in tooltip', async () => {
     jest.useFakeTimers();
     render(<Version version={VERSION} tooltipRawVersion />, {
-      context,
+      router,
     });
     expect(screen.queryByText(VERSION)).not.toBeInTheDocument();
 
@@ -46,6 +46,6 @@ describe('Version', () => {
     await userEvent.hover(screen.getByText('1.0.0 (20200101)'), {delay: null});
     act(() => jest.advanceTimersByTime(50));
 
-    expect(screen.getByText(VERSION)).toBeInTheDocument();
+    expect(await screen.findByText(VERSION)).toBeInTheDocument();
   });
 });

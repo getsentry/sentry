@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {
   ReplayNavigationFrameFixture,
@@ -8,12 +7,14 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {useLocation} from 'sentry/utils/useLocation';
 
-import useNetworkFilters, {FilterFields, NetworkSelectOption} from './useNetworkFilters';
+import type {FilterFields, NetworkSelectOption} from './useNetworkFilters';
+import useNetworkFilters from './useNetworkFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
@@ -147,7 +148,7 @@ describe('useNetworkFilters', () => {
         query: {f_n_type: [TYPE_OPTION.value], f_n_status: [STATUS_OPTION.value]},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(useNetworkFilters, {
+    const {result, rerender} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -161,7 +162,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -173,7 +174,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -225,7 +226,7 @@ describe('useNetworkFilters', () => {
         },
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(useNetworkFilters, {
+    const {result, rerender} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -239,7 +240,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setFilters([TYPE_OPTION, STATUS_OPTION]);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -251,7 +252,7 @@ describe('useNetworkFilters', () => {
       },
     });
 
-    rerender();
+    rerender({networkFrames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -270,7 +271,7 @@ describe('useNetworkFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(9);
@@ -284,7 +285,7 @@ describe('useNetworkFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
     expect(result.current.items).toStrictEqual([SPAN_8_FETCH_POST]);
@@ -298,7 +299,7 @@ describe('useNetworkFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(8);
@@ -312,7 +313,7 @@ describe('useNetworkFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(2);
@@ -326,7 +327,7 @@ describe('useNetworkFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(3);
@@ -340,7 +341,7 @@ describe('useNetworkFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(1);
@@ -356,7 +357,7 @@ describe('useNetworkFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
     expect(result.current.items).toHaveLength(1);
@@ -367,7 +368,7 @@ describe('getMethodTypes', () => {
   it('should default to having GET in the list of method types', () => {
     const networkFrames = [];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -379,7 +380,7 @@ describe('getMethodTypes', () => {
   it('should return a sorted list of method types', () => {
     const networkFrames = [SPAN_8_FETCH_POST, SPAN_7_FETCH_GET];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -392,7 +393,7 @@ describe('getMethodTypes', () => {
   it('should deduplicate BreadcrumbType', () => {
     const networkFrames = [SPAN_2_SCRIPT, SPAN_3_FETCH, SPAN_7_FETCH_GET];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -406,7 +407,7 @@ describe('getResourceTypes', () => {
   it('should default to having fetch in the list of span types', () => {
     const networkFrames = [];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -418,7 +419,7 @@ describe('getResourceTypes', () => {
   it('should return a sorted list of BreadcrumbType', () => {
     const networkFrames = [SPAN_0_NAVIGATE, SPAN_1_LINK, SPAN_2_SCRIPT];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -439,7 +440,7 @@ describe('getResourceTypes', () => {
       SPAN_7_FETCH_GET,
     ];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -461,7 +462,7 @@ describe('getStatusTypes', () => {
       SPAN_8_FETCH_POST,
     ];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 
@@ -486,7 +487,7 @@ describe('getStatusTypes', () => {
       SPAN_8_FETCH_POST,
     ];
 
-    const {result} = reactHooks.renderHook(useNetworkFilters, {
+    const {result} = renderHook(useNetworkFilters, {
       initialProps: {networkFrames},
     });
 

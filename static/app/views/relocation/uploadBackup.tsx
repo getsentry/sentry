@@ -1,4 +1,4 @@
-import {useContext, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -13,9 +13,8 @@ import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
-import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 type UploadWellProps = {
   centered: boolean;
@@ -37,14 +36,13 @@ const THROTTLED_RELOCATION_ERROR_MSG = t(
 );
 const SESSION_EXPIRED_ERROR_MSG = t('Your session has expired.');
 
-export function UploadBackup(__props: StepProps) {
+export function UploadBackup({relocationState, onComplete}: StepProps) {
   const api = useApi({
     api: new Client({headers: {Accept: 'application/json; charset=utf-8'}}),
   });
   const [file, setFile] = useState<File>();
   const [dragCounter, setDragCounter] = useState(0);
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const relocationOnboardingContext = useContext(RelocationOnboardingContext);
   const user = ConfigStore.get('user');
 
   const handleDragEnter = event => {
@@ -75,11 +73,11 @@ export function UploadBackup(__props: StepProps) {
   };
 
   const onFileUploadLinkClick = () => {
-    inputFileRef.current && inputFileRef.current.click();
+    inputFileRef.current?.click();
   };
 
   const handleStartRelocation = async () => {
-    const {orgSlugs, regionUrl} = relocationOnboardingContext.data;
+    const {orgSlugs, regionUrl, promoCode} = relocationState;
     if (!orgSlugs || !regionUrl || !file) {
       addErrorMessage(DEFAULT_ERROR_MSG);
       return;
@@ -88,8 +86,11 @@ export function UploadBackup(__props: StepProps) {
     formData.set('orgs', orgSlugs);
     formData.set('file', file);
     formData.set('owner', user.username);
+    if (promoCode) {
+      formData.set('promo_code', promoCode);
+    }
     try {
-      await api.requestPromise(`/relocations/`, {
+      const result = await api.requestPromise(`/relocations/`, {
         method: 'POST',
         host: regionUrl,
         data: formData,
@@ -100,6 +101,7 @@ export function UploadBackup(__props: StepProps) {
           "Your relocation has started - we'll email you with updates as soon as we have 'em!"
         )
       );
+      onComplete(result.uuid);
     } catch (error) {
       if (error.status === 409) {
         addErrorMessage(IN_PROGRESS_RELOCATION_ERROR_MSG);
@@ -114,7 +116,7 @@ export function UploadBackup(__props: StepProps) {
   };
 
   return (
-    <Wrapper>
+    <Wrapper data-test-id="upload-backup">
       <StepHeading step={4}>
         {t('Upload Tarball to begin the relocation process')}
       </StepHeading>
@@ -128,7 +130,7 @@ export function UploadBackup(__props: StepProps) {
       >
         <p>
           {t(
-            'Nearly done! The file is being uploaded to sentry for the relocation process. You can close this tab if you like. We will email  when complete.'
+            "Nearly done! Just upload your tarball here, and we'll send you an email when everything is ready to go!"
           )}
         </p>
         {file ? (
@@ -153,7 +155,7 @@ export function UploadBackup(__props: StepProps) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             centered
-            aria-label="dropzone"
+            aria-label={t('dropzone')}
             draggedOver={dragCounter > 0}
           >
             <StyledUploadIcon className="upload-icon" size="xl" />
@@ -163,7 +165,7 @@ export function UploadBackup(__props: StepProps) {
               <UploadInput
                 name="file"
                 type="file"
-                aria-label="file-upload"
+                aria-label={t('file-upload')}
                 accept=".tar"
                 ref={inputFileRef}
                 onChange={e => handleFileChange(e)}

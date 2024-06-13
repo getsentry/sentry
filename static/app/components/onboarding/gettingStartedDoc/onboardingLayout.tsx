@@ -7,7 +7,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   ConfigType,
   Docs,
   DocsParams,
@@ -72,6 +72,7 @@ export function OnboardingLayout({
       platformKey,
       projectId,
       projectSlug,
+      isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),
@@ -83,6 +84,7 @@ export function OnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
+      replayOptions: {block: true, mask: true},
     };
 
     return {
@@ -136,13 +138,15 @@ export function OnboardingLayout({
             <Divider />
             <h4>{t('Next Steps')}</h4>
             <List symbol="bullet">
-              {nextSteps.map(step => (
-                <ListItem key={step.name}>
-                  <ExternalLink href={step.link}>{step.name}</ExternalLink>
-                  {': '}
-                  {step.description}
-                </ListItem>
-              ))}
+              {nextSteps
+                .filter((step): step is Exclude<typeof step, null> => step !== null)
+                .map(step => (
+                  <ListItem key={step.name}>
+                    <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                    {': '}
+                    {step.description}
+                  </ListItem>
+                ))}
             </List>
           </Fragment>
         )}

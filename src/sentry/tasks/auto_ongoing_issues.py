@@ -1,17 +1,16 @@
 import logging
 from datetime import datetime, timedelta, timezone
 from functools import wraps
-from typing import List
 
 import sentry_sdk
 from django.db.models import Max
 
 from sentry.conf.server import CELERY_ISSUE_STATES_QUEUE
-from sentry.issues.ongoing import bulk_transition_group_to_ongoing
+from sentry.issues.ongoing import TRANSITION_AFTER_DAYS, bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.monitoring.queues import backend
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
 from sentry.utils import metrics
@@ -20,7 +19,6 @@ from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger(__name__)
 
-TRANSITION_AFTER_DAYS = 7
 ITERATOR_CHUNK = 100
 CHILD_TASK_COUNT = 250
 
@@ -36,13 +34,16 @@ def log_error_if_queue_has_items(func):
         @wraps(func)
         def wrapped(*args, **kwargs):
             assert backend is not None, "queues monitoring is not enabled"
-            queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
-            if queue_size > 0:
-                logger.info(
-                    "%s queue size greater than 0.",
-                    CELERY_ISSUE_STATES_QUEUE.name,
-                    extra={"size": queue_size, "task": func.__name__},
-                )
+            try:
+                queue_size = backend.get_size(CELERY_ISSUE_STATES_QUEUE.name)
+                if queue_size > 0:
+                    logger.info(
+                        "%s queue size greater than 0.",
+                        CELERY_ISSUE_STATES_QUEUE.name,
+                        extra={"size": queue_size, "task": func.__name__},
+                    )
+            except Exception:
+                logger.exception("Failed to determine queue size")
 
             func(*args, **kwargs)
 
@@ -66,25 +67,24 @@ def schedule_auto_transition_to_ongoing() -> None:
     that transition Issues to Ongoing according to their specific
     criteria.
     """
-    with sentry_sdk.start_transaction(op="task", name="schedule_auto_transition_to_ongoing"):
-        now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=timezone.utc)
 
-        seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
+    seven_days_ago = now - timedelta(days=TRANSITION_AFTER_DAYS)
 
-        schedule_auto_transition_issues_new_to_ongoing.delay(
-            first_seen_lte=int(seven_days_ago.timestamp()),
-            expires=now + timedelta(hours=1),
-        )
+    schedule_auto_transition_issues_new_to_ongoing.delay(
+        first_seen_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
-        schedule_auto_transition_issues_regressed_to_ongoing.delay(
-            date_added_lte=int(seven_days_ago.timestamp()),
-            expires=now + timedelta(hours=1),
-        )
+    schedule_auto_transition_issues_regressed_to_ongoing.delay(
+        date_added_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
-        schedule_auto_transition_issues_escalating_to_ongoing.delay(
-            date_added_lte=int(seven_days_ago.timestamp()),
-            expires=now + timedelta(hours=1),
-        )
+    schedule_auto_transition_issues_escalating_to_ongoing.delay(
+        date_added_lte=int(seven_days_ago.timestamp()),
+        expires=now + timedelta(hours=1),
+    )
 
 
 @instrumented_task(
@@ -126,8 +126,6 @@ def schedule_auto_transition_issues_new_to_ongoing(
         "first_seen_lte": first_seen_lte,
         "first_seen_lte_datetime": first_seen_lte_datetime,
     }
-    if base_queryset:
-        logger_extra["issue_first_seen"] = base_queryset[0].first_seen
     logger.info(
         "auto_transition_issues_new_to_ongoing started",
         extra=logger_extra,
@@ -141,6 +139,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 callbacks=[get_total_count],
                 order_by="first_seen",
+                override_unique_safety_check=True,
             ),
             ITERATOR_CHUNK,
         ):
@@ -166,7 +165,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     silo_mode=SiloMode.REGION,
 )
 def run_auto_transition_issues_new_to_ongoing(
-    group_ids: List[int],
+    group_ids: list[int],
     **kwargs,
 ):
     """
@@ -254,7 +253,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     silo_mode=SiloMode.REGION,
 )
 def run_auto_transition_issues_regressed_to_ongoing(
-    group_ids: List[int],
+    group_ids: list[int],
     **kwargs,
 ) -> None:
     """
@@ -342,7 +341,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     silo_mode=SiloMode.REGION,
 )
 def run_auto_transition_issues_escalating_to_ongoing(
-    group_ids: List[int],
+    group_ids: list[int],
     **kwargs,
 ) -> None:
     """

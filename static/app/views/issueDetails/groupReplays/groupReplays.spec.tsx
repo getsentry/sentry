@@ -1,8 +1,8 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import GroupReplays from 'sentry/views/issueDetails/groupReplays';
@@ -20,18 +20,80 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
-import {ReplayList} from 'sentry-fixture/replayList';
+import {duration} from 'moment';
+import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
+import {ReplayListFixture} from 'sentry-fixture/replayList';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
+
+import {resetMockDate, setMockDate} from 'sentry-test/utils';
+
+import {browserHistory} from 'sentry/utils/browserHistory';
+import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
+import ReplayReader from 'sentry/utils/replays/replayReader';
 
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
+let router, organization;
+
+jest.mock('sentry/utils/replays/hooks/useReplayReader');
+// Mock screenfull library
+jest.mock('screenfull', () => ({
+  enabled: true,
+  isFullscreen: false,
+  request: jest.fn(),
+  exit: jest.fn(),
+  on: jest.fn(),
+  off: jest.fn(),
+}));
+
+const mockUseReplayReader = jest.mocked(useReplayReader);
+
+const mockEventTimestamp = new Date('2022-09-22T16:59:41Z');
+const mockEventTimestampMs = mockEventTimestamp.getTime();
+
+// Get replay data with the mocked replay reader params
+const mockReplay = ReplayReader.factory({
+  replayRecord: ReplayRecordFixture({
+    id: REPLAY_ID_1,
+    browser: {
+      name: 'Chrome',
+      version: '110.0.0',
+    },
+    started_at: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+    finished_at: new Date(mockEventTimestampMs + 5_000),
+    duration: duration(10, 'seconds'),
+  }),
+  errors: [],
+  attachments: RRWebInitFrameEventsFixture({
+    timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+  }),
+  clipWindow: {
+    startTimestampMs: mockEventTimestampMs - 5_000,
+    endTimestampMs: mockEventTimestampMs + 5_000,
+  },
+});
+
+mockUseReplayReader.mockImplementation(() => {
+  return {
+    attachments: [],
+    errors: [],
+    fetchError: undefined,
+    fetching: false,
+    onRetry: jest.fn(),
+    projectSlug: ProjectFixture().slug,
+    replay: mockReplay,
+    replayId: REPLAY_ID_1,
+    replayRecord: ReplayRecordFixture({id: REPLAY_ID_1}),
+  };
+});
+
 function init({organizationProps = {features: ['session-replay']}}: InitializeOrgProps) {
   const mockProject = ProjectFixture();
-  const {router, organization, routerContext} = initializeOrg({
+  ({router, organization} = initializeOrg({
     organization: {
       ...organizationProps,
     },
-    project: mockProject,
     projects: [mockProject],
     router: {
       routes: [
@@ -44,12 +106,12 @@ function init({organizationProps = {features: ['session-replay']}}: InitializeOr
         query: {},
       },
     },
-  });
+  }));
 
   ProjectsStore.init();
   ProjectsStore.loadInitialData(organization.projects);
 
-  return {router, organization, routerContext};
+  return {router, organization};
 }
 
 describe('GroupReplays', () => {
@@ -61,19 +123,20 @@ describe('GroupReplays', () => {
       body: [],
     });
   });
+  afterEach(() => {
+    resetMockDate();
+  });
 
   describe('Replay Feature Disabled', () => {
     const mockGroup = GroupFixture();
 
-    const {router, organization, routerContext} = init({
-      organizationProps: {features: []},
-    });
-
     it("should show a message when the organization doesn't have access to the replay feature", () => {
+      ({router, organization} = init({
+        organizationProps: {features: []},
+      }));
       render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
         router,
+        organization,
       });
 
       expect(
@@ -83,7 +146,9 @@ describe('GroupReplays', () => {
   });
 
   describe('Replay Feature Enabled', () => {
-    const {router, organization, routerContext} = init({});
+    beforeEach(() => {
+      ({router, organization} = init({}));
+    });
 
     it('should query the replay-count endpoint with the fetched replayIds', async () => {
       const mockGroup = GroupFixture();
@@ -103,9 +168,8 @@ describe('GroupReplays', () => {
       });
 
       render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
         router,
+        organization,
       });
 
       await waitFor(() => {
@@ -116,7 +180,7 @@ describe('GroupReplays', () => {
               returnIds: true,
               data_source: 'discover',
               query: `issue.id:[${mockGroup.id}]`,
-              statsPeriod: '14d',
+              statsPeriod: '90d',
               project: -1,
             },
           })
@@ -135,6 +199,7 @@ describe('GroupReplays', () => {
                 'count_rage_clicks',
                 'duration',
                 'finished_at',
+                'has_viewed',
                 'id',
                 'is_archived',
                 'os',
@@ -147,7 +212,7 @@ describe('GroupReplays', () => {
               queryReferrer: 'issueReplays',
               query: `id:[${REPLAY_ID_1},${REPLAY_ID_2}]`,
               sort: '-started_at',
-              statsPeriod: '14d',
+              statsPeriod: '90d',
             }),
           })
         );
@@ -172,15 +237,14 @@ describe('GroupReplays', () => {
       });
 
       render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
         router,
+        organization,
       });
 
       expect(
         await screen.findByText('There are no items to display')
       ).toBeInTheDocument();
-      expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+      expect(mockReplayCountApi).toHaveBeenCalled();
       expect(mockReplayApi).toHaveBeenCalledTimes(1);
     });
 
@@ -203,17 +267,17 @@ describe('GroupReplays', () => {
       });
 
       render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
         router,
+        organization,
       });
 
+      expect(
+        await screen.findByText('Invalid number: asdf. Expected number.')
+      ).toBeInTheDocument();
+
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
-        expect(
-          screen.getByText('Invalid number: asdf. Expected number.')
-        ).toBeInTheDocument();
       });
     });
 
@@ -234,19 +298,19 @@ describe('GroupReplays', () => {
       });
 
       render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
         router,
+        organization,
       });
 
+      expect(
+        await screen.findByText(
+          'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
+        )
+      ).toBeInTheDocument();
+
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
-        expect(
-          screen.getByText(
-            'Sorry, the list of replays could not be loaded. This could be due to invalid search parameters or an internal systems error.'
-          )
-        ).toBeInTheDocument();
       });
     });
 
@@ -269,14 +333,13 @@ describe('GroupReplays', () => {
       });
 
       render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
         router,
+        organization,
       });
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
     });
@@ -297,28 +360,28 @@ describe('GroupReplays', () => {
         body: {
           data: [
             {
-              ...ReplayList()[0],
+              ...ReplayListFixture()[0],
               count_errors: 1,
               duration: 52346,
               finished_at: new Date('2022-09-15T06:54:00+00:00'),
-              id: '346789a703f6454384f1de473b8b9fcc',
+              id: REPLAY_ID_1,
               started_at: new Date('2022-09-15T06:50:00+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/replays/',
-                '/organizations/sentry-emerging-tech/replays/?project=2',
+                '/organizations/org-slug/replays/?project=2',
               ],
             },
             {
-              ...ReplayList()[0],
+              ...ReplayListFixture()[0],
               count_errors: 4,
               duration: 400,
               finished_at: new Date('2022-09-21T21:40:38+00:00'),
-              id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+              id: REPLAY_ID_2,
               started_at: new Date('2022-09-21T21:30:44+00:00'),
               urls: [
-                'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
-                '/organizations/sentry-emerging-tech/issues/',
-                '/organizations/sentry-emerging-tech/issues/?project=2',
+                'https://dev.getsentry.net:7999/organizations/org-slug/replays/?project=2&statsPeriod=24h',
+                '/organizations/org-slug/issues/',
+                '/organizations/org-slug/issues/?project=2',
               ],
             },
           ].map(hydrated => ({
@@ -330,21 +393,20 @@ describe('GroupReplays', () => {
       });
 
       // Mock the system date to be 2022-09-28
-      jest.useFakeTimers().setSystemTime(new Date('Sep 28, 2022 11:29:13 PM UTC'));
+      setMockDate(new Date('Sep 28, 2022 11:29:13 PM UTC'));
 
       render(<GroupReplays group={mockGroup} />, {
-        context: routerContext,
-        organization,
         router,
+        organization,
       });
 
       await waitFor(() => {
-        expect(mockReplayCountApi).toHaveBeenCalledTimes(1);
+        expect(mockReplayCountApi).toHaveBeenCalled();
         expect(mockReplayApi).toHaveBeenCalledTimes(1);
       });
 
       // Expect the table to have 2 rows
-      expect(screen.getAllByText('testDisplayName')).toHaveLength(2);
+      expect(await screen.findAllByText('testDisplayName')).toHaveLength(2);
 
       const expectedQuery =
         'query=&referrer=%2Forganizations%2F%3AorgId%2Fissues%2F%3AgroupId%2Freplays%2F&statsPeriod=14d&yAxis=count%28%29';
@@ -382,6 +444,169 @@ describe('GroupReplays', () => {
 
       // Expect the second row to have the correct date
       expect(screen.getByText('7 days ago')).toBeInTheDocument();
+    });
+
+    it('Should render the replay player when replay-play-from-replay-tab is enabled', async () => {
+      ({router, organization} = init({
+        organizationProps: {features: ['replay-play-from-replay-tab', 'session-replay']},
+      }));
+      const mockGroup = GroupFixture();
+
+      const mockReplayCountApi = MockApiClient.addMockResponse({
+        url: mockReplayCountUrl,
+        body: {
+          [mockGroup.id]: [REPLAY_ID_1, REPLAY_ID_2],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: mockReplayUrl,
+        statusCode: 200,
+        body: {
+          data: [
+            {
+              ...ReplayListFixture()[0],
+              count_errors: 1,
+              duration: 52346,
+              finished_at: new Date('2022-09-15T06:54:00+00:00'),
+              id: REPLAY_ID_1,
+              started_at: new Date('2022-09-15T06:50:00+00:00'),
+              urls: [
+                'https://dev.getsentry.net:7999/replays/',
+                '/organizations/org-slug/replays/?project=2',
+              ],
+            },
+            {
+              ...ReplayListFixture()[0],
+              count_errors: 4,
+              duration: 400,
+              finished_at: new Date('2022-09-21T21:40:38+00:00'),
+              id: REPLAY_ID_2,
+              started_at: new Date('2022-09-21T21:30:44+00:00'),
+              urls: [
+                'https://dev.getsentry.net:7999/organizations/org-slug/replays/?project=2&statsPeriod=24h',
+                '/organizations/org-slug/issues/',
+                '/organizations/org-slug/issues/?project=2',
+              ],
+            },
+          ].map(hydrated => ({
+            ...hydrated,
+            started_at: hydrated.started_at.toString(),
+            finished_at: hydrated.finished_at.toString(),
+          })),
+        },
+      });
+
+      render(<GroupReplays group={mockGroup} />, {
+        router,
+        organization,
+      });
+
+      expect(await screen.findByText('See Full Replay')).toBeInTheDocument();
+      expect(mockReplayCountApi).toHaveBeenCalledWith(
+        mockReplayCountUrl,
+        expect.objectContaining({
+          query: {
+            returnIds: true,
+            data_source: 'discover',
+            query: `issue.id:[${mockGroup.id}]`,
+            statsPeriod: '90d',
+            project: -1,
+          },
+        })
+      );
+    });
+
+    it('Should switch replays when clicking and replay-play-from-replay-tab is enabled', async () => {
+      ({router, organization} = init({
+        organizationProps: {features: ['session-replay']},
+      }));
+      const mockGroup = GroupFixture();
+      const mockReplayRecord = mockReplay?.getReplay();
+
+      const mockReplayCountApi = MockApiClient.addMockResponse({
+        url: mockReplayCountUrl,
+        body: {
+          [mockGroup.id]: [REPLAY_ID_1, REPLAY_ID_2],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: mockReplayUrl,
+        statusCode: 200,
+        body: {
+          data: [
+            {
+              ...ReplayListFixture()[0],
+              count_errors: 1,
+              duration: 52346,
+              finished_at: new Date('2022-09-15T06:54:00+00:00'),
+              id: REPLAY_ID_1,
+              started_at: new Date('2022-09-15T06:50:00+00:00'),
+              urls: [
+                'https://dev.getsentry.net:7999/replays/',
+                '/organizations/org-slug/replays/?project=2',
+              ],
+            },
+            {
+              ...ReplayListFixture()[0],
+              count_errors: 4,
+              duration: 400,
+              finished_at: new Date('2022-09-21T21:40:38+00:00'),
+              id: REPLAY_ID_2,
+              started_at: new Date('2022-09-21T21:30:44+00:00'),
+              urls: [
+                'https://dev.getsentry.net:7999/organizations/org-slug/replays/?project=2&statsPeriod=24h',
+                '/organizations/org-slug/issues/',
+                '/organizations/org-slug/issues/?project=2',
+              ],
+            },
+          ].map(hydrated => ({
+            ...hydrated,
+            started_at: hydrated.started_at.toString(),
+            finished_at: hydrated.finished_at.toString(),
+          })),
+        },
+      });
+      MockApiClient.addMockResponse({
+        method: 'POST',
+        url: `/projects/${organization.slug}/${mockReplayRecord?.project_id}/replays/${mockReplayRecord?.id}/viewed-by/`,
+      });
+
+      render(<GroupReplays group={mockGroup} />, {
+        router,
+        organization,
+      });
+
+      await waitFor(() => {
+        expect(mockReplayCountApi).toHaveBeenCalledWith(
+          mockReplayCountUrl,
+          expect.objectContaining({
+            query: {
+              returnIds: true,
+              data_source: 'discover',
+              query: `issue.id:[${mockGroup.id}]`,
+              statsPeriod: '90d',
+              project: -1,
+            },
+          })
+        );
+      });
+
+      const mockReplace = jest.mocked(browserHistory.replace);
+      const replayPlayPlause = (
+        await screen.findAllByTestId('replay-table-play-button')
+      )[0];
+      await userEvent.click(replayPlayPlause);
+
+      await waitFor(() =>
+        expect(mockReplace).toHaveBeenCalledWith(
+          expect.objectContaining({
+            pathname: '/organizations/org-slug/replays/',
+            query: {
+              selected_replay_index: 1,
+            },
+          })
+        )
+      );
     });
   });
 });

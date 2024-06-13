@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+import orjson
+
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 
@@ -27,6 +29,22 @@ LINK_SHARED_EVENT = """{
         }
     ]
 }"""
+
+
+def build_test_block(link):
+    return {
+        "blocks": [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": f"<{link}/1|*wow an issue very cool*> \n",
+                },
+                "block_id": orjson.dumps({"issue": 1}).decode(),
+            }
+        ],
+        "text": "[foo] wow an issue very cool",
+    }
 
 
 class BaseEventTest(APITestCase):

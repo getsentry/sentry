@@ -1,10 +1,10 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {PlatformExternalIssue as PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
-import {SentryApp} from 'sentry-fixture/sentryApp';
-import {SentryAppComponent} from 'sentry-fixture/sentryAppComponent';
-import {SentryAppInstallation} from 'sentry-fixture/sentryAppInstallation';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PlatformExternalIssueFixture} from 'sentry-fixture/platformExternalIssue';
+import {SentryAppFixture} from 'sentry-fixture/sentryApp';
+import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
+import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation';
 
 import {
   render,
@@ -17,8 +17,8 @@ import SentryAppExternalIssueActions from 'sentry/components/group/sentryAppExte
 
 describe('SentryAppExternalIssueActions', () => {
   const group = GroupFixture();
-  const sentryApp = SentryApp();
-  const component = SentryAppComponent({
+  const sentryApp = SentryAppFixture();
+  const component = SentryAppComponentFixture({
     sentryApp: {
       uuid: sentryApp.uuid,
       slug: sentryApp.slug,
@@ -27,7 +27,7 @@ describe('SentryAppExternalIssueActions', () => {
   });
   // unable to use the selectByValue here so remove the select option
   component.schema.create.required_fields.pop();
-  const install = SentryAppInstallation({});
+  const install = SentryAppInstallationFixture({});
   const submitUrl = `/sentry-app-installations/${install.uuid}/external-issue-actions/`;
   const externalIssue = PlatformExternalIssueFixture({
     issueId: group.id,
@@ -50,7 +50,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={EventFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -94,7 +94,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={EventFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -136,7 +136,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={EventFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppInstallation={install}
         sentryAppComponent={component}
@@ -176,7 +176,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={EventFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}
@@ -201,7 +201,7 @@ describe('SentryAppExternalIssueActions', () => {
     render(
       <SentryAppExternalIssueActions
         event={EventFixture()}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         group={group}
         sentryAppComponent={component}
         sentryAppInstallation={install}

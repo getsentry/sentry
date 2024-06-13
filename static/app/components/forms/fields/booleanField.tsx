@@ -6,7 +6,7 @@ import Switch from 'sentry/components/switchButton';
 import {Tooltip} from 'sentry/components/tooltip';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps, OnEvent} from './inputField';
+import type {InputFieldProps, OnEvent} from './inputField';
 
 export interface BooleanFieldProps extends InputFieldProps {
   confirm?: {
@@ -33,7 +33,7 @@ export default class BooleanField extends Component<BooleanFieldProps> {
   };
 
   render() {
-    const {confirm, disabledReason, ...fieldProps} = this.props;
+    const {confirm, ...fieldProps} = this.props;
 
     return (
       <FormField {...fieldProps} resetOnError>
@@ -43,9 +43,11 @@ export default class BooleanField extends Component<BooleanFieldProps> {
           onBlur,
           value,
           disabled,
+          disabledReason,
           ...props
         }: {
           disabled: boolean;
+          disabledReason: boolean;
           onBlur: OnEvent;
           onChange: OnEvent;
           type: string;

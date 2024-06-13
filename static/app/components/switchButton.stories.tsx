@@ -1,9 +1,11 @@
-import {ComponentProps, Fragment, useState} from 'react';
+import type {ComponentProps} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
-import Matrix, {PropMatrix} from 'sentry/components/stories/matrix';
+import type {PropMatrix} from 'sentry/components/stories/matrix';
+import Matrix from 'sentry/components/stories/matrix';
 import Switch from 'sentry/components/switchButton';
 import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';

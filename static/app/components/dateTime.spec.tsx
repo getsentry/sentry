@@ -1,15 +1,15 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import ConfigStore from 'sentry/stores/configStore';
 
 describe('DateTime', () => {
-  const user = User({
+  const user = UserFixture({
     options: {
-      ...User().options,
+      ...UserFixture().options,
       clock24Hours: false,
       timezone: 'America/Los_Angeles',
     },

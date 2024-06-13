@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import List, TypedDict
+from typing import TypedDict
 
 from django.db import models
 
@@ -74,7 +74,7 @@ class HasApiScopes(models.Model):
     # Human readable list of scopes
     scope_list = ArrayField(of=models.TextField)
 
-    def get_scopes(self) -> List[str]:
+    def get_scopes(self) -> list[str]:
         """
         Returns a list of the token's scopes in alphabetical order.
         """

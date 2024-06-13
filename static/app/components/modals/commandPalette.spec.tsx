@@ -1,9 +1,8 @@
-import {Members} from 'sentry-fixture/members';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {MembersFixture} from 'sentry-fixture/members';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
-import {Team} from 'sentry-fixture/team';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -25,7 +24,7 @@ function renderMockRequests() {
 
   const organization = MockApiClient.addMockResponse({
     url: '/organizations/',
-    body: [Organization({slug: 'billy-org', name: 'billy org'})],
+    body: [OrganizationFixture({slug: 'billy-org', name: 'billy org'})],
   });
 
   MockApiClient.addMockResponse({
@@ -35,12 +34,12 @@ function renderMockRequests() {
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/teams/',
-    body: [Team({slug: 'foo-team'})],
+    body: [TeamFixture({slug: 'foo-team'})],
   });
 
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/members/',
-    body: Members(),
+    body: MembersFixture(),
   });
 
   MockApiClient.addMockResponse({
@@ -69,13 +68,6 @@ function renderMockRequests() {
   });
 
   MockApiClient.addMockResponse({
-    url: '/internal/health/',
-    body: {
-      problems: [],
-    },
-  });
-
-  MockApiClient.addMockResponse({
     url: '/assistant/',
     body: [],
   });
@@ -96,13 +88,9 @@ describe('Command Palette Modal', function () {
         Footer={ModalFooter}
       />,
       {
-        context: RouterContextFixture([
-          {
-            router: RouterFixture({
-              params: {orgId: 'org-slug'},
-            }),
-          },
-        ]),
+        router: RouterFixture({
+          params: {orgId: 'org-slug'},
+        }),
       }
     );
 

@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 
 from sentry.eventtypes.base import format_title_from_tree_label
-from sentry.grouping.api import detect_synthetic_exception, get_default_grouping_config_dict
+from sentry.grouping.api import (
+    detect_synthetic_exception,
+    get_default_grouping_config_dict,
+    load_grouping_config,
+)
 from sentry.grouping.component import GroupingComponent
 from sentry.grouping.strategies.configurations import CONFIGURATIONS
 from sentry.utils import json
@@ -34,7 +38,7 @@ def dump_variant(variant, lines=None, indent=0):
 
     lines.append("{}hash: {}".format("  " * indent, json.dumps(variant.get_hash())))
 
-    for (key, value) in sorted(variant.__dict__.items()):
+    for key, value in sorted(variant.__dict__.items()):
         if isinstance(value, GroupingComponent):
             if value.tree_label:
                 lines.append(
@@ -57,6 +61,7 @@ def dump_variant(variant, lines=None, indent=0):
 @pytest.mark.parametrize("config_name", CONFIGURATIONS.keys(), ids=lambda x: x.replace("-", "_"))
 def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     grouping_config = get_default_grouping_config_dict(config_name)
+    loaded_config = load_grouping_config(grouping_config)
     evt = grouping_input.create_event(grouping_config)
 
     # Make sure we don't need to touch the DB here because this would
@@ -64,16 +69,18 @@ def test_event_hash_variant(config_name, grouping_input, insta_snapshot, log):
     evt.project = None
 
     # Set the synthetic marker if detected
-    detect_synthetic_exception(evt.data, grouping_config)
+    detect_synthetic_exception(evt.data, loaded_config)
 
     rv: list[str] = []
-    for (key, value) in sorted(evt.get_grouping_variants().items()):
+    for key, value in sorted(evt.get_grouping_variants().items()):
         if rv:
             rv.append("-" * 74)
         rv.append("%s:" % key)
         dump_variant(value, rv, 1)
     output = "\n".join(rv)
-    log(repr(evt.get_hashes()))
+
+    hashes = evt.get_hashes()
+    log(repr(hashes))
 
     assert evt.get_grouping_config() == grouping_config
 

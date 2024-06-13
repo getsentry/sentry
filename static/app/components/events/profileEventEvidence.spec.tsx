@@ -1,10 +1,10 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {EventFixture} from 'sentry-fixture/event';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
-import {IssueCategory, IssueType} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 
 describe('ProfileEventEvidence', function () {
   const defaultProps = {

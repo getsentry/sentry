@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Callable, Mapping, MutableMapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Tuple
+from typing import Any
 
 import sentry_sdk
 
@@ -17,7 +18,7 @@ logger = logging.getLogger("sentry.tasks.statistical_detectors.algorithm")
 
 @dataclass(frozen=True)
 class MovingAverageDetectorState(DetectorState):
-    timestamp: Optional[datetime]
+    timestamp: datetime | None
     count: int
     moving_avg_short: float
     moving_avg_long: float
@@ -26,6 +27,9 @@ class MovingAverageDetectorState(DetectorState):
     FIELD_COUNT = "C"
     FIELD_MOVING_AVG_SHORT = "S"
     FIELD_MOVING_AVG_LONG = "L"
+
+    def get_moving_avg(self) -> float:
+        return self.moving_avg_long
 
     def to_redis_dict(self) -> Mapping[str | bytes, bytes | float | int | str]:
         d: MutableMapping[str | bytes, bytes | float | int | str] = {
@@ -54,7 +58,7 @@ class MovingAverageDetectorState(DetectorState):
         )
 
     def should_auto_resolve(self, target: float, rel_threshold: float) -> bool:
-        value = self.moving_avg_long
+        value = self.get_moving_avg()
 
         rel_change = (value - target) / target
         if rel_change < rel_threshold:
@@ -65,13 +69,13 @@ class MovingAverageDetectorState(DetectorState):
     def should_escalate(
         self, baseline: float, regressed: float, min_change: float, rel_threshold: float
     ) -> bool:
-        value = self.moving_avg_long
+        value = self.get_moving_avg()
 
         change = value - regressed
         if change < min_change:
             return False
 
-        rel_change = change / baseline
+        rel_change = change / (regressed - baseline)
         if rel_change > rel_threshold:
             return True
 
@@ -93,7 +97,7 @@ class DetectorAlgorithm(ABC):
         self,
         raw: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
-    ) -> Tuple[TrendType, float, Optional[DetectorState]]:
+    ) -> tuple[TrendType, float, DetectorState | None]:
         ...
 
 
@@ -118,7 +122,7 @@ class MovingAverageRelativeChangeDetector(DetectorAlgorithm):
         self,
         raw_state: Mapping[str | bytes, bytes | float | int | str],
         payload: DetectorPayload,
-    ) -> Tuple[TrendType, float, Optional[DetectorState]]:
+    ) -> tuple[TrendType, float, DetectorState | None]:
         try:
             old = MovingAverageDetectorState.from_redis_dict(raw_state)
         except Exception as e:

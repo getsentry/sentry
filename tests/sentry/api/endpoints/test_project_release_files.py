@@ -28,8 +28,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -49,8 +49,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -131,8 +131,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -148,8 +148,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -164,8 +164,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -199,8 +199,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -226,8 +226,8 @@ class ReleaseFilesListTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
                 "version": self.release.version,
             },
         )
@@ -255,8 +255,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -296,8 +296,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -319,8 +319,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -352,8 +352,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -383,8 +383,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -430,8 +430,8 @@ class ReleaseFileCreateTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-files",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )

@@ -1,5 +1,5 @@
 import {Component} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {
@@ -12,9 +12,10 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {FieldValue} from 'sentry/components/forms/model';
+import type {FieldValue} from 'sentry/components/forms/model';
 import Hook from 'sentry/components/hook';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
@@ -24,10 +25,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {fields} from 'sentry/data/forms/projectGeneralSettings';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import withOrganization from 'sentry/utils/withOrganization';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -278,7 +281,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
     // separate repository. This is not feasible to maintain and may introduce
     // compatability errors if something changes in either repository. For that
     // reason, the Form component is split in two, since the fields do not
-    // depend on one another, allowing for the Hook to manage it's own state.
+    // depend on one another, allowing for the Hook to manage its own state.
     const formProps: FormProps = {
       saveOnBlur: true,
       allowUndo: true,
@@ -304,14 +307,12 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Project Settings')} />
         <PermissionAlert project={project} />
-
         <Form {...formProps}>
           <JsonForm
             {...jsonFormProps}
             title={t('Project Details')}
             fields={[fields.name, fields.platform]}
           />
-
           <JsonForm
             {...jsonFormProps}
             title={t('Email')}

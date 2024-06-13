@@ -13,7 +13,7 @@ from sentry.middleware.integrations.parsers.jira import JiraRequestParser
 from sentry.middleware.integrations.parsers.jira_server import JiraServerRequestParser
 from sentry.middleware.integrations.parsers.plugin import PluginRequestParser
 from sentry.middleware.integrations.parsers.slack import SlackRequestParser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 
 
@@ -126,6 +126,11 @@ class IntegrationControlMiddlewareTest(TestCase):
             self.factory.post("/extensions/jira-server/issue-updated/abc-123/")
         )
         assert result != response
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    def test_handles_missing_integration(self):
+        response = self.middleware(self.factory.post("/extensions/jira/issue-updated/"))
+        assert response.status_code == 404
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     @patch.object(PluginRequestParser, "get_response")

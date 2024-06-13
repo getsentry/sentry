@@ -1,10 +1,8 @@
 from datetime import datetime, timezone
 
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationMemberUnreleasedCommitsTest(APITestCase):
     endpoint = "sentry-api-0-organization-member-unreleased-commits"
 

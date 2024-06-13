@@ -1,26 +1,32 @@
-import {Fragment} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {Fragment, useMemo, useState} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 
 import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import EventVitals from 'sentry/components/events/eventVitals';
+import type {SpanDetailProps} from 'sentry/components/events/interfaces/spans/newTraceDetailsSpanDetails';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
+import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t, tct} from 'sentry/locale';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconPlay} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Organization} from 'sentry/types';
+import type {EventTransaction, Organization} from 'sentry/types';
 import {generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
-import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {getDuration} from 'sentry/utils/formatters';
-import {
+import type {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
+import getDuration from 'sentry/utils/duration/getDuration';
+import {getShortEventId} from 'sentry/utils/events';
+import type {
   TraceError,
   TraceFullDetailed,
   TraceMeta,
@@ -28,6 +34,8 @@ import {
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import useRouter from 'sentry/utils/useRouter';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
@@ -36,7 +44,7 @@ import {BrowserDisplay} from '../transactionDetails/eventMetas';
 
 import NewTraceView from './newTraceDetailsTraceView';
 import TraceNotFound from './traceNotFound';
-import {TraceInfo} from './types';
+import TraceViewDetailPanel from './traceViewDetailPanel';
 import {getTraceInfo, hasTraceData, isRootTransaction} from './utils';
 
 type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'location'> & {
@@ -61,15 +69,33 @@ export enum TraceType {
   EMPTY_TRACE = 'empty_trace',
 }
 
+export type EventDetail = {
+  event: EventTransaction | undefined;
+  openPanel: string | undefined;
+  traceFullDetailedEvent: TraceFullDetailed;
+};
+
 function NewTraceDetailsContent(props: Props) {
-  const root = props.traces && props.traces[0];
+  const router = useRouter();
+  const [detail, setDetail] = useState<EventDetail | SpanDetailProps | undefined>(
+    undefined
+  );
+  const traceInfo = useMemo(
+    () => getTraceInfo(props.traces ?? [], props.orphanErrors),
+    [props.traces, props.orphanErrors]
+  );
+  const root = props.traces?.[0];
   const {data: rootEvent, isLoading: isRootEventLoading} = useApiQuery<EventTransaction>(
     [
       `/organizations/${props.organization.slug}/events/${root?.project_slug}:${root?.event_id}/`,
+      {
+        query: {
+          referrer: 'trace-details-summary',
+        },
+      },
     ],
     {
       staleTime: Infinity,
-      retry: true,
       enabled: !!(props.traces && props.traces.length > 0),
     }
   );
@@ -87,11 +113,12 @@ function NewTraceDetailsContent(props: Props) {
     return <LoadingError message={t('Trace view requires a date range selection.')} />;
   };
 
-  const renderTraceHeader = (traceInfo: TraceInfo) => {
+  const renderTraceHeader = () => {
     const {meta} = props;
     const errors = meta?.errors ?? traceInfo.errors.size;
     const performanceIssues =
       meta?.performance_issues ?? traceInfo.performanceIssues.size;
+    const replay_id = rootEvent?.contexts.replay?.replay_id ?? '';
     return (
       <TraceHeaderContainer>
         {rootEvent && (
@@ -108,6 +135,25 @@ function NewTraceDetailsContent(props: Props) {
               bodyText={<BrowserDisplay event={rootEvent} showVersion />}
               subtext={null}
             />
+            {replay_id && (
+              <MetaData
+                headingText={t('Replay')}
+                tooltipText=""
+                bodyText={
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/replays/${replay_id}/`
+                    )}
+                  >
+                    <ReplayLinkBody>
+                      {getShortEventId(replay_id)}
+                      <IconPlay size="xs" />
+                    </ReplayLinkBody>
+                  </Link>
+                }
+                subtext={null}
+              />
+            )}
           </TraceHeaderRow>
         )}
         <TraceHeaderRow>
@@ -122,7 +168,28 @@ function NewTraceDetailsContent(props: Props) {
           <MetaData
             headingText={t('Issues')}
             tooltipText=""
-            bodyText={errors + performanceIssues}
+            bodyText={
+              <Tooltip
+                title={
+                  errors + performanceIssues > 0 ? (
+                    <Fragment>
+                      <div>{tn('%s error issue', '%s error issues', errors)}</div>
+                      <div>
+                        {tn(
+                          '%s performance issue',
+                          '%s performance issues',
+                          performanceIssues
+                        )}
+                      </div>
+                    </Fragment>
+                  ) : null
+                }
+                showUnderline
+                position="bottom"
+              >
+                {errors + performanceIssues}
+              </Tooltip>
+            }
             subtext={null}
           />
           <MetaData
@@ -239,8 +306,7 @@ function NewTraceDetailsContent(props: Props) {
   };
 
   const renderFooter = () => {
-    const {traceEventView, organization, location, meta, traces, orphanErrors} = props;
-    const traceInfo = traces ? getTraceInfo(traces, orphanErrors) : undefined;
+    const {traceEventView, organization, location, meta, orphanErrors} = props;
     const orphanErrorsCount = orphanErrors?.length ?? 0;
     const transactionsCount = meta?.transactions ?? traceInfo?.transactions.size ?? 0;
     const totalNumOfEvents = transactionsCount + orphanErrorsCount;
@@ -256,7 +322,7 @@ function NewTraceDetailsContent(props: Props) {
               <EventVitals event={rootEvent} />
             </div>
           )}
-          <div style={{flex: 1, maxWidth: '800px'}}>
+          <div style={{flex: 1}}>
             <Tags
               generateUrl={(key: string, value: string) => {
                 const url = traceEventView.getResultsViewUrlTarget(
@@ -297,11 +363,14 @@ function NewTraceDetailsContent(props: Props) {
     if (!dateSelected) {
       return renderTraceRequiresDateRangeSelection();
     }
-    if (isLoading || isRootEventLoading) {
+
+    const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
+    const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
+    const hasData = hasTraceData(traces, orphanErrors);
+    if (isLoading || (isRootEventLoading && hasData && !onlyOrphanErrors)) {
       return renderTraceLoading();
     }
 
-    const hasData = hasTraceData(traces, orphanErrors);
     if (error !== null || !hasData) {
       return (
         <TraceNotFound
@@ -314,12 +383,10 @@ function NewTraceDetailsContent(props: Props) {
       );
     }
 
-    const traceInfo = traces ? getTraceInfo(traces, orphanErrors) : undefined;
-
     return (
       <Fragment>
         {renderTraceWarnings()}
-        {traceInfo && renderTraceHeader(traceInfo)}
+        {traceInfo && renderTraceHeader()}
         <Margin>
           <VisuallyCompleteWithData id="PerformanceDetails-TraceView" hasData={hasData}>
             <NewTraceView
@@ -330,6 +397,7 @@ function NewTraceDetailsContent(props: Props) {
               organization={organization}
               traceEventView={traceEventView}
               traceSlug={traceSlug}
+              onRowClick={setDetail}
               traces={traces || []}
               meta={meta}
               orphanErrors={orphanErrors || []}
@@ -337,12 +405,24 @@ function NewTraceDetailsContent(props: Props) {
           </VisuallyCompleteWithData>
         </Margin>
         {renderFooter()}
+        <TraceViewDetailPanel
+          detail={detail}
+          onClose={() => {
+            router.replace({
+              ...location,
+              hash: undefined,
+              query: {
+                ...omit(location.query, 'openPanel'),
+              },
+            });
+            setDetail(undefined);
+          }}
+        />
       </Fragment>
     );
   };
 
   const {organization, location, traceEventView, traceSlug} = props;
-
   return (
     <Fragment>
       <Layout.Header>
@@ -350,6 +430,10 @@ function NewTraceDetailsContent(props: Props) {
           <Breadcrumb
             organization={organization}
             location={location}
+            transaction={{
+              project: rootEvent?.projectID ?? '',
+              name: rootEvent?.title ?? '',
+            }}
             traceSlug={traceSlug}
           />
           <Layout.Title data-test-id="trace-header">
@@ -387,6 +471,12 @@ const LoadingContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.subText};
   text-align: center;
+`;
+
+const ReplayLinkBody = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.25)};
 `;
 
 const TraceHeaderContainer = styled('div')`

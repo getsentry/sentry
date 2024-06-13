@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.dynamic_sampling.tasks.constants import ADJUSTED_FACTOR_REDIS_CACHE_KEY_TTL
 
@@ -28,12 +26,15 @@ def get_adjusted_factor(org_id: int) -> float:
     cache_key = generate_recalibrate_orgs_cache_key(org_id)
 
     try:
-        return float(redis_client.get(cache_key))
+        value = redis_client.get(cache_key)
+        if value is not None:
+            return float(value)
     except (TypeError, ValueError):
         # By default, the previous factor is equal to the identity of the multiplication and this is done because
         # the recalibration rule will be a factor rule and thus multiplied with the first sample rate rule that will
         # match after this.
-        return 1.0
+        pass
+    return 1.0
 
 
 def delete_adjusted_factor(org_id: int) -> None:
@@ -45,7 +46,7 @@ def delete_adjusted_factor(org_id: int) -> None:
 
 def compute_adjusted_factor(
     prev_factor: float, effective_sample_rate: float, target_sample_rate: float
-) -> Optional[float]:
+) -> float | None:
     """
     Calculates an adjustment factor in order to bring the effective sample rate close to the target sample rate.
     """

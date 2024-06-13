@@ -1,18 +1,15 @@
 import {Fragment, useMemo, useRef, useState} from 'react';
-import {
-  AriaGridListItemOptions,
-  useGridListItem,
-  useGridListSelectionCheckbox,
-} from '@react-aria/gridlist';
+import type {AriaGridListItemOptions} from '@react-aria/gridlist';
+import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
-import {ListState} from '@react-stately/list';
-import {Node} from '@react-types/shared';
+import type {ListState} from '@react-stately/list';
+import type {Node} from '@react-types/shared';
 
 import Checkbox from 'sentry/components/checkbox';
 import MenuListItem from 'sentry/components/menuListItem';
 import {IconCheckmark} from 'sentry/icons';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 import {CheckWrap} from '../styles';
 

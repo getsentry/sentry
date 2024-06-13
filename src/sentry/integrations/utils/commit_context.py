@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import inspect
 import logging
-from dataclasses import asdict, dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import asdict
 from datetime import datetime, timedelta, timezone
-from typing import Any, List, Mapping, Optional, Sequence, Tuple
+from typing import Any
 
 from django.utils.datastructures import OrderedSet
 
@@ -15,31 +15,17 @@ from sentry.integrations.mixins.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.ownership.grammar import get_source_code_path_from_stacktrace_path
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 from sentry.utils.committers import get_stacktrace_path_from_event_frame
+from sentry.utils.event_frames import EventFrame
 
 logger = logging.getLogger("sentry.tasks.process_commit_context")
-
-
-@dataclass(frozen=True)
-class EventFrame:
-    lineno: int
-    in_app: bool
-    abs_path: Optional[str] = None
-    filename: Optional[str] = None
-    function: Optional[str] = None
-    munged_filename: Optional[str] = None
-    module: Optional[str] = None
-
-    @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> EventFrame:
-        return cls(**{k: v for k, v in data.items() if k in inspect.signature(cls).parameters})
 
 
 def find_commit_context_for_event_all_frames(
@@ -47,8 +33,10 @@ def find_commit_context_for_event_all_frames(
     frames: Sequence[Mapping[str, Any]],
     organization_id: int,
     project_id: int,
+    platform: str,
+    sdk_name: str | None,
     extra: Mapping[str, Any],
-) -> tuple[Optional[FileBlameInfo], Optional[IntegrationInstallation]]:
+) -> tuple[FileBlameInfo | None, IntegrationInstallation | None]:
     """
     Given a list of event frames and code mappings, finds the most recent commit.
     Will also emit analytics events for success or failure.
@@ -67,7 +55,11 @@ def find_commit_context_for_event_all_frames(
         integration_to_files_mapping,
         num_successfully_mapped_frames,
     ) = _generate_integration_to_files_mapping(
-        frames=valid_frames, code_mappings=code_mappings, extra=extra
+        frames=valid_frames,
+        code_mappings=code_mappings,
+        platform=platform,
+        sdk_name=sdk_name,
+        extra=extra,
     )
 
     file_blames, integration_to_install_mapping = _get_blames_from_all_integrations(
@@ -101,116 +93,11 @@ def find_commit_context_for_event_all_frames(
         file_blames=file_blames,
         num_successfully_mapped_frames=num_successfully_mapped_frames,
         selected_provider=selected_provider,
+        platform=platform,
+        sdk_name=sdk_name,
     )
 
     return (selected_blame, selected_install)
-
-
-def find_commit_context_for_event(
-    code_mappings: Sequence[RepositoryProjectPathConfig],
-    frame: Mapping[str, Any],
-    extra: Mapping[str, Any],
-) -> tuple[List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]], IntegrationInstallation]:
-    """
-
-    Get all the Commit Context for an event frame using a source code integration for all the matching code mappings
-    code_mappings: List of RepositoryProjectPathConfig
-    frame: Event frame
-    """
-    result = []
-    installation = None
-    for code_mapping in code_mappings:
-        if not code_mapping.organization_integration_id:
-            logger.info(
-                "process_commit_context.no_integration",
-                extra={
-                    **extra,
-                    "code_mapping_id": code_mapping.id,
-                },
-            )
-            continue
-
-        stacktrace_path = get_stacktrace_path_from_event_frame(frame)
-
-        if not stacktrace_path:
-            logger.info(
-                "process_commit_context.no_stacktrace_path",
-                extra={
-                    **extra,
-                    "code_mapping_id": code_mapping.id,
-                },
-            )
-            continue
-
-        src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
-
-        # src_path can be none if the stacktrace_path is an invalid filepath
-        if not src_path:
-            logger.info(
-                "process_commit_context.no_src_path",
-                extra={
-                    **extra,
-                    "code_mapping_id": code_mapping.id,
-                    "stacktrace_path": stacktrace_path,
-                },
-            )
-            continue
-
-        log_info = {
-            **extra,
-            "code_mapping_id": code_mapping.id,
-            "stacktrace_path": stacktrace_path,
-            "src_path": src_path,
-        }
-        logger.info(
-            "process_commit_context.found_stacktrace_and_src_paths",
-            extra=log_info,
-        )
-        integration = integration_service.get_integration(
-            organization_integration_id=code_mapping.organization_integration_id
-        )
-        install = integration.get_installation(organization_id=code_mapping.organization_id)
-        if installation is None and install is not None:
-            installation = install
-        with metrics.timer(
-            "tasks.process_commit_context.get_commit_context",
-            tags={"provider": integration.provider},
-        ):
-            try:
-                commit_context = install.get_commit_context(
-                    code_mapping.repository, src_path, code_mapping.default_branch, frame
-                )
-            except ApiError as e:
-                metrics.incr("tasks.process_commit_context.api_error", tags={"status": e.code})
-                commit_context = None
-
-                if e.code in (401, 403, 404, 429):
-                    logger.warning(
-                        "process_commit_context.failed_to_fetch_commit_context.api_error",
-                        extra={**log_info, "code": e.code, "error_message": e.text},
-                    )
-                # Only create Sentry errors for status codes that aren't expected
-                else:
-                    logger.exception(
-                        "process_commit_context.failed_to_fetch_commit_context.api_error",
-                        extra={**log_info, "code": e.code, "error_message": e.text},
-                    )
-
-                analytics.record(
-                    "integrations.failed_to_fetch_commit_context",
-                    organization_id=code_mapping.organization_id,
-                    project_id=code_mapping.project.id,
-                    group_id=extra["group"],
-                    code_mapping_id=code_mapping.id,
-                    provider=integration.provider,
-                    error_message=e.text,
-                )
-
-        # Only return suspect commits that are less than a year old
-        if commit_context and is_date_less_than_year(commit_context["committedDate"]):
-            result.append((commit_context, code_mapping))
-
-    return result, installation
 
 
 def is_date_less_than_year(date: datetime) -> bool:
@@ -278,6 +165,8 @@ def get_or_create_commit_from_blame(
 def _generate_integration_to_files_mapping(
     frames: Sequence[EventFrame],
     code_mappings: Sequence[RepositoryProjectPathConfig],
+    platform: str,
+    sdk_name: str | None,
     extra: Mapping[str, Any],
 ) -> tuple[dict[str, list[SourceLineInfo]], int]:
     """
@@ -302,7 +191,11 @@ def _generate_integration_to_files_mapping(
                 )
                 continue
 
-            if not stacktrace_path.startswith(code_mapping.stack_root):
+            src_path = convert_stacktrace_frame_path_to_source_path(
+                frame=frame, platform=platform, sdk_name=sdk_name, code_mapping=code_mapping
+            )
+
+            if not src_path:
                 logger.info(
                     "process_commit_context_all_frames.code_mapping_stack_root_mismatch",
                     extra={
@@ -314,7 +207,17 @@ def _generate_integration_to_files_mapping(
                 )
                 continue
 
-            src_path = get_source_code_path_from_stacktrace_path(stacktrace_path, code_mapping)
+            if "\\" in src_path or '"' in src_path:
+                logger.info(
+                    "process_commit_context_all_frames.invalid_src_path",
+                    extra={
+                        **extra,
+                        "code_mapping_id": code_mapping.id,
+                        "stacktrace_path": stacktrace_path,
+                        "src_path": src_path,
+                    },
+                )
+                continue
 
             num_successfully_mapped_frames += 1
             logger.info(
@@ -407,7 +310,7 @@ def _get_blames_from_all_integrations(
                             extra={**log_info, "code": e.code, "error_message": e.text},
                         )
                     # Rate limit and other API errors should be raised to the task to trigger a retry
-                    raise e
+                    raise
             except Exception:
                 logger.exception(
                     "process_commit_context_all_frames.get_commit_context_all_frames.unknown_error",
@@ -418,20 +321,22 @@ def _get_blames_from_all_integrations(
 
 
 def _record_commit_context_all_frames_analytics(
-    selected_blame: Optional[FileBlameInfo],
-    most_recent_blame: Optional[FileBlameInfo],
+    selected_blame: FileBlameInfo | None,
+    most_recent_blame: FileBlameInfo | None,
     organization_id: int,
     project_id: int,
     extra: Mapping[str, Any],
     frames: Sequence[EventFrame],
     file_blames: Sequence[FileBlameInfo],
     num_successfully_mapped_frames: int,
-    selected_provider: Optional[str],
+    selected_provider: str | None,
+    platform: str,
+    sdk_name: str | None,
 ):
     if not selected_blame:
         reason = _get_failure_reason(
             num_successfully_mapped_frames=num_successfully_mapped_frames,
-            has_old_blames=most_recent_blame and not selected_blame,
+            has_old_blames=most_recent_blame is not None and not selected_blame,
         )
         metrics.incr(
             "tasks.process_commit_context_all_frames.aborted",
@@ -465,9 +370,11 @@ def _record_commit_context_all_frames_analytics(
             i
             for i, frame in enumerate(frames)
             if frame.lineno == selected_blame.lineno
-            and get_source_code_path_from_stacktrace_path(
-                get_stacktrace_path_from_event_frame(asdict(frame)) or "",
-                selected_blame.code_mapping,
+            and convert_stacktrace_frame_path_to_source_path(
+                frame=frame,
+                platform=platform,
+                sdk_name=sdk_name,
+                code_mapping=selected_blame.code_mapping,
             )
             == selected_blame.path
         ),

@@ -7,7 +7,6 @@ import {
   IssueAlertConditionType,
   type IssueAlertRule,
 } from 'sentry/types/alerts';
-import useOrganization from 'sentry/utils/useOrganization';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {CHANGE_ALERT_PLACEHOLDERS_LABELS} from 'sentry/views/alerts/utils/constants';
 
@@ -19,8 +18,6 @@ export function TextCondition({
 }: {
   condition: IssueAlertRule['conditions'][number];
 }) {
-  const organization = useOrganization();
-
   if (
     condition.id === IssueAlertConditionType.EVENT_FREQUENCY_PERCENT ||
     condition.id === IssueAlertConditionType.EVENT_FREQUENCY ||
@@ -45,10 +42,7 @@ export function TextCondition({
     );
   }
 
-  if (
-    condition.id === IssueAlertConditionType.REAPPEARED_EVENT &&
-    organization.features.includes('escalating-issues')
-  ) {
+  if (condition.id === IssueAlertConditionType.REAPPEARED_EVENT) {
     return (
       <Fragment>{t('The issue changes state from archived to escalating')}</Fragment>
     );

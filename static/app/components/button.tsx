@@ -1,17 +1,19 @@
 import {forwardRef as reactForwardRef, useCallback} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, Theme} from '@emotion/react';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import ExternalLink from 'sentry/components/links/externalLink';
-import Link from 'sentry/components/links/link';
-import {Tooltip, TooltipProps} from 'sentry/components/tooltip';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
+import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
+
+import ExternalLink from './links/externalLink';
+import Link from './links/link';
+import InteractionStateLayer from './interactionStateLayer';
+import {Tooltip, type TooltipProps} from './tooltip';
 
 /**
  * The button can actually also be an anchor or React router Link (which seems
@@ -109,7 +111,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    *
    * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   download?: HTMLAnchorElement['download'];
   /**
@@ -202,7 +204,7 @@ const ICON_SIZES: Partial<
   Record<NonNullable<BaseButtonProps['size']>, SVGIconProps['size']>
 > = {
   xs: 'xs',
-  sm: 'xs',
+  sm: 'sm',
   md: 'sm',
 };
 
@@ -280,8 +282,8 @@ function BaseButton({
   );
 
   const hasChildren = Array.isArray(children)
-    ? children.some(child => !!child)
-    : !!children;
+    ? children.some(child => !isEmptyChild(child))
+    : !isEmptyChild(children);
 
   // Buttons come in 4 flavors: <Link>, <ExternalLink>, <a>, and <button>.
   // Let's use props to determine which to serve up, so we don't have to think about it.
@@ -439,13 +441,13 @@ const getColors = ({
         border-color: ${borderless || priority === 'link' ? 'transparent' : borderActive};
       }
 
-      &.focus-visible {
+      &:focus-visible {
         color: ${colorActive || color};
         border-color: ${borderActive};
       }
     `}
 
-    &.focus-visible {
+    &:focus-visible {
       ${getFocusState()}
       z-index: 1;
     }
@@ -525,7 +527,7 @@ const StyledButton = styled(
   display: inline-block;
   border-radius: ${p => p.theme.borderRadius};
   text-transform: none;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${getColors};
   ${getSizeStyles};
   ${getBoxShadow};
@@ -580,6 +582,20 @@ const getIconMargin = ({size, hasChildren}: ChildrenIconProps) => {
   }
 };
 
+function isEmptyChild(child: React.ReactNode) {
+  // truthy values are non empty
+  if (child) {
+    return false;
+  }
+
+  // out of the falsey values, 0 is the only one that takes space
+  if (child === 0) {
+    return false;
+  }
+
+  return true;
+}
+
 interface IconProps extends ChildrenIconProps, Omit<StyledButtonProps, 'theme'> {}
 const Icon = styled('span')<IconProps>`
   display: flex;
@@ -592,12 +608,10 @@ const LinkButton = Button as React.ComponentType<LinkButtonProps>;
 
 export {
   Button,
-  ButtonProps,
-  BaseButtonProps,
   LinkButton,
-  LinkButtonProps,
-
-  // Also export these styled components so we can use them as selectors
   StyledButton,
   ButtonLabel,
+  type ButtonProps,
+  type BaseButtonProps,
+  type LinkButtonProps,
 };

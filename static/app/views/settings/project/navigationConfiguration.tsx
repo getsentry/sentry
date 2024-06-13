@@ -1,6 +1,9 @@
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
-import {NavigationSection} from 'sentry/views/settings/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import type {NavigationSection} from 'sentry/views/settings/types';
 
 type ConfigParams = {
   debugFilesNeedsReview?: boolean;
@@ -15,7 +18,7 @@ export default function getConfiguration({
   organization,
   debugFilesNeedsReview,
 }: ConfigParams): NavigationSection[] {
-  const plugins = ((project && project.plugins) || []).filter(plugin => plugin.enabled);
+  const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
   return [
     {
       name: t('Project'),
@@ -38,8 +41,8 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/tags/`,
-          title: t('Tags'),
-          description: t("View and manage a  project's tags"),
+          title: t('Tags & Context'),
+          description: t("View and manage a project's tags and context"),
         },
         {
           path: `${pathPrefix}/environments/`,
@@ -48,14 +51,16 @@ export default function getConfiguration({
         },
         {
           path: `${pathPrefix}/ownership/`,
-          title: organization?.features?.includes('streamline-targeting-context')
-            ? t('Ownership Rules')
-            : t('Issue Owners'),
+          title: t('Ownership Rules'),
           description: t('Manage ownership rules for a project'),
         },
         {
           path: `${pathPrefix}/data-forwarding/`,
           title: t('Data Forwarding'),
+        },
+        {
+          path: `${pathPrefix}/user-feedback/`,
+          title: t('User Feedback'),
         },
       ],
     },
@@ -83,15 +88,14 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/processing-issues/`,
           title: t('Processing Issues'),
+          show: () => {
+            // NOTE: both `project` and `options` are non-null here.
+            return 'sentry:reprocessing_active' in (project?.options ?? {});
+          },
           // eslint-disable-next-line @typescript-eslint/no-shadow
           badge: ({project}) => {
-            if (!project) {
-              return null;
-            }
-            if (project.processingIssues <= 0) {
-              return null;
-            }
-            return project.processingIssues > 99 ? '99+' : project.processingIssues;
+            const issues = project?.processingIssues ?? 0;
+            return issues <= 0 ? null : issues > 99 ? '99+' : issues;
           },
         },
         {
@@ -115,11 +119,12 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () =>
-            !!(
-              organization?.features?.includes('custom-metrics') &&
-              organization?.features?.includes('ddm-ui')
-            ),
+          show: () => !!(organization && hasCustomMetrics(organization)),
+        },
+        {
+          path: `${pathPrefix}/replays/`,
+          title: t('Replays'),
+          show: () => !!organization?.features?.includes('session-replay-ui'),
         },
       ],
     },
@@ -137,17 +142,19 @@ export default function getConfiguration({
           description: t("View and manage the project's Loader Script"),
         },
         {
+          path: `${pathPrefix}/remote-config/`,
+          badge: () => <FeatureBadge type="experimental" />,
+          title: t('Remote Config'),
+          description: t("View and manage the project's Remote Configuration"),
+          show: organization?.features.includes('remote-config'),
+        },
+        {
           path: `${pathPrefix}/release-tracking/`,
           title: t('Releases'),
         },
         {
           path: `${pathPrefix}/security-headers/`,
           title: t('Security Headers'),
-        },
-        {
-          path: `${pathPrefix}/user-feedback/`,
-          title: t('User Feedback'),
-          description: t('Configure user feedback reporting feature'),
         },
       ],
     },

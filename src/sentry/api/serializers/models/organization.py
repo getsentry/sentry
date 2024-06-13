@@ -1,29 +1,16 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    List,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
-from django.utils.translation import gettext_lazy as _
+import sentry_sdk
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
-from typing_extensions import TypedDict
 
 from sentry import features, onboarding_tasks, quotas, roles
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -42,10 +29,15 @@ from sentry.constants import (
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
+    METRIC_ALERTS_THREAD_DEFAULT,
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -81,8 +73,8 @@ if TYPE_CHECKING:
 # A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
 # Enabling feature-flagging frontend components without an extra API call/endpoint to verify
 # the OrganizationOption.
-OptionFeature = Tuple[str, Callable[[OrganizationOption], bool]]
-ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
+OptionFeature = tuple[str, Callable[[OrganizationOption], bool]]
+ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     "sentry:project-rate-limit": [
         ("legacy-rate-limits", lambda opt: True),
     ],
@@ -104,15 +96,9 @@ class BaseOrganizationSerializer(serializers.Serializer):
     # 1. cannot contain underscores
     # 2. must start with a number or letter
     # 3. cannot end with a dash
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         org_slug=True,
         max_length=50,
-        error_messages={
-            "invalid": _(
-                "Enter a valid slug consisting of lowercase letters, numbers, or hyphens. "
-                "It cannot be entirely numeric or start/end with a hyphen."
-            )
-        },
     )
 
     def validate_slug(self, value: str) -> str:
@@ -253,11 +239,81 @@ class OrganizationSerializer(Serializer):
             for o in item_list
         }
 
+    def get_feature_set(
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> set[str]:
+        from sentry import features
+        from sentry.features.base import OrganizationFeature
+
+        # Retrieve all registered organization features
+        org_features = [
+            feature
+            for feature in features.all(feature_type=OrganizationFeature).keys()
+            if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
+        ]
+        feature_set = set()
+
+        with sentry_sdk.start_span(op="features.check", description="check batch features"):
+            # Check features in batch using the entity handler
+            batch_features = features.batch_has(org_features, actor=user, organization=obj)
+
+            # batch_has has found some features
+            if batch_features:
+                for feature_name, active in batch_features.get(
+                    f"organization:{obj.id}", {}
+                ).items():
+                    if active:
+                        # Remove organization prefix
+                        feature_set.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+                    # This feature_name was found via `batch_has`, don't check again using `has`
+                    org_features.remove(feature_name)
+
+        with sentry_sdk.start_span(op="features.check", description="check individual features"):
+            # Remaining features should not be checked via the entity handler
+            for feature_name in org_features:
+                if features.has(feature_name, obj, actor=user, skip_entity=True):
+                    # Remove the organization scope prefix
+                    feature_set.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
+
+        # Do not include the onboarding feature if OrganizationOptions exist
+        if (
+            "onboarding" in feature_set
+            and OrganizationOption.objects.filter(organization=obj).exists()
+        ):
+            feature_set.remove("onboarding")
+
+        # Include api-keys feature if they previously had any api-keys
+        if "api-keys" not in feature_set and attrs["has_api_key"]:
+            feature_set.add("api-keys")
+
+        # Organization flag features (not provided through the features module)
+        options_as_features = OrganizationOption.objects.filter(
+            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
+        )
+        for option in options_as_features:
+            for option_feature, option_function in ORGANIZATION_OPTIONS_AS_FEATURES[option.key]:
+                if option_function(option):
+                    feature_set.add(option_feature)
+
+        if getattr(obj.flags, "allow_joinleave"):
+            feature_set.add("open-membership")
+        if not getattr(obj.flags, "disable_shared_issues"):
+            feature_set.add("shared-issues")
+        request = env.request
+        if request and is_using_customer_domain(request):
+            # If the current request is using a customer domain, then we activate the feature for this organization.
+            feature_set.add("customer-domains")
+
+        if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
+            feature_set.remove("mep-rollout-flag")
+
+        return feature_set
+
     def serialize(
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> OrganizationSerializerResponse:
         from sentry import features
-        from sentry.features.base import OrganizationFeature
 
         if attrs.get("avatar"):
             avatar = {
@@ -270,64 +326,7 @@ class OrganizationSerializer(Serializer):
 
         status = OrganizationStatus(obj.status)
 
-        # Retrieve all registered organization features
-        org_features = [
-            feature
-            for feature in features.all(feature_type=OrganizationFeature).keys()
-            if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
-        ]
-        feature_list = set()
-
-        # Check features in batch using the entity handler
-        batch_features = features.batch_has(org_features, actor=user, organization=obj)
-
-        # batch_has has found some features
-        if batch_features:
-            for feature_name, active in batch_features.get(f"organization:{obj.id}", {}).items():
-                if active:
-                    # Remove organization prefix
-                    feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-
-                # This feature_name was found via `batch_has`, don't check again using `has`
-                org_features.remove(feature_name)
-
-        # Remaining features should not be checked via the entity handler
-        for feature_name in org_features:
-            if features.has(feature_name, obj, actor=user, skip_entity=True):
-                # Remove the organization scope prefix
-                feature_list.add(feature_name[len(_ORGANIZATION_SCOPE_PREFIX) :])
-
-        # Do not include the onboarding feature if OrganizationOptions exist
-        if (
-            "onboarding" in feature_list
-            and OrganizationOption.objects.filter(organization=obj).exists()
-        ):
-            feature_list.remove("onboarding")
-
-        # Include api-keys feature if they previously had any api-keys
-        if "api-keys" not in feature_list and attrs["has_api_key"]:
-            feature_list.add("api-keys")
-
-        # Organization flag features (not provided through the features module)
-        options_as_features = OrganizationOption.objects.filter(
-            organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
-        )
-        for option in options_as_features:
-            for option_feature, option_function in ORGANIZATION_OPTIONS_AS_FEATURES[option.key]:
-                if option_function(option):
-                    feature_list.add(option_feature)
-
-        if getattr(obj.flags, "allow_joinleave"):
-            feature_list.add("open-membership")
-        if not getattr(obj.flags, "disable_shared_issues"):
-            feature_list.add("shared-issues")
-        request = env.request
-        if request and is_using_customer_domain(request):
-            # If the current request is using a customer domain, then we activate the feature for this organization.
-            feature_list.add("customer-domains")
-
-        if "dynamic-sampling" not in feature_list and "mep-rollout-flag" in feature_list:
-            feature_list.remove("mep-rollout-flag")
+        include_feature_flags = kwargs.get("include_feature_flags", True)
 
         has_auth_provider = attrs.get("auth_provider", None) is not None
 
@@ -345,13 +344,15 @@ class OrganizationSerializer(Serializer):
             ),
             "avatar": avatar,
             "allowMemberProjectCreation": not obj.flags.disable_member_project_creation,
-            "features": feature_list,
             "links": {
                 "organizationUrl": generate_organization_url(obj.slug),
                 "regionUrl": generate_region_url(),
             },
             "hasAuthProvider": has_auth_provider,
         }
+
+        if include_feature_flags:
+            context["features"] = self.get_feature_set(obj, attrs, user, **kwargs)
 
         if "access" in kwargs:
             context["access"] = kwargs["access"].scopes
@@ -362,14 +363,14 @@ class OrganizationSerializer(Serializer):
 
 
 class _OnboardingTasksAttrs(TypedDict):
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
 
 
 class OnboardingTasksSerializerResponse(TypedDict):
 
     task: str  # TODO: literal/enum
     status: str  # TODO: literal/enum
-    user: Optional[Union[UserSerializerResponse, UserSerializerResponseSelf]]
+    user: UserSerializerResponse | UserSerializerResponseSelf | None
     completionSeen: datetime
     dateCompleted: datetime
     data: Any  # JSON object
@@ -414,8 +415,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     isDefault: bool
     defaultRole: bool
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
-    orgRoleList: List[OrganizationRoleSerializerResponse]
-    teamRoleList: List[TeamRoleSerializerResponse]
+    orgRoleList: list[OrganizationRoleSerializerResponse]
+    teamRoleList: list[TeamRoleSerializerResponse]
     openMembership: bool
     allowSharedIssues: bool
     enhancedPrivacy: bool
@@ -431,7 +432,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     scrubIPAddresses: bool
     scrapeJavaScript: bool
     allowJoinRequests: bool
-    relayPiiConfig: Optional[str]
+    relayPiiConfig: str | None
     trustedRelays: Any  # TODO
     access: frozenset[str]
     pendingAccessRequests: int
@@ -441,7 +442,13 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     githubPRBot: bool
     githubOpenPRBot: bool
     githubNudgeInvite: bool
+    aggregatedDataConsent: bool
+    genAIConsent: bool
     isDynamicallySampled: bool
+    issueAlertsThreadFlag: bool
+    metricAlertsThreadFlag: bool
+    metricsActivatePercentiles: bool
+    metricsActivateLastForGauges: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -450,18 +457,21 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
     ) -> MutableMapping[Organization, MutableMapping[str, Any]]:
         return super().get_attrs(item_list, user)
 
-    def serialize(  # type: ignore
-        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
+    def serialize(  # type: ignore[explicit-override, override]
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access, **kwargs: Any
     ) -> DetailedOrganizationSerializerResponse:
         # TODO: rectify access argument overriding parent if we want to remove above type ignore
 
         from sentry import experiments
 
         experiment_assignments = experiments.all(org=obj, actor=user)
+        include_feature_flags = kwargs.get("include_feature_flags", True)
 
         context = cast(
             DetailedOrganizationSerializerResponse,
-            super().serialize(obj, attrs, user, access=access),
+            super().serialize(
+                obj, attrs, user, access=access, include_feature_flags=include_feature_flags
+            ),
         )
         max_rate = quotas.get_maximum_quota(obj)
         context["experiments"] = experiment_assignments
@@ -556,6 +566,27 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 "githubNudgeInvite": bool(
                     obj.get_option("sentry:github_nudge_invite", GITHUB_COMMENT_BOT_DEFAULT)
                 ),
+                "genAIConsent": bool(obj.get_option("sentry:gen_ai_consent", DATA_CONSENT_DEFAULT)),
+                "aggregatedDataConsent": bool(
+                    obj.get_option("sentry:aggregated_data_consent", DATA_CONSENT_DEFAULT)
+                ),
+                "issueAlertsThreadFlag": bool(
+                    obj.get_option("sentry:issue_alerts_thread_flag", ISSUE_ALERTS_THREAD_DEFAULT)
+                ),
+                "metricAlertsThreadFlag": bool(
+                    obj.get_option("sentry:metric_alerts_thread_flag", METRIC_ALERTS_THREAD_DEFAULT)
+                ),
+                "metricsActivatePercentiles": bool(
+                    obj.get_option(
+                        "sentry:metrics_activate_percentiles", METRICS_ACTIVATE_PERCENTILES_DEFAULT
+                    )
+                ),
+                "metricsActivateLastForGauges": bool(
+                    obj.get_option(
+                        "sentry:metrics_activate_last_for_gauges",
+                        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+                    )
+                ),
             }
         )
 
@@ -569,16 +600,24 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        sample_rate = quotas.get_blended_sample_rate(organization_id=obj.id)  # type:ignore
+
+        sample_rate = quotas.backend.get_blended_sample_rate(organization_id=obj.id)
         context["isDynamicallySampled"] = (
             features.has("organizations:dynamic-sampling", obj)
             and sample_rate is not None
             and sample_rate < 1.0
         )
+
         org_volume = get_organization_volume(obj.id, timedelta(hours=24))
         if org_volume is not None and org_volume.indexed is not None and org_volume.total > 0:
             context["effectiveSampleRate"] = org_volume.indexed / org_volume.total
-        desired_sample_rate: Optional[float] = get_sliding_window_org_sample_rate(obj.id)
+
+        if sample_rate is not None:
+            context["planSampleRate"] = sample_rate
+
+        desired_sample_rate, _ = get_sliding_window_org_sample_rate(
+            org_id=obj.id, default_sample_rate=sample_rate
+        )
         if desired_sample_rate is not None:
             context["desiredSampleRate"] = desired_sample_rate
 
@@ -622,8 +661,8 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         return team_list
 
-    def serialize(  # type: ignore
-        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
+    def serialize(  # type: ignore[explicit-override, override]
+        self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access, **kwargs: Any
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
         from sentry.api.serializers.models.project import (
             LATEST_DEPLOYS_KEY,
@@ -633,7 +672,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         context = cast(
             DetailedOrganizationSerializerWithProjectsAndTeamsResponse,
-            super().serialize(obj, attrs, user, access),
+            super().serialize(obj, attrs, user, access, **kwargs),
         )
 
         team_list = self._team_list(obj, access)
@@ -641,7 +680,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
 
-        collapse_projects: Set[str] = set()
+        collapse_projects: set[str] = set()
         if killswitch_matches_context(
             "api.organization.disable-last-deploys",
             {

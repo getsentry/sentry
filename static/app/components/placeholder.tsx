@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {space, ValidSize} from 'sentry/styles/space';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export interface PlaceholderProps {
   bottomGutter?: ValidSize;
@@ -36,6 +37,7 @@ const Placeholder = styled(
   flex-shrink: 0;
   justify-content: center;
   align-items: center;
+  border-radius: ${p => p.theme.borderRadius};
 
   background-color: ${p => (p.error ? p.theme.red100 : p.theme.backgroundTertiary)};
   ${p => p.error && `color: ${p.theme.red200};`}

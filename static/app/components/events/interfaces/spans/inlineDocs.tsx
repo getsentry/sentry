@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';

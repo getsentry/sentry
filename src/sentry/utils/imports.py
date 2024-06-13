@@ -1,5 +1,8 @@
-class ModuleProxyCache(dict):
-    def __missing__(self, key):
+from typing import Any
+
+
+class ModuleProxyCache(dict[str, object]):
+    def __missing__(self, key: str) -> object:
         if "." not in key:
             return __import__(key)
 
@@ -17,7 +20,7 @@ class ModuleProxyCache(dict):
 _cache = ModuleProxyCache()
 
 
-def import_string(path):
+def import_string(path: str) -> Any:
     """
     Path must be module.path.ClassName
 

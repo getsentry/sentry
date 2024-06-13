@@ -1,10 +1,8 @@
 import logging
 import time
-from typing import List
 
 from confluent_kafka import KafkaError
 from confluent_kafka.admin import AdminClient
-from django.conf import settings
 
 from sentry.utils import kafka_config
 
@@ -14,7 +12,7 @@ DEFAULT_QUEUED_MAX_MESSAGE_KBYTES = 50000
 DEFAULT_QUEUED_MIN_MESSAGES = 10000
 
 
-def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int = 10) -> None:
+def wait_for_topics(admin_client: AdminClient, topics: list[str], timeout: int = 10) -> None:
     """
     Make sure that the provided topics exist and have non-zero partitions in them.
     """
@@ -48,14 +46,12 @@ def wait_for_topics(admin_client: AdminClient, topics: List[str], timeout: int =
                 )
 
 
-def create_topics(cluster_name: str, topics: List[str], force: bool = False) -> None:
+def create_topics(cluster_name: str, topics: list[str]) -> None:
     """
     If configured to do so, create topics and make sure that they exist
 
     topics must be from the same cluster.
     """
-    if settings.KAFKA_CONSUMER_AUTO_CREATE_TOPICS or force:
-        conf = kafka_config.get_kafka_admin_cluster_options(cluster_name)
-        # Topics are implicitly created here
-        admin_client = AdminClient(conf)
-        wait_for_topics(admin_client, topics)
+    conf = kafka_config.get_kafka_admin_cluster_options(cluster_name)
+    admin_client = AdminClient(conf)
+    wait_for_topics(admin_client, topics)

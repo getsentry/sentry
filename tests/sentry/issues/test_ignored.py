@@ -6,7 +6,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
@@ -34,7 +33,7 @@ class HandleIgnoredTest(TestCase):
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
-        snooze = GroupSnooze.objects.filter(group=self.group).first()
+        snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.until == status_details.get("ignoreUntil")
 
     def test_ignored_count(self) -> None:
@@ -43,7 +42,7 @@ class HandleIgnoredTest(TestCase):
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
-        snooze = GroupSnooze.objects.filter(group=self.group).first()
+        snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.count == status_details.get("ignoreCount")
 
     def test_ignored_user_count(self) -> None:
@@ -52,13 +51,12 @@ class HandleIgnoredTest(TestCase):
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
-        snooze = GroupSnooze.objects.filter(group=self.group).first()
+        snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.user_count == status_details.get("ignoreUserCount")
         assert Group.objects.get(id=self.group.id).status == GroupStatus.IGNORED
         assert Group.objects.get(id=self.group.id).substatus == GroupSubStatus.UNTIL_CONDITION_MET
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class HandleArchiveUntilEscalating(TestCase):
     @patch("sentry.issues.forecasts.query_groups_past_counts", return_value={})
     @patch("sentry.issues.forecasts.generate_and_save_missing_forecasts.delay")

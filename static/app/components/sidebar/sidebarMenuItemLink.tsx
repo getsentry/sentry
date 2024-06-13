@@ -11,7 +11,7 @@ type Props = {
   /**
    * It is raised when the user clicks on the element - optional
    */
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   /**
    * specifies whether to open the linked document in a new tab
    */

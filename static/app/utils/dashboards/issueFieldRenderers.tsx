@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import AssigneeSelector from 'sentry/components/assigneeSelector';
 import Count from 'sentry/components/count';
+import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -12,8 +12,9 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import type {Organization} from 'sentry/types/organization';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 
 import {Container, FieldShortId, OverflowLink} from '../discover/styles';
@@ -93,7 +94,7 @@ const SPECIAL_FIELDS: SpecialFields = {
       const memberList = MemberListStore.getAll();
       return (
         <ActorContainer>
-          <AssigneeSelector id={data.id} memberList={memberList} noDropdown />
+          <DeprecatedAssigneeSelector id={data.id} memberList={memberList} noDropdown />
         </ActorContainer>
       );
     },
@@ -274,7 +275,7 @@ const WrappedCount = styled(({value, ...p}) => (
   </div>
 ))`
   text-align: right;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-variant-numeric: tabular-nums;
   padding-left: ${space(2)};
   color: ${p => p.theme.subText};

@@ -3,11 +3,11 @@ from unittest import mock
 import pytest
 
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.useremail import UserEmail
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test
 class EmailResolverTest(TestCase):
     def setUp(self) -> None:
         self.user1 = self.create_user()
@@ -24,7 +24,7 @@ class EmailResolverTest(TestCase):
     @mock.patch("sentry.auth.email.metrics")
     def test_ambiguous_match(self, mock_metrics):
         for user in (self.user1, self.user2):
-            UserEmail.objects.create(user=user, email="me@example.com")
+            self.create_useremail(user=user, email="me@example.com")
 
         with pytest.raises(AmbiguousUserFromEmail) as excinfo:
             resolve_email_to_user("me@example.com")
@@ -34,9 +34,9 @@ class EmailResolverTest(TestCase):
     @mock.patch("sentry.auth.email.metrics")
     def test_prefers_verified_email(self, mock_metrics):
         org = self.create_organization()
-        UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
-        UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=False)
-        OrganizationMember.objects.create(organization=org, user_id=self.user2.id)
+        self.create_useremail(user=self.user1, email="me@example.com", is_verified=True)
+        self.create_useremail(user=self.user2, email="me@example.com", is_verified=False)
+        self.create_member(organization=org, user_id=self.user2.id)
 
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == self.user1
@@ -46,9 +46,9 @@ class EmailResolverTest(TestCase):
     @mock.patch("sentry.auth.email.metrics")
     def test_prefers_org_member(self, mock_metrics):
         org = self.create_organization()
-        UserEmail.objects.create(user=self.user1, email="me@example.com", is_verified=True)
-        UserEmail.objects.create(user=self.user2, email="me@example.com", is_verified=True)
-        OrganizationMember.objects.create(organization=org, user_id=self.user2.id)
+        self.create_useremail(user=self.user1, email="me@example.com", is_verified=True)
+        self.create_useremail(user=self.user2, email="me@example.com", is_verified=True)
+        self.create_member(organization=org, user_id=self.user2.id)
 
         result = resolve_email_to_user("me@example.com", organization=org)
         assert result == self.user2
@@ -57,7 +57,7 @@ class EmailResolverTest(TestCase):
 
     @mock.patch("sentry.auth.email.metrics")
     def test_prefers_primary_email(self, mock_metrics):
-        UserEmail.objects.create(user=self.user1, email=self.user2.email, is_verified=True)
+        self.create_useremail(user=self.user1, email=self.user2.email, is_verified=True)
 
         result = resolve_email_to_user(self.user2.email)
         assert result == self.user2

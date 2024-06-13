@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -20,8 +19,9 @@ import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 import NoGroupsHandler from '../issueList/noGroupsHandler';
@@ -278,9 +278,7 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
 
       <GroupList
         orgSlug={organization.slug}
-        endpointPath={endpointPath}
         queryParams={queryParams}
-        query=""
         canSelectGroups={false}
         renderEmptyMessage={renderEmptyMessage}
         withChart={false}

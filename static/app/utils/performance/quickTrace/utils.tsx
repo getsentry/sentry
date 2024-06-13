@@ -3,12 +3,12 @@ import moment from 'moment-timezone';
 
 import {getTraceDateTimeRange} from 'sentry/components/events/interfaces/spans/utils';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {OrganizationSummary} from 'sentry/types';
-import {Event, EventTransaction} from 'sentry/types/event';
+import type {OrganizationSummary} from 'sentry/types';
+import type {Event, EventTransaction} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
-import {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
-import {
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {
   QuickTrace,
   QuickTraceEvent,
   TraceError,
@@ -16,7 +16,7 @@ import {
   TraceFullDetailed,
   TraceLite,
 } from 'sentry/utils/performance/quickTrace/types';
-import {TraceRoot} from 'sentry/views/performance/traceDetails/types';
+import type {TraceRoot} from 'sentry/views/performance/traceDetails/types';
 
 export function isTransaction(event: Event): event is EventTransaction {
   return event.type === 'transaction';
@@ -33,9 +33,7 @@ export function isCurrentEvent(
   if (isTransaction(currentEvent)) {
     return event.event_id === currentEvent.id;
   }
-  return (
-    event.errors !== undefined && event.errors.some(e => e.event_id === currentEvent.id)
-  );
+  return event.errors?.some(e => e.event_id === currentEvent.id) ?? false;
 }
 
 type PathNode = {
@@ -310,7 +308,7 @@ export function filterTrace(
 export function isTraceTransaction<U extends TraceFull | TraceFullDetailed>(
   transaction: TraceRoot | TraceError | QuickTraceEvent | U
 ): transaction is U {
-  return 'event_id' in transaction;
+  return 'transaction' in transaction;
 }
 
 export function isTraceError(

@@ -1,12 +1,15 @@
+from __future__ import annotations
+
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime
-from typing import Optional, Sequence
 
 import sentry_sdk
 from snuba_sdk import Condition
 
 from sentry import nodestore
 from sentry.eventstore.models import Event
+from sentry.models.rawevent import RawEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
 from sentry.utils.services import Service
@@ -154,11 +157,12 @@ class EventStorage(Service):
 
     def get_events(
         self,
-        snuba_filter,
+        filter,
         orderby=None,
         limit=100,
         offset=0,
         referrer="eventstore.get_events",
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         """
@@ -180,8 +184,8 @@ class EventStorage(Service):
         self,
         organization_id: int,
         group_id: int,
-        start: Optional[datetime],
-        end: Optional[datetime],
+        start: datetime | None,
+        end: datetime | None,
         conditions: Sequence[Condition],
         orderby: Sequence[str],
         limit=100,
@@ -194,11 +198,12 @@ class EventStorage(Service):
 
     def get_unfetched_events(
         self,
-        snuba_filter,
+        filter,
         orderby=None,
         limit=100,
         offset=0,
         referrer="eventstore.get_unfetched_events",
+        dataset=Dataset.Events,
         tenant_ids=None,
     ):
         """
@@ -240,7 +245,7 @@ class EventStorage(Service):
         """
         raise NotImplementedError
 
-    def get_adjacent_event_ids(self, event, snuba_filter):
+    def get_adjacent_event_ids(self, event, filter):
         """
         Gets the previous and next event IDs given a current event and some conditions/filters.
         Returns a tuple of (project_id, event_id) for (prev_ids, next_ids)
@@ -257,7 +262,7 @@ class EventStorage(Service):
         """
         return Event(project_id=project_id, event_id=event_id, group_id=group_id, data=data)
 
-    def bind_nodes(self, object_list, node_name="data"):
+    def bind_nodes(self, object_list: Sequence[RawEvent | Event]) -> None:
         """
         For a list of Event objects, and a property name where we might find an
         (unfetched) NodeData on those objects, fetch all the data blobs for
@@ -267,10 +272,10 @@ class EventStorage(Service):
         It's not necessary to bind a single Event object since data will be lazily
         fetched on any attempt to access a property.
         """
+        sentry_sdk.set_tag("eventstore.backend", "nodestore")
+
         with sentry_sdk.start_span(op="eventstore.base.bind_nodes"):
-            object_node_list = [
-                (i, getattr(i, node_name)) for i in object_list if getattr(i, node_name).id
-            ]
+            object_node_list = [(i, i.data) for i in object_list if i.data.id]
 
             # Remove duplicates from the list of nodes to be fetched
             node_ids = list({n.id for _, n in object_node_list})

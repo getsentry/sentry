@@ -1,9 +1,9 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MemoryInfoEventContext} from 'sentry/components/events/contexts/memoryInfo';
-import {MemoryInfoContext} from 'sentry/types';
+import type {MemoryInfoContext} from 'sentry/types';
 
 export const memoryInfoMockData: MemoryInfoContext = {
   allocated_bytes: 9614872,

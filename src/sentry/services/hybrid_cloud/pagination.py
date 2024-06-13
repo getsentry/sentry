@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
-from typing import TYPE_CHECKING, Any, List, Optional, Type
+from typing import TYPE_CHECKING, Any
 
 import sentry_sdk
 from pydantic.fields import Field
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 
 class RpcPaginationArgs(RpcModel):
-    encoded_cursor: Optional[str] = None
+    encoded_cursor: str | None = None
     per_page: int = -1
 
     @classmethod
@@ -37,11 +37,11 @@ class RpcPaginationArgs(RpcModel):
         self,
         *,
         description: str,
-        paginator_cls: Type[PaginatorLike],
+        paginator_cls: type[PaginatorLike],
         order_by: str,
         queryset: Any,
-        cursor_cls: Type[Cursor] = Cursor,
-        count_hits: Optional[bool] = None,
+        cursor_cls: type[Cursor] = Cursor,
+        count_hits: bool | None = None,
     ) -> "RpcPaginationResult":
         cursor = get_cursor(self.encoded_cursor, cursor_cls)
         with sentry_sdk.start_span(
@@ -63,7 +63,7 @@ class RpcPaginationArgs(RpcModel):
 
 class RpcCursorState(RpcModel):
     encoded: str = ""
-    has_results: Optional[bool] = None
+    has_results: bool | None = None
 
     @classmethod
     def from_cursor(cls, cursor: Cursor) -> "RpcCursorState":
@@ -78,9 +78,9 @@ class RpcCursorState(RpcModel):
 
 
 class RpcPaginationResult(RpcModel):
-    ids: List[int] = Field(default_factory=list)
-    hits: Optional[int] = None
-    max_hits: Optional[int] = None
+    ids: list[int] = Field(default_factory=list)
+    hits: int | None = None
+    max_hits: int | None = None
     next: RpcCursorState = Field(default_factory=lambda: RpcCursorState())
     prev: RpcCursorState = Field(default_factory=lambda: RpcCursorState())
 

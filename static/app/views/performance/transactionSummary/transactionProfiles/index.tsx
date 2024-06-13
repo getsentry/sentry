@@ -1,17 +1,19 @@
 import {useCallback, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
+import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
-import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
@@ -23,10 +25,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
-import {
-  getProfilesTableFields,
-  ProfilingFieldType,
-} from 'sentry/views/profiling/profileSummary/content';
+import type {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
+import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 import PageLayout from '../pageLayout';
 
@@ -43,6 +43,7 @@ function Profiles(): React.ReactElement {
 
   const project = projects.projects.find(p => p.id === location.query.project);
   const fields = getProfilesTableFields(project?.platform);
+  const sortableFields = useMemo(() => new Set(fields), [fields]);
 
   const sort = formatSort<ProfilingFieldType>(decodeScalar(location.query.sort), fields, {
     key: 'timestamp',
@@ -86,8 +87,18 @@ function Profiles(): React.ReactElement {
     [location]
   );
 
-  const profileFilters = useProfileFilters({query: '', selection});
+  const profilingUsingTransactions = organization.features.includes(
+    'profiling-using-transactions'
+  );
+
+  const profileFilters = useProfileFilters({
+    query: '',
+    selection,
+    disabled: profilingUsingTransactions,
+  });
+
   const transaction = decodeScalar(location.query.transaction);
+
   return (
     <PageLayout
       location={location}
@@ -104,15 +115,27 @@ function Profiles(): React.ReactElement {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <SmartSearchBar
-                organization={organization}
-                hasRecentSearches
-                searchSource="profile_landing"
-                supportedTags={profileFilters}
-                query={query.formatString()}
-                onSearch={handleSearch}
-                maxQueryLength={MAX_QUERY_LENGTH}
-              />
+              {profilingUsingTransactions ? (
+                <SearchBar
+                  searchSource="profile_landing"
+                  organization={organization}
+                  projectIds={projects.projects.map(p => parseInt(p.id, 10))}
+                  query={query.formatString()}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              ) : (
+                <SmartSearchBar
+                  organization={organization}
+                  hasRecentSearches
+                  projectIds={projects.projects.map(p => parseInt(p.id, 10))}
+                  searchSource="profile_landing"
+                  supportedTags={profileFilters}
+                  query={query.formatString()}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
+              )}
             </FilterActions>
             <ProfileEventsTable
               columns={fields}
@@ -120,6 +143,7 @@ function Profiles(): React.ReactElement {
               error={profiles.status === 'error' ? t('Unable to load profiles') : null}
               isLoading={profiles.status === 'loading'}
               sort={sort}
+              sortableColumns={sortableFields}
             />
           </Layout.Main>
         );

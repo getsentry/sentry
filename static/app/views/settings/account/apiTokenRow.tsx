@@ -1,54 +1,58 @@
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import Confirm from 'sentry/components/confirm';
+import {DateTime} from 'sentry/components/dateTime';
 import PanelItem from 'sentry/components/panels/panelItem';
-import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {InternalAppApiToken} from 'sentry/types';
+import type {InternalAppApiToken} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
 type Props = {
   onRemove: (token: InternalAppApiToken) => void;
   token: InternalAppApiToken;
+  tokenPrefix?: string;
 };
 
-// TODO: After the BE portion of code changes have been released, remove the conditional rendering of the token.
-// We are currently doing the conditional logic to do safe blue/green deploys and handle contract changes.
-function ApiTokenRow({token, onRemove}: Props) {
+function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        {token.tokenLastCharacters ? (
+        {token.name ? token.name : ''}
+        <ButtonWrapper>
+          <Confirm
+            onConfirm={() => onRemove(token)}
+            message={t(
+              'Are you sure you want to revoke %s token? It will not be usable anymore, and this cannot be undone.',
+              tokenPreview(token.tokenLastCharacters, tokenPrefix)
+            )}
+          >
+            <Button
+              data-test-id="token-delete"
+              icon={<IconSubtract isCircled size="xs" />}
+            >
+              {t('Remove')}
+            </Button>
+          </Confirm>
+        </ButtonWrapper>
+      </Controls>
+
+      <Details>
+        <TokenWrapper>
+          <Heading>{t('Token')}</Heading>
           <TokenPreview aria-label={t('Token preview')}>
             {tokenPreview(
               getDynamicText({
                 value: token.tokenLastCharacters,
                 fixed: 'ABCD',
-              })
+              }),
+              tokenPrefix
             )}
           </TokenPreview>
-        ) : (
-          <InputWrapper>
-            <TextCopyInput>
-              {getDynamicText({value: token.token, fixed: 'CI_AUTH_TOKEN'})}
-            </TextCopyInput>
-          </InputWrapper>
-        )}
-        <ButtonWrapper>
-          <Button
-            onClick={() => onRemove(token)}
-            icon={<IconSubtract isCircled size="xs" />}
-          >
-            {t('Remove')}
-          </Button>
-        </ButtonWrapper>
-      </Controls>
-
-      <Details>
+        </TokenWrapper>
         <ScopesWrapper>
           <Heading>{t('Scopes')}</Heading>
           <ScopeList>{token.scopes.join(', ')}</ScopeList>
@@ -80,19 +84,19 @@ const Controls = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const InputWrapper = styled('div')`
-  font-size: ${p => p.theme.fontSizeRelativeSmall};
-  flex: 1;
-  margin-right: ${space(1)};
-`;
-
 const Details = styled('div')`
   display: flex;
   margin-top: ${space(1)};
 `;
 
-const ScopesWrapper = styled('div')`
+const TokenWrapper = styled('div')`
   flex: 1;
+  margin-right: ${space(1)};
+`;
+
+const ScopesWrapper = styled('div')`
+  flex: 2;
+  margin-right: ${space(4)};
 `;
 
 const ScopeList = styled('div')`

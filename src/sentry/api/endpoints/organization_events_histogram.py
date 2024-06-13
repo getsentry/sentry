@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.api.utils import handle_query_errors
 from sentry.snuba import discover
 
 # The maximum number of array columns allowed to be queried at at time
@@ -76,7 +77,7 @@ class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
             if serializer.is_valid():
                 data = serializer.validated_data
 
-                with self.handle_query_errors():
+                with handle_query_errors():
                     results = dataset.histogram_query(
                         data["field"],
                         data.get("query"),

@@ -1,5 +1,5 @@
 ---
-created: '2021-08-04T15:53:48.473074Z'
+created: '2024-03-22T11:57:51.104287+00:00'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -44,18 +44,18 @@ system:
     system*
       exception*
         stacktrace*
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
             function*
               "_main"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
             function*
               "std::rt::lang_start_internal"
             package (ignored because function takes precedence)
               "std"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
             function*
               "___rust_maybe_catch_panic"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
             function*
               "std::panicking::try::do_call"
             package (ignored because function takes precedence)
@@ -70,7 +70,7 @@ system:
               "log_demo::main"
             package (ignored because function takes precedence)
               "log_demo"
-          frame (ignored by stack trace rule (function:log_demo::* -group))
+          frame (ignored by stack trace rule (!function:log_demo::* -group))
             function*
               "log::__private_api_log"
             package (ignored because function takes precedence)

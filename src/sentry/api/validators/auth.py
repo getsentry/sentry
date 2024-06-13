@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+MISSING_PASSWORD_OR_U2F_CODE = "missing_password_or_u2f"
+
 
 class AuthVerifyValidator(serializers.Serializer):
     password = serializers.CharField(required=False, trim_whitespace=False)
@@ -13,5 +15,6 @@ class AuthVerifyValidator(serializers.Serializer):
         if "challenge" in data and "response" in data:
             return data
         raise serializers.ValidationError(
-            "You must provide `password` or `challenge` and `response`."
+            detail="You must provide `password` or `challenge` and `response`.",
+            code=MISSING_PASSWORD_OR_U2F_CODE,
         )

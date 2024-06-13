@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from typing import List, Mapping, MutableMapping, Optional, Tuple
+from collections.abc import Mapping, MutableMapping
 
 from django.db import router, transaction
 
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
@@ -13,10 +14,10 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService
+from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
+from sentry.types.actor import Actor, ActorType
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -24,9 +25,9 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         *,
         external_provider: ExternalProviderEnum,
-        user_id: Optional[int] = None,
-        team_id: Optional[int] = None,
-        types: Optional[List[NotificationSettingEnum]] = None,
+        user_id: int | None = None,
+        team_id: int | None = None,
+        types: list[NotificationSettingEnum] | None = None,
     ) -> None:
         assert (team_id and not user_id) or (
             user_id and not team_id
@@ -59,14 +60,14 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def update_notification_options(
         self,
         *,
-        actor: RpcActor,
+        actor: Actor,
         type: NotificationSettingEnum,
         scope_type: NotificationScopeEnum,
         scope_identifier: int,
         value: NotificationSettingsOptionEnum,
-    ):
+    ) -> None:
         kwargs = {}
-        if actor.actor_type == ActorType.USER:
+        if actor.is_user:
             kwargs["user_id"] = actor.id
         else:
             kwargs["team_id"] = actor.id
@@ -112,16 +113,13 @@ class DatabaseBackedNotificationsService(NotificationsService):
             scope_identifier=project_id,
         ).delete()
 
-    def get_subscriptions_for_projects(
+    def subscriptions_for_projects(
         self,
         *,
         user_id: int,
-        project_ids: List[int],
+        project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, Tuple[bool, bool, bool]]:
-        """
-        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
-        """
+    ) -> Mapping[int, RpcSubscriptionStatus]:
         user = user_service.get_user(user_id)
         if not user:
             return {}
@@ -132,20 +130,25 @@ class DatabaseBackedNotificationsService(NotificationsService):
             type=type,
         )
         return {
-            project: (s.is_disabled, s.is_active, s.has_only_inactive_subscriptions)
-            # TODO(Steve): Simplify API to pass in one project at a time
-            for project, s in controller.get_subscriptions_status_for_projects(
-                user=user, project_ids=project_ids, type=type
+            project: RpcSubscriptionStatus(
+                is_active=sub.is_active,
+                is_disabled=sub.is_disabled,
+                has_only_inactive_subscriptions=sub.has_only_inactive_subscriptions,
+            )
+            for project, sub in controller.get_subscriptions_status_for_projects(
+                user=user,
+                project_ids=project_ids,
+                type=type,
             ).items()
         }
 
     def get_participants(
         self,
         *,
-        recipients: List[RpcActor],
+        recipients: list[Actor],
         type: NotificationSettingEnum,
-        project_ids: Optional[List[int]] = None,
-        organization_id: Optional[int] = None,
+        project_ids: list[int] | None = None,
+        organization_id: int | None = None,
     ) -> MutableMapping[
         int, MutableMapping[int, str]
     ]:  # { actor_id : { provider_str: value_str } }
@@ -162,8 +165,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
         }
 
     def get_users_for_weekly_reports(
-        self, *, organization_id: int, user_ids: List[int]
-    ) -> List[int]:
+        self, *, organization_id: int, user_ids: list[int]
+    ) -> list[int]:
         users = User.objects.filter(id__in=user_ids)
         controller = NotificationController(
             recipients=users,
@@ -175,12 +178,12 @@ class DatabaseBackedNotificationsService(NotificationsService):
     def get_notification_recipients(
         self,
         *,
-        recipients: List[RpcActor],
+        recipients: list[Actor],
         type: NotificationSettingEnum,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[List[int]] = None,
-        actor_type: Optional[ActorType] = None,
-    ) -> Mapping[str, set[RpcActor]]:
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+        actor_type: ActorType | None = None,
+    ) -> Mapping[str, set[Actor]]:
         controller = NotificationController(
             recipients=recipients,
             organization_id=organization_id,

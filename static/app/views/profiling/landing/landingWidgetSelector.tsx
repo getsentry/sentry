@@ -2,7 +2,8 @@ import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useRouter from 'sentry/utils/useRouter';
@@ -12,7 +13,11 @@ import {FunctionTrendsWidget} from './functionTrendsWidget';
 import {SlowestFunctionsWidget} from './slowestFunctionsWidget';
 
 export type WidgetOption =
-  | 'slowest functions'
+  | 'slowest functions avg'
+  | 'slowest functions p50'
+  | 'slowest functions' // kept for backwards compatibility as the p75
+  | 'slowest functions p95'
+  | 'slowest functions p99'
   | 'regressed functions'
   | 'improved functions';
 
@@ -66,15 +71,6 @@ export function LandingWidgetSelector({
   );
 
   switch (selectedWidget) {
-    case 'slowest functions':
-      return (
-        <SlowestFunctionsWidget
-          cursorName={cursorName}
-          header={header}
-          userQuery={functionQuery}
-          widgetHeight={widgetHeight}
-        />
-      );
     case 'regressed functions':
       return (
         <FunctionTrendsWidget
@@ -97,15 +93,80 @@ export function LandingWidgetSelector({
           widgetHeight={widgetHeight}
         />
       );
+    case 'slowest functions avg':
+      return (
+        <SlowestFunctionsWidget
+          breakdownFunction="avg()"
+          cursorName={cursorName}
+          header={header}
+          userQuery={functionQuery}
+          widgetHeight={widgetHeight}
+        />
+      );
+    case 'slowest functions p50':
+      return (
+        <SlowestFunctionsWidget
+          breakdownFunction="p50()"
+          cursorName={cursorName}
+          header={header}
+          userQuery={functionQuery}
+          widgetHeight={widgetHeight}
+        />
+      );
+    case 'slowest functions p95':
+      return (
+        <SlowestFunctionsWidget
+          breakdownFunction="p95()"
+          cursorName={cursorName}
+          header={header}
+          userQuery={functionQuery}
+          widgetHeight={widgetHeight}
+        />
+      );
+    case 'slowest functions p99':
+      return (
+        <SlowestFunctionsWidget
+          breakdownFunction="p99()"
+          cursorName={cursorName}
+          header={header}
+          userQuery={functionQuery}
+          widgetHeight={widgetHeight}
+        />
+      );
+    case 'slowest functions':
     default:
-      throw new Error('unknown widget type');
+      return (
+        <SlowestFunctionsWidget
+          breakdownFunction="p75()"
+          cursorName={cursorName}
+          header={header}
+          userQuery={functionQuery}
+          widgetHeight={widgetHeight}
+        />
+      );
   }
 }
 
 const WIDGET_OPTIONS: SelectOption<WidgetOption>[] = [
   {
-    label: t('Slowest Functions'),
+    label: t('Slowest Functions (breakdown by AVG)'),
+    value: 'slowest functions avg' as const,
+  },
+  {
+    label: t('Slowest Functions (breakdown by P50)'),
+    value: 'slowest functions p50' as const,
+  },
+  {
+    label: t('Slowest Functions (breakdown by P75)'),
     value: 'slowest functions' as const,
+  },
+  {
+    label: t('Slowest Functions (breakdown by P95)'),
+    value: 'slowest functions p95' as const,
+  },
+  {
+    label: t('Slowest Functions (breakdown by P99)'),
+    value: 'slowest functions p99' as const,
   },
   {
     label: t('Most Regressed Functions'),

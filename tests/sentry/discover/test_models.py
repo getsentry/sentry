@@ -4,13 +4,15 @@ from django.db import IntegrityError, router, transaction
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryProject
 from sentry.models.user import User
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode_of
 
 
 class DiscoverSavedQueryTest(TestCase):
     def setUp(self):
         super().setUp()
         self.org = self.create_organization()
-        self.user = User.objects.create(email="test@sentry.io")
+        with assume_test_silo_mode_of(User):
+            self.user = User.objects.create(email="test@sentry.io")
         self.project_ids = [
             self.create_project(organization=self.org).id,
             self.create_project(organization=self.org).id,

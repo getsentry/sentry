@@ -1,5 +1,5 @@
-import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import {Event} from 'sentry/types/event';
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import type {Event} from 'sentry/types/event';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -58,10 +58,7 @@ export function useSourceMapDebuggerData(event: Event, projectSlug: string) {
       }/source-map-debug-blue-thunder-edition/`,
     ],
     {
-      enabled:
-        isSdkThatShouldShowSourceMapsDebugger &&
-        organization !== null &&
-        organization.features.includes('source-maps-debugger-blue-thunder-edition'),
+      enabled: isSdkThatShouldShowSourceMapsDebugger && organization !== null,
       staleTime: Infinity,
       retry: false,
       refetchOnWindowFocus: false,

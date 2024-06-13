@@ -6,20 +6,20 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 
 export interface QuickStartProps {
+  cronsUrl?: string;
   dsnKey?: string;
   orgId?: string;
   orgSlug?: string;
   projectId?: string;
-  publicKey?: string;
   slug?: string;
 }
 
 const VALUE_DEFAULTS = {
+  cronsUrl: '<cron-api-url>',
   dsnKey: '<my-dsn-key>',
   orgId: '<my-organziation-id>',
   orgSlug: '<my-organization-slug>',
   projectId: '<my-project-id>',
-  publicKey: '<my-dsn-public-key>',
   slug: '<my-monitor-slug>',
 };
 
@@ -121,10 +121,12 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
 }
 
 export function CurlCronQuickStart(props: QuickStartProps) {
-  const {projectId, orgId, slug, publicKey} = withDefaultProps(props);
+  const {cronsUrl, slug} = withDefaultProps(props);
 
-  const checkInSuccessCode = `SENTRY_INGEST="https://o${orgId}.ingest.sentry.io"
-SENTRY_CRONS="\${SENTRY_INGEST}/api/${projectId}/cron/${slug}/${publicKey}/"
+  const url = new URL(cronsUrl.replace('___MONITOR_SLUG___', slug));
+
+  const checkInSuccessCode = `SENTRY_INGEST="${url.origin}"
+SENTRY_CRONS="\${SENTRY_INGEST}${url.pathname}"
 
 # 🟡 Notify Sentry your job is running:
 curl "\${SENTRY_CRONS}?status=in_progress"
@@ -150,33 +152,26 @@ export function PHPCronQuickStart(props: QuickStartProps) {
   const {slug} = withDefaultProps(props);
 
   const checkInSuccessCode = `// 🟡 Notify Sentry your job is running:
-$event = Event::createCheckIn();
-$checkIn = new CheckIn(
-    monitorSlug: '${slug}',
-    status: CheckInStatus::inProgress(),
+$checkInId = \\Sentry\\captureCheckIn(
+    slug: '${slug}',
+    status: CheckInStatus::inProgress()
 );
-$event->setCheckIn($checkIn);
-SentrySdk::getCurrentHub()->captureEvent($event);
 
 // Execute your scheduled task here...
 
 // 🟢 Notify Sentry your job has completed successfully:
-$event = Event::createCheckIn();
-$event->setCheckIn(new CheckIn(
-    id: $checkIn->getId(),
-    monitorSlug: '${slug}',
+\\Sentry\\captureCheckIn(
+    slug: '${slug}',
     status: CheckInStatus::ok(),
-));
-SentrySdk::getCurrentHub()->captureEvent($event);`;
+    checkInId: $checkInId,
+);`;
 
   const checkInFailCode = `// 🔴 Notify Sentry your job has failed:
-$event = Event::createCheckIn();
-$event->setCheckIn(new CheckIn(
-    id: $checkIn->getId(),
-    monitorSlug: '${slug}',
-    status: CheckInStatus::error(),
-));
-SentrySdk::getCurrentHub()->captureEvent($event);`;
+\\Sentry\\captureCheckIn(
+    slug: '${slug}',
+    status: CheckInStatus::error()
+    checkInId: $checkInId,
+);`;
 
   return (
     <Fragment>
@@ -255,7 +250,9 @@ Sentry.captureCheckIn({
         {tct(
           '[installLink:Install and configure] the Sentry Node SDK (min v7.52), then instrument your monitor:',
           {
-            installLink: <ExternalLink href="https://docs.sentry.io/platforms/node/" />,
+            installLink: (
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/" />
+            ),
           }
         )}
       </div>
@@ -572,7 +569,7 @@ Sentry.captureCheckIn({
           'Use the [additionalDocs:Node SDK] to create and update your Monitors programmatically with code rather than creating them manually.',
           {
             additionalDocs: (
-              <ExternalLink href="https://docs.sentry.io/platforms/node/crons/" />
+              <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/node/crons/" />
             ),
           }
         )}

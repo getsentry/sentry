@@ -1,7 +1,7 @@
 import abc
 
 from sentry.incidents.logic import update_incident_status
-from sentry.incidents.models import Incident, IncidentStatus, IncidentStatusMethod
+from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.testutils.cases import TestCase
 
 

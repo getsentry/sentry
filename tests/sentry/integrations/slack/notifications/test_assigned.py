@@ -3,16 +3,14 @@ from urllib.parse import parse_qs
 
 import responses
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
-from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_attachment
+from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviders
 
 pytestmark = [requires_snuba]
 
@@ -34,7 +32,9 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         """
         Test that we notify a user with multiple Identities in each place
         """
-        integration2 = Integration.objects.create(
+        integration2, _ = self.create_provider_integration_for(
+            organization=self.organization,
+            user=self.user,
             provider="slack",
             name="Team B",
             external_id="TXXXXXXX2",
@@ -43,14 +43,11 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
                 "installation_type": "born_as_bot",
             },
         )
-        integration2.add_organization(self.organization, self.user)
-        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
-        identity2 = Identity.objects.create(
-            external_id="UXXXXXXX2",
-            idp=idp2,
+        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
+        identity2 = self.create_identity(
             user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
+            external_id="UXXXXXXX2",
+            identity_provider=idp2,
         )
         # create a second response
         responses.add(
@@ -82,7 +79,9 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         we're only going to notify them for the relevant org
         """
         org2 = self.create_organization(owner=self.user)
-        integration2 = Integration.objects.create(
+        self.create_provider_integration_for(
+            organization=org2,
+            user=self.user,
             provider="slack",
             name="Team B",
             external_id="TXXXXXXX2",
@@ -91,15 +90,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
                 "installation_type": "born_as_bot",
             },
         )
-        integration2.add_organization(org2, self.user)
-        idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
-        Identity.objects.create(
-            external_id="UXXXXXXX2",
-            idp=idp2,
-            user=self.user,
-            status=IdentityStatus.VALID,
-            scopes=[],
-        )
+        idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
+        self.create_identity(external_id="UXXXXXXX2", identity_provider=idp2, user=self.user)
         # create a second response that won't actually be used, but here to make sure it's not a false positive
         responses.add(
             method=responses.POST,
@@ -119,19 +111,24 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert channel == self.identity.external_id
 
     @responses.activate
-    def test_assignment(self):
+    def test_assignment_block(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
+        and block kit is enabled.
         """
         with self.tasks():
             self.create_notification(self.group, AssignedActivityNotification).send()
-        attachment, text = get_attachment()
-        assert text == f"Issue assigned to {self.name} by themselves"
-        assert attachment["title"] == self.group.title
-        notification_uuid = self.get_notification_uuid(attachment["title_link"])
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == f"Issue assigned to {self.name} by themselves"
+        assert blocks[0]["text"]["text"] == fallback_text
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user&notification_uuid={notification_uuid}|Notification Settings>"
+            blocks[1]["text"]["text"]
+            == f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=assigned_activity-slack&notification_uuid={notification_uuid}|*{self.group.title}*>"
+        )
+        assert (
+            blocks[3]["elements"][0]["text"]
+            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
     @responses.activate
@@ -140,9 +137,10 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_assignment_generic_issue(self, occurrence):
+    def test_assignment_generic_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a generic issue type is assigned
+        and block kit is enabled.
         """
         event = self.store_event(
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
@@ -151,10 +149,15 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
 
         with self.tasks():
             self.create_notification(group_event.group, AssignedActivityNotification).send()
-        attachment, text = get_attachment()
-        assert text == f"Issue assigned to {self.name} by themselves"
-        self.assert_generic_issue_attachments(
-            attachment, self.project.slug, "assigned_activity-slack-user"
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == f"Issue assigned to {self.name} by themselves"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_generic_issue_blocks(
+            blocks,
+            group_event.organization,
+            group_event.project.slug,
+            group_event.group,
+            "assigned_activity-slack",
         )
 
     @responses.activate
@@ -163,18 +166,24 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_assignment_performance_issue(self, occurrence):
+    def test_assignment_performance_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is assigned
+        and block kit is enabled.
         """
         event = self.create_performance_issue()
         with self.tasks():
             self.create_notification(event.group, AssignedActivityNotification).send()
 
-        attachment, text = get_attachment()
-        assert text == f"Issue assigned to {self.name} by themselves"
-        self.assert_performance_issue_attachments(
-            attachment, self.project.slug, "assigned_activity-slack-user"
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == f"Issue assigned to {self.name} by themselves"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_performance_issue_blocks(
+            blocks,
+            event.organization,
+            event.project.slug,
+            event.group,
+            "assigned_activity-slack",
         )
 
     def test_automatic_assignment(self):

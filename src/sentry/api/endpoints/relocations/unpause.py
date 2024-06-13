@@ -1,6 +1,5 @@
 import logging
 from string import Template
-from typing import Optional
 
 from django.db import DatabaseError, router, transaction
 from rest_framework.request import Request
@@ -14,7 +13,7 @@ from sentry.api.endpoints.relocations import (
     ERR_UNKNOWN_RELOCATION_STEP,
 )
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.api.permissions import SuperuserPermission
+from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.models.relocation import Relocation
 from sentry.tasks.relocation import get_first_task_for_step
@@ -37,9 +36,9 @@ class RelocationUnpauseEndpoint(Endpoint):
         # TODO(getsentry/team-ospo#214): Stabilize before GA.
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SuperuserPermission,)
+    permission_classes = (SuperuserOrStaffFeatureFlaggedPermission,)
 
-    def _unpause(self, request: Request, relocation: Relocation) -> Optional[Response]:
+    def _unpause(self, request: Request, relocation: Relocation) -> Response | None:
         """
         Helper function to do the actual unpausing in a transaction-safe manner. It will only return
         a `Response` if the relocation failed - otherwise, it will return `None` and let the calling

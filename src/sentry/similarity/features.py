@@ -2,8 +2,6 @@ import functools
 import itertools
 import logging
 
-from sentry.utils.dates import to_timestamp
-
 logger = logging.getLogger("sentry.similarity")
 
 
@@ -138,7 +136,7 @@ class FeatureSet:
                     if features:
                         items.append((self.aliases[label], features))
 
-        return self.index.record(scope, key, items, timestamp=int(to_timestamp(event.datetime)))
+        return self.index.record(scope, key, items, timestamp=int(event.datetime.timestamp()))
 
     def classify(self, events, limit=None, thresholds=None):
         if not events:
@@ -185,7 +183,7 @@ class FeatureSet:
                 scope,
                 items,
                 limit=limit,
-                timestamp=int(to_timestamp(event.datetime)),
+                timestamp=int(event.datetime.timestamp()),
             )
         ]
 

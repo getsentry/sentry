@@ -1,25 +1,23 @@
 from __future__ import annotations
 
-from typing import FrozenSet, List
-
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import ArrayField, control_silo_only_model, sane_repr
+from sentry.db.models import ArrayField, control_silo_model, sane_repr
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.signals import post_upgrade
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.types.region import find_all_region_names
 
 MAX_USER_ROLE_NAME_LENGTH = 32
 
 
-@control_silo_only_model
+@control_silo_model
 class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Roles are applied to administrative users and apply a set of `UserPermission`.
@@ -41,7 +39,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
 
     __repr__ = sane_repr("name", "permissions")
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = list(find_all_region_names())
         return [
             outbox
@@ -54,7 +52,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
         ]
 
     @classmethod
-    def permissions_for_user(cls, user_id: int) -> FrozenSet[str]:
+    def permissions_for_user(cls, user_id: int) -> frozenset[str]:
         """
         Return a set of permission for the given user ID scoped to roles.
         """
@@ -65,7 +63,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
         )
 
 
-@control_silo_only_model
+@control_silo_model
 class UserRoleUser(ControlOutboxProducingModel):
     __relocation_scope__ = RelocationScope.Config
 
@@ -75,7 +73,7 @@ class UserRoleUser(ControlOutboxProducingModel):
     user = FlexibleForeignKey("sentry.User")
     role = FlexibleForeignKey("sentry.UserRole")
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = list(find_all_region_names())
         return OutboxCategory.USER_UPDATE.as_control_outboxes(
             region_names=regions,

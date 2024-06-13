@@ -1,4 +1,4 @@
-import {AvailableNotificationActions as AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
+import {AvailableNotificationActionsFixture} from 'sentry-fixture/availableNotificationActions';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import NotificationActionManager from 'sentry/components/notificationActions/notificationActionManager';
-import type {NotificationAction} from 'sentry/types';
+import type {NotificationAction} from 'sentry/types/notificationActions';
 
 describe('Adds, deletes, and updates notification actions', function () {
   const {project, organization} = initializeOrg();

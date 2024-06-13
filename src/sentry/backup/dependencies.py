@@ -4,15 +4,51 @@ from collections import defaultdict
 from dataclasses import dataclass
 from enum import Enum, auto, unique
 from functools import lru_cache
-from typing import NamedTuple, Optional, Tuple, Type
+from typing import NamedTuple
 
 from django.db import models
+from django.db.models import UniqueConstraint
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.utils import json
+
+# We have to be careful when removing fields from our model schemas, since exports created using
+# the old-but-still-in-the-support-window versions could have those fields set in the data they
+# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
+# valid in at least one of the versions we support. For example, since our current version
+# support window is two minor versions back, if we delete a field at version 24.5.N, we must
+# include an entry in this map for that field until that version is out of the support window
+# (in this case, we can remove shim once version 24.7.0 is released).
+#
+# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
+# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
+# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
+# the shim, noting in the comment which self-hosted release will trigger the removal.
+DELETED_FIELDS: dict[str, set[str]] = {
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.team": {"actor"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
+}
+
+# When models are removed from the application, they will continue to be in exports
+# from previous releases. Models in this list are elided from data as imports are processed.
+#
+# NOTE TO FUTURE EDITORS: please keep the `DELETED_MODELS` set, and the subsequent `if` clause,
+# around even if the set is empty, to ensure that there is a ready place to pop shims into. For
+# each entry in this set, please leave a TODO comment pointed to a github issue for removing
+# the shim, noting in the comment which self-hosted release will trigger the removal.
+DELETED_MODELS = {
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.actor"
+}
 
 
 class NormalizedModelName:
@@ -21,8 +57,6 @@ class NormalizedModelName:
     "normalized" model name is one that is identical to the name as it appears in an exported JSON
     backup, so a string of the form `{app_label.lower()}.{model_name.lower()}`.
     """
-
-    __model_name: str
 
     def __init__(self, model_name: str):
         if "." not in model_name:
@@ -113,7 +147,7 @@ class ForeignFieldKind(Enum):
 class ForeignField(NamedTuple):
     """A field that creates a dependency on another Sentry model."""
 
-    model: Type[models.base.Model]
+    model: type[models.base.Model]
     kind: ForeignFieldKind
     nullable: bool
 
@@ -131,16 +165,16 @@ class ModelRelations:
     # cause it to be dangling when we do an `ExportScope.Organization` export, but non-dangling if
     # we do an `ExportScope.Global` export. HOWEVER, as best as I can tell, this situation does not
     # actually exist today, so we can ignore this subtlety for now and just us a boolean here.
-    dangling: Optional[bool]
+    dangling: bool | None
     foreign_keys: dict[str, ForeignField]
-    model: Type[models.base.Model]
-    relocation_dependencies: set[Type[models.base.Model]]
+    model: type[models.base.Model]
+    relocation_dependencies: set[type[models.base.Model]]
     relocation_scope: RelocationScope | set[RelocationScope]
     silos: list[SiloMode]
     table_name: str
     uniques: list[frozenset[str]]
 
-    def flatten(self) -> set[Type[models.base.Model]]:
+    def flatten(self) -> set[type[models.base.Model]]:
         """Returns a flat list of all related models, omitting the kind of relation they have."""
 
         return {ff.model for ff in self.foreign_keys.values()}
@@ -152,7 +186,7 @@ class ModelRelations:
             return self.model.get_possible_relocation_scopes()
         return set()
 
-    def get_dependencies_for_relocation(self) -> set[Type[models.base.Model]]:
+    def get_dependencies_for_relocation(self) -> set[type[models.base.Model]]:
         return self.flatten().union(self.relocation_dependencies)
 
     def get_uniques_without_foreign_keys(self) -> list[frozenset[str]]:
@@ -182,11 +216,11 @@ class ModelRelations:
         return out
 
 
-def get_model_name(model: Type[models.Model] | models.Model) -> NormalizedModelName:
+def get_model_name(model: type[models.Model] | models.Model) -> NormalizedModelName:
     return NormalizedModelName(f"{model._meta.app_label}.{model._meta.object_name}")
 
 
-def get_model(model_name: NormalizedModelName) -> Optional[Type[models.base.Model]]:
+def get_model(model_name: NormalizedModelName) -> type[models.base.Model] | None:
     """
     Given a standardized model name string, retrieve the matching Sentry model.
     """
@@ -249,12 +283,12 @@ class PrimaryKeyMap:
     keys are not supported!
     """
 
-    mapping: dict[str, dict[int, Tuple[int, ImportKind, Optional[str]]]]
+    mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]]
 
     def __init__(self):
         self.mapping = defaultdict(dict)
 
-    def get_pk(self, model_name: NormalizedModelName, old: int) -> Optional[int]:
+    def get_pk(self, model_name: NormalizedModelName, old: int) -> int | None:
         """
         Get the new, post-mapping primary key from an old primary key.
         """
@@ -276,7 +310,7 @@ class PrimaryKeyMap:
 
         return {entry[0] for entry in self.mapping[str(model_name)].items()}
 
-    def get_kind(self, model_name: NormalizedModelName, old: int) -> Optional[ImportKind]:
+    def get_kind(self, model_name: NormalizedModelName, old: int) -> ImportKind | None:
         """
         Is the mapped entry a newly inserted model, or an already existing one that has been merged
         in?
@@ -292,7 +326,7 @@ class PrimaryKeyMap:
 
         return entry[1]
 
-    def get_slug(self, model_name: NormalizedModelName, old: int) -> Optional[str]:
+    def get_slug(self, model_name: NormalizedModelName, old: int) -> str | None:
         """
         Does the mapped entry have a unique slug associated with it?
         """
@@ -374,8 +408,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
     from sentry.db.models.fields.foreignkey import FlexibleForeignKey
     from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
     from sentry.db.models.fields.onetoone import OneToOneCascadeDeletes
-    from sentry.models.actor import Actor
-    from sentry.models.team import Team
 
     # Process the list of models, and get the list of dependencies.
     model_dependencies_dict: dict[NormalizedModelName, ModelRelations] = {}
@@ -395,13 +427,16 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
         for model in model_iterator:
             # Ignore some native Django models, since other models don't reference them and we don't
             # really use them for business logic.
-            if model._meta.app_label in {"sessions", "sites"}:
+            if model._meta.app_label in {"sessions", "sites", "test"}:
                 continue
 
             foreign_keys: dict[str, ForeignField] = dict()
             uniques: set[frozenset[str]] = {
                 frozenset(combo) for combo in model._meta.unique_together
             }
+            for constraint in model._meta.constraints:
+                if isinstance(constraint, UniqueConstraint):
+                    uniques.add(frozenset(constraint.fields))
 
             # Now add a dependency for any FK relation visible to Django.
             for field in model._meta.get_fields():
@@ -411,11 +446,6 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
                 rel_model = getattr(field.remote_field, "model", None)
                 if rel_model is not None and rel_model != model:
-                    # TODO(hybrid-cloud): actor refactor. Add kludgy conditional preventing walking
-                    # team.actor_id, which avoids circular imports
-                    if model == Team and rel_model == Actor:
-                        continue
-
                     if isinstance(field, FlexibleForeignKey):
                         foreign_keys[field.name] = ForeignField(
                             model=rel_model,
@@ -513,9 +543,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
     # TODO(getsentry/team-ospo#190): In practice, we can treat `AlertRule`'s dependency on
     # `Organization` as non-nullable, so mark it is non-dangling. This is a hack - we should figure
-    # out a more rigorous way to deduce this. The same applies to `Actor`, since each actor must
-    # reference at least one `User` or `Team`, neither of which are dangling.
-    model_dependencies_dict[NormalizedModelName("sentry.actor")].dangling = False
+    # out a more rigorous way to deduce this.
     model_dependencies_dict[NormalizedModelName("sentry.alertrule")].dangling = False
 
     # TODO(getsentry/team-ospo#190): The same is basically true for the remaining models in this
@@ -577,7 +605,7 @@ def dependencies() -> dict[NormalizedModelName, ModelRelations]:
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def sorted_dependencies() -> list[Type[models.base.Model]]:
+def sorted_dependencies() -> list[type[models.base.Model]]:
     """Produce a list of model definitions such that, for every item in the list, all of the other models it mentions in its fields and/or natural key (ie, its "dependencies") have already appeared in the list.
 
     Similar to Django's algorithm except that we discard the importance of natural keys
@@ -634,7 +662,42 @@ def sorted_dependencies() -> list[Type[models.base.Model]]:
 
 # No arguments, so we lazily cache the result after the first calculation.
 @lru_cache(maxsize=1)
-def reversed_dependencies() -> list[Type[models.base.Model]]:
+def reversed_dependencies() -> list[type[models.base.Model]]:
     sorted = list(sorted_dependencies())
     sorted.reverse()
     return sorted
+
+
+def get_final_derivations_of(model: type[models.base.Model]) -> set[type[models.base.Model]]:
+    """
+    A "final" derivation of the given `model` base class is any non-abstract class for the "sentry"
+    app with `BaseModel` as an ancestor. Top-level calls to this class should pass in `BaseModel` as
+    the argument.
+    """
+
+    out = set()
+    for sub in model.__subclasses__():
+        subs = sub.__subclasses__()
+        if subs:
+            out.update(get_final_derivations_of(sub))
+        if not sub._meta.abstract and sub._meta.db_table and sub._meta.app_label == "sentry":
+            out.add(sub)
+    return out
+
+
+# No arguments, so we lazily cache the result after the first calculation.
+@lru_cache(maxsize=1)
+def get_exportable_sentry_models() -> set[type[models.base.Model]]:
+    """
+    Like `get_final_derivations_of`, except that it further filters the results to include only
+    `__relocation_scope__ != RelocationScope.Excluded`.
+    """
+
+    from sentry.db.models import BaseModel
+
+    return set(
+        filter(
+            lambda c: getattr(c, "__relocation_scope__") is not RelocationScope.Excluded,
+            get_final_derivations_of(BaseModel),
+        )
+    )

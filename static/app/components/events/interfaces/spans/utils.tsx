@@ -1,29 +1,32 @@
-import {browserHistory} from 'react-router';
-import {Theme} from '@emotion/react';
-import {Location} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location} from 'history';
 import isNumber from 'lodash/isNumber';
 import maxBy from 'lodash/maxBy';
 import set from 'lodash/set';
 import moment from 'moment';
 
 import {lightenBarColor} from 'sentry/components/performance/waterfall/utils';
-import {Organization} from 'sentry/types';
-import {
+import type {
   AggregateEntrySpans,
   AggregateEventTransaction,
   EntrySpans,
-  EntryType,
   EventTransaction,
 } from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
+import type {
+  TraceError,
+  TraceFullDetailed,
+} from 'sentry/utils/performance/quickTrace/types';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
-import SpanTreeModel from './spanTreeModel';
-import {
+import type SpanTreeModel from './spanTreeModel';
+import type {
   AggregateSpanType,
   EnhancedSpan,
   GapSpanType,
@@ -470,17 +473,17 @@ export function parseTrace(
   const spans: Array<RawSpanType | AggregateSpanType> = spanEntry?.data ?? [];
 
   const traceContext = getTraceContext(event);
-  const traceID = (traceContext && traceContext.trace_id) || '';
-  const rootSpanID = (traceContext && traceContext.span_id) || '';
-  const rootSpanOpName = (traceContext && traceContext.op) || 'transaction';
-  const description = traceContext && traceContext.description;
-  const parentSpanID = traceContext && traceContext.parent_span_id;
-  const rootSpanStatus = traceContext && traceContext.status;
-  const hash = traceContext && traceContext.hash;
-  const exclusiveTime = traceContext && traceContext.exclusive_time;
-  const count = traceContext && traceContext.count;
-  const frequency = traceContext && traceContext.frequency;
-  const total = traceContext && traceContext.total;
+  const traceID = traceContext?.trace_id || '';
+  const rootSpanID = traceContext?.span_id || '';
+  const rootSpanOpName = traceContext?.op || 'transaction';
+  const description = traceContext?.description;
+  const parentSpanID = traceContext?.parent_span_id;
+  const rootSpanStatus = traceContext?.status;
+  const hash = traceContext?.hash;
+  const exclusiveTime = traceContext?.exclusive_time;
+  const count = traceContext?.count;
+  const frequency = traceContext?.frequency;
+  const total = traceContext?.total;
 
   if (!spanEntry || spans.length <= 0) {
     return {
@@ -886,6 +889,26 @@ export function scrollToSpan(
   };
 }
 
+type TraceDetailsHashIds = {
+  eventId: string | undefined;
+  spanId: string | undefined;
+};
+
+export function parseTraceDetailsURLHash(hash: string): TraceDetailsHashIds | null {
+  if (!hash) {
+    return null;
+  }
+
+  const values = hash.split('#').slice(1);
+  const eventId = values.find(value => value.includes('txn'))?.split('-')[1];
+  const spanId = values.find(value => value.includes('span'))?.split('-')[1];
+
+  return {
+    eventId,
+    spanId,
+  };
+}
+
 export function spanTargetHash(spanId: string): string {
   return `#span-${spanId}`;
 }
@@ -978,8 +1001,10 @@ export function getSpanGroupBounds(
 export function getCumulativeAlertLevelFromErrors(
   errors?: Pick<TraceError, 'level' | 'type'>[]
 ): keyof Theme['alert'] | undefined {
-  const highestErrorLevel = maxBy(errors || [], error => ERROR_LEVEL_WEIGHTS[error.level])
-    ?.level;
+  const highestErrorLevel = maxBy(
+    errors || [],
+    error => ERROR_LEVEL_WEIGHTS[error.level]
+  )?.level;
 
   if (errors?.some(isErrorPerformanceError)) {
     return 'error';

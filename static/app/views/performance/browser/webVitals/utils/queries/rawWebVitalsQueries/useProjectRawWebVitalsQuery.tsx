@@ -1,10 +1,12 @@
-import {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/browser/webVitals/settings';
 
 type Props = {
   dataset?: DiscoverDatasets;
@@ -16,6 +18,13 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const search = new MutableSearch([]);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
+  if (tag) {
+    search.addFilterValue(tag.key, tag.name);
+  }
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(
     {
@@ -25,6 +34,7 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(measurements.inp)',
         'p75(transaction.duration)',
         'count_web_vitals(measurements.lcp, any)',
         'count_web_vitals(measurements.fcp, any)',
@@ -34,18 +44,14 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
         'count()',
       ],
       name: 'Web Vitals',
-      query: [
-        'transaction.op:pageload',
-        ...(transaction ? [`transaction:"${transaction}"`] : []),
-        ...(tag ? [`{tag.key}:"${tag.name}"`] : []),
-      ].join(' '),
+      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       version: 2,
       dataset: dataset ?? DiscoverDatasets.METRICS,
     },
     pageFilters.selection
   );
 
-  return useDiscoverQuery({
+  const result = useDiscoverQuery({
     eventView: projectEventView,
     limit: 50,
     location,
@@ -57,4 +63,5 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
     skipAbort: true,
     referrer: 'api.performance.browser.web-vitals.project',
   });
+  return result;
 };

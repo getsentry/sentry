@@ -9,23 +9,20 @@ import Input from 'sentry/components/input';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
-  IssueAlertRuleAction,
-} from 'sentry/types/alerts';
+import type {IssueAlertRuleAction} from 'sentry/types/alerts';
+import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
+import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
 export enum MetricValues {
-  ERRORS,
-  USERS,
+  ERRORS = 0,
+  USERS = 1,
 }
 
 export enum RuleAction {
-  DEFAULT_ALERT,
-  CUSTOMIZED_ALERTS,
-  CREATE_ALERT_LATER,
+  DEFAULT_ALERT = 0,
+  CUSTOMIZED_ALERTS = 1,
+  CREATE_ALERT_LATER = 2,
 }
 
 const ISSUE_ALERT_DEFAULT_ACTION: Omit<
@@ -34,6 +31,7 @@ const ISSUE_ALERT_DEFAULT_ACTION: Omit<
 > = {
   id: IssueAlertActionType.NOTIFY_EMAIL,
   targetType: 'IssueOwners',
+  fallthroughType: 'ActiveMembers',
 };
 
 const METRIC_CONDITION_MAP = {
@@ -139,7 +137,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
   ): [string, string | React.ReactElement][] {
     const customizedAlertOption: [string, React.ReactNode] = [
       RuleAction.CUSTOMIZED_ALERTS.toString(),
-      <CustomizeAlertsGrid
+      <CustomizeAlert
         key={RuleAction.CUSTOMIZED_ALERTS}
         onClick={e => {
           // XXX(epurkhiser): The `e.preventDefault` here is needed to stop
@@ -176,7 +174,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
           }))}
           onChange={interval => this.setStateAndUpdateParents({interval: interval.value})}
         />
-      </CustomizeAlertsGrid>,
+      </CustomizeAlert>,
     ];
 
     const default_label = this.shouldUseNewDefaultSetting()
@@ -237,14 +235,7 @@ class IssueAlertOptions extends DeprecatedAsyncComponent<Props, State> {
               ),
             ]
           : undefined,
-      actions: [
-        {
-          ...ISSUE_ALERT_DEFAULT_ACTION,
-          ...(this.props.organization.features.includes('issue-alert-fallback-targeting')
-            ? {fallthroughType: 'ActiveMembers'}
-            : {}),
-        },
-      ],
+      actions: [ISSUE_ALERT_DEFAULT_ACTION],
       actionMatch: 'all',
       frequency: 5,
     };
@@ -334,10 +325,10 @@ const Content = styled('div')`
   padding-bottom: ${space(4)};
 `;
 
-const CustomizeAlertsGrid = styled('div')`
-  display: grid;
-  grid-template-columns: repeat(5, max-content);
+const CustomizeAlert = styled('div')`
+  display: flex;
   gap: ${space(1)};
+  flex-wrap: wrap;
   align-items: center;
 `;
 

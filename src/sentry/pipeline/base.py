@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Mapping, Sequence
 from types import LambdaType
-from typing import Any, Mapping, Sequence, Type
+from typing import Any
 
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
@@ -54,7 +55,7 @@ class Pipeline(abc.ABC):
 
     pipeline_name: str
     provider_manager: Any
-    provider_model_cls: Type[Model]
+    provider_model_cls: type[Model]
     session_store_cls = PipelineSessionStore
 
     @classmethod
@@ -84,7 +85,9 @@ class Pipeline(abc.ABC):
 
         organization: RpcOrganization | None = None
         if state.org_id:
-            org_context = organization_service.get_organization_by_id(id=state.org_id)
+            org_context = organization_service.get_organization_by_id(
+                id=state.org_id, include_teams=False
+            )
             if org_context:
                 organization = org_context.organization
 
@@ -238,7 +241,6 @@ class Pipeline(abc.ABC):
     @abc.abstractmethod
     def finish_pipeline(self) -> HttpResponseBase:
         """Called when the pipeline completes the final step."""
-        pass
 
     def bind_state(self, key: str, value: Any) -> None:
         data = self.state.data or {}

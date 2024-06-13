@@ -1,10 +1,8 @@
-from typing import Optional
-
 from django.http import StreamingHttpResponse
 
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -38,7 +36,7 @@ def assert_commit_shape(commit):
         assert patch["path"]
 
 
-def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
+def assert_status_code(response, minimum: int, maximum: int | None = None):
     # Omit max to assert status_code == minimum.
     maximum = maximum or minimum + 1
     assert minimum <= response.status_code < maximum, (

@@ -5,20 +5,22 @@ from django.test import override_settings
 from pytest import raises
 from requests import Request
 
+from sentry.constants import ObjectStatus
+from sentry.net.http import Session
 from sentry.shared_integrations.client.proxy import (
     IntegrationProxyClient,
     get_control_silo_ip_address,
+    infer_org_integration,
 )
 from sentry.shared_integrations.exceptions import ApiHostError
 from sentry.silo.base import SiloMode
 from sentry.silo.util import PROXY_OI_HEADER, PROXY_PATH, PROXY_SIGNATURE_HEADER
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import assume_test_silo_mode
 
 control_address = "http://controlserver"
-secret = "hush-hush-im-invisible"
 
 
-@override_settings(SENTRY_SUBNET_SECRET=secret, SENTRY_CONTROL_ADDRESS=control_address)
 class IntegrationProxyClientTest(TestCase):
     oi_id = 24
     base_url = "https://example.com"
@@ -33,6 +35,31 @@ class IntegrationProxyClientTest(TestCase):
 
         self.client_cls = TestClient
 
+    def test_infer_organization_is_active(self):
+        integration = self.create_provider_integration(provider="slack", external_id="workspace:1")
+        # Share the slack workspace across two organizations
+        organization_invalid = self.create_organization()
+        organization_valid = self.create_organization()
+        # Create a valid one, and an invalid one
+        org_integration_invalid = self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=organization_invalid.id,
+            status=ObjectStatus.DISABLED,
+        )
+        org_integration_valid = self.create_organization_integration(
+            integration_id=integration.id,
+            organization_id=organization_valid.id,
+            status=ObjectStatus.ACTIVE,
+        )
+        # Infer should always look for the first ACTIVE organization_integration
+        assert infer_org_integration(integration_id=integration.id) == org_integration_valid.id
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration_valid.delete()
+        second_inference = infer_org_integration(integration_id=integration.id)
+        assert second_inference is not org_integration_invalid.id
+        assert second_inference is None
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_authorize_request_noop(self):
         prepared_request = Request(method="GET", url=self.test_url).prepare()
         raw_headers = prepared_request.headers
@@ -40,6 +67,7 @@ class IntegrationProxyClientTest(TestCase):
         client.authorize_request(prepared_request)
         assert prepared_request.headers == raw_headers
 
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_authorize_request_basic(self):
         prepared_request = Request(method="POST", url=self.test_url).prepare()
 
@@ -75,7 +103,6 @@ class IntegrationProxyClientTest(TestCase):
             assert prepared_request.headers == raw_headers
 
     @patch.object(IntegrationProxyClient, "authorize_request")
-    @override_settings(SILO_MODE=SiloMode.REGION)
     def test_finalize_request_region(self, mock_authorize):
         """In a region silo, should change the URL and headers"""
         prepared_request = Request(method="DELETE", url=self.test_url).prepare()
@@ -93,7 +120,6 @@ class IntegrationProxyClientTest(TestCase):
             assert header in prepared_request.headers
         assert prepared_request.headers[PROXY_PATH] == "get?query=1&user=me"
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
     def test_invalid_control_silo_ip_address(
@@ -110,7 +136,6 @@ class IntegrationProxyClientTest(TestCase):
         err = mock_capture_exception.call_args.args[0]
         assert err.args == ("Disallowed Control Silo IP address: 172.31.255.255",)
 
-    @override_settings(SILO_MODE=SiloMode.REGION)
     @patch("sentry.shared_integrations.client.proxy.is_control_silo_ip_address")
     @patch("sentry.shared_integrations.client.proxy.get_control_silo_ip_address")
     @patch("socket.getaddrinfo")
@@ -162,6 +187,17 @@ class IntegrationProxyClientTest(TestCase):
         # Assert control silo ip address was not validated
         assert mock_get_control_silo_ip_address.call_count == 0
         assert mock_is_control_silo_ip_address.call_count == 0
+
+    @patch.object(Session, "send")
+    def test_custom_timeout(self, mock_session_send):
+        client = self.client_cls(org_integration_id=self.oi_id)
+        response = MagicMock()
+        response.status_code = 204
+        mock_session_send.return_value = response
+
+        client.get(f"{self.base_url}/some/endpoint", params={"query": 1, "user": "me"})
+        assert mock_session_send.call_count == 1
+        assert mock_session_send.mock_calls[0].kwargs["timeout"] == 10
 
 
 def test_get_control_silo_ip_address():

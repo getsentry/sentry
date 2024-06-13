@@ -1,10 +1,9 @@
+import orjson
+
 from sentry.lang.native.sources import redact_source_secrets
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 
 
-@region_silo_test
 class ProjectSymbolSourcesTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
 
@@ -21,7 +20,7 @@ class ProjectSymbolSourcesTest(APITestCase):
             "password": "beepbeep",
         }
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         expected = redact_source_secrets([config])
@@ -47,7 +46,7 @@ class ProjectSymbolSourcesTest(APITestCase):
             "password": "beepbeep",
         }
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_error_response(
@@ -55,7 +54,6 @@ class ProjectSymbolSourcesTest(APITestCase):
         )
 
 
-@region_silo_test
 class ProjectSymbolSourcesDeleteTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "delete"
@@ -74,7 +72,7 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
         }
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_success_response(
@@ -97,7 +95,7 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
         }
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_error_response(project.organization.slug, project.slug, status=404)
@@ -107,7 +105,6 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
         )
 
 
-@region_silo_test
 class ProjectSymbolSourcesPostTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "post"
@@ -156,7 +153,7 @@ class ProjectSymbolSourcesPostTest(APITestCase):
         }
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_error_response(project.organization.slug, project.slug, raw_data=config)
@@ -197,7 +194,6 @@ class ProjectSymbolSourcesPostTest(APITestCase):
         self.get_error_response(project.organization.slug, project.slug, raw_data=config)
 
 
-@region_silo_test
 class ProjectSymbolSourcesPutTest(APITestCase):
     endpoint = "sentry-api-0-project-symbol-sources"
     method = "put"
@@ -229,7 +225,7 @@ class ProjectSymbolSourcesPutTest(APITestCase):
         ]
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps(config))
+        project.update_option("sentry:symbol_sources", orjson.dumps(config).decode())
         self.login_as(user=self.user)
 
         update_config = {
@@ -274,7 +270,9 @@ class ProjectSymbolSourcesPutTest(APITestCase):
         del response.data["id"]
         assert response.data == redact_source_secrets([update_config])[0]
 
-        source_ids = {src["id"] for src in json.loads(project.get_option("sentry:symbol_sources"))}
+        source_ids = {
+            src["id"] for src in orjson.loads(project.get_option("sentry:symbol_sources"))
+        }
 
         assert "hank" in source_ids
         assert "beep" not in source_ids
@@ -306,7 +304,7 @@ class ProjectSymbolSourcesPutTest(APITestCase):
         ]
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps(config))
+        project.update_option("sentry:symbol_sources", orjson.dumps(config).decode())
         self.login_as(user=self.user)
 
         update_config = {

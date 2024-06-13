@@ -1,6 +1,6 @@
 import constructSelector from 'sentry/views/replays/deadRageClick/constructSelector';
 import getAriaLabel from 'sentry/views/replays/deadRageClick/getAriaLabel';
-import {DeadRageSelectorItem} from 'sentry/views/replays/types';
+import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
 
 export default function hydratedSelectorData(data, clickType?): DeadRageSelectorItem[] {
   return data.map(d => ({

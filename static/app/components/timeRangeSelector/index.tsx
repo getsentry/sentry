@@ -2,19 +2,16 @@ import {Fragment, useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {
-  CompactSelect,
-  SelectOption,
-  SingleSelectProps,
-} from 'sentry/components/compactSelect';
-import {Item} from 'sentry/components/dropdownAutoComplete/types';
+import type {SelectOption, SingleSelectProps} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import type {Item} from 'sentry/components/dropdownAutoComplete/types';
 import DropdownButton from 'sentry/components/dropdownButton';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow, IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   getDateWithTimezoneInUtc,
@@ -23,8 +20,8 @@ import {
   getPeriodAgo,
   getUserTimezone,
   getUtcToSystem,
-  parsePeriodToHours,
 } from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -164,7 +161,7 @@ export function TimeRangeSelector({
   ...selectProps
 }: TimeRangeSelectorProps) {
   const router = useRouter();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
 
   const [search, setSearch] = useState('');
   const [hasChanges, setHasChanges] = useState(false);
@@ -225,7 +222,7 @@ export function TimeRangeSelector({
             maxDateRange,
           });
 
-      return filteredItems.map(item => ({
+      return filteredItems.map<SelectOption<string>>(item => ({
         value: item.value,
         label: item.label,
         textValue: item.searchKey,
@@ -365,14 +362,14 @@ export function TimeRangeSelector({
           menuBody={
             (showAbsoluteSelector || menuBody) && (
               <Fragment>
-                {!showAbsoluteSelector && menuBody}
+                {!showAbsoluteSelector && (menuBody as React.ReactNode)}
                 {showAbsoluteSelector && (
                   <AbsoluteDateRangeWrap>
                     <StyledDateRangeHook
                       start={internalValue.start ?? null}
                       end={internalValue.end ?? null}
                       utc={internalValue.utc}
-                      organization={organization}
+                      organization={organization ?? undefined}
                       showTimePicker
                       onChange={val => {
                         if (val.hasDateRangeErrors) {
@@ -432,7 +429,7 @@ export function TimeRangeSelector({
                       <FooterMessage>{menuFooterMessage}</FooterMessage>
                     )}
                     <FooterWrap>
-                      <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+                      <FooterInnerWrap>{menuFooter as React.ReactNode}</FooterInnerWrap>
                       {showAbsoluteSelector && (
                         <AbsoluteSelectorFooter>
                           {showRelative && (

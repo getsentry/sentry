@@ -1,25 +1,16 @@
-import {
-  CSSProperties,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
 import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
@@ -27,7 +18,7 @@ import {
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
 

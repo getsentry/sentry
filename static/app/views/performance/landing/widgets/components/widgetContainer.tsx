@@ -1,36 +1,34 @@
 import {useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {Field} from 'sentry/utils/discover/fields';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {Field} from 'sentry/utils/discover/fields';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
+import MobileReleaseComparisonListWidget from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
-import SlowScreens from 'sentry/views/performance/landing/widgets/widgets/slowScreens';
 
 import {GenericPerformanceWidgetDataType} from '../types';
 import {_setChartSetting, filterAllowedChartsMetrics, getChartSetting} from '../utils';
-import {
-  ChartDefinition,
-  PerformanceWidgetSetting,
-  WIDGET_DEFINITIONS,
-} from '../widgetDefinitions';
+import type {ChartDefinition, PerformanceWidgetSetting} from '../widgetDefinitions';
+import {WIDGET_DEFINITIONS} from '../widgetDefinitions';
 import {HistogramWidget} from '../widgets/histogramWidget';
 import {LineChartListWidget} from '../widgets/lineChartListWidget';
 import {PerformanceScoreWidget} from '../widgets/performanceScoreWidget';
@@ -39,7 +37,7 @@ import {StackedAreaChartListWidget} from '../widgets/stackedAreaChartListWidget'
 import {TrendsWidget} from '../widgets/trendsWidget';
 import {VitalWidget} from '../widgets/vitalWidget';
 
-import {ChartRowProps} from './widgetChartRow';
+import type {ChartRowProps} from './widgetChartRow';
 
 interface Props extends ChartRowProps {
   allowedCharts: PerformanceWidgetSetting[];
@@ -207,7 +205,9 @@ function _WidgetContainer(props: Props) {
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
       return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID:
-      return <SlowScreens {...passedProps} {...widgetProps} />;
+    case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START:
+    case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START:
+      return <MobileReleaseComparisonListWidget {...passedProps} {...widgetProps} />;
     default:
       throw new Error(`Widget type "${widgetProps.dataType}" has no implementation.`);
   }
@@ -263,7 +263,7 @@ export function WidgetInteractiveTitle({
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 

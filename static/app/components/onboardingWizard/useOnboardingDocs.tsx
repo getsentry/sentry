@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
 import platforms from 'sentry/data/platforms';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -116,20 +116,17 @@ function useOnboardingDocs({docKeys, isPlatformSupported, project}: Options) {
     };
   }
 
-  const isLoading =
-    docKeys &&
-    docKeys.some(key => {
-      if (key in loadingDocsRef.current) {
-        return !!loadingDocsRef.current[key];
-      }
-      return true;
-    });
+  const isLoading = docKeys?.some(key => {
+    if (key in loadingDocsRef.current) {
+      return !!loadingDocsRef.current[key];
+    }
+    return true;
+  });
 
   return {
     docKeys,
     isLoading,
-    hasOnboardingContents:
-      docKeys && docKeys.every(key => typeof docContents[key] === 'string'),
+    hasOnboardingContents: docKeys?.every(key => typeof docContents[key] === 'string'),
     docContents,
   };
 }

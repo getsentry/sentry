@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.core.exceptions import SuspiciousOperation
 
 
@@ -21,10 +19,6 @@ class InvalidOrigin(InvalidRequest):
 
     def __str__(self):
         return "Invalid origin: '%s'" % self.origin
-
-
-class CacheNotPopulated(Exception):
-    pass
 
 
 class InvalidConfiguration(Exception):
@@ -88,7 +82,7 @@ class InvalidQuerySubscription(Exception):
 
 class HashDiscarded(Exception):
     def __init__(
-        self, message: str = "", reason: Optional[str] = None, tombstone_id: Optional[int] = None
+        self, message: str = "", reason: str | None = None, tombstone_id: int | None = None
     ):
         super().__init__(message)
         self.reason = reason

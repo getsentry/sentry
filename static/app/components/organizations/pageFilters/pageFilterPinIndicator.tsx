@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
 import {IconLock} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {PinnedPageFilter} from 'sentry/types';
+import type {PinnedPageFilter} from 'sentry/types/core';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 type Props = {
@@ -18,8 +19,8 @@ function PageFilterPinIndicator({children, filter}: Props) {
     <Wrap>
       {children}
       {pinned && (
-        <IndicatorWrap aria-label="Filter applied across pages">
-          <StyledIconLock size="xs" isSolid />
+        <IndicatorWrap aria-label={t('Filter applied across pages')}>
+          <StyledIconLock size="xs" locked />
         </IndicatorWrap>
       )}
     </Wrap>

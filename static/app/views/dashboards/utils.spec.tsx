@@ -1,12 +1,8 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {
-  DashboardDetails,
-  DisplayType,
-  Widget,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
+import type {DashboardDetails, Widget} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   constructWidgetFromQuery,
   eventViewFromWidget,
@@ -172,7 +168,7 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the discover url of the widget query', () => {
-      const url = getWidgetDiscoverUrl(widget, selection, Organization());
+      const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
       expect(url).toEqual(
         '/organizations/org-slug/discover/results/?field=count%28%29&name=Test%20Query&query=&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -194,7 +190,7 @@ describe('Dashboards util', () => {
           ],
         },
       };
-      const url = getWidgetDiscoverUrl(widget, selection, Organization());
+      const url = getWidgetDiscoverUrl(widget, selection, OrganizationFixture());
       expect(url).toEqual(
         '/organizations/org-slug/discover/results/?display=top5&field=error.type&field=count%28%29&name=Test%20Query&query=error.unhandled%3Atrue&sort=-count&statsPeriod=7d&yAxis=count%28%29'
       );
@@ -219,7 +215,7 @@ describe('Dashboards util', () => {
       };
     });
     it('returns the issue url of the widget query', () => {
-      const url = getWidgetIssueUrl(widget, selection, Organization());
+      const url = getWidgetIssueUrl(widget, selection, OrganizationFixture());
       expect(url).toEqual(
         '/organizations/org-slug/issues/?query=is%3Aunresolved&sort=date&statsPeriod=7d'
       );

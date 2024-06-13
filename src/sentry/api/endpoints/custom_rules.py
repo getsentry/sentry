@@ -1,19 +1,18 @@
 from datetime import datetime, timedelta, timezone
 from enum import Enum
-from typing import List, Optional
 
+import orjson
 import sentry_sdk
 from django.db import DatabaseError
 from rest_framework import serializers
-from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationPermission
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dynamicsampling import (
     CUSTOM_RULE_DATE_FORMAT,
@@ -24,7 +23,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, parse_search_query
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils import json
 from sentry.utils.dates import parse_stats_period
 
 MAX_RULE_PERIOD_STRING = "6h"
@@ -43,8 +41,6 @@ class UnsupportedSearchQuery(Exception):
     def __init__(self, error_code: UnsupportedSearchQueryReason, *args, **kwargs):
         super().__init__(error_code.value, *args, **kwargs)
         self.error_code = error_code.value
-
-    pass
 
 
 class CustomRulesInputSerializer(serializers.Serializer):
@@ -98,7 +94,7 @@ class CustomRulesInputSerializer(serializers.Serializer):
         return data
 
 
-class CustomRulePermission(BasePermission):
+class CustomRulePermission(OrganizationPermission):
     scope_map = {
         "GET": [
             "org:read",
@@ -129,15 +125,15 @@ class CustomRulesEndpoint(OrganizationEndpoint):
     permission_classes = (CustomRulePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:investigation-bias", organization, actor=request.user):
-            return Response(status=404)
-
         serializer = CustomRulesInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
 
         query = serializer.validated_data["query"]
-        projects = serializer.validated_data.get("projects")
+        project_ids = serializer.validated_data.get("projects")
+
+        # project-level permission check
+        self.get_projects(request, organization, project_ids=set(project_ids))
 
         try:
             condition = get_rule_condition(query)
@@ -152,7 +148,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
                 condition=condition,
                 start=start,
                 end=end,
-                project_ids=projects,
+                project_ids=project_ids,
                 organization_id=organization.id,
                 num_samples=NUM_SAMPLES_PER_CUSTOM_RULE,
                 sample_rate=1.0,
@@ -161,7 +157,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             )
 
             # schedule update for affected project configs
-            _schedule_invalidate_project_configs(organization, projects)
+            _schedule_invalidate_project_configs(organization, project_ids)
 
             return _rule_to_response(rule)
         except UnsupportedSearchQuery as e:
@@ -195,6 +191,9 @@ class CustomRulesEndpoint(OrganizationEndpoint):
             requested_projects_ids = _clean_project_list(requested_projects_ids)
         except ValueError:
             return Response({"projects": ["Invalid project id"]}, status=400)
+
+        # project-level permission check
+        self.get_projects(request, organization, project_ids=set(requested_projects_ids))
 
         if requested_projects_ids:
             org_rule = False
@@ -251,7 +250,7 @@ class CustomRulesEndpoint(OrganizationEndpoint):
 def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     response_data = {
         "ruleId": rule.external_rule_id,
-        "condition": json.loads(rule.condition),
+        "condition": orjson.loads(rule.condition),
         "startDate": rule.start_date.strftime(CUSTOM_RULE_DATE_FORMAT),
         "endDate": rule.end_date.strftime(CUSTOM_RULE_DATE_FORMAT),
         "numSamples": rule.num_samples,
@@ -264,7 +263,7 @@ def _rule_to_response(rule: CustomDynamicSamplingRule) -> Response:
     return Response(response_data, status=200)
 
 
-def get_rule_condition(query: Optional[str]) -> RuleCondition:
+def get_rule_condition(query: str | None) -> RuleCondition:
     """
     Gets the rule condition given a query.
 
@@ -309,7 +308,7 @@ def get_rule_condition(query: Optional[str]) -> RuleCondition:
         raise
 
 
-def _clean_project_list(project_ids: List[int]) -> List[int]:
+def _clean_project_list(project_ids: list[int]) -> list[int]:
     if len(project_ids) == 1 and project_ids[0] == -1:
         # special case for all projects convention ( sends a project id of -1)
         return []
@@ -317,7 +316,7 @@ def _clean_project_list(project_ids: List[int]) -> List[int]:
     return project_ids
 
 
-def _schedule_invalidate_project_configs(organization: Organization, project_ids: List[int]):
+def _schedule_invalidate_project_configs(organization: Organization, project_ids: list[int]):
     """
     Schedule a task to update the project configs for the given projects
     """

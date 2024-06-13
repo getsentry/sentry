@@ -30,8 +30,11 @@ class HandleIssueMergeTest(TestCase):
         Activity.objects.all().delete()
         merge = handle_merge(self.groups, self.project_lookup, self.user)
 
-        statuses = Group.objects.filter(id__in=[g.id for g in self.groups]).values_list("status")
-        statuses = [status[0] for status in statuses]
+        statuses = list(
+            Group.objects.filter(id__in=[g.id for g in self.groups]).values_list(
+                "status", flat=True
+            )
+        )
         assert statuses.count(GroupStatus.PENDING_MERGE) == 4
         assert merge_groups.called
 

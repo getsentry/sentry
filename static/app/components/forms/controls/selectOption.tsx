@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {components as selectComponents} from 'react-select';
+import type {components as selectComponents} from 'react-select';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -8,13 +8,6 @@ import {IconCheckmark} from 'sentry/icons';
 import {defined} from 'sentry/utils';
 
 type Props = React.ComponentProps<typeof selectComponents.Option>;
-
-// FIXME(epurkhiser): This is actually mutating the MenuListItem component, and
-// is probably not something we should be doing.
-//
-// We still have some tests that find select options by the display name
-// "Option".
-MenuListItem.displayName = 'Option';
 
 function SelectOption(props: Props) {
   const {

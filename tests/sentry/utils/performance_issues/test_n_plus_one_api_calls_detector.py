@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 from uuid import uuid4
 
 import pytest
@@ -12,7 +13,6 @@ from sentry.testutils.performance_issues.event_generators import (
     create_span,
     get_event,
 )
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.base import DetectorType, parameterize_url
 from sentry.utils.performance_issues.detectors.n_plus_one_api_calls_detector import (
     NPlusOneAPICallsDetector,
@@ -25,7 +25,6 @@ from sentry.utils.performance_issues.performance_detection import (
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-@region_silo_test
 @pytest.mark.django_db
 class NPlusOneAPICallsDetectorTest(TestCase):
     def setUp(self):

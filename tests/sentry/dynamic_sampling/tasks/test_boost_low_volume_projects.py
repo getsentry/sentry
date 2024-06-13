@@ -1,5 +1,5 @@
 from datetime import timedelta
-from typing import List, cast
+from typing import cast
 
 from django.utils import timezone
 
@@ -69,7 +69,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         for org_info in proj_orgs:
             org = cast(Organization, org_info.get("org"))
-            projects = cast(List[Project], org_info.get("projects"))
+            projects = cast(list[Project], org_info.get("projects"))
             for project in projects:
                 keep, drop = proj_counts[project.name]
                 self.store_performance_metric(

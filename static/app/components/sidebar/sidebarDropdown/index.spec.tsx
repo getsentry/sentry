@@ -1,7 +1,6 @@
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Organization} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import {User} from 'sentry-fixture/user';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -9,14 +8,9 @@ import SidebarDropdown from 'sentry/components/sidebar/sidebarDropdown';
 import ConfigStore from 'sentry/stores/configStore';
 
 function renderDropdown(props: any = {}) {
-  const user = User();
+  const user = UserFixture();
   const config = ConfigFixture();
-  const organization = Organization({orgRole: 'member'});
-  const routerContext = RouterContextFixture([
-    {
-      organization,
-    },
-  ]);
+  const organization = OrganizationFixture({orgRole: 'member'});
   return render(
     <SidebarDropdown
       orientation="left"
@@ -26,7 +20,7 @@ function renderDropdown(props: any = {}) {
       org={organization}
       {...props}
     />,
-    {context: routerContext}
+    {organization}
   );
 }
 
@@ -34,9 +28,11 @@ describe('SidebarDropdown', function () {
   it('renders', function () {
     renderDropdown();
   });
+
   it('renders without org links', function () {
     renderDropdown({hideOrgLinks: true});
   });
+
   it('renders open sidebar', async function () {
     const config = ConfigFixture({
       singleOrganization: false,
@@ -45,6 +41,7 @@ describe('SidebarDropdown', function () {
     await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.getByText('Switch organization')).toBeInTheDocument();
   });
+
   it('sandbox/demo mode render open sidebar', async function () {
     ConfigStore.set('demoMode', true);
     const config = ConfigFixture({singleOrganization: false});

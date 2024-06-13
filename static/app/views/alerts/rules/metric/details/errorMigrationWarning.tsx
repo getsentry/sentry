@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
+import type {PromptResponse} from 'sentry/actionCreators/prompts';
 import {
   makePromptsCheckQueryKey,
-  PromptResponse,
   promptsUpdate,
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
@@ -11,7 +11,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {IconClose, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
@@ -50,8 +50,8 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   const isCreatedAfterMigration = rule && createdOrModifiedAfterMigration(rule);
   const prompt = usePromptsCheck(
     {
+      organization,
       feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
-      organizationId: organization.id,
       projectId: project?.id,
     },
     {staleTime: Infinity, enabled: showErrorMigrationWarning && !isCreatedAfterMigration}
@@ -76,7 +76,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 
   const dismissPrompt = () => {
     promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       projectId: project?.id,
       feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
       status: 'dismissed',
@@ -86,8 +86,8 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
     setApiQueryData<PromptResponse>(
       queryClient,
       makePromptsCheckQueryKey({
+        organization,
         feature: METRIC_ALERT_IGNORE_ARCHIVED_ISSUES,
-        organizationId: organization.id,
         projectId: project?.id,
       }),
       () => {
@@ -136,10 +136,9 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.iconColor};
+  color: ${p => p.theme.alert.warning.color};
   pointer-events: all;
   &:hover {
-    color: ${p => p.theme.alert.warning.iconHoverColor};
     opacity: 0.5;
   }
 `;

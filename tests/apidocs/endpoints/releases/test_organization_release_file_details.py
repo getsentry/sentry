@@ -24,7 +24,7 @@ class ReleaseFileDetailsDocsTest(APIDocsTestCase):
         self.url = reverse(
             "sentry-api-0-organization-release-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
+                "organization_id_or_slug": project.organization.slug,
                 "version": release.version,
                 "file_id": releasefile.id,
             },

@@ -1,15 +1,9 @@
-import {useEffect, useState} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import trimStart from 'lodash/trimStart';
 
 import {t} from 'sentry/locale';
-import {
-  Organization,
-  OrganizationSummary,
-  SelectValue,
-  TagCollection,
-} from 'sentry/types';
+import type {OrganizationSummary, SelectValue, TagCollection} from 'sentry/types';
 import {
   aggregateFunctionOutputType,
   aggregateOutputType,
@@ -21,22 +15,16 @@ import {
   stripDerivedMetricsPrefix,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
-import {MeasurementCollection} from 'sentry/utils/measurements/measurements';
-import useApi from 'sentry/utils/useApi';
-import useCustomMeasurements from 'sentry/utils/useCustomMeasurements';
-import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  DisplayType,
-  Widget,
-  WidgetQuery,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
-import {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {MeasurementCollection} from 'sentry/utils/measurements/measurements';
+import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {FlatValidationError, getNumEquations, ValidationError} from '../utils';
+import type {FlatValidationError, ValidationError} from '../utils';
+import {getNumEquations} from '../utils';
 
 import {DISABLED_SORT, TAG_SORT_DENY_LIST} from './releaseWidget/fields';
 
@@ -415,62 +403,3 @@ export function getResultsLimit(numQueries: number, numYAxes: number) {
 export function getIsTimeseriesChart(displayType: DisplayType) {
   return [DisplayType.LINE, DisplayType.AREA, DisplayType.BAR].includes(displayType);
 }
-
-export const useTableFieldOptions = (
-  organization: Organization,
-  tags: TagCollection,
-  widgetType?: WidgetType
-) => {
-  const {customMeasurements} = useCustomMeasurements();
-  const api = useApi();
-
-  const {getTableFieldOptions} = getDatasetConfig(widgetType);
-
-  const [fieldOptions, setFieldOptions] = useState(
-    getTableFieldOptions(organization, tags, customMeasurements, api)
-  );
-
-  useEffect(() => {
-    const fetchTableFieldOptions = async () => {
-      const options = await getTableFieldOptions(
-        organization,
-        tags,
-        customMeasurements,
-        api
-      );
-      setFieldOptions(options);
-    };
-
-    fetchTableFieldOptions();
-  }, [api, organization, tags, customMeasurements, getTableFieldOptions]);
-
-  return fieldOptions;
-};
-
-export const useGroupByOptions = (organization, tags, widgetType, queries) => {
-  const [groupByOptions, setGroupByOptions] = useState<Record<string, any>>({});
-  const {getGroupByFieldOptions} = getDatasetConfig(widgetType);
-  const api = useApi();
-  const {customMeasurements} = useCustomMeasurements();
-
-  useEffect(() => {
-    const fetchGroupByFieldOptions = async () => {
-      if (getGroupByFieldOptions) {
-        const options = await getGroupByFieldOptions(
-          organization,
-          tags,
-          customMeasurements,
-          api,
-          queries
-        );
-        setGroupByOptions(options);
-      } else {
-        setGroupByOptions({});
-      }
-    };
-
-    fetchGroupByFieldOptions();
-  }, [api, organization, tags, customMeasurements, getGroupByFieldOptions, queries]);
-
-  return groupByOptions;
-};

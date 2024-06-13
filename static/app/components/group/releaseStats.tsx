@@ -2,13 +2,14 @@ import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import GroupReleaseChart from 'sentry/components/group/releaseChart';
 import SeenInfo from 'sentry/components/group/seenInfo';
 import Placeholder from 'sentry/components/placeholder';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
+import type {CurrentRelease, Group, Organization, Project, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -44,8 +45,8 @@ function GroupReleaseStats({
     environments.length > 1
       ? t('selected environments')
       : environments.length === 1
-      ? environments[0]
-      : undefined;
+        ? environments[0]
+        : undefined;
 
   const {data: groupReleaseData} = useApiQuery<GroupRelease>(
     [
@@ -105,7 +106,9 @@ function GroupReleaseStats({
 
           <SidebarSection.Wrap>
             <SidebarSection.Title>
-              {t('Last Seen')}
+              <GuideAnchor target="issue_sidebar_releases" position="left">
+                {t('Last Seen')}
+              </GuideAnchor>
               <QuestionTooltip
                 title={t('When the most recent event in this issue was captured.')}
                 size="xs"

@@ -1,24 +1,67 @@
+"""Replay recording consumer implementation.
+
+# Configuration
+
+The consumer implementation offers three configuration parameters which control the size of the
+buffer.  Those options are:
+
+**max_buffer_message_count:**
+
+This option limits the number of processed messages held in memory at a given time.
+
+**max_buffer_size_in_bytes:**
+
+This option limits the amount of recording-bytes held in memory at a given time.
+
+**max_buffer_time_in_seconds:**
+
+This option limits the amount of time a message will wait in the buffer before being committed. If
+this value exceeds the Kafka commit interval then the Kafka offsets will not be committed until the
+buffer has been flushed and fully committed.
+
+# Errors
+
+All deterministic errors must be handled otherwise the consumer will deadlock and progress will
+be impossible. Unhandled errors will crash the process and force a restart from the last committed
+offset.
+
+An unhandled, intermittent error rate which exceeds one-per-second will deadlock any consumer
+implementation which commits at one second intervals. To fix this case either the message
+processing rate of the consumer must be slowed, the error must be handled, or the commit interval
+must be decreased.
+
+The cost of unwinding an error is determined by the throughput of the consumer implementation. If
+consumer throughput is high an error will force the reprocessing of a larger number of messages
+than if throughput is low. The number of messages being operated on in parallel is material only
+insofar as it impacts the throughput of the consumer.
+"""
+
 from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
-from typing import Mapping, TypedDict
+from typing import Any, TypedDict
 
+import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies.buffer import Buffer
 from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.types import Commit, Message, Partition
-from sentry_kafka_schemas import get_codec
+from arroyo.processing.strategies.run_task import RunTask
+from arroyo.types import BaseValue, Commit, Message, Partition
+from sentry_kafka_schemas.codecs import Codec, ValidationError
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
 
-from sentry.replays.lib.storage import RecordingSegmentStorageMeta, storage
-from sentry.replays.usecases.ingest import (
-    MissingRecordingSegmentHeaders,
-    decompress,
-    process_headers,
-    track_initial_segment_event,
+from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.replays.lib.storage import (
+    RecordingSegmentStorageMeta,
+    make_recording_filename,
+    make_video_filename,
+    storage_kv,
 )
+from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
     emit_replay_actions,
@@ -28,7 +71,35 @@ from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
-RECORDINGS_CODEC = get_codec("ingest-replay-recordings")
+RECORDINGS_CODEC: Codec[ReplayRecording] = get_topic_codec(Topic.INGEST_REPLAYS_RECORDINGS)
+
+
+def cast_payload_bytes(x: Any) -> bytes:
+    """
+    Coerces a type from Any to bytes
+
+    sentry-kafka-schemas does not support the typing of bytes for replay's
+    payloads, and so sometimes we have to cast values around to work around the
+    schema.
+
+    Use this helper function to explicitly annotate that. At a later point when
+    sentry-kafka-schemas is fixed, we can replace all usages of this function
+    with the proper solution.
+    """
+    return x
+
+
+def cast_payload_from_bytes(x: bytes) -> Any:
+    """
+    Coerces a type from bytes to Any.
+
+    See cast_payload_bytes
+    """
+    return x
+
+
+class BufferCommitFailed(Exception):
+    ...
 
 
 class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -39,11 +110,11 @@ class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
     def __init__(
         self,
-        max_buffer_row_count: int,
+        max_buffer_message_count: int,
         max_buffer_size_in_bytes: int,
         max_buffer_time_in_seconds: int,
     ) -> None:
-        self.max_buffer_row_count = max_buffer_row_count
+        self.max_buffer_message_count = max_buffer_message_count
         self.max_buffer_size_in_bytes = max_buffer_size_in_bytes
         self.max_buffer_time_in_seconds = max_buffer_time_in_seconds
 
@@ -52,65 +123,22 @@ class RecordingBufferedStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return RecordingBufferStrategy(
+        return Buffer(
             buffer=RecordingBuffer(
-                self.max_buffer_row_count,
+                self.max_buffer_message_count,
                 self.max_buffer_size_in_bytes,
                 self.max_buffer_time_in_seconds,
             ),
-            next_step=CommitOffsets(commit),
+            next_step=RunTask(
+                function=process_commit,
+                next_step=CommitOffsets(commit),
+            ),
         )
-
-
-# Buffered Processing Strategy.
-
-
-class RecordingBufferStrategy(ProcessingStrategy[KafkaPayload]):
-    def __init__(self, buffer: RecordingBuffer, next_step: CommitOffsets):
-        self.__buffer = buffer
-        self.__next_step = next_step
-        self.__closed = False
-
-    def poll(self) -> None:
-        assert not self.__closed
-
-        if self.__buffer.ready_to_commit:
-            self.__buffer.commit()
-            self.__next_step.poll()
-
-    def submit(self, message: Message[KafkaPayload]) -> None:
-        assert not self.__closed
-        process_message(self.__buffer, message)
-
-        if self.__buffer.ready_to_commit:
-            self.__buffer.commit()
-            self.__next_step.submit(message)
-
-    def close(self) -> None:
-        self.__closed = True
-
-    def terminate(self) -> None:
-        self.__closed = True
-        self.__next_step.terminate()
-
-    def join(self, timeout: float | None = None) -> None:
-        deadline = time.time() + timeout if timeout is not None else None
-        self.__buffer.commit()
-        self.__next_step.close()
-        self.__next_step.join(
-            timeout=max(deadline - time.time(), 0) if deadline is not None else None
-        )
-
-
-# Buffer definition.
 
 
 class UploadEvent(TypedDict):
-    payload: bytes
-    project_id: int
-    replay_id: str
-    retention_days: int
-    segment_id: int
+    key: str
+    value: bytes
 
 
 class InitialSegmentEvent(TypedDict):
@@ -119,12 +147,13 @@ class InitialSegmentEvent(TypedDict):
     project_id: int
     received: int
     replay_id: str
+    is_replay_video: bool
 
 
 class RecordingBuffer:
     def __init__(
         self,
-        max_buffer_row_count: int,
+        max_buffer_message_count: int,
         max_buffer_size_in_bytes: int,
         max_buffer_time_in_seconds: int,
     ) -> None:
@@ -132,13 +161,25 @@ class RecordingBuffer:
         self.initial_segment_events: list[InitialSegmentEvent] = []
         self.replay_action_events: list[ReplayActionsEvent] = []
 
-        self.max_buffer_row_count = max_buffer_row_count
+        self.max_buffer_message_count = max_buffer_message_count
         self.max_buffer_size_in_bytes = max_buffer_size_in_bytes
         self.max_buffer_time_in_seconds = max_buffer_time_in_seconds
-        self._initialize_new_buffer()
+
+        self._buffer_size_in_bytes: int = 0
+        self._buffer_next_commit_time: int = int(time.time()) + self.max_buffer_time_in_seconds
 
     @property
-    def ready_to_commit(self) -> bool:
+    def buffer(
+        self,
+    ) -> tuple[list[UploadEvent], list[InitialSegmentEvent], list[ReplayActionsEvent]]:
+        return (self.upload_events, self.initial_segment_events, self.replay_action_events)
+
+    @property
+    def is_empty(self) -> bool:
+        return len(self.upload_events) == 0
+
+    @property
+    def is_ready(self) -> bool:
         """Return "True" if we're ready to commit the buffer."""
         return (
             self.has_exceeded_max_message_count
@@ -146,85 +187,75 @@ class RecordingBuffer:
             or self.has_exceeded_last_buffer_commit_time
         )
 
-    def commit(self) -> None:
-        if len(self.upload_events) > 0:
-            dist_metric("buffer_message_count", len(self.upload_events))
-            dist_metric("buffer_size_in_bytes", self._buffer_size_in_bytes)
-
-            commit_uploads(self.upload_events)
-            commit_initial_segments(self.initial_segment_events)
-            commit_replay_actions(self.replay_action_events)
-
-        # Reset the buffer after each call to commit.
-        self._initialize_new_buffer()
-
-    def _initialize_new_buffer(self) -> None:
-        self.upload_events = []
-        self.initial_segment_events = []
-        self.replay_action_events = []
-
-        self._buffer_size_in_bytes: int = 0
-        self._buffer_next_commit_time: int = self._new_buffer_next_commit_time()
-
-    def _new_buffer_next_commit_time(self) -> int:
-        """Return the next buffer commit time."""
-        return int(time.time()) + self.max_buffer_time_in_seconds
-
     @property
     def has_exceeded_max_message_count(self) -> bool:
         """Return "True" if we have accumulated the configured number of messages."""
-        result = len(self.upload_events) >= self.max_buffer_row_count
-        if result:
-            count_metric("exceeded_max_message_count")
-        return result
+        return len(self.upload_events) >= self.max_buffer_message_count
 
     @property
     def has_exceeded_buffer_byte_size(self) -> bool:
         """Return "True" if we have accumulated the configured number of bytes."""
-        result = self._buffer_size_in_bytes >= self.max_buffer_size_in_bytes
-        if result:
-            count_metric("exceeded_buffer_byte_size")
-        return result
+        return self._buffer_size_in_bytes >= self.max_buffer_size_in_bytes
 
     @property
     def has_exceeded_last_buffer_commit_time(self) -> bool:
         """Return "True" if we have waited to commit for the configured amount of time."""
-        result = time.time() >= self._buffer_next_commit_time
-        if result:
-            count_metric("exceeded_last_buffer_commit_time")
-        return result
+        return time.time() >= self._buffer_next_commit_time
+
+    def append(self, message: BaseValue[KafkaPayload]) -> None:
+        process_message(self, message.payload.value)
+
+    def new(self) -> RecordingBuffer:
+        return RecordingBuffer(
+            max_buffer_message_count=self.max_buffer_message_count,
+            max_buffer_size_in_bytes=self.max_buffer_size_in_bytes,
+            max_buffer_time_in_seconds=self.max_buffer_time_in_seconds,
+        )
 
 
 # Message processor.
 
 
-def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> None:
-    with metrics.timer("replays.recording_consumer.decode_message"):
-        decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message.payload.value)
+def process_message(buffer: RecordingBuffer, message: bytes) -> None:
+    with sentry_sdk.start_span(op="replays.consumer.recording.decode_kafka_message"):
+        try:
+            decoded_message: ReplayRecording = RECORDINGS_CODEC.decode(message)
+        except ValidationError:
+            # TODO: DLQ
+            logger.exception("Could not decode recording message.")
+            return None
 
     try:
-        headers, recording_data = process_headers(decoded_message["payload"])
-    except MissingRecordingSegmentHeaders:
-        logger.warning("missing header on %s", decoded_message["replay_id"])
+        headers, recording_data = process_headers(cast_payload_bytes(decoded_message["payload"]))
+    except Exception:
+        # TODO: DLQ
+        logger.exception(
+            "Recording headers could not be extracted %s", decoded_message["replay_id"]
+        )
         return None
 
-    # Useful for computing the average cost of a replay.
-    metrics.distribution(
-        "replays.usecases.ingest.size_compressed",
-        len(recording_data),
-        unit="byte",
+    recording_segment = RecordingSegmentStorageMeta(
+        project_id=decoded_message["project_id"],
+        replay_id=decoded_message["replay_id"],
+        retention_days=decoded_message["retention_days"],
+        segment_id=headers["segment_id"],
     )
 
     # Append an upload event to the state object for later processing.
     buffer.upload_events.append(
-        {
-            "payload": recording_data,
-            "project_id": decoded_message["project_id"],
-            "replay_id": decoded_message["replay_id"],
-            "retention_days": decoded_message["retention_days"],
-            "segment_id": headers["segment_id"],
-        }
+        {"key": make_recording_filename(recording_segment), "value": recording_data}
     )
+
+    if replay_video := decoded_message.get("replay_video"):
+        # Record video size for COGS analysis.
+        metrics.distribution(
+            "replays.recording_consumer.replay_video_size",
+            len(replay_video),  # type: ignore[arg-type]
+            unit="byte",
+        )
+        buffer.upload_events.append(
+            {"key": make_video_filename(recording_segment), "value": replay_video}  # type: ignore[typeddict-item]
+        )
 
     # Initial segment events are recorded in the state machine.
     if headers["segment_id"] == 0:
@@ -235,45 +266,95 @@ def process_message(buffer: RecordingBuffer, message: Message[KafkaPayload]) -> 
                 "project_id": decoded_message["project_id"],
                 "received": decoded_message["received"],
                 "replay_id": decoded_message["replay_id"],
+                "is_replay_video": decoded_message.get("replay_video") is not None,
             }
         )
 
-    # Click extraction post-processing.
-    with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
-        with metrics.timer("replays.recording_consumer.replay_recording_decompress"):
+    try:
+        with sentry_sdk.start_span(op="replays.consumer.recording.decompress_segment"):
             decompressed_segment = decompress(recording_data)
 
-        metrics.distribution(
-            "replays.usecases.ingest.size_uncompressed",
-            len(decompressed_segment),
-            unit="byte",
-        )
+        with sentry_sdk.start_span(op="replays.consumer.recording.json_loads_segment"):
+            parsed_recording_data = json.loads(decompressed_segment)
+            parsed_replay_event = (
+                json.loads(cast_payload_bytes(decoded_message["replay_event"]))
+                if decoded_message.get("replay_event")
+                else None
+            )
 
-        with metrics.timer("replays.recording_consumer.replay_recording_json_parse"):
-            parsed_recording_data = json.loads(decompressed_segment, use_rapid_json=True)
-
-    with metrics.timer("replay.consumer.recording.extract_replay_actions"):
         replay_actions = parse_replay_actions(
             decoded_message["project_id"],
             decoded_message["replay_id"],
             decoded_message["retention_days"],
             parsed_recording_data,
+            parsed_replay_event,
         )
 
-    if replay_actions is not None:
-        buffer.replay_action_events.append(replay_actions)
+        if replay_actions is not None:
+            buffer.replay_action_events.append(replay_actions)
+
+        # Useful for computing the average cost of a replay.
+        metrics.distribution(
+            "replays.usecases.ingest.size_compressed",
+            len(recording_data),
+            unit="byte",
+        )
+
+        # Useful for computing the compression ratio.
+        metrics.distribution(
+            "replays.usecases.ingest.size_uncompressed",
+            len(decompressed_segment),
+            unit="byte",
+        )
+    except Exception:
+        logging.exception(
+            "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
+            decoded_message["org_id"],
+            decoded_message["project_id"],
+            decoded_message["replay_id"],
+            headers["segment_id"],
+        )
 
 
-# Buffer commit.
+# Commit.
 
 
-@metrics.wraps("replays.recording_consumer.commit_uploads")
+def process_commit(
+    message: Message[tuple[list[UploadEvent], list[InitialSegmentEvent], list[ReplayActionsEvent]]]
+) -> None:
+    # High I/O section.
+    with sentry_sdk.start_span(op="replays.consumer.recording.commit_buffer"):
+        upload_events, initial_segment_events, replay_action_events = message.payload
+        commit_uploads(upload_events)
+        commit_initial_segments(initial_segment_events)
+        commit_replay_actions(replay_action_events)
+
+
 def commit_uploads(upload_events: list[UploadEvent]) -> None:
-    with ThreadPoolExecutor(max_workers=len(upload_events)) as pool:
-        pool.map(_do_upload, upload_events)
+    with sentry_sdk.start_span(op="replays.consumer.recording.upload_segments"):
+        # This will run to completion taking potentially an infinite amount of time. However,
+        # that outcome is unlikely. In the event of an indefinite backlog the process can be
+        # restarted.
+        with ThreadPoolExecutor(max_workers=len(upload_events)) as pool:
+            futures = [pool.submit(_do_upload, upload) for upload in upload_events]
+
+    has_errors = False
+
+    # These futures should never fail unless there is a service-provider issue.
+    for error in filter(lambda n: n is not None, (fut.exception() for fut in futures)):
+        has_errors = True
+        sentry_sdk.capture_exception(error)
+
+    # If errors were detected the batch is failed as a whole. This wastes computation and
+    # incurs some amount service-provider cost.  However, this strategy is an improvement
+    # over dropping messages or manually retrying indefinitely.
+    #
+    # Raising an exception crashes the process and forces a restart from the last committed
+    # offset. No rate-limiting is applied.
+    if has_errors:
+        raise BufferCommitFailed("Could not upload one or more recordings.")
 
 
-@metrics.wraps("replays.recording_consumer.commit_initial_segments")
 def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -> None:
     for segment in initial_segment_events:
         track_initial_segment_event(
@@ -282,38 +363,18 @@ def commit_initial_segments(initial_segment_events: list[InitialSegmentEvent]) -
             segment["replay_id"],
             segment["key_id"],
             segment["received"],
+            segment["is_replay_video"],
         )
 
 
-@metrics.wraps("replays.recording_consumer.commit_replay_actions")
 def commit_replay_actions(replay_action_events: list[ReplayActionsEvent]) -> None:
     for actions in replay_action_events:
         emit_replay_actions(actions)
 
 
-@metrics.wraps("replays.recording_consumer._do_upload")
 def _do_upload(upload_event: UploadEvent) -> None:
-    recording_metadata = RecordingSegmentStorageMeta(
-        project_id=upload_event["project_id"],
-        replay_id=upload_event["replay_id"],
-        segment_id=upload_event["segment_id"],
-        retention_days=upload_event["retention_days"],
-    )
-    recording_data = upload_event["payload"]
-    storage.set(recording_metadata, recording_data)
-
-
-# Private helper functions.
-
-
-_metric_prefix = "replays.recording_consumer."
-
-
-def count_metric(name: str) -> None:
-    key = f"{_metric_prefix}{name}"
-    metrics.incr(key)
-
-
-def dist_metric(name: str, value: int) -> None:
-    key = f"{_metric_prefix}{name}"
-    metrics.distribution(key, value)
+    with sentry_sdk.start_span(op="replays.consumer.recording.upload_segment"):
+        # If an error occurs this will retry up to five times by default.
+        #
+        # Refer to `src.sentry.filestore.gcs.GCS_RETRIES`.
+        storage_kv.set(upload_event["key"], upload_event["value"])

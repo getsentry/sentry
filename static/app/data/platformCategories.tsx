@@ -1,12 +1,12 @@
-import {PlatformKey} from 'sentry/types';
+import type {PlatformKey} from 'sentry/types/project';
 
 export enum PlatformCategory {
-  FRONTEND,
-  MOBILE,
-  BACKEND,
-  SERVERLESS,
-  DESKTOP,
-  OTHER,
+  FRONTEND = 0,
+  MOBILE = 1,
+  BACKEND = 2,
+  SERVERLESS = 3,
+  DESKTOP = 4,
+  OTHER = 5,
 }
 
 // Mirrors `FRONTEND` in src/sentry/utils/platform_categories.py
@@ -56,6 +56,7 @@ export const mobile: PlatformKey[] = [
 // When changing this file, make sure to keep src/sentry/utils/platform_categories.py in sync.
 export const backend: PlatformKey[] = [
   'bun',
+  'deno',
   'dotnet',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
@@ -63,10 +64,12 @@ export const backend: PlatformKey[] = [
   'go',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java',
   'java-appengine',
   'java-log4j',
@@ -86,6 +89,7 @@ export const backend: PlatformKey[] = [
   'php-laravel',
   'php-monolog',
   'php-symfony',
+  'powershell',
   'python',
   'python-aiohttp',
   'python-asgi',
@@ -158,6 +162,7 @@ export const sourceMaps: PlatformKey[] = [
 
 export const performance: PlatformKey[] = [
   'bun',
+  'deno',
   'javascript',
   'javascript-ember',
   'javascript-react',
@@ -193,6 +198,7 @@ export const withPerformanceOnboarding: Set<PlatformKey> = new Set([
 export const withoutPerformanceSupport: Set<PlatformKey> = new Set([
   'elixir',
   'minidump',
+  'nintendo-switch',
 ]);
 
 export const profiling: PlatformKey[] = [
@@ -270,6 +276,7 @@ export const releaseHealth: PlatformKey[] = [
   'dart-flutter',
   // backend
   'bun',
+  'deno',
   'native',
   'node',
   'node-express',
@@ -296,19 +303,26 @@ export const releaseHealth: PlatformKey[] = [
   'native-crashpad',
   'native-breakpad',
   'native-qt',
+  'electron',
+  'javascript-electron',
 ];
 
 // These are the backend platforms that can set up replay -- e.g. they can be set up via a linked JS framework or via JS loader.
-const replayBackendPlatforms: readonly PlatformKey[] = [
+export const replayBackendPlatforms: readonly PlatformKey[] = [
   'bun',
+  'deno',
   'dotnet-aspnetcore',
   'dotnet-aspnet',
   'elixir',
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
+  'go',
   'go-gin',
+  'go-http',
   'go-iris',
   'go-martini',
+  'go-negroni',
   'java-spring',
   'java-spring-boot',
   'node',
@@ -373,7 +387,98 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
   ...replayBackendPlatforms,
 ];
 
+// Feedback platforms that show only NPM widget setup instructions (no loader)
+export const feedbackNpmPlatforms: readonly PlatformKey[] = [
+  'ionic',
+  ...replayFrontendPlatforms,
+];
+
+// Feedback platforms that show widget instructions (both NPM & loader)
+export const feedbackWidgetPlatforms: readonly PlatformKey[] = [
+  ...feedbackNpmPlatforms,
+  ...replayBackendPlatforms,
+];
+
+// Feedback platforms that only show crash API instructions
+export const feedbackCrashApiPlatforms: readonly PlatformKey[] = [
+  'android',
+  'apple-macos',
+  'apple-ios',
+  'dart',
+  'dotnet',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-wpf',
+  'dotnet-winforms',
+  'dotnet-xamarin',
+  'flutter',
+  'java',
+  'java-log4j2',
+  'java-logback',
+  'kotlin',
+  'node-koa',
+  'react-native',
+  'unity',
+  'unreal',
+];
+
+// Feedback platforms that default to the web API
+export const feedbackWebApiPlatforms: readonly PlatformKey[] = [
+  'cordova',
+  'ruby-rack',
+  'ruby',
+  'rust',
+  'native',
+  'native-qt',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-gcpfunctions',
+  'minidump',
+  'python-asgi',
+  'python-awslambda',
+  'python-celery',
+  'python-chalice',
+  'python-gcpfunctions',
+  'python-pymongo',
+  'python-pylons',
+  'python',
+  'python-rq',
+  'python-serverless',
+  'python-tryton',
+  'python-wsgi',
+];
+
+// All feedback onboarding platforms
+export const feedbackOnboardingPlatforms: readonly PlatformKey[] = [
+  ...feedbackWebApiPlatforms,
+  ...feedbackWidgetPlatforms,
+  ...feedbackCrashApiPlatforms,
+];
+
 const customMetricBackendPlatforms: readonly PlatformKey[] = [
+  'bun',
+  'dart',
+  'deno',
+  'dotnet',
+  'dotnet-aspnet',
+  'dotnet-aspnetcore',
+  'dotnet-awslambda',
+  'dotnet-gcpfunctions',
+  'dotnet-maui',
+  'dotnet-uwp',
+  'dotnet-winforms',
+  'dotnet-wpf',
+  'java',
+  'java-appengine',
+  'java-log4j',
+  'java-log4j2',
+  'java-logback',
+  'java-logging',
+  'java-spring',
+  'java-spring-boot',
   'php',
   'php-laravel',
   // TODO: Enable once metrics are available for Symfony
@@ -402,10 +507,24 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'rust',
+  'node',
+  'node-awslambda',
+  'node-azurefunctions',
+  'node-connect',
+  'node-express',
+  'node-gcpfunctions',
+  'node-koa',
+  'ruby',
+  'ruby-rails',
+  'ruby-rack',
 ];
 
 const customMetricFrontendPlatforms: readonly PlatformKey[] = [
+  'android',
+  'apple-ios',
   'electron',
+  'flutter',
+  'java-android',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
@@ -420,20 +539,22 @@ const customMetricFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-sveltekit',
   'javascript-vue',
   'javascript',
+  'react-native',
+  'unity',
 ];
 
 // These are all the platforms that can set up custom metrics.
-export const customMetricPlatforms: Set<PlatformKey> = new Set([
+export const customMetricPlatforms: readonly PlatformKey[] = [
   ...customMetricFrontendPlatforms,
   ...customMetricBackendPlatforms,
-]);
+];
 
 /**
  * The list of platforms for which we have created onboarding instructions.
  * Should be a subset of the list of `customMetricPlatforms`.
  */
-export const customMetricOnboardingPlatforms = new Set(
-  [...customMetricPlatforms].filter(
+export const customMetricOnboardingPlatforms: readonly PlatformKey[] =
+  customMetricPlatforms.filter(
     p =>
       // Legacy platforms that do not have in-product docs
       ![
@@ -443,5 +564,4 @@ export const customMetricOnboardingPlatforms = new Set(
         'python-pylons',
         'python-tryton',
       ].includes(p)
-  )
-);
+  );

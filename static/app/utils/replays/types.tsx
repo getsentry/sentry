@@ -1,4 +1,4 @@
-import type {eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
+import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
@@ -15,21 +15,57 @@ import type {
 } from '@sentry/react';
 import invariant from 'invariant';
 
-import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+
+// TODO: more types get added here
+type MobileBreadcrumbTypes =
+  | {
+      category: 'ui.tap';
+      data: any;
+      message: string;
+      timestamp: number;
+      type: string;
+    }
+  | {
+      category: 'device.battery';
+      data: {charging: boolean; level: number};
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
+      category: 'device.connectivity';
+      data: {state: 'offline' | 'wifi' | 'cellular' | 'ethernet'};
+      timestamp: number;
+      type: string;
+      message?: string;
+    }
+  | {
+      category: 'device.orientation';
+      data: {position: 'landscape' | 'portrait'};
+      timestamp: number;
+      type: string;
+      message?: string;
+    };
 
 /**
- * Extra breadcrumb types not included in `@sentry/replay`
+ * Extra breadcrumb types not included in `@sentry/replay`.
+ * Also includes mobile types.
+ * The navigation breadcrumb has data['from'] marked as optional
+ * because the mobile SDK does not send that property currently.
  */
-type ExtraBreadcrumbTypes = {
-  category: 'navigation';
-  data: {
-    from: string;
-    to: string;
-  };
-  message: string;
-  timestamp: number;
-  type: string; // For compatibility reasons
-};
+type ExtraBreadcrumbTypes =
+  | MobileBreadcrumbTypes
+  | {
+      category: 'navigation';
+      data: {
+        to: string;
+        from?: string;
+      };
+      message: string;
+      timestamp: number;
+      type: string; // For compatibility reasons
+    };
 
 export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
@@ -63,10 +99,20 @@ export function isOptionFrameEvent(
   return attachment.data?.tag === 'options';
 }
 
+export function isVideoFrameEvent(
+  attachment: Record<string, any>
+): attachment is VideoFrameEvent {
+  return attachment.type === EventType.Custom && attachment.data.tag === 'video';
+}
+
 export function isBreadcrumbFrame(
   frame: ReplayFrame | undefined
 ): frame is BreadcrumbFrame {
   return Boolean(frame && 'category' in frame && frame.category !== 'issue');
+}
+
+export function isFeedbackFrame(frame: ReplayFrame | undefined): frame is FeedbackFrame {
+  return Boolean(frame && 'category' in frame && frame.category === 'feedback');
 }
 
 export function isSpanFrame(frame: ReplayFrame | undefined): frame is SpanFrame {
@@ -97,8 +143,13 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
   return false;
 }
 
-export function isLCPFrame(frame: SpanFrame): frame is LargestContentfulPaintFrame {
-  return frame.op === 'largest-contentful-paint';
+export function isLCPFrame(frame: SpanFrame): frame is WebVitalFrame {
+  return (
+    frame.op === 'largest-contentful-paint' ||
+    frame.op === 'cumulative-layout-shift' ||
+    frame.op === 'first-input-delay' ||
+    frame.op === 'interaction-to-next-paint'
+  );
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
@@ -138,6 +189,7 @@ type HydratedTimestamp = {
    */
   timestampMs: number;
 };
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>,
   HydratedTimestamp
@@ -176,11 +228,32 @@ type HydratedSpan<Op extends string> = Overwrite<
 
 // Breadcrumbs
 export type BreadcrumbFrame = Overwrite<
-  TRawBreadcrumbFrame | ExtraBreadcrumbTypes,
+  TRawBreadcrumbFrame | ExtraBreadcrumbTypes | FeedbackFrame,
   HydratedTimestamp
 >;
+
+export type FeedbackFrame = {
+  category: 'feedback';
+  data: {
+    eventId: string;
+    groupId: number;
+    groupShortId: string;
+    label: string;
+    labels: string[];
+    projectSlug: string;
+  };
+  message: string;
+  offsetMs: number;
+  timestamp: Date;
+  timestampMs: number;
+  type: string;
+};
+
+export type ForegroundFrame = HydratedBreadcrumb<'app.foreground'>;
+export type BackgroundFrame = HydratedBreadcrumb<'app.background'>;
 export type BlurFrame = HydratedBreadcrumb<'ui.blur'>;
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
+export type TapFrame = HydratedBreadcrumb<'ui.tap'>;
 export type ConsoleFrame = HydratedBreadcrumb<'console'>;
 export type FocusFrame = HydratedBreadcrumb<'ui.focus'>;
 export type InputFrame = HydratedBreadcrumb<'ui.input'>;
@@ -189,33 +262,50 @@ export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
+export type DeviceBatteryFrame = HydratedBreadcrumb<'device.battery'>;
+export type DeviceConnectivityFrame = HydratedBreadcrumb<'device.connectivity'>;
+export type DeviceOrientationFrame = HydratedBreadcrumb<'device.orientation'>;
 
 // This list must match each of the categories used in `HydratedBreadcrumb` above
 // and any app-specific types that we hydrate (ie: replay.init).
 export const BreadcrumbCategories = [
   'console',
+  'device.battery',
+  'device.connectivity',
+  'device.orientation',
   'navigation',
   'replay.init',
   'replay.mutations',
+  'replay.hydrate-error',
   'ui.blur',
   'ui.click',
+  'ui.tap',
   'ui.focus',
   'ui.input',
   'ui.keyDown',
   'ui.multiClick',
   'ui.slowClickDetected',
+  'app.foreground',
+  'app.background',
 ];
 
 // Spans
 export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
 export type HistoryFrame = HydratedSpan<'navigation.push'>;
-export type LargestContentfulPaintFrame = HydratedSpan<'largest-contentful-paint'>;
+export type WebVitalFrame = HydratedSpan<
+  | 'largest-contentful-paint'
+  | 'cumulative-layout-shift'
+  | 'first-input-delay'
+  | 'interaction-to-next-paint'
+>;
 export type MemoryFrame = HydratedSpan<'memory'>;
 export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;
 export type PaintFrame = HydratedSpan<'paint'>;
-export type RequestFrame = HydratedSpan<'resource.fetch' | 'resource.xhr'>;
+export type RequestFrame = HydratedSpan<
+  'resource.fetch' | 'resource.xhr' | 'resource.http'
+>;
 export type ResourceFrame = HydratedSpan<
   | 'resource.css'
   | 'resource.iframe'
@@ -245,6 +335,7 @@ export const SpanOps = [
   'resource.other',
   'resource.script',
   'resource.xhr',
+  'resource.http',
 ];
 
 /**
@@ -277,3 +368,38 @@ export type ErrorFrame = Overwrite<
 >;
 
 export type ReplayFrame = BreadcrumbFrame | ErrorFrame | SpanFrame | HydratedA11yFrame;
+
+interface VideoFrame {
+  container: string;
+  duration: number;
+  encoding: string;
+  frameCount: number;
+  frameRate: number;
+  frameRateType: string;
+  height: number;
+  left: number;
+  segmentId: number;
+  size: number;
+  top: number;
+  width: number;
+}
+
+export interface VideoFrameEvent {
+  data: {
+    payload: VideoFrame;
+    tag: 'video';
+  };
+  timestamp: number;
+  type: EventType.Custom;
+}
+
+export interface VideoEvent {
+  duration: number;
+  id: number;
+  timestamp: number;
+}
+
+export interface ClipWindow {
+  endTimestampMs: number;
+  startTimestampMs: number;
+}

@@ -4,7 +4,7 @@ import momentTimezone from 'moment-timezone';
 import ConfigStore from 'sentry/stores/configStore';
 import {getFormat} from 'sentry/utils/dates';
 
-interface Props extends React.HTMLAttributes<HTMLTimeElement> {
+export interface DateTimeProps extends React.HTMLAttributes<HTMLTimeElement> {
   /**
    * Input date.
    */
@@ -48,7 +48,7 @@ interface Props extends React.HTMLAttributes<HTMLTimeElement> {
   year?: boolean;
 }
 
-function DateTime({
+export function DateTime({
   format,
   date,
   utc,
@@ -59,7 +59,7 @@ function DateTime({
   seconds = false,
   forcedTimezone,
   ...props
-}: Props) {
+}: DateTimeProps) {
   const user = ConfigStore.get('user');
   const options = user?.options;
 
@@ -89,4 +89,6 @@ function DateTime({
   );
 }
 
-export default DateTime;
+const DO_NOT_USE = DateTime;
+
+export default DO_NOT_USE;

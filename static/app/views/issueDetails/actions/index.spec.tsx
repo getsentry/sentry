@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
-import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -18,6 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import ModalStore from 'sentry/stores/modalStore';
 import {GroupStatus, IssueCategory} from 'sentry/types';
 import * as analytics from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupActions from 'sentry/views/issueDetails/actions';
 
 const project = ProjectFixture({
@@ -34,10 +34,9 @@ const group = GroupFixture({
   project,
 });
 
-const organization = Organization({
+const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
-  features: ['reprocessing-v2'],
 });
 
 describe('GroupActions', function () {
@@ -53,7 +52,7 @@ describe('GroupActions', function () {
   });
 
   describe('render()', function () {
-    it('renders correctly', function () {
+    it('renders correctly', async function () {
       render(
         <GroupActions
           group={group}
@@ -62,6 +61,7 @@ describe('GroupActions', function () {
           disabled={false}
         />
       );
+      expect(await screen.findByRole('button', {name: 'Resolve'})).toBeInTheDocument();
     });
   });
 
@@ -131,7 +131,7 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
+    it('renders ReprocessAction component if org has native exception event', async function () {
       const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
@@ -211,7 +211,7 @@ describe('GroupActions', function () {
   });
 
   it('opens delete confirm modal from more actions dropdown', async () => {
-    const org = Organization({
+    const org = OrganizationFixture({
       ...organization,
       access: [...organization.access, 'event:admin'],
     });
@@ -307,7 +307,6 @@ describe('GroupActions', function () {
   });
 
   it('can archive issue', async () => {
-    const org = {...organization, features: ['escalating-issues']};
     const issuesApi = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project/issues/`,
       method: 'PUT',
@@ -318,10 +317,10 @@ describe('GroupActions', function () {
       <GroupActions
         group={group}
         project={project}
-        organization={org}
+        organization={organization}
         disabled={false}
       />,
-      {organization: org}
+      {organization}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));

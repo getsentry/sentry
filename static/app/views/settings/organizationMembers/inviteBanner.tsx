@@ -10,14 +10,15 @@ import ButtonBar from 'sentry/components/buttonBar';
 import Card from 'sentry/components/card';
 import Carousel from 'sentry/components/carousel';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCommit, IconEllipsis, IconGithub, IconMail} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {MissingMember, Organization, OrgRole} from 'sentry/types';
+import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import useApi from 'sentry/utils/useApi';
@@ -40,9 +41,7 @@ export function InviteBanner({
   onModalClose,
 }: Props) {
   const isEligibleForBanner =
-    organization.features.includes('integrations-gh-invite') &&
-    organization.access.includes('org:write') &&
-    organization.githubNudgeInvite;
+    organization.access.includes('org:write') && organization.githubNudgeInvite;
   const [sendingInvite, setSendingInvite] = useState<boolean>(false);
   const [showBanner, setShowBanner] = useState<boolean>(false);
   const [missingMembers, setMissingMembers] = useState<MissingMember[]>(
@@ -60,7 +59,7 @@ export function InviteBanner({
     });
     setShowBanner(false);
     await promptsUpdate(api, {
-      organizationId: organization.id,
+      organization,
       feature: promptsFeature,
       status: 'snoozed',
     });
@@ -100,7 +99,7 @@ export function InviteBanner({
     }
     fetchMissingMembers();
     promptsCheck(api, {
-      organizationId: organization.id,
+      organization,
       feature: promptsFeature,
     }).then(prompt => {
       setShowBanner(!promptIsDismissed(prompt));
@@ -320,7 +319,7 @@ const CardTitleContent = styled('div')`
 const CardTitle = styled('h6')`
   margin: 0;
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray400};
 `;
 
@@ -328,7 +327,7 @@ const Subtitle = styled('div')`
   display: flex;
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
   gap: ${space(0.5)};
 `;
@@ -337,7 +336,7 @@ const MemberEmail = styled('div')`
   display: block;
   max-width: 70%;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.gray300};
   text-overflow: ellipsis;
   overflow: hidden;

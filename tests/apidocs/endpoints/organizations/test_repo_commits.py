@@ -2,10 +2,8 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationRepoCommitsDocs(APIDocsTestCase):
     def setUp(self):
         organization = self.create_organization(owner=self.user, name="Rowdy Tiger")
@@ -16,7 +14,7 @@ class OrganizationRepoCommitsDocs(APIDocsTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-repository-commits",
-            kwargs={"organization_slug": organization.slug, "repo_id": repo.id},
+            kwargs={"organization_id_or_slug": organization.slug, "repo_id": repo.id},
         )
 
         self.login_as(user=self.user)

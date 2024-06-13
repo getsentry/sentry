@@ -1,28 +1,35 @@
 import * as Sentry from '@sentry/react';
 
-import {
-  DateTimeObject,
-  getDiffInMinutes,
-  GranularityLadder,
-} from 'sentry/components/charts/utils';
+import type {DateTimeObject, GranularityLadder} from 'sentry/components/charts/utils';
+import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {
   COUNTER_GRANULARITIES,
   DISTRIBUTION_GRANULARITIES,
 } from 'sentry/views/performance/database/settings';
+import type {Aggregate, SpanFunctions} from 'sentry/views/starfish/types';
 import {
-  Aggregate,
   COUNTER_AGGREGATES,
   DISTRIBUTION_AGGREGATES,
   SPAN_FUNCTIONS,
-  SpanFunctions,
 } from 'sentry/views/starfish/types';
 
 export function getIntervalForMetricFunction(
   metricFunction: Aggregate | SpanFunctions | string,
   datetimeObj: DateTimeObject
 ) {
+  const {start, end, period, utc} = datetimeObj;
+
   const interval = Sentry.startSpan(
-    {op: 'function', name: 'getIntervalForMetricFunction', data: {...datetimeObj}},
+    {
+      op: 'function',
+      name: 'getIntervalForMetricFunction',
+      attributes: {
+        start: start ? start.toString() : undefined,
+        end: end ? end.toString() : undefined,
+        period: period || undefined,
+        utc: utc || undefined,
+      },
+    },
     () => {
       const ladder = GRANULARITIES[metricFunction] ?? COUNTER_GRANULARITIES;
       return ladder.getInterval(getDiffInMinutes(datetimeObj));

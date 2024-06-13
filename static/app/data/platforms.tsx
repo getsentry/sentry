@@ -1,4 +1,4 @@
-import {PlatformIntegration} from 'sentry/types';
+import type {PlatformIntegration} from 'sentry/types/project';
 
 // If you update items of this list, please remember to update the "GETTING_STARTED_DOCS_PLATFORMS" list
 // in the 'src/sentry/models/project.py' file. This way, they'll work together correctly.
@@ -59,6 +59,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'dart',
     link: 'https://docs.sentry.io/platforms/dart/',
+  },
+  {
+    id: 'deno',
+    name: 'Deno',
+    type: 'language',
+    language: 'deno',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/deno/',
   },
   {
     id: 'dotnet',
@@ -173,6 +180,13 @@ export const platforms: PlatformIntegration[] = [
     language: 'go',
   },
   {
+    link: 'https://docs.sentry.io/platforms/go/guides/fiber/',
+    type: 'framework',
+    id: 'go-fiber',
+    name: 'Fiber',
+    language: 'go',
+  },
+  {
     link: 'https://docs.sentry.io/platforms/go/guides/gin/',
     type: 'framework',
     id: 'go-gin',
@@ -240,7 +254,7 @@ export const platforms: PlatformIntegration[] = [
     name: 'Spring',
     type: 'framework',
     language: 'java',
-    link: 'https://https://docs.sentry.io/platforms/java/guides/spring/',
+    link: 'https://docs.sentry.io/platforms/java/guides/spring/',
   },
   {
     id: 'java-spring-boot',
@@ -355,60 +369,81 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/native/guides/qt/',
   },
   {
+    id: 'nintendo-switch',
+    name: 'Nintendo Switch',
+    type: 'framework',
+    language: 'native',
+    link: 'https://docs.sentry.io/platforms/nintendo-switch/',
+  },
+  {
     id: 'node',
     name: 'Node.js',
     type: 'language',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/node',
   },
   {
     id: 'node-awslambda',
     name: 'AWS Lambda (Node)',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/aws-lambda/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/aws-lambda/',
   },
   {
     id: 'node-azurefunctions',
     name: 'Azure Functions (Node)',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/azure-functions/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/azure-functions/',
   },
   {
     id: 'node-connect',
     name: 'Connect',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/connect/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/connect/',
   },
   {
     id: 'node-express',
     name: 'Express',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/express/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/express/',
+  },
+  {
+    id: 'node-fastify',
+    name: 'Fastify',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/fastify/',
+  },
+  {
+    id: 'node-hapi',
+    name: 'Hapi',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/',
   },
   {
     id: 'node-gcpfunctions',
     name: 'Google Cloud Functions (Node)',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/gcp-functions/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/gcp-functions/',
   },
   {
     id: 'node-koa',
     name: 'Koa',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/koa/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/koa/',
   },
   {
-    id: 'node-serverlesscloud',
-    name: 'Serverless (Node)',
+    id: 'node-nestjs',
+    name: 'Nest.js',
     type: 'framework',
     language: 'node',
-    link: 'https://docs.sentry.io/platforms/node/guides/serverless-cloud/',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/',
   },
   {
     id: 'php',
@@ -430,6 +465,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'php',
     link: 'https://docs.sentry.io/platforms/php/guides/symfony/',
+  },
+  {
+    id: 'powershell',
+    name: 'PowerShell',
+    type: 'language',
+    language: 'powershell',
+    link: 'https://docs.sentry.io/platforms/powershell/',
   },
   {
     id: 'python',
@@ -559,7 +601,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'python-serverless',
-    name: 'Serverless',
+    name: 'Serverless (Python)',
     type: 'framework',
     language: 'python',
     link: 'https://docs.sentry.io/platforms/python/guides/serverless/',

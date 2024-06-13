@@ -1,4 +1,3 @@
-import copy
 from functools import cached_property
 from unittest import mock
 from unittest.mock import patch
@@ -22,14 +21,9 @@ from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, IntegrationTestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import (
-    assume_test_silo_mode,
-    assume_test_silo_mode_of,
-    control_silo_test,
-    region_silo_test,
-)
+from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.signing import sign
@@ -42,7 +36,6 @@ def get_client():
     return StubJiraApiClient()
 
 
-@region_silo_test
 class RegionJiraIntegrationTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -99,9 +92,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -218,9 +211,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
 
@@ -237,9 +230,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -292,9 +285,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         installation = self.integration.get_installation(self.organization.id)
@@ -344,9 +337,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -379,9 +372,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -415,9 +408,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -461,9 +454,9 @@ class RegionJiraIntegrationTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": self.min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         group = event.group
         assert group is not None
@@ -729,7 +722,7 @@ class RegionJiraIntegrationTest(APITestCase):
 class JiraIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -748,7 +741,7 @@ class JiraIntegrationTest(APITestCase):
         self.login_as(self.user)
 
     def test_update_organization_config_sync_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -860,7 +853,7 @@ class JiraIntegrationTest(APITestCase):
         )
 
     def test_update_organization_config_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -894,7 +887,7 @@ class JiraIntegrationTest(APITestCase):
         ]
 
     def test_get_config_data(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         org_integration = OrganizationIntegration.objects.get(
@@ -929,7 +922,7 @@ class JiraIntegrationTest(APITestCase):
         }
 
     def test_get_config_data_issues_keys(self):
-        integration = Integration.objects.create(provider="jira", name="Example Jira")
+        integration = self.create_provider_integration(provider="jira", name="Example Jira")
         integration.add_organization(self.organization, self.user)
 
         installation = integration.get_installation(self.organization.id)
@@ -951,11 +944,10 @@ class JiraIntegrationTest(APITestCase):
         )
 
 
-@region_silo_test
 class JiraMigrationIntegrationTest(APITestCase):
     @cached_property
     def integration(self):
-        integration = Integration.objects.create(
+        integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             metadata={
@@ -1088,7 +1080,7 @@ class JiraInstallationTest(IntegrationTestCase):
             "base_url": "https://example.atlassian.net",
             "domain_name": "example.atlassian.net",
         }
-        self.integration = Integration.objects.create(
+        self.integration = self.create_provider_integration(
             provider="jira",
             name="Jira Cloud",
             external_id="my-external-id",

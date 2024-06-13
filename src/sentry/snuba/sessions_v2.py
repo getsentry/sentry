@@ -4,7 +4,7 @@ import itertools
 import logging
 import math
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from snuba_sdk import BooleanCondition, Column, Condition, Function, Limit, Op
 
@@ -16,12 +16,16 @@ from sentry.search.events.builder import SessionsV2QueryBuilder, TimeseriesSessi
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import to_intervals
-from sentry.utils.dates import parse_stats_period, to_timestamp
+from sentry.utils.dates import parse_stats_period
 from sentry.utils.outcomes import Outcome
 
 logger = logging.getLogger(__name__)
 
-dropped_outcomes = [Outcome.INVALID.api_name(), Outcome.RATE_LIMITED.api_name()]
+dropped_outcomes = [
+    Outcome.INVALID.api_name(),
+    Outcome.RATE_LIMITED.api_name(),
+    Outcome.CARDINALITY_LIMITED.api_name(),
+]
 
 
 """
@@ -195,17 +199,17 @@ COLUMN_MAP = {
 
 
 class SimpleGroupBy:
-    def __init__(self, row_name: str, name: Optional[str] = None):
+    def __init__(self, row_name: str, name: str | None = None):
         self.row_name = row_name
         self.name = name or row_name
 
-    def get_snuba_columns(self) -> List[str]:
+    def get_snuba_columns(self) -> list[str]:
         return [self.row_name]
 
-    def get_snuba_groupby(self) -> List[str]:
+    def get_snuba_groupby(self) -> list[str]:
         return [self.row_name]
 
-    def get_keys_for_row(self, row) -> List[Tuple[str, str]]:
+    def get_keys_for_row(self, row) -> list[tuple[str, str]]:
         return [(self.name, row[self.row_name])]
 
 
@@ -250,8 +254,8 @@ class QueryDefinition:
         query,
         params,
         query_config: SessionsQueryConfig,
-        limit: Optional[int] = 0,
-        offset: Optional[int] = 0,
+        limit: int | None = 0,
+        offset: int | None = 0,
     ):
         self.query = query.get("query", "")
         self.raw_fields = raw_fields = query.getlist("field", [])
@@ -415,7 +419,7 @@ def get_constrained_date_range(
     allowed_resolution: AllowedResolution = AllowedResolution.one_hour,
     max_points=MAX_POINTS,
     restrict_date_range=True,
-) -> Tuple[datetime, datetime, int]:
+) -> tuple[datetime, datetime, int]:
     interval = parse_stats_period(params.get("interval", "1h"))
     interval = int(3600 if interval is None else interval.total_seconds())
 
@@ -488,15 +492,19 @@ def _run_sessions_query(query):
     # We only get the time series for groups which also have a total:
     if query.query_groupby:
         # E.g. (release, environment) IN [(1, 2), (3, 4), ...]
-        groups = {tuple(row[column] for column in query.query_groupby) for row in result_totals}
+        extra_conditions = []
+        if len(query.query_groupby) > 1:
+            groups = {tuple(row[column] for column in query.query_groupby) for row in result_totals}
 
-        extra_conditions = [
-            Condition(
-                Function("tuple", [Column(col) for col in query.query_groupby]),
-                Op.IN,
-                Function("tuple", list(groups)),
-            )
-        ] + [
+            extra_conditions = [
+                Condition(
+                    Function("tuple", [Column(col) for col in query.query_groupby]),
+                    Op.IN,
+                    Function("tuple", list(groups)),
+                )
+            ]
+
+        extra_conditions += [
             Condition(
                 Column(column),
                 Op.IN,
@@ -517,7 +525,7 @@ def _run_sessions_query(query):
 
 def massage_sessions_result(
     query, result_totals, result_timeseries, ts_col=TS_COL
-) -> Dict[str, List[Any]]:
+) -> dict[str, list[Any]]:
     """
     Post-processes the query result.
 
@@ -609,7 +617,7 @@ def massage_sessions_result(
 
 def massage_sessions_result_summary(
     query, result_totals, outcome_query=None
-) -> Dict[str, List[Any]]:
+) -> dict[str, list[Any]]:
     """
     Post-processes the query result.
 
@@ -635,6 +643,7 @@ def massage_sessions_result_summary(
                 "invalid": 0,
                 "abuse": 0,
                 "client_discard": 0,
+                "cardinality_limited": 0,
               },
               "totals": {
                 "dropped": 1,
@@ -655,7 +664,7 @@ def massage_sessions_result_summary(
         }
 
     def get_category_stats(
-        reason, totals, outcome, category, category_stats: None | Dict[str, int] = None
+        reason, totals, outcome, category, category_stats: dict[str, int] | None = None
     ):
         if not category_stats:
             category_stats = {
@@ -733,7 +742,7 @@ def massage_sessions_result_summary(
 
 
 def isoformat_z(date):
-    return datetime.utcfromtimestamp(int(to_timestamp(date))).isoformat() + "Z"
+    return datetime.fromtimestamp(int(date.timestamp())).isoformat() + "Z"
 
 
 def get_timestamps(query):
@@ -742,10 +751,10 @@ def get_timestamps(query):
     The timestamps are returned as ISO strings for now.
     """
     rollup = query.rollup
-    start = int(to_timestamp(query.start))
-    end = int(to_timestamp(query.end))
+    start = int(query.start.timestamp())
+    end = int(query.end.timestamp())
 
-    return [datetime.utcfromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
+    return [datetime.fromtimestamp(ts).isoformat() + "Z" for ts in range(start, end, rollup)]
 
 
 def _split_rows_groupby(rows, groupby):

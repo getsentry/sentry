@@ -1,24 +1,25 @@
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {Group, Organization, PageFilters} from 'sentry/types';
+import type {Group, Organization, PageFilters} from 'sentry/types';
 import {getIssueFieldRenderer} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {
   DISCOVER_EXCLUSION_FIELDS,
   getSortLabel,
   IssueSortOptions,
 } from 'sentry/views/issueList/utils';
 
-import {DEFAULT_TABLE_LIMIT, DisplayType, Widget, WidgetQuery} from '../types';
+import type {Widget, WidgetQuery} from '../types';
+import {DEFAULT_TABLE_LIMIT, DisplayType} from '../types';
 import {IssuesSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/issuesSearchBar';
 import {ISSUE_FIELD_TO_HEADER_MAP} from '../widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from '../widgetBuilder/issueWidget/utils';
 
-import {DatasetConfig} from './base';
+import type {DatasetConfig} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -74,7 +75,7 @@ function getTableSortOptions(_organization: Organization, _widgetQuery: WidgetQu
   const sortOptions = [
     IssueSortOptions.DATE,
     IssueSortOptions.NEW,
-    IssueSortOptions.PRIORITY,
+    IssueSortOptions.TRENDS,
     IssueSortOptions.FREQ,
     IssueSortOptions.USER,
   ];

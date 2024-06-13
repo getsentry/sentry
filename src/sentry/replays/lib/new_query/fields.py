@@ -14,10 +14,12 @@ response.  Note just because a field appears as an array or as a scalar does not
 filtered in that way.  The field's job is to translate the display format to the expression
 format.
 """
+
 from __future__ import annotations
 
 import datetime
-from typing import Callable, Generic, Protocol, Type
+from collections.abc import Callable
+from typing import Generic, Protocol
 from uuid import UUID
 
 from snuba_sdk import Column, Condition, Function
@@ -25,6 +27,7 @@ from snuba_sdk.expressions import Expression
 
 from sentry.api.event_search import SearchFilter
 from sentry.replays.lib.new_query.conditions import GenericBase, T
+from sentry.replays.lib.new_query.errors import OperatorNotSupported
 
 
 class FieldProtocol(Protocol):
@@ -40,7 +43,7 @@ class FieldProtocol(Protocol):
 
 
 class BaseField(Generic[T]):
-    def __init__(self, parse: Callable[[str], T], query: Type[GenericBase]) -> None:
+    def __init__(self, parse: Callable[[str], T], query: type[GenericBase]) -> None:
         self.parse = parse
         self.query = query
 
@@ -53,7 +56,7 @@ class BaseField(Generic[T]):
         elif operator == "!=":
             visitor = self.query.visit_not_match
         else:
-            raise Exception(f"Unsupported wildcard search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported wildcard search operator: '{operator}'")
 
         return visitor(expression, value)
 
@@ -63,7 +66,7 @@ class BaseField(Generic[T]):
         elif operator == "NOT IN":
             visitor = self.query.visit_not_in
         else:
-            raise Exception(f"Unsupported composite search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported composite search operator: '{operator}'")
 
         return visitor(expression, value)
 
@@ -81,7 +84,7 @@ class BaseField(Generic[T]):
         elif operator == "<=":
             visitor = self.query.visit_lte
         else:
-            raise Exception(f"Unsupported search operator: '{operator}'")
+            raise OperatorNotSupported(f"Unsupported search operator: '{operator}'")
 
         return visitor(expression, value)
 
@@ -90,7 +93,7 @@ class ColumnField(BaseField[T]):
     """Column fields target one column."""
 
     def __init__(
-        self, column_name: str, parse_fn: Callable[[str], T], query_type: Type[GenericBase]
+        self, column_name: str, parse_fn: Callable[[str], T], query_type: type[GenericBase]
     ) -> None:
         self.column_name = column_name
         self.parse = parse_fn

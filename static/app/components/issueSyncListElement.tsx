@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
 import {Button} from 'sentry/components/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
@@ -9,6 +8,7 @@ import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {capitalize} from 'sentry/utils/string/capitalize';
 
 type Props = {
   children?: React.ReactNode;
@@ -64,7 +64,10 @@ function IssueSyncListElement({
       case 'jira_server':
         return 'Jira Server';
       default:
-        return capitalize(integrationType);
+        if (typeof integrationType === 'string') {
+          return capitalize(integrationType);
+        }
+        return '';
     }
   }, [integrationType]);
 
@@ -100,8 +103,10 @@ function IssueSyncListElement({
             bodyClassName="issue-list-body"
             forceVisible={showHoverCard}
           >
-            {icon}
-            {link}
+            <Label>
+              {icon}
+              {link}
+            </Label>
           </StyledHovercard>
         )}
       </ClassNames>
@@ -150,6 +155,11 @@ const StyledHovercard = styled(Hovercard)`
     max-height: 300px;
     overflow-y: auto;
   }
+`;
+
+const Label = styled('div')`
+  display: flex;
+  align-items: center;
 `;
 
 export default IssueSyncListElement;

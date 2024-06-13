@@ -1,5 +1,7 @@
-import {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, EventOrGroupType, EventTransaction, IssueType} from 'sentry/types';
+import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
+import type {EventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {IssueType} from 'sentry/types/group';
 
 export enum ProblemSpan {
   PARENT = 'parent',
@@ -179,7 +181,7 @@ export class TransactionEventBuilder {
     return this;
   }
 
-  getEvent() {
+  getEventFixture() {
     return this.#event;
   }
 }

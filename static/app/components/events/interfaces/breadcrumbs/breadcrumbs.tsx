@@ -1,31 +1,28 @@
 import React, {Fragment, useCallback, useEffect, useMemo, useRef} from 'react';
-import {
-  AutoSizer,
-  CellMeasurer,
-  CellMeasurerCache,
-  List,
-  ListProps,
-} from 'react-virtualized';
+import type {ListProps} from 'react-virtualized';
+import {AutoSizer, CellMeasurer, CellMeasurerCache, List} from 'react-virtualized';
 import styled from '@emotion/styled';
 
-import {
+import type {
   BreadcrumbTransactionEvent,
   BreadcrumbWithMeta,
 } from 'sentry/components/events/interfaces/breadcrumbs/types';
-import PanelTable, {PanelTableProps} from 'sentry/components/panels/panelTable';
+import type {PanelTableProps} from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useProjects from 'sentry/utils/useProjects';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {isEventId} from './breadcrumb/data/default';
-import {Breadcrumb, BreadcrumbProps} from './breadcrumb';
+import type {BreadcrumbProps} from './breadcrumb';
+import {Breadcrumb} from './breadcrumb';
 
 const PANEL_MIN_HEIGHT = 200;
 const PANEL_INITIAL_HEIGHT = 400;
@@ -210,7 +207,7 @@ function Breadcrumbs({
 
   return (
     <Fragment>
-      <StyledPanelTable
+      <StyledBreadcrumbPanelTable
         headers={panelHeaders}
         isEmpty={!breadcrumbs.length}
         {...emptyMessage}
@@ -236,7 +233,7 @@ function Breadcrumbs({
             />
           )}
         </AutoSizer>
-      </StyledPanelTable>
+      </StyledBreadcrumbPanelTable>
       <PanelDragHandle
         onMouseDown={onMouseDown}
         onDoubleClick={onDoubleClick}
@@ -248,10 +245,11 @@ function Breadcrumbs({
 
 export default Breadcrumbs;
 
-const StyledPanelTable = styled(PanelTable)`
+export const StyledBreadcrumbPanelTable = styled(PanelTable)`
   display: grid;
   overflow: hidden;
   grid-template-columns: 64px 140px 1fr 106px 100px;
+  margin-bottom: 1px;
 
   > * {
     :nth-child(-n + 6) {
@@ -319,7 +317,7 @@ const StyledIconSort = styled(IconSort)`
 const PanelDragHandle = styled('div')`
   position: absolute;
   bottom: -1px;
-  left: 1px;
+  left: 0px;
   right: 1px;
   height: 10px;
   cursor: ns-resize;
@@ -354,7 +352,7 @@ const StyledList = styled(List as any)<SharedListProps>`
   outline: none;
 `;
 
-const BreadcrumbRow = styled('div')<{error: boolean}>`
+export const BreadcrumbRow = styled('div')<{error: boolean}>`
   :not(:last-child) {
     border-bottom: 1px solid ${p => (p.error ? p.theme.red300 : p.theme.innerBorder)};
   }

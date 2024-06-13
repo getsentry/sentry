@@ -134,7 +134,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.ACTIVE, tenant_ids=None
+        self,
+        projects,
+        environments,
+        start,
+        end,
+        status=TagKeyStatus.ACTIVE,
+        use_cache: bool = False,
+        include_transactions: bool = False,
+        tenant_ids=None,
     ):
         """
         >>> get_tag_key([1], [2])
@@ -201,7 +209,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_value_paginator(
-        self, project_id, environment_id, key, query=None, order_by="-last_seen", tenant_ids=None
+        self,
+        project_id,
+        environment_id,
+        key,
+        start=None,
+        end=None,
+        query=None,
+        order_by="-last_seen",
+        tenant_ids=None,
     ):
         """
         >>> get_tag_value_paginator(1, 2, 'environment', query='prod')
@@ -213,10 +229,13 @@ class TagStorage(Service):
         projects,
         environments,
         key,
-        start,
-        end,
+        start=None,
+        end=None,
         query=None,
         order_by="-last_seen",
+        include_transactions: bool = False,
+        include_sessions: bool = False,
+        include_replays: bool = False,
         tenant_ids=None,
     ):
         """
@@ -227,7 +246,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_group_tag_value_iter(
-        self, group, environment_ids, key, callbacks=(), offset=0, tenant_ids=None
+        self,
+        group,
+        environment_ids,
+        key,
+        callbacks=(),
+        orderby="-first_seen",
+        limit: int = 1000,
+        offset: int = 0,
+        tenant_ids=None,
     ):
         """
         >>> get_group_tag_value_iter(group, 2, 3, 'environment')
@@ -249,7 +276,14 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
+        self,
+        project_ids,
+        group_ids,
+        environment_ids,
+        start=None,
+        end=None,
+        tenant_ids=None,
+        referrer=None,
     ):
         """
         >>> get_groups_user_counts([1, 2], [2, 3], [4, 5])

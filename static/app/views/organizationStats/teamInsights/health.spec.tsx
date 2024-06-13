@@ -1,16 +1,15 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import {Team} from 'sentry-fixture/team';
-import {TeamAlertsTriggered} from 'sentry-fixture/teamAlertsTriggered';
-import {TeamResolutionTime} from 'sentry-fixture/teamResolutionTime';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+import {TeamAlertsTriggeredFixture} from 'sentry-fixture/teamAlertsTriggered';
+import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Project, Team as TeamType} from 'sentry/types';
+import type {Project, Team as TeamType} from 'sentry/types';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import localStorage from 'sentry/utils/localStorage';
 import TeamStatsHealth from 'sentry/views/organizationStats/teamInsights/health';
@@ -23,21 +22,21 @@ jest.mock('sentry/utils/isActiveSuperuser', () => ({
 describe('TeamStatsHealth', () => {
   const project1 = ProjectFixture({id: '2', name: 'js', slug: 'js'});
   const project2 = ProjectFixture({id: '3', name: 'py', slug: 'py'});
-  const team1 = Team({
+  const team1 = TeamFixture({
     id: '2',
     slug: 'frontend',
     name: 'frontend',
     projects: [project1],
     isMember: true,
   });
-  const team2 = Team({
+  const team2 = TeamFixture({
     id: '3',
     slug: 'backend',
     name: 'backend',
     projects: [project2],
     isMember: true,
   });
-  const team3 = Team({
+  const team3 = TeamFixture({
     id: '4',
     slug: 'internal',
     name: 'internal',
@@ -47,6 +46,8 @@ describe('TeamStatsHealth', () => {
   const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
+    TeamStore.reset();
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/projects/`,
@@ -122,7 +123,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/alerts-triggered/`,
-      body: TeamAlertsTriggered(),
+      body: TeamAlertsTriggeredFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/alerts-triggered-index/`,
@@ -130,7 +131,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/time-to-resolution/`,
-      body: TeamResolutionTime(),
+      body: TeamResolutionTimeFixture(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -139,7 +140,7 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered/`,
-      body: TeamAlertsTriggered(),
+      body: TeamAlertsTriggeredFixture(),
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/alerts-triggered-index/`,
@@ -147,17 +148,13 @@ describe('TeamStatsHealth', () => {
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/time-to-resolution/`,
-      body: TeamResolutionTime(),
+      body: TeamResolutionTimeFixture(),
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/teams/org-slug/${team2.slug}/release-count/`,
       body: [],
     });
-  });
-
-  beforeEach(() => {
-    TeamStore.reset();
   });
 
   afterEach(() => {
@@ -167,15 +164,20 @@ describe('TeamStatsHealth', () => {
   function createWrapper({
     projects,
     teams,
-  }: {projects?: Project[]; teams?: TeamType[]} = {}) {
+    isOrgOwner,
+  }: {isOrgOwner?: boolean; projects?: Project[]; teams?: TeamType[]} = {}) {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = Organization({
+    const organization = OrganizationFixture({
       teams,
       projects,
     });
-    const context = RouterContextFixture([{organization}]);
+
+    if (isOrgOwner !== undefined && !isOrgOwner) {
+      organization.access = organization.access.filter(scope => scope !== 'org:admin');
+    }
+
     TeamStore.loadInitialData(teams, false, null);
 
     MockApiClient.addMockResponse({
@@ -184,20 +186,19 @@ describe('TeamStatsHealth', () => {
     });
 
     return render(<TeamStatsHealth {...routerProps} />, {
-      context,
       organization,
     });
   }
 
-  it('defaults to first team', () => {
+  it('defaults to first team', async () => {
     createWrapper();
 
-    expect(screen.getByText('#backend')).toBeInTheDocument();
+    expect(await screen.findByText('#backend')).toBeInTheDocument();
     expect(screen.getByText('Key transaction')).toBeInTheDocument();
   });
 
-  it('allows team switching', async () => {
-    createWrapper();
+  it('allows team switching as non-owner', async () => {
+    createWrapper({isOrgOwner: false});
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
     await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
@@ -211,6 +212,24 @@ describe('TeamStatsHealth', () => {
     expect(localStorage.setItem).toHaveBeenCalledWith(
       'teamInsightsSelectedTeamId:org-slug',
       team1.id
+    );
+  });
+
+  it('allows team switching as owner', async () => {
+    createWrapper();
+
+    expect(screen.getByText('#backend')).toBeInTheDocument();
+    await userEvent.type(screen.getByText('#backend'), '{mouseDown}');
+    expect(screen.getByText('#frontend')).toBeInTheDocument();
+    // Org owners can see all teams including ones they are not members of
+    expect(screen.queryByText('#internal')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('#internal'));
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({query: {team: team3.id}})
+    );
+    expect(localStorage.setItem).toHaveBeenCalledWith(
+      'teamInsightsSelectedTeamId:org-slug',
+      team3.id
     );
   });
 

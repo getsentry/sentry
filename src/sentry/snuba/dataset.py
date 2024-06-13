@@ -52,6 +52,12 @@ class Dataset(Enum):
     indexed spans are similar to indexed transactions in the fields available to search
     """
 
+    MetricsSummaries = "metrics_summaries"
+    """
+    Summaries of all metrics within a span. Used to correlate indexed
+    spans to a metric.
+    """
+
 
 @unique
 class EntityKey(Enum):

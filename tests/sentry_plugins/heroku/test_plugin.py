@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import Any
 from unittest.mock import Mock, patch
 
+import orjson
 import pytest
 from django.utils import timezone
 
@@ -16,9 +17,7 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.repository import Repository
-from sentry.models.user import User
 from sentry.testutils.cases import TestCase
-from sentry.utils import json
 from sentry_plugins.heroku.plugin import HerokuReleaseHook
 
 
@@ -55,7 +54,7 @@ class SetRefsTest(TestCase):
                 "author_email": "katie@example.com",
             },
         ]
-        user = User.objects.create(email="stebe@sentry.io")
+        user = self.create_user(email="stebe@sentry.io")
         repo = Repository.objects.create(
             organization_id=project.organization_id, name=project.name, provider="dummy"
         )
@@ -147,7 +146,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -168,7 +167,7 @@ class HookHandleTest(TestCase):
             },
             "action": "create",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert not Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 0
@@ -189,7 +188,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert set_refs_mock.call_count == 1
@@ -209,7 +208,7 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = orjson.dumps(body)
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
 
@@ -227,6 +226,6 @@ class HookHandleTest(TestCase):
             },
             "action": "update",
         }
-        req.body = bytes(json.dumps(body), "utf-8")
+        req.body = orjson.dumps(body)
         with pytest.raises(HookValidationError):
             hook.handle(req)

@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {Aliases, Color, IconSize} from 'sentry/utils/theme';
+import type {Aliases, Color, IconSize} from 'sentry/utils/theme';
 
 import {useIconDefaults} from './useIconDefaults';
 

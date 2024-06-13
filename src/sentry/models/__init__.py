@@ -1,5 +1,4 @@
 from .activity import *  # NOQA
-from .actor import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
 from .apigrant import *  # NOQA
@@ -54,6 +53,7 @@ from .groupredirect import *  # NOQA
 from .grouprelease import *  # NOQA
 from .groupresolution import *  # NOQA
 from .grouprulestatus import *  # NOQA
+from .groupsearchview import *  # NOQA
 from .groupseen import *  # NOQA
 from .groupshare import *  # NOQA
 from .groupsnooze import *  # NOQA
@@ -65,6 +65,7 @@ from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
+from .notificationmessage import *  # NOQA
 from .notificationsettingoption import *  # NOQA
 from .notificationsettingprovider import *  # NOQA
 from .options import *  # NOQA
@@ -90,6 +91,7 @@ from .projectownership import ProjectOwnership  # NOQA
 from .projectplatform import *  # NOQA
 from .projectredirect import *  # NOQA
 from .projectteam import ProjectTeam  # noqa
+from .projecttemplate import ProjectTemplate  # noqa
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
 from .rawevent import *  # NOQA
@@ -103,6 +105,7 @@ from .releaseenvironment import *  # NOQA
 from .releasefile import *  # NOQA
 from .releaseheadcommit import *  # NOQA
 from .releaseprojectenvironment import *  # NOQA
+from .releases.release_project import *  # NOQA
 from .relocation import *  # NOQA
 from .repository import *  # NOQA
 from .reprocessingreport import *  # NOQA
@@ -112,7 +115,7 @@ from .rulesnooze import RuleSnooze  # NOQA
 from .savedsearch import *  # NOQA
 from .scheduledeletion import *  # NOQA
 from .search_common import *  # NOQA
-from .sentryfunction import *  # NOQA
+from .sentryshot import *  # NOQA
 from .servicehook import *  # NOQA
 from .sourcemapprocessingissue import *  # NOQA
 from .statistical_detectors import *  # NOQA

@@ -8,26 +8,27 @@ from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration import Integration
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.activity.data["external_id"] = "123"
         self.activity.save()
 
+        self.integration, org_integration = self.create_provider_integration_for(
+            self.organization,
+            user=None,
+            provider="example",
+            external_id="example12345",
+            name="Example 12345",
+        )
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="example", external_id="example12345", name="Example 12345"
-            )
-            org_integration = self.integration.add_organization(self.organization)
             org_integration.config = {"sync_comments": True}
             org_integration.save()
 
@@ -114,7 +115,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         activity = Activity.objects.filter(
             group=group, type=ActivityType.NOTE.value, user_id=self.user.id
-        ).first()
+        )[0]
 
         url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
         response = self.client.delete(url, format="json")

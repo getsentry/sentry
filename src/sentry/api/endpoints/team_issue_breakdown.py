@@ -30,7 +30,7 @@ from sentry.models.team import Team
 class TeamIssueBreakdownEndpoint(TeamEndpoint, EnvironmentMixin):
     owner = ApiOwner.ISSUES
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, team: Team) -> Response:

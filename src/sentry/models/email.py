@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from typing import Optional, Tuple
-
 from django.db import models
 from django.forms import model_to_dict
 from django.utils import timezone
@@ -10,10 +8,10 @@ from django.utils.translation import gettext_lazy as _
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import CIEmailField, Model, control_silo_only_model, sane_repr
+from sentry.db.models import CIEmailField, Model, control_silo_model, sane_repr
 
 
-@control_silo_only_model
+@control_silo_model
 class Email(Model):
     """
     Email represents a unique email. Email settings (unsubscribe state) should be associated here.
@@ -48,7 +46,7 @@ class Email(Model):
 
     def write_relocation_import(
         self, _s: ImportScope, _f: ImportFlags
-    ) -> Optional[Tuple[int, ImportKind]]:
+    ) -> tuple[int, ImportKind] | None:
         # Ensure that we never attempt to duplicate email entries, as they must always be unique.
         (email, created) = self.__class__.objects.get_or_create(
             email=self.email, defaults=model_to_dict(self)

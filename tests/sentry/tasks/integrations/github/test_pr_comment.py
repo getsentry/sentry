@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta
+import logging
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -21,7 +22,6 @@ from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.tasks.integrations.github.pr_comment import (
-    PullRequestIssue,
     format_comment,
     get_comment_contents,
     get_top_5_issues_by_count,
@@ -29,9 +29,9 @@ from sentry.tasks.integrations.github.pr_comment import (
     github_comment_workflow,
     pr_to_issue_query,
 )
+from sentry.tasks.integrations.github.utils import PullRequestIssue
 from sentry.testutils.cases import IntegrationTestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
 
@@ -88,7 +88,7 @@ class GithubCommentTestCase(IntegrationTestCase):
         self.pr_key = 1
         self.commit_sha = 1
         self.fingerprint = 1
-        patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1").start()
+        patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1").start()
 
     def add_commit_to_repo(self, repo, user, project):
         if user not in self.user_to_commit_author_map:
@@ -107,7 +107,7 @@ class GithubCommentTestCase(IntegrationTestCase):
 
     def add_pr_to_commit(self, commit: Commit, date_added=None):
         if date_added is None:
-            date_added = iso_format(before_now(minutes=1))
+            date_added = before_now(minutes=1)
         pr = PullRequest.objects.create(
             organization_id=commit.organization_id,
             repository_id=commit.repository_id,
@@ -158,7 +158,6 @@ class GithubCommentTestCase(IntegrationTestCase):
         return pr
 
 
-@region_silo_test
 class TestPrToIssueQuery(GithubCommentTestCase):
     def test_simple(self):
         """one pr with one issue"""
@@ -229,7 +228,6 @@ class TestPrToIssueQuery(GithubCommentTestCase):
         )
 
 
-@region_silo_test
 class TestTop5IssuesByCount(TestCase, SnubaTestCase):
     def test_simple(self):
         group1 = [
@@ -267,8 +265,77 @@ class TestTop5IssuesByCount(TestCase, SnubaTestCase):
         res = get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
 
+    def test_ignore_info_level_issues(self):
+        group1 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-1"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {"fingerprint": ["group-2"], "timestamp": iso_format(before_now(days=1))},
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-3"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = get_top_5_issues_by_count([group1, group2, group3], self.project)
+        assert [issue["group_id"] for issue in res] == [group2]
 
-@region_silo_test
+    def test_do_not_ignore_other_issues(self):
+        group1 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-1"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.ERROR,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(3)
+        ][0].group.id
+        group2 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-2"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.INFO,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(6)
+        ][0].group.id
+        group3 = [
+            self.store_event(
+                {
+                    "fingerprint": ["group-3"],
+                    "timestamp": iso_format(before_now(days=1)),
+                    "level": logging.DEBUG,
+                },
+                project_id=self.project.id,
+            )
+            for _ in range(4)
+        ][0].group.id
+        res = get_top_5_issues_by_count([group1, group2, group3], self.project)
+        assert [issue["group_id"] for issue in res] == [group3, group1]
+
+
 class TestCommentBuilderQueries(GithubCommentTestCase):
     def test_simple(self):
         ev1 = self.store_event(
@@ -313,7 +380,6 @@ class TestCommentBuilderQueries(GithubCommentTestCase):
         )
 
 
-@region_silo_test
 class TestFormatComment(TestCase):
     def test_format_comment(self):
         issues = [
@@ -334,7 +400,6 @@ class TestFormatComment(TestCase):
         assert formatted_comment == expected_comment
 
 
-@region_silo_test
 class TestCommentWorkflow(GithubCommentTestCase):
     def setUp(self):
         super().setUp()
@@ -344,10 +409,12 @@ class TestCommentWorkflow(GithubCommentTestCase):
         self.cache_key = DEBOUNCE_PR_COMMENT_CACHE_KEY(self.pr.id)
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
     def test_comment_workflow(self, mock_metrics, mock_issues):
         groups = [g.id for g in Group.objects.all()]
+        titles = [g.title for g in Group.objects.all()]
+        culprits = [g.culprit for g in Group.objects.all()]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
 
         responses.add(
@@ -361,7 +428,7 @@ class TestCommentWorkflow(GithubCommentTestCase):
 
         assert (
             responses.calls[0].request.body
-            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **issue 1** `issue1` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **issue 2** `issue2` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
+            == f'{{"body": "## Suspect Issues\\nThis pull request was deployed and Sentry observed the following issues:\\n\\n- \\u203c\\ufe0f **{titles[0]}** `{culprits[0]}` [View Issue](http://testserver/organizations/foo/issues/{groups[0]}/?referrer=github-pr-bot)\\n- \\u203c\\ufe0f **{titles[1]}** `{culprits[1]}` [View Issue](http://testserver/organizations/foobar/issues/{groups[1]}/?referrer=github-pr-bot)\\n\\n<sub>Did you find this useful? React with a \\ud83d\\udc4d or \\ud83d\\udc4e</sub>"}}'.encode()
         )
         pull_request_comment_query = PullRequestComment.objects.all()
         assert len(pull_request_comment_query) == 1
@@ -370,9 +437,9 @@ class TestCommentWorkflow(GithubCommentTestCase):
         mock_metrics.incr.assert_called_with("github_pr_comment.comment_created")
 
     @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
-    @patch("sentry.tasks.integrations.github.pr_comment.metrics")
+    @patch("sentry.tasks.integrations.github.utils.metrics")
     @responses.activate
-    @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=timezone.utc))
+    @freeze_time(datetime(2023, 6, 8, 0, 0, 0, tzinfo=UTC))
     def test_comment_workflow_updates_comment(self, mock_metrics, mock_issues):
         groups = [g.id for g in Group.objects.all()]
         mock_issues.return_value = [{"group_id": id, "event_count": 10} for id in groups]
@@ -570,8 +637,18 @@ class TestCommentWorkflow(GithubCommentTestCase):
             "github_pr_comment.error", tags={"type": "missing_integration"}
         )
 
+    @patch("sentry.tasks.integrations.github.pr_comment.get_top_5_issues_by_count")
+    @patch("sentry.tasks.integrations.github.pr_comment.format_comment")
+    @responses.activate
+    def test_comment_workflow_no_issues(self, mock_format_comment, mock_issues):
+        mock_issues.return_value = []
 
-@region_silo_test
+        github_comment_workflow(self.pr.id, self.project.id)
+
+        assert mock_issues.called
+        assert not mock_format_comment.called
+
+
 class TestCommentReactionsTask(GithubCommentTestCase):
     base_url = "https://api.github.com"
 

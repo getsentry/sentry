@@ -1,7 +1,7 @@
 import {Component, Fragment} from 'react';
 
 import {getAllBroadcasts, markBroadcastsAsSeen} from 'sentry/actionCreators/broadcasts';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import DemoModeGate from 'sentry/components/acl/demoModeGate';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SidebarItem from 'sentry/components/sidebar/sidebarItem';
@@ -10,10 +10,11 @@ import SidebarPanelEmpty from 'sentry/components/sidebar/sidebarPanelEmpty';
 import SidebarPanelItem from 'sentry/components/sidebar/sidebarPanelItem';
 import {IconBroadcast} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Broadcast, Organization} from 'sentry/types';
+import type {Broadcast, Organization} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
-import {CommonSidebarProps, SidebarPanelKey} from './types';
+import type {CommonSidebarProps} from './types';
+import {SidebarPanelKey} from './types';
 
 const MARK_SEEN_DELAY = 1000;
 const POLLER_DELAY = 600000; // 10 minute poll (60 * 10 * 1000)

@@ -1,7 +1,8 @@
 import logging
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
-from sentry.incidents.models import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,
     RedisRuleStatus,
@@ -14,7 +15,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
@@ -29,8 +30,8 @@ def find_channel_id_for_rule(
     project: Project,
     actions: Sequence[AlertRuleTriggerAction],
     uuid: str,
-    rule_id: Optional[int] = None,
-    user_id: Optional[int] = None,
+    rule_id: int | None = None,
+    user_id: int | None = None,
     **kwargs: Any,
 ) -> None:
     redis_rule_status = RedisRuleStatus(uuid)
@@ -42,8 +43,8 @@ def find_channel_id_for_rule(
         return
 
     organization = project.organization
-    integration_id: Optional[int] = None
-    channel_name: Optional[str] = None
+    integration_id: int | None = None
+    channel_name: str | None = None
 
     # TODO: make work for multiple Slack actions
     for action in actions:

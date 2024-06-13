@@ -1,6 +1,6 @@
 import posixpath
 import re
-from typing import Any, Optional, Tuple
+from typing import Any
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent
@@ -94,7 +94,7 @@ def is_recursion_legacy(frame1: Frame, frame2: Frame) -> bool:
     return True
 
 
-def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_module_outliers_legacy(module: str, platform: str) -> tuple[str, str | None]:
     """Remove things that augment the module but really should not."""
     if platform == "java":
         if module[:35] == "sun.reflect.GeneratedMethodAccessor":
@@ -111,7 +111,7 @@ def remove_module_outliers_legacy(module: str, platform: str) -> Tuple[str, Opti
     return module, None
 
 
-def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, Optional[str]]:
+def remove_filename_outliers_legacy(filename: str, platform: str) -> tuple[str, str | None]:
     """
     Attempt to normalize filenames by removing common platform outliers.
 
@@ -143,7 +143,7 @@ def remove_filename_outliers_legacy(filename: str, platform: str) -> Tuple[str, 
     return filename, None
 
 
-def remove_function_outliers_legacy(function: str) -> Tuple[str, Optional[str]]:
+def remove_function_outliers_legacy(function: str) -> tuple[str, str | None]:
     """
     Attempt to normalize functions by removing common platform outliers.
 
@@ -177,7 +177,7 @@ def single_exception_legacy(
     stacktrace_component = GroupingComponent(id="stacktrace")
 
     if interface.stacktrace is not None:
-        stacktrace_component = context.get_grouping_component(
+        stacktrace_component = context.get_single_grouping_component(
             interface.stacktrace, event=event, **meta
         )
         if stacktrace_component.contributes:
@@ -210,9 +210,7 @@ def chained_exception_legacy(
     # component directly
     exceptions = interface.exceptions()
     if len(exceptions) == 1:
-        single_variant: GroupingComponent = context.get_grouping_component(
-            exceptions[0], event=event, **meta
-        )
+        single_variant = context.get_single_grouping_component(exceptions[0], event=event, **meta)
         return {context["variant"]: single_variant}
 
     # Case 2: try to build a new component out of the individual
@@ -221,9 +219,7 @@ def chained_exception_legacy(
     any_stacktraces = False
     values = []
     for exception in exceptions:
-        exception_component: GroupingComponent = context.get_grouping_component(
-            exception, event=event, **meta
-        )
+        exception_component = context.get_single_grouping_component(exception, event=event, **meta)
         stacktrace_component = exception_component.get_subcomponent("stacktrace")
         if stacktrace_component is not None and stacktrace_component.contributes:
             any_stacktraces = True
@@ -434,10 +430,10 @@ def stacktrace_legacy(
             hint = "less than 10% of frames are in-app"
 
     values = []
-    prev_frame: Optional[Frame] = None
+    prev_frame: Frame | None = None
     frames_for_filtering = []
     for frame in frames:
-        frame_component: GroupingComponent = context.get_grouping_component(
+        frame_component = context.get_single_grouping_component(
             frame, event=event, variant=variant, **meta
         )
         if variant == "app" and not frame.in_app and not all_frames_considered_in_app:
@@ -482,6 +478,7 @@ def threads_legacy(
 
     return {
         context["variant"]: GroupingComponent(
-            id="threads", values=[context.get_grouping_component(stacktrace, event=event, **meta)]
+            id="threads",
+            values=[context.get_single_grouping_component(stacktrace, event=event, **meta)],
         )
     }

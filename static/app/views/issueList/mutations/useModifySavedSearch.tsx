@@ -1,11 +1,7 @@
-import {SavedSearch, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
-import {
-  setApiQueryData,
-  useMutation,
-  UseMutationOptions,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type {SavedSearch, SavedSearchType, SavedSearchVisibility} from 'sentry/types';
+import type {UseMutationOptions} from 'sentry/utils/queryClient';
+import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import {makeFetchSavedSearchesForOrgQueryKey} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
 

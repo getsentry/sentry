@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Callable
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 from django.db.models import Model, QuerySet
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
@@ -49,20 +50,20 @@ class FilterQueryDatabaseImpl(
     # Required Overrides
 
     @abc.abstractmethod
-    def base_query(self, ids_only: bool = False) -> QuerySet[BASE_MODEL]:
+    def base_query(self, select_related: bool = True) -> QuerySet[BASE_MODEL]:
         # This should return a QuerySet for the model in question along with any other required data
         # that is not a filter
         pass
 
     @abc.abstractmethod
-    def filter_arg_validator(self) -> Callable[[FILTER_ARGS], Optional[str]]:
+    def filter_arg_validator(self) -> Callable[[FILTER_ARGS], str | None]:
         # A validation function for filter arguments. Often just:
         #
         # return self._filter_has_any_key_validator( ... )
         pass
 
     @abc.abstractmethod
-    def serialize_api(self, serializer: Optional[SERIALIZER_ENUM]) -> Serializer:
+    def serialize_api(self, serializer: SERIALIZER_ENUM | None) -> Serializer:
         # Returns the api serializer to use for this response.
         pass
 
@@ -78,8 +79,8 @@ class FilterQueryDatabaseImpl(
 
     # Utility Methods
 
-    def _filter_has_any_key_validator(self, *keys: str) -> Callable[[FILTER_ARGS], Optional[str]]:
-        def validator(d: FILTER_ARGS) -> Optional[str]:
+    def _filter_has_any_key_validator(self, *keys: str) -> Callable[[FILTER_ARGS], str | None]:
+        def validator(d: FILTER_ARGS) -> str | None:
             for k in keys:
                 if k in d:  # type: ignore[operator]  # We assume FILTER_ARGS is a dict
                     return None
@@ -90,14 +91,14 @@ class FilterQueryDatabaseImpl(
 
     # Helpers
 
-    def _query_many(self, filter: FILTER_ARGS, ids_only: bool = False) -> QuerySet:
+    def query_many(self, filter: FILTER_ARGS, select_related: bool = True) -> QuerySet:
         validation_error = self.filter_arg_validator()(filter)
         if validation_error is not None:
             raise TypeError(
                 f"Failed to validate filter arguments passed to {self.__class__.__name__}: {validation_error}"
             )
 
-        query = self.base_query(ids_only=ids_only)
+        query = self.base_query(select_related=select_related)
         return self.apply_filters(query, filter)
 
     # Public Interface
@@ -105,10 +106,10 @@ class FilterQueryDatabaseImpl(
     def serialize_many(
         self,
         filter: FILTER_ARGS,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-        serializer: Optional[SERIALIZER_ENUM] = None,
-    ) -> List[OpaqueSerializedResponse]:
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
+        serializer: SERIALIZER_ENUM | None = None,
+    ) -> list[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
         from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -120,15 +121,15 @@ class FilterQueryDatabaseImpl(
         if as_user is None and auth_context:
             as_user = auth_context.user
 
-        result = self._query_many(filter=filter)
+        result = self.query_many(filter=filter)
         return serialize(
             list(result),
             user=as_user,
             serializer=self.serialize_api(serializer),
         )
 
-    def get_many(self, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:
-        return [self.serialize_rpc(o) for o in self._query_many(filter=filter)]
+    def get_many(self, filter: FILTER_ARGS) -> list[RPC_RESPONSE]:
+        return [self.serialize_rpc(o) for o in self.query_many(filter=filter)]
 
-    def get_many_ids(self, filter: FILTER_ARGS) -> List[int]:
-        return [o.id for o in self._query_many(filter=filter, ids_only=True)]
+    def get_many_ids(self, filter: FILTER_ARGS) -> list[int]:
+        return [o.id for o in self.query_many(filter=filter, select_related=False)]

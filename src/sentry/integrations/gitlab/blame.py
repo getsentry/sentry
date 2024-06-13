@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from datetime import timezone
-from typing import Any, Mapping, Optional, Sequence, Tuple, TypedDict
+from typing import Any, TypedDict
 from urllib.parse import quote
 
+import orjson
 from isodate import parse_datetime
 
 from sentry.integrations.gitlab.utils import (
@@ -17,7 +19,7 @@ from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo,
 from sentry.shared_integrations.client.base import BaseApiClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.sequence import SequenceApiResponse
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.gitlab")
 
@@ -27,12 +29,12 @@ MINIMUM_REQUESTS = 100
 
 class GitLabCommitResponse(TypedDict):
     id: str
-    message: Optional[str]
-    committed_date: Optional[str]
-    author_name: Optional[str]
-    author_email: Optional[str]
-    committer_name: Optional[str]
-    committer_email: Optional[str]
+    message: str | None
+    committed_date: str | None
+    author_name: str | None
+    author_email: str | None
+    committer_name: str | None
+    committer_email: str | None
 
 
 class GitLabFileBlameResponseItem(TypedDict):
@@ -78,7 +80,7 @@ def fetch_file_blames(
 
 def _fetch_file_blame(
     client: BaseApiClient, file: SourceLineInfo, extra: Mapping[str, Any]
-) -> Tuple[Optional[CommitInfo], Optional[GitLabRateLimitInfo]]:
+) -> tuple[CommitInfo | None, GitLabRateLimitInfo | None]:
     project_id = file.repo.config.get("project_id")
 
     # GitLab returns an invalid file path error if there are leading or trailing slashes
@@ -86,7 +88,7 @@ def _fetch_file_blame(
     request_path = GitLabApiClientPath.blame.format(project=project_id, path=encoded_path)
     params = {"ref": file.ref, "range[start]": file.lineno, "range[end]": file.lineno}
 
-    cache_key = client.get_cache_key(request_path, json.dumps(params))
+    cache_key = client.get_cache_key(request_path, orjson.dumps(params).decode())
     response = client.check_cache(cache_key)
     if response:
         metrics.incr("integrations.gitlab.get_blame_for_files.got_cached")
@@ -139,8 +141,8 @@ def _handle_file_blame_error(error: ApiError, file: SourceLineInfo, extra: Mappi
 
 
 def _get_commit_info_from_blame_response(
-    response: Optional[Sequence[GitLabFileBlameResponseItem]], extra: Mapping[str, Any]
-) -> Optional[CommitInfo]:
+    response: Sequence[GitLabFileBlameResponseItem] | None, extra: Mapping[str, Any]
+) -> CommitInfo | None:
     if response is None:
         return None
 
@@ -154,8 +156,8 @@ def _get_commit_info_from_blame_response(
 
 
 def _create_commit_from_blame(
-    commit: Optional[GitLabCommitResponse], extra: Mapping[str, Any]
-) -> Optional[CommitInfo]:
+    commit: GitLabCommitResponse | None, extra: Mapping[str, Any]
+) -> CommitInfo | None:
     if not commit:
         logger.warning("get_blame_for_files.no_commit_in_response", extra=extra)
         return None

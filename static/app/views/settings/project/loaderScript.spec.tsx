@@ -1,4 +1,4 @@
-import {ProjectKeys, ProjectKeys as ProjectKeysFixture} from 'sentry-fixture/projectKeys';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -9,7 +9,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
-import {Organization, Project, ProjectKey} from 'sentry/types';
+import type {Organization, Project, ProjectKey} from 'sentry/types';
 import LoaderScript from 'sentry/views/settings/project/loaderScript';
 
 function mockApi({
@@ -64,7 +64,7 @@ describe('LoaderScript', function () {
 
   it('renders for single project', async function () {
     const {organization, project} = initializeOrg();
-    const projectKey = ProjectKeys()[0];
+    const projectKey = ProjectKeysFixture()[0];
     const projectKeys = [projectKey];
 
     mockApi({organization, project, projectKeys});
@@ -97,6 +97,7 @@ describe('LoaderScript', function () {
           security:
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           unreal: '',
+          crons: '',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',
@@ -143,7 +144,7 @@ describe('LoaderScript', function () {
 
   it('allows to update key settings', async function () {
     const {organization, project} = initializeOrg();
-    const baseKey = ProjectKeys()[0];
+    const baseKey = ProjectKeysFixture()[0];
     const projectKey = {
       ...baseKey,
       dynamicSdkLoaderOptions: {
@@ -234,6 +235,7 @@ describe('LoaderScript', function () {
           security:
             'http://dev.getsentry.net:8000/api/1/security-report/?sentry_key=188ee45a58094d939428d8585aa6f662',
           unreal: '',
+          crons: '',
         },
         public: '188ee45a58094d939428d8585aa6f662',
         secret: 'a33bf9aba64c4bbdaf873bb9023b6d2c',

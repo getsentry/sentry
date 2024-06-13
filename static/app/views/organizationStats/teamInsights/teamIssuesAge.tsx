@@ -8,13 +8,13 @@ import Count from 'sentry/components/count';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import {getTitle} from 'sentry/utils/events';
 import {useApiQuery} from 'sentry/utils/queryClient';
 

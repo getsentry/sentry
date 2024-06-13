@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import sentry_sdk
 
@@ -21,15 +21,15 @@ logger = logging.getLogger(__name__)
 
 
 def query(
-    selected_columns: List[str],
-    query: Optional[str],
+    selected_columns: list[str],
+    query: str | None,
     params: ParamsType,
-    snuba_params: Optional[SnubaParams] = None,
-    equations: Optional[List[str]] = None,
-    orderby: Optional[List[str]] = None,
+    snuba_params: SnubaParams | None = None,
+    equations: list[str] | None = None,
+    orderby: list[str] | None = None,
     offset: int = 0,
     limit: int = 50,
-    limitby: Optional[Tuple[str, int]] = None,
+    limitby: tuple[str, int] | None = None,
     referrer: str = "",
     auto_fields: bool = False,
     auto_aggregations: bool = False,
@@ -38,10 +38,10 @@ def query(
     allow_metric_aggregates: bool = False,
     transform_alias_to_input_format: bool = False,
     has_metrics: bool = False,
-    functions_acl: Optional[List[str]] = None,
+    functions_acl: list[str] | None = None,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -72,19 +72,19 @@ def query(
 
 
 def timeseries_query(
-    selected_columns: List[str],
-    query: Optional[str],
+    selected_columns: list[str],
+    query: str | None,
     params: ParamsType,
     rollup: int,
     referrer: str = "",
     zerofill_results: bool = True,
-    comparison_delta: Optional[datetime] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: datetime | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates: bool = False,
     has_metrics: bool = False,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> Any:
     builder = ProfileFunctionsTimeseriesQueryBuilder(
         dataset=Dataset.Functions,
@@ -141,7 +141,7 @@ def top_events_timeseries(
     functions_acl=None,
     result_key_order=None,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     assert not include_other, "Other is not supported"  # TODO: support other
 
@@ -228,7 +228,7 @@ def format_top_events_timeseries_results(
         if result_key_order is None:
             result_key_order = query_builder.translated_groupby
 
-        results: Dict[str, Any] = {}
+        results: dict[str, Any] = {}
 
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):

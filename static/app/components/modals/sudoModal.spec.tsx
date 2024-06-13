@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -20,20 +20,28 @@ describe('Sudo Modal', function () {
       },
     };
 
+    const organization = OrganizationFixture();
+
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/internal/health/',
-      body: {
-        problems: [],
-      },
-    });
     MockApiClient.addMockResponse({
       url: '/assistant/',
       body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/',
-      body: [Organization()],
+      body: [organization],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/',
+      body: organization,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/projects/',
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
@@ -56,17 +64,8 @@ describe('Sudo Modal', function () {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(true);
 
-    render(
-      <App {...routerProps}>
-        <div>placeholder content</div>
-      </App>
-    );
-
     const successCb = jest.fn();
     const errorCb = jest.fn();
-
-    // No Modal
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
     // Should return w/ `sudoRequired`
     new MockApiClient().request('/organizations/org-slug/', {
@@ -74,6 +73,12 @@ describe('Sudo Modal', function () {
       success: successCb,
       error: errorCb,
     });
+
+    render(
+      <App {...routerProps}>
+        <div>placeholder content</div>
+      </App>
+    );
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
@@ -84,6 +89,10 @@ describe('Sudo Modal', function () {
 
     // Clear mocks and allow DELETE
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/authenticators/',
+      body: [],
+    });
     const orgDeleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
@@ -126,17 +135,14 @@ describe('Sudo Modal', function () {
     const {routerProps} = initializeOrg({router: {params: {}}});
     setHasPasswordAuth(false);
 
+    // Should return w/ `sudoRequired` and trigger the modal to open
+    new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
+
     render(
       <App {...routerProps}>
         <div>placeholder content</div>
       </App>
     );
-
-    // No Modal
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-
-    // Should return w/ `sudoRequired` and trigger the the modal to open
-    new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
 
     // Should have Modal + input
     expect(await screen.findByRole('dialog')).toBeInTheDocument();

@@ -1,15 +1,12 @@
 import moment from 'moment';
 
-import {TableData, useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  encodeSort,
-  EventsMetaType,
-  MetaType,
-} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
+import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {encodeSort} from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -63,17 +60,19 @@ export function useSpansQuery<T = any[]>({
   throw new Error('eventView argument must be defined when Starfish useDiscover is true');
 }
 
-function useWrappedDiscoverTimeseriesQuery<T>({
+export function useWrappedDiscoverTimeseriesQuery<T>({
   eventView,
   enabled,
   initialData,
   referrer,
   cursor,
+  overriddenRoute,
 }: {
   eventView: EventView;
   cursor?: string;
   enabled?: boolean;
   initialData?: any;
+  overriddenRoute?: string;
   referrer?: string;
 }) {
   const location = useLocation();
@@ -86,7 +85,7 @@ function useWrappedDiscoverTimeseriesQuery<T>({
     },
     DiscoverQueryProps
   >({
-    route: 'events-stats',
+    route: overriddenRoute ?? 'events-stats',
     eventView,
     location,
     orgSlug: organization.slug,
@@ -184,35 +183,38 @@ function processDiscoverTimeseriesResult(
   if (!result) {
     return undefined;
   }
+
   if (!eventView.yAxis) {
     return [];
   }
-  let intervals = [] as Interval[];
-  const singleYAxis =
-    eventView.yAxis &&
-    (typeof eventView.yAxis === 'string' || eventView.yAxis.length === 1);
+
   const firstYAxis =
     typeof eventView.yAxis === 'string' ? eventView.yAxis : eventView.yAxis[0];
+
   if (result.data) {
-    const timeSeriesResult: Interval[] = processSingleDiscoverTimeseriesResult(
-      result,
-      singleYAxis ? firstYAxis : 'count'
-    ).map(data => ({
+    // Result data only returned one series. This means there was only only one yAxis requested, and no sub-series. Iterate the data, and return the result
+    return processSingleDiscoverTimeseriesResult(result, firstYAxis).map(data => ({
       interval: moment(parseInt(data.interval, 10) * 1000).format(DATE_FORMAT),
       [firstYAxis]: data[firstYAxis],
       group: data.group,
     }));
-    return timeSeriesResult;
   }
+
+  let intervals = [] as Interval[];
+
+  // Result data had more than one series, grouped by a key. This means either multiple yAxes were requested _or_ a top-N query was set. Iterate the keys, and construct a series for each one.
   Object.keys(result).forEach(key => {
+    // Each key has just one timeseries. Either this is a simple multi-axis query, or a top-N query with just one axis
     if (result[key].data) {
       intervals = mergeIntervals(
         intervals,
-        processSingleDiscoverTimeseriesResult(result[key], singleYAxis ? firstYAxis : key)
+        processSingleDiscoverTimeseriesResult(result[key], key)
       );
     } else {
+      // Each key has more than one timeseries. This is a multi-axis top-N query. Iterate each series, but this time set both the key _and_ the group
       Object.keys(result[key]).forEach(innerKey => {
         if (innerKey !== 'order') {
+          // `order` is a special value, each series has it in a multi-series query
           intervals = mergeIntervals(
             intervals,
             processSingleDiscoverTimeseriesResult(result[key][innerKey], innerKey, key)
@@ -226,42 +228,51 @@ function processDiscoverTimeseriesResult(
     ...interval,
     interval: moment(parseInt(interval.interval, 10) * 1000).format(DATE_FORMAT),
   }));
+
   return processed;
 }
 
 function processSingleDiscoverTimeseriesResult(result, key: string, group?: string) {
   const intervals = [] as Interval[];
+
   result.data.forEach(([timestamp, [{count: value}]]) => {
     const existingInterval = intervals.find(
       interval =>
         interval.interval === timestamp && (group ? interval.group === group : true)
     );
+
     if (existingInterval) {
       existingInterval[key] = value;
       return;
     }
+
     intervals.push({
       interval: timestamp,
       [key]: value,
       group,
     });
   });
+
   return intervals;
 }
 
 function mergeIntervals(first: Interval[], second: Interval[]) {
   const target: Interval[] = JSON.parse(JSON.stringify(first));
+
   second.forEach(({interval: timestamp, group, ...rest}) => {
     const existingInterval = target.find(
       interval =>
         interval.interval === timestamp && (group ? interval.group === group : true)
     );
+
     if (existingInterval) {
       Object.keys(rest).forEach(key => {
         existingInterval[key] = rest[key];
       });
+
       return;
     }
+
     target.push({interval: timestamp, group, ...rest});
   });
   return target;

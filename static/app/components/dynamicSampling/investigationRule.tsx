@@ -3,23 +3,19 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Feature from 'sentry/components/acl/feature';
-import {BaseButtonProps, Button} from 'sentry/components/button';
+import type {BaseButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion, IconStack} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import {
-  ApiQueryKey,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {useApiQuery, useMutation, useQueryClient} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -84,16 +80,12 @@ function hasTooFewSamples(numSamples: number | null | undefined) {
 function useGetExistingRule(
   query: string,
   projects: number[],
-  organization: Organization,
-  numSamples: number | null | undefined
+  organization: Organization
 ) {
-  const enabled = hasTooFewSamples(numSamples);
-
   const result = useApiQuery<CustomDynamicSamplingRule | '' | null>(
     makeRuleExistsQueryKey(query, projects, organization),
     {
       staleTime: 0,
-      enabled,
       // No retries for 4XX errors.
       // This makes the error feedback a lot faster, and there is no unnecessary network traffic.
       retry: (failureCount, error) => {
@@ -176,7 +168,7 @@ function useCreateInvestigationRuleMutation() {
 const InvestigationInProgressNotification = styled('span')`
   font-size: ${p => p.theme.fontSizeMedium};
   color: ${p => p.theme.subText};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   display: inline-flex;
   align-items: center;
   gap: ${space(0.5)};
@@ -207,10 +199,11 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     isLoading,
     isError,
     error,
-  } = useGetExistingRule(query, projects, organization, props.numSamples);
+  } = useGetExistingRule(query, projects, organization);
 
   const isTransactionQueryMissing = checkIsTransactionQueryMissing(error);
   const isBreakingRequestError = isError && !isTransactionQueryMissing;
+  const isLikelyMoreNeeded = hasTooFewSamples(props.numSamples);
 
   useEffect(() => {
     if (isBreakingRequestError) {
@@ -218,11 +211,6 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
     }
   }, [isBreakingRequestError]);
 
-  if (!hasTooFewSamples(props.numSamples)) {
-    // no results yet (we can't take a decision) or enough results,
-    // we don't need investigation rule UI
-    return null;
-  }
   if (isLoading) {
     return null;
   }
@@ -286,7 +274,7 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
       }
     >
       <Button
-        priority="primary"
+        priority={isLikelyMoreNeeded ? 'primary' : 'default'}
         {...props.buttonProps}
         disabled={isTransactionQueryMissing}
         onClick={() => createInvestigationRule({organization, period, projects, query})}
@@ -300,11 +288,12 @@ function InvestigationRuleCreationInternal(props: PropsInternal) {
 
 export function InvestigationRuleCreation(props: Props) {
   const organization = useOrganization();
-  return (
-    <Feature features="investigation-bias">
-      <InvestigationRuleCreationInternal {...props} organization={organization} />
-    </Feature>
-  );
+
+  if (!organization.isDynamicallySampled) {
+    return null;
+  }
+
+  return <InvestigationRuleCreationInternal {...props} organization={organization} />;
 }
 
 const StyledIconQuestion = styled(IconQuestion)`

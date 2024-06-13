@@ -33,13 +33,10 @@ class HandleStatusChangeTest(TestCase):
             new_status=GroupStatus.UNRESOLVED,
             new_substatus=GroupSubStatus.ONGOING,
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -59,13 +56,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_unresolved.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -85,13 +79,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreDuration": 30},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreDuration") == 30
 
         assert GroupHistory.objects.filter(
@@ -111,13 +102,10 @@ class HandleStatusChangeTest(TestCase):
             is_bulk=True,
             status_details={"ignoreUntilEscalating": True},
             sender=self,
-            activity_type=None,
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreUntilEscalating")
 
         assert GroupHistory.objects.filter(

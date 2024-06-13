@@ -1,4 +1,4 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
+import {GroupFixture} from 'sentry-fixture/group';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -24,7 +24,6 @@ describe('ReprocessEventModal', function () {
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 
@@ -73,7 +72,6 @@ describe('ReprocessEventModal', function () {
       organization: {
         id: '4660',
         slug: 'org',
-        features: ['reprocessing-v2'],
       },
     });
 

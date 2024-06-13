@@ -1,23 +1,28 @@
 from __future__ import annotations
 
 import dataclasses
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from rest_framework import status as status_
 from rest_framework.request import Request
+from slack_sdk.signature import SignatureVerifier
 
-from sentry import options
+from sentry import features, options
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.identity.model import RpcIdentityProvider
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.utils.safe import get_path
 
 from ..utils import check_signing_secret, logger
 
 
 def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
-    id_option: str | None = data.get(f"{field_name}_id") or data.get(field_name, {}).get("id")
+    id_option: str | None = data.get(f"{field_name}_id") or get_path(data, field_name, "id")
     return id_option
 
 
@@ -62,6 +67,7 @@ class SlackRequest:
         self._provider: RpcIdentityProvider | None = None
         self._user: RpcUser | None = None
         self._data: MutableMapping[str, Any] = {}
+        self._organization: RpcOrganizationSummary | None = None  # temporary, used for FF check
 
     def validate(self) -> None:
         """
@@ -106,6 +112,15 @@ class SlackRequest:
         self._identity = context.identity
         self._user = context.user
 
+        if context.integration:
+            org_integrations = integration_service.get_organization_integrations(
+                integration_id=context.integration.id, status=0
+            )
+            if org_integrations:
+                self._organization = organization_service.get(
+                    id=org_integrations[0].organization_id
+                )
+
     @property
     def integration(self) -> RpcIntegration:
         if not self._integration:
@@ -113,7 +128,7 @@ class SlackRequest:
         return self._integration
 
     @property
-    def channel_id(self) -> str:
+    def channel_id(self) -> str | None:
         return get_field_id(self.data, "channel")
 
     @property
@@ -121,12 +136,12 @@ class SlackRequest:
         return self.data.get("response_url", "")
 
     @property
-    def team_id(self) -> str:
-        return get_field_id(self.data, "team")
+    def team_id(self) -> str | None:
+        return _get_field_id_option(self.data, "team")
 
     @property
-    def user_id(self) -> str:
-        return get_field_id(self.data, "user")
+    def user_id(self) -> str | None:
+        return _get_field_id_option(self.data, "user")
 
     @property
     def data(self) -> Mapping[str, Any]:
@@ -209,6 +224,21 @@ class SlackRequest:
         timestamp = self.request.META.get("HTTP_X_SLACK_REQUEST_TIMESTAMP")
         if not (signature and timestamp):
             return False
+
+        log_extra = {
+            "organization_id": self._organization.id if self._organization else None,
+            "integration_id": self._integration.id if self._integration else None,
+        }
+
+        if self._organization and features.has(
+            "organizations:slack-sdk-signature", self._organization
+        ):
+            logger.info("slack.request.verify_signature", extra=log_extra)
+            return SignatureVerifier(signing_secret).is_valid(
+                body=self.request.body, timestamp=timestamp, signature=signature
+            )
+
+        logger.info("slack.request.check_signing_secret", extra=log_extra)
 
         return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
 

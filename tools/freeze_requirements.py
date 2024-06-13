@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import argparse
 import os
+from collections.abc import Sequence
 from concurrent.futures import Future, ThreadPoolExecutor
 from os.path import abspath
 from subprocess import CalledProcessError, run
-from typing import Sequence
 
 from tools.lib import gitroot
 

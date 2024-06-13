@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
@@ -30,7 +31,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
-    owner = ApiOwner.OWNERS_SNUBA
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
@@ -52,6 +53,18 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             visibility=Visibility.OWNER_PINNED,
             values={"query": result["query"], "sort": result["sort"]},
         )
+
+        # This entire endpoint will be removed once custom views are GA'd
+        GroupSearchView.objects.create_or_update(
+            organization=organization,
+            user_id=request.user.id,
+            position=0,
+            values={
+                "name": "Default Search",
+                "query": result["query"],
+                "query_sort": result["sort"],
+            },
+        )
         pinned_search = SavedSearch.objects.get(
             organization=organization,
             owner_id=request.user.id,
@@ -71,5 +84,8 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             owner_id=request.user.id,
             type=search_type.value,
             visibility=Visibility.OWNER_PINNED,
+        ).delete()
+        GroupSearchView.objects.filter(
+            organization=organization, user_id=request.user.id, position=0
         ).delete()
         return Response(status=204)

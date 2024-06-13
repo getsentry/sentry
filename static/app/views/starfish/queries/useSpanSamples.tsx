@@ -8,12 +8,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useSpanMetricsSeries';
-import {
-  SpanIndexedField,
+import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
 import {DATE_FORMAT} from 'sentry/views/starfish/utils/useSpansQuery';
 
@@ -23,8 +23,8 @@ type Options = {
   groupId: string;
   transactionName: string;
   additionalFields?: string[];
-  query?: string[];
   release?: string;
+  spanSearch?: MutableSearch;
   transactionMethod?: string;
 };
 
@@ -37,6 +37,7 @@ export type SpanSample = Pick<
   | SpanIndexedField.ID
   | SpanIndexedField.PROFILE_ID
   | SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH
+  | SpanIndexedField.TRACE
 >;
 
 export const useSpanSamples = (options: Options) => {
@@ -49,16 +50,14 @@ export const useSpanSamples = (options: Options) => {
     transactionName,
     transactionMethod,
     release,
-    query: extraQuery = [],
+    spanSearch,
     additionalFields,
   } = options;
   const location = useLocation();
 
-  const query = new MutableSearch([
-    `${SPAN_GROUP}:${groupId}`,
-    `transaction:"${transactionName}"`,
-    ...extraQuery,
-  ]);
+  const query = spanSearch !== undefined ? spanSearch.copy() : new MutableSearch([]);
+  query.addFilterValue(SPAN_GROUP, groupId);
+  query.addFilterValue('transaction', transactionName);
 
   const filters: SpanMetricsQueryFilters = {
     transaction: transactionName,
@@ -77,8 +76,13 @@ export const useSpanSamples = (options: Options) => {
   const dateCondtions = getDateConditions(pageFilter.selection);
 
   const {isLoading: isLoadingSeries, data: spanMetricsSeriesData} = useSpanMetricsSeries(
-    {'span.group': groupId, ...filters},
-    [`avg(${SPAN_SELF_TIME})`],
+    {
+      search: MutableSearch.fromQueryObject({'span.group': groupId, ...filters}),
+      yAxis: [`avg(${SPAN_SELF_TIME})`],
+      enabled: Object.values({'span.group': groupId, ...filters}).every(value =>
+        Boolean(value)
+      ),
+    },
     'api.starfish.sidebar-span-metrics'
   );
 

@@ -1,17 +1,18 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import Feature from 'sentry/components/acl/feature';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   MissingFrame,
   StackTraceMiniFrame,
 } from 'sentry/views/starfish/components/stackTraceMiniFrame';
+import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {SpanIndexedField, SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/starfish/types';
 import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 interface Props {
@@ -36,10 +37,17 @@ export function DatabaseSpanDescription({
   groupId,
   preliminaryDescription,
 }: Omit<Props, 'op'>) {
-  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useIndexedSpans(
-    {'span.group': groupId},
-    [INDEXED_SPAN_SORT],
-    1
+  const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpansIndexed(
+    {
+      search: MutableSearch.fromQueryObject({'span.group': groupId}),
+      limit: 1,
+      fields: [
+        SpanIndexedField.PROJECT_ID,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.SPAN_DESCRIPTION,
+      ],
+    },
+    'api.starfish.span-description'
   );
   const indexedSpan = indexedSpans?.[0];
 
@@ -69,25 +77,23 @@ export function DatabaseSpanDescription({
         </CodeSnippet>
       )}
 
-      <Feature features={['organizations:performance-database-view-query-source']}>
-        {!areIndexedSpansLoading && !isRawSpanLoading && (
-          <Fragment>
-            {rawSpan?.data?.['code.filepath'] ? (
-              <StackTraceMiniFrame
-                projectId={indexedSpan?.project_id?.toString()}
-                eventId={indexedSpan?.['transaction.id']}
-                frame={{
-                  filename: rawSpan?.data?.['code.filepath'],
-                  lineNo: rawSpan?.data?.['code.lineno'],
-                  function: rawSpan?.data?.['code.function'],
-                }}
-              />
-            ) : (
-              <MissingFrame />
-            )}
-          </Fragment>
-        )}
-      </Feature>
+      {!areIndexedSpansLoading && !isRawSpanLoading && (
+        <Fragment>
+          {rawSpan?.data?.['code.filepath'] ? (
+            <StackTraceMiniFrame
+              projectId={indexedSpan?.project_id?.toString()}
+              eventId={indexedSpan?.['transaction.id']}
+              frame={{
+                filename: rawSpan?.data?.['code.filepath'],
+                lineNo: rawSpan?.data?.['code.lineno'],
+                function: rawSpan?.data?.['code.function'],
+              }}
+            />
+          ) : (
+            <MissingFrame />
+          )}
+        </Fragment>
+      )}
     </Frame>
   );
 }
@@ -97,7 +103,7 @@ const INDEXED_SPAN_SORT = {
   kind: 'desc' as const,
 };
 
-const Frame = styled('div')`
+export const Frame = styled('div')`
   border: solid 1px ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
   overflow: hidden;

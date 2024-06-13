@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import {ItemType, SearchGroup} from 'sentry/components/smartSearchBar/types';
+import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
+import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
 import {IconStar, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -60,8 +61,8 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         .filter(team => !team.isMember)
         .map(team => `#${team.slug}`);
 
-      const meAndMyTeams = ['my_teams', '[me, my_teams, none]'];
-      const suggestedAssignees: string[] = ['me', ...meAndMyTeams, ...userTeams];
+      const meAndMyTeamsNone = ['my_teams', 'none', '[me, my_teams, none]'];
+      const suggestedAssignees: string[] = ['me', ...meAndMyTeamsNone, ...userTeams];
       const assigndValues: SearchGroup[] | string[] = [
         {
           title: t('Suggested Values'),

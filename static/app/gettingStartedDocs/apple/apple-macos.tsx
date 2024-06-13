@@ -5,6 +5,10 @@ import type {
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {
+  getCrashReportApiIntroduction,
+  getCrashReportInstallDescription,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -22,16 +26,27 @@ import Sentry
 
 // ....
 
-func application(_ application: UIApplication,
-    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+func applicationDidFinishLaunching(_ aNotification: Notification) {
 
     SentrySDK.start { options in
         options.dsn = "${params.dsn}"
-        options.debug = true // Enabled debug when first installing is always helpful
+        options.debug = true // Enabling debug when first installing is always helpful${
+          params.isPerformanceSelected
+            ? `
 
         // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
         // We recommend adjusting this value in production.
-        options.tracesSampleRate = 1.0
+        options.tracesSampleRate = 1.0`
+            : ''
+        }${
+          params.isProfilingSelected
+            ? `
+
+        // Sample rate for profiling, applied on top of TracesSampleRate.
+        // We recommend adjusting this value in production.
+        options.profilesSampleRate = 1.0`
+            : ''
+        }
     }
 
     return true
@@ -45,11 +60,23 @@ struct SwiftUIApp: App {
     init() {
         SentrySDK.start { options in
             options.dsn = "${params.dsn}"
-            options.debug = true // Enabled debug when first installing is always helpful
+            options.debug = true // Enabling debug when first installing is always helpful${
+              params.isPerformanceSelected
+                ? `
 
             // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
             // We recommend adjusting this value in production.
-            options.tracesSampleRate = 1.0
+            options.tracesSampleRate = 1.0`
+                : ''
+            }${
+              params.isProfilingSelected
+                ? `
+
+            // Sample rate for profiling, applied on top of TracesSampleRate.
+            // We recommend adjusting this value in production.
+            options.profilesSampleRate = 1.0`
+                : ''
+            }
         }
     }
 }`;
@@ -111,9 +138,13 @@ const onboarding: OnboardingConfig = {
       description: (
         <p>
           {tct(
-            'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your AppDelegate [appDelegate: application:didFinishLaunchingWithOptions] method:',
+            'Make sure you initialize the SDK as soon as possible in your application lifecycle e.g. in your [appDelegate:] method:',
             {
-              appDelegate: <code />,
+              appDelegate: (
+                <code>
+                  - [NSAppDelegate applicationDidFinishLaunchingWithNotification:]
+                </code>
+              ),
             }
           )}
         </p>
@@ -195,8 +226,92 @@ const onboarding: OnboardingConfig = {
   ],
 };
 
+export const appleFeedbackOnboarding: OnboardingConfig = {
+  introduction: () => getCrashReportApiIntroduction(),
+  install: (params: Params) => [
+    {
+      type: StepType.INSTALL,
+      description: getCrashReportInstallDescription(),
+      configurations: [
+        {
+          code: [
+            {
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: `import Sentry
+
+let eventId = SentrySDK.capture(message: "My message.")
+
+let userFeedback = UserFeedback(eventId: eventId)
+userFeedback.comments = "It broke."
+userFeedback.email = "john.doe@example.com"
+userFeedback.name = "John Doe"
+SentrySDK.capture(userFeedback: userFeedback)`,
+            },
+            {
+              label: 'Objective-C',
+              value: 'c',
+              language: 'c',
+              code: `@import Sentry;
+
+SentryId *eventId = [SentrySDK captureMessage:@"My message"];
+
+SentryUserFeedback *userFeedback = [[SentryUserFeedback alloc] initWithEventId:eventId];
+userFeedback.comments = @"It broke.";
+userFeedback.email = @"john.doe@example.com";
+userFeedback.name = @"John Doe";
+[SentrySDK captureUserFeedback:userFeedback];`,
+            },
+          ],
+        },
+        {
+          description: tct(
+            'To capture user feedback regarding a crash, use the [code:SentryOptions.onCrashedLastRun] callback. This callback gets called shortly after the initialization of the SDK when the last program execution terminated with a crash. It is not guaranteed that this is called on the main thread.',
+            {code: <code />}
+          ),
+          code: [
+            {
+              label: 'Swift',
+              value: 'swift',
+              language: 'swift',
+              code: `import Sentry
+
+SentrySDK.start { options in
+    options.dsn = "${params.dsn}"
+    options.onCrashedLastRun = { event in
+        // capture user feedback
+    }
+}
+`,
+            },
+            {
+              label: 'Objective-C',
+              value: 'c',
+              language: 'c',
+              code: `@import Sentry;
+
+[SentrySDK startWithConfigureOptions:^(SentryOptions *options) {
+    options.dsn = @"${params.dsn}";
+    options.onCrashedLastRun = ^void(SentryEvent * _Nonnull event) {
+        // capture user feedback
+    };
+}];`,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  configure: () => [],
+  verify: () => [],
+  nextSteps: () => [],
+};
+
 const docs: Docs = {
   onboarding,
+  feedbackOnboardingCrashApi: appleFeedbackOnboarding,
+  crashReportOnboarding: appleFeedbackOnboarding,
 };
 
 export default docs;

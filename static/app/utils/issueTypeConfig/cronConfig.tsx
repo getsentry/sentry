@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const cronConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -22,11 +22,13 @@ const cronConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     attachments: {enabled: false},
+    autofix: false,
     mergedIssues: {enabled: false},
     replays: {enabled: false},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
+    traceTimeline: false,
   },
 };
 

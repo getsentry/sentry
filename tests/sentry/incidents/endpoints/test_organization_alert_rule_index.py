@@ -6,22 +6,25 @@ import pytest
 import responses
 from django.db import router, transaction
 from django.test.utils import override_settings
+from rest_framework import status
 
 from sentry import audit_log
+from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUBSCRIPTIONS_HEADER
 from sentry.api.serializers import serialize
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
@@ -30,8 +33,9 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
@@ -80,6 +84,7 @@ class AlertRuleBase(APITestCase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
+            "activations": [],
         }
 
 
@@ -106,8 +111,45 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         resp = self.get_response(self.organization.slug)
         assert resp.status_code == 404
 
+    def test_filter_by_monitor_type(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        self.login_as(self.user)
 
-@region_silo_test
+        params = {"monitor_type": 1}
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug, **params)
+
+        assert serialize([alert_rule2]) not in resp.data
+        assert resp.data == serialize([alert_rule1])
+
+    def test_response_headers(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        self.login_as(self.user)
+
+        with self.feature("organizations:incidents"):
+            resp = self.get_response(self.organization.slug)
+
+        assert resp[ALERT_RULES_COUNT_HEADER] == "2"
+        assert resp[MAX_QUERY_SUBSCRIPTIONS_HEADER] == "1000"
+
+    def test_simple_with_activation(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        alert_rule = self.create_alert_rule()
+        self.create_alert_rule_activation(
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+        )
+
+        self.login_as(self.user)
+        with self.feature("organizations:incidents"):
+            resp = self.get_success_response(self.organization.slug)
+
+        assert resp.data == serialize([alert_rule])
+
+
 @freeze_time()
 class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     method = "post"
@@ -122,8 +164,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         self.login_as(self.user)
 
     def test_simple(self):
-        with outbox_runner(), self.feature(
-            ["organizations:incidents", "organizations:performance-view"]
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
         ):
             resp = self.get_success_response(
                 self.organization.slug,
@@ -144,13 +187,78 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        data = {
+            **self.alert_rule_dict,
+            "description": "yeehaw",
+        }
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.description == resp.data.get("description")
+
+    def test_monitor_type_with_condition(self):
+        data = {
+            **self.alert_rule_dict,
+            "monitorType": AlertRuleMonitorType.ACTIVATED.value,
+            "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
+        }
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents"]),
+        ):
+            err_resp = self.get_error_response(
+                self.organization.slug,
+                method=responses.POST,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                **data,
+            ).json()
+        assert err_resp == {"monitorType": ["Invalid monitor type"]}
+
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:activated-alert-rules"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+
+    def test_multiple_projects(self):
+        new_project = self.create_project()
+        data = {**self.alert_rule_dict, "projects": [self.project.slug, new_project.slug]}
+        with outbox_runner(), self.feature(["organizations:incidents"]):
+            response_data = self.get_error_response(
+                self.organization.slug,
+                method=responses.POST,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                **data,
+            ).json()
+            assert "projects" in response_data
+
     def test_status_filter(self):
-        with outbox_runner(), self.feature(
-            [
-                "organizations:incidents",
-                "organizations:performance-view",
-                "organizations:metric-alert-ignore-archived",
-            ]
+        with (
+            outbox_runner(),
+            self.feature(
+                [
+                    "organizations:incidents",
+                    "organizations:performance-view",
+                    "organizations:metric-alert-ignore-archived",
+                ]
+            ),
         ):
             data = deepcopy(self.alert_rule_dict)
             data["query"] = "is:unresolved"
@@ -524,8 +632,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         assert resp.status_code == 404
 
     def test_no_perms(self):
-        with assume_test_silo_mode(SiloMode.REGION), outbox_context(
-            transaction.atomic(using=router.db_for_write(OrganizationMember))
+        with (
+            assume_test_silo_mode(SiloMode.REGION),
+            outbox_context(transaction.atomic(using=router.db_for_write(OrganizationMember))),
         ):
             OrganizationMember.objects.filter(user_id=self.user.id).update(role="member")
         with self.feature("organizations:incidents"):
@@ -585,14 +694,14 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="slack",
-                name="Team A",
-                external_id="TXXXXXXX1",
-                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-            )
-            self.integration.add_organization(self.organization, self.user)
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
         valid_alert_rule = {
             **self.alert_rule_dict,
             "triggers": [
@@ -633,7 +742,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_uuid4.return_value = self.get_mock_uuid()
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
+            self.integration = self.create_provider_integration(
                 provider="slack",
                 name="Team A",
                 external_id="TXXXXXXX1",
@@ -775,7 +884,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:use-metrics-layer-in-alerts",
+                "organizations:custom-metrics",
             ]
         ):
             for mri in (
@@ -808,8 +917,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:ddm-experimental",
-                "organizations:use-metrics-layer-in-alerts",
+                "organizations:custom-metrics",
             ]
         ):
             for mri in (
@@ -842,8 +950,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:ddm-experimental",
-                "organizations:use-metrics-layer-in-alerts",
+                "organizations:custom-metrics",
             ]
         ):
             test_params = {
@@ -863,8 +970,36 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 == "You can use an MRI only on alerts on performance metrics"
             )
 
+    def test_post_rule_256_char_name(self):
+        char_256_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFO"
+        alert_rule_dict = self.alert_rule_dict
+        alert_rule_dict["name"] = char_256_name
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **alert_rule_dict,
+            )
+        rule = AlertRule.objects.get(id=resp.data["id"])
+        assert rule.name == char_256_name
 
-# TODO(Gabe): Rewrite this test to properly annotate the silo mode
+    def test_post_rule_over_256_char_name(self):
+        char_257_name = "wOOFmsWY80o0RPrlsrrqDp2Ylpr5K2unBWbsrqvuNb4Fy3vzawkNAyFJdqeFLlXNWF2kMfgMT9EQmFF3u3MqW3CTI7L2SLsmS9uSDQtcinjlZrr8BT4v8Q6ySrVY5HmiFO97w3awe4lA8uyVikeaSwPjt8MD5WSjdTI0RRXYeK3qnHTpVswBe9AIcQVMLKQXHgjulpsrxHc0DI0Vb8hKA4BhmzQXhYmAvKK26ZwCSjJurAODJB6mgIdlV7tigsFOK"
+        alert_rule_dict = self.alert_rule_dict
+        alert_rule_dict["name"] = char_257_name
+        with (
+            outbox_runner(),
+            self.feature(["organizations:incidents", "organizations:performance-view"]),
+        ):
+            resp = self.get_error_response(
+                self.organization.slug, status_code=400, **alert_rule_dict
+            )
+        assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
+
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
     method = "post"
@@ -901,7 +1036,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
             "projects": [self.project.slug],
             "owner": self.user.id,
             "name": "JustAValidTestRule",
-            "dataset": "sessions",
+            "dataset": "metrics",
             "eventTypes": [],
         }
 
@@ -971,14 +1106,14 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.integration = Integration.objects.create(
-                provider="slack",
-                name="Team A",
-                external_id="TXXXXXXX1",
-                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-            )
-            self.integration.add_organization(self.organization, self.user)
+        self.integration, _ = self.create_provider_integration_for(
+            self.organization,
+            self.user,
+            provider="slack",
+            name="Team A",
+            external_id="TXXXXXXX1",
+            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+        )
         self.valid_alert_rule["triggers"] = [
             {
                 "label": "critical",
@@ -1008,7 +1143,6 @@ class AlertRuleCreateEndpointTestCrashRateAlert(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
-@region_silo_test
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     method = "post"

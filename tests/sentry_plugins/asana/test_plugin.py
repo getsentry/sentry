@@ -1,5 +1,6 @@
 from functools import cached_property
 
+import orjson
 import pytest
 import responses
 from django.contrib.auth.models import AnonymousUser
@@ -7,12 +8,9 @@ from django.test import RequestFactory
 
 from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 from sentry_plugins.asana.plugin import AsanaPlugin
 
 
-@region_silo_test
 class AsanaPluginTest(PluginTestCase):
     @cached_property
     def plugin(self):
@@ -67,7 +65,7 @@ class AsanaPluginTest(PluginTestCase):
 
         assert self.plugin.create_issue(request, group, form_data) == 1
         request = responses.calls[0].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"data": {"notes": "Fix this.", "name": "Hello", "workspace": "12345678"}}
 
     @responses.activate
@@ -121,5 +119,5 @@ class AsanaPluginTest(PluginTestCase):
 
         assert self.plugin.link_issue(request, group, form_data) == {"title": "Hello"}
         request = responses.calls[-1].request
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"data": {"text": "please fix this"}}

@@ -37,8 +37,8 @@ from rest_framework.response import Response
 @region_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     plugin = None
     view = None

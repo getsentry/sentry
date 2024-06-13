@@ -1,13 +1,11 @@
 import styled from '@emotion/styled';
 
-import ContextData from 'sentry/components/contextData';
 import PreviewPanelItem from 'sentry/components/events/attachmentViewers/previewPanelItem';
-import {
-  getAttachmentUrl,
-  ViewerProps,
-} from 'sentry/components/events/attachmentViewers/utils';
+import type {ViewerProps} from 'sentry/components/events/attachmentViewers/utils';
+import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -51,13 +49,7 @@ export default function JsonViewer(props: ViewerProps) {
 
   return (
     <PreviewPanelItem>
-      <StyledContextData
-        data={json}
-        maxDefaultDepth={4}
-        preserveQuotes
-        style={{width: '100%'}}
-        jsonConsts
-      />
+      <StyledJsonData data={json} maxDefaultDepth={4} />
     </PreviewPanelItem>
   );
 }
@@ -68,6 +60,7 @@ const LoadingContainer = styled('div')`
   padding: ${space(1)};
 `;
 
-const StyledContextData = styled(ContextData)`
+const StyledJsonData = styled(JsonEventData)`
   margin-bottom: 0;
+  width: 100%;
 `;

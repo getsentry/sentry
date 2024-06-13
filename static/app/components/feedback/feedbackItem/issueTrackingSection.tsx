@@ -1,9 +1,10 @@
-import {Fragment, ReactNode} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment} from 'react';
 
 import AlertLink from 'sentry/components/alertLink';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ExternalIssueActions from 'sentry/components/group/externalIssuesList/externalIssueActions';
-import {
+import type {
   ExternalIssueType,
   IntegrationComponent,
   PluginActionComponent,

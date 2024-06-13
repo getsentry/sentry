@@ -1,13 +1,13 @@
 import {useEffect} from 'react';
 
-import {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
-import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
+import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function useDrawSelectedBorderEffect({

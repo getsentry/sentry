@@ -1,4 +1,4 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {
@@ -8,7 +8,8 @@ import {
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EntryType, EventTransaction, IssueTitle, IssueType} from 'sentry/types';
+import {EntryType, IssueTitle, IssueType} from 'sentry/types';
+import type {EventTransaction} from 'sentry/types/event';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
 import {SpanEvidenceSection} from './spanEvidence';
@@ -76,7 +77,7 @@ describe('spanEvidence', () => {
 
     render(
       <SpanEvidenceSection
-        event={builder.getEvent()}
+        event={builder.getEventFixture()}
         organization={organization}
         projectSlug={project.slug}
       />,

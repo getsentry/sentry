@@ -115,9 +115,10 @@ if memcached:
     memcached_port = env("SENTRY_MEMCACHED_PORT") or "11211"
     CACHES = {
         "default": {
-            "BACKEND": "django.core.cache.backends.memcached.MemcachedCache",
+            "BACKEND": "django.core.cache.backends.memcached.PyMemcacheCache",
             "LOCATION": [memcached + ":" + memcached_port],
             "TIMEOUT": 3600,
+            "OPTIONS": {"ignore_exc": True},
         }
     }
 
@@ -146,7 +147,7 @@ if rabbitmq:
         + (env("SENTRY_RABBITMQ_VHOST") or env("RABBITMQ_ENV_RABBITMQ_DEFAULT_VHOST") or "/")
     )
 else:
-    BROKER_URL = "redis://:" + redis_password + "@" + redis + ":" + redis_port + "/" + redis_db
+    BROKER_URL = f"redis://{redis_password}@{redis}:{redis_port}/{redis_db}"
 
 
 ###############
@@ -262,3 +263,4 @@ if "SENTRY_RUNNING_UWSGI" not in os.environ and len(secret_key) < 32:
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 
 SENTRY_OPTIONS["system.secret-key"] = secret_key
+SENTRY_USE_RELAY = True

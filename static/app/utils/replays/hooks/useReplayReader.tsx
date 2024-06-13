@@ -1,31 +1,57 @@
 import {useMemo} from 'react';
 
+import type {Group} from 'sentry/types/group';
 import useReplayData from 'sentry/utils/replays/hooks/useReplayData';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   orgSlug: string;
   replaySlug: string;
+  clipWindow?: {
+    endTimestampMs: number;
+    startTimestampMs: number;
+  };
+  group?: Group;
 };
 
-export default function useReplayReader({orgSlug, replaySlug}: Props) {
+export default function useReplayReader({orgSlug, replaySlug, clipWindow, group}: Props) {
   const replayId = parseReplayId(replaySlug);
-  const organization = useOrganization();
-
-  const showHydrationErrors = organization.features.includes(
-    'session-replay-show-hydration-errors'
-  );
 
   const {attachments, errors, replayRecord, ...replayData} = useReplayData({
     orgSlug,
     replayId,
   });
 
+  // get first error matching our group
+  const firstMatchingError = useMemo(
+    () => group && errors.find(error => error['issue.id'].toString() === group.id),
+    [errors, group]
+  );
+
+  // if we don't have a clip window, we'll use the error time to create a clip window
+  const memoizedClipWindow = useMemo(() => {
+    const errorTime = firstMatchingError
+      ? new Date(firstMatchingError.timestamp)
+      : undefined;
+
+    return (
+      clipWindow ??
+      (errorTime && {
+        startTimestampMs: errorTime.getTime() - 1000 * 5,
+        endTimestampMs: errorTime.getTime() + 1000 * 5,
+      })
+    );
+  }, [clipWindow, firstMatchingError]);
+
   const replay = useMemo(
     () =>
-      ReplayReader.factory({attachments, errors, replayRecord}, {showHydrationErrors}),
-    [attachments, errors, replayRecord, showHydrationErrors]
+      ReplayReader.factory({
+        attachments,
+        clipWindow: memoizedClipWindow,
+        errors,
+        replayRecord,
+      }),
+    [attachments, memoizedClipWindow, errors, replayRecord]
   );
 
   return {

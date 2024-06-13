@@ -1,18 +1,16 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 import moment from 'moment';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import {DataSection} from 'sentry/components/events/styles';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -166,7 +164,6 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
       <GridEditable
         isLoading={false}
         data={spanOpDiffs}
-        location={location}
         columnOrder={[
           {key: 'span_op', name: t('Span Operation'), width: 200},
           {key: 'p95', name: t('p95'), width: COL_WIDTH_UNDEFINED},

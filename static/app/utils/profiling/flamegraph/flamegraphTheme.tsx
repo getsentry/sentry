@@ -9,9 +9,9 @@ import {
   makeColorMapBySystemVsApplicationFrame,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
-import {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Frame} from 'sentry/utils/profiling/frame';
+import type {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {Frame} from 'sentry/utils/profiling/frame';
 import {hexToColorChannels} from 'sentry/utils/profiling/gl/utils';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
 

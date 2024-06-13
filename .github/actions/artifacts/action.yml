@@ -13,15 +13,20 @@ inputs:
   token:
     description: 'The codecov token'
     required: true
+  commit_sha:
+    description: 'The commit sha'
+    required: true
 
 runs:
   using: 'composite'
   steps:
     - name: Upload to codecov
-      uses: codecov/codecov-action@81cd2dc8148241f03f5839d295e000b8f761e378 # v3.1.0
+      uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044 # v4.0.1
       with:
         token: ${{ inputs.token }}
         flags: ${{ inputs.type }}
         files: ${{ inputs.files }}
+        override_commit: ${{ inputs.commit_sha}}
+        plugin: noop
         verbose: true
       continue-on-error: true

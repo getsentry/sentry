@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
 from sentry.dynamic_sampling.models.base import Model, ModelInput
 from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_counts
@@ -7,10 +6,10 @@ from sentry.dynamic_sampling.models.common import RebalancedItem, sum_classes_co
 
 @dataclass
 class FullRebalancingInput(ModelInput):
-    classes: List[RebalancedItem]
+    classes: list[RebalancedItem]
     sample_rate: float
     intensity: float
-    min_budget: Optional[float] = None
+    min_budget: float | None = None
 
     def validate(self) -> bool:
         return (
@@ -20,8 +19,8 @@ class FullRebalancingInput(ModelInput):
         )
 
 
-class FullRebalancingModel(Model[FullRebalancingInput, Tuple[List[RebalancedItem], float]]):
-    def _run(self, model_input: FullRebalancingInput) -> Tuple[List[RebalancedItem], float]:
+class FullRebalancingModel(Model[FullRebalancingInput, tuple[list[RebalancedItem], float]]):
+    def _run(self, model_input: FullRebalancingInput) -> tuple[list[RebalancedItem], float]:
         """
         Tries to calculate rates that brings all counts close to the ideal count.
 

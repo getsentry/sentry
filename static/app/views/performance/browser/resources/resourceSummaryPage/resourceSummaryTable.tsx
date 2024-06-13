@@ -1,13 +1,12 @@
 import {Fragment} from 'react';
-import {browserHistory, Link} from 'react-router';
+import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumnHeader,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {GridColumnHeader, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import Link from 'sentry/components/links/link';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -178,7 +177,6 @@ function ResourceSummaryTable() {
             }),
           renderBodyCell,
         }}
-        location={location}
       />
       <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>

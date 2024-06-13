@@ -1,14 +1,13 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {EventEntry as EventEntryFixture} from 'sentry-fixture/eventEntry';
-import {EventStacktraceException as EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {EventFixture} from 'sentry-fixture/event';
+import {EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {EventStacktraceExceptionFixture} from 'sentry-fixture/eventStacktraceException';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {RouteContext} from 'sentry/views/routeContext';
 import SharedGroupDetails from 'sentry/views/sharedGroupDetails';
 
 describe('SharedGroupDetails', function () {
@@ -25,7 +24,7 @@ describe('SharedGroupDetails', function () {
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
+        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
       }),
     });
     MockApiClient.addMockResponse({
@@ -35,8 +34,14 @@ describe('SharedGroupDetails', function () {
         latestEvent: EventFixture({
           entries: [eventEntry, exception],
         }),
-        project: ProjectFixture({organization: Organization({slug: 'test-org'})}),
+        project: ProjectFixture({organization: OrganizationFixture({slug: 'test-org'})}),
       }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/test-org/project-slug/events/1/actionable-items/`,
+      body: {
+        errors: [],
+      },
     });
   });
 
@@ -46,17 +51,16 @@ describe('SharedGroupDetails', function () {
 
   it('renders', async function () {
     render(
-      <RouteContext.Provider value={{router, ...router}}>
-        <SharedGroupDetails
-          params={params}
-          api={new MockApiClient()}
-          route={{}}
-          router={router}
-          routes={router.routes}
-          routeParams={router.params}
-          location={router.location}
-        />
-      </RouteContext.Provider>
+      <SharedGroupDetails
+        params={params}
+        api={new MockApiClient()}
+        route={{}}
+        router={router}
+        routes={router.routes}
+        routeParams={router.params}
+        location={router.location}
+      />,
+      {router}
     );
     await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
   });
@@ -65,17 +69,16 @@ describe('SharedGroupDetails', function () {
     const params_with_slug = {shareId: 'a', orgId: 'test-org'};
     const router_with_slug = RouterFixture({params_with_slug});
     render(
-      <RouteContext.Provider value={{router, ...router}}>
-        <SharedGroupDetails
-          params={params}
-          api={new MockApiClient()}
-          route={{}}
-          router={router_with_slug}
-          routes={router_with_slug.routes}
-          routeParams={router_with_slug.params}
-          location={router_with_slug.location}
-        />
-      </RouteContext.Provider>
+      <SharedGroupDetails
+        params={params}
+        api={new MockApiClient()}
+        route={{}}
+        router={router_with_slug}
+        routes={router_with_slug.routes}
+        routeParams={router_with_slug.params}
+        location={router_with_slug.location}
+      />,
+      {router}
     );
     await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
   });

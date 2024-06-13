@@ -1,11 +1,11 @@
-import {browserHistory} from 'react-router';
-import {Config as ConfigFixture} from 'sentry-fixture/config';
-import {Organization} from 'sentry-fixture/organization';
+import {ConfigFixture} from 'sentry-fixture/config';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
 jest.mock('sentry/actionCreators/account');
@@ -25,7 +25,7 @@ const getJoinButton = () => {
 };
 
 describe('AcceptOrganizationInvite', function () {
-  const organization = Organization({slug: 'org-slug'});
+  const organization = OrganizationFixture({slug: 'org-slug'});
   const initialData = window.__initialData;
 
   afterEach(() => {

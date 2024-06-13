@@ -7,16 +7,16 @@ this.
 import dataclasses
 import logging
 import pathlib
-from typing import Any, Dict, List
+from typing import Any
 
 import jsonschema
+import orjson
 import requests
 import sentry_sdk
 from django.db import router, transaction
 
 from sentry.lang.native.sources import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models.project import Project
-from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 logger = logging.getLogger(__name__)
@@ -36,19 +36,13 @@ SYMBOL_SOURCE_TYPE_NAME = "appStoreConnect"
 class InvalidConfigError(Exception):
     """Invalid configuration for the appStoreConnect symbol source."""
 
-    pass
-
 
 class PendingDsymsError(Exception):
     """dSYM url is currently unavailable."""
 
-    pass
-
 
 class NoDsymsError(Exception):
     """No dSYMs were found."""
-
-    pass
 
 
 @dataclasses.dataclass(frozen=True)
@@ -98,7 +92,7 @@ class AppStoreConnectConfig:
                 raise ValueError(f"Missing field: {field.name}")
 
     @classmethod
-    def from_json(cls, data: Dict[str, Any]) -> "AppStoreConnectConfig":
+    def from_json(cls, data: dict[str, Any]) -> "AppStoreConnectConfig":
         """Creates a new instance from **deserialised** JSON data.
 
         This will include the JSON schema validation.  You can safely use this to create and
@@ -129,7 +123,7 @@ class AppStoreConnectConfig:
         if not raw:
             raw = "[]"
 
-        all_sources = json.loads(raw)
+        all_sources = orjson.loads(raw)
         for source in all_sources:
             if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
                 return cls.from_json(source)
@@ -137,19 +131,19 @@ class AppStoreConnectConfig:
             raise KeyError(f"No {SYMBOL_SOURCE_TYPE_NAME} symbol source found with id {config_id}")
 
     @staticmethod
-    def all_config_ids(project: Project) -> List[str]:
+    def all_config_ids(project: Project) -> list[str]:
         """Return the config IDs of all appStoreConnect symbol sources configured in the project."""
         raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
         if not raw:
             raw = "[]"
-        all_sources = json.loads(raw)
+        all_sources = orjson.loads(raw)
         return [
             s.get("id")
             for s in all_sources
             if s.get("type") == SYMBOL_SOURCE_TYPE_NAME and s.get("id")
         ]
 
-    def to_json(self) -> Dict[str, Any]:
+    def to_json(self) -> dict[str, Any]:
         """Creates a dict which can be serialised to JSON. This dict should only be
         used internally and should never be sent to external clients, as it contains
         the raw content of all of the secrets contained in the config.
@@ -169,7 +163,7 @@ class AppStoreConnectConfig:
             raise InvalidConfigError from e
         return data
 
-    def to_redacted_json(self) -> Dict[str, Any]:
+    def to_redacted_json(self) -> dict[str, Any]:
         """Creates a dict which can be serialised to JSON. This should be used when the
         config is meant to be passed to some external consumer, like the front end client.
         This dict will have its secrets redacted.
@@ -183,7 +177,7 @@ class AppStoreConnectConfig:
                 data[to_redact] = {"hidden-secret": True}
         return data
 
-    def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
+    def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> Any:
         """Updates this configuration in the Project's symbol sources.
 
         If a symbol source of type ``appStoreConnect`` already exists the ID must match and it
@@ -200,7 +194,7 @@ class AppStoreConnectConfig:
         """
         with transaction.atomic(router.db_for_write(Project)):
             all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
-            all_sources = json.loads(all_sources_raw) if all_sources_raw else []
+            all_sources = orjson.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):
                 if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
                     if source.get("id") == self.id:
@@ -213,7 +207,7 @@ class AppStoreConnectConfig:
             else:
                 # No matching existing appStoreConnect symbol source, append it.
                 all_sources.append(self.to_json())
-            project.update_option(SYMBOL_SOURCES_PROP_NAME, json.dumps(all_sources))
+            project.update_option(SYMBOL_SOURCES_PROP_NAME, orjson.dumps(all_sources).decode())
         return all_sources
 
 
@@ -258,7 +252,7 @@ class AppConnectClient:
             app_id=config.appId,
         )
 
-    def list_builds(self) -> List[BuildInfo]:
+    def list_builds(self) -> list[BuildInfo]:
         """Returns the available AppStore builds."""
         return appstore_connect.get_build_info(
             self._session, self._api_credentials, self._app_id, include_expired=True

@@ -1,13 +1,15 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Plugin as PluginFixture} from 'sentry-fixture/plugin';
-import {Plugins as PluginsFixture} from 'sentry-fixture/plugins';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PluginFixture} from 'sentry-fixture/plugin';
+import {PluginsFixture} from 'sentry-fixture/plugins';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {getByRole, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {disablePlugin, enablePlugin, fetchPlugins} from 'sentry/actionCreators/plugins';
-import type {Organization as TOrganization, Plugin, Project} from 'sentry/types';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization as TOrganization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {ProjectPluginsContainer} from 'sentry/views/settings/projectPlugins';
 
 jest.mock('sentry/actionCreators/plugins', () => ({
@@ -23,7 +25,7 @@ describe('ProjectPluginsContainer', function () {
     params: {projectId: string};
 
   beforeEach(function () {
-    org = Organization();
+    org = OrganizationFixture();
     project = ProjectFixture();
     plugins = PluginsFixture([
       PluginFixture({

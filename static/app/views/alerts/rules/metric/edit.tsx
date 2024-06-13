@@ -1,14 +1,15 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
-import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
+import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 
 type RouteParams = {
@@ -73,7 +74,7 @@ class MetricRulesEdit extends DeprecatedAsyncView<Props, State> {
     const {organization, router} = this.props;
     const {ruleId} = this.props.params;
 
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
     router.push(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/alerts/rules/details/${ruleId}/`,

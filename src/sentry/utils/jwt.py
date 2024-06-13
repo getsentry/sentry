@@ -5,7 +5,8 @@ central place which handles JWT in a uniform way.
 """
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
+from typing import Any
 
 import jwt as pyjwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
@@ -17,12 +18,10 @@ from cryptography.hazmat.primitives.serialization import (
 )
 from jwt import DecodeError
 
-from sentry.utils.json import JSONData
-
 __all__ = ["peek_claims", "decode", "encode", "authorization_header", "DecodeError"]
 
 
-def peek_header(token: str) -> JSONData:
+def peek_header(token: str) -> Any:
     """Returns the headers in the JWT token without validation.
 
     Headers are not signed and can thus be spoofed.  You can use these to decide on what
@@ -34,7 +33,7 @@ def peek_header(token: str) -> JSONData:
     return pyjwt.get_unverified_header(token.encode("UTF-8"))
 
 
-def peek_claims(token: str) -> JSONData:
+def peek_claims(token: str) -> Any:
     """Returns the claims (payload) in the JWT token without validation.
 
     These claims can be used to look up the correct key to use in :func:`decode`.
@@ -50,7 +49,7 @@ def decode(
     *,  # Force passing optional arguments by keyword
     audience: str | bool | None = None,
     algorithms: list[str] | None = None,
-) -> dict[str, JSONData]:
+) -> dict[str, Any]:
     """Returns the claims (payload) in the JWT token.
 
     This will raise an exception if the claims can not be validated with the provided key.
@@ -84,11 +83,11 @@ def decode(
 
 
 def encode(
-    payload: JSONData,
+    payload: Any,
     key: str,
     *,  # Force passing optional arguments by keyword
     algorithm: str = "HS256",
-    headers: JSONData | None = None,
+    headers: Any | None = None,
 ) -> str:
     """Encode a JWT token containing the provided payload/claims.
 

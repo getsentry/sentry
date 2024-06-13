@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
-import {Location} from 'history';
+import type {Location} from 'history';
 import partition from 'lodash/partition';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
@@ -16,11 +16,10 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Release} from 'sentry/types';
+import type {Organization, PageFilters, Release} from 'sentry/types';
 
-import {Threshold, ThresholdStatus} from '../../utils/types';
-import {ReleasesDisplayOption} from '../releasesDisplayOptions';
-import {ReleasesRequestRenderProps} from '../releasesRequest';
+import type {ReleasesDisplayOption} from '../releasesDisplayOptions';
+import type {ReleasesRequestRenderProps} from '../releasesRequest';
 
 import ReleaseCardCommits from './releaseCardCommits';
 import ReleaseCardProjectRow from './releaseCardProjectRow';
@@ -55,8 +54,6 @@ type Props = {
   selection: PageFilters;
   showHealthPlaceholders: boolean;
   showReleaseAdoptionStages: boolean;
-  thresholdStatuses: {[key: string]: ThresholdStatus[]};
-  thresholds: Threshold[];
 };
 
 function ReleaseCard({
@@ -70,8 +67,6 @@ function ReleaseCard({
   isTopRelease,
   getHealthData,
   showReleaseAdoptionStages,
-  thresholdStatuses,
-  thresholds,
 }: Props) {
   const {
     version,
@@ -95,8 +90,6 @@ function ReleaseCard({
           : true
     );
   }, [projects, selection.projects]);
-
-  const hasThresholds = thresholds.length > 0;
 
   const getHiddenProjectsTooltip = () => {
     const limitedProjects = projectsToHide.map(p => p.slug).slice(0, 5);
@@ -149,10 +142,7 @@ function ReleaseCard({
       <ReleaseProjects>
         {/* projects is the table */}
         <ReleaseProjectsHeader lightText>
-          <ReleaseProjectsLayout
-            showReleaseAdoptionStages={showReleaseAdoptionStages}
-            hasThresholds={hasThresholds}
-          >
+          <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
             <ReleaseProjectColumn>{t('Project Name')}</ReleaseProjectColumn>
             {showReleaseAdoptionStages && (
               <AdoptionStageColumn>{t('Adoption Stage')}</AdoptionStageColumn>
@@ -164,7 +154,6 @@ function ReleaseCard({
             <CrashFreeRateColumn>{t('Crash Free Rate')}</CrashFreeRateColumn>
             <DisplaySmallCol>{t('Crashes')}</DisplaySmallCol>
             <NewIssuesColumn>{t('New Issues')}</NewIssuesColumn>
-            {hasThresholds && <DisplaySmallCol>{t('Thresholds')}</DisplaySmallCol>}
           </ReleaseProjectsLayout>
         </ReleaseProjectsHeader>
 
@@ -187,27 +176,20 @@ function ReleaseCard({
           >
             {projectsToShow.map((project, index) => {
               const key = `${project.slug}-${version}`;
-              const projectThresholds = thresholds.filter(
-                threshold => threshold.project.slug === project.slug
-              );
               return (
                 <ReleaseCardProjectRow
                   key={`${key}-row`}
                   activeDisplay={activeDisplay}
                   adoptionStages={adoptionStages}
                   getHealthData={getHealthData}
-                  hasThresholds={hasThresholds}
-                  expectedThresholds={projectThresholds.length}
                   index={index}
                   isTopRelease={isTopRelease}
                   location={location}
                   organization={organization}
                   project={project}
                   releaseVersion={version}
-                  lastDeploy={lastDeploy}
                   showPlaceholders={showHealthPlaceholders}
                   showReleaseAdoptionStages={showReleaseAdoptionStages}
-                  thresholdStatuses={hasThresholds ? thresholdStatuses[`${key}`] : []}
                 />
               );
             })}
@@ -332,7 +314,6 @@ const CollapseButtonWrapper = styled('div')`
 `;
 
 export const ReleaseProjectsLayout = styled('div')<{
-  hasThresholds?: boolean;
   showReleaseAdoptionStages?: boolean;
 }>`
   display: grid;
@@ -343,24 +324,17 @@ export const ReleaseProjectsLayout = styled('div')<{
   width: 100%;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
-    ${p => {
-      const thresholdSize = p.hasThresholds ? '0.5fr' : '';
-      return `grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr ${thresholdSize} 0.5fr`;
-    }}
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    ${p => {
-      const thresholdSize = p.hasThresholds ? '0.5fr' : '';
-      return `grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr ${thresholdSize} 0.5fr`;
-    }}
+    grid-template-columns: 1fr 1fr 1fr 0.5fr 0.5fr 0.5fr;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     ${p => {
       const adoptionStagesSize = p.showReleaseAdoptionStages ? '0.7fr' : '';
-      const thresholdSize = p.hasThresholds ? '0.7fr' : '';
-      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr ${thresholdSize} 0.5fr`;
+      return `grid-template-columns: 1fr ${adoptionStagesSize} 1fr 1fr 0.7fr 0.7fr 0.5fr`;
     }}
   }
 `;

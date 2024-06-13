@@ -2,10 +2,10 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 
 
-@region_silo_only_model
+@region_silo_model
 class UserReport(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -21,7 +21,10 @@ class UserReport(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_userreport"
-        index_together = (("project_id", "event_id"), ("project_id", "date_added"))
+        indexes = (
+            models.Index(fields=("project_id", "event_id")),
+            models.Index(fields=("project_id", "date_added")),
+        )
         unique_together = (("project_id", "event_id"),)
 
     __repr__ = sane_repr("event_id", "name", "email")

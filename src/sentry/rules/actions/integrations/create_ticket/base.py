@@ -1,14 +1,15 @@
 from __future__ import annotations
 
 import abc
-from typing import Any, Generator, Mapping, Optional
+from collections.abc import Generator, Mapping
+from typing import Any
 
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.rules.actions.integrations.base import IntegrationEventAction
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.integrations.create_ticket.utils import create_issue
-from sentry.rules.base import CallbackFuture, EventState
+from sentry.rules.base import CallbackFuture
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
@@ -84,7 +85,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
         pass
 
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: Optional[str] = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         integration_id = self.get_integration_id()
         key = f"{self.provider}:{integration_id}"

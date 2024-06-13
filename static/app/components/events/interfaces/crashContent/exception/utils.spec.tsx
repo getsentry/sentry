@@ -122,4 +122,34 @@ describe('Linkify()', function () {
 
     expect(container.firstChild).toHaveTextContent('Go to');
   });
+
+  it('applies links to text containing a single url and text and ignores a period', function () {
+    // fix
+    const url = 'https://www.example.com';
+    const text = `Go to ${url}.`;
+
+    render(
+      renderLinksInText({
+        exceptionText: text,
+      })
+    );
+
+    const linkElement = screen.getByText(url);
+    expect(linkElement).toBeInTheDocument();
+  });
+
+  it('applies links to text containing a single url that has a period inside', function () {
+    // fix
+    const url = 'https://www.example.com/page.html';
+    const text = `Go to ${url}`;
+
+    render(
+      renderLinksInText({
+        exceptionText: text,
+      })
+    );
+
+    const linkElement = screen.getByText(url);
+    expect(linkElement).toBeInTheDocument();
+  });
 });

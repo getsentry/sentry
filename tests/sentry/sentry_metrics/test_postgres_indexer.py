@@ -1,4 +1,4 @@
-from typing import Mapping, Set
+from collections.abc import Mapping
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.indexer.base import FetchType, Metadata, UseCaseKeyCollection
@@ -10,7 +10,7 @@ from sentry.utils.cache import cache
 
 
 def assert_fetch_type_for_tag_string_set(
-    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: Set[str]
+    meta: Mapping[str, Metadata], fetch_type: FetchType, str_set: set[str]
 ):
     assert all([meta[string].fetch_type == fetch_type for string in str_set])
 

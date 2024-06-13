@@ -1,5 +1,6 @@
 from sentry.models.broadcast import Broadcast
 from sentry.models.environment import Environment
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.team import Team
@@ -8,7 +9,7 @@ from sentry.monitors.models import Monitor
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.utils import mockdata
 
 
@@ -28,15 +29,16 @@ def test_create_broadcast() -> None:
     assert "Source Maps" in cast.title
 
 
-@region_silo_test
 @django_db_all
 def test_get_organization() -> None:
     org = mockdata.get_organization()
     assert org
     assert "default" == org.slug
 
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        assert OrganizationMapping.objects.get(slug=org.slug)
 
-@region_silo_test
+
 @django_db_all
 def test_create_member() -> None:
     with assume_test_silo_mode(SiloMode.CONTROL):
@@ -47,6 +49,7 @@ def test_create_member() -> None:
     assert "member" == member.role
 
 
+@no_silo_test  # mockdata.main works only in monolith mode
 class TestMockData(SnubaTestCase, TestCase):
     def test_main_skip_default_setup(self) -> None:
         self.create_user(is_superuser=True)

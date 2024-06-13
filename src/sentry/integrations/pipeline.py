@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from django.http import HttpResponseRedirect
+
 from sentry import features
 from sentry.api.utils import generate_organization_url
 from sentry.models.organizationmapping import OrganizationMapping
@@ -24,7 +26,7 @@ from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
-from . import default_manager
+from sentry.integrations.manager import default_manager
 
 
 def ensure_integration(key, data):
@@ -122,13 +124,7 @@ class IntegrationPipeline(Pipeline):
         return response
 
     def _finish_pipeline(self, data):
-        if "reinstall_id" in data:
-            self.integration = Integration.objects.get(
-                provider=self.provider.integration_key, id=data["reinstall_id"]
-            )
-            self.integration.update(external_id=data["external_id"], status=ObjectStatus.ACTIVE)
-            self.integration.get_installation(self.organization.id).reinstall()
-        elif "expect_exists" in data:
+        if "expect_exists" in data:
             self.integration = Integration.objects.get(
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )
@@ -229,6 +225,12 @@ class IntegrationPipeline(Pipeline):
         org_integration = self.integration.add_organization(
             self.organization, self.request.user, default_auth_id=default_auth_id
         )
+
+        extra = data.get("post_install_data", {})
+        # If a particular provider has a redirect for a successful install, use that instead of the generic success
+        redirect_url_format = extra.get("redirect_url_format", None)
+        if redirect_url_format is not None:
+            return self._get_redirect_response(redirect_url_format=redirect_url_format)
         return self._dialog_success(org_integration)
 
     def _dialog_success(self, org_integration):
@@ -251,3 +253,7 @@ class IntegrationPipeline(Pipeline):
             },
         )
         return render_to_response("sentry/integrations/dialog-complete.html", context, self.request)
+
+    def _get_redirect_response(self, redirect_url_format: str) -> HttpResponseRedirect:
+        redirect_url = redirect_url_format.format(org_slug=self.organization.slug)
+        return HttpResponseRedirect(redirect_url)

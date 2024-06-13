@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import inspect
 import itertools
-from typing import Any, Callable, Iterable, Sequence, Tuple, Type
+from collections.abc import Callable, Iterable, Sequence
+from typing import Any
 
 import pydantic
 from django.utils.functional import LazyObject
@@ -62,10 +63,10 @@ class SerializableFunctionSignature:
                 "(serializable functions must use concrete type tokens, not strings)",
             )
 
-    def _create_parameter_model(self) -> Type[pydantic.BaseModel]:
+    def _create_parameter_model(self) -> type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the parameters."""
 
-        def create_field(param: inspect.Parameter) -> Tuple[Any, Any]:
+        def create_field(param: inspect.Parameter) -> tuple[Any, Any]:
             if param.annotation is param.empty:
                 raise SerializableFunctionSignatureSetupException(
                     self, "Type annotations are required to serialize"
@@ -84,7 +85,7 @@ class SerializableFunctionSignature:
 
     _RETURN_MODEL_ATTR = "value"
 
-    def _create_return_model(self) -> Type[pydantic.BaseModel] | None:
+    def _create_return_model(self) -> type[pydantic.BaseModel]:
         """Dynamically create a Pydantic model class representing the return value.
 
         The created model has a single attribute containing the return value. This
@@ -95,7 +96,7 @@ class SerializableFunctionSignature:
         model_name = self.generate_name("__", "ReturnModel")
         return_type = inspect.signature(self.base_function).return_annotation
         if return_type is None:
-            return None
+            return_type = type(None)
         self._validate_type_token("return type", return_type)
 
         field_definitions = {self._RETURN_MODEL_ATTR: (return_type, ...)}
@@ -135,12 +136,15 @@ class SerializableFunctionSignature:
             raise SerializableFunctionValueException(self, "Could not deserialize arguments") from e
 
     def deserialize_return_value(self, value: Any) -> Any:
-        if self._return_model is None:
-            if value is not None:
-                raise SerializableFunctionValueException(
-                    self, f"Expected None but got {type(value)}"
-                )
-            return None
-
         parsed = self._return_model.parse_obj({self._RETURN_MODEL_ATTR: value})
         return getattr(parsed, self._RETURN_MODEL_ATTR)
+
+    def get_schemas(self) -> tuple[type[pydantic.BaseModel], type[pydantic.BaseModel]]:
+        """Access the schema representations directly.
+
+        This generally should be needed only for reflective operations such as
+        checking for cross-version compatibility. Routine operations on the parameter
+        and return values should be done through the "serialize" and "deserialize"
+        methods.
+        """
+        return self._parameter_model, self._return_model

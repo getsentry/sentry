@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta
+from collections.abc import Mapping
+from datetime import UTC, datetime, timedelta
 from time import time
+from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock, patch
 
@@ -17,7 +19,6 @@ from django.conf import settings
 from django.core.cache import cache
 from django.test.utils import override_settings
 from django.utils import timezone
-from rest_framework.status import HTTP_404_NOT_FOUND
 
 from fixtures.github import (
     COMPARE_COMMITS_EXAMPLE_WITH_INTERMEDIATE,
@@ -39,13 +40,14 @@ from sentry.dynamic_sampling import (
 from sentry.event_manager import (
     EventManager,
     _get_event_instance,
-    _save_grouphash_and_group,
     get_event_type,
     has_pending_commit_resolution,
     materialize_metadata,
+    save_grouphash_and_group,
 )
 from sentry.eventstore.models import Event
 from sentry.exceptions import HashDiscarded
+from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import (
@@ -58,7 +60,6 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
@@ -67,6 +68,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
+from sentry.models.integrations import Integration
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
@@ -74,10 +76,8 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
-from sentry.models.userreport import UserReport
 from sentry.options import set
 from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
-from sentry.silo import SiloMode
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -91,10 +91,11 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
+from sentry.types.group import PriorityLevel
 from sentry.usage_accountant import accountant
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
@@ -105,7 +106,7 @@ from sentry.utils.samples import load_data
 pytestmark = [requires_snuba]
 
 
-def make_event(**kwargs):
+def make_event(**kwargs: Any) -> dict[str, Any]:
     result = {
         "event_id": uuid.uuid1().hex,
         "level": logging.ERROR,
@@ -117,16 +118,15 @@ def make_event(**kwargs):
 
 
 class EventManagerTestMixin:
-    def make_release_event(self, release_name, project_id):
+    def make_release_event(self, release_name: str, project_id: int) -> Event:
         manager = EventManager(make_event(release=release_name))
         manager.normalize()
         event = manager.save(project_id)
         return event
 
 
-@region_silo_test
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
-    def test_similar_message_prefix_doesnt_group(self):
+    def test_similar_message_prefix_doesnt_group(self) -> None:
         # we had a regression which caused the default hash to just be
         # 'event.message' instead of '[event.message]' which caused it to
         # generate a hash per letter
@@ -140,7 +140,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event1.group_id != event2.group_id
 
-    def test_ephemeral_interfaces_removed_on_save(self):
+    def test_ephemeral_interfaces_removed_on_save(self) -> None:
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
         event = manager.save(self.project.id)
@@ -151,7 +151,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.platform == "python"
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
-    def test_dupe_message_id(self, eventstream_insert):
+    def test_dupe_message_id(self, eventstream_insert: mock.MagicMock) -> None:
         # Saves the latest event to nodestore and eventstream
         project_id = self.project.id
         event_id = "a" * 32
@@ -169,7 +169,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert eventstream_insert.call_count == 2
 
-    def test_updates_group(self):
+    def test_updates_group(self) -> None:
         timestamp = time() - 300
         manager = EventManager(
             make_event(message="foo", event_id="a" * 32, checksum="a" * 32, timestamp=timestamp)
@@ -192,10 +192,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
-        assert group.data.get("type") == "default"
-        assert group.data.get("metadata").get("title") == "foo bar"
+        assert group.data["type"] == "default"
+        assert group.data["metadata"]["title"] == "foo bar"
 
-    def test_materialze_metadata_simple(self):
+    def test_materialze_metadata_simple(self) -> None:
         manager = EventManager(make_event(transaction="/dogs/are/great/"))
         event = manager.save(self.project.id)
 
@@ -210,7 +210,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "location": None,
         }
 
-    def test_materialze_metadata_preserves_existing_metadata(self):
+    def test_materialze_metadata_preserves_existing_metadata(self) -> None:
         manager = EventManager(make_event())
         event = manager.save(self.project.id)
 
@@ -223,8 +223,82 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
+    def test_react_error_picks_cause_error_title_subtitle(self) -> None:
+        cause_error_value = "Load failed"
+        # React 19 hydration error include the hydration error and a cause
+        # If we derive the title from the cause error the developer will more easily distinguish them
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "value": cause_error_value,
+                            "mechanism": {
+                                "type": "onerror",
+                                "handled": False,
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "Error",
+                            "value": "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": True,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["value"] == cause_error_value
+        assert event.data["metadata"]["type"] == "TypeError"
+        assert event.group is not None
+        assert event.group.title == f"TypeError: {cause_error_value}"
+
+    def test_react_hydration_error_picks_cause_error_title_subtitle(self) -> None:
+        cause_error_value = "Cannot read properties of undefined (reading 'nodeName')"
+        # React 19 hydration error include the hydration error and a cause
+        # If we derive the title from the cause error the developer will more easily distinguish them
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "value": cause_error_value,
+                            "mechanism": {
+                                "type": "chained",
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "Error",
+                            "value": "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary.",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["value"] == cause_error_value
+        assert event.data["metadata"]["type"] == "TypeError"
+        assert event.group is not None
+        assert event.group.title == f"TypeError: {cause_error_value}"
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
-    def test_unresolves_group(self, send_robust):
+    def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = time() - 300
 
         # N.B. EventManager won't unresolve the group unless the event2 has a
@@ -248,7 +322,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert send_robust.called
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
-    def test_does_not_unresolve_group(self, plugin_is_regression):
+    def test_does_not_unresolve_group(self, plugin_is_regression: mock.MagicMock) -> None:
         # N.B. EventManager won't unresolve the group unless the event2 has a
         # later timestamp than event1.
         plugin_is_regression.return_value = False
@@ -279,8 +353,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_marks_as_unresolved_with_new_release(
-        self, plugin_is_regression, mock_send_activity_notifications_delay
-    ):
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
+    ) -> None:
         plugin_is_regression.return_value = True
 
         old_release = Release.objects.create(
@@ -351,8 +427,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_that_release_in_latest_activity_prior_to_regression_is_not_overridden(
-        self, plugin_is_regression, mock_send_activity_notifications_delay
-    ):
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
+    ) -> None:
         """
         Test that ensures in the case where a regression occurs, the release prior to the latest
         activity to that regression is not overridden.
@@ -411,8 +489,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_current_release_version_in_latest_activity_prior_to_regression_is_not_overridden(
-        self, plugin_is_regression, mock_send_activity_notifications_delay
-    ):
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
+    ) -> None:
         """
         Test that ensures in the case where a regression occurs, the release prior to the latest
         activity to that regression is overridden with the release regression occurred in but the
@@ -469,7 +549,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
 
     @mock.patch("sentry.event_manager.plugin_is_regression")
-    def test_resolved_in_release_regression_activity_follows_semver(self, plugin_is_regression):
+    def test_resolved_in_release_regression_activity_follows_semver(
+        self, plugin_is_regression: mock.MagicMock
+    ) -> None:
         """
         Issue was marked resolved in 1.0.0, regression occurred in 2.0.0.
         If the project follows semver then the regression activity should have `follows_semver` set.
@@ -527,7 +609,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["follows_semver"] is True
         assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
-    def test_has_pending_commit_resolution(self):
+    def test_has_pending_commit_resolution(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
 
@@ -551,7 +633,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert has_pending_commit_resolution(group)
 
-    def test_multiple_pending_commit_resolution(self):
+    def test_multiple_pending_commit_resolution(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
@@ -597,7 +679,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         pending = has_pending_commit_resolution(group)
         assert pending is False
 
-    def test_has_pending_commit_resolution_issue_regression(self):
+    def test_has_pending_commit_resolution_issue_regression(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
@@ -643,7 +725,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         pending = has_pending_commit_resolution(group)
         assert pending
 
-    def test_has_pending_commit_resolution_issue_regression_released_commits(self):
+    def test_has_pending_commit_resolution_issue_regression_released_commits(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
         group = event.group
@@ -716,10 +798,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_marks_as_unresolved_with_new_release_with_integration(
         self,
-        plugin_is_regression,
-        mock_send_activity_notifications_delay,
-        mock_sync_status_outbound,
-    ):
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
+        mock_sync_status_outbound: mock.MagicMock,
+    ) -> None:
         plugin_is_regression.return_value = True
 
         old_release = Release.objects.create(
@@ -827,8 +909,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_mark_as_unresolved_with_pending_commit(
-        self, plugin_is_regression, mock_send_activity_notifications_delay
-    ):
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
+    ) -> None:
         plugin_is_regression.return_value = True
 
         repo = self.create_repo(project=self.project)
@@ -865,8 +949,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     @mock.patch("sentry.tasks.activity.send_activity_notifications.delay")
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_mark_as_unresolved_with_released_commit(
-        self, plugin_is_regression, mock_send_activity_notifications_delay
-    ):
+        self,
+        plugin_is_regression: mock.MagicMock,
+        mock_send_activity_notifications_delay: mock.MagicMock,
+    ) -> None:
         plugin_is_regression.return_value = True
 
         release = self.create_release(project=self.project)
@@ -904,7 +990,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     @mock.patch("sentry.models.Group.is_resolved")
-    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved):
+    def test_unresolves_group_with_auto_resolve(self, mock_is_resolved: mock.MagicMock) -> None:
         ts = time() - 100
         mock_is_resolved.return_value = False
         manager = EventManager(make_event(event_id="a" * 32, checksum="a" * 32, timestamp=ts))
@@ -924,28 +1010,28 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.active_at.replace(second=0) == event2.datetime.replace(second=0)
         assert group.active_at.replace(second=0) != event.datetime.replace(second=0)
 
-    def test_invalid_transaction(self):
+    def test_invalid_transaction(self) -> None:
         dict_input = {"messages": "foo"}
         manager = EventManager(make_event(transaction=dict_input))
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.transaction is None
 
-    def test_transaction_as_culprit(self):
+    def test_transaction_as_culprit(self) -> None:
         manager = EventManager(make_event(transaction="foobar"))
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.transaction == "foobar"
         assert event.culprit == "foobar"
 
-    def test_culprit_is_not_transaction(self):
+    def test_culprit_is_not_transaction(self) -> None:
         manager = EventManager(make_event(culprit="foobar"))
         manager.normalize()
         event1 = manager.save(self.project.id)
         assert event1.transaction is None
         assert event1.culprit == "foobar"
 
-    def test_culprit_after_stacktrace_processing(self):
+    def test_culprit_after_stacktrace_processing(self) -> None:
         from sentry.grouping.enhancer import Enhancements
 
         enhancement = Enhancements.from_config_string(
@@ -986,28 +1072,29 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event1.transaction is None
         assert event1.culprit == "in_app_function"
 
-    def test_inferred_culprit_from_empty_stacktrace(self):
+    def test_inferred_culprit_from_empty_stacktrace(self) -> None:
         manager = EventManager(make_event(stacktrace={"frames": []}))
         manager.normalize()
         event = manager.save(self.project.id)
         assert event.culprit == ""
 
-    def test_transaction_and_culprit(self):
+    def test_transaction_and_culprit(self) -> None:
         manager = EventManager(make_event(transaction="foobar", culprit="baz"))
         manager.normalize()
         event1 = manager.save(self.project.id)
         assert event1.transaction == "foobar"
         assert event1.culprit == "baz"
 
-    def test_release_with_empty_version(self):
+    def test_release_with_empty_version(self) -> None:
         cases = ["", " ", "\t", "\n"]
         for case in cases:
             event = self.make_release_event(case, self.project.id)
+            assert event.group is not None
             assert not event.group.first_release
             assert Release.objects.filter(projects__in=[self.project.id]).count() == 0
             assert Release.objects.filter(organization_id=self.project.organization_id).count() == 0
 
-    def test_first_release(self):
+    def test_first_release(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
 
@@ -1021,7 +1108,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group is not None
         assert group.first_release.version == "1.0"
 
-    def test_release_project_slug(self):
+    def test_release_project_slug(self) -> None:
         project = self.create_project(name="foo")
         release = Release.objects.create(version="foo-1.0", organization=project.organization)
         release.add_project(project)
@@ -1040,7 +1127,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group is not None
         assert group.first_release.version == "foo-1.0"
 
-    def test_release_project_slug_long(self):
+    def test_release_project_slug_long(self) -> None:
         project = self.create_project(name="foo")
         partial_version_len = MAX_VERSION_LENGTH - 4
         release = Release.objects.create(
@@ -1056,7 +1143,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         release_tag = [v for k, v in event.tags if k == "sentry:release"][0]
         assert release_tag == "foo-{}".format("a" * partial_version_len)
 
-    def test_group_release_no_env(self):
+    def test_group_release_no_env(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
 
@@ -1069,7 +1156,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # ensure we're not erroring on second creation
         event = self.make_release_event("1.0", project_id)
 
-    def test_group_release_with_env(self):
+    def test_group_release_with_env(self) -> None:
         manager = EventManager(make_event(release="1.0", environment="prod", event_id="a" * 32))
         manager.normalize()
         event = manager.save(self.project.id)
@@ -1089,7 +1176,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             release_id=release.id, group_id=event.group_id, environment="staging"
         ).exists()
 
-    def test_tsdb(self):
+    def test_tsdb(self) -> None:
         project = self.project
         manager = EventManager(
             make_event(
@@ -1100,7 +1187,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(project.id)
         assert event.group is not None
 
-        def query(model, key, **kwargs):
+        def query(model: TSDBModel, key: int, **kwargs: Any) -> int:
             return tsdb.backend.get_sums(
                 model,
                 [key],
@@ -1120,7 +1207,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert query(TSDBModel.group, event.group.id, environment_id=environment_id) == 1
 
     @pytest.mark.xfail
-    def test_record_frequencies(self):
+    def test_record_frequencies(self) -> None:
         project = self.project
         manager = EventManager(make_event())
         event = manager.save(project.id)
@@ -1129,7 +1216,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             TSDBModel.frequent_issues_by_project, (event.project.id,), event.datetime
         ) == {event.project.id: [(event.group_id, 1.0)]}
 
-    def test_event_user(self):
+    def test_event_user(self) -> None:
         event_id = uuid.uuid4().hex
         manager = EventManager(
             make_event(
@@ -1202,7 +1289,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert euser.name == "jane"
         assert euser.user_ident == "1"
 
-    def test_event_user_invalid_ip(self):
+    def test_event_user_invalid_ip(self) -> None:
         event_id = uuid.uuid4().hex
         manager = EventManager(
             make_event(
@@ -1222,7 +1309,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         euser = EventUser.from_event(saved_event)
         assert euser.ip_address is None
 
-    def test_event_user_unicode_identifier(self):
+    def test_event_user_unicode_identifier(self) -> None:
         event_id = uuid.uuid4().hex
         manager = EventManager(make_event(event_id=event_id, **{"user": {"username": "foô"}}))
         manager.normalize()
@@ -1233,20 +1320,20 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         euser = EventUser.from_event(saved_event)
         assert euser.username == "foô"
 
-    def test_environment(self):
+    def test_environment(self) -> None:
         manager = EventManager(make_event(**{"environment": "beta"}))
         manager.normalize()
         event = manager.save(self.project.id)
 
         assert dict(event.tags).get("environment") == "beta"
 
-    def test_invalid_environment(self):
+    def test_invalid_environment(self) -> None:
         manager = EventManager(make_event(**{"environment": "bad/name"}))
         manager.normalize()
         event = manager.save(self.project.id)
         assert dict(event.tags).get("environment") is None
 
-    def test_invalid_tags(self):
+    def test_invalid_tags(self) -> None:
         manager = EventManager(make_event(**{"tags": [42]}))
         manager.normalize()
         assert None in manager.get_data().get("tags", [])
@@ -1256,10 +1343,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert None not in event.tags
 
     @mock.patch("sentry.event_manager.eventstream.backend.insert")
-    def test_group_environment(self, eventstream_insert):
+    def test_group_environment(self, eventstream_insert: mock.MagicMock) -> None:
         release_version = "1.0"
 
-        def save_event():
+        def save_event() -> Event:
             manager = EventManager(
                 make_event(
                     **{
@@ -1292,6 +1379,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         }
         # Ensure that the first event in the (group, environment) pair is
         # marked as being part of a new environment.
+        assert event.group is not None
         eventstream_insert.assert_called_with(
             event=event,
             **group_states1,
@@ -1311,6 +1399,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         # Ensure that the next event in the (group, environment) pair is *not*
         # marked as being part of a new environment.
+        assert event.group is not None
         eventstream_insert.assert_called_with(
             event=event,
             **group_states2,
@@ -1320,30 +1409,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             group_states=[{"id": event.group.id, **group_states2}],
         )
 
-    def test_user_report_gets_environment(self):
-        project = self.create_project()
-        environment = Environment.objects.create(
-            organization_id=project.organization_id, name="production"
-        )
-        environment.add_project(project)
-
-        event_id = "a" * 32
-
-        UserReport.objects.create(
-            project_id=project.id,
-            event_id=event_id,
-            name="foo",
-            email="bar@example.com",
-            comments="It Broke!!!",
-        )
-
-        self.store_event(
-            data=make_event(environment=environment.name, event_id=event_id), project_id=project.id
-        )
-
-        assert UserReport.objects.get(event_id=event_id).environment_id == environment.id
-
-    def test_default_event_type(self):
+    def test_default_event_type(self) -> None:
         manager = EventManager(make_event(message="foo bar"))
         manager.normalize()
         data = manager.get_data()
@@ -1351,11 +1417,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
         group = event.group
         assert group is not None
-        assert group.data.get("type") == "default"
-        assert group.data.get("metadata")
-        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
+        assert group.data["type"] == "default"
+        assert group.data["metadata"]["title"] == "foo bar"
 
-    def test_message_event_type(self):
+    def test_message_event_type(self) -> None:
         manager = EventManager(
             make_event(
                 **{
@@ -1370,11 +1435,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
         group = event.group
         assert group is not None
-        assert group.data.get("type") == "default"
-        assert group.data.get("metadata")
-        assert group.data.get("metadata").get("title") == "foo bar"  # type: ignore[union-attr]
+        assert group.data["type"] == "default"
+        assert group.data["metadata"]["title"] == "foo bar"
 
-    def test_error_event_type(self):
+    def test_error_event_type(self) -> None:
         manager = EventManager(
             make_event(**{"exception": {"values": [{"type": "Foo", "value": "bar"}]}})
         )
@@ -1388,10 +1452,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("metadata") == {
             "type": "Foo",
             "value": "bar",
+            "initial_priority": PriorityLevel.HIGH,
             "display_title_with_tree_label": False,
         }
 
-    def test_csp_event_type(self):
+    def test_csp_event_type(self) -> None:
         manager = EventManager(
             make_event(
                 **{
@@ -1413,12 +1478,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.data.get("type") == "csp"
         assert group.data.get("metadata") == {
             "directive": "script-src",
+            "initial_priority": PriorityLevel.HIGH,
             "uri": "example.com",
             "message": "Blocked 'script' from 'example.com'",
         }
         assert group.title == "Blocked 'script' from 'example.com'"
 
-    def test_transaction_event_type(self):
+    def test_transaction_event_type(self) -> None:
         manager = EventManager(
             make_event(
                 **{
@@ -1442,7 +1508,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         data = manager.get_data()
         assert data["type"] == "transaction"
 
-    def test_transaction_event_span_grouping(self):
+    def test_transaction_event_span_grouping(self) -> None:
         manager = EventManager(
             make_event(
                 **{
@@ -1502,7 +1568,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         # the basic strategy is to simply use the description
         assert spans == [{"hash": hash_values([span["description"]])} for span in data["spans"]]
 
-    def test_sdk(self):
+    def test_sdk(self) -> None:
         manager = EventManager(make_event(**{"sdk": {"name": "sentry-unity", "version": "1.0"}}))
         manager.normalize()
         event = manager.save(self.project.id)
@@ -1514,18 +1580,19 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "packages": None,
         }
 
-    def test_sdk_group_tagging(self):
+    def test_sdk_group_tagging(self) -> None:
         manager = EventManager(
             make_event(**{"sdk": {"name": "sentry-native-unity", "version": "1.0"}})
         )
         manager.normalize()
         event = manager.save(self.project.id)
+        assert event.group is not None
 
-        assert (sdk_metadata := event.group.data.get("metadata").get("sdk"))  # type: ignore[union-attr]
-        assert sdk_metadata.get("name") == "sentry-native-unity"
-        assert sdk_metadata.get("name_normalized") == "sentry.native.unity"
+        sdk_metadata = event.group.data["metadata"]["sdk"]
+        assert sdk_metadata["name"] == "sentry-native-unity"
+        assert sdk_metadata["name_normalized"] == "sentry.native.unity"
 
-    def test_no_message(self):
+    def test_no_message(self) -> None:
         # test that the message is handled gracefully
         manager = EventManager(
             make_event(**{"message": None, "logentry": {"message": "hello world"}})
@@ -1535,7 +1602,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.message == "hello world"
 
-    def test_search_message_simple(self):
+    def test_search_message_simple(self) -> None:
         manager = EventManager(
             make_event(
                 **{
@@ -1551,7 +1618,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert "test" in search_message
         assert "sentry.tasks.process" in search_message
 
-    def test_search_message_prefers_log_entry_message(self):
+    def test_search_message_prefers_log_entry_message(self) -> None:
         manager = EventManager(
             make_event(
                 **{
@@ -1569,7 +1636,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert "hello world" in search_message
         assert "sentry.tasks.process" in search_message
 
-    def test_search_message_skips_requested_keys(self):
+    def test_search_message_skips_requested_keys(self) -> None:
         from sentry.eventstore import models
 
         with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
@@ -1597,7 +1664,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "goofy" in search_message
             assert "are great" not in search_message  # "dogs" key is skipped
 
-    def test_search_message_skips_bools_and_numbers(self):
+    def test_search_message_skips_bools_and_numbers(self) -> None:
         from sentry.eventstore import models
 
         with patch.object(models, "SEARCH_MESSAGE_SKIPPED_KEYS", ("dogs",)):
@@ -1631,14 +1698,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert "1121.2012" not in search_message  # skipped because it's a float
             assert "don't shop" in search_message
 
-    def test_stringified_message(self):
+    def test_stringified_message(self) -> None:
         manager = EventManager(make_event(**{"message": 1234}))
         manager.normalize()
         event = manager.save(self.project.id)
 
         assert event.data["logentry"] == {"formatted": "1234", "message": None, "params": None}
 
-    def test_bad_message(self):
+    def test_bad_message(self) -> None:
         # test that invalid messages are rejected
         manager = EventManager(make_event(**{"message": ["asdf"]}))
         manager.normalize()
@@ -1647,7 +1714,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event.message == '["asdf"]'
         assert "logentry" in event.data
 
-    def test_message_attribute_goes_to_interface(self):
+    def test_message_attribute_goes_to_interface(self) -> None:
         manager = EventManager(make_event(**{"message": "hello world"}))
         manager.normalize()
         event = manager.save(self.project.id)
@@ -1657,7 +1724,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "params": None,
         }
 
-    def test_message_attribute_shadowing(self):
+    def test_message_attribute_shadowing(self) -> None:
         # Logentry shadows the legacy message attribute.
         manager = EventManager(
             make_event(**{"message": "world hello", "logentry": {"message": "hello world"}})
@@ -1670,7 +1737,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "params": None,
         }
 
-    def test_message_attribute_interface_both_strings(self):
+    def test_message_attribute_interface_both_strings(self) -> None:
         manager = EventManager(
             make_event(**{"logentry": "a plain string", "message": "another string"})
         )
@@ -1682,7 +1749,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "params": None,
         }
 
-    def test_throws_when_matches_discarded_hash(self):
+    def test_throws_when_matches_discarded_hash(self) -> None:
         manager = EventManager(make_event(message="foo", event_id="a" * 32, fingerprint=["a" * 32]))
         with self.tasks():
             event = manager.save(self.project.id)
@@ -1717,7 +1784,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
                     with pytest.raises(HashDiscarded):
-                        event = manager.save(self.project.id, cache_key=cache_key)
+                        event = manager.save(
+                            self.project.id, cache_key=cache_key, has_attachments=True
+                        )
 
         assert mock_track_outcome.call_count == 3
 
@@ -1732,7 +1801,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert o.kwargs["category"] == DataCategory.ATTACHMENT
             assert o.kwargs["quantity"] == 5
 
-    def test_honors_crash_report_limit(self):
+    def test_honors_crash_report_limit(self) -> None:
         from sentry.utils.outcomes import track_outcome
 
         mock_track_outcome = mock.Mock(wraps=track_outcome)
@@ -1754,7 +1823,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    manager.save(self.project.id, cache_key=cache_key)
+                    manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         # The first minidump should be accepted, since the limit is 1
         assert mock_track_outcome.call_count == 3
@@ -1775,7 +1844,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
                 with self.tasks():
-                    event = manager.save(self.project.id, cache_key=cache_key)
+                    event = manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert event.data["metadata"]["stripped_crash"] is True
 
@@ -1788,7 +1857,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         for o in mock_track_outcome.mock_calls[1:]:
             assert o.kwargs["outcome"] == Outcome.ACCEPTED
 
-    def test_event_accepted_outcome(self):
+    def test_event_accepted_outcome(self) -> None:
         manager = EventManager(make_event(message="foo"))
         manager.normalize()
 
@@ -1800,7 +1869,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.ERROR
         )
 
-    def test_attachment_accepted_outcomes(self):
+    def test_attachment_accepted_outcomes(self) -> None:
         manager = EventManager(make_event(message="foo"), project=self.project)
         manager.normalize()
 
@@ -1814,7 +1883,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 
@@ -1828,7 +1897,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         final = mock_track_outcome.mock_calls[2]
         assert final.kwargs["category"] == DataCategory.ERROR
 
-    def test_attachment_filtered_outcomes(self):
+    def test_attachment_filtered_outcomes(self) -> None:
         manager = EventManager(make_event(message="foo"), project=self.project)
         manager.normalize()
 
@@ -1843,7 +1912,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         mock_track_outcome = mock.Mock()
         with mock.patch("sentry.event_manager.track_outcome", mock_track_outcome):
             with self.feature("organizations:event-attachments"):
-                manager.save(self.project.id, cache_key=cache_key)
+                manager.save(self.project.id, cache_key=cache_key, has_attachments=True)
 
         assert mock_track_outcome.call_count == 3
 
@@ -1864,7 +1933,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert o.kwargs["outcome"] == Outcome.ACCEPTED
         assert o.kwargs["category"] == DataCategory.ERROR
 
-    def test_transaction_outcome_accepted(self):
+    def test_transaction_outcome_accepted(self) -> None:
         """
         Without metrics extraction, we count the number of accepted transaction
         events in the TRANSACTION data category. This maintains compatibility
@@ -1900,7 +1969,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION
         )
 
-    def test_transaction_indexed_outcome_accepted(self):
+    def test_transaction_indexed_outcome_accepted(self) -> None:
         """
         With metrics extraction, we count the number of accepted transaction
         events in the TRANSACTION_INDEXED data category. The TRANSACTION data
@@ -1937,7 +2006,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             mock_track_outcome, outcome=Outcome.ACCEPTED, category=DataCategory.TRANSACTION_INDEXED
         )
 
-    def test_checksum_rehashed(self):
+    def test_checksum_rehashed(self) -> None:
         checksum = "invalid checksum hash"
         manager = EventManager(make_event(**{"checksum": checksum}))
         manager.normalize()
@@ -1946,15 +2015,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         hashes = [gh.hash for gh in GroupHash.objects.filter(group=event.group)]
         assert sorted(hashes) == sorted([hash_from_values(checksum), checksum])
 
-    def test_legacy_attributes_moved(self):
-        event = make_event(
+    def test_legacy_attributes_moved(self) -> None:
+        event_params = make_event(
             release="my-release",
             environment="my-environment",
             site="whatever",
             server_name="foo.com",
             event_id=uuid.uuid1().hex,
         )
-        manager = EventManager(event)
+        manager = EventManager(event_params)
         event = manager.save(self.project.id)
 
         # release and environment stay toplevel
@@ -1970,7 +2039,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert tags["server_name"] == "foo.com"
 
     @freeze_time()
-    def test_save_issueless_event(self):
+    def test_save_issueless_event(self) -> None:
         manager = EventManager(
             make_event(
                 transaction="wait",
@@ -2004,7 +2073,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             == 0
         )
 
-    def test_category_match_in_app(self):
+    def test_category_match_in_app(self) -> None:
         """
         Regression test to ensure that grouping in-app enhancements work in
         principle.
@@ -2019,7 +2088,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """,
         )
 
-        event = make_event(
+        event_params = make_event(
             platform="native",
             exception={
                 "values": [
@@ -2039,7 +2108,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
 
-        manager = EventManager(event)
+        manager = EventManager(event_params)
         manager.normalize()
         manager.get_data()["grouping_config"] = {
             "enhancements": enhancement.dumps(),
@@ -2048,7 +2117,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event1 = manager.save(self.project.id)
         assert event1.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
 
-        event = make_event(
+        event_params = make_event(
             platform="native",
             exception={
                 "values": [
@@ -2068,7 +2137,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
 
-        manager = EventManager(event)
+        manager = EventManager(event_params)
         manager.normalize()
         manager.get_data()["grouping_config"] = {
             "enhancements": enhancement.dumps(),
@@ -2078,7 +2147,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert event2.data["exception"]["values"][0]["stacktrace"]["frames"][0]["in_app"] is False
         assert event1.group_id == event2.group_id
 
-    def test_category_match_group(self):
+    def test_category_match_group(self) -> None:
         """
         Regression test to ensure categories are applied consistently and don't
         produce hash mismatches.
@@ -2092,7 +2161,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             """,
         )
 
-        event = make_event(
+        event_params = make_event(
             platform="native",
             exception={
                 "values": [
@@ -2113,10 +2182,10 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
 
-        manager = EventManager(event)
+        manager = EventManager(event_params)
         manager.normalize()
 
-        grouping_config = {
+        grouping_config: GroupingConfig = {
             "enhancements": enhancement.dumps(),
             "id": "mobile:2021-02-12",
         }
@@ -2126,12 +2195,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         event2 = Event(event1.project_id, event1.event_id, data=event1.data)
 
-        assert event1.get_hashes().hashes == event2.get_hashes(grouping_config).hashes
+        assert (
+            event1.get_hashes().hashes
+            == event2.get_hashes(load_grouping_config(grouping_config)).hashes
+        )
 
-    def test_write_none_tree_labels(self):
+    def test_write_none_tree_labels(self) -> None:
         """Write tree labels even if None"""
 
-        event = make_event(
+        event_params = make_event(
             platform="native",
             exception={
                 "values": [
@@ -2152,7 +2224,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             },
         )
 
-        manager = EventManager(event)
+        manager = EventManager(event_params)
         manager.normalize()
 
         manager.get_data()["grouping_config"] = {
@@ -2162,7 +2234,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert event.data["hierarchical_tree_labels"] == [None]
 
-    def test_synthetic_exception_detection(self):
+    def test_synthetic_exception_detection(self) -> None:
         manager = EventManager(
             make_event(
                 message="foo",
@@ -2191,7 +2263,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert mechanism.synthetic is True
         assert event.title == "foo"
 
-    def test_auto_update_grouping(self):
+    def test_auto_update_grouping(self) -> None:
         with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
             # start out with legacy grouping, this should update us
             self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
@@ -2230,15 +2302,15 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
             # and we should see an audit log record.
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                record = AuditLogEntry.objects.first()
+            with assume_test_silo_mode_of(AuditLogEntry):
+                record = AuditLogEntry.objects.get()
             assert record.event == audit_log.get_event_id("PROJECT_EDIT")
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_perf_issue_creation(self):
+    def test_perf_issue_creation(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
@@ -2288,6 +2360,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": description,
+                "initial_priority": PriorityLevel.LOW,
             }
             assert (
                 event.search_message
@@ -2331,7 +2404,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_perf_issue_update(self):
+    def test_perf_issue_update(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view"))
@@ -2363,6 +2436,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 "location": "/books/",
                 "title": "N+1 Query",
                 "value": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "initial_priority": PriorityLevel.LOW,
             }
             assert group.location() == "/books/"
             assert group.message == "nope"
@@ -2370,7 +2444,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_error_issue_no_associate_perf_event(self):
+    def test_error_issue_no_associate_perf_event(self) -> None:
         """Test that you can't associate a performance event with an error issue"""
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
@@ -2391,7 +2465,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_perf_issue_no_associate_error_event(self):
+    def test_perf_issue_no_associate_error_event(self) -> None:
         """Test that you can't associate an error event with a performance issue"""
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             manager = EventManager(make_event())
@@ -2412,7 +2486,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_perf_issue_creation_ignored(self):
+    def test_perf_issue_creation_ignored(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")),
@@ -2423,7 +2497,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
-    def test_perf_issue_creation_over_ignored_threshold(self):
+    def test_perf_issue_creation_over_ignored_threshold(self) -> None:
         with mock.patch("sentry_sdk.tracing.Span.containing_transaction"):
             event_1 = self.create_performance_issue(
                 event_data=make_event(**get_event("n-plus-one-in-django-index-view")), noise_limit=3
@@ -2449,25 +2523,16 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             "performance.issues.all.problem-detection": 1.0,
         }
     )
-    def test_perf_issue_slow_db_issue_is_created(self):
+    def test_perf_issue_slow_db_issue_is_created(self) -> None:
         def attempt_to_generate_slow_db_issue() -> Event:
-            for _ in range(100):
-                event = self.create_performance_issue(
-                    event_data=make_event(**get_event("slow-db-spans")),
-                    issue_type=PerformanceSlowDBQueryGroupType,
-                )
-                last_event = event
+            return self.create_performance_issue(
+                event_data=make_event(**get_event("slow-db-spans")),
+                issue_type=PerformanceSlowDBQueryGroupType,
+            )
 
-            return last_event
-
-        # Should not create the group without the feature flag
         last_event = attempt_to_generate_slow_db_issue()
-        assert not last_event.group
-
-        with self.feature({"organizations:performance-slow-db-issue": True}):
-            last_event = attempt_to_generate_slow_db_issue()
-            assert last_event.group
-            assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
+        assert last_event.group
+        assert last_event.group.type == PerformanceSlowDBQueryGroupType.type_id
 
     @patch("sentry.event_manager.metrics.incr")
     def test_new_group_metrics_logging(self, mock_metrics_incr: MagicMock) -> None:
@@ -2553,13 +2618,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.repo_name = "example"
         self.project = self.create_project(name="foo")
-        self.org_integration = self.integration.add_organization(
-            self.project.organization, self.user
-        )
+        with assume_test_silo_mode_of(Integration):
+            self.org_integration = self.integration.add_organization(
+                self.project.organization, self.user
+            )
         self.repo = self.create_repo(
             project=self.project,
             name=self.repo_name,
@@ -2597,7 +2663,7 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             json=json.loads(GET_LAST_2_COMMITS_EXAMPLE),
         )
 
-    def _create_first_release_commit(self):
+    def _create_first_release_commit(self) -> None:
         # Create a release
         release = self.create_release(project=self.project, version="abcabcabc")
         # Create a commit
@@ -2613,211 +2679,16 @@ class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):
             commit=commit,
         )
 
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_on_sha_release_version(self, get_jwt):
-        with self.feature("projects:auto-associate-commits-to-release"):
-            self._create_first_release_commit()
-            # Make a new release with SHA checksum
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
 
-            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_first_release(self, get_jwt):
-        with self.feature("projects:auto-associate-commits-to-release"):
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_not_a_sha(self, get_jwt):
-        SHA = "not-a-sha"
-        with self.feature("projects:auto-associate-commits-to-release"):
-            with self.tasks():
-                _ = self.make_release_event(SHA, self.project.id)
-
-            release2 = Release.objects.get(version=SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-            assert len(commit_list) == 0
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commit_not_found(self, get_jwt):
-        SHA = "b" * 40
-        responses.add(
-            "GET",
-            f"https://api.github.com/repos/{self.repo_name}/commits/{SHA}",
-            status=HTTP_404_NOT_FOUND,
-        )
-        with self.feature("projects:auto-associate-commits-to-release"):
-            with self.tasks():
-                _ = self.make_release_event(SHA, self.project.id)
-
-            release2 = Release.objects.get(version=SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-            assert len(commit_list) == 0
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_release_conflict(self, get_jwt):
-        # Release is created but none of the commits, we should still associate commits
-        with self.feature("projects:auto-associate-commits-to-release"):
-            preexisting_release = self.create_release(
-                project=self.project, version=LATER_COMMIT_SHA
-            )
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            commit_releases = Release.objects.filter(version=LATER_COMMIT_SHA).all()
-            assert len(commit_releases) == 1
-            assert commit_releases[0].id == preexisting_release.id
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=preexisting_release).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_commit_conflict(self, get_jwt):
-        # A commit tied to the release is somehow created before the release itself is created.
-        # autoassociation should tie the existing commit to the new release
-        with self.feature("projects:auto-associate-commits-to-release"):
-            author = CommitAuthor.objects.create(
-                organization_id=self.organization.id,
-                email="support@github.com",
-                name="Monalisa Octocat",
-            )
-
-            # Values taken from commit generated from GH response fixtures
-            preexisting_commit = self.create_commit(
-                repo=self.repo,
-                project=self.project,
-                author=author,
-                key=EARLIER_COMMIT_SHA,
-                message="Fix all the bugs",
-                date_added=datetime(2011, 4, 14, 16, 0, 49, tzinfo=timezone.utc),
-            )
-
-            with self.tasks():
-                self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            new_release = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=new_release).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].id == preexisting_commit.id
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_feature_not_enabled(self, get_jwt):
-        with self.feature({"projects:auto-associate-commits-to-release": False}):
-            with self.tasks():
-                _ = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            release2 = Release.objects.get(version=LATER_COMMIT_SHA)
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=release2).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 0
-
-    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    @responses.activate
-    def test_autoassign_commits_duplicate_events(self, get_jwt):
-        with self.feature({"projects:auto-associate-commits-to-release": True}):
-            with self.tasks():
-                event1 = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-                event2 = self.make_release_event(LATER_COMMIT_SHA, self.project.id)
-
-            assert event1 != event2
-            assert event1.release == event2.release
-            releases = Release.objects.filter(version=LATER_COMMIT_SHA).all()
-            assert len(releases) == 1
-            commit_list = list(
-                Commit.objects.filter(releasecommit__release=releases[0]).order_by(
-                    "releasecommit__order"
-                )
-            )
-
-            assert len(commit_list) == 2
-            assert commit_list[0].repository_id == self.repo.id
-            assert commit_list[0].organization_id == self.project.organization.id
-            assert commit_list[0].key == EARLIER_COMMIT_SHA
-            assert commit_list[1].repository_id == self.repo.id
-            assert commit_list[1].organization_id == self.project.organization.id
-            assert commit_list[1].key == LATER_COMMIT_SHA
-
-
-@region_silo_test
 class ReleaseIssueTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.project = self.create_project()
         self.release = Release.get_or_create(self.project, "1.0")
         self.environment1 = Environment.get_or_create(self.project, "prod")
         self.environment2 = Environment.get_or_create(self.project, "staging")
         self.timestamp = float(int(time() - 300))
 
-    def make_event(self, **kwargs):
+    def make_event(self, **kwargs: Any) -> dict[str, Any]:
         result = {
             "event_id": "a" * 32,
             "message": "foo",
@@ -2830,23 +2701,27 @@ class ReleaseIssueTest(TestCase):
         return result
 
     def make_release_event(
-        self, release_version="1.0", environment_name="prod", project_id=1, **kwargs
-    ):
-        event = make_event(
+        self,
+        release_version: str = "1.0",
+        environment_name: str | None = "prod",
+        project_id: int = 1,
+        **kwargs: Any,
+    ) -> Event:
+        event_params = make_event(
             release=release_version, environment=environment_name, event_id=uuid.uuid1().hex
         )
-        event.update(kwargs)
-        manager = EventManager(event)
+        event_params.update(kwargs)
+        manager = EventManager(event_params)
         with self.tasks():
             event = manager.save(project_id)
         return event
 
-    def convert_timestamp(self, timestamp):
-        date = datetime.fromtimestamp(timestamp)
-        date = date.replace(tzinfo=timezone.utc)
-        return date
+    def convert_timestamp(self, timestamp: float) -> datetime:
+        return datetime.fromtimestamp(timestamp, tz=UTC)
 
-    def assert_release_project_environment(self, event, new_issues_count, first_seen, last_seen):
+    def assert_release_project_environment(
+        self, event: Event, new_issues_count: int, first_seen: float, last_seen: float
+    ) -> None:
         release = Release.objects.get(
             organization=event.project.organization.id, version=event.get_tag("sentry:release")
         )
@@ -2860,7 +2735,7 @@ class ReleaseIssueTest(TestCase):
         assert release_project_env.first_seen == self.convert_timestamp(first_seen)
         assert release_project_env.last_seen == self.convert_timestamp(last_seen)
 
-    def test_different_groups(self):
+    def test_different_groups(self) -> None:
         event1 = self.make_release_event(
             release_version=self.release.version,
             environment_name=self.environment1.name,
@@ -2886,7 +2761,7 @@ class ReleaseIssueTest(TestCase):
             first_seen=self.timestamp,
         )
 
-    def test_same_group(self):
+    def test_same_group(self) -> None:
         event1 = self.make_release_event(
             release_version=self.release.version,
             environment_name=self.environment1.name,
@@ -2911,7 +2786,7 @@ class ReleaseIssueTest(TestCase):
             first_seen=self.timestamp,
         )
 
-    def test_same_group_different_environment(self):
+    def test_same_group_different_environment(self) -> None:
         event1 = self.make_release_event(
             release_version=self.release.version,
             environment_name=self.environment1.name,
@@ -2940,16 +2815,15 @@ class ReleaseIssueTest(TestCase):
         )
 
 
-@region_silo_test
 @apply_feature_flag_on_cls("organizations:dynamic-sampling")
 class DSLatestReleaseBoostTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.environment1 = Environment.get_or_create(self.project, "prod")
         self.environment2 = Environment.get_or_create(self.project, "staging")
         self.timestamp = float(int(time() - 300))
         self.redis_client = get_redis_client_for_ds()
 
-    def make_transaction_event(self, **kwargs):
+    def make_transaction_event(self, **kwargs: Any) -> dict[str, Any]:
         result = {
             "transaction": "wait",
             "contexts": {
@@ -2969,8 +2843,12 @@ class DSLatestReleaseBoostTest(TestCase):
         return result
 
     def make_release_transaction(
-        self, release_version="1.0", environment_name="prod", project_id=1, **kwargs
-    ):
+        self,
+        release_version: str = "1.0",
+        environment_name: str | None = "prod",
+        project_id: int = 1,
+        **kwargs: Any,
+    ) -> Event:
         transaction = (
             self.make_transaction_event(
                 release=release_version, environment=environment_name, event_id=uuid.uuid1().hex
@@ -2985,16 +2863,16 @@ class DSLatestReleaseBoostTest(TestCase):
         return event
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_with_non_observed_release(self):
-        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    def test_boost_release_with_non_observed_release(self) -> None:
+        ts = timezone.now().timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
         release_2 = Release.get_or_create(
-            project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            project=project, version="2.0", date_added=timezone.now() + timedelta(hours=1)
         )
         release_3 = Release.get_or_create(
-            project=project, version="3.0", date_added=datetime.now() + timedelta(hours=2)
+            project=project, version="3.0", date_added=timezone.now() + timedelta(hours=2)
         )
 
         for release, environment in (
@@ -3046,16 +2924,16 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_boosts_only_latest_release(self):
-        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    def test_boost_release_boosts_only_latest_release(self) -> None:
+        ts = timezone.now().timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
         release_2 = Release.get_or_create(
             project=project,
             version="2.0",
             # We must make sure the new release_2.date_added > release_1.date_added.
-            date_added=datetime.now() + timedelta(hours=1),
+            date_added=timezone.now() + timedelta(hours=1),
         )
 
         # We add a transaction for latest release release_2.
@@ -3095,9 +2973,9 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_boost_release_with_observed_release_and_different_environment(self):
+    def test_boost_release_with_observed_release_and_different_environment(self) -> None:
         project = self.create_project(platform="python")
-        release = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
 
         self.make_release_transaction(
             release_version=release.version,
@@ -3220,9 +3098,9 @@ class DSLatestReleaseBoostTest(TestCase):
             ]
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_release_not_boosted_with_observed_release_and_same_environment(self):
+    def test_release_not_boosted_with_observed_release_and_same_environment(self) -> None:
         project = self.create_project(platform="python")
-        release = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
 
         for environment in (self.environment1.name, self.environment2.name):
             self.redis_client.set(
@@ -3240,13 +3118,13 @@ class DSLatestReleaseBoostTest(TestCase):
         assert ProjectBoostedReleases(project_id=project.id).get_extended_boosted_releases() == []
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_release_not_boosted_with_deleted_release_after_event_received(self):
-        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    def test_release_not_boosted_with_deleted_release_after_event_received(self) -> None:
+        ts = timezone.now().timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
         release_2 = Release.get_or_create(
-            project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            project=project, version="2.0", date_added=timezone.now() + timedelta(hours=1)
         )
 
         self.make_release_transaction(
@@ -3290,13 +3168,13 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_get_boosted_releases_with_old_and_new_cache_keys(self):
-        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    def test_get_boosted_releases_with_old_and_new_cache_keys(self) -> None:
+        ts = timezone.now().timestamp()
 
         project = self.create_project(platform="python")
 
         # Old cache key
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
         self.redis_client.hset(
             f"ds::p:{project.id}:boosted_releases",
             f"{release_1.id}",
@@ -3305,7 +3183,7 @@ class DSLatestReleaseBoostTest(TestCase):
 
         # New cache key
         release_2 = Release.get_or_create(
-            project=project, version="2.0", date_added=datetime.now() + timedelta(hours=1)
+            project=project, version="2.0", date_added=timezone.now() + timedelta(hours=1)
         )
         self.redis_client.hset(
             f"ds::p:{project.id}:boosted_releases",
@@ -3360,8 +3238,8 @@ class DSLatestReleaseBoostTest(TestCase):
         ]
 
     @freeze_time("2022-11-03 10:00:00")
-    def test_expired_boosted_releases_are_removed(self):
-        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    def test_expired_boosted_releases_are_removed(self) -> None:
+        ts = timezone.now().timestamp()
 
         # We want to test with multiple platforms.
         for platform in ("python", "java", None):
@@ -3376,7 +3254,7 @@ class DSLatestReleaseBoostTest(TestCase):
                 release = Release.get_or_create(
                     project=project,
                     version=release_version,
-                    date_added=datetime.now() + timedelta(hours=index),
+                    date_added=timezone.now() + timedelta(hours=index),
                 )
                 self.redis_client.set(
                     f"ds::p:{project.id}:r:{release.id}:e:{environment}", 1, 60 * 60 * 24
@@ -3392,7 +3270,7 @@ class DSLatestReleaseBoostTest(TestCase):
             release_3 = Release.get_or_create(
                 project=project,
                 version=f"3.0-{platform}",
-                date_added=datetime.now() + timedelta(hours=2),
+                date_added=timezone.now() + timedelta(hours=2),
             )
             self.make_release_transaction(
                 release_version=release_3.version,
@@ -3426,8 +3304,8 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @mock.patch("sentry.event_manager.schedule_invalidate_project_config")
     def test_project_config_invalidation_is_triggered_when_new_release_is_observed(
-        self, mocked_invalidate
-    ):
+        self, mocked_invalidate: mock.MagicMock
+    ) -> None:
         self.make_release_transaction(
             release_version=self.release.version,
             environment_name=self.environment1.name,
@@ -3442,19 +3320,19 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time("2022-11-03 10:00:00")
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
-    def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self):
-        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    def test_least_recently_boosted_release_is_removed_if_limit_is_exceeded(self) -> None:
+        ts = timezone.now().timestamp()
 
         project = self.create_project(platform="python")
         release_1 = Release.get_or_create(
             project=project,
             version="1.0",
-            date_added=datetime.now(),
+            date_added=timezone.now(),
         )
         release_2 = Release.get_or_create(
             project=project,
             version="2.0",
-            date_added=datetime.now() + timedelta(hours=1),
+            date_added=timezone.now() + timedelta(hours=1),
         )
 
         # We boost with increasing timestamps, so that we know that the smallest will be evicted.
@@ -3473,7 +3351,7 @@ class DSLatestReleaseBoostTest(TestCase):
         release_3 = Release.get_or_create(
             project=project,
             version="3.0",
-            date_added=datetime.now() + timedelta(hours=2),
+            date_added=timezone.now() + timedelta(hours=2),
         )
         self.make_release_transaction(
             release_version=release_3.version,
@@ -3512,16 +3390,16 @@ class DSLatestReleaseBoostTest(TestCase):
 
     @freeze_time()
     @mock.patch("sentry.dynamic_sampling.rules.helpers.latest_releases.BOOSTED_RELEASES_LIMIT", 2)
-    def test_removed_boost_not_added_again_if_limit_is_exceeded(self):
-        ts = datetime.utcnow().replace(tzinfo=timezone.utc).timestamp()
+    def test_removed_boost_not_added_again_if_limit_is_exceeded(self) -> None:
+        ts = timezone.now().timestamp()
 
         project = self.create_project(platform="python")
-        release_1 = Release.get_or_create(project=project, version="1.0", date_added=datetime.now())
+        release_1 = Release.get_or_create(project=project, version="1.0", date_added=timezone.now())
 
         # We want to test that if we have the same release, but we send different environments that go over the
         # limit, and we evict an environment, but then we send a transaction with the evicted environment.
         #
-        # As an example suppose the following history of transactions received in the form (release, env):
+        # As an example suppose the following history of transactions received in the form (release, env) -> None:
         # (1, production) -> (1, staging) -> (1, None) -> (1, production)
         #
         # Once we receive the first two, we have reached maximum capacity. Then we receive (1, None) and evict boost
@@ -3581,17 +3459,17 @@ class DSLatestReleaseBoostTest(TestCase):
 
 
 class TestSaveGroupHashAndGroup(TransactionTestCase):
-    def test(self):
+    def test(self) -> None:
         perf_data = load_data("transaction-n-plus-one", timestamp=before_now(minutes=10))
         event = _get_event_instance(perf_data, project_id=self.project.id)
         group_hash = "some_group"
-        group, created = _save_grouphash_and_group(self.project, event, group_hash)
+        group, created = save_grouphash_and_group(self.project, event, group_hash)
         assert created
-        group_2, created = _save_grouphash_and_group(self.project, event, group_hash)
+        group_2, created = save_grouphash_and_group(self.project, event, group_hash)
         assert group.id == group_2.id
         assert not created
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
-        group_3, created = _save_grouphash_and_group(self.project, event, "new_hash")
+        group_3, created = save_grouphash_and_group(self.project, event, "new_hash")
         assert created
         assert group_2.id != group_3.id
         assert Group.objects.filter(grouphash__hash=group_hash).count() == 1
@@ -3670,7 +3548,9 @@ example_error_event = {
     ],
 )
 @django_db_all
-def test_cogs_event_manager(default_project, event_data, expected_type):
+def test_cogs_event_manager(
+    default_project: int, event_data: Mapping[str, Any], expected_type: str
+) -> None:
     storage: MemoryMessageStorage[KafkaPayload] = MemoryMessageStorage()
     broker = LocalBroker(storage)
     topic = Topic("shared-resources-usage")
@@ -3681,9 +3561,9 @@ def test_cogs_event_manager(default_project, event_data, expected_type):
 
     accountant.init_backend(producer)
 
-    raw_event = make_event(**event_data)
+    raw_event_params = make_event(**event_data)
 
-    manager = EventManager(raw_event)
+    manager = EventManager(raw_event_params)
     manager.normalize()
     normalized_data = dict(manager.get_data())
     _ = manager.save(default_project)

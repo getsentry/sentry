@@ -2,10 +2,8 @@ from django.urls import reverse
 
 from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="a@example.com", is_superuser=True)
@@ -49,7 +47,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             self.url, data=data, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
 
-        external_issue = PlatformExternalIssue.objects.first()
+        external_issue = PlatformExternalIssue.objects.get()
 
         assert response.status_code == 200
         assert response.data == {

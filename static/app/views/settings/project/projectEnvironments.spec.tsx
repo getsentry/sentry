@@ -1,9 +1,9 @@
 import {
-  Environments as EnvironmentsFixture,
-  HiddenEnvironments,
+  EnvironmentsFixture,
+  HiddenEnvironmentsFixture,
 } from 'sentry-fixture/environments';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -90,7 +90,7 @@ describe('ProjectEnvironments', function () {
     it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
-        body: HiddenEnvironments(),
+        body: HiddenEnvironmentsFixture(),
       });
       renderComponent(true);
 
@@ -130,7 +130,7 @@ describe('ProjectEnvironments', function () {
       //
       // XXX(epurkhiser): In the future we should improve the accessability of
       // lists, because right now there's no way to associate the hide button
-      // with it's environment
+      // with its environment
       await userEvent.click(screen.getAllByRole('button', {name: 'Hide'})[0]);
 
       expect(hideMock).toHaveBeenCalledWith(
@@ -167,7 +167,7 @@ describe('ProjectEnvironments', function () {
     it('shows', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: HiddenEnvironments(),
+        body: HiddenEnvironmentsFixture(),
       });
 
       renderComponent(true);
@@ -185,7 +185,7 @@ describe('ProjectEnvironments', function () {
     it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
-        body: HiddenEnvironments(),
+        body: HiddenEnvironmentsFixture(),
       });
 
       renderComponent(true);

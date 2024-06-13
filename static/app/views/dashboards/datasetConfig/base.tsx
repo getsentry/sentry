@@ -1,29 +1,26 @@
 import trimStart from 'lodash/trimStart';
 
-import {Client, ResponseMeta} from 'sentry/api';
-import {SearchBarProps} from 'sentry/components/events/searchBar';
-import {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
-import {Series} from 'sentry/types/echarts';
-import {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import {MetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import {
-  AggregationOutputType,
-  isEquation,
-  QueryFieldValue,
-} from 'sentry/utils/discover/fields';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import {FieldValueOption} from 'sentry/views/discover/table/queryField';
-import {FieldValue} from 'sentry/views/discover/table/types';
+import type {Client, ResponseMeta} from 'sentry/api';
+import type {SearchBarProps} from 'sentry/components/events/searchBar';
+import type {Organization, PageFilters, SelectValue, TagCollection} from 'sentry/types';
+import type {Series} from 'sentry/types/echarts';
+import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import {isEquation} from 'sentry/utils/discover/fields';
+import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
+import type {FieldValue} from 'sentry/views/discover/table/types';
 
-import {DisplayType, Widget, WidgetQuery, WidgetType} from '../types';
+import type {DisplayType, Widget, WidgetQuery} from '../types';
+import {WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
-import {MetricsConfig} from './metrics';
 import {ReleasesConfig} from './releases';
 
 export type WidgetBuilderSearchBarProps = {
@@ -217,25 +214,17 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
 ): T extends WidgetType.ISSUE
   ? typeof IssuesConfig
   : T extends WidgetType.RELEASE
-  ? typeof ReleasesConfig
-  : T extends WidgetType.METRICS
-  ? typeof MetricsConfig
-  : typeof ErrorsAndTransactionsConfig;
+    ? typeof ReleasesConfig
+    : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
-):
-  | typeof IssuesConfig
-  | typeof ReleasesConfig
-  | typeof MetricsConfig
-  | typeof ErrorsAndTransactionsConfig {
+): typeof IssuesConfig | typeof ReleasesConfig | typeof ErrorsAndTransactionsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
-    case WidgetType.METRICS:
-      return MetricsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

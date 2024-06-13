@@ -4,9 +4,10 @@ from urllib.parse import parse_qs
 
 import responses
 from django.conf import settings
+from django.http import HttpResponseRedirect
 from django.test import override_settings
 from django.urls import re_path
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, BasePermission
 from rest_framework.response import Response
 
 import sentry.api.urls as api_urls
@@ -19,7 +20,7 @@ from sentry.utils import json
 
 @control_silo_endpoint
 class ControlEndpoint(ControlSiloOrganizationEndpoint):
-    permission_classes = (AllowAny,)  # type: ignore
+    permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
     def get(self, request, organization, **kwargs):
         return Response({"proxy": False})
@@ -27,15 +28,18 @@ class ControlEndpoint(ControlSiloOrganizationEndpoint):
 
 @region_silo_endpoint
 class RegionEndpoint(OrganizationEndpoint):
-    permission_classes = (AllowAny,)
+    permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
     def get(self, request, organization):
         return Response({"proxy": False})
 
+    def post(self, request, organization):
+        return HttpResponseRedirect("https://zombo.com")
+
 
 @region_silo_endpoint
 class NoOrgRegionEndpoint(Endpoint):
-    permission_classes = (AllowAny,)
+    permission_classes: tuple[type[BasePermission], ...] = (AllowAny,)
 
     def get(self, request):
         return Response({"proxy": False})
@@ -51,6 +55,21 @@ urlpatterns = [
         r"^organizations/(?P<organization_slug>[^\/]+)/region/$",
         RegionEndpoint.as_view(),
         name="region-endpoint",
+    ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^\/]+)/control/$",
+        ControlEndpoint.as_view(),
+        name="control-endpoint-id-or-slug",
+    ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^\/]+)/region/$",
+        RegionEndpoint.as_view(),
+        name="region-endpoint-id-or-slug",
+    ),
+    re_path(
+        r"^api/embed/error-page/$",
+        RegionEndpoint.as_view(),
+        name="sentry-error-page-embed",
     ),
 ] + api_urls.urlpatterns
 

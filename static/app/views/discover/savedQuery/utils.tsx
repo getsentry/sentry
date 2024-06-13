@@ -8,12 +8,12 @@ import {
   updateSavedQuery,
 } from 'sentry/actionCreators/discoverSavedQueries';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {NewQuery, Organization, SavedQuery} from 'sentry/types';
+import type {NewQuery, Organization, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
-import EventView from 'sentry/utils/discover/eventView';
+import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
+import type EventView from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
@@ -51,8 +51,7 @@ export function handleCreateQuery(
         organization,
         ...extractAnalyticsQueryFields(payload),
         error:
-          (err && err.message) ||
-          `Could not save a ${isNewQuery ? 'new' : 'existing'} query`,
+          err?.message || `Could not save a ${isNewQuery ? 'new' : 'existing'} query`,
       });
     });
 
@@ -100,7 +99,7 @@ export function handleUpdateQuery(
       trackAnalytics('discover_v2.update_query_failed', {
         organization,
         ...extractAnalyticsQueryFields(payload),
-        error: (err && err.message) || 'Failed to update a query',
+        error: err?.message || 'Failed to update a query',
       });
     });
 
@@ -139,7 +138,7 @@ export function handleUpdateQueryName(
       trackAnalytics('discover_v2.update_query_failed', {
         organization,
         ...extractAnalyticsQueryFields(payload),
-        error: (err && err.message) || 'Failed to update a query name',
+        error: err?.message || 'Failed to update a query name',
       });
     });
 
@@ -171,7 +170,7 @@ export function handleDeleteQuery(
       trackAnalytics('discover_v2.delete_query_failed', {
         organization,
         ...extractAnalyticsQueryFields(eventView.toNewQuery()),
-        error: (err && err.message) || 'Failed to delete query',
+        error: err?.message || 'Failed to delete query',
       });
     });
 

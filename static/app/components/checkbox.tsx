@@ -1,9 +1,11 @@
 import {useEffect, useRef} from 'react';
-import {css, Theme} from '@emotion/react';
-import styled, {Interpolation} from '@emotion/styled';
+import type {Theme} from '@emotion/react';
+import {css} from '@emotion/react';
+import type {Interpolation} from '@emotion/styled';
+import styled from '@emotion/styled';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {FormSize} from 'sentry/utils/theme';
+import type {FormSize} from 'sentry/utils/theme';
 
 type CheckboxProps = React.InputHTMLAttributes<HTMLInputElement>;
 
@@ -20,10 +22,6 @@ interface Props extends Omit<CheckboxProps, 'checked' | 'size'> {
    * Styles to be applied to the hidden <input> element.
    */
   inputCss?: Interpolation<Theme>;
-  /**
-   * Whether to invert the colors of the checkbox and the checkmark.
-   */
-  invertColors?: boolean;
   /**
    * The size of the checkbox. Defaults to 'sm'.
    */
@@ -47,7 +45,6 @@ function Checkbox({
   className,
   inputCss,
   checked = false,
-  invertColors,
   size = 'sm',
   ...props
 }: Props) {
@@ -71,19 +68,9 @@ function Checkbox({
         {...props}
       />
 
-      <StyledCheckbox
-        aria-hidden
-        checked={checked}
-        size={size}
-        color={checkboxColor}
-        invertColors={invertColors}
-      >
+      <StyledCheckbox aria-hidden checked={checked} size={size} color={checkboxColor}>
         {checked === true && (
-          <VariableWeightIcon
-            viewBox="0 0 16 16"
-            size={checkboxSizeMap[size].icon}
-            invertColors={props.disabled ? false : invertColors}
-          >
+          <VariableWeightIcon viewBox="0 0 16 16" size={checkboxSizeMap[size].icon}>
             <path d="M2.86 9.14C4.42 10.7 6.9 13.14 6.86 13.14L12.57 3.43" />
           </VariableWeightIcon>
         )}
@@ -122,7 +109,7 @@ const HiddenInput = styled('input')`
   padding: 0;
   cursor: pointer;
 
-  &.focus-visible + * {
+  &:focus-visible + * {
     ${p =>
       p.checked
         ? `
@@ -151,7 +138,6 @@ const StyledCheckbox = styled('div')<{
   checked: Props['checked'];
   size: FormSize;
   color?: Props['checkboxColor'];
-  invertColors?: Props['invertColors'];
 }>`
   position: relative;
   display: flex;
@@ -165,12 +151,7 @@ const StyledCheckbox = styled('div')<{
   pointer-events: none;
 
   ${p =>
-    p.invertColors
-      ? css`
-          background: ${p.theme.white};
-          border: 0;
-        `
-      : p.checked
+    p.checked
       ? css`
           background: ${p.color ?? p.theme.active};
           border: 0;
@@ -181,14 +162,14 @@ const StyledCheckbox = styled('div')<{
         `}
 `;
 
-const VariableWeightIcon = styled('svg')<{size: string; invertColors?: boolean}>`
+const VariableWeightIcon = styled('svg')<{size: string}>`
   width: ${p => p.size};
   height: ${p => p.size};
 
   fill: none;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke: ${p => (p.invertColors ? p.theme.active : p.theme.white)};
+  stroke: ${p => p.theme.white};
   stroke-width: calc(1.4px + ${p => p.size} * 0.04);
 `;
 

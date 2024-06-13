@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from django.apps import apps
 from django.db import connections
@@ -68,6 +68,9 @@ class SiloRouter:
     """
 
     historical_silo_assignments = {
+        "sentry_actor": SiloMode.REGION,
+        "sentry_teamavatar": SiloMode.REGION,
+        "sentry_projectavatar": SiloMode.REGION,
         "sentry_pagerdutyservice": SiloMode.REGION,
         "sentry_notificationsetting": SiloMode.CONTROL,
     }
@@ -119,14 +122,14 @@ class SiloRouter:
         else:
             return None
 
-    def _find_model(self, table: str, app_label: str) -> Optional[Model]:
+    def _find_model(self, table: str, app_label: str) -> Model | None:
         # Use django's model inventory to find our table and what silo it is on.
         for model in apps.get_models(app_label):
             if model._meta.db_table == table:
                 return model
         return None
 
-    def _silo_limit(self, model: Model) -> Optional[SiloLimit]:
+    def _silo_limit(self, model: Model) -> SiloLimit | None:
         silo_limit = getattr(model._meta, "silo_limit", None)
         if silo_limit:
             return silo_limit
@@ -204,3 +207,22 @@ class SiloRouter:
         # Assume migrations with no model routing or hints need to run on
         # the default database.
         return db == "default"
+
+
+class TestSiloMultiDatabaseRouter(SiloRouter):
+    """Silo router used in CI"""
+
+    secondary_db_models = {
+        "sentry_monitor",
+        "sentry_monitorcheckin",
+        "sentry_monitorlocation",
+        "sentry_monitorenvironment",
+        "sentry_monitorincident",
+        "sentry_monitorenvbrokendetection",
+    }
+
+    def _resolve_silo_connection(self, silo_modes: Iterable[SiloMode], table: str) -> str | None:
+        connection = super()._resolve_silo_connection(silo_modes=silo_modes, table=table)
+        if table in self.secondary_db_models:
+            return "secondary"
+        return connection

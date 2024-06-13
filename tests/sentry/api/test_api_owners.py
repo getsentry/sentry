@@ -1,11 +1,10 @@
-from typing import Set
 from unittest import TestCase
 
 from sentry.api.api_owners import ApiOwner
 
 
 class APIOwnersTestCase(TestCase):
-    teams: Set[str] = set()
+    teams: set[str] = set()
 
     def setUp(self):
         super().setUp()

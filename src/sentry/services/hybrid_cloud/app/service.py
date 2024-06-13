@@ -4,8 +4,10 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
-from typing import Any, Dict, List, Mapping, Optional
+from collections.abc import Mapping
+from typing import Any
 
+from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
     RpcSentryApp,
@@ -15,11 +17,12 @@ from sentry.services.hybrid_cloud.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
+from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponentContext
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class AppService(RpcService):
@@ -38,23 +41,23 @@ class AppService(RpcService):
         self,
         *,
         filter: SentryAppInstallationFilterArgs,
-        as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
-    ) -> List[OpaqueSerializedResponse]:
+        as_user: RpcUser | None = None,
+        auth_context: AuthenticationContext | None = None,
+    ) -> list[OpaqueSerializedResponse]:
         pass
 
     @rpc_method
     @abc.abstractmethod
     def get_many(
         self, *, filter: SentryAppInstallationFilterArgs
-    ) -> List[RpcSentryAppInstallation]:
+    ) -> list[RpcSentryAppInstallation]:
         pass
 
     @rpc_method
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> Optional[RpcSentryAppInstallation]:
+    ) -> RpcSentryAppInstallation | None:
         pass
 
     @rpc_method
@@ -63,45 +66,54 @@ class AppService(RpcService):
         self,
         *,
         organization_id: int,
-    ) -> List[RpcSentryAppInstallation]:
+    ) -> list[RpcSentryAppInstallation]:
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def get_sentry_app_by_id(self, *, id: int) -> Optional[RpcSentryApp]:
+    def get_sentry_app_by_id(self, *, id: int) -> RpcSentryApp | None:
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def get_sentry_app_by_slug(self, *, slug: str) -> Optional[RpcSentryApp]:
+    def get_sentry_app_by_slug(self, *, slug: str) -> RpcSentryApp | None:
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def get_installation_by_id(self, *, id: int) -> Optional[RpcSentryAppInstallation]:
+    def get_installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
+        pass
+
+    def installation_by_id(self, *, id: int) -> RpcSentryAppInstallation | None:
+        """
+        Get a sentryapp install by id
+
+        This method is a cached wrapper around get_installation_by_id()
+        """
+        return get_installation(id)
+
+    @rpc_method
+    @abc.abstractmethod
+    def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> Optional[RpcSentryAppInstallation]:
+    def find_alertable_services(self, *, organization_id: int) -> list[RpcSentryAppService]:
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def get_installation_token(self, *, organization_id: int, provider: str) -> Optional[str]:
+    def find_service_hook_sentry_app(self, *, api_application_id: int) -> RpcSentryApp | None:
         pass
 
-    @rpc_method
-    @abc.abstractmethod
-    def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
-        pass
+    def get_by_application_id(self, *, application_id: int) -> RpcSentryApp | None:
+        """
+        Get a SentryApp by application_id with caching
 
-    @rpc_method
-    @abc.abstractmethod
-    def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
-        pass
+        Wraps find_service_hook_sentry_app with caching.
+        """
+        return get_by_application_id(application_id)
 
     @rpc_method
     @abc.abstractmethod
@@ -110,31 +122,32 @@ class AppService(RpcService):
         *,
         event_data: RpcSentryAppEventData,
         organization_id: int,
-        project_slug: Optional[str],
-    ) -> List[Mapping[str, Any]]:
+        project_slug: str | None,
+    ) -> list[Mapping[str, Any]]:
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
+    def find_app_components(self, *, app_id: int) -> list[RpcSentryAppComponent]:
         pass
 
     @rpc_method
     @abc.abstractmethod
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: List[int],
-        sentry_app_ids: List[int],
-        type: str,
-        group_by: str = "sentry_app_id",
-    ) -> Mapping[str, Any]:
-        pass
+    def get_component_contexts(
+        self, *, filter: SentryAppInstallationFilterArgs, component_type: str
+    ) -> list[RpcSentryAppComponentContext]:
+        """
+        Get a context object for sentryapp components of a certain type.
+        Used for building sentryapp actions for alerts.
+
+        :param filter: The filtering conditions, same conditions as get_many()
+        :param component_type: The sentry-app component to get
+        """
 
     @rpc_method
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
-        self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
+        self, *, fields: list[Mapping[str, Any]], install_uuid: str | None
     ) -> RpcAlertRuleActionResult:
         pass
 
@@ -142,7 +155,7 @@ class AppService(RpcService):
     @abc.abstractmethod
     def get_published_sentry_apps_for_organization(
         self, *, organization_id: int
-    ) -> List[RpcSentryApp]:
+    ) -> list[RpcSentryApp]:
         pass
 
     @rpc_method
@@ -152,23 +165,33 @@ class AppService(RpcService):
         *,
         organization_id: int,
         integration_name: str,
-        integration_scopes: List[str],
+        integration_scopes: list[str],
         integration_creator_id: int,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> RpcSentryAppInstallation:
         pass
 
     @rpc_method
     @abc.abstractmethod
     def prepare_sentry_app_components(
-        self, *, installation_id: int, component_type: str, project_slug: Optional[str] = None
-    ) -> Optional[RpcSentryAppComponent]:
+        self, *, installation_id: int, component_type: str, project_slug: str | None = None
+    ) -> RpcSentryAppComponent | None:
         pass
 
     @rpc_method
     @abc.abstractmethod
     def disable_sentryapp(self, *, id: int) -> None:
         pass
+
+
+@back_with_silo_cache("app_service.get_installation", SiloMode.REGION, RpcSentryAppInstallation)
+def get_installation(id: int) -> RpcSentryAppInstallation | None:
+    return app_service.get_installation_by_id(id=id)
+
+
+@back_with_silo_cache("app_service.get_by_application_id", SiloMode.REGION, RpcSentryApp)
+def get_by_application_id(application_id: int) -> RpcSentryApp | None:
+    return app_service.find_service_hook_sentry_app(api_application_id=application_id)
 
 
 app_service = AppService.create_delegation()

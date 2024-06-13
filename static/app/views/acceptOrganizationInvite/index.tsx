@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {logout} from 'sentry/actionCreators/account';
@@ -11,6 +11,7 @@ import NarrowLayout from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -298,14 +299,14 @@ class AcceptOrganizationInvite extends DeprecatedAsyncView<Props, State> {
         {inviteDetails.needsAuthentication
           ? this.authenticationActions
           : inviteDetails.existingMember
-          ? this.existingMemberAlert
-          : inviteDetails.needs2fa
-          ? this.warning2fa
-          : inviteDetails.needsEmailVerification
-          ? this.warningEmailVerification
-          : inviteDetails.requireSso
-          ? this.authenticationActions
-          : this.acceptActions}
+            ? this.existingMemberAlert
+            : inviteDetails.needs2fa
+              ? this.warning2fa
+              : inviteDetails.needsEmailVerification
+                ? this.warningEmailVerification
+                : inviteDetails.requireSso
+                  ? this.authenticationActions
+                  : this.acceptActions}
       </NarrowLayout>
     );
   }

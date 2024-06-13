@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from functools import reduce
-from typing import Any, List, Literal, Mapping, NamedTuple, Sequence, Set, Tuple, Union
+from typing import Any, Literal, NamedTuple, Union
 
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
-from parsimonious.expressions import Optional
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor
 
@@ -149,7 +149,7 @@ quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
 text_in_value          = quoted_value / in_value
 search_value           = quoted_value / value
-numeric_value          = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
+numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed_bracket)
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
@@ -165,11 +165,17 @@ time_format = ~r"T\d{2}:\d{2}:\d{2}" ("." ms_format)?
 ms_format   = ~r"\d{1,6}"
 tz_format   = ~r"[+-]\d{2}:\d{2}"
 
+
 iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
 rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
 duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
-size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib") &end_value
+size_format          = numeric (size_unit) &end_value
 percentage_format    = numeric "%"
+
+numeric_unit        = ~r"[kmb]"i
+size_unit            = bits / bytes
+bits                 = ~r"bit|kib|mib|gib|tib|pib|eib|zib|yib"i
+bytes                = ~r"bytes|nb|kb|mb|gb|tb|pb|eb|zb|yb"i
 
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
@@ -261,7 +267,7 @@ def flatten(children):
 
 def remove_optional_nodes(children):
     def is_not_optional(child):
-        return not (isinstance(child, Node) and isinstance(child.expr, Optional))
+        return not (isinstance(child, Node) and not child.text)
 
     return list(filter(is_not_optional, children))
 
@@ -302,7 +308,7 @@ def handle_negation(negation, operator):
 
 def get_operator_value(operator):
     if isinstance(operator, Node):
-        operator = "=" if isinstance(operator.expr, Optional) else operator.text
+        operator = operator.text or "="
     elif isinstance(operator, list):
         operator = operator[0]
     return operator
@@ -354,7 +360,7 @@ class SearchKey(NamedTuple):
 
 
 class SearchValue(NamedTuple):
-    raw_value: Union[str, int, datetime, Sequence[int], Sequence[str]]
+    raw_value: str | int | datetime | Sequence[int] | Sequence[str]
 
     @property
     def value(self):
@@ -457,41 +463,41 @@ class SearchConfig:
     """
 
     # <target_name>: [<list of source names>]
-    key_mappings: Mapping[str, List[str]] = field(default_factory=dict)
+    key_mappings: Mapping[str, list[str]] = field(default_factory=dict)
 
     # Text keys we allow operators to be used on
-    text_operator_keys: Set[str] = field(default_factory=set)
+    text_operator_keys: set[str] = field(default_factory=set)
 
     # Keys which are considered valid for duration filters
-    duration_keys: Set[str] = field(default_factory=set)
+    duration_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for the percentage aggregate and may have
     # percentage search values
-    percentage_keys: Set[str] = field(default_factory=set)
+    percentage_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for numeric filter types
-    numeric_keys: Set[str] = field(default_factory=set)
+    numeric_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for date filter types
-    date_keys: Set[str] = field(default_factory=set)
+    date_keys: set[str] = field(default_factory=set)
 
     # Keys considered valid for boolean filter types
-    boolean_keys: Set[str] = field(default_factory=set)
+    boolean_keys: set[str] = field(default_factory=set)
 
     # A mapping of string values that may be provided to `is:<value>` which
     # translates to a pair of SearchKey + SearchValue's. An empty list disables
     # this feature for the search
-    is_filter_translation: Mapping[str, Tuple[str, Any]] = field(default_factory=dict)
+    is_filter_translation: Mapping[str, tuple[str, Any]] = field(default_factory=dict)
 
     # Enables boolean filtering (AND / OR)
     allow_boolean = True
 
     # Allows us to specify an allowlist of keys we will accept for this search.
     # If empty, allow all keys.
-    allowed_keys: Set[str] = field(default_factory=set)
+    allowed_keys: set[str] = field(default_factory=set)
 
     # Allows us to specify a list of keys we will not accept for this search.
-    blocked_keys: Set[str] = field(default_factory=set)
+    blocked_keys: set[str] = field(default_factory=set)
 
     # Which key we should return any free text under
     free_text_key = "message"

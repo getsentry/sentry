@@ -1,5 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -26,8 +26,8 @@ describe('Discover > ChartFooter', function () {
 
   afterEach(function () {});
 
-  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', function () {
-    const organization = Organization({
+  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async function () {
+    const organization = OrganizationFixture({
       features: [...features],
     });
 
@@ -56,10 +56,10 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {context: initialData.routerContext});
+    render(chartFooter, {router: initialData.router});
 
     expect(
-      screen.getByRole('button', {
+      await screen.findByRole('button', {
         name: `Y-Axis ${yAxisValue[0]} +${
           yAxisValue.filter(v => v !== yAxisValue[0]).length
         }`,
@@ -67,8 +67,8 @@ describe('Discover > ChartFooter', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders display limits with default limit when top 5 mode is selected', function () {
-    const organization = Organization({
+  it('renders display limits with default limit when top 5 mode is selected', async function () {
+    const organization = OrganizationFixture({
       features,
     });
     // Start off with an invalid view (empty is invalid)
@@ -98,9 +98,11 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {context: initialData.routerContext});
+    render(chartFooter, {router: initialData.router});
 
-    expect(screen.getByRole('button', {name: `Limit ${limit}`})).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', {name: `Limit ${limit}`})
+    ).toBeInTheDocument();
   });
 
   it('renders multi value y-axis dropdown selector on a non-Top display', async function () {

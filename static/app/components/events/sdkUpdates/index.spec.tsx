@@ -1,13 +1,10 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
 
 describe('EventSdkUpdates', function () {
-  const {routerContext} = initializeOrg();
-
   it('renders a suggestion to update the sdk and then enable an integration', function () {
     const event = EventFixture({
       id: '123',
@@ -33,6 +30,6 @@ describe('EventSdkUpdates', function () {
       ],
     });
 
-    render(<EventSdkUpdates event={event} />, {context: routerContext});
+    render(<EventSdkUpdates event={event} />);
   });
 });

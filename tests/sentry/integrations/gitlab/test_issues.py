@@ -1,5 +1,3 @@
-import copy
-
 import pytest
 import responses
 
@@ -7,7 +5,7 @@ from fixtures.gitlab import GitLabTestCase
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.http import absolute_uri
@@ -24,9 +22,9 @@ class GitlabIssuesTest(GitLabTestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         self.group = event.group
 
@@ -126,7 +124,7 @@ class GitlabIssuesTest(GitLabTestCase):
             {
                 "name": "comment",
                 "label": "Comment",
-                "default": "Sentry issue: [{issue_id}]({url})".format(
+                "default": "Sentry Issue: [{issue_id}]({url})".format(
                     url=absolute_uri(
                         self.group.get_absolute_url(params={"referrer": "gitlab_integration"})
                     ),
@@ -220,6 +218,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
@@ -286,6 +285,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
@@ -396,6 +396,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         self.installation.after_link_issue(external_issue, data=data)
 
+    @responses.activate
     def test_after_link_issue_required_fields(self):
         data = {"externalIssue": "2#231", "comment": "This is not good."}
         external_issue = ExternalIssue.objects.create(

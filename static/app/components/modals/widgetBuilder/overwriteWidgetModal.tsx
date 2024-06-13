@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Card} from 'sentry/views/dashboards/widgetBuilder/widgetLibrary/card';
-import {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
+import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/data';
 
 export type OverwriteWidgetModalProps = {
   iconColor: string;

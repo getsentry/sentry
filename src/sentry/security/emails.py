@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Mapping, Optional
+from typing import TYPE_CHECKING, Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
@@ -18,8 +19,8 @@ def generate_security_email(
     type: str,
     actor: AnonymousUser | User | RpcUser,
     ip_address: str,
-    context: Optional[Mapping[str, Any]] = None,
-    current_datetime: Optional[datetime] = None,
+    context: Mapping[str, Any] | None = None,
+    current_datetime: datetime | None = None,
 ) -> MessageBuilder:
     if current_datetime is None:
         current_datetime = timezone.now()

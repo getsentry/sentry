@@ -29,13 +29,10 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.activity import Activity
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
 from sentry.models.project import Project
-from sentry.models.release import (
-    Release,
-    ReleaseCommitError,
-    ReleaseProject,
-    ReleaseStatus,
-    SemverFilter,
-)
+from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releases.exceptions import ReleaseCommitError
+from sentry.models.releases.release_project import ReleaseProject
+from sentry.models.releases.util import SemverFilter
 from sentry.search.events.constants import (
     OPERATOR_TO_DJANGO,
     RELEASE_ALIAS,
@@ -90,8 +87,8 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
 
         if search_filter.key.name == RELEASE_ALIAS:
             query_q = Q()
+            raw_value = search_filter.value.raw_value
             if search_filter.value.is_wildcard():
-                raw_value = search_filter.value.raw_value
                 if raw_value.endswith("*") and raw_value.startswith("*"):
                     query_q = Q(version__contains=raw_value[1:-1])
                 elif raw_value.endswith("*"):
@@ -100,6 +97,10 @@ def _filter_releases_by_query(queryset, organization, query, filter_params):
                     query_q = Q(version__endswith=raw_value[1:])
             elif search_filter.operator == "!=":
                 query_q = ~Q(version=search_filter.value.value)
+            elif search_filter.operator == "NOT IN":
+                query_q = ~Q(version__in=raw_value)
+            elif search_filter.operator == "IN":
+                query_q = Q(version__in=raw_value)
             else:
                 query_q = Q(version=search_filter.value.value)
 
@@ -146,7 +147,7 @@ class ReleaseSerializerWithProjects(ReleaseWithVersionSerializer):
     refs = ListField(child=ReleaseHeadCommitSerializer(), required=False, allow_null=False)
 
 
-def debounce_update_release_health_data(organization, project_ids):
+def debounce_update_release_health_data(organization, project_ids: list[int]):
     """This causes a flush of snuba health data to the postgres tables once
     per minute for the given projects.
     """
@@ -231,11 +232,12 @@ class OrganizationReleasesEndpoint(
         ]
     )
 
-    def get_projects(self, request: Request, organization, project_ids=None):
+    def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
         return super().get_projects(
             request,
             organization,
             project_ids=project_ids,
+            project_slugs=project_slugs,
             include_all_accessible="GET" != request.method,
         )
 
@@ -245,7 +247,7 @@ class OrganizationReleasesEndpoint(
         ```````````````````````````````
         Return a list of releases for a given organization.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :qparam string query: this parameter can be used to create a
                               "starts with" filter for the version.
         """
@@ -423,7 +425,7 @@ class OrganizationReleasesEndpoint(
         Releases are also necessary for sourcemaps and other debug features
         that require manual upload for functioning well.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
         :param string version: a version identifier for this release.  Can
                                be a version number, a commit hash etc.
@@ -477,6 +479,7 @@ class OrganizationReleasesEndpoint(
 
                 # release creation is idempotent to simplify user
                 # experiences
+                created = False
                 try:
                     release, created = Release.objects.get_or_create(
                         organization_id=organization.id,
@@ -501,14 +504,14 @@ class OrganizationReleasesEndpoint(
                     release.status = new_status
                     release.save()
 
-                new_projects = []
+                new_releaseprojects = []
                 for project in projects:
-                    created = release.add_project(project)
-                    if created:
-                        new_projects.append(project)
+                    _, releaseproject_created = release.add_project(project)
+                    if releaseproject_created:
+                        new_releaseprojects.append(project)
 
                 if release.date_released:
-                    for project in new_projects:
+                    for project in new_releaseprojects:
                         Activity.objects.create(
                             type=ActivityType.RELEASE.value,
                             project=project,
@@ -554,7 +557,7 @@ class OrganizationReleasesEndpoint(
                         scope.set_tag("failure_reason", "InvalidRepository")
                         return Response({"refs": [str(e)]}, status=400)
 
-                if not created and not new_projects:
+                if not created and not new_releaseprojects:
                     # This is the closest status code that makes sense, and we want
                     # a unique 2xx response code so people can understand when
                     # behavior differs.
@@ -596,7 +599,7 @@ class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, Enviro
         ```````````````````````````````
         Return a list of releases for a given organization, sorted for most recent releases.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         """
         query = request.GET.get("query")
 

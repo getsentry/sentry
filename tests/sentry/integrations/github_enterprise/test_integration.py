@@ -1,12 +1,12 @@
 from dataclasses import asdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import responses
-from isodate import parse_datetime
 
 from sentry.integrations.github_enterprise import GitHubEnterpriseIntegrationProvider
+from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
@@ -14,6 +14,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
@@ -200,7 +201,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             },
         )
         integration = Integration.objects.get(provider=self.provider.key)
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_repositories("ex")
         assert result == [
             {"identifier": "test/example", "name": "example", "default_branch": "main"},
@@ -232,7 +235,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.example.org/Test-Organization/foo/blob/1234567/README.md"
@@ -262,7 +267,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={version}",
             status=404,
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -295,7 +302,9 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         OrganizationIntegration.objects.get(
             integration=integration, organization_id=self.organization.id
         ).delete()
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert not result
@@ -329,115 +338,12 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             responses.HEAD,
             self.base_url + f"/repos/{repo.name}/contents/{path}?ref={default}",
         )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
         result = installation.get_stacktrace_link(repo, path, default, version)
 
         assert result == "https://github.example.org/Test-Organization/foo/blob/master/README.md"
-
-    @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
-    @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
-    @responses.activate
-    def test_get_commit_context(self, get_jwt, _):
-        self.assert_setup_flow()
-        integration = Integration.objects.get(provider=self.provider.key)
-        with assume_test_silo_mode(SiloMode.REGION):
-            repo = Repository.objects.create(
-                organization_id=self.organization.id,
-                name="Test-Organization/foo",
-                url="https://github.example.org/Test-Organization/foo",
-                provider="integrations:github_enterprise",
-                external_id=123,
-                config={"name": "Test-Organization/foo"},
-                integration_id=integration.id,
-            )
-
-        installation = integration.get_installation(self.organization.id)
-
-        filepath = "sentry/tasks.py"
-        event_frame = {
-            "function": "handle_set_commits",
-            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
-            "module": "sentry.tasks",
-            "in_app": True,
-            "lineno": 30,
-            "filename": "sentry/tasks.py",
-        }
-        ref = "master"
-        query = f"""query {{
-            repository(name: "foo", owner: "Test-Organization") {{
-                ref(qualifiedName: "{ref}") {{
-                    target {{
-                        ... on Commit {{
-                            blame(path: "{filepath}") {{
-                                ranges {{
-                                        commit {{
-                                            oid
-                                            author {{
-                                                name
-                                                email
-                                            }}
-                                            message
-                                            committedDate
-                                        }}
-                                    startingLine
-                                    endingLine
-                                    age
-                                }}
-                            }}
-                        }}
-                    }}
-                }}
-            }}
-        }}"""
-        commit_date = (datetime.now(tz=timezone.utc) - timedelta(days=4)).strftime(
-            "%Y-%m-%dT%H:%M:%SZ"
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://github.example.org/api/graphql",
-            json={
-                "query": query,
-                "data": {
-                    "repository": {
-                        "ref": {
-                            "target": {
-                                "blame": {
-                                    "ranges": [
-                                        {
-                                            "commit": {
-                                                "oid": "d42409d56517157c48bf3bd97d3f75974dde19fb",
-                                                "author": {
-                                                    "date": commit_date,
-                                                    "email": "nisanthan.nanthakumar@sentry.io",
-                                                    "name": "Nisanthan Nanthakumar",
-                                                },
-                                                "message": "Add installation instructions",
-                                                "committedDate": commit_date,
-                                            },
-                                            "startingLine": 30,
-                                            "endingLine": 30,
-                                            "age": 3,
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                },
-            },
-            content_type="application/json",
-        )
-        commit_context = installation.get_commit_context(repo, filepath, ref, event_frame)
-
-        commit_context_expected = {
-            "commitId": "d42409d56517157c48bf3bd97d3f75974dde19fb",
-            "committedDate": parse_datetime(commit_date),
-            "commitMessage": "Add installation instructions",
-            "commitAuthorName": "Nisanthan Nanthakumar",
-            "commitAuthorEmail": "nisanthan.nanthakumar@sentry.io",
-        }
-
-        assert commit_context == commit_context_expected
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
@@ -455,14 +361,16 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
                 config={"name": "Test-Organization/foo"},
                 integration_id=integration.id,
             )
-        installation = integration.get_installation(self.organization.id)
+        installation = get_installation_of_type(
+            GitHubEnterpriseIntegration, integration, self.organization.id
+        )
 
         file = SourceLineInfo(
             path="src/github.py",
             lineno=10,
             ref="master",
             repo=repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
 
         responses.add(

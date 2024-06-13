@@ -270,14 +270,14 @@
           }
         }
       },
-      "contexts": {"$ref": "#/contexts"},
+      "contexts": { "$ref": "#/contexts" },
       "fingerprints": {
         "type": "array",
         "items": {
           "type": "string"
         }
       },
-      "context": {"$ref": "#/context"},
+      "context": { "$ref": "#/context" },
       "release": {
         "type": "object",
         "nullable": true,
@@ -492,14 +492,14 @@
           }
         }
       },
-      "contexts": {"$ref": "#/contexts"},
+      "contexts": { "$ref": "#/contexts" },
       "fingerprints": {
         "type": "array",
         "items": {
           "type": "string"
         }
       },
-      "context": {"$ref": "#/context"},
+      "context": { "$ref": "#/context" },
       "groupID": {
         "type": "string"
       },
@@ -598,7 +598,7 @@
           }
         }
       },
-      "contexts": {"$ref": "#/contexts"},
+      "contexts": { "$ref": "#/contexts" },
       "dateCreated": {
         "type": "string"
       },

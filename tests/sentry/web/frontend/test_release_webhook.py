@@ -7,7 +7,6 @@ from django.urls import reverse
 
 from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
@@ -42,7 +41,6 @@ class ReleaseWebhookTestBase(TestCase):
         )
 
 
-@region_silo_test
 class ReleaseWebhookTest(ReleaseWebhookTestBase):
     def setUp(self):
         super().setUp()
@@ -95,7 +93,6 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         assert not MockPlugin.get_release_hook.called
 
 
-@region_silo_test
 class BuiltinReleaseWebhookTest(ReleaseWebhookTestBase):
     def setUp(self):
         super().setUp()

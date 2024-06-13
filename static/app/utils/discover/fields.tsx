@@ -1,15 +1,17 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricType, Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {MetricType} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
 import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {STARFISH_FIELDS} from 'sentry/views/starfish/components/chart';
 import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/starfish/types';
+import {STARFISH_FIELDS} from 'sentry/views/starfish/utils/constants';
 
 import {
   AGGREGATION_FIELDS,
@@ -119,7 +121,47 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-export enum RateUnits {
+export type CountUnit = 'count';
+
+export type PercentageUnit = 'percentage';
+
+export type PercentChangeUnit = 'percent_change';
+
+export enum CurrencyUnit {
+  USD = 'usd',
+}
+
+export enum DurationUnit {
+  NANOSECOND = 'nanosecond',
+  MICROSECOND = 'microsecond',
+  MILLISECOND = 'millisecond',
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum SizeUnit {
+  BIT = 'bit',
+  BYTE = 'byte',
+  KIBIBYTE = 'kibibyte',
+  KILOBYTE = 'kilobyte',
+  MEBIBYTE = 'mebibyte',
+  MEGABYTE = 'megabyte',
+  GIBIBYTE = 'gibibyte',
+  GIGABYTE = 'gigabyte',
+  TEBIBYTE = 'tebibyte',
+  TERABYTE = 'terabyte',
+  PEBIBYTE = 'pebibyte',
+  PETABYTE = 'petabyte',
+  EXBIBYTE = 'exbibyte',
+  EXABYTE = 'exabyte',
+}
+
+export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
   PER_HOUR = '1/hour',
@@ -127,21 +169,21 @@ export enum RateUnits {
 
 // Rates normalized to /second unit
 export const RATE_UNIT_MULTIPLIERS = {
-  [RateUnits.PER_SECOND]: 1,
-  [RateUnits.PER_MINUTE]: 1 / 60,
-  [RateUnits.PER_HOUR]: 1 / (60 * 60),
+  [RateUnit.PER_SECOND]: 1,
+  [RateUnit.PER_MINUTE]: 1 / 60,
+  [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
 export const RATE_UNIT_LABELS = {
-  [RateUnits.PER_SECOND]: '/s',
-  [RateUnits.PER_MINUTE]: '/min',
-  [RateUnits.PER_HOUR]: '/hr',
+  [RateUnit.PER_SECOND]: '/s',
+  [RateUnit.PER_MINUTE]: '/min',
+  [RateUnit.PER_HOUR]: '/hr',
 };
 
 export const RATE_UNIT_TITLE = {
-  [RateUnits.PER_SECOND]: 'Per Second',
-  [RateUnits.PER_MINUTE]: 'Per Minute',
-  [RateUnits.PER_HOUR]: 'Per Hour',
+  [RateUnit.PER_SECOND]: 'Per Second',
+  [RateUnit.PER_MINUTE]: 'Per Minute',
+  [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
@@ -1071,7 +1113,7 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg].outputType;
   }
 
-  if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
+  if (STARFISH_AGGREGATION_FIELDS[funcName]) {
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 

@@ -1,8 +1,7 @@
-import selectEvent from 'react-select-event';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {
   render,
@@ -10,9 +9,10 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import TeamStore from 'sentry/stores/teamStore';
-import {OrgRole} from 'sentry/types';
+import type {OrgRole} from 'sentry/types/organization';
 import InviteRequestRow from 'sentry/views/settings/organizationMembers/inviteRequestRow';
 
 const roles: OrgRole[] = [
@@ -21,36 +21,36 @@ const roles: OrgRole[] = [
     name: 'Admin',
     desc: 'This is the admin role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'member',
     name: 'Member',
     desc: 'This is the member role',
     minimumTeamRole: '',
-    allowed: true,
+    isAllowed: true,
   },
   {
     id: 'owner',
     name: 'Owner',
     desc: 'This is the owner role',
     minimumTeamRole: '',
-    allowed: false,
+    isAllowed: false,
   },
 ];
 
 describe('InviteRequestRow', function () {
-  const orgWithoutAdminAccess = Organization({
+  const orgWithoutAdminAccess = OrganizationFixture({
     access: [],
   });
-  const orgWithAdminAccess = Organization({
+  const orgWithAdminAccess = OrganizationFixture({
     access: ['member:admin'],
   });
   const inviteRequestBusy: Record<string, boolean> = {};
 
   const inviteRequest = MemberFixture({
     user: null,
-    inviterName: User().name,
+    inviterName: UserFixture().name,
     inviteStatus: 'requested_to_be_invited',
     role: 'member',
     teams: ['myteam'],
@@ -167,15 +167,15 @@ describe('InviteRequestRow', function () {
   it('admin can change role and teams', async function () {
     const adminInviteRequest = MemberFixture({
       user: null,
-      inviterName: User().name,
+      inviterName: UserFixture().name,
       inviteStatus: 'requested_to_be_invited',
       role: 'admin',
       teams: ['myteam'],
     });
 
     void TeamStore.loadInitialData([
-      Team({id: '1', slug: 'one'}),
-      Team({id: '2', slug: 'two'}),
+      TeamFixture({id: '1', slug: 'one'}),
+      TeamFixture({id: '2', slug: 'two'}),
     ]);
     const mockUpdate = jest.fn();
 
@@ -205,7 +205,7 @@ describe('InviteRequestRow', function () {
   it('cannot be approved when invitee role is not allowed', function () {
     const ownerInviteRequest = MemberFixture({
       user: null,
-      inviterName: User().name,
+      inviterName: UserFixture().name,
       inviteStatus: 'requested_to_be_invited',
       role: 'owner',
       teams: ['myteam'],

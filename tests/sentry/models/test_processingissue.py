@@ -9,11 +9,8 @@ from sentry.models.processingissue import (
 )
 from sentry.models.rawevent import RawEvent
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
-from sentry.utils.canonical import CanonicalKeyDict
 
 
-@region_silo_test
 class ProcessingIssueTest(TestCase):
     def test_simple(self):
         team = self.create_team()
@@ -78,7 +75,7 @@ class ProcessingIssueTest(TestCase):
         raw_event = RawEvent.objects.create(
             project_id=project.id,
             event_id="abc",
-            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
+            data={"release": release.version, "dist": dist.name},
         )
 
         manager = ProcessingIssueManager()
@@ -114,7 +111,7 @@ class ProcessingIssueTest(TestCase):
         raw_event = RawEvent.objects.create(
             project_id=project.id,
             event_id="abc",
-            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
+            data={"release": release.version, "dist": dist.name},
         )
 
         ProcessingIssue.objects.create(
@@ -169,7 +166,7 @@ class ProcessingIssueTest(TestCase):
             raw_event = RawEvent.objects.create(
                 project_id=project.id,
                 event_id=event_id,
-                data=CanonicalKeyDict({"release": release, "dist": dist}),
+                data={"release": release, "dist": dist},
             )
 
             manager = ProcessingIssueManager()
@@ -207,7 +204,7 @@ class ProcessingIssueTest(TestCase):
         raw_event = RawEvent.objects.create(
             project_id=project.id,
             event_id="abc",
-            data=CanonicalKeyDict({"release": release.version, "dist": dist_2.name}),
+            data={"release": release.version, "dist": dist_2.name},
         )
 
         ProcessingIssue.objects.create(

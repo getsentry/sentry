@@ -5,9 +5,10 @@ import functools
 import logging
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
+from collections.abc import Callable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
+from typing import Any
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -34,11 +35,11 @@ from sentry.models.user import User
 from sentry.search.base import SearchBackend
 from sentry.search.events.constants import EQUALITY_OPERATORS, OPERATOR_TO_DJANGO
 from sentry.search.snuba.executors import (
+    POSTGRES_ONLY_SEARCH_FIELDS,
     AbstractQueryExecutor,
-    CdcPostgresSnubaQueryExecutor,
     InvalidQueryForExecutor,
     PostgresSnubaQueryExecutor,
-    PrioritySortWeights,
+    TrendsSortWeights,
 )
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
@@ -71,7 +72,7 @@ def assigned_to_filter(
 
     if "User" in types_to_actors:
         users = types_to_actors["User"]
-        user_ids: List[int] = [u.id for u in users if u is not None]
+        user_ids: list[int] = [u.id for u in users if u is not None]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
@@ -153,14 +154,10 @@ def first_release_all_environments_filter(
             # We only need to find the first non-existent release here
             break
 
-    return Q(
         # If no specific environments are supplied, we look at the
         # first_release of any environment that the group has been
         # seen in.
-        id__in=GroupEnvironment.objects.filter(
-            first_release_id__in=list(releases.values()),
-        ).values_list("group_id")
-    )
+    return Q(first_release_id__in=list(releases.values()))
 
 
 def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
@@ -206,7 +203,7 @@ def assigned_or_suggested_filter(
 
     if "User" in types_to_owners:
         users = types_to_owners["User"]
-        user_ids: List[int] = [u.id for u in users if u is not None]
+        user_ids: list[int] = [u.id for u in users if u is not None]
         query_ids = Q(user_id__in=user_ids)
         owned_by_me = Q(
             **{
@@ -262,41 +259,41 @@ def _group_attributes_side_query(
     events_only_search_results: CursorResult[Group],
     builder: Callable[[], BaseQuerySet],
     projects: Sequence[Project],
-    retention_window_start: Optional[datetime],
+    retention_window_start: datetime | None,
     group_queryset: BaseQuerySet,
-    environments: Optional[Sequence[Environment]] = None,
+    environments: Sequence[Environment] | None = None,
     sort_by: str = "date",
     limit: int = 100,
-    cursor: Optional[Cursor] = None,
+    cursor: Cursor | None = None,
     count_hits: bool = False,
-    paginator_options: Optional[Mapping[str, Any]] = None,
-    search_filters: Optional[Sequence[SearchFilter]] = None,
-    date_from: Optional[datetime] = None,
-    date_to: Optional[datetime] = None,
-    max_hits: Optional[int] = None,
-    referrer: Optional[str] = None,
-    actor: Optional[Any] = None,
-    aggregate_kwargs: Optional[PrioritySortWeights] = None,
+    paginator_options: Mapping[str, Any] | None = None,
+    search_filters: Sequence[SearchFilter] | None = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+    max_hits: int | None = None,
+    referrer: str | None = None,
+    actor: Any | None = None,
+    aggregate_kwargs: TrendsSortWeights | None = None,
 ) -> None:
     def __run_joined_query_and_log_metric(
         events_only_search_results: CursorResult[Group],
         builder: Callable[[], BaseQuerySet],
         projects: Sequence[Project],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         group_queryset: BaseQuerySet,
-        environments: Optional[Sequence[Environment]] = None,
+        environments: Sequence[Environment] | None = None,
         sort_by: str = "date",
         limit: int = 100,
-        cursor: Optional[Cursor] = None,
+        cursor: Cursor | None = None,
         count_hits: bool = False,
-        paginator_options: Optional[Mapping[str, Any]] = None,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
     ):
         from sentry.utils import metrics
 
@@ -428,7 +425,7 @@ class ScalarCondition(Condition):
     instances
     """
 
-    def __init__(self, field: str, extra: Optional[dict[str, Sequence[int]]] = None):
+    def __init__(self, field: str, extra: dict[str, Sequence[int]] | None = None):
         self.field = field
         self.extra = extra
 
@@ -466,19 +463,20 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def query(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]] = None,
+        environments: Sequence[Environment] | None = None,
         sort_by: str = "date",
         limit: int = 100,
-        cursor: Optional[Cursor] = None,
+        cursor: Cursor | None = None,
         count_hits: bool = False,
-        paginator_options: Optional[Mapping[str, Any]] = None,
-        search_filters: Optional[Sequence[SearchFilter]] = None,
-        date_from: Optional[datetime] = None,
-        date_to: Optional[datetime] = None,
-        max_hits: Optional[int] = None,
-        referrer: Optional[str] = None,
-        actor: Optional[Any] = None,
-        aggregate_kwargs: Optional[PrioritySortWeights] = None,
+        paginator_options: Mapping[str, Any] | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        max_hits: int | None = None,
+        referrer: str | None = None,
+        actor: Any | None = None,
+        aggregate_kwargs: TrendsSortWeights | None = None,
+        use_group_snuba_dataset: bool = False,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
         # ensure projects are from same org
@@ -495,14 +493,22 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         else:
             retention_window_start = None
 
-        group_queryset = self._build_group_queryset(
-            projects=projects,
-            environments=environments,
-            search_filters=search_filters,
-            retention_window_start=retention_window_start,
-            date_from=date_from,
-            date_to=date_to,
-        )
+        if use_group_snuba_dataset:
+            # we need to handle two cases fo the group queryset:
+            # 1. Limit results to groups that are not pending deletion or merge
+            # 2. Handle queries snuba doesn't support such as bookmarked_by, linked, subscribed_by, etc
+            # For the second case, we hit postgres before Snuba to get the group ids
+            group_queryset = self._build_limited_group_queryset(projects, search_filters)
+
+        else:
+            group_queryset = self._build_group_queryset(
+                projects=projects,
+                environments=environments,
+                search_filters=search_filters,
+                retention_window_start=retention_window_start,
+                date_from=date_from,
+                date_to=date_to,
+            )
 
         query_executor = self._get_query_executor(
             group_queryset=group_queryset,
@@ -511,6 +517,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             search_filters=search_filters,
             date_from=date_from,
             date_to=date_to,
+            use_group_snuba_dataset=use_group_snuba_dataset,
         )
 
         # ensure sort strategy is supported by executor
@@ -582,12 +589,30 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
         return query_results
 
+    def _build_limited_group_queryset(
+        self, projects: Sequence[Project], search_filters: Sequence[SearchFilter]
+    ) -> QuerySet:
+        """
+        Builds a group queryset to handle joins for data that doesn't exist in Clickhouse on the group_attributes dataset
+        """
+        # Filter search_filters to only include 'bookmarked_by', 'linked', 'subscribed_by'
+        filtered_search_filters = [
+            sf for sf in search_filters if sf.key.name in POSTGRES_ONLY_SEARCH_FIELDS
+        ]
+        # Use the filtered search filters for further processing
+        return self._build_group_queryset(
+            projects=projects,
+            environments=None,
+            search_filters=filtered_search_filters,
+            retention_window_start=None,
+        )
+
     def _build_group_queryset(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
-        retention_window_start: Optional[datetime],
+        retention_window_start: datetime | None,
         *args: Any,
         **kwargs: Any,
     ) -> QuerySet:
@@ -609,8 +634,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def _initialize_group_queryset(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
-        retention_window_start: Optional[datetime],
+        environments: Sequence[Environment] | None,
+        retention_window_start: datetime | None,
         search_filters: Sequence[SearchFilter],
     ) -> QuerySet:
         group_queryset = Group.objects.filter(project__in=projects).exclude(
@@ -637,7 +662,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
     def _get_queryset_conditions(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
         """This method should return a dict of query set fields and a "Condition" to apply on that field."""
@@ -648,10 +673,11 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         self,
         group_queryset: QuerySet,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
-        date_from: Optional[datetime],
-        date_to: Optional[datetime],
+        date_from: datetime | None,
+        date_to: datetime | None,
+        use_group_snuba_dataset: bool,
     ) -> AbstractQueryExecutor:
         """This method should return an implementation of the AbstractQueryExecutor
         We will end up calling .query() on the class returned by this method"""
@@ -660,15 +686,19 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
 
 class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
     def _get_query_executor(self, *args: Any, **kwargs: Any) -> AbstractQueryExecutor:
+        if kwargs.get("use_group_snuba_dataset"):
+            from sentry.search.snuba.executors import GroupAttributesPostgresSnubaQueryExecutor
+
+            return GroupAttributesPostgresSnubaQueryExecutor()
         return PostgresSnubaQueryExecutor()
 
     def _get_queryset_conditions(
         self,
         projects: Sequence[Project],
-        environments: Optional[Sequence[Environment]],
+        environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter],
     ) -> Mapping[str, Condition]:
-        queryset_conditions: Dict[str, Condition] = {
+        queryset_conditions: dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "substatus": QCallbackCondition(lambda substatuses: Q(substatus__in=substatuses)),
             "bookmarked_by": QCallbackCondition(
@@ -700,6 +730,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             ),
             "issue.category": QCallbackCondition(lambda categories: Q(type__in=categories)),
             "issue.type": QCallbackCondition(lambda types: Q(type__in=types)),
+            "issue.priority": QCallbackCondition(lambda priorities: Q(priority__in=priorities)),
         }
 
         message_filter = next((sf for sf in search_filters or () if "message" == sf.key.name), None)
@@ -713,16 +744,18 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
 
             queryset_conditions.update(
                 {
-                    "message": QCallbackCondition(
-                        lambda query: Q(type=ErrorGroupType.type_id)
-                        | _issue_platform_issue_message_condition(query)
-                    )
-                    # negation should only apply on the message search icontains, we have to include
-                    # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
-                    # column when type=GroupType.ERROR - we delegate that to snuba in that case
-                    if not message_filter.is_negation
-                    else QCallbackCondition(
-                        lambda query: _issue_platform_issue_message_condition(query)
+                    "message": (
+                        QCallbackCondition(
+                            lambda query: Q(type=ErrorGroupType.type_id)
+                            | _issue_platform_issue_message_condition(query)
+                        )
+                        # negation should only apply on the message search icontains, we have to include
+                        # the type filter(type=GroupType.ERROR) check since we don't wanna search on the message
+                        # column when type=GroupType.ERROR - we delegate that to snuba in that case
+                        if not message_filter.is_negation
+                        else QCallbackCondition(
+                            lambda query: _issue_platform_issue_message_condition(query)
+                        )
                     )
                 }
             )
@@ -761,8 +794,3 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                 }
             )
         return queryset_conditions
-
-
-class CdcEventsDatasetSnubaSearchBackend(EventsDatasetSnubaSearchBackend):
-    def _get_query_executor(self, *args: Any, **kwargs: Any) -> CdcPostgresSnubaQueryExecutor:
-        return CdcPostgresSnubaQueryExecutor()

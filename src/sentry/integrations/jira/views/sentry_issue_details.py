@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from functools import reduce
-from typing import Any, Mapping, Sequence
+from typing import Any
 from urllib.parse import quote
 
+from django.db.models.query import QuerySet
+from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 from jwt import ExpiredSignatureError
 from rest_framework.request import Request
@@ -53,7 +56,7 @@ def get_release_url(group: Group, release: str) -> str:
     )
 
 
-def build_context(group: Group) -> Mapping[str, Any]:
+def build_context(group: Group) -> dict[str, Any]:
     result, stats_24hr = get_serialized_and_stats(group, "24h")
     _, stats_14d = get_serialized_and_stats(group, "14d")
 
@@ -97,11 +100,8 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
 
     html_file = "sentry/integrations/jira-issue.html"
 
-    def handle_groups(self, groups: Sequence[Group]) -> Response:
-        response_context = {"groups": []}
-        for group in groups:
-            context = build_context(group)
-            response_context["groups"].append(context)
+    def handle_groups(self, groups: QuerySet[Group]) -> Response:
+        response_context = {"groups": [build_context(group) for group in groups]}
 
         logger.info(
             "issue_hook.response",
@@ -110,7 +110,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
 
         return self.get_response(response_context)
 
-    def dispatch(self, request: Request, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         try:
             return super().dispatch(request, *args, **kwargs)
         except ApiError as exc:
@@ -118,7 +118,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
             response_option = handle_jira_api_error(exc, " to set badge")
             if response_option:
                 return self.get_response(response_option)
-            raise exc
+            raise
 
     def get(self, request: Request, issue_key, *args, **kwargs) -> Response:
         with configure_scope() as scope:

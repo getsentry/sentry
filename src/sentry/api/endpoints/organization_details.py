@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from copy import copy
 from datetime import datetime, timedelta, timezone
+from typing import TypedDict
 
 from django.db import models, router, transaction
 from django.db.models.query_utils import DeferredAttribute
 from django.urls import reverse
 from django.utils import timezone as django_timezone
+from django.utils.functional import cached_property
 from rest_framework import serializers, status
-from typing_extensions import TypedDict
 
 from bitfield.types import BitHandler
 from sentry import audit_log, roles
@@ -26,16 +27,22 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
+from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
     AI_SUGGESTED_SOLUTION,
     ALERTS_MEMBER_WRITE_DEFAULT,
     ATTACHMENTS_ROLE_DEFAULT,
+    DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
+    METRIC_ALERTS_THREAD_DEFAULT,
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -70,7 +77,6 @@ from sentry.services.organization.provisioning import (
     organization_provisioning_service,
 )
 from sentry.utils.audit import create_audit_entry
-from sentry.utils.cache import memoize
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
 ERR_NO_USER = "This request requires an authenticated user."
@@ -78,6 +84,7 @@ ERR_NO_2FA = "Cannot require two-factor authentication without personal two-fact
 ERR_SSO_ENABLED = "Cannot require two-factor authentication with SSO enabled"
 ERR_EMAIL_VERIFICATION = "Cannot require email verification before verifying your email address."
 ERR_3RD_PARTY_PUBLISHED_APP = "Cannot delete an organization that owns a published integration. Contact support if you need assistance."
+ERR_PLAN_REQUIRED = "A paid plan is required to enable this feature."
 
 ORG_OPTIONS = (
     # serializer field name, option key name, type, default value
@@ -171,6 +178,32 @@ ORG_OPTIONS = (
         bool,
         GITHUB_COMMENT_BOT_DEFAULT,
     ),
+    ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
+    ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
+    (
+        "issueAlertsThreadFlag",
+        "sentry:issue_alerts_thread_flag",
+        bool,
+        ISSUE_ALERTS_THREAD_DEFAULT,
+    ),
+    (
+        "metricAlertsThreadFlag",
+        "sentry:metric_alerts_thread_flag",
+        bool,
+        METRIC_ALERTS_THREAD_DEFAULT,
+    ),
+    (
+        "metricsActivatePercentiles",
+        "sentry:metrics_activate_percentiles",
+        bool,
+        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+    ),
+    (
+        "metricsActivateLastForGauges",
+        "sentry:metrics_activate_last_for_gauges",
+        bool,
+        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    ),
 )
 
 DELETION_STATUSES = frozenset(
@@ -218,6 +251,12 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    issueAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricsActivatePercentiles = serializers.BooleanField(required=False)
+    metricsActivateLastForGauges = serializers.BooleanField(required=False)
+    aggregatedDataConsent = serializers.BooleanField(required=False)
+    genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
     requireEmailVerification = serializers.BooleanField(required=False)
     trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
@@ -225,7 +264,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
 
-    @memoize
+    @cached_property
     def _has_legacy_rate_limits(self):
         org = self.context["organization"]
         return OrganizationOption.objects.filter(
@@ -333,7 +372,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         return attrs
 
     def save_trusted_relays(self, incoming, changed_data, organization):
-        timestamp_now = datetime.utcnow().replace(tzinfo=timezone.utc).isoformat()
+        timestamp_now = datetime.now(timezone.utc).isoformat()
         option_key = "sentry:trusted-relays"
         try:
             # get what we already have
@@ -535,6 +574,7 @@ def post_org_pending_deletion(
         send_delete_confirmation(delete_confirmation_args)
 
 
+# NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
 @region_silo_endpoint
 class OrganizationDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -551,21 +591,31 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Return details on an individual organization including various details
         such as membership access, features, and teams.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string detailed: Specify '0' to retrieve details without projects and teams.
+        :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
         serializer = org_serializers.OrganizationSerializer
-        if request.access.has_scope("org:read"):
+
+        if request.access.has_scope("org:read") or is_active_staff(request):
             is_detailed = request.GET.get("detailed", "1") != "0"
 
             serializer = org_serializers.DetailedOrganizationSerializer
             if is_detailed:
                 serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
 
-        context = serialize(organization, request.user, serializer(), access=request.access)
+        context = serialize(
+            organization,
+            request.user,
+            serializer(),
+            access=request.access,
+            include_feature_flags=include_feature_flags,
+        )
 
         return self.respond(context)
 
@@ -577,13 +627,20 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Update various attributes and configurable settings for the given
         organization.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string name: an optional new name for the organization.
         :param string slug: an optional new slug for the organization.  Needs
                             to be available and unique.
+        :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
+        from sentry import features
+
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+
+        # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
             serializer_cls = OwnerOrganizationSerializer
         else:
@@ -593,6 +650,9 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
 
         enabling_codecov = "codecovAccess" in request.data and request.data["codecovAccess"]
         if enabling_codecov:
+            if not features.has("organizations:codecov-integration", organization):
+                return self.respond({"detail": ERR_PLAN_REQUIRED}, status=status.HTTP_403_FORBIDDEN)
+
             has_integration, error = has_codecov_integration(organization)
             if not has_integration:
                 return self.respond(
@@ -646,6 +706,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 request.user,
                 org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
                 access=request.access,
+                include_feature_flags=include_feature_flags,
             )
 
             return self.respond(context)
@@ -704,7 +765,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         However once deletion has begun the state of an organization changes and
         will be hidden from most public views.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :auth: required, user-context-needed
         """

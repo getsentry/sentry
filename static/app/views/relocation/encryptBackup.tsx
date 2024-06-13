@@ -1,22 +1,20 @@
-import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
-import {Button} from 'sentry/components/button';
 import {IconTerminal} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
+import ContinueButton from 'sentry/views/relocation/components/continueButton';
 import RelocationCodeBlock from 'sentry/views/relocation/components/relocationCodeBlock';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
 import Wrapper from 'sentry/views/relocation/components/wrapper';
 
-import {StepProps} from './types';
+import type {StepProps} from './types';
 
 export function EncryptBackup(props: StepProps) {
   const code =
-    './sentry-admin.sh export global --encrypt-with /path/to/public_key.pub\n/path/to/encrypted/backup/file.tar';
+    'SENTRY_DOCKER_IO_DIR=/path/to/key ./sentry-admin.sh \\\nexport global --encrypt-with /sentry-admin/key.pub /sentry-admin/export.tar';
   return (
-    <Wrapper>
+    <Wrapper data-test-id="encrypt-backup">
       <StepHeading step={3}>
         {t('Create an encrypted backup of your current self-hosted instance')}
       </StepHeading>
@@ -30,8 +28,10 @@ export function EncryptBackup(props: StepProps) {
       >
         <p>
           {t(
-            'You’ll need to have the public key saved in the previous step accessible when you run the following command in your terminal. Make sure your current working directory is the root of your `self-hosted` install when you execute it.'
+            'You’ll need to have the public key saved in the previous step accessible when you run the following command in your terminal. Make sure your current working directory is the root of your '
           )}
+          <mark>self-hosted</mark>
+          {t('install when you execute it.')}
         </p>
         <RelocationCodeBlock
           dark
@@ -46,27 +46,39 @@ export function EncryptBackup(props: StepProps) {
           <b>{t('Understanding the command:')}</b>
         </p>
         <p>
+          {t('The ')}
+          <mark>{'SENTRY_DOCKER_IO_DIR=/path/to/key/dir'}</mark>
+          {t(
+            'environment variable maps the local directory where you saved your public key in the previous step to a '
+          )}
+          <mark>{'/sentry-admin'}</mark>
+          {t('volume in your Docker container. ')}
           <mark>{'./sentry-admin.sh'}</mark>
-          {t('this is a script present in your self-hosted installation')}
+          {t('is a script included by default with your ')}
+          <mark>{'self-hosted'}</mark>
+          {t(
+            'installation which contains a number of administrative tools. One of these is the'
+          )}
+          <mark>{'export global'}</mark>
+          {t('command for backing up all Sentry data. ')}
+          <mark>{'--encrypt-with /sentry-admin/key.pub'}</mark>
+          {t('encrypts the data using our public key, and ')}
+          <mark>{'/sentry-admin/export.tar'}</mark>
+          {t(
+            "is the name of the output tarball. This is what you'll upload in the next step."
+          )}
         </p>
-        <p>
-          <mark>{'/path/to/public/key/file.pub'}</mark>
-          {t('path to file you created in the previous step')}
+        <p className="encrypt-note">
+          <i>
+            {t('Note: Depending on your system configuration, you may need to use ')}
+            <mark>sudo -E</mark>
+            {t('for this command.')}
+          </i>
         </p>
-        <p>
-          <mark>{'/path/to/encrypted/backup/output/file.tar'}</mark>
-          {t('file that will be uploaded in the next step')}
-        </p>
-        <ContinueButton priority="primary" onClick={() => props.onComplete()}>
-          {t('Continue')}
-        </ContinueButton>
+        <ContinueButton priority="primary" onClick={() => props.onComplete()} />
       </motion.div>
     </Wrapper>
   );
 }
 
 export default EncryptBackup;
-
-const ContinueButton = styled(Button)`
-  margin-top: ${space(1.5)};
-`;

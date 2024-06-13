@@ -1,5 +1,4 @@
 import {useCallback, useContext, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import omit from 'lodash/omit';
@@ -17,15 +16,17 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {SupportedLanguages} from 'sentry/components/onboarding/frameworkSuggestionModal';
-import PlatformPicker, {Platform} from 'sentry/components/platformPicker';
+import type {Platform} from 'sentry/components/platformPicker';
+import PlatformPicker from 'sentry/components/platformPicker';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import TeamSelector from 'sentry/components/teamSelector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
-import {OnboardingSelectedSDK, Team} from 'sentry/types';
+import type {OnboardingSelectedSDK, Team} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import slugify from 'sentry/utils/slugify';
 import useApi from 'sentry/utils/useApi';
@@ -39,7 +40,7 @@ import IssueAlertOptions, {
 } from 'sentry/views/projectInstall/issueAlertOptions';
 import {GettingStartedWithProjectContext} from 'sentry/views/projects/gettingStartedWithProjectContext';
 
-type IssueAlertFragment = Parameters<
+export type IssueAlertFragment = Parameters<
   React.ComponentProps<typeof IssueAlertOptions>['onChange']
 >[0];
 
@@ -141,8 +142,8 @@ function CreateProject() {
           issue_alert: defaultRules
             ? 'Default'
             : shouldCreateCustomRule
-            ? 'Custom'
-            : 'No Rule',
+              ? 'Custom'
+              : 'No Rule',
           project_id: projectData.id,
           rule_id: ruleId || '',
         });

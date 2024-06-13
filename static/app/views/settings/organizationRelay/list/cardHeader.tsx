@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ConfirmDelete from 'sentry/components/confirmDelete';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconCopy, IconDelete, IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Relay} from 'sentry/types';
+import type {Relay} from 'sentry/types/relay';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
 type Props = Relay & {

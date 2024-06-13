@@ -7,5 +7,5 @@ An internal server error occurred
 
 Troubleshooting &amp; References
 
-https://help.sentry.io/product-features/integrations/why-am-i-receiving-the-email-unable-to-fetch-commits/
+https://sentry.zendesk.com/hc/en-us/articles/23968845267739-Why-am-I-receiving-the-email-Unable-to-Fetch-Commits
 https://docs.sentry.io/product/releases/setup/

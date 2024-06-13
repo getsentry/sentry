@@ -5,6 +5,8 @@ from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework import serializers
 
+from sentry.snuba.sessions import STATS_PERIODS
+
 # NOTE: Please add new params by path vs query, then in alphabetical order
 
 
@@ -18,23 +20,23 @@ def build_typed_list(type: Any):
 
 
 class GlobalParams:
-    ORG_SLUG = OpenApiParameter(
-        name="organization_slug",
-        description="The slug of the organization the resource belongs to.",
+    ORG_ID_OR_SLUG = OpenApiParameter(
+        name="organization_id_or_slug",
+        description="The ID or slug of the organization the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
-    PROJECT_SLUG = OpenApiParameter(
-        name="project_slug",
-        description="The slug of the project the resource belongs to.",
+    PROJECT_ID_OR_SLUG = OpenApiParameter(
+        name="project_id_or_slug",
+        description="The ID or slug of the project the resource belongs to.",
         required=True,
         type=str,
         location="path",
     )
-    TEAM_SLUG = OpenApiParameter(
-        name="team_slug",
-        description="The slug of the team the resource belongs to.",
+    TEAM_ID_OR_SLUG = OpenApiParameter(
+        name="team_id_or_slug",
+        description="The ID or slug of the team the resource belongs to.",
         required=True,
         type=str,
         location="path",
@@ -87,9 +89,19 @@ For example `24h`, to mean query data starting from 24 hours ago to now.""",
         )
 
 
+class EnvironmentParams:
+    VISIBILITY = OpenApiParameter(
+        name="visibility",
+        location="query",
+        required=False,
+        type=str,
+        description="""The visibility of the environments to filter by. The options are: `all`, `hidden`, `visible`. Defaults to `visible`.""",
+    )
+
+
 class OrganizationParams:
-    PROJECT_SLUG = OpenApiParameter(
-        name="project_slug",
+    PROJECT_ID_OR_SLUG = OpenApiParameter(
+        name="project_id_or_slug",
         location="query",
         required=False,
         many=True,
@@ -110,6 +122,107 @@ For example the following are valid parameters:
 - `/?project=1234&project=56789`
 - `/?project=-1`
 """,
+    )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=bool,
+        description="""Specify `true` to restrict results to organizations in which you are an owner.""",
+    )
+    QUERY = OpenApiParameter(
+        name="query",
+        location="query",
+        required=False,
+        type=str,
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
+
+Valid query fields include:
+- `id`: The organization ID
+- `slug`: The organization slug
+- `status`: The organization's current status (one of `active`, `pending_deletion`, or `deletion_in_progress`)
+- `email` or `member_id`: Filter your organizations by the emails or [organization member IDs](/api/organizations/list-an-organizations-members/) of specific members included
+- `platform`: Filter your organizations to those with at least one project using this platform
+- `query`: Filter your organizations by name, slug, and members that contain this substring
+
+Example: `query=(slug:foo AND status:active) OR (email:[thing-one@example.com,thing-two@example.com] AND query:bar)`
+""",
+    )
+    SORT_BY = OpenApiParameter(
+        name="sortBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The field to sort results by, in descending order. If not specified the results are sorted by the date they were created.
+
+Valid fields include:
+- `members`: By number of members
+- `projects`: By number of projects
+- `events`: By number of events in the past 24 hours
+""",
+    )
+
+
+class ReleaseParams:
+    VERSION = OpenApiParameter(
+        name="version",
+        location="path",
+        required=True,
+        type=str,
+        description="The version identifier of the release",
+    )
+    PROJECT_ID = OpenApiParameter(
+        name="project_id",
+        location="query",
+        required=False,
+        type=str,
+        description="The project ID to filter by.",
+    )
+    HEALTH = OpenApiParameter(
+        name="health",
+        location="query",
+        required=False,
+        type=bool,
+        description="Whether or not to include health data with the release. By default, this is false.",
+    )
+    ADOPTION_STAGES = OpenApiParameter(
+        name="adoptionStages",
+        location="query",
+        required=False,
+        type=bool,
+        description="Whether or not to include adoption stages with the release. By default, this is false.",
+    )
+    SUMMARY_STATS_PERIOD = OpenApiParameter(
+        name="summaryStatsPeriod",
+        location="query",
+        required=False,
+        type=str,
+        description="The period of time used to query summary stats for the release. By default, this is 14d.",
+        enum=list(STATS_PERIODS.keys()),
+    )
+    HEALTH_STATS_PERIOD = OpenApiParameter(
+        name="healthStatsPeriod",
+        location="query",
+        required=False,
+        type=str,
+        description="The period of time used to query health stats for the release. By default, this is 24h if health is enabled.",
+        enum=list(STATS_PERIODS.keys()),
+    )
+    SORT = OpenApiParameter(
+        name="sort",
+        location="query",
+        required=False,
+        type=str,
+        description="The field used to sort results by. By default, this is `date`.",
+        enum=["date", "sessions", "users", "crash_free_users", "crash_free_sessions"],
+    )
+    STATUS_FILTER = OpenApiParameter(
+        name="status",
+        location="query",
+        required=False,
+        type=str,
+        description="Release statuses that you can filter by.",
+        enum=["open", "archived"],
     )
 
 
@@ -149,7 +262,7 @@ class VisibilityParams:
         location="query",
         required=False,
         type=str,
-        description="""The search filter for your query, read more about query syntax [here](https://docs.sentry.io/product/sentry-basics/search/).
+        description="""Filters results by using [query syntax](/product/sentry-basics/search/).
 
 example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND release:def)`
 """,
@@ -168,7 +281,7 @@ example: `query=(transaction:foo AND release:abc) OR (transaction:[bar,baz] AND 
 - A function which will be in the format of `function_name(parameters,...)`. See possible functions in the [query builder documentation](/product/discover-queries/query-builder/#stacking-functions).
     - when a function is included, Discover will group by any tags or fields
     - example: `field=count_if(transaction.duration,greater,300)`
-- An equation when prefixed with `equation|`. Read more about [equations here](https://docs.sentry.io/product/discover-queries/query-builder/query-equations/).
+- An equation when prefixed with `equation|`. Read more about [equations here](/product/discover-queries/query-builder/query-equations/).
     - example: `field=equation|count_if(transaction.duration,greater,300) / count() * 100`
 """,
     )
@@ -196,12 +309,12 @@ class CursorQueryParam(serializers.Serializer):
 
 
 class MonitorParams:
-    MONITOR_SLUG = OpenApiParameter(
-        name="monitor_slug",
+    MONITOR_ID_OR_SLUG = OpenApiParameter(
+        name="monitor_id_or_slug",
         location="path",
         required=True,
         type=str,
-        description="The slug of the monitor.",
+        description="The ID or slug of the monitor.",
     )
     CHECKIN_ID = OpenApiParameter(
         name="checkin_id",
@@ -216,6 +329,20 @@ class MonitorParams:
         required=False,
         type=str,
         description="The name of environment for the monitor environment.",
+    )
+    OWNER = OpenApiParameter(
+        name="owner",
+        location="query",
+        required=False,
+        type=str,
+        description="The owner of the monitor, in the format `user:id` or `team:id`. May be specified multiple times.",
+    )
+    PROCESSING_ERROR_ID = OpenApiParameter(
+        name="processing_error_id",
+        location="path",
+        required=False,
+        type=OpenApiTypes.UUID,
+        description="The ID of the processing error.",
     )
 
 
@@ -306,6 +433,25 @@ class TeamParams:
 Specify `"0"` to return team details that do not include projects.
 """,
     )
+    COLLAPSE = OpenApiParameter(
+        name="collapse",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt out of certain pieces of data. Supports `organization`.
+""",
+    )
+
+    EXPAND = OpenApiParameter(
+        name="expand",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+List of strings to opt in to additional data. Supports `projects`, `externalTeams`.
+""",
+    )
 
 
 class ReplayParams:
@@ -315,6 +461,14 @@ class ReplayParams:
         required=True,
         type=OpenApiTypes.UUID,
         description="""The ID of the replay you'd like to retrieve.""",
+    )
+
+    SEGMENT_ID = OpenApiParameter(
+        name="segment_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.INT,
+        description="""The ID of the segment you'd like to retrieve.""",
     )
 
 
@@ -374,4 +528,65 @@ class IntegrationParams:
         required=False,
         type=bool,
         description="""Specify `True` to fetch third-party integration configurations. Note that this can add several seconds to the response time.""",
+    )
+
+
+class SessionsParams:
+    FIELD = OpenApiParameter(
+        name="field",
+        location="query",
+        required=True,
+        type=str,
+        many=True,
+        description="""The list of fields to query.\n\nThe available fields are\n  - `sum(session)`\n  - `count_unique("
+                    "user)`\n  - `avg`, `p50`, `p75`, `p90`, `p95`, `p99`, `max` applied to `session.duration`. For "
+                    "example, `p99(session.duration)`. Session duration is [no longer being recorded]("
+                    "https://github.com/getsentry/sentry/discussions/42716) as of on Jan 12, 2023. Returned data may "
+                    "be incomplete.\n  - `crash_rate`, `crash_free_rate` applied to `user` or `session`. For example, "
+                    "`crash_free_rate(user)`""",
+    )
+    INTERVAL = OpenApiParameter(
+        name="interval",
+        location="query",
+        required=False,
+        type=str,
+        description="""Resolution of the time series, given in the same format as `statsPeriod`.\n\nThe default and
+        the minimum interval is `1h`.""",
+    )
+    PER_PAGE = OpenApiParameter(
+        name="per_page",
+        location="query",
+        required=False,
+        type=int,
+        description="""The number of groups to return per request.""",
+    )
+    GROUP_BY = OpenApiParameter(
+        name="groupBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""The list of properties to group by.\n\nThe available groupBy conditions are `project`,
+        `release`, `environment` and `session.status`.""",
+    )
+    ORDER_BY = OpenApiParameter(
+        name="orderBy",
+        location="query",
+        required=False,
+        type=str,
+        description="""An optional field to order by, which must be one of the fields provided in `field`. Use `-`
+        for descending order, for example `-sum(session)`""",
+    )
+    INCLUDE_TOTALS = OpenApiParameter(
+        name="includeTotals",
+        location="query",
+        required=False,
+        type=int,
+        description="""Specify `0` to exclude totals from the response. The default is `1`""",
+    )
+    INCLUDE_SERIES = OpenApiParameter(
+        name="includeSeries",
+        location="query",
+        required=False,
+        type=int,
+        description="""Specify `0` to exclude series from the response. The default is `1`""",
     )

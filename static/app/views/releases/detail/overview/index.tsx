@@ -1,39 +1,35 @@
 import {Fragment} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor, Query} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 import moment from 'moment';
 
 import {restoreRelease} from 'sentry/actionCreators/release';
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
-import {DateTimeObject} from 'sentry/components/charts/utils';
-import DateTime from 'sentry/components/dateTime';
+import type {DateTimeObject} from 'sentry/components/charts/utils';
+import {DateTime} from 'sentry/components/dateTime';
 import PerformanceCardTable from 'sentry/components/discover/performanceCardTable';
-import TransactionsList, {
-  DropdownOption,
-} from 'sentry/components/discover/transactionsList';
+import type {DropdownOption} from 'sentry/components/discover/transactionsList';
+import TransactionsList from 'sentry/components/discover/transactionsList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ChangeData, TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import type {ChangeData} from 'sentry/components/timeRangeSelector';
+import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  NewQuery,
-  Organization,
-  PageFilters,
-  ReleaseProject,
-  SessionFieldWithOperation,
-} from 'sentry/types';
+import type {NewQuery, Organization, PageFilters, ReleaseProject} from 'sentry/types';
+import {SessionFieldWithOperation} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {MobileVital, SpanOpBreakdown, WebVital} from 'sentry/utils/fields';
-import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
@@ -42,18 +38,15 @@ import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/utils';
-import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
+import type {TrendView} from 'sentry/views/performance/trends/types';
+import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {
   platformToPerformanceType,
   ProjectPerformanceType,
 } from 'sentry/views/performance/utils';
 
-import {
-  getReleaseParams,
-  isReleaseArchived,
-  ReleaseBounds,
-  searchReleaseVersion,
-} from '../../utils';
+import type {ReleaseBounds} from '../../utils';
+import {getReleaseParams, isReleaseArchived, searchReleaseVersion} from '../../utils';
 import {ReleaseContext} from '..';
 
 import CommitAuthorBreakdown from './sidebar/commitAuthorBreakdown';
@@ -62,7 +55,6 @@ import OtherProjects from './sidebar/otherProjects';
 import ProjectReleaseDetails from './sidebar/projectReleaseDetails';
 import ReleaseAdoption from './sidebar/releaseAdoption';
 import ReleaseStats from './sidebar/releaseStats';
-import ThresholdStatuses from './sidebar/thresholdStatuses';
 import TotalCrashFreeUsers from './sidebar/totalCrashFreeUsers';
 import ReleaseArchivedNotice from './releaseArchivedNotice';
 import ReleaseComparisonChart from './releaseComparisonChart';
@@ -216,24 +208,29 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
             ],
           }) as EventView)
         : performanceType === ProjectPerformanceType.BACKEND
-        ? (EventView.fromSavedQuery({
-            ...baseQuery,
-            fields: [...baseQuery.fields, 'apdex()', 'p75(spans.http)', 'p75(spans.db)'],
-          }) as EventView)
-        : performanceType === ProjectPerformanceType.MOBILE
-        ? (EventView.fromSavedQuery({
-            ...baseQuery,
-            fields: [
-              ...baseQuery.fields,
-              `p75(${MobileVital.APP_START_COLD})`,
-              `p75(${MobileVital.APP_START_WARM})`,
-              `p75(${MobileVital.FRAMES_SLOW})`,
-              `p75(${MobileVital.FRAMES_FROZEN})`,
-            ],
-          }) as EventView)
-        : (EventView.fromSavedQuery({
-            ...baseQuery,
-          }) as EventView);
+          ? (EventView.fromSavedQuery({
+              ...baseQuery,
+              fields: [
+                ...baseQuery.fields,
+                'apdex()',
+                'p75(spans.http)',
+                'p75(spans.db)',
+              ],
+            }) as EventView)
+          : performanceType === ProjectPerformanceType.MOBILE
+            ? (EventView.fromSavedQuery({
+                ...baseQuery,
+                fields: [
+                  ...baseQuery.fields,
+                  `p75(${MobileVital.APP_START_COLD})`,
+                  `p75(${MobileVital.APP_START_WARM})`,
+                  `p75(${MobileVital.FRAMES_SLOW})`,
+                  `p75(${MobileVital.FRAMES_FROZEN})`,
+                ],
+              }) as EventView)
+            : (EventView.fromSavedQuery({
+                ...baseQuery,
+              }) as EventView);
 
     return eventView;
   }
@@ -365,9 +362,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
   render() {
     const {organization, selection, location, api} = this.props;
     const {start, end, period, utc} = this.pageDateTime;
-    const hasV2ReleaseUIEnabled =
-      organization.features.includes('releases-v2') ||
-      organization.features.includes('releases-v2-st');
 
     return (
       <ReleaseContext.Consumer>
@@ -585,14 +579,6 @@ class ReleaseOverview extends DeprecatedAsyncView<Props> {
                             release={release}
                             project={project}
                           />
-                          {hasV2ReleaseUIEnabled && (
-                            <ThresholdStatuses
-                              project={project}
-                              release={release}
-                              organization={organization}
-                              selectedEnvs={selection.environments}
-                            />
-                          )}
                           {hasHealthData && (
                             <ReleaseAdoption
                               releaseSessions={thisRelease}
@@ -666,7 +652,7 @@ function generateTransactionLink(
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _query: Query
+    _location: Location
   ): LocationDescriptor => {
     const {transaction} = tableRow;
     const trendTransaction = ['regression', 'improved'].includes(value);

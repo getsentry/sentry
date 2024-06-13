@@ -1,14 +1,14 @@
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import Avatar from 'sentry/components/avatar';
+import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
+import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
 import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
@@ -20,12 +20,15 @@ import {
   IconDelete,
   IconEllipsis,
   IconFire,
+  IconPlay,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space, ValidSize} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {ValidSize} from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -286,12 +289,14 @@ export function ReplayCell({
   replay,
   referrer_table,
   isWidget,
+  className,
 }: Props & {
   eventView: EventView;
   organization: Organization;
   referrer: string;
-  referrer_table: ReferrerTableType;
+  className?: string;
   isWidget?: boolean;
+  referrer_table?: ReferrerTableType;
 }) {
   const {projects} = useProjects();
   const project = projects.find(p => p.id === replay.project_id);
@@ -355,7 +360,7 @@ export function ReplayCell({
           {/* Avatar is used instead of ProjectBadge because using ProjectBadge increases spacing, which doesn't look as good */}
           {project ? <Avatar size={12} project={project} /> : null}
           {project ? project.slug : null}
-          <Link to={detailsTab} onClick={trackNavigationEvent}>
+          <Link to={detailsTab()} onClick={trackNavigationEvent}>
             {getShortEventId(replay.id)}
           </Link>
           <Row gap={0.5}>
@@ -368,22 +373,26 @@ export function ReplayCell({
   );
 
   return (
-    <Item isWidget={isWidget} isReplayCell>
-      <UserBadge
-        avatarSize={24}
-        displayName={
-          replay.is_archived ? (
-            replay.user.display_name || t('Anonymous User')
-          ) : (
-            <MainLink to={detailsTab} onClick={trackNavigationEvent}>
-              {replay.user.display_name || t('Anonymous User')}
-            </MainLink>
-          )
-        }
-        user={getUserBadgeUser(replay)}
-        // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-        displayEmail={subText}
-      />
+    <Item isWidget={isWidget} isReplayCell className={className}>
+      <Row gap={1}>
+        <UserAvatar user={getUserBadgeUser(replay)} size={24} />
+        <SubText>
+          <Row gap={0.5}>
+            {replay.is_archived ? (
+              replay.user.display_name || t('Anonymous User')
+            ) : (
+              <MainLink
+                to={detailsTab()}
+                onClick={trackNavigationEvent}
+                data-has-viewed={replay.has_viewed}
+              >
+                {replay.user.display_name || t('Anonymous User')}
+              </MainLink>
+            )}
+          </Row>
+          <Row gap={0.5}>{subText}</Row>
+        </SubText>
+      </Row>
     </Item>
   );
 }
@@ -412,6 +421,23 @@ const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
 
 const MainLink = styled(Link)`
   font-size: ${p => p.theme.fontSizeLarge};
+  line-height: normal;
+  ${p => p.theme.overflowEllipsis};
+
+  font-weight: ${p => p.theme.fontWeightBold};
+  &[data-has-viewed='true'] {
+    font-weight: ${p => p.theme.fontWeightNormal};
+  }
+`;
+
+const SubText = styled('div')`
+  font-size: 0.875em;
+  line-height: normal;
+  color: ${p => p.theme.gray300};
+  ${p => p.theme.overflowEllipsis};
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
 `;
 
 export function TransactionCell({
@@ -610,6 +636,30 @@ export function ActivityCell({replay, showDropdownFilters}: Props) {
   );
 }
 
+export function PlayPauseCell({
+  isSelected,
+  handleClick,
+}: {
+  handleClick: () => void;
+  isSelected: boolean;
+}) {
+  const inner = isSelected ? (
+    <ReplayPlayPauseButton size="sm" priority="default" borderless />
+  ) : (
+    <Button
+      title={t('Play')}
+      aria-label={t('Play')}
+      icon={<IconPlay size="sm" />}
+      onClick={handleClick}
+      data-test-id="replay-table-play-button"
+      borderless
+      size="sm"
+      priority="default"
+    />
+  );
+  return <Item>{inner}</Item>;
+}
+
 const Item = styled('div')<{
   isArchived?: boolean;
   isReplayCell?: boolean;
@@ -679,7 +729,7 @@ const ActionMenuTrigger = styled(Button)`
   align-items: center;
   opacity: 0;
   transition: opacity 0.1s;
-  &.focus-visible,
+  &:focus-visible,
   &[aria-expanded='true'],
   ${Container}:hover & {
     opacity: 1;

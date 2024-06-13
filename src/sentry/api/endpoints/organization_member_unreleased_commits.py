@@ -44,7 +44,7 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
-    owner = ApiOwner.ECOSYSTEM
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

@@ -4,48 +4,61 @@ import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import SearchBar from 'sentry/components/events/searchBar';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  DATA_TYPE as RESOURCE_DATA_TYPE,
+  PERFORMANCE_DATA_TYPE as PERFORMANCE_RESOURCE_DATA_TYPE,
+} from 'sentry/views/performance/browser/resources/settings';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {
+  ModuleName,
+  SpanIndexedField,
+  SpanMetricsField,
+} from 'sentry/views/starfish/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleInfo from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleInfo';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 
-const {HTTP_RESPONSE_CONTENT_LENGTH} = SpanMetricsField;
+const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
 
 type Props = {
   groupId: string;
+  moduleName: ModuleName;
   transactionName: string;
-  additionalFields?: string[];
   onClose?: () => void;
-  spanDescription?: string;
+  referrer?: string;
   transactionMethod?: string;
   transactionRoute?: string;
 };
 
 export function SampleList({
   groupId,
+  moduleName,
   transactionName,
   transactionMethod,
-  spanDescription,
-  additionalFields,
   onClose,
   transactionRoute = '/performance/summary/',
+  referrer,
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -67,19 +80,36 @@ export function SampleList({
   );
 
   const organization = useOrganization();
-  const {query} = useLocation();
+  const {selection} = usePageFilters();
+  const location = useLocation();
   const {projects} = useProjects();
 
+  const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
+  const supportedTags = useSpanFieldSupportedTags();
+
   const project = useMemo(
-    () => projects.find(p => p.id === String(query.project)),
-    [projects, query.project]
+    () => projects.find(p => p.id === String(location.query.project)),
+    [projects, location.query.project]
   );
 
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...location.query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
+
   const onOpenDetailPanel = useCallback(() => {
-    if (query.transaction) {
-      trackAnalytics('starfish.panel.open', {organization});
+    if (location.query.transaction) {
+      trackAnalytics('performance_views.sample_spans.opened', {
+        organization,
+        source: moduleName,
+      });
     }
-  }, [organization, query.transaction]);
+  }, [organization, location.query.transaction, moduleName]);
 
   const label =
     transactionMethod && !transactionName.startsWith(transactionMethod)
@@ -88,14 +118,20 @@ export function SampleList({
 
   const link = normalizeUrl(
     `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
-      project: query.project,
+      project: location.query.project,
       transaction: transactionName,
     })}`
   );
 
-  let extraQuery: string[] | undefined = undefined;
-  if (query.query) {
-    extraQuery = Array.isArray(query.query) ? query.query : [query.query];
+  // set additional query filters from the span search bar and the `query` param
+  const spanSearch = new MutableSearch(spanSearchQuery ?? '');
+  if (location.query.query) {
+    (Array.isArray(location.query.query)
+      ? location.query.query
+      : [location.query.query]
+    ).forEach(filter => {
+      spanSearch.addStringFilter(filter);
+    });
   }
 
   function defaultOnClose() {
@@ -107,7 +143,20 @@ export function SampleList({
 
   let columnOrder = DEFAULT_COLUMN_ORDER;
 
-  if (additionalFields?.includes(HTTP_RESPONSE_CONTENT_LENGTH)) {
+  const additionalFields: SpanIndexedField[] = [
+    SpanIndexedField.TRACE,
+    SpanIndexedField.TRANSACTION_ID,
+  ];
+
+  const isInsightsEnabled = organization.features.includes('performance-insights');
+  const resourceDataType = isInsightsEnabled
+    ? RESOURCE_DATA_TYPE
+    : PERFORMANCE_RESOURCE_DATA_TYPE;
+
+  if (moduleName === ModuleName.RESOURCE) {
+    additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
+    additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
+
     columnOrder = [
       ...DEFAULT_COLUMN_ORDER,
       {
@@ -115,11 +164,16 @@ export function SampleList({
         name: t('Encoded Size'),
         width: COL_WIDTH_UNDEFINED,
       },
+      {
+        key: SPAN_DESCRIPTION,
+        name: `${resourceDataType} ${t('Name')}`,
+        width: COL_WIDTH_UNDEFINED,
+      },
     ];
   }
 
   return (
-    <PageErrorProvider>
+    <PageAlertProvider>
       <DetailPanel
         detailKey={detailKey}
         onClose={() => {
@@ -137,14 +191,11 @@ export function SampleList({
               tooltip={project.slug}
             />
           )}
-          <TitleContainer>
-            {spanDescription && <SpanDescription>{spanDescription}</SpanDescription>}
-            <Title>
-              <Link to={link}>{label}</Link>
-            </Title>
-          </TitleContainer>
+          <Title>
+            <Link to={link}>{label}</Link>
+          </Title>
         </HeaderContainer>
-        <PageErrorAlert />
+        <PageAlert />
 
         <SampleInfo
           groupId={groupId}
@@ -159,14 +210,36 @@ export function SampleList({
           additionalFields={additionalFields}
           onClickSample={span => {
             router.push(
-              `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
+              generateLinkToEventInTraceView({
+                eventId: span['transaction.id'],
+                projectSlug: span.project,
+                spanId: span.span_id,
+                location,
+                organization,
+                traceSlug: span.trace,
+                timestamp: span.timestamp,
+              })
             );
           }}
           onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
           onMouseLeaveSample={() => debounceSetHighlightedSpanId(undefined)}
-          query={extraQuery}
+          spanSearch={spanSearch}
           highlightedSpanId={highlightedSpanId}
         />
+
+        <Feature features="performance-sample-panel-search">
+          <StyledSearchBar
+            searchSource={`${moduleName}-sample-panel`}
+            query={spanSearchQuery}
+            onSearch={handleSearch}
+            placeholder={t('Search for span attributes')}
+            organization={organization}
+            metricAlert={false}
+            supportedTags={supportedTags}
+            dataset={DiscoverDatasets.SPANS_INDEXED}
+            projectIds={selection.projects}
+          />
+        </Feature>
 
         <SampleTable
           highlightedSpanId={highlightedSpanId}
@@ -174,13 +247,15 @@ export function SampleList({
           onMouseLeaveSample={() => setHighlightedSpanId(undefined)}
           onMouseOverSample={sample => setHighlightedSpanId(sample.span_id)}
           groupId={groupId}
+          moduleName={moduleName}
           transactionName={transactionName}
-          query={extraQuery}
+          spanSearch={spanSearch}
           columnOrder={columnOrder}
           additionalFields={additionalFields}
+          referrer={referrer}
         />
       </DetailPanel>
-    </PageErrorProvider>
+    </PageAlertProvider>
   );
 }
 
@@ -195,29 +270,21 @@ const HeaderContainer = styled('div')`
 
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 0;
 `;
 
-const SpanDescription = styled('div')`
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 35vw;
+const StyledSearchBar = styled(SearchBar)`
+  margin-top: ${space(2)};
 `;

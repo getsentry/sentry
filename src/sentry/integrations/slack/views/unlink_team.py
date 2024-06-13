@@ -5,14 +5,13 @@ from rest_framework.request import Request
 
 from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.signing import unsign
-from sentry.web.decorators import transaction_start
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
 
@@ -52,7 +51,6 @@ class SlackUnlinkTeamView(BaseView):
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.
     """
 
-    @transaction_start("SlackUnlinkIdentityView")
     @method_decorator(never_cache)
     def handle(self, request: Request, signed_params: str) -> HttpResponse:
         if request.method not in ALLOWED_METHODS:

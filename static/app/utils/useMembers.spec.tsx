@@ -1,16 +1,16 @@
-import {Organization} from 'sentry-fixture/organization';
-import {User} from 'sentry-fixture/user';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import MemberListStore from 'sentry/stores/memberListStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useMembers} from 'sentry/utils/useMembers';
 
 describe('useMembers', function () {
-  const org = Organization();
+  const org = OrganizationFixture();
 
-  const mockUsers = [User()];
+  const mockUsers = [UserFixture()];
 
   beforeEach(function () {
     MemberListStore.reset();
@@ -20,7 +20,7 @@ describe('useMembers', function () {
   it('provides members from the MemberListStore', function () {
     MemberListStore.loadInitialData(mockUsers);
 
-    const {result} = reactHooks.renderHook(useMembers);
+    const {result} = renderHook(useMembers);
     const {members} = result.current;
 
     expect(members).toEqual(mockUsers);
@@ -28,8 +28,8 @@ describe('useMembers', function () {
 
   it('loads more members when using onSearch', async function () {
     MemberListStore.loadInitialData(mockUsers);
-    const newUser2 = User({id: '2', email: 'test-user2@example.com'});
-    const newUser3 = User({id: '3', email: 'test-user3@example.com'});
+    const newUser2 = UserFixture({id: '2', email: 'test-user2@example.com'});
+    const newUser3 = UserFixture({id: '3', email: 'test-user3@example.com'});
 
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
@@ -37,14 +37,11 @@ describe('useMembers', function () {
       body: [{user: newUser2}, {user: newUser3}],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useMembers);
+    const {result} = renderHook(useMembers);
     const {onSearch} = result.current;
 
     // Works with append
-    const onSearchPromise = reactHooks.act(() => onSearch('test'));
-
-    expect(result.current.fetching).toBe(true);
-    await onSearchPromise;
+    await act(() => onSearch('test'));
     expect(result.current.fetching).toBe(false);
 
     // Wait for state to be reflected from the store
@@ -55,7 +52,7 @@ describe('useMembers', function () {
 
     // de-duplicates items in the query results
     mockRequest.mockClear();
-    await reactHooks.act(() => onSearch('test'));
+    await act(() => onSearch('test'));
 
     // No new items have been added
     expect(mockRequest).toHaveBeenCalled();
@@ -64,14 +61,14 @@ describe('useMembers', function () {
 
   it('provides only the specified emails', async function () {
     MemberListStore.loadInitialData(mockUsers);
-    const userFoo = User({email: 'foo@test.com'});
+    const userFoo = UserFixture({email: 'foo@test.com'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',
       body: [{user: userFoo}],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useMembers, {
+    const {result} = renderHook(useMembers, {
       initialProps: {emails: ['foo@test.com']},
     });
 
@@ -86,14 +83,14 @@ describe('useMembers', function () {
 
   it('provides only the specified ids', async function () {
     MemberListStore.loadInitialData(mockUsers);
-    const userFoo = User({id: '10'});
+    const userFoo = UserFixture({id: '10'});
     const mockRequest = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/members/`,
       method: 'GET',
       body: [{user: userFoo}],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useMembers, {
+    const {result} = renderHook(useMembers, {
       initialProps: {ids: ['10']},
     });
 
@@ -109,7 +106,7 @@ describe('useMembers', function () {
   it('only loads emails when needed', function () {
     MemberListStore.loadInitialData(mockUsers);
 
-    const {result} = reactHooks.renderHook(useMembers, {
+    const {result} = renderHook(useMembers, {
       initialProps: {emails: [mockUsers[0].email]},
     });
 
@@ -119,13 +116,13 @@ describe('useMembers', function () {
   });
 
   it('correctly returns hasMore before and after store update', async function () {
-    const {result, waitFor} = reactHooks.renderHook(useMembers);
+    const {result} = renderHook(useMembers);
 
     const {members, hasMore} = result.current;
     expect(hasMore).toBe(null);
     expect(members).toEqual(expect.arrayContaining([]));
 
-    reactHooks.act(() => MemberListStore.loadInitialData(mockUsers, false, null));
+    act(() => MemberListStore.loadInitialData(mockUsers, false, null));
     await waitFor(() => expect(result.current.members.length).toBe(1));
 
     expect(result.current.hasMore).toBe(false);

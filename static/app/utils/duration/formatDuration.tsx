@@ -1,5 +1,5 @@
-import {Duration, Unit} from 'sentry/utils/duration/types';
-import {formatSecondsToClock} from 'sentry/utils/formatters';
+import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
+import type {Duration, Unit} from 'sentry/utils/duration/types';
 
 type Format =
   // example: `3,600`

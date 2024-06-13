@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 from collections.abc import Mapping
 
+import orjson
 from cryptography.exceptions import InvalidSignature
 from rest_framework import status
 from rest_framework.request import Request
@@ -14,7 +15,6 @@ from sentry.services.hybrid_cloud.identity.service import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils import json
 
 from ..utils import logger, verify_signature
 
@@ -55,8 +55,8 @@ class DiscordRequest:
 
     def __init__(self, request: Request):
         self.request = request
-        self._body = self.request.body.decode("utf-8")
-        self._data: Mapping[str, object] = json.loads(self._body)
+        self._body = self.request.body.decode()
+        self._data: Mapping[str, object] = orjson.loads(self.request.body)
         self._integration: RpcIntegration | None = None
         self._provider: RpcIdentityProvider | None = None
         self._identity: RpcIdentity | None = None
@@ -95,7 +95,7 @@ class DiscordRequest:
             user_source = self._data.get("member", None)
             if user_source is None:
                 user_source = self._data
-            return user_source["user"]["id"]  # type: ignore
+            return user_source["user"]["id"]  # type: ignore[index]
         except (AttributeError, TypeError, KeyError):
             return None
 
@@ -276,4 +276,4 @@ class DiscordRequest:
             "discord.interaction.component.get_selected_options",
             extra={"data": self.data, "values": values},
         )
-        return values  # type: ignore
+        return values  # type: ignore[return-value]

@@ -1,4 +1,5 @@
-from typing import Any, Mapping, MutableMapping
+from collections.abc import Mapping, MutableMapping
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
@@ -10,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationSerializer
-from sentry.integrations import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -20,7 +21,6 @@ from sentry.services.hybrid_cloud.integration import RpcIntegration, integration
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
-from sentry.utils.json import JSONData
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
 
@@ -38,7 +38,7 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
+    ) -> MutableMapping[str, Any]:
         data = super().serialize(obj, attrs, user)
 
         if self.action == "link":
@@ -101,9 +101,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "Action is required and should be either link or create"})
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -144,9 +146,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"externalIssue": ["Issue ID is required"]}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -226,9 +230,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 
@@ -302,9 +308,11 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "External ID required"}, status=400)
 
         organization_id = group.project.organization_id
-        (integration, org_integration) = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
+        integration = result.integration
+        org_integration = result.organization_integration
         if not integration or not org_integration:
             return Response(status=404)
 

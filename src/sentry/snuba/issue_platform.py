@@ -1,6 +1,6 @@
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
 
 import sentry_sdk
 
@@ -12,7 +12,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 
 def query(
@@ -38,7 +38,7 @@ def query(
     use_metrics_layer=False,
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -106,17 +106,17 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
-    referrer: Optional[str] = None,
+    referrer: str | None = None,
     zerofill_results: bool = True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     allow_metric_aggregates=False,
     has_metrics=False,
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -172,22 +172,26 @@ def timeseries_query(
             )
             query_list.append(comparison_builder)
 
-        query_results = bulk_snql_query([query.get_snql_query() for query in query_list], referrer)
+        query_results = bulk_snuba_queries(
+            [query.get_snql_query() for query in query_list], referrer
+        )
 
     with sentry_sdk.start_span(op="issueplatform", description="timeseries.transform_results"):
         results = []
         for snql_query, result in zip(query_list, query_results):
             results.append(
                 {
-                    "data": zerofill(
-                        result["data"],
-                        snql_query.params.start,
-                        snql_query.params.end,
-                        rollup,
-                        "time",
-                    )
-                    if zerofill_results
-                    else result["data"],
+                    "data": (
+                        zerofill(
+                            result["data"],
+                            snql_query.params.start,
+                            snql_query.params.end,
+                            rollup,
+                            "time",
+                        )
+                        if zerofill_results
+                        else result["data"]
+                    ),
                     "meta": result["meta"],
                 }
             )

@@ -1,9 +1,11 @@
-import {ChangeEvent, Fragment, ReactNode} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {ChangeEvent, ReactNode} from 'react';
+import {Fragment} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import classNames from 'classnames';
-import {Location} from 'history';
+import type {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -26,7 +28,8 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import IdBadge from 'sentry/components/idBadge';
 import Input from 'sentry/components/input';
@@ -42,26 +45,22 @@ import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {IconChevron, IconNot} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  Environment,
-  IssueOwnership,
-  Member,
-  OnboardingTaskKey,
-  Organization,
-  Project,
-  Team,
-} from 'sentry/types';
-import {
-  IssueAlertActionType,
-  IssueAlertConditionType,
+import type {Environment, Member, Organization, Project, Team} from 'sentry/types';
+import type {
   IssueAlertConfiguration,
-  IssueAlertFilterType,
   IssueAlertRule,
   IssueAlertRuleAction,
   IssueAlertRuleActionTemplate,
   UnsavedIssueAlertRule,
 } from 'sentry/types/alerts';
+import {
+  IssueAlertActionType,
+  IssueAlertConditionType,
+  IssueAlertFilterType,
+} from 'sentry/types/alerts';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getDisplayName} from 'sentry/utils/environment';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import recreateRoute from 'sentry/utils/recreateRoute';
@@ -155,10 +154,8 @@ type State = DeprecatedAsyncView['state'] & {
   incompatibleFilters: number[] | null;
   project: Project;
   sendingNotification: boolean;
-  uuid: null | string;
   acceptedNoisyAlert?: boolean;
   duplicateTargetRule?: UnsavedIssueAlertRule | IssueAlertRule | null;
-  ownership?: null | IssueOwnership;
   rule?: UnsavedIssueAlertRule | IssueAlertRule | null;
 };
 
@@ -173,9 +170,10 @@ const isExactDuplicateExp = /duplicate of '(.*)'/;
 
 class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
   pollingTimeout: number | undefined = undefined;
-  trackIncompatibleAnalytics: boolean = false;
-  trackNoisyWarningViewed: boolean = false;
+  trackIncompatibleAnalytics = false;
+  trackNoisyWarningViewed = false;
   isUnmounted = false;
+  uuid: string | null = null;
 
   get isDuplicateRule(): boolean {
     const {location} = this.props;
@@ -207,6 +205,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     this.fetchEnvironments();
+    this.refetchConfigs();
   }
 
   isRuleStateChange(prevState: State): boolean {
@@ -243,7 +242,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       detailedError: null,
       rule: {...defaultRule},
       environments: [],
-      uuid: null,
       project,
       sendingNotification: false,
       incompatibleConditions: null,
@@ -277,7 +275,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
         },
       ],
       ['configs', `/projects/${organization.slug}/${project.slug}/rules/configuration/`],
-      ['ownership', `/projects/${organization.slug}/${project.slug}/ownership/`],
     ];
 
     if (ruleId) {
@@ -325,7 +322,21 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      const hasHighPriorityIssueAlerts =
+        this.props.organization.features.includes('default-high-priority-alerts') ||
+        this.props.project.features.includes('high-priority-alerts');
+      const isValidPlatform =
+        this.props.project.platform?.startsWith('javascript') ||
+        this.props.project.platform?.startsWith('python');
+
+      if (hasHighPriorityIssueAlerts && isValidPlatform) {
+        this.handleChange('conditions', [
+          {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
+          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
+        ]);
+      } else {
+        this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      }
     }
   }
 
@@ -337,12 +348,12 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     }
 
     const {organization} = this.props;
-    const {uuid, project} = this.state;
+    const {project} = this.state;
     const origRule = this.state.rule;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/rule-task/${uuid}/`
+        `/projects/${organization.slug}/${project.slug}/rule-task/${this.uuid}/`
       );
 
       const {status, rule, error} = response;
@@ -406,6 +417,20 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       .catch(_err => addErrorMessage(t('Unable to fetch environments')));
   }
 
+  refetchConfigs() {
+    const {organization} = this.props;
+    const {project} = this.state;
+
+    this.api
+      .requestPromise(
+        `/projects/${organization.slug}/${project.slug}/rules/configuration/`
+      )
+      .then(response => this.setState({configs: response}))
+      .catch(() => {
+        // No need to alert user if this fails, can use existing data
+      });
+  }
+
   fetchStatus() {
     // pollHandler calls itself until it gets either a success
     // or failed status but we don't want to poll forever so we pass
@@ -463,7 +488,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       status: 'complete',
     });
 
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
 
     router.push(
       normalizeUrl({
@@ -475,7 +500,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
   handleRuleSaveFailure(msg: ReactNode) {
     addErrorMessage(msg);
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
   }
 
   handleSubmit = async () => {
@@ -498,57 +523,63 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
 
     addLoadingMessage();
 
-    try {
-      const transaction = metric.startTransaction({name: 'saveAlertRule'});
-      transaction.setTag('type', 'issue');
-      transaction.setTag('operation', isNew ? 'create' : 'edit');
-      if (rule) {
-        for (const action of rule.actions) {
-          if (action.id === IssueAlertActionType.SLACK) {
-            transaction.setTag('SlackNotifyServiceAction', true);
+    await Sentry.withScope(async scope => {
+      try {
+        scope.setTag('type', 'issue');
+        scope.setTag('operation', isNew ? 'create' : 'edit');
+
+        if (rule) {
+          for (const action of rule.actions) {
+            if (action.id === IssueAlertActionType.SLACK) {
+              scope?.setTag('SlackNotifyServiceAction', true);
+            }
+            // to avoid storing inconsistent data in the db, don't pass the name fields
+            delete action.name;
           }
-          // to avoid storing inconsistent data in the db, don't pass the name fields
-          delete action.name;
-        }
-        for (const condition of rule.conditions) {
-          delete condition.name;
-        }
-        for (const filter of rule.filters) {
-          delete filter.name;
-        }
-        transaction.setData('actions', rule.actions);
+          for (const condition of rule.conditions) {
+            delete condition.name;
+          }
+          for (const filter of rule.filters) {
+            delete filter.name;
+          }
+          scope.setExtra('actions', rule.actions);
 
-        // Check if rule is currently disabled or going to be disabled
-        if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
-          rule.optOutEdit = true;
+          // Check if rule is currently disabled or going to be disabled
+          if ('status' in rule && (rule.status === 'disabled' || !!rule.disableDate)) {
+            rule.optOutEdit = true;
+          }
         }
-      }
-      const [data, , resp] = await this.api.requestPromise(endpoint, {
-        includeAllArgs: true,
-        method: isNew ? 'POST' : 'PUT',
-        data: rule,
-        query: {
-          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: 'true',
-        },
-      });
 
-      // if we get a 202 back it means that we have an async task
-      // running to lookup and verify the channel id for Slack.
-      if (resp?.status === 202) {
-        this.setState({detailedError: null, loading: true, uuid: data.uuid});
-        this.fetchStatus();
-        addLoadingMessage(t('Looking through all your channels...'));
-      } else {
-        this.handleRuleSuccess(isNew, data);
+        metric.startSpan({name: 'saveAlertRule'});
+
+        const [data, , resp] = await this.api.requestPromise(endpoint, {
+          includeAllArgs: true,
+          method: isNew ? 'POST' : 'PUT',
+          data: rule,
+          query: {
+            duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+            wizardV3: 'true',
+          },
+        });
+
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verify the channel id for Slack.
+        if (resp?.status === 202) {
+          this.uuid = data.uuid;
+          this.setState({detailedError: null, loading: true});
+          this.fetchStatus();
+          addLoadingMessage(t('Looking through all your channels...'));
+        } else {
+          this.handleRuleSuccess(isNew, data);
+        }
+      } catch (err) {
+        this.setState({
+          detailedError: err.responseJSON || {__all__: 'Unknown error'},
+          loading: false,
+        });
+        this.handleRuleSaveFailure(t('An error occurred'));
       }
-    } catch (err) {
-      this.setState({
-        detailedError: err.responseJSON || {__all__: 'Unknown error'},
-        loading: false,
-      });
-      this.handleRuleSaveFailure(t('An error occurred'));
-    }
+    });
   };
 
   handleDeleteRule = async () => {
@@ -714,6 +745,16 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       newTypeList.splice(idx, 1);
 
       set(clonedState, `rule[${type}]`, newTypeList);
+
+      const {organization} = this.props;
+      const {project} = this.state;
+      const deletedItem = prevState.rule ? prevState.rule[type][idx] : null;
+      trackAnalytics('edit_alert_rule.delete_row', {
+        organization,
+        project_id: project.id,
+        type,
+        name: deletedItem?.id ?? '',
+      });
       return clonedState;
     });
   };
@@ -779,7 +820,7 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     const {rule} = this.state;
     const owner = rule?.owner;
     // ownership follows the format team:<id>, just grab the id
-    return owner && owner.split(':')[1];
+    return owner?.split(':')[1];
   };
 
   handleOwnerChange = ({value}: {value: string}) => {
@@ -1120,7 +1161,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       rule,
       detailedError,
       loading,
-      ownership,
       sendingNotification,
       incompatibleConditions,
       incompatibleFilters,
@@ -1385,7 +1425,6 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
                           organization={organization}
                           project={project}
                           disabled={disabled}
-                          ownership={ownership}
                           error={
                             this.hasError('actions') && (
                               <StyledAlert type="error">
@@ -1626,7 +1665,7 @@ const Badge = styled('span')`
   text-transform: uppercase;
   text-align: center;
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.5;
 `;
 
@@ -1636,7 +1675,7 @@ const EmbeddedWrapper = styled('div')`
 
 const EmbeddedSelectField = styled(SelectField)`
   padding: 0;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
 `;
 
@@ -1681,7 +1720,7 @@ const AcknowledgeLabel = styled('label')`
   align-items: center;
   gap: ${space(1)};
   line-height: 2;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const AcknowledgeField = styled(FieldGroup)`

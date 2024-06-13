@@ -1,5 +1,3 @@
-from typing import List
-
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -29,11 +27,11 @@ class OrganizationRelayUsage(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's trusted Relays",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationRelayResponse", List[OrganizationRelayResponse]
+                "OrganizationRelayResponse", list[OrganizationRelayResponse]
             ),
             404: RESPONSE_NOT_FOUND,
         },

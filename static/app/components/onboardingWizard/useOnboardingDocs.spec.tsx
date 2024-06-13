@@ -1,14 +1,14 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import {
   generateDocKeys,
   isPlatformSupported,
 } from 'sentry/components/performanceOnboarding/utils';
-import {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
+import type {PlatformIntegration, PlatformKey, Project} from 'sentry/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('useOnboardingDocs', function () {
@@ -41,7 +41,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result, waitForNextUpdate} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,
@@ -51,10 +51,9 @@ describe('useOnboardingDocs', function () {
       },
       wrapper,
     });
-    await waitForNextUpdate();
-    const {docContents, isLoading, hasOnboardingContents} = result.current;
+    await waitFor(() => expect(result.current.isLoading).toEqual(false));
+    const {docContents, hasOnboardingContents} = result.current;
 
-    expect(isLoading).toEqual(false);
     const expectedDocContents = Object.keys(apiMocks).reduce((acc, key) => {
       acc[key] = `${key} content`;
       return acc;
@@ -95,7 +94,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,
@@ -144,7 +143,7 @@ describe('useOnboardingDocs', function () {
       });
     });
 
-    const {result} = reactHooks.renderHook(useOnboardingDocs, {
+    const {result} = renderHook(useOnboardingDocs, {
       initialProps: {
         project,
         docKeys,

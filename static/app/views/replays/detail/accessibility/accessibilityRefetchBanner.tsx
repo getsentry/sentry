@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {showPlayerTime} from 'sentry/components/replays/utils';
 import Well from 'sentry/components/well';
@@ -55,12 +55,7 @@ export default function AccessibilityRefetchBanner({initialOffsetMs, refetch}: P
             ),
           })}
         </Flex>
-        <Button
-          size="xs"
-          priority="primary"
-          onClick={handleClickRefetch}
-          disabled={currentTime === lastOffsetMs}
-        >
+        <Button size="xs" priority="primary" onClick={handleClickRefetch}>
           {isPlaying
             ? tct('Pause and run validation for [now]', {now})
             : tct('Run validation for [now]', {now})}

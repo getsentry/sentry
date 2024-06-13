@@ -1,18 +1,15 @@
-import {browserHistory} from 'react-router';
 import moment from 'moment';
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Member as MemberFixture} from 'sentry-fixture/member';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {
-  ProjectAlertRule,
-  ProjectAlertRule as ProjectAlertRuleFixture,
-} from 'sentry-fixture/projectAlertRule';
+import {GroupFixture} from 'sentry-fixture/group';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectAlertRuleFixture} from 'sentry-fixture/projectAlertRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 
 import AlertRuleDetails from './ruleDetails';
 
@@ -20,14 +17,13 @@ describe('AlertRuleDetails', () => {
   const context = initializeOrg();
   const organization = context.organization;
   const project = ProjectFixture();
-  const rule = ProjectAlertRule({
+  const rule = ProjectAlertRuleFixture({
     lastTriggered: moment().subtract(2, 'day').format(),
   });
   const member = MemberFixture();
 
   const createWrapper = (props: any = {}, newContext?: any, org = organization) => {
     const router = newContext ? newContext.router : context.router;
-    const routerContext = newContext ? newContext.routerContext : context.routerContext;
 
     return render(
       <AlertRuleDetails
@@ -40,7 +36,7 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {context: routerContext, organization: org}
+      {router, organization: org}
     );
   };
 
@@ -95,7 +91,7 @@ describe('AlertRuleDetails', () => {
   it('displays alert rule with list of issues', async () => {
     createWrapper();
     expect(await screen.findAllByText('My alert rule')).toHaveLength(2);
-    expect(screen.getByText('RequestError:')).toBeInTheDocument();
+    expect(await screen.findByText('RequestError:')).toBeInTheDocument();
     expect(screen.getByText('Apr 11, 2019 1:08:59 AM UTC')).toBeInTheDocument();
     expect(screen.getByText('RequestError:')).toHaveAttribute(
       'href',
@@ -198,7 +194,7 @@ describe('AlertRuleDetails', () => {
   it('rule disabled banner because of missing actions and hides some actions', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
-      body: ProjectAlertRule({
+      body: ProjectAlertRuleFixture({
         actions: [],
         status: 'disabled',
       }),
@@ -218,7 +214,7 @@ describe('AlertRuleDetails', () => {
   it('rule disabled banner generic', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/rules/${rule.id}/`,
-      body: ProjectAlertRule({
+      body: ProjectAlertRuleFixture({
         status: 'disabled',
       }),
       match: [MockApiClient.matchQuery({expand: 'lastTriggered'})],
@@ -232,7 +228,7 @@ describe('AlertRuleDetails', () => {
   });
 
   it('rule to be disabled can opt out', async () => {
-    const disabledRule = ProjectAlertRule({
+    const disabledRule = ProjectAlertRuleFixture({
       disableDate: moment().add(1, 'day').format(),
       disableReason: 'noisy',
     });
@@ -262,7 +258,7 @@ describe('AlertRuleDetails', () => {
   });
 
   it('disabled rule can be re-enabled', async () => {
-    const disabledRule = ProjectAlertRule({
+    const disabledRule = ProjectAlertRuleFixture({
       status: 'disabled',
       disableDate: moment().subtract(1, 'day').format(),
       disableReason: 'noisy',
@@ -337,7 +333,7 @@ describe('AlertRuleDetails', () => {
   });
 
   it('mute button is disabled if no alerts:write permission', async () => {
-    const orgWithoutAccess = Organization({
+    const orgWithoutAccess = OrganizationFixture({
       access: [],
     });
 

@@ -1,7 +1,6 @@
 import base64
 import binascii
 import posixpath
-from typing import Union
 
 import sentry_sdk
 from django.http.response import FileResponse
@@ -21,7 +20,7 @@ class ProjectArtifactBundleFileDetailsMixin:
     @classmethod
     def download_file_from_artifact_bundle(
         cls, file_path: str, archive: ArtifactBundleArchive
-    ) -> Union[Response, FileResponse]:
+    ) -> Response | FileResponse:
         try:
             fp, headers = archive.get_file(file_path)
             file_info = archive.get_file_info(file_path)
@@ -49,9 +48,9 @@ class ProjectArtifactBundleFileDetailsMixin:
 class ProjectArtifactBundleFileDetailsEndpoint(
     ProjectEndpoint, ProjectArtifactBundleFileDetailsMixin
 ):
-    owner = ApiOwner.WEB_FRONTEND_SDKS
+    owner = ApiOwner.PROCESSING
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (ProjectReleasePermission,)
 
@@ -64,9 +63,9 @@ class ProjectArtifactBundleFileDetailsEndpoint(
         not actually return the contents of the file, just the associated
         metadata.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           release belongs to.
-        :pparam string project_slug: the slug of the project to retrieve the
+        :pparam string project_id_or_slug: the id or slug of the project to retrieve the
                                      file of.
         :pparam string bundle_id: the bundle_id of the artifact bundle that
                                     should contain the file identified by file_id.

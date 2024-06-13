@@ -1,7 +1,7 @@
 import csv
 from contextlib import contextmanager
 from io import StringIO
-from typing import Any, Dict, List
+from typing import Any, TypedDict
 
 import sentry_sdk
 from django.http import HttpResponse
@@ -10,12 +10,13 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from typing_extensions import TypedDict
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
@@ -107,24 +108,24 @@ class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
 class _ProjectSummaryStats(TypedDict):  # this response is pretty dynamic, leaving generic
     id: str
     slug: str
-    stats: List[Dict[str, Any]]
+    stats: list[dict[str, Any]]
 
 
 class StatsSummaryApiResponse(TypedDict):
     start: str
     end: str
-    projects: List[_ProjectSummaryStats]
+    projects: list[_ProjectSummaryStats]
 
 
 @extend_schema(tags=["Organizations"])
 @region_silo_endpoint
-class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
+class OrganizationStatsSummaryEndpoint(OrganizationEndpoint):
     publish_status = {"GET": ApiPublishStatus.PUBLIC}
     owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
         operation_id="Retrieve an Organization's Events Count by Project",
-        parameters=[GlobalParams.ORG_SLUG, OrgStatsSummaryQueryParamsSerializer],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, OrgStatsSummaryQueryParamsSerializer],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -253,8 +254,7 @@ class OrganizationStatsSummaryEndpoint(OrganizationEventsEndpointBase):
     @contextmanager
     def handle_query_errors(self):
         try:
-            # TODO: this context manager should be decoupled from `OrganizationEventsEndpointBase`?
-            with super().handle_query_errors():
+            with handle_query_errors():
                 yield
         except (InvalidField, NoProjects, InvalidParams, InvalidQuery) as error:
             raise ParseError(detail=str(error))

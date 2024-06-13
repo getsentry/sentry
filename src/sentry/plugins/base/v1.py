@@ -3,8 +3,9 @@ from __future__ import annotations
 __all__ = ("Plugin",)
 
 import logging
+from collections.abc import Sequence
 from threading import local
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -33,9 +34,7 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not hasattr(new_cls, "slug"):
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
-        if not hasattr(new_cls, "logger") or new_cls.logger in [
-            getattr(b, "logger", None) for b in bases
-        ]:
+        if "logger" not in attrs:
             new_cls.logger = logging.getLogger(f"sentry.plugins.{new_cls.slug}")
         return new_cls
 

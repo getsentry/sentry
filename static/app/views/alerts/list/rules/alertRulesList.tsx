@@ -1,34 +1,31 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
-import isEmpty from 'lodash/isEmpty';
-import uniq from 'lodash/uniq';
+import type {Location} from 'history';
 
 import {
   addErrorMessage,
   addMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Link from 'sentry/components/links/link';
 import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import Pagination from 'sentry/components/pagination';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {MonitorType} from 'sentry/types/alerts';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {uniq} from 'sentry/utils/array/uniq';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Projects from 'sentry/utils/projects';
-import {
-  ApiQueryKey,
-  setApiQueryData,
-  useApiQuery,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
@@ -37,10 +34,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 
 import FilterBar from '../../filterBar';
-import {AlertRuleType, CombinedMetricIssueAlerts} from '../../types';
+import type {CombinedMetricIssueAlerts} from '../../types';
+import {AlertRuleType} from '../../types';
 import {getTeamParams, isIssueAlert} from '../../utils';
 import AlertHeader from '../header';
 
+import ActivatedRuleRow from './activatedRuleRow';
 import RuleListRow from './row';
 
 type SortField = 'date_added' | 'name' | ['incident_status', 'date_triggered'];
@@ -58,6 +57,11 @@ function getAlertListQueryKey(orgSlug: string, query: Location['query']): ApiQue
   return [`/organizations/${orgSlug}/combined-rules/`, {query: queryParams}];
 }
 
+const DataConsentBanner = HookOrDefault({
+  hookName: 'component:data-consent-banner',
+  defaultComponent: null,
+});
+
 function AlertRulesList() {
   const location = useLocation();
   const router = useRouter();
@@ -72,6 +76,7 @@ function AlertRulesList() {
       : location.query.sort,
   });
 
+  // Fetch alert rules
   const {
     data: ruleListResponse = [],
     refetch,
@@ -177,6 +182,7 @@ function AlertRulesList() {
         <AlertHeader router={router} activeTab="rules" />
         <Layout.Body>
           <Layout.Main fullWidth>
+            <DataConsentBanner source="alerts" />
             <FilterBar
               location={location}
               onChangeFilter={handleChangeFilter}
@@ -233,24 +239,51 @@ function AlertRulesList() {
                   onRetry={refetch}
                 />
               ) : null}
-              <VisuallyCompleteWithData id="AlertRules-Body" hasData={!isEmpty(ruleList)}>
+              <VisuallyCompleteWithData
+                id="AlertRules-Body"
+                hasData={ruleList.length > 0}
+              >
                 <Projects orgId={organization.slug} slugs={projectsFromResults}>
                   {({initiallyLoaded, projects}) =>
-                    ruleList.map(rule => (
-                      <RuleListRow
-                        // Metric and issue alerts can have the same id
-                        key={`${
-                          isIssueAlert(rule) ? AlertRuleType.METRIC : AlertRuleType.ISSUE
-                        }-${rule.id}`}
-                        projectsLoaded={initiallyLoaded}
-                        projects={projects as Project[]}
-                        rule={rule}
-                        orgId={organization.slug}
-                        onOwnerChange={handleOwnerChange}
-                        onDelete={handleDeleteRule}
-                        hasEditAccess={hasEditAccess}
-                      />
-                    ))
+                    ruleList.map(rule => {
+                      const isIssueAlertInstance = isIssueAlert(rule);
+                      const keyPrefix = isIssueAlertInstance
+                        ? AlertRuleType.ISSUE
+                        : AlertRuleType.METRIC;
+
+                      if (
+                        !isIssueAlertInstance &&
+                        rule.monitorType === MonitorType.ACTIVATED
+                      ) {
+                        return (
+                          <ActivatedRuleRow
+                            // Metric and issue alerts can have the same id
+                            key={`${keyPrefix}-${rule.id}`}
+                            projectsLoaded={initiallyLoaded}
+                            projects={projects as Project[]}
+                            rule={rule}
+                            orgId={organization.slug}
+                            onOwnerChange={handleOwnerChange}
+                            onDelete={handleDeleteRule}
+                            hasEditAccess={hasEditAccess}
+                          />
+                        );
+                      }
+
+                      return (
+                        <RuleListRow
+                          // Metric and issue alerts can have the same id
+                          key={`${keyPrefix}-${rule.id}`}
+                          projectsLoaded={initiallyLoaded}
+                          projects={projects as Project[]}
+                          rule={rule}
+                          orgId={organization.slug}
+                          onOwnerChange={handleOwnerChange}
+                          onDelete={handleDeleteRule}
+                          hasEditAccess={hasEditAccess}
+                        />
+                      );
+                    })
                   }
                 </Projects>
               </VisuallyCompleteWithData>

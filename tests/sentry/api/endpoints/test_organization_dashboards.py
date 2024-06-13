@@ -13,17 +13,15 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.testutils.cases import OrganizationDashboardWidgetTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
         self.url = reverse(
             "sentry-api-0-organization-dashboards",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         self.dashboard_2 = Dashboard.objects.create(
             title="Dashboard 2", created_by_id=self.user.id, organization=self.organization

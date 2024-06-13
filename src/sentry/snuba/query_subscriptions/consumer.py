@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Callable
 from datetime import timezone
-from typing import Callable, Dict
 
 import sentry_sdk
 from dateutil.parser import parse as parse_date
@@ -17,7 +17,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 TQuerySubscriptionCallable = Callable[[QuerySubscriptionUpdate, QuerySubscription], None]
 
-subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
+subscriber_registry: dict[str, TQuerySubscriptionCallable] = {}
 
 
 def register_subscriber(

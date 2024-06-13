@@ -8,9 +8,11 @@ import FormState from 'sentry/components/forms/state';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import PluginComponentBase from 'sentry/plugins/pluginComponentBase';
-import {Organization, Plugin, Project} from 'sentry/types';
-import {parseRepo} from 'sentry/utils';
-import {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import type {Plugin} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {IntegrationAnalyticsKey} from 'sentry/utils/analytics/integrations';
+import {parseRepo} from 'sentry/utils/git/parseRepo';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 
 type Props = {
@@ -115,7 +117,7 @@ class PluginSettings<
       }),
       error: this.onSaveError.bind(this, error => {
         this.setState({
-          errors: (error.responseJSON || {}).errors || {},
+          errors: error.responseJSON?.errors || {},
         });
       }),
       complete: this.onSaveComplete,

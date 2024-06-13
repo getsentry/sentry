@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -12,9 +11,12 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useCurrentProjectFromRouteParam} from 'sentry/utils/profiling/hooks/useCurrentProjectFromRouteParam';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
@@ -321,26 +323,31 @@ function RegressedFunctionBeforeAfterFlamechart(
     });
   }, [props.organization]);
 
+  let rendered = <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>;
+  if (defined(props.fn['examples()']?.[0])) {
+    rendered = (
+      <Link
+        onClick={onRegressedFunctionClick}
+        to={generateProfileFlamechartRouteWithQuery({
+          orgSlug: props.organization.slug,
+          projectSlug: props.project?.slug ?? '',
+          profileId: (props.fn['examples()']?.[0] as string) ?? '',
+          query: {
+            // specify the frame to focus, the flamegraph will switch
+            // to the appropriate thread when these are specified
+            frameName: props.fn.function as string,
+            framePackage: props.fn.package as string,
+          },
+        })}
+      >
+        {rendered}
+      </Link>
+    );
+  }
+
   return (
     <RegressedFunctionMainRow>
-      <div>
-        <Link
-          onClick={onRegressedFunctionClick}
-          to={generateProfileFlamechartRouteWithQuery({
-            orgSlug: props.organization.slug,
-            projectSlug: props.project?.slug ?? '',
-            profileId: (props.fn['examples()']?.[0] as string) ?? '',
-            query: {
-              // specify the frame to focus, the flamegraph will switch
-              // to the appropriate thread when these are specified
-              frameName: props.fn.function as string,
-              framePackage: props.fn.package as string,
-            },
-          })}
-        >
-          <TextTruncateOverflow>{props.fn.function}</TextTruncateOverflow>
-        </Link>
-      </div>
+      <div>{rendered}</div>
       <div>
         <Link
           onClick={onRegressedFunctionClick}

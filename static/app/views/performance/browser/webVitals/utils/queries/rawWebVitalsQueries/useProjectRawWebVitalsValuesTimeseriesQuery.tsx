@@ -1,15 +1,16 @@
 import {getInterval} from 'sentry/components/charts/utils';
-import {PageFilters} from 'sentry/types';
-import {SeriesDataUnit} from 'sentry/types/echarts';
-import EventView, {MetaType} from 'sentry/utils/discover/eventView';
-import {
-  DiscoverQueryProps,
-  useGenericDiscoverQuery,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {PageFilters} from 'sentry/types/core';
+import type {SeriesDataUnit} from 'sentry/types/echarts';
+import type {MetaType} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
+import type {DiscoverQueryProps} from 'sentry/utils/discover/genericDiscoverQuery';
+import {useGenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/browser/webVitals/settings';
 
 type Props = {
   datetime?: PageFilters['datetime'];
@@ -23,6 +24,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const pageFilters = usePageFilters();
   const location = useLocation();
   const organization = useOrganization();
+  const search = new MutableSearch([]);
+  if (transaction) {
+    search.addFilterValue('transaction', transaction);
+  }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {
       yAxis: [
@@ -31,13 +36,12 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
         'p75(measurements.fid)',
+        'p75(measurements.inp)',
         'count()',
+        'count_scores(measurements.score.inp)',
       ],
       name: 'Web Vitals',
-      query: [
-        'transaction.op:pageload',
-        ...(transaction ? [`transaction:"${transaction}"`] : []),
-      ].join(' '),
+      query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
       version: 2,
       fields: [],
       interval: getInterval(pageFilters.selection.datetime, 'low'),
@@ -78,8 +82,10 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const data: {
     cls: SeriesDataUnit[];
     count: SeriesDataUnit[];
+    countInp: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
     fid: SeriesDataUnit[];
+    inp: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
     ttfb: SeriesDataUnit[];
   } = {
@@ -88,7 +94,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     cls: [],
     ttfb: [],
     fid: [],
+    inp: [],
     count: [],
+    countInp: [],
   };
 
   result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
@@ -98,7 +106,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       {key: 'p75(measurements.fcp)', series: data.fcp},
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
       {key: 'p75(measurements.fid)', series: data.fid},
+      {key: 'p75(measurements.inp)', series: data.inp},
       {key: 'count()', series: data.count},
+      {key: 'count_scores(measurements.score.inp)', series: data.countInp},
     ];
     map.forEach(({key, series}) => {
       if (result?.data?.[key].data[index][1][0].count !== null) {

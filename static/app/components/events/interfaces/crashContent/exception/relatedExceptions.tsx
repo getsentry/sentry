@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {ExceptionValue, StackTraceMechanism} from 'sentry/types';
+import type {ExceptionValue, StackTraceMechanism} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
 type ExceptionGroupContextProps = {
@@ -178,7 +178,7 @@ export function RelatedExceptions({
 }
 
 const Heading = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   margin: ${space(1)} 0 ${space(0.5)} 0;
   color: ${p => p.theme.subText};

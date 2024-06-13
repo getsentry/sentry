@@ -1,22 +1,22 @@
-import {TransactionEvent as EventFixture} from 'sentry-fixture/event';
-import {Span} from 'sentry-fixture/span';
-import {TraceError} from 'sentry-fixture/traceError';
-import {TracePerformanceIssue} from 'sentry-fixture/tracePerformanceIssue';
+import {TransactionEventFixture} from 'sentry-fixture/event';
+import {SpanFixture} from 'sentry-fixture/span';
+import {TraceErrorFixture} from 'sentry-fixture/traceError';
+import {TracePerformanceIssueFixture} from 'sentry-fixture/tracePerformanceIssue';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import TraceErrorList from 'sentry/components/events/interfaces/spans/traceErrorList';
 import {parseTrace} from 'sentry/components/events/interfaces/spans/utils';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 
 describe('TraceErrorList', () => {
   it('aggregates errors by span and level', () => {
-    const event = EventFixture({
+    const event = TransactionEventFixture({
       entries: [
         {
           type: EntryType.SPANS,
           data: [
-            Span({
+            SpanFixture({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -26,17 +26,17 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TraceError({
+      TraceErrorFixture({
         event_id: '1',
         span: '42118aba',
         level: 'warning',
       }),
-      TraceError({
+      TraceErrorFixture({
         event_id: '2',
         span: '42118aba',
         level: 'warning',
       }),
-      TraceError({
+      TraceErrorFixture({
         event_id: '3',
         span: '42118aba',
         level: 'error',
@@ -52,7 +52,7 @@ describe('TraceErrorList', () => {
   });
 
   it('groups span-less errors under the transaction', () => {
-    const event = EventFixture({
+    const event = TransactionEventFixture({
       contexts: {
         trace: {
           op: '/path',
@@ -62,7 +62,7 @@ describe('TraceErrorList', () => {
         {
           type: EntryType.SPANS,
           data: [
-            Span({
+            SpanFixture({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -72,7 +72,7 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TraceError({
+      TraceErrorFixture({
         event_id: '1',
         level: 'warning',
       }),
@@ -85,7 +85,7 @@ describe('TraceErrorList', () => {
   });
 
   it('groups performance issues separately', () => {
-    const event = EventFixture({
+    const event = TransactionEventFixture({
       contexts: {
         trace: {
           op: '/path',
@@ -95,7 +95,7 @@ describe('TraceErrorList', () => {
         {
           type: EntryType.SPANS,
           data: [
-            Span({
+            SpanFixture({
               op: '/api/fetchitems',
               span_id: '42118aba',
             }),
@@ -105,14 +105,14 @@ describe('TraceErrorList', () => {
     });
 
     const errors = [
-      TraceError({
+      TraceErrorFixture({
         event_id: '1',
         level: 'warning',
       }),
     ];
 
     const performanceIssues = [
-      TracePerformanceIssue({
+      TracePerformanceIssueFixture({
         event_id: '1',
       }),
     ];

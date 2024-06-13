@@ -1,18 +1,51 @@
-import isEqual from 'lodash/isEqual';
 import {createStore} from 'reflux';
 
 import {getDefaultSelection} from 'sentry/components/organizations/pageFilters/utils';
-import {PageFilters, PinnedPageFilter} from 'sentry/types';
-import {isEqualWithDates} from 'sentry/utils/isEqualWithDates';
+import type {PageFilters, PinnedPageFilter} from 'sentry/types/core';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
-interface CommonState {
+function datetimeHasSameValue(
+  a: PageFilters['datetime'],
+  b: PageFilters['datetime']
+): boolean {
+  if (Object.keys(a).length !== Object.keys(b).length) {
+    return false;
+  }
+
+  for (const key in a) {
+    if (a[key] instanceof Date && b[key] instanceof Date) {
+      // This will fail on invalid dates as NaN !== NaN,
+      // but thats fine since we don't want invalid dates to be equal
+      if (a[key].getTime() === b[key].getTime()) {
+        continue;
+      }
+      return false;
+    }
+
+    if (a[key] === null && b[key] === null) {
+      continue;
+    }
+
+    if (a[key] !== b[key]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+interface PageFiltersState {
   /**
    * The set of page filters which have been pinned but do not match the current
    * URL state.
    */
   desyncedFilters: Set<PinnedPageFilter>;
+  /**
+   * Are page filters ready?
+   */
+  isReady: boolean;
   /**
    * The set of page filters which are currently pinned
    */
@@ -29,27 +62,7 @@ interface CommonState {
   shouldPersist: boolean;
 }
 
-/**
- * External state
- */
-interface State extends CommonState {
-  /**
-   * Are page filters ready?
-   */
-  isReady: boolean;
-}
-
-interface InternalDefinition extends CommonState {
-  /**
-   * Have we initalized page filters?
-   */
-  hasInitialState: boolean;
-}
-
-interface PageFiltersStoreDefinition
-  extends InternalDefinition,
-    CommonStoreDefinition<State> {
-  init(): void;
+interface PageFiltersStoreDefinition extends StrictStoreDefinition<PageFiltersState> {
   onInitializeUrlState(
     newSelection: PageFilters,
     pinned: Set<PinnedPageFilter>,
@@ -66,45 +79,46 @@ interface PageFiltersStoreDefinition
 }
 
 const storeConfig: PageFiltersStoreDefinition = {
-  selection: getDefaultSelection(),
-  pinnedFilters: new Set(),
-  desyncedFilters: new Set(),
-  shouldPersist: true,
-  hasInitialState: false,
+  state: {
+    isReady: false,
+    selection: getDefaultSelection(),
+    pinnedFilters: new Set(),
+    desyncedFilters: new Set(),
+    shouldPersist: true,
+  },
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.reset(this.selection);
+    this.reset(this.state.selection);
   },
 
   reset(selection) {
-    this._isReady = false;
-    this.selection = selection || getDefaultSelection();
-    this.pinnedFilters = new Set();
+    this.state = {
+      ...this.state,
+      isReady: false,
+      selection: selection || getDefaultSelection(),
+      pinnedFilters: new Set(),
+    };
   },
 
   /**
    * Initializes the page filters store data
    */
   onInitializeUrlState(newSelection, pinned, persist = true) {
-    this._isReady = true;
-
-    this.selection = newSelection;
-    this.pinnedFilters = pinned;
-    this.shouldPersist = persist;
+    this.state = {
+      ...this.state,
+      isReady: true,
+      selection: newSelection,
+      pinnedFilters: pinned,
+      shouldPersist: persist,
+    };
     this.trigger(this.getState());
   },
 
   getState() {
-    return {
-      selection: this.selection,
-      pinnedFilters: this.pinnedFilters,
-      desyncedFilters: this.desyncedFilters,
-      shouldPersist: this.shouldPersist,
-      isReady: this._isReady,
-    };
+    return this.state;
   },
 
   onReset() {
@@ -113,77 +127,87 @@ const storeConfig: PageFiltersStoreDefinition = {
   },
 
   updatePersistence(shouldPersist: boolean) {
-    this.shouldPersist = shouldPersist;
+    this.state = {...this.state, shouldPersist};
     this.trigger(this.getState());
   },
 
   updateDesyncedFilters(filters: Set<PinnedPageFilter>) {
-    this.desyncedFilters = filters;
+    this.state = {...this.state, desyncedFilters: filters};
     this.trigger(this.getState());
   },
 
   updateProjects(projects = [], environments = null) {
-    if (isEqual(this.selection.projects, projects)) {
+    if (valueIsEqual(this.state.selection.projects, projects)) {
       return;
     }
 
-    if (this.desyncedFilters.has('projects')) {
-      const newDesyncedFilters = new Set(this.desyncedFilters);
+    const newDesyncedFilters = new Set(this.state.desyncedFilters);
+    if (this.state.desyncedFilters.has('projects')) {
       newDesyncedFilters.delete('projects');
-      this.desyncedFilters = newDesyncedFilters;
     }
 
-    this.selection = {
-      ...this.selection,
+    const selection = {
+      ...this.state.selection,
       projects,
-      environments: environments === null ? this.selection.environments : environments,
+      environments:
+        environments === null ? this.state.selection.environments : environments,
     };
+    this.state = {...this.state, selection, desyncedFilters: newDesyncedFilters};
     this.trigger(this.getState());
   },
 
-  updateDateTime(datetime) {
-    if (isEqualWithDates(this.selection.datetime, datetime)) {
+  updateDateTime(newDateTime) {
+    if (datetimeHasSameValue(this.state.selection.datetime, newDateTime)) {
       return;
     }
 
-    if (this.desyncedFilters.has('datetime')) {
-      const newDesyncedFilters = new Set(this.desyncedFilters);
+    const newDesyncedFilters = new Set(this.state.desyncedFilters);
+    if (this.state.desyncedFilters.has('datetime')) {
       newDesyncedFilters.delete('datetime');
-      this.desyncedFilters = newDesyncedFilters;
     }
 
-    this.selection = {
-      ...this.selection,
-      datetime,
+    this.state = {
+      ...this.state,
+      selection: {
+        ...this.state.selection,
+        datetime: newDateTime,
+      },
+      desyncedFilters: newDesyncedFilters,
     };
     this.trigger(this.getState());
   },
 
   updateEnvironments(environments) {
-    if (isEqual(this.selection.environments, environments)) {
+    if (valueIsEqual(this.state.selection.environments, environments)) {
       return;
     }
 
-    if (this.desyncedFilters.has('environments')) {
-      const newDesyncedFilters = new Set(this.desyncedFilters);
+    const newDesyncedFilters = new Set(this.state.desyncedFilters);
+    if (this.state.desyncedFilters.has('environments')) {
       newDesyncedFilters.delete('environments');
-      this.desyncedFilters = newDesyncedFilters;
     }
 
-    this.selection = {
-      ...this.selection,
-      environments: environments ?? [],
+    this.state = {
+      ...this.state,
+      desyncedFilters: newDesyncedFilters,
+      selection: {
+        ...this.state.selection,
+        environments: environments ?? [],
+      },
     };
+
     this.trigger(this.getState());
   },
 
   pin(filter, pin) {
+    const newPinnedFilters = new Set(this.state.pinnedFilters);
     if (pin) {
-      this.pinnedFilters.add(filter);
+      newPinnedFilters.add(filter);
     } else {
-      this.pinnedFilters.delete(filter);
+      newPinnedFilters.delete(filter);
     }
 
+    this.state = {...this.state, pinnedFilters: newPinnedFilters};
     this.trigger(this.getState());
   },
 };

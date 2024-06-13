@@ -15,6 +15,7 @@ To set up the region silos locally, you'll need to make a few changes:
 
 1. Create the split databases for the two silo modes with `make create-db`
 2. Split your local database with `bin/split-silo-database`
+3. Delete any `DATABASES` settings in your `devlocal.py` or `sentry.conf.py` files, as these can prevent models from routing to the correct databases.
 
 Example Output:
 
@@ -38,8 +39,8 @@ $ bin/split-silo-database
 To spin up the silos, run:
 
 ```sh
-sentry devserver --silo=control --workers
-sentry devserver --silo=region --workers --ingest
+sentry devserver --silo=control --celery-beat --workers
+sentry devserver --silo=region --celery-beat --workers --ingest
 ```
 
 This will expose the following ports:
@@ -50,36 +51,16 @@ This will expose the following ports:
 | 8001 | HTTP API | Control |
 | 8010 | HTTP API | Region  |
 
-You can omit the `--workers` and `--ingest` options if you don't want those services running.
+You can omit the `--celery-beat`, `--workers` and `--ingest` options if you don't want those services running.
 If you're using `--ingest` and relay isn't being started make sure `settings.SENTRY_USE_RELAY` is enabled.
 
 ## Using Silos & ngrok
 
 To use a siloed dev environment with ngrok you'll need to make a few application
-configuration changes. Assuming your ngrok domain is `acme` add the following
-to either `~/.sentry/sentry.conf` or `devlocal.py` in getsentry:
-
-```python
-SENTRY_OPTIONS["system.url-prefix"] = "https://acme.ngrok.dev"
-CSRF_TRUSTED_ORIGINS = [".acme.ngrok.dev"]
-ALLOWED_HOSTS = [".acme.ngrok.dev", ".ngrok.dev", "localhost", "127.0.0.1"]
-
-SESSION_COOKIE_DOMAIN = ".acme.ngrok.dev"
-CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
-SUDO_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
-```
-
-Then start ngrok with the desired hostname:
-
-```bash
-ngrok http 8000 --domain=acme.ngrok.dev --host-header="localhost"
-```
-
-_Note:_ Some UI functionality relies on directly accessing the region silo API, so you may also need to expose it as well.
-
-## Using ngrok configuration file
-
-If using ngrok, it'll help to set up a config. Modify your `ngrok.yml` (`ngrok config edit`) to contain:
+configuration changes. Assuming your ngrok domain is `acme` you can use the `--ngrok`
+flag to use a configuration preset that assumes you also have ngrok running. Because
+multiple silos requires multiple ngrok domains. First create a configuration file
+for ngrok:
 
 ```yml
 version: '2'
@@ -87,18 +68,25 @@ authtoken: <YOUR-NGROK-AUTHTOKEN>
 tunnels:
   control-silo:
     proto: http
-    hostname: yourdomain.ngrok.io
+    hostname: acme.ngrok.io
     host_header: 'rewrite'
     addr: 8000
   region-silo:
     proto: http
-    hostname: us.yourdomain.ngrok.io
+    hostname: us.acme.ngrok.io
     addr: 8010
     host_header: 'rewrite'
 ```
 
-Now you can spin up all the tunnels in the file with:
+Now you can spin up both tunnels in the file with:
 
 ```sh
 ngrok start --all
+```
+
+Now start your siloed servers:
+
+```sh
+sentry devserver --ngrok=acme.ngrok.dev --silo=control
+sentry devserver --ngrok=acme.ngrok.dev --silo=region
 ```

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Any
 
 from django.http import Http404
 from rest_framework.request import Request
@@ -75,12 +75,12 @@ class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str | None = None,
+        organization_id_or_slug: int | str | None = None,
         integration_id: str | None = None,
         *args: Any,
         **kwargs: Any,
-    ) -> Tuple[Tuple[Any, ...], Dict[str, Any]]:
-        args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         kwargs["integration_id"] = self.validate_integration_id(integration_id or "")
         return args, kwargs
@@ -121,10 +121,10 @@ class RegionOrganizationIntegrationBaseEndpoint(RegionIntegrationEndpoint):
         :param integration_id:
         :return:
         """
-        integration, org_integration = integration_service.get_organization_context(
+        result = integration_service.organization_context(
             organization_id=organization_id, integration_id=integration_id
         )
-        if not integration or not org_integration:
+        if not result.integration or not result.organization_integration:
             raise Http404
 
-        return integration
+        return result.integration

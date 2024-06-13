@@ -1,10 +1,10 @@
-import {Group as GroupFixture} from 'sentry-fixture/group';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
-import {Repository} from 'sentry-fixture/repository';
-import {Team} from 'sentry-fixture/team';
-import {User} from 'sentry-fixture/user';
+import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -21,18 +21,19 @@ import GroupStore from 'sentry/stores/groupStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
-import {Group, GroupActivityType, Organization as TOrganization} from 'sentry/types';
-import {GroupActivity} from 'sentry/views/issueDetails/groupActivity';
+import type {Group, Organization as TOrganization, Project} from 'sentry/types';
+import {GroupActivityType, PriorityLevel} from 'sentry/types';
+import GroupActivity from 'sentry/views/issueDetails/groupActivity';
 
 describe('GroupActivity', function () {
-  let project;
+  let project!: Project;
   const dateCreated = '2021-10-01T15:31:38.950115Z';
 
   beforeEach(function () {
     project = ProjectFixture();
     ProjectsStore.loadInitialData([project]);
     ConfigStore.init();
-    ConfigStore.set('user', User({id: '123'}));
+    ConfigStore.set('user', UserFixture({id: '123'}));
     GroupStore.init();
   });
 
@@ -56,27 +57,21 @@ describe('GroupActivity', function () {
           id: 'note-1',
           data: {text: 'Test Note'},
           dateCreated: '2020-01-01T00:00:00',
-          user: User(),
+          user: UserFixture(),
           project,
         },
       ],
       project,
     });
-    const {organization, routerContext, routerProps} = initializeOrg({
+    const {organization, routerProps, router} = initializeOrg({
       organization: additionalOrg,
     });
     GroupStore.add([group]);
-    TeamStore.loadInitialData([Team({id: '999', slug: 'no-team'})]);
+    TeamStore.loadInitialData([TeamFixture({id: '999', slug: 'no-team'})]);
     OrganizationStore.onUpdate(organization, {replace: true});
     return render(
-      <GroupActivity
-        {...routerProps}
-        api={new MockApiClient()}
-        params={{orgId: 'org-slug'}}
-        group={group}
-        organization={organization}
-      />,
-      {context: routerContext}
+      <GroupActivity {...routerProps} params={{orgId: 'org-slug'}} group={group} />,
+      {router, organization}
     );
   }
 
@@ -86,7 +81,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a marked reviewed activity', function () {
-    const user = User({name: 'Samwise'});
+    const user = UserFixture({name: 'Samwise'});
     createWrapper({
       activity: [
         {
@@ -104,8 +99,8 @@ describe('GroupActivity', function () {
   });
 
   it('renders a pr activity', function () {
-    const user = User({name: 'Test User'});
-    const repository = Repository();
+    const user = UserFixture({name: 'Test User'});
+    const repository = RepositoryFixture();
     createWrapper({
       activity: [
         {
@@ -131,7 +126,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders a assigned to self activity', function () {
-    const user = User({id: '123', name: 'Mark'});
+    const user = UserFixture({id: '123', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -164,7 +159,7 @@ describe('GroupActivity', function () {
             assigneeType: 'user',
             integration: 'codeowners',
             rule: 'path:something/*.py #workflow',
-            user: User(),
+            user: UserFixture(),
           },
           project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
@@ -180,7 +175,7 @@ describe('GroupActivity', function () {
   });
 
   it('renders an assigned via slack activity', function () {
-    const user = User({id: '301', name: 'Mark'});
+    const user = UserFixture({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
         {
@@ -189,7 +184,7 @@ describe('GroupActivity', function () {
             assigneeEmail: 'anotheruser@sentry.io',
             assigneeType: 'user',
             integration: 'slack',
-            user: User(),
+            user: UserFixture(),
           },
           project: ProjectFixture(),
           dateCreated: '2021-10-01T15:31:38.950115Z',
@@ -202,6 +197,60 @@ describe('GroupActivity', function () {
     const item = screen.getAllByTestId('activity-item').at(-1);
     expect(item).toHaveTextContent(/Mark assigned this issue to anotheruser@sentry.io/);
     expect(item).toHaveTextContent(/Assigned via Slack/);
+  });
+
+  it('renders an assigned via suspect commit activity', function () {
+    createWrapper({
+      activity: [
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'suspectCommitter',
+            user: UserFixture(),
+          },
+          project: ProjectFixture(),
+          dateCreated: '1999-10-01T15:31:38.950115Z',
+          id: '117',
+          type: GroupActivityType.ASSIGNED,
+          user: null,
+        },
+      ],
+    });
+    const activity = screen.getAllByTestId('activity-item').at(-1);
+    expect(activity).toHaveTextContent(
+      /Sentry auto-assigned this issue to anotheruser@sentry.io/
+    );
+    expect(activity).toHaveTextContent(/Assigned via Suspect Commit/);
+  });
+
+  it('does not render undefined when integration is not recognized', function () {
+    createWrapper({
+      activity: [
+        // @ts-ignore-next-line -> committing type crimes on `integration`
+        {
+          data: {
+            assignee: '123',
+            assigneeEmail: 'anotheruser@sentry.io',
+            assigneeType: 'user',
+            integration: 'lottery',
+            user: UserFixture(),
+          },
+          project: ProjectFixture(),
+          dateCreated: '1999-10-01T15:31:38.950115Z',
+          id: '117',
+          type: GroupActivityType.ASSIGNED,
+          user: null,
+        },
+      ],
+    });
+
+    const activity = screen.getAllByTestId('activity-item').at(-1);
+    expect(activity).toHaveTextContent(
+      /Sentry assigned this issue to anotheruser@sentry.io/
+    );
+    expect(activity).not.toHaveTextContent(/Assigned via Suspect Commit/);
   });
 
   it('resolved in commit with no releases', function () {
@@ -217,11 +266,11 @@ describe('GroupActivity', function () {
               dateCreated: '',
               message: '',
               id: 'komal-commit',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [],
             },
           },
-          user: User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -243,7 +292,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [
                 ReleaseFixture({
                   dateCreated: '2022-05-01',
@@ -253,7 +302,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -275,7 +324,7 @@ describe('GroupActivity', function () {
               id: 'komal-commit',
               dateCreated: '',
               message: '',
-              repository: Repository(),
+              repository: RepositoryFixture(),
               releases: [
                 ReleaseFixture({
                   dateCreated: '2022-05-01',
@@ -300,7 +349,7 @@ describe('GroupActivity', function () {
               ],
             },
           },
-          user: User(),
+          user: UserFixture(),
         },
       ],
     });
@@ -310,7 +359,7 @@ describe('GroupActivity', function () {
   });
 
   it('requests assignees that are not in the team store', async function () {
-    const team = Team({id: '123', name: 'workflow'});
+    const team = TeamFixture({id: '123', name: 'workflow'});
     const teamRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/teams/`,
       body: [team],
@@ -325,7 +374,7 @@ describe('GroupActivity', function () {
           data: {
             assignee: team.id,
             assigneeType: 'team',
-            user: User(),
+            user: UserFixture(),
           },
           dateCreated: '2021-10-28T13:40:10.634821Z',
         },
@@ -349,7 +398,7 @@ describe('GroupActivity', function () {
         url: '/organizations/org-slug/issues/1337/comments/note-1/',
         method: 'DELETE',
       });
-      ConfigStore.set('user', User({id: '123', isSuperuser: true}));
+      ConfigStore.set('user', UserFixture({id: '123', isSuperuser: true}));
     });
 
     it('should do nothing if not present in GroupStore', async function () {
@@ -385,7 +434,7 @@ describe('GroupActivity', function () {
     });
   });
 
-  it('renders ignored', function () {
+  it('renders archived until escalating', function () {
     createWrapper({
       activity: [
         {
@@ -395,38 +444,18 @@ describe('GroupActivity', function () {
           data: {
             ignoreUntilEscalating: true,
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
-    });
-    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar ignored this issue'
-    );
-  });
-
-  it('renders archived until escalating if org has `escalating-issues` feature', function () {
-    createWrapper({
-      activity: [
-        {
-          id: '123',
-          type: GroupActivityType.SET_IGNORED,
-          project: ProjectFixture(),
-          data: {
-            ignoreUntilEscalating: true,
-          },
-          user: User(),
-          dateCreated,
-        },
-      ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue until it escalates'
     );
   });
 
-  it('renders escalating with forecast and plural events if org has `escalating-issues` feature', function () {
+  it('renders escalating with forecast and plural events', function () {
     createWrapper({
       activity: [
         {
@@ -450,7 +479,7 @@ describe('GroupActivity', function () {
           dateCreated: '2021-10-05T15:31:38.950115Z',
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 400 events happened in an hour'
@@ -460,7 +489,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders escalating with forecast and singular event if org has `escalating-issues` feature', function () {
+  it('renders escalating with forecast and singular event', function () {
     createWrapper({
       activity: [
         {
@@ -474,31 +503,54 @@ describe('GroupActivity', function () {
           dateCreated,
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Sentry flagged this issue as escalating because over 1 event happened in an hour'
     );
   });
 
-  it('renders ignored until it happens x times in time window', function () {
+  it('renders issue unresvoled via jira', function () {
     createWrapper({
       activity: [
         {
           id: '123',
-          type: GroupActivityType.SET_IGNORED,
+          type: GroupActivityType.SET_UNRESOLVED,
           project: ProjectFixture(),
           data: {
-            ignoreCount: 400,
-            ignoreWindow: 1,
+            integration_id: '1',
+            provider_key: 'jira',
+            provider: 'Jira',
           },
-          user: User(),
+          user: null,
           dateCreated,
         },
       ],
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
-      'Foo Bar ignored this issue until it happens 400 time(s) in 1 minute'
+      'Sentry marked this issue as unresolved via Jira'
+    );
+  });
+
+  it('renders issue resolved via jira', function () {
+    createWrapper({
+      activity: [
+        {
+          id: '123',
+          type: GroupActivityType.SET_RESOLVED,
+          project: ProjectFixture(),
+          data: {
+            integration_id: '1',
+            provider_key: 'jira',
+            provider: 'Jira',
+          },
+          user: null,
+          dateCreated,
+        },
+      ],
+    });
+    expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+      'Sentry marked this issue as resolved via Jira'
     );
   });
 
@@ -586,11 +638,11 @@ describe('GroupActivity', function () {
           type: GroupActivityType.SET_IGNORED,
           project: ProjectFixture(),
           data: {},
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
-      organization: Organization({features: ['escalating-issues']}),
+      organization: OrganizationFixture({}),
     });
     expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
       'Foo Bar archived this issue forever'
@@ -607,7 +659,7 @@ describe('GroupActivity', function () {
           data: {
             version: 'frontend@1.0.0',
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
@@ -627,7 +679,7 @@ describe('GroupActivity', function () {
           data: {
             current_release_version: 'frontend@1.0.0',
           },
-          user: User(),
+          user: UserFixture(),
           dateCreated,
         },
       ],
@@ -718,6 +770,65 @@ describe('GroupActivity', function () {
       );
       expect(activity).toHaveTextContent(
         'abc1 is greater than or equal to abc2 compared via release date'
+      );
+    });
+
+    it('renders a set priority activity for escalating issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.HIGH,
+              reason: 'escalating',
+            },
+            dateCreated,
+          },
+        ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be high after it escalated'
+      );
+    });
+    it('renders a set priority activity for ongoing issues', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.SET_PRIORITY,
+            project: ProjectFixture(),
+            data: {
+              priority: PriorityLevel.LOW,
+              reason: 'ongoing',
+            },
+            dateCreated,
+          },
+        ],
+        organization: OrganizationFixture({features: ['issue-priority-ui']}),
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'Sentry updated the priority value of this issue to be low after it was marked as ongoing'
+      );
+    });
+
+    it('renders a deleted attachment activity', function () {
+      createWrapper({
+        activity: [
+          {
+            id: '123',
+            type: GroupActivityType.DELETED_ATTACHMENT,
+            project: ProjectFixture(),
+            data: {},
+            dateCreated,
+            user: UserFixture(),
+          },
+        ],
+      });
+      expect(screen.getAllByTestId('activity-item').at(-1)).toHaveTextContent(
+        'deleted an attachment'
       );
     });
   });

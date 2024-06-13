@@ -1,22 +1,22 @@
 import type {Location} from 'history';
-import {Event as EventFixture} from 'sentry-fixture/event';
+import {EventFixture} from 'sentry-fixture/event';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {
-  EntryType,
+import type {
   Event,
   EventError,
-  EventOrGroupType,
   ExceptionType,
   ExceptionValue,
   Frame,
 } from 'sentry/types/event';
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 
 import EventContext from './eventContext';
@@ -36,7 +36,7 @@ const dataRow: EventData = {
 };
 
 const renderEventContext = (location?: Location, eventView?: EventView) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <QueryClientProvider client={makeTestQueryClient()}>
       <EventContext

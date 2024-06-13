@@ -8,17 +8,11 @@ class PromptsActivityTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user, name="baz")
-        # self.project = self.create_project(
-        #     organization=self.org,
-        #     # teams=[self.team],
-        #     # name='Bengal-Elephant-Giraffe-Tree-House',
-        # )
-
         self.team = self.create_team(organization=self.org, name="Mariachi Band")
         self.project = self.create_project(
             organization=self.org, teams=[self.team], name="Bengal-Elephant-Giraffe-Tree-House"
         )
-        self.path = reverse("sentry-api-0-prompts-activity")
+        self.path = reverse("sentry-api-0-organization-prompts-activity", args=[self.org.slug])
 
     def test_invalid_feature(self):
         # Invalid feature prompt name
@@ -95,6 +89,10 @@ class PromptsActivityTest(APITestCase):
         assert "data" in resp.data
         assert "dismissed_ts" in resp.data["data"]
 
+    def test_dismiss_legacy_path(self):
+        self.path = reverse("sentry-api-0-prompts-activity")
+        self.test_dismiss()
+
     def test_snooze(self):
         data = {
             "organization_id": self.org.id,
@@ -120,6 +118,10 @@ class PromptsActivityTest(APITestCase):
         assert resp.status_code == 200
         assert "data" in resp.data
         assert "snoozed_ts" in resp.data["data"]
+
+    def test_snooze_legacy_path(self):
+        self.path = reverse("sentry-api-0-prompts-activity")
+        self.test_snooze()
 
     def test_batched(self):
         data = {

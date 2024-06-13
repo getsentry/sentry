@@ -1,15 +1,17 @@
 from __future__ import annotations
 
 import logging
-from datetime import timezone
-from typing import Any, Iterable, Mapping, MutableMapping
+import zoneinfo
+from collections.abc import Iterable, Mapping, MutableMapping
+from datetime import UTC, tzinfo
+from typing import Any
 from urllib.parse import urlencode
-
-import pytz
 
 from sentry import analytics, features
 from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
+from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
@@ -34,11 +36,10 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.services.hybrid_cloud.user_option.service import get_option_from_list
+from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -98,7 +99,7 @@ class AlertRuleNotification(ProjectNotification):
 
         self.template_path = f"sentry/emails/{email_template_name}"
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Actor]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -118,22 +119,32 @@ class AlertRuleNotification(ProjectNotification):
         return self.group
 
     def get_recipient_context(
-        self, recipient: RpcActor, extra_context: Mapping[str, Any]
+        self, recipient: Actor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
-        tz = timezone.utc
-        if recipient.actor_type == ActorType.USER:
+        tz: tzinfo = UTC
+        if recipient.is_user:
             user_options = user_option_service.get_many(
                 filter={"user_ids": [recipient.id], "keys": ["timezone"]}
             )
             user_tz = get_option_from_list(user_options, key="timezone", default="UTC")
             try:
-                tz = pytz.timezone(user_tz)
-            except pytz.UnknownTimeZoneError:
+                tz = zoneinfo.ZoneInfo(user_tz)
+            except (ValueError, zoneinfo.ZoneInfoNotFoundError):
                 pass
         return {
             **super().get_recipient_context(recipient, extra_context),
             "timezone": tz,
         }
+
+    def get_image_url(self) -> str | None:
+        if features.has(
+            "organizations:email-performance-regression-image", self.group.organization
+        ):
+            image_builder = IssueAlertImageBuilder(
+                group=self.group, provider=ExternalProviderEnum.EMAIL
+            )
+            return image_builder.get_image_url()
+        return None
 
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
@@ -180,7 +191,7 @@ class AlertRuleNotification(ProjectNotification):
             "has_alert_integration": has_alert_integration(self.project),
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
-            "has_issue_states": features.has("organizations:escalating-issues", self.organization),
+            "chart_image": self.get_image_url(),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -268,9 +279,9 @@ class AlertRuleNotification(ProjectNotification):
                 "group": self.group.id,
                 "project_id": self.project.id,
                 "organization": self.organization.id,
-                "fallthrough_choice": self.fallthrough_choice.value
-                if self.fallthrough_choice
-                else None,
+                "fallthrough_choice": (
+                    self.fallthrough_choice.value if self.fallthrough_choice else None
+                ),
                 "notification_uuid": self.notification_uuid,
             },
         )
@@ -295,7 +306,7 @@ class AlertRuleNotification(ProjectNotification):
         for provider, participants in participants_by_provider.items():
             notify(provider, self, participants, shared_context)
 
-    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
@@ -303,7 +314,7 @@ class AlertRuleNotification(ProjectNotification):
             **super().get_log_params(recipient),
         }
 
-    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
+    def record_notification_sent(self, recipient: Actor, provider: ExternalProviders) -> None:
         super().record_notification_sent(recipient, provider)
         log_params = self.get_log_params(recipient)
         analytics.record(

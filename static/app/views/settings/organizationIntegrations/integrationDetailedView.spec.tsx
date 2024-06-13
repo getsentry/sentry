@@ -1,7 +1,7 @@
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {GitHubIntegrationProvider} from 'sentry-fixture/githubIntegrationProvider';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -10,7 +10,7 @@ import IntegrationDetailedView from 'sentry/views/settings/organizationIntegrati
 
 describe('IntegrationDetailedView', function () {
   const ENDPOINT = '/organizations/org-slug/';
-  const org = Organization({
+  const org = OrganizationFixture({
     access: ['org:integrations', 'org:write'],
   });
 
@@ -114,7 +114,7 @@ describe('IntegrationDetailedView', function () {
         params={{integrationSlug: 'bitbucket'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />,
-      {organization: Organization({access: ['org:read']})}
+      {organization: OrganizationFixture({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
@@ -124,7 +124,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -158,7 +158,7 @@ describe('IntegrationDetailedView', function () {
         params={{integrationSlug: 'github'}}
         location={LocationFixture({query: {tab: 'configurations'}})}
       />,
-      {organization: Organization({access: ['org:read']})}
+      {organization: OrganizationFixture({access: ['org:read']})}
     );
 
     expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled();
@@ -168,7 +168,7 @@ describe('IntegrationDetailedView', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -208,11 +208,10 @@ describe('IntegrationDetailedView', function () {
   });
 
   it('cannot enable PR bot without GitHub integration', async function () {
-    org.features.push('integrations-open-pr-comment');
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
     MockApiClient.addMockResponse({
@@ -241,13 +240,10 @@ describe('IntegrationDetailedView', function () {
   });
 
   it('can enable github features', async function () {
-    org.features.push('integrations-open-pr-comment');
-    org.features.push('integrations-gh-invite');
-
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/config/integrations/?provider_key=github`,
       body: {
-        providers: [GitHubIntegrationProvider()],
+        providers: [GitHubIntegrationProviderFixture()],
       },
     });
 

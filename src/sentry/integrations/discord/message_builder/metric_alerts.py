@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import time
 from datetime import datetime
-from typing import Optional
 
-from sentry.incidents.models import AlertRule, Incident, IncidentStatus
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.discord.message_builder import INCIDENT_COLOR_MAPPING, LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.embed.base import DiscordMessageEmbed
@@ -16,10 +16,10 @@ class DiscordMetricAlertMessageBuilder(DiscordMessageBuilder):
     def __init__(
         self,
         alert_rule: AlertRule,
-        incident: Optional[Incident] = None,
-        new_status: Optional[IncidentStatus] = None,
-        metric_value: Optional[float] = None,
-        chart_url: Optional[str] = None,
+        incident: Incident | None = None,
+        new_status: IncidentStatus | None = None,
+        metric_value: float | None = None,
+        chart_url: str | None = None,
     ) -> None:
         self.alert_rule = alert_rule
         self.incident = incident

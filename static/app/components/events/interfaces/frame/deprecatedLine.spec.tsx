@@ -1,10 +1,11 @@
-import {Event as EventFixture} from 'sentry-fixture/event';
-import {Organization} from 'sentry-fixture/organization';
+import {EventFixture} from 'sentry-fixture/event';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedLine from 'sentry/components/events/interfaces/frame/deprecatedLine';
-import {EntryType, Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 
 describe('Frame - Line', function () {
   const event = EventFixture();
@@ -158,7 +159,7 @@ describe('Frame - Line', function () {
 
   describe('ANR suspect frame', () => {
     it('should render suspect frame', () => {
-      const org = {...Organization(), features: ['anr-analyze-frames']};
+      const org = {...OrganizationFixture(), features: ['anr-analyze-frames']};
       const eventWithThreads = EventFixture({
         entries: [
           {

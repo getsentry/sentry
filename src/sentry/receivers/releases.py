@@ -1,5 +1,3 @@
-from typing import Optional
-
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
@@ -22,7 +20,8 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -99,7 +98,7 @@ def resolved_in_commit(instance, created, **kwargs):
     else:
         user_list = ()
 
-    acting_user: Optional[RpcUser] = None
+    acting_user: RpcUser | None = None
 
     self_assign_issue: str = "0"
     if user_list:
@@ -224,7 +223,7 @@ def resolved_in_pull_request(instance, created, **kwargs):
                     relationship=GroupLink.Relationship.resolves,
                     linked_id=instance.id,
                 )
-                acting_user: Optional[RpcUser] = None
+                acting_user: RpcUser | None = None
                 if user_list:
                     acting_user = user_list[0]
                     GroupAssignee.objects.assign(

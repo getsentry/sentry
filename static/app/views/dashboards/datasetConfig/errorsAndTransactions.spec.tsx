@@ -1,19 +1,20 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {User} from 'sentry-fixture/user';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView, {EventViewOptions} from 'sentry/utils/discover/eventView';
+import type {EventViewOptions} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
 
 describe('getCustomFieldRenderer', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   const baseEventViewOptions: EventViewOptions = {
     start: undefined,
     end: undefined,
-    createdBy: User(),
+    createdBy: UserFixture(),
     display: undefined,
     fields: [],
     sorts: [],
@@ -42,7 +43,7 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {context: routerContext}
+      {router}
     );
     await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
@@ -71,7 +72,7 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(await screen.findByText('defg'));
@@ -113,7 +114,7 @@ describe('getCustomFieldRenderer', function () {
           }),
         }
       ) as React.ReactElement<any, any>,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(await screen.findByText('<< unparameterized >>'));

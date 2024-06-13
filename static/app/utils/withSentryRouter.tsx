@@ -1,7 +1,8 @@
-// eslint-disable-next-line no-restricted-imports
-import {withRouter, WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 
-import {customerDomain, usingCustomerDomain} from 'sentry/constants';
+import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+
+import useRouter from './useRouter';
 
 /**
  * withSentryRouter is a higher-order component (HOC) that wraps withRouter, and implicitly injects the current customer
@@ -12,17 +13,26 @@ import {customerDomain, usingCustomerDomain} from 'sentry/constants';
  */
 function withSentryRouter<P extends WithRouterProps>(
   WrappedComponent: React.ComponentType<P>
-) {
-  function WithSentryRouterWrapper(props: P) {
-    const {params} = props;
-    if (usingCustomerDomain) {
-      const newParams = {...params, orgId: customerDomain};
-      return <WrappedComponent {...props} params={newParams} />;
+): React.ComponentType<Omit<P, keyof WithRouterProps>> {
+  function WithSentryRouterWrapper(props: Omit<P, keyof WithRouterProps>) {
+    const router = useRouter();
+    const {location, params, routes} = router;
+
+    const routerParam: WithRouterProps<P> = {
+      location,
+      params,
+      router,
+      routes,
+    };
+
+    if (USING_CUSTOMER_DOMAIN) {
+      const newParams = {...params, orgId: CUSTOMER_DOMAIN};
+      return <WrappedComponent {...routerParam} {...(props as P)} params={newParams} />;
     }
 
-    return <WrappedComponent {...props} />;
+    return <WrappedComponent {...routerParam} {...(props as P)} />;
   }
-  return withRouter(WithSentryRouterWrapper);
+  return WithSentryRouterWrapper;
 }
 
 export default withSentryRouter;

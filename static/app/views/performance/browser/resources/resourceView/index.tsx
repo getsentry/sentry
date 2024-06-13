@@ -1,14 +1,16 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceTable from 'sentry/views/performance/browser/resources/resourceView/resourceTable';
 import {
   FONT_FILE_EXTENSIONS,
@@ -16,6 +18,7 @@ import {
 } from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
+import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {
   BrowserStarfishFields,
   useResourceModuleFilters,
@@ -23,10 +26,11 @@ import {
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {getResourceTypeFilter} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
-import {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
+import type {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 
 const {
   SPAN_OP: RESOURCE_TYPE,
@@ -36,9 +40,10 @@ const {
 } = BrowserStarfishFields;
 
 export const DEFAULT_RESOURCE_TYPES = [
-  'resource.script',
-  'resource.css',
-  'resource.font',
+  ResourceSpanOps.SCRIPT,
+  ResourceSpanOps.CSS,
+  ResourceSpanOps.FONT,
+  ResourceSpanOps.IMAGE,
 ];
 
 type Option = {
@@ -57,14 +62,24 @@ function ResourceView() {
 
   const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
 
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject({
+      'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+    }),
+    Referrer.RESOURCE_LANDING,
+    'insight.page_loads.assets'
+  );
+
   return (
     <Fragment>
-      <SpanTimeCharts
-        moduleName={ModuleName.OTHER}
-        appliedFilters={spanTimeChartsFilters}
-        throughputUnit={RESOURCE_THROUGHPUT_UNIT}
-        extraQuery={extraQuery}
-      />
+      <SpanTimeChartsContainer>
+        <SpanTimeCharts
+          moduleName={ModuleName.RESOURCE}
+          appliedFilters={spanTimeChartsFilters}
+          throughputUnit={RESOURCE_THROUGHPUT_UNIT}
+          extraQuery={extraQuery}
+        />
+      </SpanTimeChartsContainer>
 
       <FilterOptionsContainer columnCount={3}>
         <ResourceTypeSelector value={filters[RESOURCE_TYPE] || ''} />
@@ -81,8 +96,8 @@ function ResourceView() {
 
 function ResourceTypeSelector({value}: {value?: string}) {
   const location = useLocation();
-  const {features} = useOrganization();
-  const hasImageView = features.includes('starfish-browser-resource-module-image-view');
+  const organization = useOrganization();
+  const hasImageView = organization.features.includes('insights-initial-modules');
 
   const options: Option[] = [
     {value: '', label: 'All'},
@@ -95,13 +110,8 @@ function ResourceTypeSelector({value}: {value?: string}) {
     ...(hasImageView
       ? [
           {
-            value: 'resource.img',
-            label: (
-              <span>
-                {`${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`}
-                <FeatureBadge type="alpha"> </FeatureBadge>
-              </span>
-            ),
+            value: ResourceSpanOps.IMAGE,
+            label: `${t('Image')} (${IMAGE_FILE_EXTENSIONS.map(e => `.${e}`).join(', ')})`,
           },
         ]
       : []),
@@ -113,6 +123,10 @@ function ResourceTypeSelector({value}: {value?: string}) {
       options={options}
       value={value}
       onChange={newValue => {
+        trackAnalytics('insight.asset.filter_by_type', {
+          organization,
+          filter: newValue?.value,
+        });
         browserHistory.push({
           ...location,
           query: {
@@ -139,6 +153,7 @@ export function TransactionSelector({
     shouldRequeryOnInputChange: false,
   });
   const location = useLocation();
+  const organization = useOrganization();
 
   const {data: pages, isLoading} = useResourcePagesQuery(
     defaultResourceTypes,
@@ -185,6 +200,9 @@ export function TransactionSelector({
       }}
       noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
       onChange={newValue => {
+        trackAnalytics('insight.asset.filter_by_page', {
+          organization,
+        });
         browserHistory.push({
           ...location,
           query: {
@@ -197,6 +215,10 @@ export function TransactionSelector({
     />
   );
 }
+
+export const SpanTimeChartsContainer = styled('div')`
+  margin-bottom: ${space(2)};
+`;
 
 export const FilterOptionsContainer = styled('div')<{columnCount: number}>`
   display: grid;

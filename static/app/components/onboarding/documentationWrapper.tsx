@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import {AlertProps, alertStyles} from 'sentry/components/alert';
+import type {AlertProps} from 'sentry/components/alert';
+import {alertStyles} from 'sentry/components/alert';
 import {space} from 'sentry/styles/space';
 
 type AlertType = AlertProps['type'];

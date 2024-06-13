@@ -6,11 +6,8 @@ import {Button} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type EventView from 'sentry/utils/discover/eventView';
-import {
-  Aggregation,
-  AGGREGATIONS,
-  explodeFieldString,
-} from 'sentry/utils/discover/fields';
+import type {Aggregation} from 'sentry/utils/discover/fields';
+import {AGGREGATIONS, explodeFieldString} from 'sentry/utils/discover/fields';
 import {
   errorFieldConfig,
   transactionFieldConfig,

@@ -1,4 +1,4 @@
-import type {GroupStatus} from 'sentry/types';
+import type {GroupStatus} from 'sentry/types/group';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
 
@@ -21,6 +21,7 @@ export type BaseEventAnalyticsParams = {
   event_id: string;
   has_commit: boolean;
   has_exception_group: boolean;
+  has_local_variables: boolean;
   has_next_event: boolean;
   has_previous_event: boolean;
   has_profile: boolean;
@@ -72,6 +73,11 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     type: string;
   };
+  'edit_alert_rule.delete_row': {
+    name: string;
+    project_id: string;
+    type: string;
+  };
   'edit_alert_rule.incompatible_rule': {};
   'edit_alert_rule.notification_test': {success: boolean};
   'edit_alert_rule.viewed': RuleViewed;
@@ -103,6 +109,13 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': {};
   'issue_details.issue_tab.screenshot_modal_download': {};
   'issue_details.issue_tab.screenshot_modal_opened': {};
+  'issue_details.issue_tab.trace_timeline_clicked': {
+    event_id: string;
+    group_id: string;
+  };
+  'issue_details.issue_tab.trace_timeline_more_events_clicked': {
+    num_hidden: number;
+  };
   'issue_details.merged_tab.unmerge_clicked': {
     /**
      * comma separated list of event ids that were unmerged
@@ -158,6 +171,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'alert_wizard.option_selected': 'Alert Wizard: Option Selected',
   'edit_alert_rule.add_row': 'Edit Alert Rule: Add Row',
+  'edit_alert_rule.delete_row': 'Edit Alert Rule: Delete Row',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'edit_alert_rule.incompatible_rule': 'Edit Alert Rule: Incompatible Rule',
   'edit_alert_rule.notification_test': 'Edit Alert Rule: Notification Test',
@@ -183,6 +197,10 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
+  'issue_details.issue_tab.trace_timeline_clicked':
+    'Issue Details: Trace Timeline Clicked',
+  'issue_details.issue_tab.trace_timeline_more_events_clicked':
+    'Issue Details: Trace Timeline More Events Clicked',
   'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
   'issue_details.suspect_commits.pull_request_clicked':

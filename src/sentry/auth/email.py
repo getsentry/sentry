@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import abc
+from collections.abc import Collection, Iterable
 from dataclasses import dataclass
-from typing import Collection, Iterable, Type
 
 from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import metrics
 
 
@@ -69,7 +69,6 @@ class _EmailResolver:
 
         def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
             """Hook to call if this step resolves to a single user."""
-            pass
 
     class IsVerified(ResolutionStep):
         """Prefer verified email addresses."""
@@ -86,10 +85,11 @@ class _EmailResolver:
         def apply(self, candidates: Collection[UserEmail]) -> Iterable[UserEmail]:
             if not self.parent.organization:
                 return ()
-            query = OrganizationMember.objects.filter(
-                organization=self.parent.organization, user_id__in=[ue.user_id for ue in candidates]
+            candidate_ids = [ue.user_id for ue in candidates]
+            member_summaries = organization_service.get_member_summaries_by_ids(
+                organization_id=self.parent.organization.id, user_ids=candidate_ids
             )
-            users_in_org = set(query.values_list("user_id", flat=True))
+            users_in_org = {member_summary.user_id for member_summary in member_summaries}
             return (ue for ue in candidates if ue.user_id in users_in_org)
 
         def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
@@ -104,7 +104,7 @@ class _EmailResolver:
         def if_conclusive(self, candidates: Collection[UserEmail], choice: UserEmail) -> None:
             metrics.incr("auth.email_resolution.by_primary_email", sample_rate=1.0)
 
-    def get_steps(self) -> Iterable[Type[ResolutionStep]]:
+    def get_steps(self) -> Iterable[type[ResolutionStep]]:
         return (
             self.IsVerified,
             self.HasOrgMembership,

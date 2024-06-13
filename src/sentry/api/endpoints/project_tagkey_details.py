@@ -15,7 +15,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @region_silo_endpoint
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
-    owner = ApiOwner.PERFORMANCE
+    owner = ApiOwner.UNOWNED
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -23,9 +23,9 @@ class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
     enforce_rate_limit = True
     rate_limits = {
         "DELETE": {
-            RateLimitCategory.IP: RateLimit(1, 1),
-            RateLimitCategory.USER: RateLimit(1, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(1, 1),
+            RateLimitCategory.IP: RateLimit(limit=1, window=1),
+            RateLimitCategory.USER: RateLimit(limit=1, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=1, window=1),
         },
     }
 

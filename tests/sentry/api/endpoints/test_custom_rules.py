@@ -14,11 +14,8 @@ from sentry.api.endpoints.custom_rules import (
 )
 from sentry.models.dynamicsampling import CUSTOM_RULE_DATE_FORMAT, CustomDynamicSamplingRule
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.helpers import Feature
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class CustomRulesGetEndpoint(APITestCase):
     """
     Tests the GET endpoint
@@ -88,14 +85,13 @@ class CustomRulesGetEndpoint(APITestCase):
         test with the original test being a project level rule
         """
         # call the endpoint
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(
-                self.organization.slug,
-                qs_params={
-                    "query": "event.type:transaction environment:prod transaction:/hello",
-                    "project": [proj.id for proj in self.known_projects[1:3]],
-                },
-            )
+        resp = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction environment:prod transaction:/hello",
+                "project": [proj.id for proj in self.known_projects[1:3]],
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.data
@@ -109,39 +105,36 @@ class CustomRulesGetEndpoint(APITestCase):
         A request for org will find an org rule ( if condition matches)
         """
         # finds projects in the org rule
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(
-                self.organization.slug,
-                qs_params={
-                    "query": "event.type:transaction transaction:/hello environment:dev",
-                    "project": [],
-                },
-            )
+        resp = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction transaction:/hello environment:dev",
+                "project": [],
+            },
+        )
         assert resp.status_code == 200
 
         # finds org rule (with org request)
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(
-                self.organization.slug,
-                qs_params={
-                    "query": "event.type:transaction transaction:/hello environment:dev",
-                    "project": [],
-                },
-            )
+        resp = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction transaction:/hello environment:dev",
+                "project": [],
+            },
+        )
         assert resp.status_code == 200
 
     def test_does_not_find_rule_when_condition_doesnt_match(self):
         """
         Querying for a condition that doesn't match any rule returns 204
         """
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(
-                self.organization.slug,
-                qs_params={
-                    "query": "event.type:transaction environment:integration",
-                    "project": [self.known_projects[1].id],
-                },
-            )
+        resp = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction environment:integration",
+                "project": [self.known_projects[1].id],
+            },
+        )
         assert resp.status_code == 204
 
     def test_does_not_find_rule_when_project_doesnt_match(self):
@@ -149,29 +142,48 @@ class CustomRulesGetEndpoint(APITestCase):
         Querying for a condition that doesn't match any rule returns 204
         """
         # it finds it when the project matches
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(
-                self.organization.slug,
-                qs_params={
-                    "query": "event.type:transaction environment:prod transaction:/hello",
-                    "project": [project.id for project in self.known_projects[1:3]],
-                },
-            )
+        resp = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction environment:prod transaction:/hello",
+                "project": [project.id for project in self.known_projects[1:3]],
+            },
+        )
         assert resp.status_code == 200
 
         # but it doesn't when the project doesn't match
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(
-                self.organization.slug,
-                qs_params={
-                    "query": "event.type:transaction environment:prod transaction:/hello",
-                    "project": [self.known_projects[0].id],
-                },
-            )
+        resp = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction environment:prod transaction:/hello",
+                "project": [self.known_projects[0].id],
+            },
+        )
         assert resp.status_code == 204
 
+    def test_disallow_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
 
-@region_silo_test
+        # user has no access to the first project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        response = self.get_response(
+            self.organization.slug,
+            qs_params={
+                "query": "event.type:transaction environment:prod transaction:/hello",
+                "project": [self.project.id],
+            },
+        )
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
+
 class CustomRulesEndpoint(APITestCase):
     """
     Tests that calling the endpoint converts the query to a rule returns it and saves it in the db
@@ -191,8 +203,7 @@ class CustomRulesEndpoint(APITestCase):
             "projects": [self.project.id],
             "period": "1h",
         }
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(self.organization.slug, raw_data=request_data)
+        resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 200
 
@@ -213,6 +224,27 @@ class CustomRulesEndpoint(APITestCase):
         rule = rules[0]
         assert rule.external_rule_id == rule_id
 
+    def test_disallow_when_no_project_access(self):
+        # disable Open Membership
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        # user has no access to the first project
+        user_no_team = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user_no_team, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(user_no_team)
+
+        request_data = {
+            "query": "event.type:transaction http.method:POST",
+            "projects": [self.project.id],
+            "period": "1h",
+        }
+        response = self.get_response(self.organization.slug, raw_data=request_data)
+        assert response.status_code == 403, response.data
+        assert response.data == {"detail": "You do not have permission to perform this action."}
+
     def test_updates_existing(self):
         """
         Test that the endpoint updates an existing rule if the same rule condition and projects is given
@@ -227,8 +259,7 @@ class CustomRulesEndpoint(APITestCase):
         }
 
         # create rule
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(self.organization.slug, raw_data=request_data)
+        resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 200
 
@@ -246,8 +277,7 @@ class CustomRulesEndpoint(APITestCase):
         }
 
         # update existing rule
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(self.organization.slug, raw_data=request_data)
+        resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 200
         data = resp.data
@@ -262,20 +292,6 @@ class CustomRulesEndpoint(APITestCase):
         new_rule_id = data["ruleId"]
         assert rule_id == new_rule_id
 
-    def test_checks_feature(self):
-        """
-        Checks request fails without the feature
-        """
-        request_data = {
-            "query": "event.type:transaction http.method:POST",
-            "projects": [self.project.id],
-            "period": "1h",
-        }
-        with Feature({"organizations:investigation-bias": False}):
-            resp = self.get_response(self.organization.slug, raw_data=request_data)
-
-        assert resp.status_code == 404
-
     @mock.patch("sentry.api.endpoints.custom_rules.schedule_invalidate_project_config")
     def test_invalidates_project_config(self, mock_invalidate_project_config):
         """
@@ -289,8 +305,7 @@ class CustomRulesEndpoint(APITestCase):
         }
 
         mock_invalidate_project_config.reset_mock()
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(self.organization.slug, raw_data=request_data)
+        resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 200
 
@@ -313,8 +328,7 @@ class CustomRulesEndpoint(APITestCase):
         }
 
         mock_invalidate_project_config.reset_mock()
-        with Feature({"organizations:investigation-bias": True}):
-            resp = self.get_response(self.organization.slug, raw_data=request_data)
+        resp = self.get_response(self.organization.slug, raw_data=request_data)
 
         assert resp.status_code == 200
 

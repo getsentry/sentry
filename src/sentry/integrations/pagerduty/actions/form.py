@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.types.integrations import ExternalProviders
 
 
 def _validate_int_field(field: str, cleaned_data: Mapping[str, Any]) -> int | None:

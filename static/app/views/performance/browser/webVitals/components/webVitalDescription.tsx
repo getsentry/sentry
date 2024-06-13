@@ -8,16 +8,17 @@ import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Tag} from 'sentry/types';
+import type {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
 import {Dot} from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
+import {ORDER_WITH_INP} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
 import {PERFORMANCE_SCORE_COLORS} from 'sentry/views/performance/browser/webVitals/utils/performanceScoreColors';
 import {
   scoreToStatus,
   STATUS_TEXT,
 } from 'sentry/views/performance/browser/webVitals/utils/scoreToStatus';
-import {
+import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
@@ -26,15 +27,16 @@ import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils
 import PerformanceScoreRingWithTooltips from './performanceScoreRingWithTooltips';
 
 type Props = {
-  score: number;
-  value: string;
   webVital: WebVitals;
+  score?: number;
+  value?: string;
 };
 
 const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
   fid: t('First Input Delay'),
+  inp: t('Interaction to Next Paint'),
   lcp: t('Largest Contentful Paint'),
   ttfb: t('Time to First Byte'),
 };
@@ -55,6 +57,9 @@ const VITAL_DESCRIPTIONS: Partial<Record<WebVital, string>> = {
   [WebVital.TTFB]: t(
     'Time to First Byte (TTFB) is a foundational metric for measuring connection setup time and web server responsiveness in both the lab and the field. It helps identify when a web server is too slow to respond to requests. In the case of navigation requests—that is, requests for an HTML document—it precedes every other meaningful loading performance metric.'
   ),
+  [WebVital.INP]: t(
+    "Interaction to Next Paint (INP) is a metric that assesses a page's overall responsiveness to user interactions by observing the latency of all click, tap, and keyboard interactions that occur throughout the lifespan of a user's visit to a page. The final INP value is the longest interaction observed, ignoring outliers."
+  ),
 };
 
 type WebVitalDetailHeaderProps = {
@@ -67,8 +72,8 @@ type WebVitalDetailHeaderProps = {
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
   const colors = theme.charts.getColorPalette(3);
-  const dotColor = colors[['lcp', 'fcp', 'fid', 'cls', 'ttfb'].indexOf(webVital)];
-  const status = scoreToStatus(score);
+  const dotColor = colors[ORDER_WITH_INP.indexOf(webVital)];
+  const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (
     <Header>
@@ -76,13 +81,15 @@ export function WebVitalDetailHeader({score, value, webVital}: Props) {
         <WebVitalName>{`${WEB_VITAL_FULL_NAME_MAP[webVital]} (P75)`}</WebVitalName>
         <Value>
           <Dot color={dotColor} />
-          {value}
+          {value ?? ' \u2014 '}
         </Value>
       </span>
-      <ScoreBadge status={status}>
-        <StatusText>{STATUS_TEXT[status]}</StatusText>
-        <StatusScore>{score}</StatusScore>
-      </ScoreBadge>
+      {status && score && (
+        <ScoreBadge status={status}>
+          <StatusText>{STATUS_TEXT[status]}</StatusText>
+          <StatusScore>{score}</StatusScore>
+        </ScoreBadge>
+      )}
     </Header>
   );
 }
@@ -185,7 +192,7 @@ const Header = styled('span')`
 const Value = styled('h2')`
   display: flex;
   align-items: center;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
 `;
 
@@ -216,7 +223,7 @@ const ScoreBadge = styled('div')<{status: string}>`
   flex-direction: column;
   color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
   background-color: ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
-  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].normal]};
+  border: solid 1px ${p => p.theme[PERFORMANCE_SCORE_COLORS[p.status].light]};
   padding: ${space(0.5)};
   text-align: center;
   height: 60px;
@@ -230,6 +237,6 @@ const StatusText = styled('span')`
 `;
 
 const StatusScore = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
 `;

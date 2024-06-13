@@ -2,13 +2,9 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import {Organization, Project, SelectValue} from 'sentry/types';
-import {
-  Action,
-  ActionType,
-  MetricActionTemplate,
-  TargetType,
-} from 'sentry/views/alerts/rules/metric/types';
+import type {Organization, Project, SelectValue} from 'sentry/types';
+import type {Action, MetricActionTemplate} from 'sentry/views/alerts/rules/metric/types';
+import {ActionType, TargetType} from 'sentry/views/alerts/rules/metric/types';
 
 const getPlaceholderForType = (type: ActionType) => {
   switch (type) {
@@ -70,7 +66,6 @@ export default function ActionTargetSelector(props: Props) {
         <SelectMembers
           disabled={disabled}
           key="member"
-          project={project}
           organization={organization}
           value={action.targetIdentifier}
           onChange={handleChangeTargetIdentifier}

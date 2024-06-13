@@ -140,7 +140,9 @@ class SuggestedOwnerHovercard extends Component<Props, State> {
                             // Link to release commits
                             <Link
                               to={{
-                                pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+                                pathname: `/organizations/${
+                                  organization?.slug
+                                }/releases/${encodeURIComponent(
                                   release.version
                                 )}/commits/`,
                                 query: {project: projectId},
@@ -254,7 +256,7 @@ const OwnershipTag = styled(({tagType, ...props}) => <div {...props}>{tagType}</
   padding: ${space(0.25)} ${space(0.5)};
   margin: ${space(0.25)} ${space(0.5)} ${space(0.25)} 0;
   border-radius: 2px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-align: center;
 `;
 
@@ -284,7 +286,7 @@ const EmailAlert = styled(Alert)`
   border-radius: 0;
   border-color: #ece0b0;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   box-shadow: none;
 `;
 

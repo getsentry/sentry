@@ -1,17 +1,17 @@
 from __future__ import annotations
 
-from typing import Mapping
+from collections.abc import Mapping
 
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.integration import Integration
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.testutils.silo import control_silo_test
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 
 @control_silo_test
@@ -36,10 +36,10 @@ class TestNotificationUtilities(TestCase):
 
     def _assert_integrations_are(
         self,
-        actual: Mapping[RpcActor, Mapping[str, RpcIntegration | Integration]],
+        actual: Mapping[Actor, Mapping[str, RpcIntegration | Integration]],
         expected: Mapping[User, Mapping[str, RpcIntegration | Integration]],
     ):
-        assert actual == {RpcActor.from_orm_user(k): v for (k, v) in expected.items()}
+        assert actual == {Actor.from_orm_user(k): v for (k, v) in expected.items()}
 
     def test_simple(self):
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(

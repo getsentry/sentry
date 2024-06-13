@@ -10,14 +10,13 @@ import os
 import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from string import Template
-from typing import Optional, Tuple
 
 import pytest
 import requests
 import yaml
 from django.core.cache import cache
+from django.utils import timezone
 
 import sentry
 
@@ -29,115 +28,6 @@ UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 
 
 DIRECTORY_GROUPING_CHARS = ("::", "-", "[", "]", "\\")
-
-
-DEFAULT_EVENT_DATA = {
-    "extra": {
-        "loadavg": [0.97607421875, 0.88330078125, 0.833984375],
-        "sys.argv": [
-            "/Users/dcramer/.virtualenvs/sentry/bin/raven",
-            "test",
-            "https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@sentry.io/1",
-        ],
-        "user": "dcramer",
-    },
-    "modules": {"raven": "3.1.13"},
-    "request": {
-        "cookies": {},
-        "data": {},
-        "env": {},
-        "headers": {},
-        "method": "GET",
-        "query_string": "",
-        "url": "http://example.com",
-    },
-    "stacktrace": {
-        "frames": [
-            {
-                "abs_path": "www/src/sentry/models/foo.py",
-                "context_line": "                        string_max_length=self.string_max_length)",
-                "filename": "sentry/models/foo.py",
-                "function": "build_msg",
-                "in_app": True,
-                "lineno": 29,
-                "module": "raven.base",
-                "post_context": [
-                    "                },",
-                    "            })",
-                    "",
-                    "        if 'stacktrace' in data:",
-                    "            if self.include_paths:",
-                ],
-                "pre_context": [
-                    "",
-                    "            data.update({",
-                    "                'stacktrace': {",
-                    "                    'frames': get_stack_info(frames,",
-                    "                        list_max_length=self.list_max_length,",
-                ],
-                "vars": {
-                    "culprit": "raven.scripts.runner",
-                    "date": "datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)",
-                    "event_id": "598fb19363e745ec8be665e6ba88b1b2",
-                    "event_type": "raven.events.Message",
-                    "frames": "<generator object iter_stack_frames at 0x103fef050>",
-                    "handler": "<raven.events.Message object at 0x103feb710>",
-                    "k": "logentry",
-                    "public_key": None,
-                    "result": {
-                        "logentry": "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
-                    },
-                    "self": "<raven.base.Client object at 0x104397f10>",
-                    "stack": True,
-                    "tags": None,
-                    "time_spent": None,
-                },
-            },
-            {
-                "abs_path": "/Users/dcramer/.virtualenvs/sentry/lib/python2.7/site-packages/raven/base.py",
-                "context_line": "                        string_max_length=self.string_max_length)",
-                "filename": "raven/base.py",
-                "function": "build_msg",
-                "in_app": False,
-                "lineno": 290,
-                "module": "raven.base",
-                "post_context": [
-                    "                },",
-                    "            })",
-                    "",
-                    "        if 'stacktrace' in data:",
-                    "            if self.include_paths:",
-                ],
-                "pre_context": [
-                    "",
-                    "            data.update({",
-                    "                'stacktrace': {",
-                    "                    'frames': get_stack_info(frames,",
-                    "                        list_max_length=self.list_max_length,",
-                ],
-                "vars": {
-                    "culprit": "raven.scripts.runner",
-                    "date": "datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)",
-                    "event_id": "598fb19363e745ec8be665e6ba88b1b2",
-                    "event_type": "raven.events.Message",
-                    "frames": "<generator object iter_stack_frames at 0x103fef050>",
-                    "handler": "<raven.events.Message object at 0x103feb710>",
-                    "k": "logentry",
-                    "public_key": None,
-                    "result": {
-                        "logentry": "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
-                    },
-                    "self": "<raven.base.Client object at 0x104397f10>",
-                    "stack": True,
-                    "tags": None,
-                    "time_spent": None,
-                },
-            },
-        ]
-    },
-    "tags": [],
-    "platform": "python",
-}
 
 
 def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs):
@@ -156,7 +46,6 @@ def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs
     return decorator
 
 
-@pytest.mark.django_db
 @pytest.fixture
 def factories():
     # XXX(dcramer): hack to prevent recursive imports
@@ -177,27 +66,6 @@ def task_runner():
     return TaskRunner
 
 
-@pytest.fixture
-def burst_task_runner():
-    """Context manager that queues up Celery tasks until called.
-
-    The yielded value which can be assigned by the ``as`` clause is callable and will
-    execute all queued up tasks. It takes a ``max_jobs`` argument to limit the number of
-    jobs to process.
-
-    The queue itself can be inspected via the ``queue`` attribute of the yielded value.
-    """
-    from sentry.testutils.helpers.task_runner import BurstTaskRunner
-
-    return BurstTaskRunner
-
-
-@pytest.fixture(scope="function")
-def session():
-    return factories.create_session()
-
-
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_user(factories):
     """A default (super)user with email ``admin@localhost`` and password ``admin``.
@@ -207,7 +75,6 @@ def default_user(factories):
     return factories.create_user(email="admin@localhost", is_superuser=True)
 
 
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_organization(factories, default_user):
     """A default organization (slug=``baz``) owned by the ``default_user`` fixture.
@@ -219,7 +86,6 @@ def default_organization(factories, default_user):
     return factories.create_organization(name="baz", slug="baz", owner=default_user)
 
 
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_team(factories, default_organization):
     from sentry.models.organizationmember import OrganizationMember
@@ -233,41 +99,27 @@ def default_team(factories, default_organization):
     return team
 
 
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_project(factories, default_team):
     return factories.create_project(name="Bar", slug="bar", teams=[default_team])
 
 
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_projectkey(factories, default_project):
     return factories.create_project_key(project=default_project)
 
 
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_environment(factories, default_project):
     return factories.create_environment(name="development", project=default_project)
 
 
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_group(factories, default_project):
     # こんにちは konichiwa
     return factories.create_group(project=default_project, message="\u3053\u3093\u306b\u3061\u306f")
 
 
-@pytest.mark.django_db
-@pytest.fixture(scope="function")
-def default_event(factories, default_group):
-    return factories.store_event(
-        data={"event_id": "a" * 32, "message": "\u3053\u3093\u306b\u3061\u306f"},
-        project_id=default_project.id,
-    )
-
-
-@pytest.mark.django_db
 @pytest.fixture(scope="function")
 def default_activity(default_group, default_project, default_user):
     from sentry.models.activity import Activity
@@ -286,7 +138,6 @@ def dyn_sampling_data():
     # return a function that returns fresh config so we don't accidentally get tests interfering with each other
     def inner(active=True):
         return {
-            "mode": "total",
             "rules": [
                 {
                     "sampleRate": 0.7,
@@ -306,7 +157,7 @@ def dyn_sampling_data():
     return inner
 
 
-_snapshot_writeback: Optional[str] = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
+_snapshot_writeback: str | None = os.environ.get("SENTRY_SNAPSHOTS_WRITEBACK") or "0"
 if _snapshot_writeback in ("true", "1", "overwrite"):
     _snapshot_writeback = "overwrite"
 elif _snapshot_writeback != "new":
@@ -332,7 +183,7 @@ class ReadableYamlDumper(yaml.dumper.SafeDumper):
         return True
 
 
-def read_snapshot_file(reference_file: str) -> Tuple[str, str]:
+def read_snapshot_file(reference_file: str) -> tuple[str, str]:
     with open(reference_file, encoding="utf-8") as f:
         match = _yaml_snap_re.match(f.read())
         if match is None:
@@ -394,8 +245,7 @@ def insta_snapshot(request, log):
         is_unequal = inequality_comparator(refval, output)
 
         if _snapshot_writeback is not None and is_unequal:
-            if not os.path.isdir(os.path.dirname(reference_file)):
-                os.makedirs(os.path.dirname(reference_file))
+            os.makedirs(os.path.dirname(reference_file), exist_ok=True)
             source = os.path.realpath(str(request.node.fspath))
             if source.startswith(_test_base + os.path.sep):
                 source = source[len(_test_base) + 1 :]
@@ -407,7 +257,7 @@ def insta_snapshot(request, log):
                     % (
                         yaml.safe_dump(
                             {
-                                "created": datetime.utcnow().isoformat() + "Z",
+                                "created": timezone.now().isoformat(),
                                 "creator": "sentry",
                                 "source": source,
                             },
@@ -473,7 +323,6 @@ def reset_snuba(call_snuba):
         "/tests/events/drop",
         "/tests/groupedmessage/drop",
         "/tests/transactions/drop",
-        "/tests/sessions/drop",
         "/tests/metrics/drop",
         "/tests/generic_metrics/drop",
         "/tests/search_issues/drop",

@@ -1,6 +1,6 @@
 import logging
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
 
 from snuba_sdk import Column
 
@@ -42,7 +42,7 @@ def query(
     skip_tag_resolution=False,
     extra_columns=None,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,
@@ -75,18 +75,18 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: dict[str, str],
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
-    groupby: Optional[Column] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
+    groupby: Column | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -151,7 +151,7 @@ def top_events_timeseries(
     include_other=False,
     functions_acl=None,
     on_demand_metrics_enabled=False,
-    on_demand_metrics_type: Optional[MetricSpecType] = None,
+    on_demand_metrics_type: MetricSpecType | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -216,7 +216,7 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
         )
 
-        # TODO: use bulk_snql_query
+        # TODO: use bulk_snuba_queries
         other_result = other_events_builder.run_query(referrer)
         result = top_events_builder.run_query(referrer)
     else:
@@ -229,9 +229,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -263,11 +265,11 @@ def top_events_timeseries(
     for key, item in results.items():
         results[key] = SnubaTSResult(
             {
-                "data": discover.zerofill(
-                    item["data"], params["start"], params["end"], rollup, "time"
-                )
-                if zerofill_results
-                else item["data"],
+                "data": (
+                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else item["data"]
+                ),
                 "order": item["order"],
             },
             params["start"],

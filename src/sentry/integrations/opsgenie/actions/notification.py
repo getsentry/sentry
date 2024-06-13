@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, cast
+from typing import cast
 
 import sentry_sdk
 
@@ -39,7 +39,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
             },
         }
 
-    def after(self, event, state, notification_uuid: Optional[str] = None):
+    def after(self, event, notification_uuid: str | None = None):
         integration = self.get_integration()
         if not integration:
             logger.error("Integration removed, but the rule still refers to it")
@@ -85,7 +85,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
                         "event_id": event.event_id,
                     },
                 )
-                raise e
+                raise
 
             logger.info(
                 "rule.success.opsgenie_notification",

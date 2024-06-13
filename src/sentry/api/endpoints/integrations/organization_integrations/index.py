@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, List, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -63,14 +64,14 @@ class OrganizationIntegrationsEndpoint(OrganizationIntegrationBaseEndpoint):
     @extend_schema(
         operation_id="List an Organization's Available Integrations",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             IntegrationParams.PROVIDER_KEY,
             IntegrationParams.FEATURES,
             IntegrationParams.INCLUDE_CONFIG,
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrganizationIntegrationResponse", List[OrganizationIntegrationResponse]
+                "ListOrganizationIntegrationResponse", list[OrganizationIntegrationResponse]
             ),
         },
         examples=IntegrationExamples.LIST_INTEGRATIONS,

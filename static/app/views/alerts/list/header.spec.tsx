@@ -1,4 +1,4 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -10,7 +10,7 @@ import AlertHeader from 'sentry/views/alerts/list/header';
 
 describe('AlertHeader', () => {
   const project = ProjectFixture();
-  const {routerContext, organization} = initializeOrg();
+  const {router, organization} = initializeOrg();
   beforeEach(() => {
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
@@ -32,7 +32,7 @@ describe('AlertHeader', () => {
 
   it('should pass global selection project to create alert button', () => {
     render(<AlertHeader activeTab="stream" router={RouterFixture()} />, {
-      context: routerContext,
+      router,
       organization,
     });
     expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(

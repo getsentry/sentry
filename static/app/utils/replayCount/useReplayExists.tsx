@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -14,8 +16,11 @@ export default function useReplayExists() {
     statsPeriod: '90d',
   });
 
-  return {
-    replayExists: hasOne,
-    replaysExist: hasMany,
-  };
+  return useMemo(
+    () => ({
+      replayExists: hasOne,
+      replaysExist: hasMany,
+    }),
+    [hasMany, hasOne]
+  );
 }

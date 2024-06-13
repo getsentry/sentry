@@ -1,3 +1,5 @@
+from typing import NotRequired, TypedDict
+
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -23,12 +25,16 @@ class UserReportSerializer(serializers.ModelSerializer):
         fields = ("name", "email", "comments", "event_id")
 
 
+class _PaginateKwargs(TypedDict):
+    post_query_filter: NotRequired[object]
+
+
 @region_silo_endpoint
 class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
     owner = ApiOwner.FEEDBACK
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,  # TODO: deprecate
+        "POST": ApiPublishStatus.PRIVATE,  # TODO: deprecate
     }
     authentication_classes = ProjectEndpoint.authentication_classes + (DSNAuthentication,)
 
@@ -39,15 +45,15 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Return a list of user feedback items within this project.
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         """
         # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 
-        paginate_kwargs = {}
+        paginate_kwargs: _PaginateKwargs = {}
         try:
             environment = self._get_environment_from_request(request, project.organization_id)
         except Environment.DoesNotExist:
@@ -94,8 +100,8 @@ class ProjectUserReportsEndpoint(ProjectEndpoint, EnvironmentMixin):
 
         Note: Feedback may be submitted with DSN authentication (see auth documentation).
 
-        :pparam string organization_slug: the slug of the organization.
-        :pparam string project_slug: the slug of the project.
+        :pparam string organization_id_or_slug: the id or slug of the organization.
+        :pparam string project_id_or_slug: the id or slug of the project.
         :auth: required
         :param string event_id: the event ID
         :param string name: user's name

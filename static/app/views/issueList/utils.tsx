@@ -1,10 +1,12 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
+  // biome-ignore lint/style/useLiteralEnumMembers: Disable for maintenance cost.
+  PRIORITIZED = NEW_DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -45,15 +47,25 @@ type OverviewTab = {
  * Get a list of currently active tabs
  */
 export function getTabs(organization: Organization) {
-  const hasEscalatingIssuesUi = organization.features.includes('escalating-issues');
+  const hasIssuePriority = organization.features.includes('issue-priority-ui');
+
   const tabs: Array<[string, OverviewTab]> = [
+    [
+      Query.PRIORITIZED,
+      {
+        name: t('Prioritized'),
+        analyticsName: 'prioritized',
+        count: true,
+        enabled: hasIssuePriority,
+      },
+    ],
     [
       Query.UNRESOLVED,
       {
-        name: hasEscalatingIssuesUi ? t('Unresolved') : t('All Unresolved'),
+        name: t('Unresolved'),
         analyticsName: 'unresolved',
         count: true,
-        enabled: true,
+        enabled: !hasIssuePriority,
       },
     ],
     [
@@ -63,13 +75,9 @@ export function getTabs(organization: Organization) {
         analyticsName: 'needs_review',
         count: true,
         enabled: true,
-        tooltipTitle: hasEscalatingIssuesUi
-          ? t(
-              'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
-            )
-          : t(`Issues are marked for review when they are created, unresolved, or unignored.
-          Mark an issue reviewed to move it out of this list.
-          Issues are automatically marked reviewed in 7 days.`),
+        tooltipTitle: t(
+          'Issues are marked for review if they are new or escalating, and have not been resolved or archived. Issues are automatically marked reviewed in 7 days.'
+        ),
       },
     ],
     [
@@ -78,7 +86,7 @@ export function getTabs(organization: Organization) {
         name: t('Regressed'),
         analyticsName: 'regressed',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -87,7 +95,7 @@ export function getTabs(organization: Organization) {
         name: t('Escalating'),
         analyticsName: 'escalating',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -96,7 +104,7 @@ export function getTabs(organization: Organization) {
         name: t('Archived'),
         analyticsName: 'archived',
         count: true,
-        enabled: hasEscalatingIssuesUi,
+        enabled: true,
       },
     ],
     [
@@ -105,7 +113,7 @@ export function getTabs(organization: Organization) {
         name: t('Ignored'),
         analyticsName: 'ignored',
         count: true,
-        enabled: !hasEscalatingIssuesUi,
+        enabled: false,
         tooltipTitle: t(`Ignored issues don’t trigger alerts. When their ignore
         conditions are met they become Unresolved and are flagged for review.`),
       },
@@ -116,7 +124,7 @@ export function getTabs(organization: Organization) {
         name: t('Reprocessing'),
         analyticsName: 'reprocessing',
         count: true,
-        enabled: organization.features.includes('reprocessing-v2'),
+        enabled: true,
         tooltipTitle: tct(
           `These [link:reprocessing issues] will take some time to complete.
         Any new issues that are created during reprocessing will be flagged for review.`,
@@ -172,7 +180,7 @@ export type QueryCounts = Partial<Record<Query, QueryCount>>;
 export enum IssueSortOptions {
   DATE = 'date',
   NEW = 'new',
-  PRIORITY = 'priority',
+  TRENDS = 'trends',
   FREQ = 'freq',
   USER = 'user',
   INBOX = 'inbox',
@@ -180,16 +188,23 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
-  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch(
+  {query, sort}: {query: string; sort: string},
+  {organization}: {organization: Organization}
+) {
+  const defaultQuery = organization.features.includes('issue-priority-ui')
+    ? NEW_DEFAULT_QUERY
+    : DEFAULT_QUERY;
+
+  return query === defaultQuery && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {
   switch (key) {
     case IssueSortOptions.NEW:
       return t('First Seen');
-    case IssueSortOptions.PRIORITY:
-      return t('Priority');
+    case IssueSortOptions.TRENDS:
+      return t('Trends');
     case IssueSortOptions.FREQ:
       return t('Events');
     case IssueSortOptions.USER:

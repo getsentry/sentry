@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -9,21 +9,15 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupowner import GroupOwner
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.signals import issue_assigned, issue_unassigned
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor, ActorType
 from sentry.utils import metrics
 
 if TYPE_CHECKING:
@@ -37,8 +31,8 @@ logger = logging.getLogger(__name__)
 
 class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def get_assigned_to_data(
-        self, assigned_to: Team | RpcUser, assignee_type: str, extra: Dict[str, str] | None = None
-    ) -> Dict[str, Any]:
+        self, assigned_to: Team | RpcUser, assignee_type: str, extra: dict[str, str] | None = None
+    ) -> dict[str, Any]:
         data = {
             "assignee": str(assigned_to.id),
             "assigneeEmail": getattr(assigned_to, "email", None),
@@ -70,9 +64,9 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
     def remove_old_assignees(
         self,
         group: Group,
-        previous_assignee: Optional[GroupAssignee],
-        new_assignee_id: Optional[int] = None,
-        new_assignee_type: Optional[str] = None,
+        previous_assignee: GroupAssignee | None,
+        new_assignee_id: int | None = None,
+        new_assignee_type: str | None = None,
     ) -> None:
         from sentry.models.team import Team
 
@@ -137,7 +131,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         assigned_to: Team | RpcUser,
         acting_user: User | None = None,
         create_only: bool = False,
-        extra: Dict[str, str] | None = None,
+        extra: dict[str, str] | None = None,
         force_autoassign: bool = False,
     ):
         from sentry.integrations.utils import sync_group_assignee_outbound
@@ -204,7 +198,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
         group: Group,
         acting_user: User | RpcUser | None = None,
         assigned_to: Team | RpcUser | None = None,
-        extra: Dict[str, str] | None = None,
+        extra: dict[str, str] | None = None,
     ) -> None:
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models.activity import Activity
@@ -227,11 +221,6 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             ownership = ProjectOwnership.get_ownership_cached(group.project.id)
             if not ownership:
                 ownership = ProjectOwnership(project_id=group.project.id)
-            autoassignment_types = ProjectOwnership._get_autoassignment_types(ownership)
-            if autoassignment_types:
-                GroupOwner.invalidate_autoassigned_owner_cache(
-                    group.project.id, autoassignment_types, group.id
-                )
             GroupOwner.invalidate_assignee_exists_cache(group.project.id, group.id)
             GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(group.project.id, group.id)
 
@@ -248,7 +237,7 @@ class GroupAssigneeManager(BaseManager["GroupAssignee"]):
             self.remove_old_assignees(group, previous_groupassignee)
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupAssignee(Model):
     """
     Identifies an assignment relationship between a user/team and an
@@ -278,13 +267,13 @@ class GroupAssignee(Model):
         ), "Must have Team or User, not both"
         super().save(*args, **kwargs)
 
-    def assigned_actor(self) -> RpcActor:
+    def assigned_actor(self) -> Actor:
         if self.user_id is not None:
-            return RpcActor(
+            return Actor(
                 id=self.user_id,
                 actor_type=ActorType.USER,
             )
         if self.team_id is not None:
-            return RpcActor(id=self.team_id, actor_type=ActorType.TEAM)
+            return Actor(id=self.team_id, actor_type=ActorType.TEAM)
 
         raise NotImplementedError("Unknown Assignee")

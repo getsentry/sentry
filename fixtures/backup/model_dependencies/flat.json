@@ -14,6 +14,7 @@
     "sentry.organization",
     "sentry.user"
   ],
+  "hybridcloud.controlcacheversion": [],
   "hybridcloud.externalactorreplica": [
     "sentry.externalactor",
     "sentry.integration",
@@ -32,6 +33,7 @@
     "sentry.user"
   ],
   "hybridcloud.regioncacheversion": [],
+  "hybridcloud.webhookpayload": [],
   "nodestore.node": [],
   "replays.replayrecordingsegment": [
     "sentry.file",
@@ -42,22 +44,28 @@
     "sentry.project",
     "sentry.user"
   ],
-  "sentry.actor": [
-    "sentry.team",
-    "sentry.user"
-  ],
   "sentry.alertrule": [
-    "sentry.actor",
     "sentry.organization",
     "sentry.snubaquery",
     "sentry.team",
     "sentry.user"
+  ],
+  "sentry.alertruleactivationcondition": [
+    "sentry.alertrule"
+  ],
+  "sentry.alertruleactivations": [
+    "sentry.alertrule",
+    "sentry.querysubscription"
   ],
   "sentry.alertruleactivity": [
     "sentry.alertrule",
     "sentry.user"
   ],
   "sentry.alertruleexcludedprojects": [
+    "sentry.alertrule",
+    "sentry.project"
+  ],
+  "sentry.alertruleprojects": [
     "sentry.alertrule",
     "sentry.project"
   ],
@@ -97,9 +105,6 @@
   "sentry.artifactbundle": [
     "sentry.file",
     "sentry.organization"
-  ],
-  "sentry.artifactbundleflatfileindex": [
-    "sentry.project"
   ],
   "sentry.artifactbundleindex": [
     "sentry.artifactbundle",
@@ -230,8 +235,7 @@
   "sentry.docintegration": [],
   "sentry.docintegrationavatar": [
     "sentry.controlfile",
-    "sentry.docintegration",
-    "sentry.file"
+    "sentry.docintegration"
   ],
   "sentry.email": [],
   "sentry.environment": [
@@ -283,10 +287,6 @@
     "sentry.fileblob",
     "sentry.organization"
   ],
-  "sentry.flatfileindexstate": [
-    "sentry.artifactbundle",
-    "sentry.artifactbundleflatfileindex"
-  ],
   "sentry.group": [
     "sentry.project",
     "sentry.release"
@@ -321,11 +321,12 @@
     "sentry.project"
   ],
   "sentry.grouphistory": [
-    "sentry.actor",
     "sentry.group",
     "sentry.organization",
     "sentry.project",
-    "sentry.release"
+    "sentry.release",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.groupinbox": [
     "sentry.group",
@@ -364,6 +365,10 @@
     "sentry.project",
     "sentry.rule"
   ],
+  "sentry.groupsearchview": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "sentry.groupseen": [
     "sentry.group",
     "sentry.project",
@@ -393,7 +398,9 @@
   "sentry.identityprovider": [],
   "sentry.incident": [
     "sentry.alertrule",
-    "sentry.organization"
+    "sentry.alertruleactivations",
+    "sentry.organization",
+    "sentry.querysubscription"
   ],
   "sentry.incidentactivity": [
     "sentry.incident",
@@ -440,13 +447,17 @@
   "sentry.metricskeyindexer": [],
   "sentry.monitor": [
     "sentry.organization",
-    "sentry.project"
+    "sentry.project",
+    "sentry.user"
   ],
   "sentry.monitorcheckin": [
     "sentry.monitor",
     "sentry.monitorenvironment",
     "sentry.monitorlocation",
     "sentry.project"
+  ],
+  "sentry.monitorenvbrokendetection": [
+    "sentry.monitorincident"
   ],
   "sentry.monitorenvironment": [
     "sentry.environment",
@@ -470,6 +481,11 @@
   "sentry.notificationactionproject": [
     "sentry.notificationaction",
     "sentry.project"
+  ],
+  "sentry.notificationmessage": [
+    "sentry.alertruletriggeraction",
+    "sentry.incident",
+    "sentry.rulefirehistory"
   ],
   "sentry.notificationsettingoption": [
     "sentry.team",
@@ -552,15 +568,12 @@
     "sentry.projectdebugfile"
   ],
   "sentry.project": [
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.projecttemplate"
   ],
   "sentry.projectartifactbundle": [
     "sentry.artifactbundle",
     "sentry.organization",
-    "sentry.project"
-  ],
-  "sentry.projectavatar": [
-    "sentry.file",
     "sentry.project"
   ],
   "sentry.projectbookmark": [
@@ -598,6 +611,12 @@
   "sentry.projectteam": [
     "sentry.project",
     "sentry.team"
+  ],
+  "sentry.projecttemplate": [
+    "sentry.organization"
+  ],
+  "sentry.projecttemplateoption": [
+    "sentry.projecttemplate"
   ],
   "sentry.projecttransactionthreshold": [
     "sentry.organization",
@@ -722,9 +741,10 @@
     "sentry.project"
   ],
   "sentry.rule": [
-    "sentry.actor",
     "sentry.environment",
-    "sentry.project"
+    "sentry.project",
+    "sentry.team",
+    "sentry.user"
   ],
   "sentry.ruleactivity": [
     "sentry.rule",
@@ -752,7 +772,6 @@
   ],
   "sentry.sentryappavatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.sentryapp"
   ],
   "sentry.sentryappcomponent": [
@@ -772,7 +791,7 @@
     "sentry.apitoken",
     "sentry.sentryappinstallation"
   ],
-  "sentry.sentryfunction": [
+  "sentry.sentryshot": [
     "sentry.organization"
   ],
   "sentry.servicehook": [
@@ -797,10 +816,6 @@
   "sentry.team": [
     "sentry.organization"
   ],
-  "sentry.teamavatar": [
-    "sentry.file",
-    "sentry.team"
-  ],
   "sentry.teamkeytransaction": [
     "sentry.organization",
     "sentry.projectteam"
@@ -813,7 +828,6 @@
   "sentry.user": [],
   "sentry.useravatar": [
     "sentry.controlfile",
-    "sentry.file",
     "sentry.user"
   ],
   "sentry.useremail": [

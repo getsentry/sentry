@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Generator
 from contextlib import contextmanager
 from enum import Enum, unique
 from functools import lru_cache
 from string import Template
-from typing import Any, Generator, Optional, Tuple
+from typing import Any
 
 from django.utils import timezone
 
@@ -218,7 +219,7 @@ IMPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/import-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -249,7 +250,7 @@ EXPORT_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/export-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -296,7 +297,7 @@ COMPARE_VALIDATION_STEP_TEMPLATE = Template(
       - "--findings-file"
       - "/findings/compare-$jsonfile"
       $args
-    timeout: 300s
+    timeout: $timeout
     """
 )
 
@@ -359,7 +360,7 @@ def send_relocation_update_email(
 
 def start_relocation_task(
     uuid: str, task: OrderedTask, allowed_task_attempts: int
-) -> Tuple[Optional[Relocation], int]:
+) -> tuple[Relocation | None, int]:
     """
     All tasks for relocation are done sequentially, and take the UUID of the `Relocation` model as
     the input. We can leverage this information to do some common pre-task setup.
@@ -393,9 +394,7 @@ def start_relocation_task(
         return (None, 0)
 
     logger_data["task"] = task.name
-    if relocation.latest_task == task.name:
-        relocation.latest_task_attempts += 1
-    elif relocation.latest_task not in {prev_task_name, task.name}:
+    if relocation.latest_task not in {prev_task_name, task.name}:
         logger.error(
             "Task %s tried to follow %s which is the wrong order",
             task.name,
@@ -404,6 +403,20 @@ def start_relocation_task(
         )
         fail_relocation(relocation, task)
         return (None, 0)
+    if relocation.latest_task == task.name:
+        # It is possible for a task to have been scheduled even when all of it's attempted have been
+        # exhausted due to some tasks using `acks_late`, causing them to be retried in the event of
+        # a worker-wide SIGKILL/TERM/QUIT. This check catches such scenarios on the retry, and
+        # gracefully marks the task as failed before exiting.
+        if relocation.latest_task_attempts >= allowed_task_attempts:
+            logger.error(
+                "Task %s has exhausted all of its attempts",
+                task.name,
+                extra=logger_data,
+            )
+            fail_relocation(relocation, task)
+            return (None, 0)
+        relocation.latest_task_attempts += 1
     else:
         relocation.latest_task = task.name
         relocation.latest_task_attempts = 1
@@ -455,8 +468,8 @@ def fail_relocation(relocation: Relocation, task: OrderedTask, reason: str = "")
 
     This function is ideal for non-transient failures, where we know there is no need to retry
     because the result won't change, like invalid input data or conclusive validation results. For
-    transient failures where retrying at a later time may be useful, use `retry_or_fail_relocation`
-    instead.
+    transient failures where retrying at a later time may be useful, use
+    `retry_task_or_fail_relocation` instead.
     """
 
     # Another nested exception handler could have already failed this relocation - in this case, do
@@ -498,7 +511,7 @@ def retry_task_or_fail_relocation(
     logger_data = {"uuid": relocation.uuid, "task": task.name, "attempts_left": attempts_left}
     try:
         yield
-    except Exception as e:
+    except Exception:
         # If this is the last attempt, fail in the manner requested before reraising the exception.
         # This ensures that the database entry for this `Relocation` correctly notes it as a
         # `FAILURE`.
@@ -508,7 +521,7 @@ def retry_task_or_fail_relocation(
             logger_data["reason"] = reason
             logger.info("Task retried", extra=logger_data)
 
-        raise e
+        raise
     else:
         logger.info("Task finished", extra=logger_data)
 
@@ -555,24 +568,25 @@ def get_relocations_bucket_name():
     """
 
     storage = get_relocation_storage()
-    return "default" if getattr(storage, "bucket_name", None) is None else f"{storage.bucket_name}"
+
+    # Specialize for GCS...
+    if hasattr(storage, "bucket_name"):
+        return f"{storage.bucket_name}"
+
+    # ...and the local filesystem, when testing.
+    return "default"
 
 
 def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
-    # Only test existing users for collision and mutation.
-    existing_usernames = user_service.get_existing_usernames(usernames=relocation.want_usernames)
-    filter_usernames_args = [
-        "--filter-usernames",
-        ",".join(existing_usernames) if existing_usernames else ",",
-    ]
-    filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
     bucket_root = f"gs://{get_relocations_bucket_name()}"
+    filter_org_slugs_args = ["--filter-org-slugs", ",".join(relocation.want_org_slugs)]
 
     validation_steps = [
         create_cloudbuild_validation_step(
             id="import-baseline-config",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
+            timeout=600,
             wait_for=[],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=["--overwrite-configs"],
@@ -581,14 +595,16 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="import-colliding-users",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=900,
             wait_for=["import-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=filter_usernames_args,
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         create_cloudbuild_validation_step(
             id="import-raw-relocation-data",
             step=IMPORT_VALIDATION_STEP_TEMPLATE,
             scope="organizations",
+            timeout=2400,
             wait_for=["import-colliding-users"],
             kind=RelocationFile.Kind.RAW_USER_DATA,
             args=filter_org_slugs_args,
@@ -597,6 +613,7 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-baseline-config",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="config",
+            timeout=600,
             wait_for=["import-raw-relocation-data"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
@@ -605,28 +622,22 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="export-colliding-users",
             step=EXPORT_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=600,
             wait_for=["export-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
-            args=filter_usernames_args,
-        ),
-        create_cloudbuild_validation_step(
-            id="export-raw-relocation-data",
-            step=EXPORT_VALIDATION_STEP_TEMPLATE,
-            scope="organizations",
-            wait_for=["export-colliding-users"],
-            kind=RelocationFile.Kind.RAW_USER_DATA,
-            args=filter_org_slugs_args,
+            args=["--filter-usernames-file", "/in/filter-usernames.txt"],
         ),
         COPY_OUT_DIR_TEMPLATE.substitute(
             bucket_root=bucket_root,
             uuid=relocation.uuid,
-            wait_for=["export-raw-relocation-data"],
+            wait_for=["export-colliding-users"],
         ),
         create_cloudbuild_validation_step(
             id="compare-baseline-config",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="config",
-            wait_for=["export-raw-relocation-data"],
+            timeout=150,
+            wait_for=["copy-out-dir"],
             kind=RelocationFile.Kind.BASELINE_CONFIG_VALIDATION_DATA,
             args=[],
         ),
@@ -634,11 +645,11 @@ def create_cloudbuild_yaml(relocation: Relocation) -> bytes:
             id="compare-colliding-users",
             step=COMPARE_VALIDATION_STEP_TEMPLATE,
             scope="users",
+            timeout=150,
             wait_for=["compare-baseline-config"],
             kind=RelocationFile.Kind.COLLIDING_USERS_VALIDATION_DATA,
             args=[],
         ),
-        # TODO(getsentry/team-ospo#216): Add compare-raw-relocation-data as well.
     ]
 
     deps = dependencies()
@@ -663,6 +674,7 @@ def create_cloudbuild_validation_step(
     scope: str,
     wait_for: list[str],
     kind: RelocationFile.Kind,
+    timeout: int,
     args: list[str],
 ) -> str:
     return step.substitute(
@@ -673,5 +685,6 @@ def create_cloudbuild_validation_step(
         kind=str(kind),
         scope=scope,
         tarfile=kind.to_filename("tar"),
+        timeout=str(timeout) + "s",
         wait_for=make_cloudbuild_step_args(3, wait_for),
     )

@@ -2,31 +2,32 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {RequestOptions} from 'sentry/api';
+import type {RequestOptions} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
+import type DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {Data, JsonFormObject} from 'sentry/components/forms/types';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Panel from 'sentry/components/panels/panel';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
+import type {Integration, IntegrationProvider, ObjectStatus} from 'sentry/types';
 import {getAlertText, getIntegrationStatus} from 'sentry/utils/integrationUtil';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
-import AbstractIntegrationDetailedView, {Tab} from './abstractIntegrationDetailedView';
+import type {Tab} from './abstractIntegrationDetailedView';
+import AbstractIntegrationDetailedView from './abstractIntegrationDetailedView';
 import {AddIntegrationButton} from './addIntegrationButton';
 import InstalledIntegration from './installedIntegration';
 
 // Show the features tab if the org has features for the integration
-const integrationFeatures = ['github'];
+const integrationFeatures = ['github', 'slack'];
 
 const FirstPartyIntegrationAlert = HookOrDefault({
   hookName: 'component:first-party-integration-alert',
@@ -329,12 +330,54 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
     );
   }
 
-  renderFeatures() {
+  getSlackFeatures(): [JsonFormObject[], Data] {
     const {configurations} = this.state;
     const {organization} = this.props;
     const hasIntegration = configurations ? configurations.length > 0 : false;
-    const endpoint = `/organizations/${organization.slug}/`;
-    const hasOrgWrite = organization.access.includes('org:write');
+
+    const forms: JsonFormObject[] = [
+      {
+        fields: [
+          {
+            name: 'issueAlertsThreadFlag',
+            type: 'boolean',
+            label: t('Enable Slack threads on Issue Alerts'),
+            help: t(
+              'Allow Slack integration to post replies in threads for an Issue Alert notification.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a Slack integration to enable this feature.'
+            ),
+          },
+          {
+            name: 'metricAlertsThreadFlag',
+            type: 'boolean',
+            label: t('Enable Slack threads on Metric Alerts'),
+            help: t(
+              'Allow Slack integration to post replies in threads for an Metric Alert notification.'
+            ),
+            disabled: !hasIntegration,
+            disabledReason: t(
+              'You must have a Slack integration to enable this feature.'
+            ),
+          },
+        ],
+      },
+    ];
+
+    const initialData = {
+      issueAlertsThreadFlag: organization.issueAlertsThreadFlag,
+      metricAlertsThreadFlag: organization.metricAlertsThreadFlag,
+    };
+
+    return [forms, initialData];
+  }
+
+  getGithubFeatures(): [JsonFormObject[], Data] {
+    const {configurations} = this.state;
+    const {organization} = this.props;
+    const hasIntegration = configurations ? configurations.length > 0 : false;
 
     const forms: JsonFormObject[] = [
       {
@@ -356,13 +399,12 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             type: 'boolean',
             label: t('Enable Comments on Open Pull Requests'),
             help: t(
-              'Allow Sentry to comment on open pull requests to show recent error and performance issues for the code being changed.'
+              'Allow Sentry to comment on open pull requests to show recent error issues for the code being changed.'
             ),
             disabled: !hasIntegration,
             disabledReason: t(
               'You must have a GitHub integration to enable this feature.'
             ),
-            visible: ({features}) => features.includes('integrations-open-pr-comment'),
           },
           {
             name: 'githubNudgeInvite',
@@ -375,7 +417,6 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
             disabledReason: t(
               'You must have a GitHub integration to enable this feature.'
             ),
-            visible: ({features}) => features.includes('integrations-gh-invite'),
           },
         ],
       },
@@ -386,6 +427,28 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
       githubOpenPRBot: organization.githubOpenPRBot,
       githubNudgeInvite: organization.githubNudgeInvite,
     };
+
+    return [forms, initialData];
+  }
+
+  renderFeatures() {
+    const {organization} = this.props;
+    const endpoint = `/organizations/${organization.slug}/`;
+    const hasOrgWrite = organization.access.includes('org:write');
+
+    let forms: JsonFormObject[], initialData: Data;
+    switch (this.provider.key) {
+      case 'github': {
+        [forms, initialData] = this.getGithubFeatures();
+        break;
+      }
+      case 'slack': {
+        [forms, initialData] = this.getSlackFeatures();
+        break;
+      }
+      default:
+        return null;
+    }
 
     return (
       <Form
@@ -415,8 +478,8 @@ class IntegrationDetailedView extends AbstractIntegrationDetailedView<
         {this.state.tab === 'overview'
           ? this.renderInformationCard()
           : this.state.tab === 'configurations'
-          ? this.renderConfigurations()
-          : this.renderFeatures()}
+            ? this.renderConfigurations()
+            : this.renderFeatures()}
       </Fragment>
     );
   }

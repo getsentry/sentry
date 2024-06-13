@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import os
 import socket
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 from urllib.parse import urlparse
 
 import pytest

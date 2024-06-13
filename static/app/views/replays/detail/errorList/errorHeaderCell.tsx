@@ -1,9 +1,10 @@
-import {ComponentProps, CSSProperties, forwardRef} from 'react';
+import type {ComponentProps, CSSProperties} from 'react';
+import {forwardRef} from 'react';
 
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
+import type useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
 
 type SortConfig = ReturnType<typeof useSortErrors>['sortConfig'];
 type Props = {

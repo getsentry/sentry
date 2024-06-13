@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -11,7 +9,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
+from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -32,7 +31,7 @@ class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         help_text="The name for the project.", max_length=50, required=True
     )
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a project and is used for the interface.
         If not provided, it is automatically generated from the name.""",
         max_length=50,
@@ -88,14 +87,14 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     @extend_schema(
         operation_id="List a Team's Projects",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
             CursorQueryParam,
         ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListTeamProjectResponse", List[OrganizationProjectResponse]
+                "ListTeamProjectResponse", list[OrganizationProjectResponse]
             ),
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
@@ -143,8 +142,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         tags=["Projects"],
         operation_id="Create a New Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=ProjectPostSerializer,
         responses={
@@ -188,6 +187,10 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 project.add_team(team)
 
             # XXX: create sample event?
+
+            # Turns on some inbound filters by default for new Javascript platform projects
+            if project.platform and project.platform.startswith("javascript"):
+                set_default_inbound_filters(project, team.organization)
 
             self.create_audit_entry(
                 request=request,

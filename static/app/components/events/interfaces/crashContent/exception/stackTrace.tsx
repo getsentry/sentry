@@ -1,10 +1,10 @@
 import EmptyMessage from 'sentry/components/emptyMessage';
-import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {ExceptionValue, Group, PlatformKey} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {ExceptionValue, Group, PlatformKey} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {StackType, StackView} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {isNativePlatform} from 'sentry/utils/platform';

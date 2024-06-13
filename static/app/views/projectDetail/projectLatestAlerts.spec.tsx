@@ -1,6 +1,6 @@
-import {Incident as IncidentFixture} from 'sentry-fixture/incident';
+import {IncidentFixture} from 'sentry-fixture/incident';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {MetricRule} from 'sentry-fixture/metricRule';
+import {MetricRuleFixture} from 'sentry-fixture/metricRule';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -11,7 +11,7 @@ import ProjectLatestAlerts from './projectLatestAlerts';
 describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock: jest.Mock;
   let rulesEndpointMock: jest.Mock;
-  const {organization, project, router, routerContext} = initializeOrg();
+  const {organization, project, router} = initializeOrg();
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
@@ -24,7 +24,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
     });
     rulesEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/`,
-      body: [MetricRule()],
+      body: [MetricRuleFixture()],
     });
   });
 
@@ -40,7 +40,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(2); // one for closed, one for open
@@ -117,7 +117,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(

@@ -2,16 +2,18 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping, Sequence
 from operator import attrgetter
-from typing import Any, Mapping, Optional, Sequence
+from typing import Any
 
 from django.conf import settings
 from django.urls import reverse
+from django.utils.functional import classproperty
 from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -20,12 +22,14 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins.issues import MAX_CHAR, IssueSyncMixin, ResolveSyncAction
 from sentry.issues.grouptype import GroupCategory
+from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -33,8 +37,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
-from sentry.utils.decorators import classproperty
+from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient
@@ -122,6 +125,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     outbound_assignee_key = "sync_forward_assignment"
     inbound_assignee_key = "sync_reverse_assignment"
     issues_ignored_fields_key = "issues_ignored_fields"
+    resolution_strategy_key = "resolution_strategy"
 
     @classproperty
     def use_email_scope(cls):
@@ -185,6 +189,20 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 ),
             },
             {
+                "name": self.resolution_strategy_key,
+                "label": "Resolve",
+                "type": "select",
+                "placeholder": "Resolve",
+                "choices": [
+                    ("resolve", "Resolve"),
+                    ("resolve_current_release", "Resolve in Current Release"),
+                    ("resolve_next_release", "Resolve in Next Release"),
+                ],
+                "help": _(
+                    "Select what action to take on Sentry Issue when Jira ticket is marked Done."
+                ),
+            },
+            {
                 "name": self.issues_ignored_fields_key,
                 "label": "Ignored Fields",
                 "type": "textarea",
@@ -208,7 +226,9 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 "Unable to communicate with the Jira instance. You may need to reinstall the addon."
             )
 
-        context = organization_service.get_organization_by_id(id=self.organization_id)
+        context = organization_service.get_organization_by_id(
+            id=self.organization_id, include_projects=False, include_teams=False
+        )
         organization = context.organization
 
         has_issue_sync = features.has("organizations:integrations-issue-sync", organization)
@@ -397,7 +417,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
 
         return JiraCloudClient(
             integration=self.model,
-            org_integration_id=self.org_integration.id,
             verify_ssl=True,
             logging_context=logging_context,
         )
@@ -513,7 +532,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                 group.organization
                 if group
                 else organization_service.get_organization_by_id(
-                    id=self.organization_id
+                    id=self.organization_id, include_projects=False, include_teams=False
                 ).organization
             )
             fkwargs["url"] = self.search_url(organization.slug)
@@ -629,7 +648,8 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
             )
         return meta
 
-    def get_create_issue_config(self, group, user, **kwargs):
+    @all_silo_function
+    def get_create_issue_config(self, group: Group | None, user: RpcUser, **kwargs):
         """
         We use the `group` to get three things: organization_slug, project
         defaults, and default title and description. In the case where we're
@@ -898,7 +918,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[RpcUser],
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

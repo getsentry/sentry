@@ -4,7 +4,7 @@ import pytest
 
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import get_tag_values
-from sentry.snuba.metrics.datasource import get_stored_mris
+from sentry.snuba.metrics.datasource import get_stored_metrics_of_projects
 from sentry.snuba.metrics.naming_layer import TransactionMetricKey, TransactionMRI
 from sentry.testutils.cases import BaseMetricsLayerTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -39,7 +39,7 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             )
         )
 
-        custom_mri = "d:custom/page_load@millisecond"
+        custom_mri = "d:custom/PageLoad.2@millisecond"
         self.store_metric(
             self.project.organization.id,
             self.project.id,
@@ -51,20 +51,31 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
             UseCaseID.CUSTOM,
         )
 
-        mris = get_stored_mris([self.project], UseCaseID.TRANSACTIONS)
+        mris = get_stored_metrics_of_projects([self.project], [UseCaseID.TRANSACTIONS])
         assert mris == {
             "d:transactions/duration@millisecond": [self.project.id],
         }
 
-        mris = get_stored_mris([self.project], UseCaseID.SESSIONS)
+        mris = get_stored_metrics_of_projects([self.project], [UseCaseID.SESSIONS])
         assert mris == {
             "d:sessions/duration@second": [self.project.id],
             "c:sessions/session@none": [self.project.id],
             "s:sessions/user@none": [self.project.id],
         }
 
-        mris = get_stored_mris([self.project], UseCaseID.CUSTOM)
+        mris = get_stored_metrics_of_projects([self.project], [UseCaseID.CUSTOM])
         assert mris == {
+            custom_mri: [self.project.id],
+        }
+
+        mris = get_stored_metrics_of_projects(
+            [self.project], [UseCaseID.TRANSACTIONS, UseCaseID.SESSIONS, UseCaseID.CUSTOM]
+        )
+        assert mris == {
+            "d:transactions/duration@millisecond": [self.project.id],
+            "d:sessions/duration@second": [self.project.id],
+            "c:sessions/session@none": [self.project.id],
+            "s:sessions/user@none": [self.project.id],
             custom_mri: [self.project.id],
         }
 

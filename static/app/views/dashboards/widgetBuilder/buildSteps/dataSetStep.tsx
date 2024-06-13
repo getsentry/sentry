@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
-import RadioGroup, {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
+import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -18,7 +19,6 @@ import {BuildStep} from './buildStep';
 interface Props {
   dataSet: DataSet;
   displayType: DisplayType;
-  hasCustomMetricsFeature: boolean;
   hasReleaseHealthFeature: boolean;
   onChange: (dataSet: DataSet) => void;
 }
@@ -27,7 +27,6 @@ export function DataSetStep({
   dataSet,
   onChange,
   hasReleaseHealthFeature,
-  hasCustomMetricsFeature,
   displayType,
 }: Props) {
   const disabledChoices: RadioGroupProps<string>['disabledChoices'] = [];
@@ -45,10 +44,6 @@ export function DataSetStep({
 
   if (hasReleaseHealthFeature) {
     datasetChoices.set(DataSet.RELEASES, t('Releases (Sessions, Crash rates)'));
-  }
-
-  if (hasCustomMetricsFeature) {
-    datasetChoices.set(DataSet.METRICS, t('Custom Metrics'));
   }
 
   return (

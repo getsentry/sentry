@@ -4,8 +4,9 @@ import styled from '@emotion/styled';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
 import MarkLine from 'sentry/components/charts/components/markLine';
-import {LineChart, LineChartSeries} from 'sentry/components/charts/lineChart';
-import {getDuration} from 'sentry/utils/formatters';
+import type {LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
+import getDuration from 'sentry/utils/duration/getDuration';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {

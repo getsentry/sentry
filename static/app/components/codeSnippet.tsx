@@ -5,7 +5,6 @@ import Prism from 'prismjs';
 import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {prismStyles} from 'sentry/styles/prism';
 import {space} from 'sentry/styles/space';
 import {loadPrismLanguage} from 'sentry/utils/prism';
 
@@ -16,12 +15,21 @@ interface CodeSnippetProps {
   ['data-render-inline']?: boolean;
   /**
    * Makes the text of the element and its sub-elements not selectable.
-   * Userful when loading parts of a code snippet, and
+   * Useful when loading parts of a code snippet, and
    * we wish to avoid users copying them manually.
    */
   disableUserSelection?: boolean;
+  /**
+   * Name of the file to be displayed at the top of the code snippet.
+   */
   filename?: string;
+  /**
+   * Hides the copy button in the top right.
+   */
   hideCopyButton?: boolean;
+  /**
+   * Adds an icon to the top right, next to the copy button.
+   */
   icon?: React.ReactNode;
   /**
    * Controls whether the snippet wrapper has rounded corners.
@@ -33,11 +41,17 @@ interface CodeSnippetProps {
    * @param element The root element of the code snippet
    */
   onAfterHighlight?: (element: HTMLElement) => void;
+  /**
+   * Fires with the user presses the copy button.
+   */
   onCopy?: (copiedCode: string) => void;
   /**
-   * Fired when the user selects and copies code snippet manually
+   * Fires when the user selects and copies code snippet manually
    */
   onSelectAndCopy?: () => void;
+  /**
+   * Fires when the user switches tabs.
+   */
   onTabClick?: (tab: string) => void;
   selectedTab?: string;
   tabs?: {
@@ -108,8 +122,8 @@ export function CodeSnippet({
     tooltipState === 'copy'
       ? t('Copy')
       : tooltipState === 'copied'
-      ? t('Copied')
-      : t('Unable to copy');
+        ? t('Copied')
+        : t('Unable to copy');
 
   return (
     <Wrapper
@@ -174,7 +188,6 @@ const Wrapper = styled('div')<{isRounded: boolean}>`
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.borderRadius : '0px')};
 
-  ${p => prismStyles(p.theme)}
   pre {
     margin: 0;
   }
@@ -191,7 +204,7 @@ const Header = styled('div')<{isSolid: boolean}>`
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.codeFontSize};
   color: var(--prism-base);
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   z-index: 2;
 
   ${p =>
@@ -250,7 +263,7 @@ const CopyButton = styled(Button)<{isAlwaysVisible: boolean}>`
   opacity: 0;
 
   div:hover > div > &, /* if Wrapper is hovered */
-  &.focus-visible {
+  &:focus-visible {
     opacity: 1;
   }
   &:hover {

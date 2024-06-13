@@ -1,4 +1,4 @@
-import {Unit} from 'sentry/utils/duration/types';
+import type {Unit} from 'sentry/utils/duration/types';
 
 export default function durationUnitToSuffix(unit: Unit) {
   return {

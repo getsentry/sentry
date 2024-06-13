@@ -6,18 +6,15 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
-import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import {
-  GroupStatus,
-  GroupStatusResolution,
-  GroupSubstatus,
-  IgnoredStatusDetails,
-  SelectValue,
-} from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
+import type {SelectValue} from 'sentry/types/core';
+import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
+import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
+import getDuration from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;
 

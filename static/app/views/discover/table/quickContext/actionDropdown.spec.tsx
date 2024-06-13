@@ -1,11 +1,12 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import EventView, {EventData} from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type {EventData} from 'sentry/utils/discover/eventView';
+import EventView from 'sentry/utils/discover/eventView';
 
 import ActionDropDown, {ContextValueType} from './actionDropdown';
 
@@ -39,7 +40,7 @@ const renderActionDropdown = (
   value: React.ReactText | string[],
   contextValueType: ContextValueType
 ) => {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   render(
     <ActionDropDown
       dataRow={dataRow}

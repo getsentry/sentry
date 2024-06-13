@@ -9,7 +9,7 @@ import {
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 describe('Chart Utils', function () {
   describe('getInterval()', function () {

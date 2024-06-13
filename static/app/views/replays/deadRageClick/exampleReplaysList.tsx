@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';

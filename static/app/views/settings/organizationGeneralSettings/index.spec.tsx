@@ -1,7 +1,6 @@
-import {browserHistory} from 'react-router';
-import {GitHubIntegration as GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -17,6 +16,7 @@ import {
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
 
 jest.mock('sentry/utils/analytics');
@@ -68,17 +68,13 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "codecov access"', async function () {
-    const organizationWithCodecovFeature = Organization({
+    const organizationWithCodecovFeature = OrganizationFixture({
       features: ['codecov-integration'],
       codecovAccess: false,
     });
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={organizationWithCodecovFeature}
-      />,
-      {organization: organizationWithCodecovFeature}
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: organizationWithCodecovFeature,
+    });
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -125,14 +121,14 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = Organization({features: ['customer-domains']});
+    const org = OrganizationFixture({features: ['customer-domains']});
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings {...defaultProps} organization={org} />);
+    render(<OrganizationGeneralSettings {...defaultProps} />, {organization: org});
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
@@ -157,9 +153,9 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('disables the entire form if user does not have write access', function () {
-    const readOnlyOrg = Organization({access: ['org:read']});
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
-    render(<OrganizationGeneralSettings {...defaultProps} organization={readOnlyOrg} />, {
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
       organization: readOnlyOrg,
     });
 
@@ -181,14 +177,11 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('does not have remove organization button without org:admin permission', function () {
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={Organization({
-          access: ['org:write'],
-        })}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({
+        access: ['org:write'],
+      }),
+    });
 
     expect(
       screen.queryByRole('button', {name: /remove organization/i})
@@ -198,12 +191,9 @@ describe('OrganizationGeneralSettings', function () {
   it('can remove organization when org admin', async function () {
     act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
-    render(
-      <OrganizationGeneralSettings
-        {...defaultProps}
-        organization={Organization({access: ['org:admin']})}
-      />
-    );
+    render(<OrganizationGeneralSettings {...defaultProps} />, {
+      organization: OrganizationFixture({access: ['org:admin']}),
+    });
     renderGlobalModal();
 
     const mock = MockApiClient.addMockResponse({

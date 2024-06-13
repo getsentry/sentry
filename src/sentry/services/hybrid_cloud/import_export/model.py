@@ -5,10 +5,9 @@
 
 from collections import defaultdict
 from enum import Enum, unique
-from typing import Any, Dict, Literal, Optional, Set, Tuple, Union
+from typing import Annotated, Any, Literal, Union
 
 from pydantic import Field, StrictInt, StrictStr
-from typing_extensions import Annotated
 
 from sentry.backup.dependencies import (
     ImportKind,
@@ -35,7 +34,7 @@ class RpcFilter(RpcModel):
     # strings here.
     #
     # TODO(getsentry/team-ospo#190): Unify with the base filter type.
-    values: Set[Union[StrictStr, StrictInt]]
+    values: set[StrictStr | StrictInt]
 
     def from_rpc(self) -> Filter:
         model = get_model(NormalizedModelName(self.model_name))
@@ -53,6 +52,12 @@ class RpcFilter(RpcModel):
         )
 
 
+class RpcPrimaryKeyEntry(RpcModel):
+    new_id: int
+    kind: ImportKind
+    slug: str | None
+
+
 class RpcPrimaryKeyMap(RpcModel):
     """
     Shadows `sentry.backup.dependencies.PrimaryKeyMap` for the purpose of passing it over an RPC
@@ -63,17 +68,30 @@ class RpcPrimaryKeyMap(RpcModel):
     """
 
     # Pydantic duplicates global default models on a per-instance basis, so using `{}` here is safe.
-    mapping: Dict[str, Dict[int, Tuple[int, ImportKind, Optional[str]]]] = {}
+    map_entries: dict[str, dict[int, RpcPrimaryKeyEntry]] = {}
 
     def from_rpc(self) -> PrimaryKeyMap:
         pk_map = PrimaryKeyMap()
-        pk_map.mapping = defaultdict(dict, self.mapping)
+        if self.map_entries:
+            pk_mapping: dict[str, dict[int, tuple[int, ImportKind, str | None]]] = defaultdict(dict)
+            for model_name, entries in self.map_entries.items():
+                entries_data = dict()
+                for old_id, entry in entries.items():
+                    entries_data[old_id] = (entry.new_id, entry.kind, entry.slug)
+                pk_mapping[model_name] = entries_data
+            pk_map.mapping = pk_mapping
         return pk_map
 
     @classmethod
     def into_rpc(cls, base_map: PrimaryKeyMap) -> "RpcPrimaryKeyMap":
         converted = cls()
-        converted.mapping = dict(base_map.mapping)
+        mapping_entries = dict()
+        for model_name, entries in base_map.mapping.items():
+            mapping_entries[model_name] = {
+                old_id: RpcPrimaryKeyEntry(new_id=entry[0], kind=entry[1], slug=entry[2])
+                for old_id, entry in entries.items()
+            }
+        converted.map_entries = mapping_entries
         return converted
 
 
@@ -102,7 +120,7 @@ class RpcImportFlags(RpcModel):
 
     merge_users: bool = False
     overwrite_configs: bool = False
-    import_uuid: Optional[str] = None
+    import_uuid: str | None = None
 
     def from_rpc(self) -> ImportFlags:
         return ImportFlags(
@@ -130,6 +148,7 @@ class RpcImportErrorKind(str, Enum):
     DeserializationFailed = "DeserializationFailed"
     IncorrectSiloModeForModel = "IncorrectSiloModeForModel"
     IntegrityError = "IntegrityError"
+    InvalidMinOrdinal = "InvalidMinOrdinal"
     MissingImportUUID = "MissingImportUUID"
     UnknownModel = "UnknownModel"
     UnexpectedModel = "UnexpectedModel"
@@ -147,8 +166,8 @@ class RpcImportError(RpcModel, Finding):
 
     # Include fields from `Finding` in this `RpcModel` derivative.
     on: InstanceID
-    left_pk: Optional[int] = None
-    right_pk: Optional[int] = None
+    left_pk: int | None = None
+    right_pk: int | None = None
     reason: str = ""
 
     def get_kind(self) -> RpcImportErrorKind:
@@ -157,7 +176,7 @@ class RpcImportError(RpcModel, Finding):
     def pretty(self) -> str:
         return f"RpcImportError(\n    kind: {self.get_kind().value},{self._pretty_inner()}\n)"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = dict(self)
         del d["is_err"]
         return d
@@ -171,12 +190,12 @@ class RpcImportOk(RpcModel):
 
     is_err: Literal[False] = False
     mapped_pks: RpcPrimaryKeyMap
-    min_ordinal: Optional[int] = None
-    max_ordinal: Optional[int] = None
-    min_source_pk: Optional[int] = None
-    max_source_pk: Optional[int] = None
-    min_inserted_pk: Optional[int] = None
-    max_inserted_pk: Optional[int] = None
+    min_ordinal: int | None = None
+    max_ordinal: int | None = None
+    min_source_pk: int | None = None
+    max_source_pk: int | None = None
+    min_inserted_pk: int | None = None
+    max_inserted_pk: int | None = None
 
 
 RpcImportResult = Annotated[Union[RpcImportOk, RpcImportError], Field(discriminator="is_err")]
@@ -235,8 +254,8 @@ class RpcExportError(RpcModel, Finding):
 
     # Include fields from `Finding` in this `RpcModel` derivative.
     on: InstanceID
-    left_pk: Optional[int] = None
-    right_pk: Optional[int] = None
+    left_pk: int | None = None
+    right_pk: int | None = None
     reason: str = ""
 
     def get_kind(self) -> RpcExportErrorKind:
@@ -245,7 +264,7 @@ class RpcExportError(RpcModel, Finding):
     def pretty(self) -> str:
         return f"RpcExportError(\n    kind: {self.get_kind().value},{self._pretty_inner()}\n)"
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         d = dict(self)
         del d["is_err"]
         return d

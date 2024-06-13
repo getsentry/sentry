@@ -1,21 +1,21 @@
-import {ReactNode} from 'react';
-import {browserHistory} from 'react-router';
-import {Location} from 'history';
+import type {ReactNode} from 'react';
+import type {Location} from 'history';
 import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {
-  EMPTY_OPTION_VALUE,
-  EmptyContainer,
-} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
+import {EmptyContainer} from 'sentry/views/starfish/views/spans/selectors/emptyOption';
 
 const {SPAN_ACTION} = SpanMetricsField;
 
@@ -33,6 +33,7 @@ export function ActionSelector({
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
   const location = useLocation();
+  const organization = useOrganization();
   const eventView = getEventView(location, moduleName, spanCategory);
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
@@ -72,6 +73,11 @@ export function ActionSelector({
       value={value}
       options={options ?? []}
       onChange={newValue => {
+        trackAnalytics('insight.general.select_action_value', {
+          organization,
+          source: moduleName,
+          value: newValue.value,
+        });
         browserHistory.push({
           ...location,
           query: {
@@ -81,9 +87,17 @@ export function ActionSelector({
           },
         });
       }}
+      styles={{
+        control: provided => ({
+          ...provided,
+          minWidth: MIN_WIDTH,
+        }),
+      }}
     />
   );
 }
+
+const MIN_WIDTH = 230;
 
 const HTTP_ACTION_OPTIONS = [
   {value: '', label: 'All'},
@@ -96,8 +110,15 @@ const HTTP_ACTION_OPTIONS = [
 const LABEL_FOR_MODULE_NAME: {[key in ModuleName]: ReactNode} = {
   http: t('HTTP Method'),
   db: t('SQL Command'),
+  cache: t('Action'),
+  vital: t('Action'),
+  queue: t('Action'),
+  screen_load: t('Action'),
+  app_start: t('Action'),
   resource: t('Resource'),
   other: t('Action'),
+  'mobile-ui': t('Action'),
+  ai: 'Action',
   '': t('Action'),
 };
 

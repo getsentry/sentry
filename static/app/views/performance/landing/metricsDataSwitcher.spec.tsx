@@ -1,4 +1,4 @@
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {addMetricsDataMock} from 'sentry-test/performance/addMetricsDataMock';
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
@@ -66,7 +66,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
     MockApiClient.addMockResponse({
@@ -133,7 +133,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
@@ -146,7 +146,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
 
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
   });
@@ -164,7 +164,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
 
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
   });
@@ -182,7 +182,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-single-project-incompatible')
@@ -204,7 +204,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-multi-project-incompatible')
@@ -226,7 +226,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-multi-project-all-incompatible')
@@ -246,7 +246,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-unnamed-discover')
@@ -266,7 +266,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-unnamed-discover-or-set')
@@ -286,7 +286,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
       features,
     });
 
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
+    wrapper = render(<WrappedComponent data={data} />);
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-unnamed-discover')

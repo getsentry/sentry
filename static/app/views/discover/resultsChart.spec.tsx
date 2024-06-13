@@ -1,6 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,7 +17,7 @@ describe('Discover > ResultsChart', function () {
     pathname: '/',
   });
 
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
     projects: [ProjectFixture()],
   });
@@ -59,7 +59,7 @@ describe('Discover > ResultsChart', function () {
         yAxis={['count()', 'failure_count()']}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await userEvent.click(screen.getByText(/Display/));
@@ -78,7 +78,7 @@ describe('Discover > ResultsChart', function () {
     });
   });
 
-  it('does not display a chart if no y axis is selected', function () {
+  it('does not display a chart if no y axis is selected', async function () {
     render(
       <ResultsChart
         router={RouterFixture()}
@@ -93,9 +93,9 @@ describe('Discover > ResultsChart', function () {
         yAxis={[]}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
-    expect(screen.getByText(/No Y-Axis selected/)).toBeInTheDocument();
+    expect(await screen.findByText(/No Y-Axis selected/)).toBeInTheDocument();
   });
 });

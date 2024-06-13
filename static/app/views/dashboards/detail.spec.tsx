@@ -1,11 +1,10 @@
-import {browserHistory} from 'react-router';
-import {Dashboard as DashboardFixture} from 'sentry-fixture/dashboard';
+import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {Organization} from 'sentry-fixture/organization';
-import {Project as ProjectFixture} from 'sentry-fixture/project';
-import {Release as ReleaseFixture} from 'sentry-fixture/release';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ReleaseFixture} from 'sentry-fixture/release';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
-import {Widget as WidgetFixture} from 'sentry-fixture/widget';
+import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -19,13 +18,14 @@ import {
 
 import * as modals from 'sentry/actionCreators/modal';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import CreateDashboard from 'sentry/views/dashboards/create';
 import * as types from 'sentry/views/dashboards/types';
 import ViewEditDashboard from 'sentry/views/dashboards/view';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 describe('Dashboards > Detail', function () {
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
   });
   const projects = [ProjectFixture()];
@@ -72,7 +72,7 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
+        url: '/organizations/org-slug/prompts-activity/',
         body: {},
       });
       MockApiClient.addMockResponse({
@@ -91,6 +91,10 @@ describe('Dashboards > Detail', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/releases/',
+        body: [],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/metrics/meta/',
         body: [],
       });
     });
@@ -141,7 +145,7 @@ describe('Dashboards > Detail', function () {
         ),
       });
       initialData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
           projects: [ProjectFixture()],
         }),
@@ -159,7 +163,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       expect(await screen.findByText('Default Widget 1')).toBeInTheDocument();
@@ -179,7 +183,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </CreateDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -353,8 +357,12 @@ describe('Dashboards > Detail', function () {
         body: [],
       });
       MockApiClient.addMockResponse({
-        url: '/prompts-activity/',
+        url: '/organizations/org-slug/prompts-activity/',
         body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/metrics/meta/',
+        body: [],
       });
     });
 
@@ -381,7 +389,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       await waitFor(() => expect(mockVisit).toHaveBeenCalledTimes(1));
@@ -437,7 +445,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       await waitFor(() =>
@@ -445,7 +453,8 @@ describe('Dashboards > Detail', function () {
           '/organizations/org-slug/events-stats/',
           expect.objectContaining({
             query: expect.objectContaining({
-              query: 'event.type:transaction transaction:/api/cats release:"abc@1.2.0" ',
+              query:
+                '(event.type:transaction transaction:/api/cats) release:"abc@1.2.0" ',
             }),
           })
         )
@@ -465,7 +474,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       // Enter edit mode.
@@ -480,7 +489,7 @@ describe('Dashboards > Detail', function () {
       });
 
       initialData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -503,7 +512,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
       expect(mockReleases).toHaveBeenCalledTimes(1);
@@ -525,7 +534,7 @@ describe('Dashboards > Detail', function () {
             {null}
           </ViewEditDashboard>
         </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
+        {router: initialData.router}
       );
 
       // Enter edit mode.
@@ -585,7 +594,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       expect(await screen.findByText('First Widget')).toBeInTheDocument();
@@ -628,7 +637,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -674,7 +683,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -722,7 +731,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await userEvent.click(await screen.findByText('Edit Dashboard'));
@@ -764,7 +773,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -794,7 +803,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       expect(await screen.findByText('All Releases')).toBeInTheDocument();
@@ -833,7 +842,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -876,7 +885,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -915,7 +924,7 @@ describe('Dashboards > Detail', function () {
           {null}
         </CreateDashboard>,
         {
-          context: initialData.routerContext,
+          router: initialData.router,
           organization: initialData.organization,
         }
       );
@@ -947,7 +956,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -982,7 +991,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: initialData.routerContext, organization: initialData.organization}
+        {router: initialData.router, organization: initialData.organization}
       );
 
       await waitFor(() => {
@@ -1005,7 +1014,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1033,7 +1042,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1069,7 +1078,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1096,7 +1105,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText('7D');
@@ -1105,18 +1114,20 @@ describe('Dashboards > Detail', function () {
       screen.getByText('All Releases');
       await userEvent.click(document.body);
 
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            release: '',
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              release: '',
+            }),
+          })
+        );
+      });
     });
 
     it('can save absolute time range in existing dashboard', async () => {
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1145,7 +1156,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('Save'));
@@ -1173,7 +1184,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1201,7 +1212,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText('7D');
@@ -1234,7 +1245,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1263,7 +1274,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
@@ -1293,7 +1304,7 @@ describe('Dashboards > Detail', function () {
       });
 
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1320,7 +1331,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await waitFor(() => expect(screen.queryAllByText('Loading\u2026')).toEqual([]));
@@ -1341,7 +1352,7 @@ describe('Dashboards > Detail', function () {
 
     it('uses releases from the URL query params', async function () {
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1368,7 +1379,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1388,7 +1399,7 @@ describe('Dashboards > Detail', function () {
         }),
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1415,7 +1426,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await screen.findByText(/not-selected-1/);
@@ -1447,7 +1458,7 @@ describe('Dashboards > Detail', function () {
         ],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1469,20 +1480,22 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('All Releases'));
       await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
       await userEvent.click(document.body);
 
-      expect(browserHistory.push).toHaveBeenCalledWith(
-        expect.objectContaining({
-          query: expect.objectContaining({
-            release: ['sentry-android-shop@1.2.0'],
-          }),
-        })
-      );
+      await waitFor(() => {
+        expect(browserHistory.push).toHaveBeenCalledWith(
+          expect.objectContaining({
+            query: expect.objectContaining({
+              release: ['sentry-android-shop@1.2.0'],
+            }),
+          })
+        );
+      });
     });
 
     it('persists release selections made during search requests that do not appear in default query', async function () {
@@ -1509,7 +1522,7 @@ describe('Dashboards > Detail', function () {
         match: [MockApiClient.matchData({query: 's'})],
       });
       const testData = initializeOrg({
-        organization: Organization({
+        organization: OrganizationFixture({
           features: [
             'global-views',
             'dashboards-basic',
@@ -1532,7 +1545,7 @@ describe('Dashboards > Detail', function () {
         >
           {null}
         </ViewEditDashboard>,
-        {context: testData.routerContext, organization: testData.organization}
+        {router: testData.router, organization: testData.organization}
       );
 
       await userEvent.click(await screen.findByText('All Releases'));

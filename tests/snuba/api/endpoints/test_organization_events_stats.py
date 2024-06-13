@@ -1,5 +1,5 @@
 import uuid
-from datetime import timedelta, timezone
+from datetime import timedelta
 from unittest import mock
 from uuid import uuid4
 
@@ -16,14 +16,12 @@ from sentry.models.transaction_threshold import ProjectTransactionThreshold, Tra
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-events-stats"
 
@@ -71,7 +69,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             )
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
         self.features = {}
 
@@ -99,7 +97,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc),
+            self.day_ago,
         )
         assert group_info is not None
         self.store_search_issue(
@@ -107,14 +105,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=1),
+            self.day_ago + timedelta(hours=1, minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(hours=1, minutes=2),
+            self.day_ago + timedelta(hours=1, minutes=2),
         )
         with self.feature(
             [
@@ -142,7 +140,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
+            self.day_ago + timedelta(minutes=1),
         )
         assert group_info is not None
         self.store_search_issue(
@@ -150,14 +148,14 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=1),
+            self.day_ago + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
             [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
-            self.day_ago.replace(tzinfo=timezone.utc) + timedelta(minutes=2),
+            self.day_ago + timedelta(minutes=2),
         )
         with self.feature(
             [
@@ -223,7 +221,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         self.login_as(user=self.user)
 
         url = reverse(
-            "sentry-api-0-organization-events-stats", kwargs={"organization_slug": org.slug}
+            "sentry-api-0-organization-events-stats", kwargs={"organization_id_or_slug": org.slug}
         )
         response = self.do_request({}, url)
 
@@ -824,7 +822,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
         assert mock_query.call_count == 1
 
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": []}])
+    @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": []}])
     def test_invalid_interval(self, mock_query):
         self.do_request(
             data={
@@ -867,7 +865,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
 
     @mock.patch("sentry.utils.snuba.quantize_time")
     def test_quantize_dates(self, mock_quantize):
-        mock_quantize.return_value = before_now(days=1).replace(tzinfo=timezone.utc)
+        mock_quantize.return_value = before_now(days=1)
         # Don't quantize short time periods
         self.do_request(
             data={"statsPeriod": "1h", "query": "", "interval": "30m", "yAxis": "count()"},
@@ -1108,7 +1106,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
 
-@region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -1208,7 +1205,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         }
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def test_no_top_events_with_project_field(self):
@@ -1324,6 +1321,32 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         other = data["Other"]
         assert other["order"] == 5
         assert [{"count": 3}] in [attrs for _, attrs in other["data"]]
+
+    def test_top_events_with_projects_other(self):
+        with self.feature(self.enabled_features):
+            response = self.client.get(
+                self.url,
+                data={
+                    "start": iso_format(self.day_ago),
+                    "end": iso_format(self.day_ago + timedelta(hours=2)),
+                    "interval": "1h",
+                    "yAxis": "count()",
+                    "orderby": ["-count()"],
+                    "field": ["count()", "project"],
+                    "topEvents": 1,
+                },
+                format="json",
+            )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert set(data.keys()) == {"Other", self.project.slug}
+
+        assert data[self.project.slug]["order"] == 0
+        assert [attrs[0]["count"] for _, attrs in data[self.project.slug]["data"]] == [15, 0]
+
+        assert data["Other"]["order"] == 1
+        assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
 
     def test_tag_with_conflicting_function_alias_simple(self):
         event_data = {
@@ -1533,6 +1556,9 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             response = self.client.get(self.url, data, format="json")
             assert response.status_code == 400
 
+    @pytest.mark.xfail(
+        reason="The response is wrong whenever we have a top events timeseries on project + any other field + aggregation"
+    )
     def test_top_events_with_projects(self):
         with self.feature(self.enabled_features):
             response = self.client.get(
@@ -1937,7 +1963,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         project = self.create_project()
         prototype = load_data("android-ndk")
         prototype["event_id"] = "f" * 32
-        prototype["message"] = "not handled"
+        prototype["logentry"] = {"formatted": "not handled"}
         prototype["exception"]["values"][0]["value"] = "not handled"
         prototype["exception"]["values"][0]["mechanism"]["handled"] = False
         prototype["timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
@@ -2341,7 +2367,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert other["order"] == 5
         assert [{"count": 0.03}] in [attrs for _, attrs in other["data"]]
 
-    @mock.patch("sentry.snuba.discover.bulk_snql_query", return_value=[{"data": [], "meta": []}])
+    @mock.patch("sentry.snuba.discover.bulk_snuba_queries", return_value=[{"data": [], "meta": []}])
     @mock.patch(
         "sentry.search.events.builder.discover.raw_snql_query",
         return_value={"data": [], "meta": []},
@@ -2597,7 +2623,6 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert response.status_code == 200
 
 
-@region_silo_test
 class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
     APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
 ):
@@ -2615,7 +2640,7 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def test_functions_dataset_simple(self):
@@ -2663,7 +2688,6 @@ class OrganizationEventsStatsProfileFunctionDatasetEndpointTest(
             }
 
 
-@region_silo_test
 class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
     APITestCase, ProfilesSnubaTestCase, SearchIssueTestMixin
 ):
@@ -2681,7 +2705,7 @@ class OrganizationEventsStatsTopNEventsProfileFunctionDatasetEndpointTest(
 
         self.url = reverse(
             "sentry-api-0-organization-events-stats",
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
     def test_functions_dataset_simple(self):

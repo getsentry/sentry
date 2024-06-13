@@ -1,4 +1,5 @@
-import {LinkButton, LinkButtonProps} from 'sentry/components/button';
+import type {LinkButtonProps} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';

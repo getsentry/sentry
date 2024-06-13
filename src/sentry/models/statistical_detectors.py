@@ -1,15 +1,15 @@
+from collections.abc import Sequence
 from enum import Enum
-from typing import Optional, Sequence, Tuple
 
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedIntegerField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
@@ -19,7 +19,7 @@ class RegressionType(Enum):
     FUNCTION = 1
 
     @classmethod
-    def as_choices(cls) -> Sequence[Tuple[int, str]]:
+    def as_choices(cls) -> Sequence[tuple[int, str]]:
         return (
             (cls.ENDPOINT.value, "endpoint"),
             (cls.FUNCTION.value, "function"),
@@ -33,7 +33,7 @@ class RegressionType(Enum):
         raise ValueError(f"Unknown regression type: {self}")
 
 
-@region_silo_only_model
+@region_silo_model
 class RegressionGroup(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -74,15 +74,15 @@ class RegressionGroup(Model):
     regressed = models.FloatField()
 
     class Meta:
-        index_together = (("type", "project_id", "fingerprint", "active"),)
+        indexes = (models.Index(fields=("type", "project_id", "fingerprint", "active")),)
         unique_together = (("type", "project_id", "fingerprint", "version"),)
 
     __repr__ = sane_repr("active", "version", "type", "project_id", "fingerprint")
 
 
 def get_regression_groups(
-    regression_type: RegressionType, pairs: Sequence[Tuple[int, str]], active: Optional[bool] = None
-) -> Sequence[RegressionGroup]:
+    regression_type: RegressionType, pairs: Sequence[tuple[int, str]], active: bool | None = None
+) -> QuerySet[RegressionGroup]:
     conditions = Q()
     for project_id, fingerprint in pairs:
         conditions |= Q(project_id=project_id, fingerprint=fingerprint)

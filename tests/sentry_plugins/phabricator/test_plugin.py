@@ -2,8 +2,11 @@ from functools import cached_property
 
 import responses
 from django.test import RequestFactory
+from pytest import raises
 
+from sentry.exceptions import PluginError
 from sentry.testutils.cases import PluginTestCase
+from sentry.testutils.helpers import override_blocklist
 from sentry_plugins.phabricator.plugin import PhabricatorPlugin
 
 
@@ -43,3 +46,14 @@ class PhabricatorPluginTest(PluginTestCase):
         assert self.plugin.is_configured(None, self.project) is False
         self.plugin.set_option("certificate", "a-certificate", self.project)
         assert self.plugin.is_configured(None, self.project) is True
+
+    @override_blocklist("127.0.0.1")
+    def test_invalid_url(self):
+        with raises(PluginError):
+            self.plugin.validate_config_field(
+                project=self.project, name="host", value="ftp://example.com"
+            )
+        with raises(PluginError):
+            self.plugin.validate_config_field(
+                project=self.project, name="host", value="http://127.0.0.1"
+            )

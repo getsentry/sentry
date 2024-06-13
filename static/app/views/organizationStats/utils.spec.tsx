@@ -1,10 +1,9 @@
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {
-  BILLION,
-  formatUsageWithUnits,
-  GIGABYTE,
-  MILLION,
-} from 'sentry/views/organizationStats/utils';
+import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
+
+const MILLION = 10 ** 6;
+const BILLION = 10 ** 9;
+const GIGABYTE = 10 ** 9;
 
 describe('formatUsageWithUnits', function () {
   it('returns correct strings for Errors', function () {
@@ -148,5 +147,19 @@ describe('formatUsageWithUnits', function () {
         useUnitScaling: true,
       })
     ).toBe('1.23 TB');
+  });
+
+  it('should format profile duration correctly', function () {
+    const hourInMs = 1000 * 60 * 60;
+    expect(formatUsageWithUnits(0, DATA_CATEGORY_INFO.profileDuration.plural)).toBe('0');
+    expect(
+      formatUsageWithUnits(7.6 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('7.6');
+    expect(
+      formatUsageWithUnits(hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('1');
+    expect(
+      formatUsageWithUnits(24 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('24');
   });
 });

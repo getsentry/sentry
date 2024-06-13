@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable, List, Type
+from collections.abc import Callable
 
 from django.http import HttpRequest
 from django.http.response import HttpResponseBase
 
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ ResponseHandler = Callable[[HttpRequest], HttpResponseBase]
 
 
 class IntegrationControlMiddleware:
-    classifications: List[Type[BaseClassification]] = [
+    classifications: list[type[BaseClassification]] = [
         IntegrationClassification,
         PluginClassification,
     ]
@@ -40,7 +40,7 @@ class IntegrationControlMiddleware:
         return SiloMode.get_current_mode() == SiloMode.CONTROL
 
     @classmethod
-    def register_classifications(cls, classifications: List[Type[BaseClassification]]):
+    def register_classifications(cls, classifications: list[type[BaseClassification]]):
         """
         Add new classifications for middleware to determine request parsing dynamically.
         Used in getsentry to expand scope of parsing.

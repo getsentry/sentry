@@ -1,24 +1,19 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Project} from 'sentry-fixture/project';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {EntryType} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {EntryType} from 'sentry/types/event';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
 
-jest.mock('sentry/utils/useOrganization');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('DatabaseSpanDescription', function () {
-  const organization = Organization({
-    features: ['performance-database-view-query-source'],
-  });
-  jest.mocked(useOrganization).mockReturnValue(organization);
+  const organization = OrganizationFixture();
 
-  const project = Project();
+  const project = ProjectFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -51,7 +46,8 @@ describe('DatabaseSpanDescription', function () {
       <DatabaseSpanDescription
         groupId={groupId}
         preliminaryDescription="SELECT USERS FRO*"
-      />
+      />,
+      {organization}
     );
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -95,12 +91,15 @@ describe('DatabaseSpanDescription', function () {
       <DatabaseSpanDescription
         groupId={groupId}
         preliminaryDescription="SELECT USERS FRO*"
-      />
+      />,
+      {organization}
     );
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(screen.getByText('SELECT users FROM my_table LIMIT 1;')).toBeInTheDocument();
+    expect(
+      await screen.findByText('SELECT users FROM my_table LIMIT 1;')
+    ).toBeInTheDocument();
   });
 
   it('shows query source if available', async function () {
@@ -149,7 +148,9 @@ describe('DatabaseSpanDescription', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    expect(screen.getByText('SELECT users FROM my_table LIMIT 1;')).toBeInTheDocument();
+    expect(
+      await screen.findByText('SELECT users FROM my_table LIMIT 1;')
+    ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher('/app/views/users.py at line 78'))
     ).toBeInTheDocument();

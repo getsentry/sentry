@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, Collection, Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
+from typing import Any
 
 import sentry_sdk
 from sentry_sdk import configure_scope
@@ -69,7 +70,7 @@ class RepositoryMixin:
         return self.format_source_url(repo, filepath, branch)
 
     def get_stacktrace_link(
-        self, repo: Repository, filepath: str, default: str, version: str
+        self, repo: Repository, filepath: str, default: str, version: str | None
     ) -> str | None:
         """
         Handle formatting and returning back the stack trace link if the client
@@ -121,9 +122,9 @@ class RepositoryMixin:
 
     def reinstall_repositories(self) -> None:
         """Reinstalls repositories associated with the integration."""
-        _, installs = integration_service.get_organization_contexts(integration_id=self.model.id)
+        result = integration_service.organization_contexts(integration_id=self.model.id)
 
-        for install in installs:
+        for install in result.organization_integrations:
             repository_service.reinstall_repositories_for_integration(
                 organization_id=install.organization_id,
                 integration_id=self.model.id,
@@ -155,7 +156,7 @@ class RepositoryMixin:
             html_url = self.check_file(repo, filepath, ref)
             if html_url:
                 try:
-                    contents = self.get_client().get_file(repo, filepath, ref)
+                    contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
                 except ApiError:
                     continue
                 return {"filepath": filepath, "html_url": html_url, "raw": contents}

@@ -4,9 +4,7 @@ import {useEffect, useState} from 'react';
  * Hook that updates when a media query result changes
  */
 export default function useMedia(query: string) {
-  const [state, setState] = useState(
-    () => window.matchMedia && window.matchMedia(query)?.matches
-  );
+  const [state, setState] = useState(() => window.matchMedia?.(query)?.matches);
 
   useEffect(() => {
     let mounted = true;

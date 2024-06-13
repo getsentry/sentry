@@ -16,13 +16,15 @@ from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
+url_name = "sentry-api-0-projets"
+
 
 @control_silo_test(regions=[ApiGatewayTestCase.REGION], include_monolith_run=True)
 class ProxyTestCase(ApiGatewayTestCase):
     @responses.activate
-    def test_simple(self):
+    def test_simple(self) -> None:
         request = RequestFactory().get("http://sentry.io/get")
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
         assert resp.status_code == 200
         assert resp_json["proxy"]
@@ -32,7 +34,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/get"
 
         request = RequestFactory().get("http://sentry.io/error")
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
         assert resp.status_code == 400
         assert resp_json["proxy"]
@@ -42,13 +44,13 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/error"
 
     @responses.activate
-    def test_query_params(self):
+    def test_query_params(self) -> None:
 
         query_param_dict = dict(foo="bar", numlist=["1", "2", "3"])
         query_param_str = urlencode(query_param_dict, doseq=True)
         request = RequestFactory().get(f"http://sentry.io/echo?{query_param_str}")
 
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
@@ -57,13 +59,13 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert query_param_dict["numlist"] == resp_json["numlist"]
 
     @responses.activate
-    def test_bad_org(self):
+    def test_bad_org(self) -> None:
         request = RequestFactory().get("http://sentry.io/get")
-        resp = proxy_request(request, "doesnotexist")
+        resp = proxy_request(request, "doesnotexist", url_name)
         assert resp.status_code == 404
 
     @responses.activate
-    def test_post(self):
+    def test_post(self) -> None:
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.POST,
@@ -74,7 +76,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().post(
             "http://sentry.io/post", data=request_body, content_type="application/json"
         )
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
@@ -83,7 +85,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/post"
 
     @responses.activate
-    def test_put(self):
+    def test_put(self) -> None:
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.PUT,
@@ -94,7 +96,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().put(
             "http://sentry.io/put", data=request_body, content_type="application/json"
         )
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
@@ -103,7 +105,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/put"
 
     @responses.activate
-    def test_patch(self):
+    def test_patch(self) -> None:
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.PATCH,
@@ -114,7 +116,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().patch(
             "http://sentry.io/patch", data=request_body, content_type="application/json"
         )
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
@@ -123,7 +125,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/patch"
 
     @responses.activate
-    def test_head(self):
+    def test_head(self) -> None:
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.HEAD,
@@ -134,7 +136,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().head(
             "http://sentry.io/head", data=request_body, content_type="application/json"
         )
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
@@ -143,7 +145,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/head"
 
     @responses.activate
-    def test_delete(self):
+    def test_delete(self) -> None:
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.DELETE,
@@ -154,7 +156,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().delete(
             "http://sentry.io/delete", data=request_body, content_type="application/json"
         )
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
@@ -163,7 +165,7 @@ class ProxyTestCase(ApiGatewayTestCase):
         assert resp[PROXY_DIRECT_LOCATION_HEADER] == "http://us.internal.sentry.io/delete"
 
     @responses.activate
-    def test_file_upload(self):
+    def test_file_upload(self) -> None:
         foo = dict(test="a", file="b", what="c")
         contents = json.dumps(foo).encode()
         request_body = {
@@ -179,14 +181,14 @@ class ProxyTestCase(ApiGatewayTestCase):
         request = RequestFactory().post(
             "http://sentry.io/post", data=request_body, format="multipart"
         )
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
 
     @responses.activate
-    def test_alternate_content_type(self):
+    def test_alternate_content_type(self) -> None:
         # Check form encoded files also work
         foo = dict(test="a", file="b", what="c")
         contents = urlencode(foo, doseq=True).encode("utf-8")
@@ -201,14 +203,14 @@ class ProxyTestCase(ApiGatewayTestCase):
             data=request_body,
             content_type="application/x-www-form-urlencoded",
         )
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         resp_json = json.loads(close_streaming_response(resp))
 
         assert resp.status_code == 200
         assert resp_json["proxy"]
 
     @responses.activate
-    def test_strip_request_headers(self):
+    def test_strip_request_headers(self) -> None:
         request_body = {"foo": "bar", "nested": {"int_list": [1, 2, 3]}}
         responses.add_callback(
             responses.POST,
@@ -229,5 +231,5 @@ class ProxyTestCase(ApiGatewayTestCase):
             },
         )
 
-        resp = proxy_request(request, self.organization.slug)
+        resp = proxy_request(request, self.organization.slug, url_name)
         assert not any([header in resp for header in INVALID_OUTBOUND_HEADERS])

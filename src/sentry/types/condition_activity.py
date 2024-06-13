@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Dict
+from typing import Any
 
 FREQUENCY_CONDITION_BUCKET_SIZE = timedelta(minutes=5)
 
@@ -21,7 +21,7 @@ class ConditionActivity:
     group_id: int
     type: ConditionActivityType
     timestamp: datetime
-    data: Dict[str, Any] = field(default_factory=dict)
+    data: dict[str, Any] = field(default_factory=dict)
 
 
 def round_to_five_minute(time: datetime) -> datetime:

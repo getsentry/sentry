@@ -35,10 +35,15 @@ class TeamPermission(OrganizationPermission):
 class TeamEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (TeamPermission,)
 
-    def convert_args(self, request: Request, organization_slug, team_slug, *args, **kwargs):
+    def convert_args(
+        self, request: Request, organization_id_or_slug, team_id_or_slug, *args, **kwargs
+    ):
         try:
             team = (
-                Team.objects.filter(organization__slug=organization_slug, slug=team_slug)
+                Team.objects.filter(
+                    organization__slug__id_or_slug=organization_id_or_slug,
+                    slug__id_or_slug=team_id_or_slug,
+                )
                 .select_related("organization")
                 .get()
             )

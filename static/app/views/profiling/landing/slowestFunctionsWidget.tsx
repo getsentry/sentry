@@ -1,5 +1,5 @@
-import {CSSProperties, Fragment, ReactNode, useCallback, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
+import type {CSSProperties, ReactNode} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -18,8 +18,9 @@ import {IconChevron, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {Frame} from 'sentry/utils/profiling/frame';
-import {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
+import type {EventsResultsDataRow} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctions} from 'sentry/utils/profiling/hooks/useProfileFunctions';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -42,7 +43,10 @@ import {
 const MAX_FUNCTIONS = 3;
 const DEFAULT_CURSOR_NAME = 'slowFnCursor';
 
+type BreakdownFunction = 'avg()' | 'p50()' | 'p75()' | 'p95()' | 'p99()';
+
 interface SlowestFunctionsWidgetProps {
+  breakdownFunction: BreakdownFunction;
   cursorName?: string;
   header?: ReactNode;
   userQuery?: string;
@@ -50,6 +54,7 @@ interface SlowestFunctionsWidgetProps {
 }
 
 export function SlowestFunctionsWidget({
+  breakdownFunction,
   cursorName = DEFAULT_CURSOR_NAME,
   header,
   userQuery,
@@ -148,6 +153,7 @@ export function SlowestFunctionsWidget({
               return (
                 <SlowestFunctionEntry
                   key={`${f['project.id']}-${f.package}-${f.function}`}
+                  breakdownFunction={breakdownFunction}
                   isExpanded={i === expandedIndex}
                   setExpanded={() => {
                     const nextIndex = expandedIndex !== i ? i : (i + 1) % l.length;
@@ -167,6 +173,7 @@ export function SlowestFunctionsWidget({
 }
 
 interface SlowestFunctionEntryProps {
+  breakdownFunction: BreakdownFunction;
   func: EventsResultsDataRow<FunctionsField>;
   isExpanded: boolean;
   query: string;
@@ -177,6 +184,7 @@ interface SlowestFunctionEntryProps {
 const BARS = 10;
 
 function SlowestFunctionEntry({
+  breakdownFunction,
   func,
   isExpanded,
   query,
@@ -218,7 +226,7 @@ function SlowestFunctionEntry({
   }, [func, query]);
 
   const functionTransactionsQuery = useProfileFunctions<FunctionTransactionField>({
-    fields: functionTransactionsFields,
+    fields: [...functionTransactionsFields, breakdownFunction],
     referrer: 'api.profiling.suspect-functions.transactions',
     sort: {
       key: 'sum()',
@@ -280,7 +288,7 @@ function SlowestFunctionEntry({
                 <TextOverflow>{t('Count')}</TextOverflow>
               </TransactionsListHeader>
               <TransactionsListHeader align="right">
-                <TextOverflow>{t('P75()')}</TextOverflow>
+                <TextOverflow>{breakdownFunction.toUpperCase()}</TextOverflow>
               </TransactionsListHeader>
               <TransactionsListHeader align="right">
                 <TextOverflow>{t('Time Spent')}</TextOverflow>
@@ -324,7 +332,7 @@ function SlowestFunctionEntry({
                     </TransactionsListCell>
                     <TransactionsListCell align="right">
                       <PerformanceDuration
-                        nanoseconds={transaction['p75()'] as number}
+                        nanoseconds={transaction[breakdownFunction] as number}
                         abbreviation
                       />
                     </TransactionsListCell>
@@ -360,15 +368,19 @@ const totalsFields = ['project.id', 'sum()'] as const;
 
 type TotalsField = (typeof totalsFields)[number];
 
-const functionTransactionsFields = [
+type FunctionTransactionField =
+  | BreakdownFunction
+  | 'transaction'
+  | 'count()'
+  | 'sum()'
+  | 'examples()';
+
+const functionTransactionsFields: FunctionTransactionField[] = [
   'transaction',
   'count()',
-  'p75()',
   'sum()',
   'examples()',
-] as const;
-
-type FunctionTransactionField = (typeof functionTransactionsFields)[number];
+];
 
 const StyledPagination = styled(Pagination)`
   margin: 0;
@@ -391,8 +403,8 @@ const FunctionName = styled(TextOverflow)`
 const TransactionsList = styled('div')`
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto auto;
-  grid-template-rows: 18px auto auto auto auto auto;
+  grid-template-columns: minmax(0, 1fr) repeat(3, auto);
+  grid-template-rows: 18px repeat(5, min-content);
   column-gap: ${space(1)};
   padding: ${space(0)} ${space(2)};
 `;
@@ -402,7 +414,7 @@ const TransactionsListHeader = styled('span')<{
 }>`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   text-align: ${p => p.align};
 `;
