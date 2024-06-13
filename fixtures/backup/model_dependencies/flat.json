@@ -399,7 +399,8 @@
   "sentry.incident": [
     "sentry.alertrule",
     "sentry.alertruleactivations",
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.querysubscription"
   ],
   "sentry.incidentactivity": [
     "sentry.incident",
