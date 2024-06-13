@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import itertools
+import logging
 import re
 from collections.abc import Generator
 from typing import Any
-
-import sentry_sdk
 
 from sentry.eventstore.models import Event
 from sentry.grouping.component import GroupingComponent, calculate_tree_label
@@ -24,6 +23,8 @@ from sentry.interfaces.exception import Mechanism, SingleException
 from sentry.interfaces.stacktrace import Frame, Stacktrace
 from sentry.interfaces.threads import Threads
 from sentry.stacktraces.platform import get_behavior_family_for_platform
+
+logger = logging.getLogger(__name__)
 
 _ruby_erb_func = re.compile(r"__\d{4,}_\d{4,}$")
 _basename_re = re.compile(r"[/\\]")
@@ -699,8 +700,14 @@ def chained_exception(
         )
     except Exception:
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
-        sentry_sdk.capture_exception()
+        logging.exception(
+            "Failed to filter exceptions for exception groups. Continuing with original list."
+        )
         exceptions = all_exceptions
+
+    main_exception_id = determine_main_exception_id(exceptions)
+    if main_exception_id:
+        event.data["main_exception_id"] = main_exception_id
 
     # Case 1: we have a single exception, use the single exception
     # component directly to avoid a level of nesting
@@ -899,3 +906,35 @@ def threads_variant_processor(
     variants: ReturnedVariants, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
     return remove_non_stacktrace_variants(variants)
+
+
+REACT_ERRORS_WITH_CAUSE = [
+    "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+    "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary.",
+]
+
+
+def react_error_with_cause(exceptions: list[SingleException]) -> int | None:
+    main_exception_id = None
+    # Starting with React 19, errors can also contain a cause error which
+    # is useful to display instead of the default message
+    if (
+        exceptions[0].type == "Error"
+        and exceptions[0].value in REACT_ERRORS_WITH_CAUSE
+        and exceptions[-1].mechanism.source == "cause"
+    ):
+        main_exception_id = exceptions[-1].mechanism.exception_id
+    return main_exception_id
+
+
+def determine_main_exception_id(exceptions: list[SingleException]) -> int | None:
+    MAIN_EXCEPTION_ID_FUNCS = [
+        react_error_with_cause,
+    ]
+    main_exception_id = None
+    for func in MAIN_EXCEPTION_ID_FUNCS:
+        main_exception_id = func(exceptions)
+        if main_exception_id is not None:
+            break
+
+    return main_exception_id
