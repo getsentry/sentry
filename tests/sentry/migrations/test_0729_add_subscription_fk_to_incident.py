@@ -140,7 +140,7 @@ class AlertRuleProjectBackfillTest(TestMigrations):
 
         self.incident_existing_sub.refresh_from_db()
         assert self.incident.subscription is not None
-        assert self.incident.subscription == self.self.query_subscription_existing_sub
+        assert self.incident.subscription == self.query_subscription_existing_sub
 
         self.incident_no_sub.refresh_from_db()
         assert not self.incident_no_sub.subscription
