@@ -1456,9 +1456,11 @@ class CollisionTests(ImportTestCase):
 
             # After exporting and clearing the database, insert a copy of the same `OrgAuthToken` as
             # the one found in the import.
+            new_user = self.create_user("new")
             org = self.create_organization()
 
             with assume_test_silo_mode(SiloMode.CONTROL):
+                colliding.created_by = new_user
                 colliding.organization_id = org.id
                 colliding.project_last_used_id = self.create_project(organization=org).id
                 colliding.save()

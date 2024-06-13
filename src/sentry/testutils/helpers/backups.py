@@ -41,7 +41,6 @@ from sentry.backup.helpers import Printer
 from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
-from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.incidents.models.alert_rule import AlertRuleMonitorType
 from sentry.incidents.models.incident import (
@@ -53,6 +52,7 @@ from sentry.incidents.models.incident import (
     TimeSeriesSnapshot,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.models.activity import Activity
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apikey import ApiKey
@@ -69,7 +69,12 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetTypes,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
+from sentry.models.groupassignee import GroupAssignee
+from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.groupsearchview import GroupSearchView
+from sentry.models.groupseen import GroupSeen
+from sentry.models.groupshare import GroupShare
+from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.project_integration import ProjectIntegration
@@ -369,7 +374,7 @@ class ExhaustiveFixtures(Fixtures):
         accepted_invites: dict[User, list[User]] | None = None,
     ) -> Organization:
         org = self.create_organization(name=slug, owner=owner)
-        owner_id: BoundedBigAutoField = owner.id
+        owner_id: int = owner.id
         invited = self.create_member(organization=org, user=member, role="member")
         if other_members:
             for user in other_members:
@@ -397,7 +402,7 @@ class ExhaustiveFixtures(Fixtures):
         # Team
         team = self.create_team(name=f"test_team_in_{slug}", organization=org)
         self.create_team_membership(user=owner, team=team)
-        OrganizationAccessRequest.objects.create(member=invited, team=team)
+        OrganizationAccessRequest.objects.create(member=invited, team=team, requester_id=owner_id)
 
         # Project*
         project_template = ProjectTemplate.objects.create(name=f"template-{slug}", organization=org)
@@ -428,8 +433,10 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # Rule*
-        rule = self.create_project_rule(project=project)
-        RuleActivity.objects.create(rule=rule, type=RuleActivityType.CREATED.value)
+        rule = self.create_project_rule(project=project, owner_user_id=owner_id)
+        RuleActivity.objects.create(
+            rule=rule, type=RuleActivityType.CREATED.value, user_id=owner_id
+        )
         self.snooze_rule(user_id=owner_id, owner_id=owner_id, rule=rule)
         NeglectedRule.objects.create(
             rule=rule,
@@ -439,6 +446,7 @@ class ExhaustiveFixtures(Fixtures):
             sent_final_email_date=timezone.now(),
         )
         CustomDynamicSamplingRule.update_or_create(
+            created_by_id=owner_id,
             condition={"op": "equals", "name": "environment", "value": "prod"},
             start=timezone.now(),
             end=timezone.now() + timedelta(hours=1),
@@ -458,6 +466,7 @@ class ExhaustiveFixtures(Fixtures):
             project_id=project.id,
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            owner_user_id=owner_id,
         )
 
         # AlertRule*
@@ -467,7 +476,10 @@ class ExhaustiveFixtures(Fixtures):
             projects=[project],
             include_all_projects=True,
             excluded_projects=[other_project],
+            user=owner,
         )
+        alert.user_id = owner_id
+        alert.save()
         trigger = self.create_alert_rule_trigger(alert_rule=alert, excluded_projects=[project])
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         activated_alert = self.create_alert_rule(
@@ -492,6 +504,7 @@ class ExhaustiveFixtures(Fixtures):
             incident=incident,
             type=1,
             comment=f"hello {slug}",
+            user_id=owner_id,
         )
         IncidentSnapshot.objects.create(
             incident=incident,
@@ -549,6 +562,7 @@ class ExhaustiveFixtures(Fixtures):
             name=f"Saved query for {slug}",
             query=f"saved query for {slug}",
             visibility=Visibility.ORGANIZATION,
+            owner_id=owner_id,
         )
 
         # misc
@@ -563,7 +577,8 @@ class ExhaustiveFixtures(Fixtures):
         repo.external_id = "https://git.example.com:1234"
         repo.save()
 
-        # View
+        # Group*
+        group = self.create_group(project=project)
         GroupSearchView.objects.create(
             name=f"View 1 for {slug}",
             user_id=owner_id,
@@ -572,6 +587,18 @@ class ExhaustiveFixtures(Fixtures):
             query_sort="date",
             position=0,
         )
+        Activity.objects.create(
+            project=project,
+            group=group,
+            user_id=owner_id,
+            type=1,
+        )
+        for group_model in {GroupAssignee, GroupBookmark, GroupSeen, GroupShare, GroupSubscription}:
+            group_model.objects.create(
+                project=project,
+                group=group,
+                user_id=owner_id,
+            )
 
         return org
 
@@ -592,6 +619,7 @@ class ExhaustiveFixtures(Fixtures):
         )
         OrgAuthToken.objects.create(
             organization_id=org.id,
+            created_by=owner,
             name=f"token 1 for {org.slug}",
             token_hashed=f"ABCDEF{org.slug}",
             token_last_characters="xyz1",

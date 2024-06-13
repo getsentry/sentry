@@ -26,6 +26,7 @@ from sentry.backup.dependencies import (
     NormalizedModelName,
     PrimaryKeyMap,
     get_model_name,
+    merge_users_for_model_in_org,
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -45,6 +46,7 @@ from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -332,7 +334,7 @@ class User(BaseModel, AbstractBaseUser):
             shard_identifier=identifier,
         )
 
-    def merge_to(from_user, to_user):
+    def merge_to(from_user: User, to_user: User) -> None:
         # TODO: we could discover relations automatically and make this useful
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.models.authenticator import Authenticator
@@ -343,19 +345,34 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
         from sentry.models.useremail import UserEmail
 
+        from_user_id = from_user.id
+        to_user_id = to_user.id
+
         audit_logger.info(
-            "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
+            "user.merge", extra={"from_user_id": from_user_id, "to_user_id": to_user_id}
         )
 
         organization_ids: list[int]
         organization_ids = OrganizationMemberMapping.objects.filter(
-            user_id=from_user.id
+            user_id=from_user_id
         ).values_list("organization_id", flat=True)
 
         for organization_id in organization_ids:
             organization_service.merge_users(
-                organization_id=organization_id, from_user_id=from_user.id, to_user_id=to_user.id
+                organization_id=organization_id, from_user_id=from_user_id, to_user_id=to_user_id
             )
+
+            # Update all organization control models to only use the new user id.
+            #
+            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
+            model_set: set[type[BaseModel]] = {OrgAuthToken, OrganizationMemberMapping}
+            for model in model_set:
+                merge_users_for_model_in_org(
+                    model,
+                    organization_id=organization_id,
+                    from_user_id=from_user_id,
+                    to_user_id=to_user_id,
+                )
 
         model_list: tuple[type[BaseModel], ...] = (
             Authenticator,
@@ -366,10 +383,10 @@ class User(BaseModel, AbstractBaseUser):
         )
 
         for model in model_list:
-            for obj in model.objects.filter(user_id=from_user.id):
+            for obj in model.objects.filter(user_id=from_user_id):
                 try:
                     with transaction.atomic(using=router.db_for_write(User)):
-                        obj.update(user_id=to_user.id)
+                        obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass
 
@@ -385,7 +402,7 @@ class User(BaseModel, AbstractBaseUser):
             for ai in AuthIdentity.objects.filter(
                 user=from_user,
                 auth_provider__organization_id__in=AuthIdentity.objects.filter(
-                    user_id=to_user.id
+                    user_id=to_user_id
                 ).values("auth_provider__organization_id"),
             ):
                 ai.delete()
