@@ -69,9 +69,10 @@ describe('AlertWizard', () => {
     expect(screen.getByText('Errors')).toBeInTheDocument();
     expect(screen.getByText('Sessions')).toBeInTheDocument();
     expect(screen.getByText('Performance')).toBeInTheDocument();
+    expect(screen.getByText('LLM Monitoring')).toBeInTheDocument();
     expect(screen.getByText('Custom')).toBeInTheDocument();
     const alertGroups = screen.getAllByRole('radiogroup');
-    expect(alertGroups.length).toEqual(4);
+    expect(alertGroups.length).toEqual(5);
   });
 
   it('should only render alerts for errors in self-hosted errors only', () => {

@@ -115,12 +115,10 @@ export const getAlertWizardCategories = (org: Organization) => {
         ...(hasCustomMetrics(org) ? (['custom_transactions'] satisfies AlertType[]) : []),
       ],
     });
-    if (org.features.includes('ai-analytics')) {
-      result.push({
-        categoryHeading: LLM_MONITORING_MODULE_TITLE,
-        options: ['llm_tokens', 'llm_cost'],
-      });
-    }
+    result.push({
+      categoryHeading: LLM_MONITORING_MODULE_TITLE,
+      options: ['llm_tokens', 'llm_cost'],
+    });
     result.push({
       categoryHeading: hasCustomMetrics(org) ? t('Metrics') : t('Custom'),
       options: [hasCustomMetrics(org) ? 'custom_metrics' : 'custom_transactions'],
