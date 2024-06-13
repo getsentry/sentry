@@ -92,7 +92,14 @@ export function useQueryBuilderGrid(
         }
       }
 
-      originalGridProps.onKeyDown?.(e);
+      switch (e.key) {
+        // Default behavior for these keys is to move the focus, which we don't want
+        case 'ArrowUp':
+        case 'ArrowDown':
+          break;
+        default:
+          originalGridProps.onKeyDown?.(e);
+      }
     },
     [dispatch, originalGridProps, query, state.collection, state.selectionManager]
   );
