@@ -118,7 +118,7 @@ interface BulkEditResponse {
 export async function bulkEditMonitors(
   api: Client,
   orgId: string,
-  slugs: string[],
+  ids: string[],
   operation: BulkEditOperation
 ): Promise<BulkEditResponse | null> {
   addLoadingMessage();
@@ -128,7 +128,7 @@ export async function bulkEditMonitors(
       `/organizations/${orgId}/monitors/`,
       {
         method: 'PUT',
-        data: {...operation, slugs},
+        data: {...operation, ids},
       }
     );
     clearIndicators();
