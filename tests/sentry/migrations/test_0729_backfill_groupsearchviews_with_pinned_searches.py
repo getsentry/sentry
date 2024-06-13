@@ -4,8 +4,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
-    migrate_from = "0725_create_sentry_groupsearchview_table"
-    migrate_to = "0726_backfill_groupsearchviews_with_pinned_searches"
+    migrate_from = "0728_incident_subscription_fk"
+    migrate_to = "0729_backfill_groupsearchviews_with_pinned_searches"
 
     def setup_initial_state(self):
         self.user = self.create_user()
