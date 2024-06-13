@@ -4,7 +4,7 @@ from snuba_sdk.legacy import json_to_snql
 
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 from sentry.utils import json, redis
-from sentry.utils.snuba import _snql_query
+from sentry.utils.snuba import _snuba_query
 
 
 def run_test(expected_groups):
@@ -27,7 +27,7 @@ def run_test(expected_groups):
     request = json_to_snql(json_body, "group_attributes")
     request.validate()
     identity = lambda x: x
-    resp = _snql_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))[0]
+    resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))[0]
     assert resp.status == 200
     data = json.loads(resp.data)["data"]
     assert {g.id for g in expected_groups} == {d["group_id"] for d in data}
