@@ -1185,10 +1185,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule_id = response.data["id"]
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == "new_channel_id"
-        blocks = mock_post.call_args.kwargs["blocks"]
-        blocks = orjson.loads(blocks)
+        sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
         message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the *{self.project.slug}* project was updated."
-        assert blocks[0]["text"]["text"] == message
+        assert sent_blocks[0]["text"]["text"] == message
 
         changes = "*Changes*\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
@@ -1199,9 +1198,9 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         changes += "• Changed trigger from *None* to *any*\n"
         changes += "• Changed filter from *None* to *any*\n"
         changes += f"• Changed owner from *Unassigned* to *{self.user.email}*\n"
-        assert blocks[1]["text"]["text"] == changes
+        assert sent_blocks[1]["text"]["text"] == changes
         assert (
-            blocks[2]["elements"][0]["text"]
+            sent_blocks[2]["elements"][0]["text"]
             == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
         )
 

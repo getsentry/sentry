@@ -12,9 +12,6 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
@@ -399,7 +396,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             ),
         )
 
-        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=True).build()
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -415,12 +411,11 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         rule_id = response.data["id"]
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == self.channel_id
-        blocks = mock_post.call_args.kwargs["blocks"]
-        blocks = orjson.loads(blocks)
+        sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
         message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
-        assert blocks[0]["text"]["text"] == message
+        assert sent_blocks[0]["text"]["text"] == message
         assert (
-            blocks[1]["elements"][0]["text"]
+            sent_blocks[1]["elements"][0]["text"]
             == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
         )
 
