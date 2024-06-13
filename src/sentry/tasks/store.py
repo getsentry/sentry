@@ -27,7 +27,6 @@ from sentry.silo.base import SiloMode
 from sentry.stacktraces.processing import process_stacktraces, should_process_for_stacktraces
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 
@@ -416,7 +415,7 @@ def do_process_event(
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
-    if isinstance(data, CANONICAL_TYPES):
+    if not isinstance(data, dict):
         data = dict(data.items())
 
     if has_changed:
@@ -625,7 +624,7 @@ def _do_save_event(
             # Put the updated event back into the cache so that post_process
             # has the most recent data.
             data = manager.get_data()
-            if isinstance(data, CANONICAL_TYPES):
+            if not isinstance(data, dict):
                 data = dict(data.items())
             processing.event_processing_store.store(data)
         except HashDiscarded:

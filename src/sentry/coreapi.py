@@ -7,7 +7,6 @@ from sentry.attachments import attachment_cache
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
-from sentry.utils.canonical import CANONICAL_TYPES
 
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
@@ -53,7 +52,7 @@ def insert_data_to_database_legacy(
         start_time = time()
 
     # we might be passed some subclasses of dict that fail dumping
-    if isinstance(data, CANONICAL_TYPES):
+    if not isinstance(data, dict):
         data = dict(data.items())
 
     cache_key = event_processing_store.store(data)
