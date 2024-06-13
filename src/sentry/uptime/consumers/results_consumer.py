@@ -22,10 +22,17 @@ def process_result(message: Message[KafkaPayload | FilteredPayload]):
     assert not isinstance(message.payload, FilteredPayload)
     assert isinstance(message.value, BrokerValue)
 
-    result: UptimeResult = UPTIME_RESULTS_CODEC.decode(message.payload.value)
+    try:
+        result: UptimeResult = UPTIME_RESULTS_CODEC.decode(message.payload.value)
 
-    # XXX(epurkhiser): This consumer literally does nothing except log right now
-    logger.info("process_result", extra=result)
+        # XXX(epurkhiser): This consumer literally does nothing except log right now
+        logger.info("process_result", extra=result)
+    except Exception:
+        logger.info(
+            "process_failed",
+            extra={"payload": message.payload.value},
+            exc_info=True,
+        )
 
 
 class UptimeResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
