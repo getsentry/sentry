@@ -110,10 +110,12 @@ def send_incident_alert_notification(
         # To reply to a thread, use the specific key in the payload as referenced by the docs
         # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
         payload["thread_ts"] = parent_notification_message.message_identifier
+        thread_ts = parent_notification_message.message_identifier
 
         # If the incident is critical status, even if it's in a thread, send to main channel
         if incident.status == IncidentStatus.CRITICAL.value:
             payload["reply_broadcast"] = True
+            reply_broadcast = True
 
     success = False
     if features.has("organizations:slack-sdk-metric-alert", organization):
