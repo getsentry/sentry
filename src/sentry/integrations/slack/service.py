@@ -5,7 +5,6 @@ from logging import Logger, getLogger
 import orjson
 from slack_sdk.errors import SlackApiError
 
-from sentry import metrics
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
@@ -39,6 +38,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
 
 _default_logger = getLogger(__name__)
 
