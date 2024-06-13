@@ -9,6 +9,7 @@ import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -152,6 +153,7 @@ export function Content() {
   const isError = !isLoading && traces.isError;
   const isEmpty = !isLoading && !isError && (traces?.data?.data?.length ?? 0) === 0;
   const data = normalizeTraces(!isLoading && !isError ? traces?.data?.data : undefined);
+  const TRACE_EXPLORER_DOCS_URL = 'https://docs.sentry.io/product/explore/traces/';
 
   return (
     <LayoutMain fullWidth>
@@ -228,9 +230,16 @@ export function Content() {
                   {t('No results found')}
                 </EmptyStateText>
                 <EmptyStateText size="fontSizeMedium">
-                  {t('There are no traces that match the conditions above.')}
-                  <br />
-                  {t('Try adjusting your filters starting with your time range.')}
+                  {tct(
+                    'Try adjusting your filters starting with your time range or [goToDocs] for more.',
+                    {
+                      goToDocs: (
+                        <ExternalLink href={TRACE_EXPLORER_DOCS_URL}>
+                          {t('go to docs')}
+                        </ExternalLink>
+                      ),
+                    }
+                  )}
                 </EmptyStateText>
               </EmptyStateWarning>
             </StyledPanelItem>
@@ -656,6 +665,7 @@ const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
 const EmptyStateText = styled('div')<{size: 'fontSizeExtraLarge' | 'fontSizeMedium'}>`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme[p.size]};
+  padding-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
