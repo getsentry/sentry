@@ -111,12 +111,9 @@ class IncidentManager(BaseManager["Incident"]):
         # instance is an Incident
         for project in instance.projects.all():
             subscription = instance.subscription
-            if subscription:
-                key = cls._build_active_incident_cache_key(
-                    instance.alert_rule_id, project.id, subscription.id
-                )
-            else:
-                key = cls._build_active_incident_cache_key(instance.alert_rule_id, project.id, None)
+            key = cls._build_active_incident_cache_key(
+                instance.alert_rule_id, project.id, subscription.id if subscription else None
+            )
             cache.delete(key)
             assert cache.get(key) is None
 
@@ -124,15 +121,12 @@ class IncidentManager(BaseManager["Incident"]):
     def clear_active_incident_project_cache(cls, instance, **kwargs):
         # instance is an IncidentProject
         project_id = instance.project_id
-        if instance.incident.subscription:
-            subscription_id = instance.incident.subscription_id
-            key = cls._build_active_incident_cache_key(
-                instance.incident.alert_rule_id, project_id, subscription_id
-            )
-        else:
-            key = cls._build_active_incident_cache_key(
-                instance.incident.alert_rule_id, project_id, None
-            )
+        subscription_id = (
+            instance.incident.subscription_id if instance.incident.subscription else None
+        )
+        key = cls._build_active_incident_cache_key(
+            instance.incident.alert_rule_id, project_id, subscription_id
+        )
         cache.delete(key)
         assert cache.get(key) is None
 

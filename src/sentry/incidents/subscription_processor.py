@@ -660,12 +660,8 @@ class SubscriptionProcessor:
             incident_trigger = self.incident_trigger_map.get(trigger.id)
             if incident_trigger:
                 incident_trigger.status = TriggerStatus.ACTIVE.value
-                if not incident_trigger.subscription_id:
-                    # NOTE: until Incidents are per subscription, this will overwrite the subscription_id
-                    incident_trigger.subscription_id = self.subscription.id
                 incident_trigger.save()
             else:
-                # TODO: add subscription id to incident trigger model
                 incident_trigger = IncidentTrigger.objects.create(
                     incident=self.active_incident,
                     alert_rule_trigger=trigger,

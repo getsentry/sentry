@@ -19,14 +19,10 @@ def _backfill_incident_subscription(
 
     # use RangeQuerySetWrapper to avoid loading all Incidents into memory
     for incident in RangeQuerySetWrapper(Incident.objects.all()):
-        alert_rule = incident.alert_rule
-        if not alert_rule:
-            logger.info(
-                "Incident found with no alert_rule. skipping",
-                extra={"incident_id": incident.id},
-            )
+        if incident.subscription:
             continue
 
+        alert_rule = incident.alert_rule
         snuba_query = alert_rule.snuba_query
         subscriptions = list(snuba_query.subscriptions.all())
         if len(subscriptions) == 0 or len(subscriptions) > 1:
@@ -44,7 +40,7 @@ def _backfill_incident_subscription(
 
         subscription = subscriptions[0]
         incident.subscription = subscription
-        incident.save()
+        incident.save(update_fields=["subscription"])
 
 
 class Migration(CheckedMigration):
