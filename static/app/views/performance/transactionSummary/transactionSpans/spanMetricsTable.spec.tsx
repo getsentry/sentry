@@ -27,7 +27,7 @@ describe('SuspectSpansTable', () => {
             'span.op': 'db',
             'span.description': 'SELECT thing FROM my_cool_db',
             'spm()': 4.448963396488444,
-            'sum(span.self_time)': 1236071121.5044901,
+            'sum(span.duration)': 1236071121.5044901,
             'avg(span.duration)': 30900.700924083318,
           },
         ],
@@ -65,7 +65,7 @@ describe('SuspectSpansTable', () => {
     expect(descriptionCell).toHaveTextContent('SELECT thing FROM my_cool_db');
     expect(throughputCell).toHaveTextContent('4.45/s');
     expect(avgDurationCell).toHaveTextContent('30.90s');
-    expect(timeSpentCell).toHaveTextContent('2.04wk');
+    expect(timeSpentCell).toHaveTextContent('2.04wk'); //
   });
 
   it('should handle the case when there is no span grouping', async () => {
