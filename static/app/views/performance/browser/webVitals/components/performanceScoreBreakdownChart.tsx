@@ -207,6 +207,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
       <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
       <Chart
         stacked
+        hideYAxisSplitLine
         height={180}
         data={
           isTimeseriesLoading ||
