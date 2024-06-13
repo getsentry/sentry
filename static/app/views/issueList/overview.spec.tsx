@@ -54,7 +54,7 @@ const {organization, router} = initializeOrg({
     location: {query: {}, search: ''},
     params: {},
   },
-  project,
+  projects: [project],
 });
 
 const routerProps = {

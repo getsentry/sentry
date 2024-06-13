@@ -246,7 +246,6 @@ module = [
     "sentry.eventstore.models",
     "sentry.features.handler",
     "sentry.features.manager",
-    "sentry.grouping.fingerprinting",
     "sentry.grouping.strategies.hierarchical",
     "sentry.grouping.strategies.legacy",
     "sentry.identity.bitbucket.provider",
@@ -491,7 +490,6 @@ module = [
     "tests.sentry.identity.test_oauth2",
     "tests.sentry.incidents.test_logic",
     "tests.sentry.ingest.test_slicing",
-    "tests.sentry.integrations.github.test_client",
     "tests.sentry.issues.test_utils",
 ]
 disable_error_code = [
@@ -526,6 +524,7 @@ module = [
     "sentry.eventstore.reprocessing.redis",
     "sentry.eventtypes.error",
     "sentry.grouping.component",
+    "sentry.grouping.fingerprinting",
     "sentry.grouping.parameterization",
     "sentry.hybridcloud",
     "sentry.hybridcloud.migrations.*",
@@ -602,6 +601,7 @@ module = [
     "sentry.services.hybrid_cloud.user_option.*",
     "sentry.services.hybrid_cloud.util",
     "sentry.snuba.metrics.extraction",
+    "sentry.stacktraces.platform",
     "sentry.tasks.beacon",
     "sentry.tasks.commit_context",
     "sentry.tasks.on_demand_metrics",

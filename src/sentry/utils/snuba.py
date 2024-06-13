@@ -166,6 +166,7 @@ SPAN_COLUMN_MAP = {
     "messaging.destination.name": "sentry_tags[messaging.destination.name]",
     "messaging.message.id": "sentry_tags[messaging.message.id]",
     "tags.key": "tags.key",
+    "tags.value": "tags.value",
 }
 
 METRICS_SUMMARIES_COLUMN_MAP = {

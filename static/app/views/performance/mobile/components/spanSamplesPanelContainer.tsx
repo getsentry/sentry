@@ -196,7 +196,7 @@ export function SpanSamplesContainer({
 
       <Feature features="performance-sample-panel-search">
         <StyledSearchBar
-          searchSource="queries-sample-panel"
+          searchSource={`${moduleName}-sample-panel`}
           query={searchQuery}
           onSearch={handleSearch}
           placeholder={t('Search for span attributes')}
