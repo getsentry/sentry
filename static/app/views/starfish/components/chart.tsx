@@ -216,10 +216,12 @@ function Chart({
   const lastBucketTimestamp = new Date(
     series[0]?.data?.[series[0]?.data?.length - 1]?.name
   ).getTime();
-  const ingestionBuckets = useMemo(
-    () => getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp),
-    [bucketSize, lastBucketTimestamp]
-  );
+  const ingestionBuckets = useMemo(() => {
+    if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
+      return 1;
+    }
+    return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
+  }, [bucketSize, lastBucketTimestamp]);
 
   // TODO: Support area and bar charts
   if (type === ChartType.LINE || type === ChartType.AREA) {
