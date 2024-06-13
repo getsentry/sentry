@@ -1,7 +1,6 @@
 import React, {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
-import moment from 'moment';
 
 import Alert from 'sentry/components/alert';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
@@ -16,16 +15,12 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useDismissAlert from 'sentry/utils/useDismissAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {FID_DEPRECATION_DATE} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
 import WebVitalMeters from 'sentry/views/performance/browser/webVitals/components/webVitalMeters';
 import {PagePerformanceTable} from 'sentry/views/performance/browser/webVitals/pagePerformanceTable';
 import {PerformanceScoreChart} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
@@ -56,12 +51,6 @@ export function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const user = ConfigStore.get('user');
-
-  const {dismiss, isDismissed} = useDismissAlert({
-    key: `${organization.slug}-${user.id}:fid-deprecation-message-dismissed`,
-  });
-
   const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
@@ -72,9 +61,6 @@ export function WebVitalsLandingPage() {
     isProjectScoresLoading || isLoading || noTransactions
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
-
-  const fidDeprecationTimestampString =
-    moment(FID_DEPRECATION_DATE).format('DD MMMM YYYY');
 
   useHasDataTrackAnalytics(
     new MutableSearch(
@@ -125,41 +111,6 @@ export function WebVitalsLandingPage() {
           )}
           {!onboardingProject && (
             <Fragment>
-              {!isDismissed && (
-                <StyledAlert type="info" showIcon>
-                  <AlertContent>
-                    <span>
-                      {tct(
-                        `Starting on [fidDeprecationTimestampString], [inpStrong:INP] (Interaction to Next Paint) will replace [fidStrong:FID] (First Input Delay) in our performance score calculation.`,
-                        {
-                          fidDeprecationTimestampString,
-                          inpStrong: <strong />,
-                          fidStrong: <strong />,
-                        }
-                      )}
-                      <br />
-                      {tct(
-                        `Users should update their Sentry SDKs to the [link:latest version (7.104.0+)] and [enableInp:enable the INP option] to start receiving updated Performance Scores.`,
-                        {
-                          link: (
-                            <ExternalLink href="https://github.com/getsentry/sentry-javascript/releases/tag/7.104.0" />
-                          ),
-                          enableInp: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/javascript/performance/instrumentation/automatic-instrumentation/#enableinp" />
-                          ),
-                        }
-                      )}
-                    </span>
-                    <DismissButton
-                      priority="link"
-                      icon={<IconClose />}
-                      onClick={dismiss}
-                      aria-label={t('Dismiss Alert')}
-                      title={t('Dismiss Alert')}
-                    />
-                  </AlertContent>
-                </StyledAlert>
-              )}
               <PerformanceScoreChartContainer>
                 <PerformanceScoreChart
                   projectScore={projectScore}
