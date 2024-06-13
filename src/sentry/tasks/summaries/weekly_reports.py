@@ -7,7 +7,7 @@ from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import partial, reduce
+from functools import partial
 from typing import Any, cast
 
 import sentry_sdk
@@ -274,7 +274,7 @@ class OrganizationReportBatch:
                 )
                 .values_list("user_id", flat=True)
             )
-            user_list = list(filter(lambda v: v is not None, user_list))
+            user_list = [v for v in user_list if v is not None]
             user_ids = notifications_service.get_users_for_weekly_reports(
                 organization_id=self.ctx.organization.id, user_ids=user_list
             )
@@ -430,12 +430,11 @@ def render_template_context(ctx, user_id):
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
     if user_id and user_id in ctx.project_ownership:
-        user_projects = list(
-            filter(
-                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user_id],
-                ctx.projects_context_map.values(),
-            )
-        )
+        user_projects = [
+            project_ctx
+            for project_ctx in ctx.projects_context_map.values()
+            if project_ctx.project.id in ctx.project_ownership[user_id]
+        ]
         if len(user_projects) == 0:
             return None
     else:
@@ -449,28 +448,18 @@ def render_template_context(ctx, user_id):
     def trends():
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
         def sum_event_counts(project_ctxs):
-            return reduce(
-                lambda a, b: (
-                    a[0] + b[0],
-                    a[1] + b[1],
-                    a[2] + b[2],
-                    a[3] + b[3],
-                    a[4] + b[4],
-                    a[5] + b[5],
-                ),
-                [
-                    (
-                        project_ctx.accepted_error_count,
-                        project_ctx.dropped_error_count,
-                        project_ctx.accepted_transaction_count,
-                        project_ctx.dropped_transaction_count,
-                        project_ctx.accepted_replay_count,
-                        project_ctx.dropped_replay_count,
-                    )
-                    for project_ctx in project_ctxs
-                ],
-                (0, 0, 0, 0, 0, 0),
-            )
+            event_counts = [
+                (
+                    project_ctx.accepted_error_count,
+                    project_ctx.dropped_error_count,
+                    project_ctx.accepted_transaction_count,
+                    project_ctx.dropped_transaction_count,
+                    project_ctx.accepted_replay_count,
+                    project_ctx.dropped_replay_count,
+                )
+                for project_ctx in project_ctxs
+            ]
+            return tuple(sum(event[i] for event in event_counts) for i in range(6))
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
@@ -495,7 +484,7 @@ def render_template_context(ctx, user_id):
         projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
 
         # Calculate legend
-        legend = [
+        legend: list[dict[str, Any]] = [
             {
                 "slug": project_ctx.project.slug,
                 "url": project_ctx.project.get_absolute_url(
@@ -565,22 +554,16 @@ def render_template_context(ctx, user_id):
                     {
                         "color": other_color,
                         "error_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.error_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.error_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                         "transaction_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.transaction_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.transaction_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                         "replay_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.replay_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.replay_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                     }
                 )
@@ -597,11 +580,13 @@ def render_template_context(ctx, user_id):
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
             ),
-            "replay_maximum": max(  # The max replay count on any single day
-                sum(value["replay_count"] for value in values) for timestamp, values in series
-            )
-            if len(projects_taken) > 0
-            else 0,
+            "replay_maximum": (
+                max(  # The max replay count on any single day
+                    sum(value["replay_count"] for value in values) for timestamp, values in series
+                )
+                if len(projects_taken) > 0
+                else 0
+            ),
         }
 
     def key_errors():
@@ -644,12 +629,14 @@ def render_template_context(ctx, user_id):
                     yield {
                         "count": count,
                         "group": group,
-                        "status": group_history.get_status_display()
-                        if group_history
-                        else "Unresolved",
-                        "status_color": group_status_to_color[group_history.status]
-                        if group_history
-                        else group_status_to_color[GroupHistoryStatus.NEW],
+                        "status": (
+                            group_history.get_status_display() if group_history else "Unresolved"
+                        ),
+                        "status_color": (
+                            group_status_to_color[group_history.status]
+                            if group_history
+                            else group_status_to_color[GroupHistoryStatus.NEW]
+                        ),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
                         "group_substatus_border_color": substatus_border_color,
@@ -684,12 +671,14 @@ def render_template_context(ctx, user_id):
                     yield {
                         "count": count,
                         "group": group,
-                        "status": group_history.get_status_display()
-                        if group_history
-                        else "Unresolved",
-                        "status_color": group_status_to_color[group_history.status]
-                        if group_history
-                        else group_status_to_color[GroupHistoryStatus.NEW],
+                        "status": (
+                            group_history.get_status_display() if group_history else "Unresolved"
+                        ),
+                        "status_color": (
+                            group_status_to_color[group_history.status]
+                            if group_history
+                            else group_status_to_color[GroupHistoryStatus.NEW]
+                        ),
                     }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])
