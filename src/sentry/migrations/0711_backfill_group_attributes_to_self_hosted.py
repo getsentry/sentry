@@ -64,7 +64,7 @@ def _bulk_retrieve_group_values(group_ids: list[int], Group: type[Group]) -> lis
                 status=group_values["status"],
                 substatus=group_values["substatus"],
                 first_seen=group_values["first_seen"],
-                num_comments=group_values["num_comments"],
+                num_comments=group_values["num_comments"] or 0,
             )
         )
     return results
