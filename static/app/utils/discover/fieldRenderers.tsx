@@ -9,6 +9,7 @@ import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Duration from 'sentry/components/duration';
 import FileSize from 'sentry/components/fileSize';
+import BadgeDisplayName from 'sentry/components/idBadge/badgeDisplayName';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -553,7 +554,7 @@ const SPECIAL_FIELDS: SpecialFields = {
                 project = projects.find(p => p.slug === data.project);
               }
               return (
-                <ProjectBadge
+                <StyledProjectBadge
                   project={project ? project : {slug: data.project}}
                   avatarSize={16}
                 />
@@ -957,6 +958,12 @@ const OtherRelativeOpsBreakdown = styled(RectangleRelativeOpsBreakdown)`
 
 const StyledLink = styled(Link)`
   max-width: 100%;
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  ${BadgeDisplayName} {
+    max-width: 100%;
+  }
 `;
 
 /**
