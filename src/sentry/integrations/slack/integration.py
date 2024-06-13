@@ -141,7 +141,6 @@ class SlackIntegrationProvider(IntegrationProvider):
             client = WebClient(token=access_token)
             sdk_response = client.team_info()
 
-            logger.info("slack.install.team-info.success")
             return sdk_response.get("team")
         except SlackApiError as e:
             logger.error("slack.install.team-info.error", extra={"error": str(e)})
