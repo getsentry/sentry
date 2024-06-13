@@ -277,11 +277,7 @@ function Sidebar() {
   );
 
   const caches = hasOrganization && (
-    <Feature
-      key="cache"
-      features={['insights-entry-points', 'performance-cache-view']}
-      organization={organization}
-    >
+    <Feature key="cache" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -310,11 +306,7 @@ function Sidebar() {
   );
 
   const queues = hasOrganization && (
-    <Feature
-      key="queue"
-      features={['insights-entry-points', 'performance-queues-view']}
-      organization={organization}
-    >
+    <Feature key="queue" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         label={
@@ -399,10 +391,7 @@ function Sidebar() {
   );
 
   const llmMonitoring = hasOrganization && (
-    <Feature
-      features={['insights-entry-points', 'ai-analytics']}
-      organization={organization}
-    >
+    <Feature features={['insights-entry-points']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconRobot />}
@@ -425,8 +414,6 @@ function Sidebar() {
         if (
           !hasNewSidebarHierarchy &&
           (organization.features.includes('insights-entry-points') ||
-            organization.features.includes('performance-cache-view') ||
-            organization.features.includes('performance-queues-view') ||
             organization.features.includes('performance-trace-explorer'))
         ) {
           return (
