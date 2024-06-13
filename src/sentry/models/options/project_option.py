@@ -58,6 +58,7 @@ OPTION_KEYS = frozenset(
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",
         "sentry:dynamic_sampling_biases",
+        "sentry:metrics_extraction_rules",
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:span_description_cluster_rules",
