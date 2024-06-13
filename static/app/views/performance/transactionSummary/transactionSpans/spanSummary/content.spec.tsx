@@ -219,6 +219,11 @@ describe('SpanSummaryPage', function () {
   });
 
   it('correctly renders the details in the header', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
+
     headerDataMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: {
@@ -277,6 +282,11 @@ describe('SpanSummaryPage', function () {
   });
 
   it('renders the charts', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/spans/fields/',
+      body: [],
+    });
+
     render(
       <SpanSummary
         spanSlug={{group: 'aaaaaaaa', op: 'db'}}
