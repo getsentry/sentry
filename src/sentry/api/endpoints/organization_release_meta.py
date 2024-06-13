@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from collections import defaultdict
+from typing import TypedDict
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -13,6 +16,15 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releases.release_project import ReleaseProject
+
+
+class _ProjectDict(TypedDict):
+    id: int
+    slug: str | None
+    name: str
+    newGroups: int | None
+    platform: str | None
+    platforms: list[str]
 
 
 @region_silo_endpoint
@@ -70,7 +82,7 @@ class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
             platforms_by_project[project_id].append(platform)
 
         # This must match what is returned from the `Release` serializer
-        projects = [
+        projects: list[_ProjectDict] = [
             {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
