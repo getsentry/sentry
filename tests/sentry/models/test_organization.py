@@ -74,7 +74,10 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         assert org.default_owner_id is None
 
     @mock.patch.object(
-        Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
+        Organization,
+        "get_members_with_org_roles",
+        side_effect=Organization.get_members_with_org_roles,
+        autospec=True,
     )
     def test_default_owner_id_cached(self, mock_get_owners):
         user = self.create_user("foo@example.com")

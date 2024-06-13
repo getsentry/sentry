@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {MRI} from 'sentry/types/metrics';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFormattedMQL} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -540,13 +541,56 @@ function useTraces<F extends string>({
       metricsQuery,
     },
   };
+  const serializedEndpointOptions = JSON.stringify(endpointOptions);
 
-  return useApiQuery<TraceResults<F>>([path, endpointOptions], {
+  let queries: string[] = [];
+  if (Array.isArray(query)) {
+    queries = query;
+  } else if (query !== undefined) {
+    queries = [query];
+  }
+
+  useEffect(() => {
+    trackAnalytics('trace_explorer.search_request', {
+      organization,
+      queries,
+    });
+    // `queries` is already included as a dep in serializedEndpointOptions
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serializedEndpointOptions, organization]);
+
+  const result = useApiQuery<TraceResults<F>>([path, endpointOptions], {
     staleTime: 0,
     refetchOnWindowFocus: false,
     retry: false,
     enabled,
   });
+
+  useEffect(() => {
+    if (result.status === 'success') {
+      trackAnalytics('trace_explorer.search_success', {
+        organization,
+        queries,
+        has_data: result.data.data.length > 0,
+      });
+    } else if (result.status === 'error') {
+      const response = result.error.responseJSON;
+      const error =
+        typeof response?.detail === 'string'
+          ? response?.detail
+          : response?.detail?.message;
+      trackAnalytics('trace_explorer.search_failure', {
+        organization,
+        queries,
+        error: error ?? '',
+      });
+    }
+    // result.status is tied to result.data. No need to explicitly
+    // include result.data as an additional dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serializedEndpointOptions, result.status, organization]);
+
+  return result;
 }
 
 const LayoutMain = styled(Layout.Main)`
