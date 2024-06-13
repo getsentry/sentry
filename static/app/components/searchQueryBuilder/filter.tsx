@@ -5,7 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
@@ -32,22 +32,23 @@ type SearchQueryTokenProps = {
   token: TokenResult<Token.FILTER>;
 };
 
-const OP_LABELS = {
-  [TermOperator.DEFAULT]: 'is',
-  [TermOperator.GREATER_THAN]: '>',
-  [TermOperator.GREATER_THAN_EQUAL]: '>=',
-  [TermOperator.LESS_THAN]: '<',
-  [TermOperator.LESS_THAN_EQUAL]: '<=',
-  [TermOperator.NOT_EQUAL]: 'is not',
+const OPERATOR_DESCRIPTION = {
+  [TermOperator.DEFAULT]: 'is equal to',
+  [TermOperator.GREATER_THAN]: 'greater than',
+  [TermOperator.GREATER_THAN_EQUAL]: 'greater than or equal to',
+  [TermOperator.LESS_THAN]: 'less than',
+  [TermOperator.LESS_THAN_EQUAL]: 'less than or equal to',
+  [TermOperator.NOT_EQUAL]: 'is not equal to',
+  [TermOperator.EQUAL]: 'is equal to',
 };
 
-const getOpLabel = (token: TokenResult<Token.FILTER>) => {
+function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
   if (token.negated) {
-    return OP_LABELS[TermOperator.NOT_EQUAL];
+    return TermOperator.NOT_EQUAL;
   }
 
-  return OP_LABELS[token.operator] ?? token.operator;
-};
+  return token.operator;
+}
 
 function useFilterButtonProps({
   item,
@@ -64,48 +65,85 @@ function useFilterButtonProps({
   };
 }
 
-function FilterOperator({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch} = useSearchQueryBuilder();
+function FilterOpKeyLabel({filterKey, op}: {filterKey: string; op: TermOperator}) {
+  switch (op) {
+    case TermOperator.NOT_EQUAL:
+      return (
+        <Fragment>
+          <NegationSpan>!</NegationSpan>
+          {filterKey}
+          <OperatorSpan>:</OperatorSpan>
+        </Fragment>
+      );
+    case TermOperator.DEFAULT:
+      return (
+        <Fragment>
+          {filterKey}
+          <OperatorSpan>:</OperatorSpan>
+        </Fragment>
+      );
+    default:
+      return (
+        <Fragment>
+          {filterKey}
+          <OperatorSpan>{op}</OperatorSpan>
+        </Fragment>
+      );
+  }
+}
 
-  const items: MenuItemProps[] = useMemo(() => {
-    return getValidOpsForFilter(token).map(op => ({
-      key: op,
-      label: OP_LABELS[op] ?? op,
-      onAction: val => {
-        dispatch({
-          type: 'UPDATE_FILTER_OP',
-          token,
-          op: val as TermOperator,
-        });
-      },
-    }));
-  }, [dispatch, token]);
-
+function FilterKey({
+  token,
+  state,
+  item,
+}: {
+  item: Node<ParseResultToken>;
+  state: ListState<ParseResultToken>;
+  token: TokenResult<Token.FILTER>;
+}) {
+  const {dispatch, keys} = useSearchQueryBuilder();
+  const key = token.key.text;
+  const tag = keys[key];
+  const label = tag ? getKeyLabel(tag) : key;
   const filterButtonProps = useFilterButtonProps({state, item});
+  const operator = getTermOperatorFromToken(token);
+
+  const options = useMemo<SelectOption<TermOperator>[]>(() => {
+    return getValidOpsForFilter(token)
+      .filter(op => op !== TermOperator.EQUAL)
+      .map(
+        (op): SelectOption<TermOperator> => ({
+          value: op,
+          label: <FilterOpKeyLabel filterKey={label} op={op} />,
+          textValue: OPERATOR_DESCRIPTION[op],
+          details: OPERATOR_DESCRIPTION[op],
+        })
+      );
+  }, [label, token]);
 
   return (
-    <DropdownMenu
+    <CompactSelect
       trigger={triggerProps => (
-        <OpButton
+        <FilterKeyButton
           aria-label={t('Edit operator for filter: %s', token.key.text)}
           {...mergeProps(triggerProps, filterButtonProps)}
         >
           <InteractionStateLayer />
-          {getOpLabel(token)}
-        </OpButton>
+          <FilterOpKeyLabel filterKey={label} op={operator} />
+        </FilterKeyButton>
       )}
-      items={items}
+      size="sm"
+      options={options}
+      value={operator}
+      onChange={option => {
+        dispatch({
+          type: 'UPDATE_FILTER_OP',
+          token,
+          op: option.value,
+        });
+      }}
     />
   );
-}
-
-function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
-  const {keys} = useSearchQueryBuilder();
-  const key = token.key.text;
-  const tag = keys[key];
-  const label = tag ? getKeyLabel(tag) : key;
-
-  return <KeyLabel>{label}</KeyLabel>;
 }
 
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
@@ -237,10 +275,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       {...modifiedRowProps}
     >
       <BaseTokenPart>
-        <FilterKey token={token} />
-      </BaseTokenPart>
-      <BaseTokenPart {...gridCellProps}>
-        <FilterOperator token={token} state={state} item={item} />
+        <FilterKey token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
         <FilterValue token={token} state={state} item={item} />
@@ -289,35 +324,20 @@ const UnstyledButton = styled('button')`
   }
 `;
 
-const KeyLabel = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: 0 ${space(0.5)} 0 ${space(0.75)};
-  border-radius: 3px 0 0 3px;
-  border-right: 1px solid transparent;
-
-  :focus-within {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
-const OpButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.5)};
-  color: ${p => p.theme.subText};
+const FilterKeyButton = styled(UnstyledButton)`
+  padding: 0 ${space(0)} 0 ${space(0.75)};
   height: 100%;
-  border-left: 1px solid transparent;
+  border-radius: 3px 0 0 3px;
   border-right: 1px solid transparent;
 
   :focus {
     background-color: ${p => p.theme.translucentGray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -330,7 +350,7 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -352,6 +372,16 @@ const DeleteButton = styled(UnstyledButton)`
     background-color: ${p => p.theme.translucentGray100};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
+`;
+
+const NegationSpan = styled('span')`
+  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.text.familyMono};
+`;
+
+const OperatorSpan = styled('span')`
+  color: ${p => p.theme.subText};
+  font-family: ${p => p.theme.text.familyMono};
 `;
 
 const FilterValueList = styled('div')`

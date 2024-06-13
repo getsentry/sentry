@@ -451,6 +451,7 @@ const Details = styled('div')<{disabled: boolean; priority: Priority}>`
   color: ${p => p.theme.subText};
   line-height: 1.2;
   margin-bottom: 0;
+  white-space: nowrap;
 
   ${p => p.priority !== 'default' && `color: ${getTextColor(p)};`}
 `;
