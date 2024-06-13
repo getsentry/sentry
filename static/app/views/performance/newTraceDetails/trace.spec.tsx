@@ -221,6 +221,14 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
   };
 }
 
+function getVirtualizedContainer(): HTMLElement {
+  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  if (!virtualizedContainer) {
+    throw new Error('Virtualized container not found');
+  }
+  return virtualizedContainer;
+}
+
 async function keyboardNavigationTestSetup() {
   const keyboard_navigation_transactions: TraceFullDetailed[] = [];
   for (let i = 0; i < 1e4; i++) {
@@ -247,14 +255,10 @@ async function keyboardNavigationTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
   );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
 
   if (!virtualizedScrollContainer) {
     throw new Error('Virtualized scroll container not found');
@@ -291,14 +295,10 @@ async function pageloadTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
   );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
 
   if (!virtualizedScrollContainer) {
     throw new Error('Virtualized scroll container not found');
@@ -335,14 +335,10 @@ async function searchTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
   );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
 
   if (!virtualizedScrollContainer) {
     throw new Error('Virtualized scroll container not found');
@@ -385,15 +381,10 @@ async function simpleTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  const virtualizedContainer = getVirtualizedContainer();
   const virtualizedScrollContainer = screen.queryByTestId(
     'trace-virtualized-list-scroll-container'
   );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
-
   if (!virtualizedScrollContainer) {
     throw new Error('Virtualized scroll container not found');
   }
