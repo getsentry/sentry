@@ -71,6 +71,10 @@ class SlackNotifyServiceForm(forms.Form):
         assert cleaned_data is not None
 
         workspace = cleaned_data.get("workspace")
+        if not workspace:
+            raise forms.ValidationError(
+                self._format_slack_error_message("Workspace is a required field."), code="invalid"
+            )
 
         if channel_id:
             try:
