@@ -510,7 +510,7 @@ function EventNodeSelector({
         })}
         {(errors.length > numEvents || events.length > numEvents) && (
           <DropdownItem
-            to={generateTraceTarget(currentEvent, organization)}
+            to={generateTraceTarget(currentEvent, organization, location)}
             allowDefaultEvent
             onSelect={() => handleDropdownItem(nodeKey, organization, true)}
           >

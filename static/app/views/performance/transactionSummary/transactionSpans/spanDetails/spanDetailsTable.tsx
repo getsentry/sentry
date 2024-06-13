@@ -28,6 +28,7 @@ import type {
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type TableColumnKeys =
   | 'id'
@@ -169,6 +170,7 @@ function renderBodyCellWithMeta(
         organization,
         spanId: worstSpan.id,
         transactionName: transactionName,
+        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;

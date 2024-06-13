@@ -33,6 +33,7 @@ import type {Event, Group, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface HighlightsDataSectionProps {
@@ -50,6 +51,7 @@ function HighlightsData({
   createEditAction: (action: React.ReactNode) => void;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   const {isLoading, data: detailedProject} = useDetailedProject({
@@ -76,6 +78,7 @@ function HighlightsData({
     project,
     organization,
     highlightContext,
+    location,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
     (rowList, {alias, data}, i) => {

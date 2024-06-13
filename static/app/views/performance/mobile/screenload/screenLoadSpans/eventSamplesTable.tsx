@@ -27,6 +27,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {ModuleName} from 'sentry/views/starfish/types';
 
 type Props = {
@@ -80,6 +81,7 @@ export function EventSamplesTable({
             timestamp: row.timestamp,
             organization,
             location,
+            source: TraceViewSources.SCREEN_LOADS_MODULE,
           })}
         >
           {row[eventIdKey].slice(0, 8)}

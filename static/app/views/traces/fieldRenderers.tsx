@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
@@ -26,6 +27,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
 
 import type {SpanResult, TraceResult} from './content';
 import type {Field} from './data';
@@ -284,12 +287,14 @@ export function SpanIdRenderer({
     organization,
     location,
     spanId,
+    source: TraceViewSources.TRACES,
   });
 
   return <Link to={target}>{getShortEventId(spanId)}</Link>;
 }
 
 interface TraceIdRendererProps {
+  location: Location;
   traceId: string;
   timestamp?: DateString;
   transactionId?: string;
@@ -299,23 +304,26 @@ export function TraceIdRenderer({
   traceId,
   timestamp,
   transactionId,
+  location,
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const stringOrNumberTimestamp =
     timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
 
-  const target = getTraceDetailsUrl(
+  const target = getTraceDetailsUrl({
     organization,
-    traceId,
-    {
+    traceSlug: traceId,
+    dateSelection: {
       start: selection.datetime.start,
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    stringOrNumberTimestamp,
-    transactionId
-  );
+    timestamp: stringOrNumberTimestamp,
+    eventId: transactionId,
+    location,
+    source: TraceViewSources.TRACES,
+  });
 
   return (
     <Link to={target} style={{minWidth: '66px', textAlign: 'right'}}>

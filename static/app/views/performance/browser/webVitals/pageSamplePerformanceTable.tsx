@@ -48,6 +48,8 @@ import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
 
@@ -373,6 +375,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         timestamp: row.timestamp,
         organization,
         location,
+        source: TraceViewSources.WEB_VITALS_MODULE,
       });
 
       return (

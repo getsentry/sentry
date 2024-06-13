@@ -46,6 +46,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -204,6 +205,7 @@ function TableView(props: TableViewProps) {
           location,
           eventView,
           type: 'discover',
+          source: TraceViewSources.DISCOVER,
         });
       } else {
         const project = dataRow.project || dataRow['project.name'];
@@ -332,6 +334,7 @@ function TableView(props: TableViewProps) {
           location,
           eventView,
           type: 'discover',
+          source: TraceViewSources.DISCOVER,
         });
       } else {
         const project = dataRow.project || dataRow['project.name'];
@@ -381,12 +384,14 @@ function TableView(props: TableViewProps) {
       );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
-        const target = getTraceDetailsUrl(
+        const target = getTraceDetailsUrl({
           organization,
-          String(dataRow.trace),
+          traceSlug: String(dataRow.trace),
           dateSelection,
-          timestamp
-        );
+          timestamp,
+          location,
+          source: TraceViewSources.DISCOVER,
+        });
 
         cell = (
           <Tooltip title={t('View Trace')}>

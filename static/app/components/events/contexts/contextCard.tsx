@@ -11,6 +11,7 @@ import {
 import * as KeyValueData from 'sentry/components/keyValueData/card';
 import type {Event, Group, KeyValueListDataItem, Project} from 'sentry/types';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
@@ -73,6 +74,7 @@ export default function ContextCard({
   project,
   value = {},
 }: ContextCardProps) {
+  const location = useLocation();
   const organization = useOrganization();
   if (isEmptyObject(value)) {
     return null;
@@ -85,6 +87,7 @@ export default function ContextCard({
     contextType: type,
     organization,
     project,
+    location,
   });
 
   const contentItems = contextItems.map<KeyValueData.ContentProps>(item => {

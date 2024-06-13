@@ -52,6 +52,7 @@ export function generateLinkToEventInTraceView({
   transactionName,
   eventView,
   demo,
+  source,
   type = 'performance',
 }: {
   eventId: string;
@@ -63,6 +64,7 @@ export function generateLinkToEventInTraceView({
   demo?: string;
   eventView?: EventView;
   isHomepage?: boolean;
+  source?: string;
   spanId?: string;
   transactionName?: string;
   type?: 'performance' | 'discover';
@@ -73,15 +75,17 @@ export function generateLinkToEventInTraceView({
   const eventSlug = generateEventSlug({id: eventId, project: projectSlug});
 
   if (organization.features.includes('trace-view-v1')) {
-    return getTraceDetailsUrl(
+    return getTraceDetailsUrl({
       organization,
-      String(traceSlug),
+      traceSlug,
       dateSelection,
-      normalizedTimestamp,
+      timestamp: normalizedTimestamp,
       eventId,
       spanId,
-      demo
-    );
+      demo,
+      location,
+      source,
+    });
   }
 
   if (type === 'performance') {

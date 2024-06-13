@@ -17,6 +17,8 @@ import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell
 import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
 
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+
 type DataRowKeys =
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TRANSACTION_ID
@@ -61,6 +63,7 @@ interface Props {
   meta?: EventsMetaType;
   onSampleMouseOut?: ComponentProps<typeof GridEditable>['onRowMouseOut'];
   onSampleMouseOver?: ComponentProps<typeof GridEditable>['onRowMouseOver'];
+  referrer?: string;
 }
 
 export function SpanSamplesTable({
@@ -115,6 +118,8 @@ function renderBodyCell(
         timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
         spanId={row[SpanIndexedField.ID]}
+        source={TraceViewSources.REQUESTS_MODULE}
+        location={location}
       />
     );
   }

@@ -46,6 +46,7 @@ type Props = {
   moduleName: ModuleName;
   transactionName: string;
   onClose?: () => void;
+  referrer?: string;
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -57,6 +58,7 @@ export function SampleList({
   transactionMethod,
   onClose,
   transactionRoute = '/performance/summary/',
+  referrer,
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -250,6 +252,7 @@ export function SampleList({
           spanSearch={spanSearch}
           columnOrder={columnOrder}
           additionalFields={additionalFields}
+          referrer={referrer}
         />
       </DetailPanel>
     </PageAlertProvider>
