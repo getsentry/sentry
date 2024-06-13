@@ -1189,7 +1189,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was updated."
         assert sent_blocks[0]["text"]["text"] == message
 
-        changes = "'Changes'\n"
+        changes = "*Changes*\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
         changes += "• Changed action from 'Send a notification to the Awesome Team Slack workspace to #old_channel_name' to 'Send a notification to the Awesome Team Slack workspace to #new_channel_name'\n"
         changes += "• Changed frequency from '5 minutes' to '3 hours'\n"

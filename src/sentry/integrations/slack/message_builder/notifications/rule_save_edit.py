@@ -29,7 +29,7 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         return f"<{rule_url}|*{escape_slack_text(rule_name)}*>"
 
     def linkify_project(self, org_slug: str, project_slug: str):
-        project_url_path = f"/projects/{project_slug}/"
+        project_url_path = f"/organizations/{org_slug}/projects/{project_slug}/"
         project_url = absolute_uri(project_url_path)
         return f"<{project_url}|*{escape_slack_text(project_slug)}*>"
 
