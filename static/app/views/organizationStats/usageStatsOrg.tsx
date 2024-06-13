@@ -21,7 +21,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 
 import {
@@ -127,7 +127,7 @@ class UsageStatsOrganization<
 
   // Metric stats are not reported when grouping by category, so we make a separate request
   // and combine the results
-  get metricsEndpoint(): [string, string, {query: Record<string, any>}][] {
+  get metricsEndpoint(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     if (hasCustomMetrics(this.props.organization)) {
       return [
         [
@@ -437,9 +437,18 @@ class UsageStatsOrganization<
       };
 
       orgStats.groups.forEach(group => {
-        const {outcome, category} = group.by;
+        const {outcome} = group.by;
+        // TODO(metrics): remove this when metrics category name is updated
+        const category =
+          group.by.category === DATA_CATEGORY_INFO.metrics.apiName
+            ? DATA_CATEGORY_INFO.metrics.plural
+            : group.by.category;
+
         // HACK: The backend enum are singular, but the frontend enums are plural
-        if (!dataCategory.includes(`${category}`)) {
+        const fullDataCategory = Object.values(DATA_CATEGORY_INFO).find(
+          data => data.plural === dataCategory
+        );
+        if (fullDataCategory?.apiName !== category) {
           return;
         }
 
@@ -656,7 +665,7 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: 400;
+    font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;

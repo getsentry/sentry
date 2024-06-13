@@ -766,6 +766,9 @@ const commonTheme = {
   codeFontSize: '13px' as const,
   headerFontSize: '22px' as const,
 
+  fontWeightNormal: 400 as const,
+  fontWeightBold: 600 as const,
+
   settings: {
     // Max-width for settings breadcrumbs
     // i.e. organization, project, or team
@@ -773,7 +776,7 @@ const commonTheme = {
 
     containerWidth: '1440px',
     headerHeight: '61px',
-    sidebarWidth: '220px',
+    sidebarWidth: '236px',
   },
 
   sidebar: {
@@ -783,7 +786,7 @@ const commonTheme = {
     badgeSize: '22px',
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
-    expandedWidth: '220px',
+    expandedWidth: '236px',
     mobileHeight: '54px',
     menuSpacing: '15px',
   },

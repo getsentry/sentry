@@ -440,8 +440,10 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
     API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
+    API_TRACE_EXPLORER_STATS = "api.trace-explorer.stats"
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
+    API_SPANS_TRACE_VIEW = "api.spans.trace-view"
 
     # Performance Mobile UI Module
     API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"

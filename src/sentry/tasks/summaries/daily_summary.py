@@ -11,6 +11,7 @@ from sentry_sdk import set_tag
 
 from sentry import features
 from sentry.constants import DataCategory
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization, OrganizationStatus
@@ -40,7 +41,6 @@ from sentry.tasks.summaries.utils import (
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome

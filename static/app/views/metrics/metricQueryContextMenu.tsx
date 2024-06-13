@@ -1,12 +1,14 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import {openAddToDashboardModal, openModal} from 'sentry/actionCreators/modal';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {Hovercard} from 'sentry/components/hovercard';
+import {CreateMetricAlertFeature} from 'sentry/components/metrics/createMetricAlertFeature';
 import {
   IconClose,
   IconCopy,
@@ -18,14 +20,14 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMeasurement, isCustomMetric, isGaugeMetric} from 'sentry/utils/metrics';
+import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
   getWidgetAsQueryParams,
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {hasCustomMetrics, hasMetricAlertFeature} from 'sentry/utils/metrics/features';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
@@ -65,6 +67,7 @@ export function MetricQueryContextMenu({
 
   // At least one query must remain
   const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
+  const hasDashboardFeature = organization.features.includes('dashboards-edit');
 
   const items = useMemo<MenuItemProps[]>(
     () => [
@@ -83,8 +86,8 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
-        label: t('Create Alert'),
-        disabled: !createAlert,
+        label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
+        disabled: !createAlert || !hasMetricAlertFeature(organization),
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -102,15 +105,24 @@ export function MetricQueryContextMenu({
             organization={organization}
             hookName="feature-disabled:dashboards-edit"
             features="dashboards-edit"
-          >
-            {({hasFeature}) => (
-              <AddToDashboardItem disabled={!hasFeature}>
-                {t('Add to Dashboard')}
-              </AddToDashboardItem>
+            renderDisabled={p => (
+              <Hovercard
+                body={
+                  <FeatureDisabled
+                    features={p.features}
+                    hideHelpToggle
+                    featureName={t('Metric Alerts')}
+                  />
+                }
+              >
+                {typeof p.children === 'function' ? p.children(p) : p.children}
+              </Hovercard>
             )}
+          >
+            <span>{t('Add to Dashboard')}</span>
           </Feature>
         ),
-        disabled: !createDashboardWidget,
+        disabled: !createDashboardWidget || !hasDashboardFeature,
         onAction: () => {
           if (!organization.features.includes('dashboards-edit')) {
             return;
@@ -154,10 +166,11 @@ export function MetricQueryContextMenu({
     ],
     [
       createAlert,
+      organization,
       createDashboardWidget,
+      hasDashboardFeature,
       metricsQuery.mri,
       canDelete,
-      organization,
       duplicateWidget,
       widgetIndex,
       router,
@@ -188,7 +201,6 @@ export function getCreateAlert(organization: Organization, metricsQuery: Metrics
     !metricsQuery.mri ||
     !metricsQuery.op ||
     isCustomMeasurement(metricsQuery) ||
-    isGaugeMetric(metricsQuery) ||
     !organization.access.includes('alerts:write')
   ) {
     return undefined;
@@ -232,10 +244,7 @@ export function useCreateDashboardWidget(
         widgetAsQueryParams,
         location: router.location,
         actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
+        allowCreateNewDashboard: false,
       });
   }, [metricsQuery, selection, displayType, organization, router]);
 }
-
-const AddToDashboardItem = styled('div')<{disabled: boolean}>`
-  color: ${p => (p.disabled ? p.theme.disabled : p.theme.textColor)};
-`;

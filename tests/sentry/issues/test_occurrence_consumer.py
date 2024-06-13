@@ -28,6 +28,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -186,7 +187,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.LOW
 
     @with_feature("projects:issue-priority")
@@ -204,7 +205,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         occurrence = result[0]
         assert occurrence is not None
         assert mock_get_severity_score.call_count == 0
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assert group.priority == PriorityLevel.HIGH
         assert "severity" not in group.data["metadata"]
 
@@ -215,7 +216,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assignee = GroupAssignee.objects.get(group=group)
         assert assignee.user_id == self.user.id
 
@@ -226,7 +227,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         assignee = GroupAssignee.objects.get(group=group)
         assert assignee.team_id == self.team.id
 
@@ -238,7 +239,7 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         assert result is not None
         occurrence = result[0]
         assert occurrence is not None
-        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).first()
+        group = Group.objects.filter(grouphash__hash=occurrence.fingerprint[0]).get()
         with pytest.raises(GroupAssignee.DoesNotExist):
             GroupAssignee.objects.get(group=group)
 
@@ -577,3 +578,18 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == status
+
+
+@override_options({"issues.occurrence_consumer.use_orjson": True})
+class IssueOccurrenceProcessMessageWithOrjsonTest(IssueOccurrenceProcessMessageTest):
+    pass
+
+
+@override_options({"issues.occurrence_consumer.use_orjson": True})
+class IssueOccurrenceLookupEventIdWithOrjsonTest(IssueOccurrenceLookupEventIdTest):
+    pass
+
+
+@override_options({"issues.occurrence_consumer.use_orjson": True})
+class ParseEventPayloadWithOrjsonTest(ParseEventPayloadTest):
+    pass

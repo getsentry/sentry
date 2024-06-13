@@ -20,7 +20,7 @@ import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {
-  const {organization, routerContext, router, routerProps} = initializeOrg();
+  const {organization, router, routerProps} = initializeOrg();
   const semverVersionInfo = {
     buildHash: null,
     description: '1.2.3',
@@ -114,7 +114,7 @@ describe('ReleasesList', () => {
 
   it('renders list', async () => {
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
     const items = await screen.findAllByTestId('release-panel');
@@ -124,7 +124,8 @@ describe('ReleasesList', () => {
     expect(within(items.at(0)!).getByText('1.0.0')).toBeInTheDocument();
     expect(within(items.at(0)!).getByText('Adoption')).toBeInTheDocument();
     expect(within(items.at(1)!).getByText('1.0.1')).toBeInTheDocument();
-    expect(within(items.at(1)!).getByText('0%')).toBeInTheDocument();
+    // Crash free rate loads separately
+    expect(await within(items.at(1)!).findByText('0%')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('af4f231ec9a8')).toBeInTheDocument();
     expect(within(items.at(2)!).getByText('Project Name')).toBeInTheDocument();
   });
@@ -163,7 +164,7 @@ describe('ReleasesList', () => {
         selection={{...props.selection, projects: [4]}}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -253,7 +254,7 @@ describe('ReleasesList', () => {
     });
 
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -273,7 +274,7 @@ describe('ReleasesList', () => {
     });
 
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -299,7 +300,7 @@ describe('ReleasesList', () => {
 
   it('sorts releases', async () => {
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -342,7 +343,7 @@ describe('ReleasesList', () => {
         selection={{...props.selection, environments: ['a', 'b']}}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -353,7 +354,7 @@ describe('ReleasesList', () => {
 
   it('display the right Crash Free column', async () => {
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -391,7 +392,7 @@ describe('ReleasesList', () => {
         }}
       />,
       {
-        context: routerContext,
+        router,
         organization,
       }
     );
@@ -445,7 +446,7 @@ describe('ReleasesList', () => {
 
   it('calls api with only explicitly permitted query params', async () => {
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -463,7 +464,7 @@ describe('ReleasesList', () => {
 
   it('calls session api for health data', async () => {
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -536,7 +537,7 @@ describe('ReleasesList', () => {
       ],
     });
     render(<ReleasesList {...props} selection={{...props.selection, projects: [2]}} />, {
-      context: routerContext,
+      router,
       organization,
     });
     const hiddenProjectsMessage = await screen.findByTestId('hidden-projects');
@@ -553,7 +554,7 @@ describe('ReleasesList', () => {
       body: [ReleaseFixture({version: '2.0.0'})],
     });
     render(<ReleasesList {...props} selection={{...props.selection, projects: [-1]}} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -580,7 +581,7 @@ describe('ReleasesList', () => {
       method: 'POST',
     });
     render(<ReleasesList {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
     const smartSearchBar = await screen.findByTestId('smart-search-input');

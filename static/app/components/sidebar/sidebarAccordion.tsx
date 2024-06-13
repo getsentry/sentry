@@ -2,8 +2,6 @@ import {
   Children,
   cloneElement,
   isValidElement,
-  type ReactElement,
-  type ReactNode,
   useCallback,
   useContext,
   useRef,
@@ -27,9 +25,14 @@ import SidebarItem, {isItemActive} from './sidebarItem';
 
 type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
+  initiallyExpanded?: boolean;
 };
 
-function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
+function SidebarAccordion({
+  children,
+  initiallyExpanded,
+  ...itemProps
+}: SidebarAccordionProps) {
   const {id, collapsed: sidebarCollapsed} = itemProps;
 
   const accordionRef = useRef<HTMLDivElement>(null);
@@ -42,7 +45,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
-    true
+    initiallyExpanded ?? true
   );
 
   useOnClickOutside(floatingAccordionRef, e => {
@@ -57,6 +60,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const isOpenInFloatingSidebar = expandedItemId === mainItemId;
 
   const isActive = isItemActive(itemProps);
+  const hasMainLink = Boolean(itemProps.to);
 
   const childSidebarItems = findChildElementsInTree(children, 'SidebarItem');
 
@@ -84,6 +88,9 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   ) => {
     if ((!horizontal && !sidebarCollapsed) || !children) {
       setExpandedItemId(null);
+      if (!hasMainLink) {
+        setExpanded(!expanded);
+      }
       return;
     }
 
@@ -166,7 +173,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
 
 export {SidebarAccordion};
 
-const renderChildrenWithProps = (children: ReactNode): ReactNode => {
+const renderChildrenWithProps = (children: React.ReactNode): React.ReactNode => {
   const propsToAdd: Partial<SidebarItemProps> = {
     isNested: true,
   };
@@ -175,9 +182,11 @@ const renderChildrenWithProps = (children: ReactNode): ReactNode => {
     if (!isValidElement(child)) {
       return child;
     }
-    return cloneElement(child as ReactElement<any>, {
+    return cloneElement(child as React.ReactElement<any>, {
       ...propsToAdd,
-      children: renderChildrenWithProps((child as ReactElement<any>).props.children),
+      children: renderChildrenWithProps(
+        (child as React.ReactElement<any>).props.children
+      ),
     });
   });
 };

@@ -37,6 +37,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -193,6 +194,17 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data["latestIncident"]["id"] == str(incident.id)
         assert "latestIncident" not in no_expand_resp.data
 
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule(description="howdy")
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.description == resp.data.get("description")
+
     @responses.activate
     def test_with_sentryapp_success(self):
         self.superuser = self.create_user("admin@localhost", is_superuser=True)
@@ -268,8 +280,9 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             slug=sentry_app.slug, organization=org2, user=self.superuser
         )
 
-        getmany_response = app_service.get_many(
-            filter=dict(app_ids=[sentry_app.id], organization_id=self.organization.id)
+        get_context_response = app_service.get_component_contexts(
+            filter=dict(app_ids=[sentry_app.id], organization_id=self.organization.id),
+            component_type="alert-rule-action",
         )
 
         rule = self.create_alert_rule()
@@ -298,16 +311,17 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             status=200,
         )
         with self.feature("organizations:incidents"):
-            with mock.patch.object(app_service, "get_many") as mock_get_many:
-                mock_get_many.return_value = getmany_response
+            with mock.patch.object(app_service, "get_component_contexts") as mock_get:
+                mock_get.return_value = get_context_response
                 resp = self.get_response(self.organization.slug, rule.id)
 
-                assert mock_get_many.call_count == 1
-                mock_get_many.assert_called_with(
+                assert mock_get.call_count == 1
+                mock_get.assert_called_with(
                     filter={
                         "app_ids": [sentry_app.id],
                         "organization_id": self.organization.id,
                     },
+                    component_type="alert-rule-action",
                 )
 
         assert resp.status_code == 200
@@ -606,6 +620,22 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
 
         assert len(resp.data["triggers"]) == 1
+
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        description = "yeehaw"
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["description"] = description
+
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
+        assert description == resp.data.get("description")
 
     def test_delete_action(self):
         self.create_member(

@@ -65,7 +65,7 @@ const render = (
   children: React.ReactElement,
   orgParams: Partial<DetailedOrganization> = {}
 ) => {
-  const {routerContext, organization} = initializeOrg({
+  const {router, organization} = initializeOrg({
     organization: {slug: mockOrgSlug, ...orgParams},
     router: {
       routes: [
@@ -81,7 +81,7 @@ const render = (
   });
 
   return baseRender(children, {
-    context: routerContext,
+    router,
     organization,
   });
 };

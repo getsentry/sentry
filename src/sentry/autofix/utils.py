@@ -24,6 +24,10 @@ class AutofixState(TypedDict):
 
 
 def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]:
+    if settings.SEER_AUTOFIX_FORCE_USE_REPOS:
+        # This is for testing purposes only, for example in s4s we want to force the use of specific repo(s)
+        return settings.SEER_AUTOFIX_FORCE_USE_REPOS
+
     code_mappings = get_sorted_code_mapping_configs(project)
 
     repos: dict[tuple, dict] = {}

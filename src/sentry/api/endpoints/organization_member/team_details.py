@@ -1,7 +1,7 @@
-from collections.abc import Mapping, MutableMapping
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, Literal, TypedDict
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
@@ -41,18 +41,31 @@ from . import can_admin_team, can_set_team_role
 ERR_INSUFFICIENT_ROLE = "You do not have permission to edit that user's membership."
 
 
+class OrganizationMemberTeamSerializerResponse(TypedDict):
+    isActive: bool
+    # This must be manually kept up to date, because we cannot dynamically
+    # unpack into static type annotations. See https://github.com/microsoft/pylance-release/issues/4084
+    teamRole: Literal["contributor", "admin"]
+
+
+@extend_schema_serializer(exclude_fields=["isActive"])
 class OrganizationMemberTeamSerializer(serializers.Serializer):
     isActive = serializers.BooleanField()
-    teamRole = serializers.CharField(allow_null=True, allow_blank=True)
+    teamRole = serializers.ChoiceField(
+        choices=team_roles.get_descriptions(),
+        default=team_roles.get_default().id,
+        help_text="The team-level role to switch to. Valid roles include:",
+        # choices will follow in the docs
+    )
 
 
 class OrganizationMemberTeamDetailsSerializer(Serializer):
     def serialize(
         self, obj: OrganizationMemberTeam, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> MutableMapping[str, Any]:
+    ) -> OrganizationMemberTeamSerializerResponse:
         return {
             "isActive": obj.is_active,
-            "teamRole": obj.role,
+            "teamRole": obj.role,  # type:ignore[typeddict-item]
         }
 
 
@@ -132,8 +145,8 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
@@ -345,6 +358,21 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
 
         return Response(serialize(team, request.user, TeamSerializer()), status=201)
 
+    @extend_schema(
+        operation_id="Update an Organization Member's Team Role",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.member_id("The ID of the organization member to change"),
+            GlobalParams.TEAM_ID_OR_SLUG,
+        ],
+        request=OrganizationMemberTeamSerializer,
+        responses={
+            200: OrganizationMemberTeamDetailsSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=TeamExamples.UPDATE_TEAM_ROLE,
+    )
     def put(
         self,
         request: Request,
@@ -352,7 +380,13 @@ class OrganizationMemberTeamDetailsEndpoint(OrganizationMemberEndpoint):
         member: OrganizationMember,
         team: Team,
     ) -> Response:
+        """
+        The relevant organization member must already be a part of the team.
 
+        Note that for organization admins, managers, and owners, they are
+        automatically granted a minimum team role of `admin` on all teams they
+        are part of. Read more about [team roles](https://docs.sentry.io/product/teams/roles/).
+        """
         try:
             omt = OrganizationMemberTeam.objects.get(team=team, organizationmember=member)
         except OrganizationMemberTeam.DoesNotExist:

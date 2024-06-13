@@ -2,12 +2,12 @@ import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
+import {Flex} from 'sentry/components/container/flex';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Flex} from 'sentry/components/profiling/flex';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconDelete} from 'sentry/icons';
@@ -190,7 +190,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           projectSlug={projectSlug}
           replayErrors={replayErrors}
         >
-          <ReplaysLayout isVideoReplay={isVideoReplay} />
+          <ReplaysLayout isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>

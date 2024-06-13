@@ -34,14 +34,12 @@ from sentry.rules.processing.processor import is_condition_slow
 from sentry.signals import alert_rule_created
 from sentry.tasks.integrations.slack import find_channel_id_for_rule
 from sentry.utils import metrics
-from sentry.utils.safe import safe_execute
 
 
 def send_confirmation_notification(rule: Rule, new: bool, changed: dict | None = None):
     for action in rule.data.get("actions", ()):
         action_inst = instantiate_action(rule, action)
-        safe_execute(
-            action_inst.send_confirmation_notification,
+        action_inst.send_confirmation_notification(
             rule=rule,
             new=new,
             changed=changed,
@@ -277,6 +275,17 @@ def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
 
 class ProjectRulesPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=256, help_text="The name for the rule.")
+    environment = serializers.CharField(
+        required=False, allow_null=True, help_text="The name of the environment to filter by."
+    )
+    owner = ActorField(
+        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
+    )
+    frequency = serializers.IntegerField(
+        min_value=5,
+        max_value=60 * 24 * 30,
+        help_text="How often to perform the actions once for an issue, in minutes. The valid range is `5` to `43200`.",
+    )
     actionMatch = serializers.ChoiceField(
         choices=(
             ("all", "All conditions must evaluate to true."),
@@ -327,13 +336,123 @@ A list of triggers that determine when the rule fires. See below for a list of p
 ```
 
 **The issue affects more than `value` percent of sessions in `interval`**
-- `value` - An integer from 0 to 100
+- `value` - A float
 - `interval` - Valid values are `5m`, `10m`, `30m`, and `1h` (`m` for minutes, `h` for hours).
 ```json
 {
     "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
-    "value": 50,
+    "value": 50.0,
     "interval": "10m"
+}
+```
+""",
+    )
+    filterMatch = serializers.ChoiceField(
+        choices=(
+            ("all", "All filters must evaluate to true."),
+            ("any", "At least one of the filters must evaluate to true."),
+            ("none", "All filters must evaluate to false."),
+        ),
+        required=False,
+        help_text="A string determining which filters need to be true before any actions take place. Required when a value is provided for `filters`.",
+    )
+    filters = serializers.ListField(
+        child=RuleNodeField(type="filter/event"),
+        required=False,
+        help_text="""
+A list of filters that determine if a rule fires after the necessary conditions have been met. See below for a list of possible filters.
+
+**The issue is `comparison_type` than `value` `time`**
+- `comparison_type` - One of `older` or `newer`
+- `value` - An integer
+- `time` - The unit of time. Valid values are `minute`, `hour`, `day`, and `week`.
+```json
+{
+    "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
+    "comparison_type": "older",
+    "value": 3,
+    "time": "week"
+}
+```
+
+**The issue has happened at least `value` times**
+- `value` - An integer
+```json
+{
+    "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
+    "value": 120
+}
+```
+
+**The issue is assigned to No One**
+```json
+{
+    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "targetType": "Unassigned"
+}
+```
+
+**The issue is assigned to `targetType`**
+- `targetType` - One of `Team` or `Member`
+- `targetIdentifier` - The target's ID
+```json
+{
+    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+    "targetType": "Member",
+    "targetIdentifier": 895329789
+}
+```
+
+**The event is from the latest release**
+```json
+{
+    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter"
+}
+```
+
+**The issue's category is equal to `value`**
+- `value` - An integer correlated with a category. Valid values are `1` (Error), `2` (Performance), `3` (Profile), `4` (Cron), and `5` (Replay).
+```json
+{
+    "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
+    "value": 2
+}
+```
+
+**The event's `attribute` value `match` `value`**
+- `attribute` - Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crashtype`, and `app.in_foreground`.
+- `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
+- `value` - A string. Not required when `match` is `is` or `ns`.
+```json
+{
+    "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
+    "attribute": "http.url",
+    "match": "nc",
+    "value": "localhost"
+}
+```
+
+**The event's tags match `key` `match` `value`**
+- `key` - The tag
+- `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
+- `value` - A string. Not required when `match` is `is` or `ns`.
+```json
+{
+    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+    "key": "level",
+    "match": "eq"
+    "value": "error"
+}
+```
+
+**The event's level is `match` `level`**
+- `match` - Valid values are `eq`, `gte`, and `lte`.
+- `level` - Valid values are `50` (fatal), `40` (error), `30` (warning), `20` (info), `10` (debug), `0` (sample).
+```json
+{
+    "id": "sentry.rules.filters.level.LevelFilter",
+    "match": "gte"
+    "level": "50"
 }
 ```
 """,
@@ -543,127 +662,6 @@ A list of actions that take place when all required conditions and filters for t
 }
 ```
 """,
-    )
-    frequency = serializers.IntegerField(
-        min_value=5,
-        max_value=60 * 24 * 30,
-        help_text="How often to perform the actions once for an issue, in minutes. The valid range is `5` to `43200`.",
-    )
-    environment = serializers.CharField(
-        required=False, allow_null=True, help_text="The name of the environment to filter by."
-    )
-    filterMatch = serializers.ChoiceField(
-        choices=(
-            ("all", "All filters must evaluate to true."),
-            ("any", "At least one of the filters must evaluate to true."),
-            ("none", "All filters must evaluate to false."),
-        ),
-        required=False,
-        help_text="A string determining which filters need to be true before any actions take place. Required when a value is provided for `filters`.",
-    )
-    filters = serializers.ListField(
-        child=RuleNodeField(type="filter/event"),
-        required=False,
-        help_text="""
-A list of filters that determine if a rule fires after the necessary conditions have been met. See below for a list of possible filters.
-
-**The issue is `comparison_type` than `value` `time`**
-- `comparison_type` - One of `older` or `newer`
-- `value` - An integer
-- `time` - The unit of time. Valid values are `minute`, `hour`, `day`, and `week`.
-```json
-{
-    "id": "sentry.rules.filters.age_comparison.AgeComparisonFilter",
-    "comparison_type": "older",
-    "value": 3,
-    "time": "week"
-}
-```
-
-**The issue has happened at least `value` times**
-- `value` - An integer
-```json
-{
-    "id": "sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",
-    "value": 120
-}
-```
-
-**The issue is assigned to No One**
-```json
-{
-    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
-    "targetType": "Unassigned"
-}
-```
-
-**The issue is assigned to `targetType`**
-- `targetType` - One of `Team` or `Member`
-- `targetIdentifier` - The target's ID
-```json
-{
-    "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
-    "targetType": "Member",
-    "targetIdentifier": 895329789
-}
-```
-
-**The event is from the latest release**
-```json
-{
-    "id": "sentry.rules.filters.latest_release.LatestReleaseFilter"
-}
-```
-
-**The issue's category is equal to `value`**
-- `value` - An integer correlated with a category. Valid values are `1` (Error), `2` (Performance), `3` (Profile), `4` (Cron), and `5` (Replay).
-```json
-{
-    "id": "sentry.rules.filters.issue_category.IssueCategoryFilter",
-    "value": 2
-}
-```
-
-**The event's `attribute` value `match` `value`**
-- `attribute` - Valid values are `message`, `platform`, `environment`, `type`, `error.handled`, `error.unhandled`, `error.main_thread`, `exception.type`, `exception.value`, `user.id`, `user.email`, `user.username`, `user.ip_address`, `http.method`, `http.url`, `http.status_code`, `sdk.name`, `stacktrace.code`, `stacktrace.module`, `stacktrace.filename`, `stacktrace.abs_path`, `stacktrace.package`, `unreal.crashtype`, and `app.in_foreground`.
-- `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
-- `value` - A string. Not required when `match` is `is` or `ns`.
-```json
-{
-    "id": "sentry.rules.conditions.event_attribute.EventAttributeCondition",
-    "attribute": "http.url",
-    "match": "nc",
-    "value": "localhost"
-}
-```
-
-**The event's tags match `key` `match` `value`**
-- `key` - The tag
-- `match` - The comparison operator. Valid values are `eq` (equals), `ne` (does not equal), `sw` (starts with), `ew` (ends with), `co` (contains), `nc` (does not contain), `is` (is set), and `ns` (is not set).
-- `value` - A string. Not required when `match` is `is` or `ns`.
-```json
-{
-    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-    "key": "level",
-    "match": "eq"
-    "value": "error"
-}
-```
-
-**The event's level is `match` `level`**
-- `match` - Valid values are `eq`, `gte`, and `lte`.
-- `level` - Valid values are `50` (fatal), `40` (error), `30` (warning), `20` (info), `10` (debug), `0` (sample).
-```json
-{
-    "id": "sentry.rules.filters.level.LevelFilter",
-    "match": "gte"
-    "level": "50"
-}
-```
-""",
-    )
-    owner = ActorField(
-        required=False, allow_null=True, help_text="The ID of the team or user that owns the rule."
     )
 
 

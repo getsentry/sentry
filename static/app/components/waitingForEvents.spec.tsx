@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -8,10 +8,10 @@ import WaitingForEvents from 'sentry/components/waitingForEvents';
 
 describe('WaitingForEvents', function () {
   let getIssues: jest.Func;
-  let routerContext;
+  let router;
 
   beforeEach(function () {
-    routerContext = RouterContextFixture();
+    router = RouterFixture();
     getIssues = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/issues/',
       method: 'GET',
@@ -29,7 +29,7 @@ describe('WaitingForEvents', function () {
       return render(
         <WaitingForEvents org={OrganizationFixture()} project={ProjectFixture()} />,
         {
-          context: routerContext,
+          router,
         }
       );
     }
@@ -44,16 +44,14 @@ describe('WaitingForEvents', function () {
     it('Renders installation instructions', async function () {
       createWrapper();
       await userEvent.click(screen.getByText('Installation Instructions'));
-      expect(routerContext.context.router.push).toHaveBeenCalledWith(
-        '/org-slug/project-slug/getting-started/'
-      );
+      expect(router.push).toHaveBeenCalledWith('/org-slug/project-slug/getting-started/');
     });
   });
 
   describe('without a project', function () {
     function createWrapper() {
       return render(<WaitingForEvents org={OrganizationFixture()} />, {
-        context: routerContext,
+        router,
       });
     }
 

@@ -36,6 +36,7 @@ interface StepProps {
   stepKey: string;
   title: string;
   isCompleted?: boolean;
+  optional?: boolean;
 }
 
 type RegisterStepInfo = Pick<StepProps, 'stepKey' | 'isCompleted'>;
@@ -154,6 +155,7 @@ function Step(props: StepProps) {
           {props.title}
           {isCompleted && <StepDoneIcon isActive={isActive} size="sm" />}
         </StepHeading>
+        {props.optional ? <StepOptionalLabel>Optional</StepOptionalLabel> : null}
         {isActive && (
           <ChildrenWrapper isActive={isActive}>{props.children}</ChildrenWrapper>
         )}
@@ -244,7 +246,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
   position: relative;
   z-index: 2;
   font-size: ${p => p.theme.fontSizeLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   display: flex;
   align-items: center;
   justify-content: center;
@@ -260,7 +262,7 @@ const StepNumber = styled('div')<{isActive: boolean}>`
 const StepHeading = styled('h4')<{isActive: boolean}>`
   line-height: 34px;
   margin: 0;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => (p.isActive ? p.theme.textColor : p.theme.subText)};
 `;
@@ -271,6 +273,13 @@ const StepDoneIcon = styled(IconCheckmark, {
   color: ${p => (p.isActive ? p.theme.successText : p.theme.subText)};
   margin-left: ${space(1)};
   vertical-align: middle;
+`;
+
+const StepOptionalLabel = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin-top: -${space(0.75)};
+  margin-bottom: ${space(1)};
 `;
 
 const ChildrenWrapper = styled('div')<{isActive: boolean}>`

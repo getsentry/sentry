@@ -2,7 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
 from typing import Any, TypedDict
@@ -255,15 +255,15 @@ class RpcOrganization(RpcOrganizationSummary):
         from sentry.services.hybrid_cloud.user.service import user_service
 
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            owners = OrganizationMemberMapping.objects.filter(
+            owners: Iterable[int | None] = OrganizationMemberMapping.objects.filter(
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
         else:
             owners = OrganizationMember.objects.filter(
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
-        return user_service.get_many(
-            filter={"user_ids": [owner_id for owner_id in owners if owner_id is not None]}
+        return user_service.get_many_by_id(
+            ids=[owner_id for owner_id in owners if owner_id is not None]
         )
 
     @property

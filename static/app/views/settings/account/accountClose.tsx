@@ -25,7 +25,7 @@ const BYE_URL = '/';
 const leaveRedirect = () => (window.location.href = BYE_URL);
 
 const Important = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: 1.2em;
 `;
 

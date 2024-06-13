@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from typing import Any
 
 from django.db.models import Subquery
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -12,7 +13,6 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.ownership.grammar import parse_code_owners
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.types.integrations import ExternalProviders
 
 
 def validate_association_emails(
@@ -24,7 +24,7 @@ def validate_association_emails(
 
 def validate_association_actors(
     raw_items: Collection[str],
-    associations: Collection[ExternalActor],
+    associations: Iterable[ExternalActor],
 ) -> list[str]:
     raw_items_set = {str(item) for item in raw_items}
     # associations are ExternalActor objects

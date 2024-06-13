@@ -76,7 +76,6 @@ from sentry.snuba.subscriptions import (
     create_snuba_query,
     update_snuba_query,
 )
-from sentry.snuba.tasks import build_query_builder
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.types.actor import Actor
 from sentry.utils import metrics
@@ -339,11 +338,10 @@ def build_incident_query_builder(
     project_ids = list(
         IncidentProject.objects.filter(incident=incident).values_list("project_id", flat=True)
     )
-    query_builder = build_query_builder(
-        entity_subscription,
-        snuba_query.query,
-        project_ids,
-        snuba_query.environment,
+    query_builder = entity_subscription.build_query_builder(
+        query=snuba_query.query,
+        project_ids=project_ids,
+        environment=snuba_query.environment,
         params={
             "organization_id": incident.organization_id,
             "project_id": project_ids,
@@ -515,6 +513,7 @@ def create_alert_rule(
     comparison_delta: int | None = None,
     monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
+    description: str | None = None,
     **kwargs,
 ):
     """
@@ -581,6 +580,7 @@ def create_alert_rule(
             comparison_delta=comparison_delta,
             owner=owner,
             monitor_type=monitor_type.value,
+            description=description,
         )
 
         if user:
@@ -693,6 +693,7 @@ def update_alert_rule(
     event_types=None,
     comparison_delta=NOT_SET,
     monitor_type: AlertRuleMonitorType | None = None,
+    description: str | None = None,
     **kwargs,
 ):
     """
@@ -720,12 +721,15 @@ def update_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param description: An optional str that will be rendered in the notification
     :return: The updated `AlertRule`
     """
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
+    if description:
+        updated_fields["description"] = description
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:

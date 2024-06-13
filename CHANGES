@@ -1,3 +1,35 @@
+24.5.1
+------
+
+### Various fixes & improvements
+
+- ref(messaging): Removing Integration Namespace Imports (#72033) by @iamrajjoshi
+- ref(js): Fix a few biome warnings (#72048) by @evanpurkhiser
+- feat(insights): show update SDK banner cache module (#72015) by @DominikB2014
+- fix(spanMetrics): Don't mark avg as a percentile (#72046) by @wmak
+- fix(new-trace): Fixing scrollbar offset. (#72029) by @Abdkhan14
+- ref: fix types for sentry.utils.snowflake (#72019) by @asottile-sentry
+- fix(contexts): Fix casing for known context (#72045) by @leeandher
+- fix(related_issues): Prevent race condition (#72036) by @armenzg
+- fix(traceview): Allow raw text on additional data when set (#72038) by @leeandher
+- fix(insights): Fix flag name in Spans tab UI (#72039) by @0Calories
+- ref(test): Remove location from context (#72028) by @evanpurkhiser
+- feat(traces): Use new slice quantization from backend (#72034) by @k-fish
+- fix(context): Address a few small context bugs (#72013) by @leeandher
+- feat(self-hosted): Errors only self-hosted sidebar (#72012) by @hubertdeng123
+- fix(relocation): Clean up relocation serializer (#71930) by @azaslavsky
+- ref: remove wrapping RawEvent payload with CanonicalKeyView (#72010) by @asottile-sentry
+- feat(similarity): Add read only flag to NN endpoint (#72021) by @jangjodi
+- feat(remote-config): Add proxy endpoint for configurations (#71773) by @cmanallen
+- chore(login): update the login banners (#72027) by @pevensentry
+- fix(similarity): use get_primary_hash in backfill (#72022) by @JoshFerge
+- feat(empty-states): Update arcade for issue stream empty state (#72024) by @roggenkemper
+- Revert "ref(replays): update videoReplayer code to match new rrweb logic & bump rrweb version (#71875)" (7ed3a135) by @getsentry-bot
+- feat(profileHours): Add profile hours to org stats (#71882) by @scttcper
+- feat(contexts): Add laravel as known platform context (#72008) by @leeandher
+
+_Plus 786 more_
+
 24.5.0
 ------
 

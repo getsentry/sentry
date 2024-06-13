@@ -6,6 +6,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -98,6 +99,7 @@ export function ScreenSummary() {
             <HeaderContainer>
               <ControlsContainer>
                 <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 <ReleaseComparisonSelector />
@@ -126,8 +128,8 @@ export function ScreenSummary() {
                     allowZero: false,
                     title:
                       appStartType === COLD_START_TYPE
-                        ? t('Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
-                        : t('Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
+                        ? t('Avg Cold Start (%s)', PRIMARY_RELEASE_ALIAS)
+                        : t('Avg Warm Start (%s)', PRIMARY_RELEASE_ALIAS),
                     dataKey: `avg_if(span.duration,release,${primaryRelease})`,
                   },
                   {
@@ -135,14 +137,15 @@ export function ScreenSummary() {
                     allowZero: false,
                     title:
                       appStartType === COLD_START_TYPE
-                        ? t('Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
-                        : t('Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
+                        ? t('Avg Cold Start (%s)', SECONDARY_RELEASE_ALIAS)
+                        : t('Avg Warm Start (%s)', SECONDARY_RELEASE_ALIAS),
                     dataKey: `avg_if(span.duration,release,${secondaryRelease})`,
                   },
                   {
                     unit: 'percent_change',
                     title: t('Change'),
                     dataKey: `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
+                    preferredPolarity: '-',
                   },
                   {
                     unit: 'count',
@@ -200,7 +203,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="app_start"
       pageTitle={transaction}
-      features="spans-first-ui"
+      features="insights-initial-modules"
     >
       <ScreenSummary />
     </ModulePageProviders>

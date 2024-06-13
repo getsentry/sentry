@@ -5,15 +5,16 @@ import beautify from 'js-beautify';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
-import {Flex} from 'sentry/components/profiling/flex';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
 import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -118,7 +119,10 @@ function BreadcrumbItem({
                   (frame.data.mutations.next?.timestamp ?? 0) -
                   (replay?.getReplay().started_at.getTime() ?? 0)
                 }
-              />
+                size="xs"
+              >
+                {t('Open Hydration Diff')}
+              </OpenReplayComparisonButton>
             </div>
           ) : null}
 
@@ -204,7 +208,7 @@ const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray400};
   line-height: ${p => p.theme.text.lineHeightBody};
 `;

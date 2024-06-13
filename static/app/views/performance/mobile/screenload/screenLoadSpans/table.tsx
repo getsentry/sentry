@@ -140,11 +140,11 @@ export function ScreenLoadSpansTable({
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
   };
@@ -166,9 +166,9 @@ export function ScreenLoadSpansTable({
       };
 
       return (
-        <Link to={`${pathname}?${qs.stringify(query)}`}>
-          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 
@@ -369,13 +369,14 @@ export function ScreenLoadSpansTable({
           String(SPAN_DESCRIPTION),
           `avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`,
           `avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`,
-          ...(organization.features.includes('spans-first-ui') ? ['affects'] : []),
+          ...(organization.features.includes('insights-initial-modules')
+            ? ['affects']
+            : []),
           ...['count()', 'time_spent_percentage()'],
         ].map(col => {
           return {key: col, name: columnNameMap[col] ?? col, width: COL_WIDTH_UNDEFINED};
         })}
         columnSortBy={columnSortBy}
-        location={location}
         grid={{
           renderHeadCell: column => renderHeadCell(column, data?.meta),
           renderBodyCell,

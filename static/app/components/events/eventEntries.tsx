@@ -3,9 +3,11 @@ import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import EventHydrationDiff from 'sentry/components/events/eventHydrationDiff';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
@@ -18,8 +20,7 @@ import type {
 } from 'sentry/types';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {isNotSharedOrganization} from 'sentry/types/utils';
-import {objectIsEmpty} from 'sentry/utils';
-import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {EventContexts} from './contexts';
 import {EventDevice} from './device';
@@ -71,7 +72,7 @@ function EventEntries({
     );
   }
 
-  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const hasContext = !isEmptyObject(event.user ?? {}) || !isEmptyObject(event.contexts);
   const hasActionableItems = actionableItemsEnabled({
     eventId: event.id,
     organization,
@@ -209,6 +210,7 @@ export function Entries({
         beforeReplayEntries.map((entry, entryIdx) => (
           <EventEntry key={entryIdx} entry={entry} {...eventEntryProps} />
         ))}
+      {!isShare && <EventHydrationDiff {...eventEntryProps} />}
       {!isShare && <EventReplay {...eventEntryProps} />}
       {afterReplayEntries.map((entry, entryIdx) => {
         if (hideBreadCrumbs && entry.type === EntryType.BREADCRUMBS) {

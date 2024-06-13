@@ -5,7 +5,7 @@ import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {EventReplaySection} from 'sentry/components/events/eventReplay/eventReplaySection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -46,7 +46,7 @@ export default function ReplayInlineOnboardingPanel({
   }
 
   return (
-    <EventReplaySection>
+    <EventDataSection type="replay" title={t('Session Replay')}>
       <BannerWrapper>
         <div>
           <BannerTitle>
@@ -103,13 +103,13 @@ export default function ReplayInlineOnboardingPanel({
           ]}
         />
       </BannerWrapper>
-    </EventReplaySection>
+    </EventDataSection>
   );
 }
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerWrapper = styled('div')`
@@ -129,7 +129,7 @@ const BannerWrapper = styled('div')`
 const BannerTitle = styled('div')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const BannerDescription = styled('div')`

@@ -62,10 +62,10 @@ class PromptsActivityEndpoint(Endpoint):
             condition = Q(feature=feature, **filters)
             conditions = condition if conditions is None else (conditions | condition)
 
-        result = PromptsActivity.objects.filter(conditions, user_id=request.user.id)
-        featuredata = {k.feature: k.data for k in result}
+        result_qs = PromptsActivity.objects.filter(conditions, user_id=request.user.id)
+        featuredata = {k.feature: k.data for k in result_qs}
         if len(features) == 1:
-            result = result.first()
+            result = result_qs.first()
             data = None if result is None else result.data
             return Response({"data": data, "features": featuredata})
         else:

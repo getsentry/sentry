@@ -7,12 +7,13 @@ from typing import Any
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, integrations
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import IntegrationSerializer, serialize
-from sentry.integrations import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.manager import default_manager as integrations
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
