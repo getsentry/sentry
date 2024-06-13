@@ -391,8 +391,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable improvements to Slack notifications
     manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Feature flags for migrating to the Slack SDK WebClient
-    # Use new Slack SDK Client for sending activity messages in threads
-    manager.add("organizations:slack-sdk-activity-threads", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client for sending metric alerts
     manager.add("organizations:slack-sdk-metric-alert", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in _notify_recipient
