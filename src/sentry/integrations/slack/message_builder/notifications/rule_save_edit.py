@@ -20,15 +20,18 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         self.new = new
         self.changed = changed
 
-    def linkify_rule(self):
-        org_slug = self.rule.project.organization.slug
-        project_slug = self.rule.project.slug
+    def linkify_rule(self, org_slug: str, project_slug: str):
         rule_url_path = (
             f"/organizations/{org_slug}/alerts/rules/{project_slug}/{self.rule.id}/details/"
         )
         rule_url = absolute_uri(rule_url_path)
         rule_name = self.rule.label
         return f"<{rule_url}|*{escape_slack_text(rule_name)}*>"
+
+    def linkify_project(self, org_slug: str, project_slug: str):
+        project_url_path = f"/projects/{project_slug}/"
+        project_url = absolute_uri(project_url_path)
+        return f"<{project_url}|*{escape_slack_text(project_slug)}*>"
 
     def get_settings_url(self):
         url_str = "/settings/account/notifications/"
@@ -39,12 +42,14 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
 
     def build(self) -> SlackBlock:
         blocks = []
-        rule_url = self.linkify_rule()
-        project = self.rule.project.slug
+        org_slug = self.rule.project.organization.slug
+        project_slug = self.rule.project.slug
+        rule_url = self.linkify_rule(org_slug, project_slug)
+        project_url = self.linkify_project(org_slug, project_slug)
         if self.new:
-            rule_text = f"Alert rule {rule_url} was created in the *{project}* project and will send notifications here."
+            rule_text = f"Alert rule {rule_url} was created in the {project_url} project and will send notifications to this channel."
         else:
-            rule_text = f"Alert rule {rule_url} in the *{project}* project was updated."
+            rule_text = f"Alert rule {rule_url} in the {project_url} project was updated."
             # TODO potentially use old name if it's changed?
 
         blocks.append(self.get_markdown_block(rule_text))
