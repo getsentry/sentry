@@ -497,6 +497,104 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
                     "count": (len(values) - i) * 2,
                 }
 
+    def test_custom_samples_filtered_by_project_slug(self):
+        mri = "d:custom/value@millisecond"
+        values = [100, 200, 300]
+        span_ids = [uuid4().hex[:16] for _ in values]
+        good_span_id = span_ids[1]
+
+        # 10 is below the min
+        # 20 is within bounds
+        # 30 is above the max
+        for i, (span_id, val) in enumerate(zip(span_ids, values)):
+            ts = before_now(days=i, minutes=10).replace(microsecond=0)
+            self.store_indexed_span(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=span_id,
+                duration=val,
+                timestamp=ts,
+                store_metrics_summary={
+                    mri: [
+                        {
+                            "min": val - 1,
+                            "max": val + 1,
+                            "sum": val * (i + 1) * 2,
+                            "count": (i + 1) * 2,
+                            "tags": {},
+                        }
+                    ]
+                },
+            )
+
+        self.store_indexed_span(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            timestamp=before_now(days=10, minutes=10).replace(microsecond=0),
+            store_metrics_summary={
+                "d:custom/other@millisecond": [
+                    {
+                        "min": 210.0,
+                        "max": 210.0,
+                        "sum": 210.0,
+                        "count": 1,
+                        "tags": {},
+                    }
+                ]
+            },
+        )
+        self.store_indexed_span(
+            123,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=uuid4().hex[:16],
+            timestamp=before_now(days=10, minutes=10).replace(microsecond=0),
+            store_metrics_summary={
+                "d:custom/other@millisecond": [
+                    {
+                        "min": 210.0,
+                        "max": 210.0,
+                        "sum": 210.0,
+                        "count": 1,
+                        "tags": {},
+                    }
+                ]
+            },
+        )
+
+        for operation, min_bound, max_bound in [
+            ("avg", 150.0, 250.0),
+            ("min", 150.0, 250.0),
+            ("max", 150.0, 250.0),
+            ("count", 3, 5),
+        ]:
+            query = {
+                "mri": mri,
+                "field": ["id"],
+                "project": [self.project.id],
+                "statsPeriod": "14d",
+                "min": min_bound,
+                "max": max_bound,
+                "operation": operation,
+                "query": f"project:{self.project.slug}",
+            }
+            response = self.do_request(query)
+            assert response.status_code == 200, (operation, response.data)
+            expected = {int(good_span_id, 16)}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected, operation
+
+            for row in response.data["data"]:
+                assert row["summary"] == {
+                    "min": 199.0,
+                    "max": 201.0,
+                    "sum": 800.0,
+                    "count": 4,
+                }, operation
+
     def test_multiple_span_sample_per_time_bucket(self):
         custom_mri = "d:custom/value@millisecond"
         values = [100, 200, 300, 400, 500]
