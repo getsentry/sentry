@@ -292,3 +292,67 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                     "lastSeen": None,
                 },
             ]
+
+    def test_tags_keys_autocomplete_span_status(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for status in ["ok", "internal_error", "invalid_argument"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction="foo",
+                status=status,
+            )
+
+        response = self.do_request("span.status")
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "internal_error",
+                "name": "internal_error",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "invalid_argument",
+                "name": "invalid_argument",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "ok",
+                "name": "ok",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+        ]
+
+        response = self.do_request("span.status", query={"query": "in"})
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "internal_error",
+                "name": "internal_error",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "invalid_argument",
+                "name": "invalid_argument",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+        ]
