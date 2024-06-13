@@ -6,6 +6,7 @@ import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useUndoStack} from 'sentry/components/searchQueryBuilder/useUndoStack';
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
@@ -60,8 +61,17 @@ export function useQueryBuilderGrid(
     ref
   );
 
+  const {undo} = useUndoStack(state);
+
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
+      if (e.key === 'z' && isCtrlKeyPressed(e)) {
+        undo();
+        e.stopPropagation();
+        e.preventDefault();
+        return;
+      }
+
       // When there is a selection, the grid will have focus and handle that behavior.
       if (state.selectionManager.selectedKeys.size > 0) {
         switch (e.key) {
@@ -101,7 +111,7 @@ export function useQueryBuilderGrid(
           originalGridProps.onKeyDown?.(e);
       }
     },
-    [dispatch, originalGridProps, query, state.collection, state.selectionManager]
+    [dispatch, originalGridProps, query, state.collection, state.selectionManager, undo]
   );
 
   const gridProps = useMemo(
