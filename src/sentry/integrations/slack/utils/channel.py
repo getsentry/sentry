@@ -3,8 +3,11 @@ from __future__ import annotations
 import time
 
 from django.core.exceptions import ValidationError
+from slack_sdk.errors import SlackApiError
 
+from sentry import features
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
@@ -65,8 +68,12 @@ def get_channel_id(
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
+    if features.has("organizations:slack-sdk-get-channel-id", organization):
+        has_sdk_flag = True
+    else:
+        has_sdk_flag = False
 
-    return get_channel_id_with_timeout(integration, channel_name, timeout)
+    return get_channel_id_with_timeout(integration, channel_name, timeout, has_sdk_flag)
 
 
 def validate_channel_id(name: str, integration_id: int | None, input_channel_id: str) -> None:
@@ -103,6 +110,7 @@ def get_channel_id_with_timeout(
     integration: Integration | RpcIntegration,
     name: str | None,
     timeout: int,
+    has_sdk_flag: bool,
 ) -> tuple[str, str | None, bool]:
     """
     Fetches the internal slack id of a channel using scheduled message.
@@ -122,14 +130,16 @@ def get_channel_id_with_timeout(
     }
 
     time_to_quit = time.time() + timeout
-
-    client = SlackClient(integration_id=integration.id)
+    if has_sdk_flag:
+        client = SlackSdkClient(integration_id=integration.id)
+    else:
+        client = SlackClient(integration_id=integration.id)
     id_data: tuple[str, str | None, bool] | None = None
     found_duplicate = False
     prefix = ""
     channel_id = None
     try:  # Check for channel
-        channel_id = check_for_channel(client, name)
+        channel_id = check_for_channel(client, name, has_sdk_flag)
         prefix = "#"
     except ApiError as e:
         if str(e) != "channel_not_found":
@@ -188,26 +198,64 @@ def get_channel_id_with_timeout(
     return prefix, channel_id, False
 
 
-def check_for_channel(client: SlackClient, name: str) -> str | None:
-    msg_response = client.post(
-        "/chat.scheduleMessage",
-        data={
-            "channel": name,
-            "text": "Sentry is verifying your channel is accessible for sending you alert rule notifications",
-            "post_at": int(time.time() + 500),
-        },
-    )
+def check_for_channel(
+    client: SlackClient | SlackSdkClient, name: str, has_sdk_flag: bool
+) -> str | None:
+    if has_sdk_flag:
+        try:
+            msg_response = client.chat_scheduleMessage(
+                channel=name,
+                text="Sentry is verifying your channel is accessible for sending you alert rule notifications",
+                post_at=int(time.time() + 500),
+            )
+        except SlackApiError as e:
+            logger_params = {
+                "error": str(e),
+                "integration_id": client.integration_id,
+                "channel": name,
+                "post_at": int(time.time() + 500),
+            }
+            logger.exception("slack.chat_scheduleMessage.error", extra=logger_params)
+            raise
 
-    if "channel" in msg_response:
-        client.post(
-            "/chat.deleteScheduledMessage",
-            params=dict(
-                {
-                    "channel": msg_response["channel"],
+        if "channel" in msg_response:
+            try:
+                client.chat_deleteScheduledMessage(
+                    channel=msg_response["channel"],
+                    scheduled_message_id=msg_response["scheduled_message_id"],
+                )
+                return msg_response["channel"]
+            except SlackApiError as e:
+                logger_params = {
+                    "error": str(e),
+                    "integration_id": client.integration_id,
+                    "channel": name,
+                    "channel_id": msg_response["channel"],
                     "scheduled_message_id": msg_response["scheduled_message_id"],
                 }
-            ),
+                logger.exception("slack.chat_deleteScheduledMessage.error", extra=logger_params)
+                raise
+
+    else:
+        msg_response = client.post(
+            "/chat.scheduleMessage",
+            data={
+                "channel": name,
+                "text": "Sentry is verifying your channel is accessible for sending you alert rule notifications",
+                "post_at": int(time.time() + 500),
+            },
         )
 
-        return msg_response["channel"]
+        if "channel" in msg_response:
+            client.post(
+                "/chat.deleteScheduledMessage",
+                params=dict(
+                    {
+                        "channel": msg_response["channel"],
+                        "scheduled_message_id": msg_response["scheduled_message_id"],
+                    }
+                ),
+            )
+
+            return msg_response["channel"]
     return None

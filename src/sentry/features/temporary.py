@@ -393,6 +393,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:slack-sdk-get-users", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in _notify_recipient
     manager.add("organizations:slack-sdk-notify-recipient", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    # Use new Slack SDK Client in get_channel_id_with_timeout
+    manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
