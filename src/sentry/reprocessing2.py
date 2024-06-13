@@ -315,7 +315,7 @@ def _send_delete_old_primary_hash_messages(
 def buffered_delete_old_primary_hash(
     project_id: int,
     group_id: int,
-    event_id: int | None = None,
+    event_id: str | None = None,
     datetime: datetime | None = None,
     old_primary_hash: str | None = None,
     current_primary_hash: str | None = None,

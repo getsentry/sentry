@@ -534,6 +534,7 @@ class ActivityNotificationTest(APITestCase):
                     is_new_group_environment=True,
                     group_id=event.group_id,
                     cache_key=cache_key,
+                    project_id=self.project.id,
                 )
 
         msg = mail.outbox[0]

@@ -48,7 +48,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
     }
 
     def _get_serialized_event(
-        self, event_id: int, group: Group, user: AbstractBaseUser | AnonymousUser
+        self, event_id: str, group: Group, user: AbstractBaseUser | AnonymousUser
     ) -> dict[str, Any] | None:
         event = eventstore.backend.get_event_by_id(group.project.id, event_id, group_id=group.id)
 

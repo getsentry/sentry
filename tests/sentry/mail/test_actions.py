@@ -162,6 +162,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 1
@@ -199,6 +200,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 1
@@ -235,6 +237,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         # See that the ActiveMembers default results in notifications still being sent
@@ -318,6 +321,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 3

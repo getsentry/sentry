@@ -299,9 +299,9 @@ class SnubaEventStorage(EventStorage):
 
     def get_event_by_id(
         self,
-        project_id,
-        event_id,
-        group_id=None,
+        project_id: int,
+        event_id: str,
+        group_id: int | None = None,
         skip_transaction_groupevent=False,
         tenant_ids=None,
         occurrence_id: str | None = None,

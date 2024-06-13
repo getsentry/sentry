@@ -239,6 +239,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -309,6 +310,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -404,6 +406,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(safe_urlopen.mock_calls) == 2

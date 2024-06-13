@@ -43,6 +43,7 @@ def post_event_with_sdk(settings, relay_server, wait_for_ingest_consumer):
 
     def inner(*args, **kwargs):
         event_id = sentry_sdk.capture_event(*args, **kwargs)
+        assert event_id is not None
         sentry_sdk.flush()
 
         with sentry_sdk.scope.use_scope(current_scope):
