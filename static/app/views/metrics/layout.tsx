@@ -34,6 +34,7 @@ import BackgroundSpace from 'sentry/views/discover/backgroundSpace';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import {IntervalSelect} from 'sentry/views/metrics/intervalSelect';
+import {MetricsApiChangeAlert} from 'sentry/views/metrics/metricsApiChangeAlert';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 import {Queries} from 'sentry/views/metrics/queries';
 import {MetricScratchpad} from 'sentry/views/metrics/scratchpad';
@@ -139,6 +140,8 @@ export const MetricsLayout = memo(() => {
             </Banner>
           )}
 
+          <MetricsApiChangeAlert />
+
           <FilterContainer>
             <PageFilterBar condensed>
               <ProjectPageFilter />
@@ -147,6 +150,7 @@ export const MetricsLayout = memo(() => {
             </PageFilterBar>
             <IntervalSelect />
           </FilterContainer>
+
           {isHasMetricsLoading ? (
             <LoadingIndicator />
           ) : !showOnboardingPanel ? (

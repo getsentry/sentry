@@ -40,11 +40,10 @@ def get_metrics_meta(
 
     for use_case_id in use_case_ids:
         stored_metrics = get_available_mris(organization, projects, use_case_id)
-        metrics_blocking_state = (
-            get_metrics_blocking_state_of_projects(projects)
-            if UseCaseID.CUSTOM in use_case_ids
-            else {}
-        )
+        if use_case_id == UseCaseID.CUSTOM:
+            metrics_blocking_state = get_metrics_blocking_state_of_projects(projects)
+        else:
+            metrics_blocking_state = {}
 
         for metric_mri, project_ids in stored_metrics.items():
             parsed_mri = parse_mri(metric_mri)

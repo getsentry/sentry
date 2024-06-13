@@ -9,7 +9,6 @@ import ConfigStore from 'sentry/stores/configStore';
 
 const {organization, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
-  project: undefined,
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
     {id: '2', slug: 'project-2', isMember: true},

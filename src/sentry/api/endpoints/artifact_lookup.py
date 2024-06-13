@@ -62,9 +62,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        file = None
+        file_m: ArtifactBundle | ReleaseFile | None = None
         if ty == "artifact_bundle":
-            file = (
+            file_m = (
                 ArtifactBundle.objects.filter(
                     id=ty_id,
                     projectartifactbundle__project_id=project.id,
@@ -76,16 +76,16 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         elif ty == "release_file":
             # NOTE: `ReleaseFile` does have a `project_id`, but that seems to
             # be always empty, so using the `organization_id` instead.
-            file = (
+            file_m = (
                 ReleaseFile.objects.filter(id=ty_id, organization_id=project.organization.id)
                 .select_related("file")
                 .first()
             )
             metrics.incr("sourcemaps.download.release_file")
 
-        if file is None:
+        if file_m is None:
             raise Http404
-        file = file.file
+        file = file_m.file
 
         try:
             fp = file.getfile()

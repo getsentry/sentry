@@ -289,8 +289,8 @@ class ProjectKey(Model):
         has_org_subdomain = False
         try:
             has_org_subdomain = features.has(
-                "organizations:org-subdomains", self.project.organization
-            ) or features.has("organizations:org-ingest-subdomains", self.project.organization)
+                "organizations:org-ingest-subdomains", self.project.organization
+            )
         except ProgrammingError:
             # This happens during migration generation for the organization model.
             pass

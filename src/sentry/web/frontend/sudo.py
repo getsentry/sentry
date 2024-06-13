@@ -4,6 +4,7 @@ from typing import Any
 
 from django.http.request import HttpRequest
 
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models.authenticator import Authenticator
 from sentry.utils import json
 from sentry.web.frontend.base import control_silo_view
@@ -19,7 +20,7 @@ class SudoView(BaseSudoView):
             return True
 
         try:
-            interface = Authenticator.objects.get_interface(request.user, "u2f")
+            interface: U2fInterface = Authenticator.objects.get_interface(request.user, "u2f")
             if not interface.is_enrolled():
                 raise LookupError()
         except LookupError:

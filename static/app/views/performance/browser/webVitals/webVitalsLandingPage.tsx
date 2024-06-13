@@ -8,11 +8,14 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -123,6 +126,33 @@ export function WebVitalsLandingPage() {
                 />
               </WebVitalMetersContainer>
               <PagePerformanceTable />
+              <PagesTooltipContainer>
+                <Tooltip
+                  isHoverable
+                  title={
+                    <div>
+                      <div>
+                        {tct(
+                          'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks [link:here].',
+                          {
+                            link: (
+                              <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
+                            ),
+                          }
+                        )}
+                      </div>
+                      <br />
+                      <div>
+                        {t(
+                          'Keep your JavaScript SDK updated to the latest version for the best Web Vitals support.'
+                        )}
+                      </div>
+                    </div>
+                  }
+                >
+                  <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
+                </Tooltip>
+              </PagesTooltipContainer>
             </Fragment>
           )}
         </Layout.Main>
@@ -184,4 +214,14 @@ export const DismissButton = styled(Button)`
 
 export const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
+`;
+
+export const PagesTooltip = styled('span')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
+  text-decoration: underline dotted ${p => p.theme.gray300};
+`;
+
+export const PagesTooltipContainer = styled('div')`
+  display: flex;
 `;
