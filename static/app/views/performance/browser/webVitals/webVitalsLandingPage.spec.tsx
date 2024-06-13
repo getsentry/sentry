@@ -152,21 +152,4 @@ describe('WebVitalsLandingPage', function () {
       })
     );
   });
-
-  it('renders FID deprecation alert', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {useStoredScores: 'true'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-    render(<WebVitalsLandingPage />, {organization});
-    await screen.findByText(/\(Interaction to Next Paint\) will replace/);
-    await screen.findByText(
-      /\(First Input Delay\) in our performance score calculation./
-    );
-  });
 });

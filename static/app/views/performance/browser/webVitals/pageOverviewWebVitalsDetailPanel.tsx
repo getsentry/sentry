@@ -41,6 +41,8 @@ import {generateReplayLink} from 'sentry/views/performance/transactionSummary/ut
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
 
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+
 type Column = GridColumnHeader;
 
 const columnOrder: GridColumnOrder[] = [
@@ -208,6 +210,7 @@ export function PageOverviewWebVitalsDetailPanel({
         projectSlug,
         organization,
         location,
+        source: TraceViewSources.WEB_VITALS_MODULE,
       });
       return (
         <NoOverflow>

@@ -328,8 +328,8 @@ describe('SearchQueryBuilder', function () {
       );
       await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
-      // Clicking the "+14d" option should update the value
-      await userEvent.click(screen.getByRole('option', {name: '-14d'}));
+      // Clicking the "-14d" option should update the value
+      await userEvent.click(await screen.findByRole('option', {name: '-14d'}));
       expect(screen.getByRole('row', {name: 'age:-14d'})).toBeInTheDocument();
       expect(
         within(
@@ -531,6 +531,15 @@ describe('SearchQueryBuilder', function () {
   });
 
   describe('keyboard interactions', function () {
+    beforeEach(() => {
+      // jsdom does not support clipboard API
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: jest.fn().mockResolvedValue(''),
+        },
+      });
+    });
+
     it('can remove a previous token by pressing backspace', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
@@ -719,6 +728,156 @@ describe('SearchQueryBuilder', function () {
       expect(
         screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
       ).toHaveFocus();
+    });
+
+    it('backspace does nothing when input is empty', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="age:-24h"
+        />
+      );
+
+      // Click into filter value (button to edit will no longer exist)
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: age'})
+      );
+
+      await userEvent.keyboard('{Backspace}');
+
+      // Input should still have focus, and no changes should have been made
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      expect(mockOnChange).not.toHaveBeenCalled();
+    });
+
+    it('can select all and delete with ctrl+a', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="browser.name:firefox foo"
+        />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+
+      // Should have selected the entire query
+      for (const token of screen.getAllByRole('row')) {
+        expect(token).toHaveAttribute('aria-selected', 'true');
+      }
+
+      // Focus should be on the grid container
+      expect(screen.getByRole('grid')).toHaveFocus();
+
+      // Pressing delete should remove all selected tokens
+      await userEvent.keyboard('{Backspace}');
+      expect(mockOnChange).toHaveBeenCalledWith('');
+    });
+
+    it('focus goes to first input after ctrl+a and arrow left', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+
+      // Pressing arrow left should put focus in first text input
+      await userEvent.keyboard('{ArrowLeft}');
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(0)
+      ).toHaveFocus();
+    });
+
+    it('focus goes to last input after ctrl+a and arrow right', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+
+      // Pressing arrow right should put focus in last text input
+      await userEvent.keyboard('{ArrowRight}');
+      expect(
+        screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
+      ).toHaveFocus();
+    });
+
+    it('can copy selection with ctrl-c', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox foo" />
+      );
+
+      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('{Control>}c{/Control}');
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'browser.name:firefox foo'
+      );
+    });
+
+    it('can undo last action with ctrl-z', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Clear search query removes the token
+      await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+
+      // Ctrl+Z adds it back
+      await userEvent.keyboard('{Control>}z{/Control}');
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:firefox'})
+      ).toBeInTheDocument();
+    });
+
+    it('works with excess undo actions', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Remove the token
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: browser.name'})
+      );
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
+
+      // Ctrl+Z adds it back
+      await userEvent.keyboard('{Control>}z{/Control}');
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:firefox'})
+      ).toBeInTheDocument();
+      // Extra Ctrl-Z should not do anything
+      await userEvent.keyboard('{Control>}z{/Control}');
+
+      // Remove token again
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: browser.name'})
+      );
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
+
+      // Ctrl+Z adds it back again
+      await userEvent.keyboard('{Control>}z{/Control}');
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:firefox'})
+      ).toBeInTheDocument();
     });
   });
 

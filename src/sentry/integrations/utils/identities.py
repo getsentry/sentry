@@ -23,28 +23,28 @@ def get_identity_or_404(
     integration_id: int,
     organization_id: int | None = None,
 ) -> tuple[RpcOrganization, Integration, IdentityProvider]:
-    """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
-    logger_extras = {
-        "provider": provider,
-        "user_id": user.id,
+    logger_metadata = {
+        "integration_provider": provider,
         "integration_id": integration_id,
         "organization_id": organization_id,
+        "user_id": user.id,
     }
-
+    """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
     if provider not in EXTERNAL_PROVIDERS:
-        _logger.error("invalid_provider", extra=logger_extras)
+        _logger.info("provider is not part of supported external providers", extra=logger_metadata)
         raise Http404
 
     integration = Integration.objects.filter(id=integration_id).first()
     if integration is None:
-        _logger.error("invalid_integration", extra=logger_extras)
+        _logger.info("failed to find an integration", extra=logger_metadata)
         raise Http404
 
     idp = IdentityProvider.objects.filter(
         external_id=integration.external_id, type=EXTERNAL_PROVIDERS[provider]
     ).first()
+    logger_metadata["external_id"] = integration.external_id
     if idp is None:
-        _logger.error("invalid_identity_provider", extra=logger_extras)
+        _logger.info("failed to find an identity provider", extra=logger_metadata)
         raise Http404
 
     organization_integrations = OrganizationIntegration.objects.filter(
@@ -56,7 +56,9 @@ def get_identity_or_404(
     organizations = user_service.get_organizations(user_id=user.id, only_visible=True)
     valid_organization_ids = [o.id for o in organizations if o.id in organization_ids]
     if len(valid_organization_ids) <= 0:
-        _logger.error("invalid_organization", extra=logger_extras)
+        _logger.info(
+            "failed to find any valid organization integrations for user", extra=logger_metadata
+        )
         raise Http404
 
     selected_organization_id = (
@@ -69,8 +71,9 @@ def get_identity_or_404(
         include_teams=False,
     )
 
+    logger_metadata["selected_organization_id"] = selected_organization_id
     if context is None:
-        _logger.error("invalid_organization_context", extra=logger_extras)
+        _logger.info("failed to get a context", extra=logger_metadata)
         raise Http404
     return context.organization, integration, idp
 

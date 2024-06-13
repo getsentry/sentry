@@ -1,6 +1,7 @@
 import {type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
+import type {KeyboardEvent} from '@react-types/shared';
 import orderBy from 'lodash/orderBy';
 
 import Checkbox from 'sentry/components/checkbox';
@@ -28,6 +29,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 
 type SearchQueryValueBuilderProps = {
@@ -546,17 +548,25 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent) => {
+      // Default combobox behavior stops events from propagating outside of input
+      // Certain keys like ctrl+z should be handled handled in useQueryBuilderGrid()
+      // so we need to continue propagation for those.
+      if (e.key === 'z' && isCtrlKeyPressed(e)) {
+        e.continuePropagation();
+      }
+
       // If at the start of the input and backspace is pressed, delete the last selected value
       if (
         e.key === 'Backspace' &&
         e.currentTarget.selectionStart === 0 &&
-        e.currentTarget.selectionEnd === 0
+        e.currentTarget.selectionEnd === 0 &&
+        canSelectMultipleValues
       ) {
         dispatch({type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE', token});
       }
     },
-    [dispatch, token]
+    [canSelectMultipleValues, dispatch, token]
   );
 
   // Clicking anywhere in the value editing area should focus the input

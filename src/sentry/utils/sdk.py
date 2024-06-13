@@ -268,7 +268,6 @@ def patch_transport_for_instrumentation(transport, transport_name):
 class Dsns(NamedTuple):
     sentry4sentry: str | None
     sentry_saas: str | None
-    experimental: str | None
 
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
@@ -285,7 +284,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(
         sentry4sentry=sdk_options.pop("dsn", None),
         sentry_saas=sdk_options.pop("relay_dsn", None),
-        experimental=sdk_options.pop("experimental_dsn", None),
     )
 
     return sdk_options, dsns
@@ -315,12 +313,6 @@ def configure_sdk():
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         sentry_saas_transport = None
-
-    if dsns.experimental:
-        transport = make_transport(get_options(dsn=dsns.experimental, **sdk_options))
-        experimental_transport = patch_transport_for_instrumentation(transport, "experimental")
-    else:
-        experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
@@ -389,9 +381,7 @@ def configure_sdk():
 
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
-            if (sentry_saas_transport or experimental_transport) and options.get(
-                "store.use-relay-dsn-sample-rate"
-            ) == 1:
+            if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
@@ -410,11 +400,6 @@ def configure_sdk():
                             skip_internal=False,
                             tags={"reason": "unsafe"},
                         )
-
-                if experimental_transport:
-                    if is_current_event_safe():
-                        if in_random_rollout("store.experimental-dsn-double-write.sample-rate"):
-                            getattr(experimental_transport, method_name)(*args, **kwargs)
 
         def record_lost_event(self, *args, **kwargs):
             # pass through client report recording to sentry_saas_transport
@@ -439,8 +424,6 @@ def configure_sdk():
             callback=None,
         ):
             # flush transports in case we received a kill signal
-            if experimental_transport:
-                getattr(experimental_transport, "flush")(timeout, callback)
             if sentry4sentry_transport:
                 getattr(sentry4sentry_transport, "flush")(timeout, callback)
             if sentry_saas_transport:

@@ -1,5 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {DateString, MRI, PageFilters} from 'sentry/types';
+import type {DateString, PageFilters} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';

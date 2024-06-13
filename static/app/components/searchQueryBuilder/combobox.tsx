@@ -14,7 +14,7 @@ import styled from '@emotion/styled';
 import {useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
-import type {CollectionChildren, Key} from '@react-types/shared';
+import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import {Button} from 'sentry/components/button';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
@@ -69,8 +69,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * Called when the user explicitly closes the combobox with the escape key.
    */
   onExit?: () => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: KeyboardEvent) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
@@ -293,6 +294,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onInputChange,
     autoFocus,
     openOnFocus,
+    onFocus,
     tabIndex = -1,
     maxOptions,
     shouldCloseOnInteractOutside,
@@ -346,10 +348,11 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       inputValue: filterValue,
       onSelectionChange,
       autoFocus,
-      onFocus: () => {
+      onFocus: e => {
         if (openOnFocus) {
           state.open();
         }
+        onFocus?.(e);
       },
       onBlur: () => {
         onCustomValueBlurred(inputValue);

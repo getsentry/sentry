@@ -35,12 +35,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     if not has_either_seer_grouping_feature:
         return False
 
-    fingerprint_variant = primary_hashes.variants.get(
-        "custom-fingerprint"
-    ) or primary_hashes.variants.get("built-in-fingerprint")
-    # If there's non-default fingerprint (whether from the user or from us), it should *always*
-    # contribute, but can't hurt to cover our bases
-    if fingerprint_variant and fingerprint_variant.contributes:
+    if _has_customized_fingerprint(event, primary_hashes):
         return False
 
     if not event_content_is_seer_eligible(event):
@@ -63,6 +58,43 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     return True
 
 
+# TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
+# combined with some other value). To the extent to which we're then using this function to decide
+# whether or not to call Seer, this means that the calculations giving rise to the default part of
+# the value never involve Seer input. In the long run, we probably want to change that.
+def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) -> bool:
+    fingerprint = event.data.get("fingerprint", [])
+
+    if "{{ default }}" in fingerprint:
+        # No custom fingerprinting at all
+        if len(fingerprint) == 1:
+            return False
+
+        # Hybrid fingerprinting ({{ default }} + some other value(s))
+        else:
+            metrics.incr(
+                "grouping.similarity.did_call_seer",
+                sample_rate=1.0,
+                tags={"call_made": False, "blocker": "hybrid-fingerprint"},
+            )
+            return True
+
+    # Fully customized fingerprint (from either us or the user)
+    fingerprint_variant = primary_hashes.variants.get(
+        "custom-fingerprint"
+    ) or primary_hashes.variants.get("built-in-fingerprint")
+
+    if fingerprint_variant:
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": fingerprint_variant.type},
+        )
+        return True
+
+    return False
+
+
 def _killswitch_enabled(event: Event, project: Project) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
@@ -76,6 +108,11 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
             extra=logger_extra,
         )
         metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "global-killswitch"},
+        )
         return True
 
     if options.get("seer.similarity-killswitch.enabled"):
@@ -84,6 +121,11 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
             extra=logger_extra,
         )
         metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "similarity-killswitch"},
+        )
         return True
 
     return False
@@ -110,6 +152,11 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
             "grouping.similarity.global_ratelimit_hit",
             tags={"limit_per_sec": global_limit_per_sec},
         )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "global-rate-limit"},
+        )
 
         return True
 
@@ -122,6 +169,11 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         metrics.incr(
             "grouping.similarity.project_ratelimit_hit",
             tags={"limit_per_sec": project_limit_per_sec},
+        )
+        metrics.incr(
+            "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
+            tags={"call_made": False, "blocker": "project-rate-limit"},
         )
 
         return True

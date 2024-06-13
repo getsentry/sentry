@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.commit import get_users_for_commits
 from sentry.models.commit import Commit
@@ -20,7 +24,7 @@ class CommitFileChangeSerializer(Serializer):
             ).values_list("id", "name")
         )
 
-        result = {}
+        result: dict[int, Any] = {}
         for item in item_list:
             commit = commits_by_id[item.commit_id]
             result[item] = {

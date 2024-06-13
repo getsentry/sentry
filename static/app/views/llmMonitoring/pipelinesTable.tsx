@@ -254,7 +254,9 @@ function renderBodyCell(
       <span>
         Unknown{' '}
         <Tooltip
-          title="Cost can only be calculated for certain OpenAI and Anthropic models, other providers aren't yet supported."
+          title={t(
+            "Cost is calculated for some of the most popular models, but some providers aren't yet supported."
+          )}
           isHoverable
         >
           <IconInfo size="xs" />

@@ -33,6 +33,8 @@ import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
 import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
 type Props = {
@@ -184,6 +186,7 @@ export function SpanSamplesContainer({
               organization,
               traceSlug: span.trace,
               timestamp: span.timestamp,
+              source: TraceViewSources.APP_STARTS_MODULE,
             })
           );
         }}
@@ -196,7 +199,7 @@ export function SpanSamplesContainer({
 
       <Feature features="performance-sample-panel-search">
         <StyledSearchBar
-          searchSource="queries-sample-panel"
+          searchSource={`${moduleName}-sample-panel`}
           query={searchQuery}
           onSearch={handleSearch}
           placeholder={t('Search for span attributes')}
@@ -208,6 +211,7 @@ export function SpanSamplesContainer({
         />
       </Feature>
       <SampleTable
+        referrer={TraceViewSources.APP_STARTS_MODULE}
         spanSearch={spanSearch}
         additionalFilters={additionalFilters}
         highlightedSpanId={highlightedSpanId}
