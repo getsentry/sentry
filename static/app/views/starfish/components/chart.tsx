@@ -132,7 +132,11 @@ function Chart({
   error,
   onLegendSelectChanged,
   onDataZoom,
-  legendFormatter,
+  /**
+   * Setting a default formatter for some reason causes `>` to
+   * render correctly instead of rendering as `&gt;` in the legend.
+   */
+  legendFormatter = name => name,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -320,13 +324,7 @@ function Chart({
     grid,
     yAxes,
     utc,
-    legend: showLegend
-      ? {
-          top: 0,
-          right: 10,
-          ...(legendFormatter ? {formatter: legendFormatter} : {}),
-        }
-      : undefined,
+    legend: showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     tooltip: {
@@ -467,7 +465,9 @@ function Chart({
                 }}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 10} : undefined}
+                legend={
+                  showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
+                }
                 onClick={onClick}
               />
             );
