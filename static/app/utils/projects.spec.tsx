@@ -15,17 +15,13 @@ describe('utils.projects', function () {
   beforeEach(function () {
     renderer.mockClear();
     MockApiClient.clearMockResponses();
+    ProjectsStore.reset();
     act(() =>
       ProjectsStore.loadInitialData([
         ProjectFixture({id: '1', slug: 'foo'}),
         ProjectFixture({id: '2', slug: 'bar'}),
       ])
     );
-  });
-
-  afterEach(async function () {
-    act(() => ProjectsStore.loadInitialData([]));
-    await tick();
   });
 
   describe('with predefined list of slugs', function () {
@@ -333,7 +329,7 @@ describe('utils.projects', function () {
   describe('with no pre-defined projects', function () {
     let request;
 
-    beforeEach(async function () {
+    beforeEach(function () {
       request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
         body: [
@@ -353,7 +349,6 @@ describe('utils.projects', function () {
         },
       });
       act(() => ProjectsStore.loadInitialData([]));
-      await tick();
     });
 
     it('fetches projects from API', async function () {
@@ -609,14 +604,16 @@ describe('utils.projects', function () {
         )
       );
 
-      expect(renderer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          fetching: false,
-          isIncomplete: null,
-          hasMore: false,
-          projects: mockProjects,
-        })
-      );
+      await waitFor(() => {
+        expect(renderer).toHaveBeenCalledWith(
+          expect.objectContaining({
+            fetching: false,
+            isIncomplete: null,
+            hasMore: false,
+            projects: mockProjects,
+          })
+        );
+      });
 
       // expect the store action to be called
       expect(loadInitialData).toHaveBeenCalledWith(mockProjects);
