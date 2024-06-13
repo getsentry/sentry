@@ -521,6 +521,7 @@ module = [
     "sentry.api.helpers.source_map_helper",
     "sentry.buffer.*",
     "sentry.build.*",
+    "sentry.db.models.manager.base_query_set",
     "sentry.eventstore.reprocessing.redis",
     "sentry.eventtypes.error",
     "sentry.grouping.component",
