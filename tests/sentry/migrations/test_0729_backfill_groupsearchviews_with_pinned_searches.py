@@ -20,12 +20,25 @@ class BackfillGroupSearchViewsWithPinnedSearchesTest(TestMigrations):
         )
 
     def test(self):
-        custom_view = GroupSearchView.objects.get(organization=self.org, user_id=self.user.id)
+        custom_views = GroupSearchView.objects.filter(organization=self.org, user_id=self.user.id)
+        assert custom_views.count() == 2
 
-        assert custom_view
-        assert custom_view.organization == self.org
-        assert custom_view.user_id == self.user.id
-        assert custom_view.position == 0
-        assert custom_view.name == "Default Search"
-        assert custom_view.query == "assigned:me"
-        assert custom_view.query_sort == "date"
+        pinned_search = custom_views.get(position=0)
+        default_search = custom_views.get(position=1)
+
+        assert pinned_search
+        assert pinned_search.organization == self.org
+        assert pinned_search.user_id == self.user.id
+        assert default_search
+        assert default_search.organization == self.org
+        assert default_search.user_id == self.user.id
+
+        assert pinned_search.position == 0
+        assert pinned_search.name == "Default Search"
+        assert pinned_search.query == "assigned:me"
+        assert pinned_search.query_sort == "date"
+
+        assert default_search.position == 1
+        assert default_search.name == "Prioritized"
+        assert default_search.query == "is:unresolved issue.priority:[high, medium]"
+        assert default_search.query_sort == "date"

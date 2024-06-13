@@ -4,9 +4,17 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
-from sentry.models.savedsearch import SortOptions
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
+
+
+class SortOptions:
+    DATE = "date"
+    NEW = "new"
+    TRENDS = "trends"
+    FREQ = "freq"
+    USER = "user"
+    INBOX = "inbox"
 
 
 def backfill_groupsearchviews_with_pinned_searches(
@@ -28,14 +36,14 @@ def backfill_groupsearchviews_with_pinned_searches(
                 "query_sort": pinned_search.sort,
             },
         )
-        GroupSearchView.objects.create(
+        GroupSearchView.objects.update_or_create(
             organization=pinned_search.organization,
             user_id=pinned_search.owner_id,
             position=1,
             defaults={
                 "Name": "Prioritized",
                 "query": PRIORITIZED_QUERY,
-                "query_sort": SortOptions.DATE.value,
+                "query_sort": SortOptions.DATE,
             },
         )
 
