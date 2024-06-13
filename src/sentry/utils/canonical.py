@@ -6,7 +6,7 @@ from typing import Self, TypeVar
 
 V = TypeVar("V")
 
-__all__ = ("CanonicalKeyDict", "CanonicalKeyView", "get_canonical_name")
+__all__ = ("CanonicalKeyDict", "get_canonical_name")
 
 
 LEGACY_KEY_MAPPING = {
@@ -64,41 +64,6 @@ def get_canonical_name(key: str) -> str:
         return rv[0]
 
 
-class CanonicalKeyView(Mapping[str, V]):
-    def __init__(self, data: dict[str, V]) -> None:
-        self.data = data
-        self._len = len({get_canonical_name(key) for key in self.data})
-
-    def copy(self) -> Self:
-        return self
-
-    __copy__ = copy
-
-    def __len__(self) -> int:
-        return self._len
-
-    def __iter__(self) -> Iterator[str]:
-        # Preserve the order of iteration while prioritizing canonical keys
-        keys = list(self.data)
-        for key in keys:
-            canonicals = CANONICAL_KEY_MAPPING.get(key, ())
-            if not canonicals:
-                yield key
-            elif all(k not in keys for k in canonicals):
-                yield canonicals[0]
-
-    def __getitem__(self, key: str) -> V:
-        canonical = get_canonical_name(key)
-        for k in (canonical,) + LEGACY_KEY_MAPPING.get(canonical, ()):
-            if k in self.data:
-                return self.data[k]
-
-        raise KeyError(key)
-
-    def __repr__(self) -> str:
-        return f"CanonicalKeyView({self.data!r})"
-
-
 class CanonicalKeyDict(MutableMapping[str, V]):
     def __init__(self, data: Mapping[str, V]) -> None:
         self.data: dict[str, V] = {}
@@ -136,4 +101,4 @@ class CanonicalKeyDict(MutableMapping[str, V]):
         return f"CanonicalKeyDict({self.data!r})"
 
 
-CANONICAL_TYPES = (CanonicalKeyDict, CanonicalKeyView)
+CANONICAL_TYPES = (CanonicalKeyDict,)
