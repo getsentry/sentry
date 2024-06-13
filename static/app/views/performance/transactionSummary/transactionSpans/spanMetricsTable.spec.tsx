@@ -65,7 +65,7 @@ describe('SuspectSpansTable', () => {
     expect(descriptionCell).toHaveTextContent('SELECT thing FROM my_cool_db');
     expect(throughputCell).toHaveTextContent('4.45/s');
     expect(avgDurationCell).toHaveTextContent('30.90s');
-    expect(timeSpentCell).toHaveTextContent('2.04wk'); //
+    expect(timeSpentCell).toHaveTextContent('2.04wk');
   });
 
   it('should handle the case when there is no span grouping', async () => {
