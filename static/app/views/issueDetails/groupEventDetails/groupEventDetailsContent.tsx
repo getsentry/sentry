@@ -141,6 +141,7 @@ function DefaultGroupEventDetailsContent({
         </EventDataSection>
       )}
       {event.type === EventOrGroupType.ERROR &&
+      organization.features.includes('insights-addon-modules') &&
       event?.entries
         ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
         .flatMap(x => x.data.values ?? [])
