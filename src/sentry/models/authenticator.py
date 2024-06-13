@@ -16,7 +16,7 @@ from sentry.auth.authenticators import (
     AUTHENTICATOR_INTERFACES_BY_TYPE,
     available_authenticators,
 )
-from sentry.auth.authenticators.base import EnrollmentStatus
+from sentry.auth.authenticators.base import AuthenticatorInterface, EnrollmentStatus
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
@@ -34,7 +34,9 @@ from sentry.types.region import find_regions_for_user
 
 
 class AuthenticatorManager(BaseManager["Authenticator"]):
-    def all_interfaces_for_user(self, user, return_missing=False, ignore_backup=False):
+    def all_interfaces_for_user(
+        self, user, return_missing=False, ignore_backup=False
+    ) -> list[AuthenticatorInterface]:
         """Returns a correctly sorted list of all interfaces the user
         has enabled.  If `return_missing` is set to `True` then all
         interfaces are returned even if not enabled.

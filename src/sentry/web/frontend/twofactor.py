@@ -1,6 +1,7 @@
 import logging
 import time
 from base64 import b64encode
+from collections.abc import Sequence
 
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
@@ -10,6 +11,7 @@ from rest_framework.request import Request
 
 from sentry import options
 from sentry import ratelimits as ratelimiter
+from sentry.auth.authenticators.base import AuthenticatorInterface
 from sentry.auth.authenticators.sms import SMSRateLimitExceeded
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models.authenticator import Authenticator
@@ -51,7 +53,9 @@ class TwoFactorAuthView(BaseView):
         time.sleep(2.0)
         form.errors["__all__"] = [_("Invalid confirmation code. Try again.")]
 
-    def negotiate_interface(self, request: Request, interfaces):
+    def negotiate_interface(
+        self, request: Request, interfaces: Sequence[AuthenticatorInterface]
+    ) -> AuthenticatorInterface:
         # If there is only one interface, just pick that one.
         if len(interfaces) == 1:
             return interfaces[0]
@@ -218,7 +222,9 @@ class TwoFactorAuthView(BaseView):
                     # it to None before passing to validate_response
                     state = None
 
-                if interface.validate_response(request, challenge, response, state):
+                if interface.validate_response(
+                    request=request, challenge=challenge, response=response, state=state
+                ):
                     return self.perform_signin(request, user, interface)
                 self.fail_signin(request, user, form)
 
