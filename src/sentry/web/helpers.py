@@ -33,7 +33,7 @@ def render_to_string(
 
 
 def render_to_response(
-    template: Sequence[str] | str,
+    template: str,
     context: Mapping[str, Any] | None = None,
     request: HttpRequest | None = None,
     status: int = 200,
