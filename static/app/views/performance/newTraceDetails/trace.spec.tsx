@@ -229,6 +229,17 @@ function getVirtualizedContainer(): HTMLElement {
   return virtualizedContainer;
 }
 
+function getVirtualizedScrollContainer(): HTMLElement {
+  const virtualizedScrollContainer = screen.queryByTestId(
+    'trace-virtualized-list-scroll-container'
+  );
+
+  if (!virtualizedScrollContainer) {
+    throw new Error('Virtualized scroll container not found');
+  }
+  return virtualizedScrollContainer;
+}
+
 async function keyboardNavigationTestSetup() {
   const keyboard_navigation_transactions: TraceFullDetailed[] = [];
   for (let i = 0; i < 1e4; i++) {
@@ -256,13 +267,7 @@ async function keyboardNavigationTestSetup() {
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
   expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
@@ -296,13 +301,7 @@ async function pageloadTestSetup() {
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
   expect((await screen.findAllByText(/transaction-op-/i)).length).toBeGreaterThan(0);
@@ -336,13 +335,7 @@ async function searchTestSetup() {
 
   const value = render(<TraceView />, {router});
   const virtualizedContainer = getVirtualizedContainer();
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
   expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
