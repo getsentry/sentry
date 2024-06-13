@@ -69,6 +69,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * Called when the user explicitly closes the combobox with the escape key.
    */
   onExit?: () => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: KeyboardEvent) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
@@ -293,6 +294,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onInputChange,
     autoFocus,
     openOnFocus,
+    onFocus,
     tabIndex = -1,
     maxOptions,
     shouldCloseOnInteractOutside,
@@ -346,10 +348,11 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       inputValue: filterValue,
       onSelectionChange,
       autoFocus,
-      onFocus: () => {
+      onFocus: e => {
         if (openOnFocus) {
           state.open();
         }
+        onFocus?.(e);
       },
       onBlur: () => {
         onCustomValueBlurred(inputValue);

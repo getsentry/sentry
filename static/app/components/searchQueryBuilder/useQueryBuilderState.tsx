@@ -20,7 +20,11 @@ type QueryBuilderState = {
 
 type ClearAction = {type: 'CLEAR'};
 
-type UpdateQueryAction = {query: string; type: 'UPDATE_QUERY'};
+type UpdateQueryAction = {
+  query: string;
+  type: 'UPDATE_QUERY';
+  focusOverride?: FocusOverride | null;
+};
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 
@@ -78,8 +82,8 @@ export type QueryBuilderActions =
   | DeleteLastMultiSelectFilterValueAction;
 
 function removeQueryToken(query: string, token: TokenResult<Token>): string {
-  return (
-    query.substring(0, token.location.start.offset) +
+  return removeExcessWhitespaceFromParts(
+    query.substring(0, token.location.start.offset),
     query.substring(token.location.end.offset)
   );
 }
@@ -109,6 +113,14 @@ function replaceQueryToken(
   return start + value + end;
 }
 
+function removeExcessWhitespaceFromParts(...parts: string[]): string {
+  return parts
+    .map(part => part.trim())
+    .filter(part => part.length > 0)
+    .join(' ')
+    .trim();
+}
+
 // Ensures that the replaced token is separated from the rest of the query
 // and cleans up any extra whitespace
 export function replaceTokenWithPadding(
@@ -119,7 +131,7 @@ export function replaceTokenWithPadding(
   const start = query.substring(0, token.location.start.offset);
   const end = query.substring(token.location.end.offset);
 
-  return (start.trimEnd() + ' ' + value.trim() + ' ' + end.trimStart()).trim();
+  return removeExcessWhitespaceFromParts(start, value, end);
 }
 
 function updateFreeText(
@@ -238,6 +250,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return {
             ...state,
             query: action.query,
+            focusOverride: action.focusOverride ?? null,
           };
         case 'RESET_FOCUS_OVERRIDE':
           return {

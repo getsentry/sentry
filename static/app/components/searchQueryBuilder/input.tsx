@@ -249,8 +249,19 @@ function SearchQueryBuilderInputInternal({
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'a' && isCtrlKeyPressed(e)) {
-        e.continuePropagation();
+      // Default combobox behavior stops events from propagating outside of input
+      // Certain keys like ctrl+z and ctrl+a are handled in useQueryBuilderGrid()
+      // so we need to continue propagation for those.
+      if (isCtrlKeyPressed(e)) {
+        if (e.key === 'z') {
+          // First let native undo behavior take place, but once that is done
+          // allow the event to propagate so that the grid can handle it.
+          if (inputValue === trimmedTokenValue) {
+            e.continuePropagation();
+          }
+        } else if (e.key === 'a') {
+          e.continuePropagation();
+        }
       }
 
       // At start and pressing backspace, focus the previous full token
@@ -275,7 +286,7 @@ function SearchQueryBuilderInputInternal({
         }
       }
     },
-    [item.key, state.collection, state.selectionManager]
+    [inputValue, item.key, state.collection, state.selectionManager, trimmedTokenValue]
   );
 
   const onPaste = useCallback(

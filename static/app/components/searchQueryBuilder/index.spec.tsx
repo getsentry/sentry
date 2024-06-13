@@ -821,6 +821,64 @@ describe('SearchQueryBuilder', function () {
         'browser.name:firefox foo'
       );
     });
+
+    it('can undo last action with ctrl-z', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Clear search query removes the token
+      await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+
+      // Ctrl+Z adds it back
+      await userEvent.keyboard('{Control>}z{/Control}');
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:firefox'})
+      ).toBeInTheDocument();
+    });
+
+    it('works with excess undo actions', async function () {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+      );
+
+      // Remove the token
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: browser.name'})
+      );
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
+
+      // Ctrl+Z adds it back
+      await userEvent.keyboard('{Control>}z{/Control}');
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:firefox'})
+      ).toBeInTheDocument();
+      // Extra Ctrl-Z should not do anything
+      await userEvent.keyboard('{Control>}z{/Control}');
+
+      // Remove token again
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: browser.name'})
+      );
+      await waitFor(() => {
+        expect(
+          screen.queryByRole('row', {name: 'browser.name:firefox'})
+        ).not.toBeInTheDocument();
+      });
+
+      // Ctrl+Z adds it back again
+      await userEvent.keyboard('{Control>}z{/Control}');
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:firefox'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('token values', function () {
