@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -122,23 +122,6 @@ describe('PageOverview', function () {
             'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>"',
         }),
       })
-    );
-  });
-
-  it('renders FID deprecation alert', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {useStoredScores: 'true', transaction: '/'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-    render(<PageOverview />, {organization});
-    await screen.findByText(/\(Interaction to Next Paint\) will replace/);
-    await screen.findByText(
-      /\(First Input Delay\) in our performance score calculation./
     );
   });
 

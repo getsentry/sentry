@@ -1,5 +1,5 @@
 import {getHasTag} from 'sentry/components/events/searchBar';
-import type {TagCollection} from 'sentry/types';
+import type {PageFilters, TagCollection} from 'sentry/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -21,18 +21,26 @@ interface SpanFieldEntry {
 }
 type SpanFieldsResponse = SpanFieldEntry[];
 
-const getDynamicSpanFieldsEndpoint = (orgSlug: string, selection): ApiQueryKey => [
+const getDynamicSpanFieldsEndpoint = (
+  orgSlug: string,
+  projects: PageFilters['projects'],
+  environments: PageFilters['environments']
+): ApiQueryKey => [
   `/organizations/${orgSlug}/spans/fields/`,
   {
     query: {
-      project: selection.projects,
-      environment: selection.environments,
+      project: projects,
+      environment: environments,
       statsPeriod: '1h', // Hard coded stats period to load recent tags fast
     },
   },
 ];
 
-export function useSpanFieldSupportedTags(excludedTags: string[] = []): TagCollection {
+export function useSpanFieldSupportedTags(options?: {
+  excludedTags?: string[];
+  projects?: PageFilters['projects'];
+}): TagCollection {
+  const {excludedTags = [], projects} = options || {};
   const {selection} = usePageFilters();
   const organization = useOrganization();
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
@@ -42,7 +50,11 @@ export function useSpanFieldSupportedTags(excludedTags: string[] = []): TagColle
   ]);
 
   const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
-    getDynamicSpanFieldsEndpoint(organization.slug, selection),
+    getDynamicSpanFieldsEndpoint(
+      organization.slug,
+      projects ?? selection.projects,
+      selection.environments
+    ),
     {
       staleTime: 0,
       retry: false,

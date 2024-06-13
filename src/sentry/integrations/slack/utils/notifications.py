@@ -125,6 +125,8 @@ def send_incident_alert_notification(
                 channel=str(channel),
                 thread_ts=thread_ts,
                 reply_broadcast=reply_broadcast,
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             # Record the error code and details from the exception
@@ -146,7 +148,9 @@ def send_incident_alert_notification(
             success = True
             ts = sdk_response.get("ts")
 
-            logger.info("slack.metric_alert.ts", extra={"ts": ts})
+            logger.info(
+                "slack.metric_alert.ts", extra={"ts": ts, "attachments": attachments, "text": text}
+            )
 
             new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 

@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -20,6 +21,7 @@ interface TraceTimelineTooltipProps {
 
 export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineTooltipProps) {
   const organization = useOrganization();
+  const location = useLocation();
   // TODO: should handling of current event + other events look different
   if (timelineEvents.length === 1 && timelineEvents[0].id === event.id) {
     return <YouAreHere>{t('You are here')}</YouAreHere>;
@@ -36,13 +38,19 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
       <EventItemsWrapper hasTitle={hasTitle}>
         {hasTitle && <EventItemsTitle>{t('Around the same time')}</EventItemsTitle>}
         {filteredTimelineEvents.slice(0, 3).map(timelineEvent => {
-          return <EventItem key={timelineEvent.id} timelineEvent={timelineEvent} />;
+          return (
+            <EventItem
+              key={timelineEvent.id}
+              timelineEvent={timelineEvent}
+              location={location}
+            />
+          );
         })}
       </EventItemsWrapper>
       {filteredTimelineEvents.length > 3 && (
         <TraceItem>
           <Link
-            to={generateTraceTarget(event, organization)}
+            to={generateTraceTarget(event, organization, location)}
             onClick={() => {
               trackAnalytics(
                 'issue_details.issue_tab.trace_timeline_more_events_clicked',
@@ -66,12 +74,12 @@ export function TraceTimelineTooltip({event, timelineEvents}: TraceTimelineToolt
 }
 
 interface EventItemProps {
+  location: Location;
   timelineEvent: TimelineEvent;
 }
 
-function EventItem({timelineEvent}: EventItemProps) {
+function EventItem({timelineEvent, location}: EventItemProps) {
   const organization = useOrganization();
-  const location = useLocation();
   const {projects} = useProjects({
     slugs: [timelineEvent.project],
     orgId: organization.slug,

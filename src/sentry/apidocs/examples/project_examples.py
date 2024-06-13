@@ -177,7 +177,6 @@ DETAILED_PROJECT = {
         "features": [
             "performance-uncompressed-assets-ingest",
             "dashboards-rh-widget",
-            "org-subdomains",
             "performance-db-main-thread-visible",
             "transaction-name-mark-scrubbed-as-sanitized",
             "sentry-pride-logo-footer",

@@ -251,7 +251,7 @@ function SpanDetail(props: Props) {
     }
 
     return (
-      <StyledButton size="xs" to={generateTraceTarget(event, organization)}>
+      <StyledButton size="xs" to={generateTraceTarget(event, organization, location)}>
         {t('View Trace')}
       </StyledButton>
     );
