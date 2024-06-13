@@ -62,7 +62,9 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags([SpanIndexedField.CACHE_HIT]);
+  const supportedTags = useSpanFieldSupportedTags({
+    excludedTags: [SpanIndexedField.CACHE_HIT],
+  });
 
   const query = useLocationQuery({
     fields: {

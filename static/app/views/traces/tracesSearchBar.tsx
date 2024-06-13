@@ -7,7 +7,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 interface TracesSearchBarProps {
@@ -25,17 +24,22 @@ const getSpanName = (index: number) => {
   return spanNames[index];
 };
 
+// Since trace explorer permits cross project searches,
+// autocompletion should also be cross projects.
+const ALL_PROJECTS = [-1];
+
 export function TracesSearchBar({
   queries,
   handleSearch,
   handleClearSearch,
 }: TracesSearchBarProps) {
   // TODO: load tags for autocompletion
-  const {selection} = usePageFilters();
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
-  const supportedTags = useSpanFieldSupportedTags();
+  const supportedTags = useSpanFieldSupportedTags({
+    projects: ALL_PROJECTS,
+  });
 
   return (
     <TraceSearchBarsContainer>
@@ -51,7 +55,7 @@ export function TracesSearchBar({
             metricAlert={false}
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
-            projectIds={selection.projects}
+            projectIds={ALL_PROJECTS}
           />
           <StyledButton
             aria-label={t('Remove span')}
