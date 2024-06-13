@@ -106,7 +106,6 @@ export function TracesChart({}: Props) {
           tooltipFormatterOptions={{
             valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
           }}
-          preserveIncompletePoints
         />
       </ChartPanel>
     </ChartContainer>

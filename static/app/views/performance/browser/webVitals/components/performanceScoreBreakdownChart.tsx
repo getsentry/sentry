@@ -229,7 +229,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         }}
         dataMax={100}
         chartColors={segmentColors}
-        preserveIncompletePoints
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
             if (name === 'FID') {
