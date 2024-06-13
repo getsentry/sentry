@@ -3442,7 +3442,7 @@ if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
-    SENTRY_FEATURES["organizations:frontend-domainsplit"] = True
+    SENTRY_FEATURES["system:multi-region"] = True
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]
