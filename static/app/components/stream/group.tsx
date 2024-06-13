@@ -34,17 +34,16 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
   GroupReprocessing,
   InboxDetails,
-  NewQuery,
-  Organization,
   PriorityLevel,
-  TimeseriesValue,
-  User,
-} from 'sentry/types';
+} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
@@ -144,22 +143,14 @@ function BaseGroupRow({
   onPriorityChange,
 }: Props) {
   const groups = useLegacyStore(GroupStore);
-  const group = groups.find(item => item.id === id) as Group;
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
-
+  const group = useMemo(
+    () => groups.find(item => item.id === id) as Group | undefined,
+    [groups, id]
+  );
+  const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
-  const originalInboxState = useRef(group.inbox as InboxDetails | null);
-
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
-
-  const reviewed =
-    // Original state had an inbox reason
-    originalInboxState.current?.reason !== undefined &&
-    // Updated state has been removed from inbox
-    !group.inbox &&
-    // Only apply reviewed on the "for review" tab
-    isForReviewQuery(query);
 
   const {period, start, end} = selection.datetime || {};
 
@@ -171,14 +162,14 @@ function BaseGroupRow({
 
   const sharedAnalytics = useMemo(() => {
     const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
-    const owners = group.owners ?? [];
+    const owners = group?.owners ?? [];
     return {
       organization,
-      group_id: group.id,
+      group_id: group?.id ?? '',
       tab: tab?.analyticsName || 'other',
       was_shown_suggestion: owners.length > 0,
     };
-  }, [organization, group.id, group.owners, query]);
+  }, [organization, group, query]);
 
   const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
     AssignableEntity | null,
@@ -190,7 +181,7 @@ function BaseGroupRow({
     ): Promise<AssignableEntity | null> => {
       if (newAssignee) {
         await assignToActor({
-          id: group.id,
+          id: group!.id,
           orgSlug: organization.slug,
           actor: {id: newAssignee.id, type: newAssignee.type},
           assignedBy: 'assignee_selector',
@@ -198,7 +189,7 @@ function BaseGroupRow({
         return Promise.resolve(newAssignee);
       }
 
-      await clearAssignment(group.id, organization.slug, 'assignee_selector');
+      await clearAssignment(group!.id, organization.slug, 'assignee_selector');
       return Promise.resolve(null);
     },
     onSuccess: (newAssignee: AssignableEntity | null) => {
@@ -219,6 +210,9 @@ function BaseGroupRow({
   const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
+      if (!group) {
+        return;
+      }
 
       // Ignore clicks on links
       if (targetElement?.tagName?.toLowerCase() === 'a') {
@@ -245,8 +239,30 @@ function BaseGroupRow({
         SelectedGroupStore.toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group]
   );
+
+  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+    if (!group) {
+      return [];
+    }
+
+    return group.filtered
+      ? group.filtered.stats?.[statsPeriod]
+      : group.stats?.[statsPeriod];
+  }, [group, statsPeriod]);
+
+  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+    if (!group) {
+      return [];
+    }
+
+    return group.filtered ? group.stats?.[statsPeriod] : [];
+  }, [group, statsPeriod]);
+
+  if (!group) {
+    return null;
+  }
 
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
     // when there is no discover feature open events page
@@ -338,6 +354,15 @@ function BaseGroupRow({
       </Fragment>
     );
   };
+
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const reviewed =
+    // Original state had an inbox reason
+    originalInboxState.current?.reason !== undefined &&
+    // Updated state has been removed from inbox
+    !group!.inbox &&
+    // Only apply reviewed on the "for review" tab
+    isForReviewQuery(query);
 
   // Use data.filtered to decide on which value to use
   // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
@@ -457,16 +482,6 @@ function BaseGroupRow({
   ) : (
     <GuideAnchor target="issue_stream" />
   );
-
-  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
-    return group.filtered
-      ? group.filtered.stats?.[statsPeriod]
-      : group.stats?.[statsPeriod];
-  }, [group.filtered, group.stats, statsPeriod]);
-
-  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
-    return group.filtered ? group.stats?.[statsPeriod] : [];
-  }, [group.filtered, group.stats, statsPeriod]);
 
   return (
     <Wrapper
