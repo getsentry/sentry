@@ -99,7 +99,7 @@ export function LLMMonitoringPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="ai" features="ai-analytics">
+    <ModulePageProviders moduleName="ai" features="insights-addon-modules">
       <LLMMonitoringPage />
     </ModulePageProviders>
   );
