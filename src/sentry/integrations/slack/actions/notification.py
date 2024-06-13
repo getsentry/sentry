@@ -7,7 +7,6 @@ from typing import Any
 import orjson
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.rule import ACTION_UUID_KEY
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.eventstore.models import GroupEvent
@@ -158,8 +157,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                     thread_ts = parent_notification_message.message_identifier
                     # If this flow is triggered again for the same issue, we want it to be seen in the main channel
                     reply_broadcast = True
-
-            organization = event.group.project.organization
 
             client = SlackSdkClient(integration_id=integration.id)
             text = str(blocks.get("text"))
