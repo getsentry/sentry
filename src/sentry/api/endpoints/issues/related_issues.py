@@ -11,7 +11,7 @@ from sentry.models.group import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class RequestSerializer(serializers.Serializer):
+class RequestSerializer(serializers.Serializer):  # type: ignore[type-arg]
     type = serializers.CharField(required=True)
     event_id = serializers.CharField(required=False)
     project_id = serializers.IntegerField(required=False)
