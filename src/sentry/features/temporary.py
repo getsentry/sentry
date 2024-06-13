@@ -46,8 +46,6 @@ def register_temporary_features(manager: FeatureManager):
 
     # Enables activated alert rules
     manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable AI analytics pages (sentry for AI teams)
-    manager.add("organizations:ai-analytics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Use metrics as the dataset for crash free metric alerts
@@ -432,10 +430,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-webvitals-score-computed-total", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
     manager.add("organizations:performance-webvitals-avg", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable queues module ui
-    manager.add("organizations:performance-queues-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish cache module ui
-    manager.add("organizations:performance-cache-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable browser starfish webvitals module to use backend provided performance scores
     manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish app start module view
