@@ -34,14 +34,10 @@ interface InitializeOrgOptions<RouterParams> {
  */
 export function initializeOrg<RouterParams = {orgId: string; projectId: string}>({
   organization: additionalOrg,
-  project: additionalProject,
   projects: additionalProjects,
   router: additionalRouter,
 }: InitializeOrgOptions<RouterParams> = {}) {
-  const projects = (
-    additionalProjects ||
-    (additionalProject && [additionalProject]) || [{}]
-  ).map(p => ProjectFixture(p));
+  const projects = (additionalProjects || [{}]).map(p => ProjectFixture(p));
 
   const [project] = projects;
   const organization = OrganizationFixture({
