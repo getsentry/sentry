@@ -13,7 +13,6 @@ from pydantic import Field
 
 from sentry import roles
 from sentry.db.models import ValidateFunction, Value
-from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
@@ -194,7 +193,7 @@ class RpcOrganizationInvite(RpcModel):
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
+class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     """
     The subset of organization metadata available from the control silo specifically.
     """
