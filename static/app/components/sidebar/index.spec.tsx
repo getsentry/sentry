@@ -32,9 +32,6 @@ const ALL_AVAILABLE_FEATURES = [
   'session-replay-ui',
   'performance-view',
   'performance-trace-explorer',
-  'ai-analytics',
-  'performance-queues-view',
-  'performance-cache-view',
   'starfish-mobile-ui-module',
   'profiling',
 ];
@@ -369,7 +366,7 @@ describe('Sidebar', function () {
         /Queues/,
         'Screen Loads',
         'App Starts',
-        'Resources',
+        'Assets',
         /Mobile UI/,
         /Traces/,
         'Profiling',

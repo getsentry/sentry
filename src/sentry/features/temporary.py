@@ -36,8 +36,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
-    # Enables region provisioning for individual users
-    manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Controls whether or not the relocation endpoints can be used.
     manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
@@ -46,8 +44,6 @@ def register_temporary_features(manager: FeatureManager):
 
     # Enables activated alert rules
     manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable AI analytics pages (sentry for AI teams)
-    manager.add("organizations:ai-analytics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Use metrics as the dataset for crash free metric alerts
@@ -391,10 +387,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable improvements to Slack notifications
     manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Feature flags for migrating to the Slack SDK WebClient
-    # SlackNotifyServiceAction
-    manager.add("organizations:slack-sdk-issue-alert-action", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # Use new Slack SDK Client for verifying webhook signatures
-    manager.add("organizations:slack-sdk-signature", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client for sending activity messages in threads
     manager.add("organizations:slack-sdk-activity-threads", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client for sending metric alerts
@@ -432,10 +424,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-webvitals-score-computed-total", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
     manager.add("organizations:performance-webvitals-avg", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable queues module ui
-    manager.add("organizations:performance-queues-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish cache module ui
-    manager.add("organizations:performance-cache-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable browser starfish webvitals module to use backend provided performance scores
     manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish app start module view

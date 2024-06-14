@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -16,7 +15,6 @@ function initializeData({query} = {query: {}}) {
 
   const organization = OrganizationFixture({
     features,
-    projects: [ProjectFixture()],
   });
 
   const initialData = initializeOrg({
@@ -32,7 +30,7 @@ function initializeData({query} = {query: {}}) {
     },
   });
 
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
 
   return initialData;
 }

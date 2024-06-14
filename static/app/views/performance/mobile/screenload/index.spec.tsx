@@ -22,7 +22,6 @@ describe('PageloadModule', function () {
   const project = ProjectFixture({platform: 'react-native'});
   const organization = OrganizationFixture({
     features: ['insights-initial-modules'],
-    projects: [project],
   });
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 

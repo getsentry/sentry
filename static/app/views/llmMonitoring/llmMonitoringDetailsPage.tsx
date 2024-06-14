@@ -175,7 +175,7 @@ function PageWithProviders({params}: Props) {
     <ModulePageProviders
       moduleName="ai"
       pageTitle={spanDescription ?? t('(no name)')}
-      features="ai-analytics"
+      features="insights-addon-modules"
     >
       <LLMMonitoringPage params={params} />
     </ModulePageProviders>

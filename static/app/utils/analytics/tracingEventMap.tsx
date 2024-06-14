@@ -7,10 +7,11 @@ export type TracingEventParameters = {
   };
   'trace.trace_layout.drawer_minimize': {};
   'trace.trace_layout.reset_zoom': {};
-  'trace.trace_layout.search_cancel': {};
+  'trace.trace_layout.search_clear': {};
   'trace.trace_layout.search_focus': {};
-  'trace.trace_layout.search_result_jump': {
+  'trace.trace_layout.search_match_navigate': {
     direction: string;
+    interaction: string;
   };
   'trace.trace_layout.show_in_view': {};
   'trace.trace_layout.tab_pin': {};
@@ -42,7 +43,9 @@ export type TracingEventParameters = {
     has_data: boolean;
     queries: string[];
   };
-  'trace_explorer.toggle_trace_table_spans': {};
+  'trace_explorer.toggle_trace_details': {
+    expanded: boolean;
+  };
 };
 
 export type TracingEventKey = keyof TracingEventParameters;
@@ -60,16 +63,15 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.view_shortcuts': 'Viewed Trace Shortcuts',
   'trace.trace_warning_type': 'Viewed Trace Warning Type',
   'trace.trace_layout.zoom_to_fill': 'Trace Zoom to Fill',
-  'trace.trace_layout.search_cancel': 'Cancel Trace Search',
+  'trace.trace_layout.search_clear': 'Clear Trace Search',
   'trace.trace_layout.view_in_insight_module': 'View Trace Span in Insight Module',
-  'trace.trace_layout.search_result_jump': 'Jumped to Trace Search Result',
+  'trace.trace_layout.search_match_navigate': 'Navigate Trace Search Matches',
   'trace_explorer.add_span_condition': 'Trace Explorer: Add Span Condition',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
   'trace_explorer.open_trace': 'Trace Explorer: Open Trace in Trace Viewer',
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
   'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span Condition',
-  'trace_explorer.toggle_trace_table_spans':
-    'Trace Explorer: Toggle Spans in Trace Table',
+  'trace_explorer.toggle_trace_details': 'Trace Explorer: Toggle Trace Details in Table',
   'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
   'trace_explorer.search_request': 'Trace Explorer: Search Request',
   'trace_explorer.search_success': 'Trace Explorer: Search Success',

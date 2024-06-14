@@ -13,14 +13,14 @@ from sentry.backup.validate import validate
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
-    BackupTestCase,
+    BackupTransactionTestCase,
     ValidationError,
     clear_database,
     export_to_file,
 )
 
 
-class SnapshotTests(BackupTestCase):
+class SnapshotTests(BackupTransactionTestCase):
     """
     Tests against specific JSON snapshots.
     """
