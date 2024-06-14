@@ -237,9 +237,10 @@ function Chart({
     [series, incompleteSeries] = seriesToShow.reduce(
       (acc, serie, index) => {
         const [trimmed, incomplete] = acc;
+        const {markLine: _, ...incompleteSerie} = serie[1];
         return [
           [...trimmed, {...serie[0], color: colors[index]}],
-          [...incomplete, {...serie[1], markLine: undefined}],
+          [...incomplete, incompleteSerie],
         ];
       },
       [[], []] as [MetricSeries[], MetricSeries[]]
