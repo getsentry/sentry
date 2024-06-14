@@ -9,10 +9,7 @@ from arroyo.types import Topic as ArroyoTopic
 from django.db import close_old_connections
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.issues.occurrence_consumer import (
-    process_occurrence_group,
-    process_status_change_message,
-)
+from sentry.issues.occurrence_consumer import process_occurrence_group
 from sentry.issues.producer import (
     PayloadType,
     _prepare_occurrence_message,
@@ -270,10 +267,6 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
 
     @with_feature("organizations:profile-file-io-main-thread-ingest")
     @mock.patch(
-        "sentry.issues.occurrence_consumer.process_status_change_message",
-        side_effect=process_status_change_message,
-    )
-    @mock.patch(
         "sentry.issues.occurrence_consumer.process_occurrence_group",
         side_effect=process_occurrence_group_with_shutdown,
     )
@@ -282,7 +275,6 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
         self,
         mock_save_issue_occurrence: mock.MagicMock,
         mock_process_occurrence_group: mock.MagicMock,
-        mock_process_status_change_message: mock.MagicMock,
     ) -> None:
         topic = ArroyoTopic(get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"])
         partition_1 = Partition(topic, 0)
