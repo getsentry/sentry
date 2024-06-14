@@ -137,7 +137,7 @@ function menuIsOpen({
     0
   );
 
-  return totalOptions > hiddenOptions.size;
+  return state.isOpen && totalOptions > hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
