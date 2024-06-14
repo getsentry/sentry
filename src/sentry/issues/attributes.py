@@ -43,7 +43,7 @@ class GroupValues:
     first_seen: datetime
     num_comments: int
     priority: int
-    first_release_id: int | None
+    first_release_id: str | None
 
 
 def _get_attribute_snapshot_producer() -> KafkaProducer:
@@ -206,7 +206,6 @@ def _bulk_retrieve_snapshot_values(
             "status": group_value.status,
             "substatus": group_value.substatus,
             "priority": group_value.priority,
-            "first_release_id": group_value.first_release_id,
             "first_seen": group_value.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "num_comments": group_value.num_comments,
             "timestamp": datetime.now().isoformat(),
@@ -218,6 +217,8 @@ def _bulk_retrieve_snapshot_values(
             "owner_codeowners_user_id": codeowners_owner["user_id"] if codeowners_owner else None,
             "owner_codeowners_team_id": codeowners_owner["team_id"] if codeowners_owner else None,
         }
+        if group_value.first_release_id:
+            snapshot["first_release_id"] = group_value.first_release_id
         snapshots.append(snapshot)
 
     return snapshots
