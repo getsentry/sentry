@@ -26,7 +26,7 @@ describe('utils.dates', function () {
 
   describe('user clock preferences', function () {
     afterEach(function () {
-      ConfigStore.set('user', UserFixture({}));
+      ConfigStore.set('user', UserFixture());
     });
 
     describe('shouldUse24Hours()', function () {

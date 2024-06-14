@@ -17,7 +17,7 @@ describe('AccountAuthorizations', function () {
       body: [],
     });
 
-    const router = RouterFixture({});
+    const router = RouterFixture();
     render(
       <AccountAuthorizations
         location={LocationFixture()}

@@ -13,7 +13,7 @@ describe('actionCreators/onboardingTasks', function () {
 
   describe('updateOnboardingTask', function () {
     it('Adds the task to the organization when task does not exists', async function () {
-      const detailedOrg = OrganizationFixture({});
+      const detailedOrg = OrganizationFixture();
 
       // User is not passed into the update request
       const testTask = {
@@ -67,7 +67,7 @@ describe('actionCreators/onboardingTasks', function () {
     });
 
     it('Does not make API request without api object', async function () {
-      const detailedOrg = OrganizationFixture({});
+      const detailedOrg = OrganizationFixture();
 
       const testTask = {
         task: OnboardingTaskKey.FIRST_EVENT,
