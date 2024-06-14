@@ -57,7 +57,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
-        rules_update = request.data.get("metricsExtractionRules")
+        rules_update = request.data.get("metricsExtractionRules") or ""
         if len(rules_update) == 0:
             return Response(status=200)
 
