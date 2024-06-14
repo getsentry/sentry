@@ -34,6 +34,7 @@ import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString'
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 
 import {type Field, FIELDS, SORTS} from './data';
@@ -558,6 +559,7 @@ function useTraces<F extends string>({
   sort,
 }: UseTracesOptions<F>) {
   const organization = useOrganization();
+  const {projects} = useProjects();
   const {selection} = usePageFilters();
 
   const path = `/organizations/${organization.slug}/traces/`;
@@ -608,10 +610,21 @@ function useTraces<F extends string>({
 
   useEffect(() => {
     if (result.status === 'success') {
+      const project_slugs = new Set(
+        result.data.data.flatMap(trace =>
+          trace.spans.map((span: SpanResult<string>) => span.project)
+        )
+      );
+      const project_platforms = [...project_slugs]
+        .map(slug => projects.find(p => p.slug === slug))
+        .map(project => project?.platform);
+
       trackAnalytics('trace_explorer.search_success', {
         organization,
         queries,
+        project_platforms,
         has_data: result.data.data.length > 0,
+        num_traces: result.data.data.length,
       });
     } else if (result.status === 'error') {
       const response = result.error.responseJSON;
