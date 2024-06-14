@@ -8,8 +8,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class AlertRuleProjectBackfillTest(TestMigrations):
-    migrate_from = "0728_incident_subscription_fk"
-    migrate_to = "0729_add_subscription_fk_to_incident"
+    migrate_from = "0729_backfill_groupsearchviews_with_pinned_searches"
+    migrate_to = "0730_add_subscription_fk_to_incident"
 
     def setup_before_migration(self, app):
         self.snuba_query = create_snuba_query(
