@@ -110,7 +110,7 @@ def delete_project_grouping_records(
 
 
 def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
-    extra = {"project_id": project_id, "hashes": json.dumps(hashes)}
+    extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
         response = seer_grouping_connection_pool.urlopen(
