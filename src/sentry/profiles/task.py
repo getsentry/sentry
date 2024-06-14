@@ -6,7 +6,7 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from functools import lru_cache
 from time import time
-from typing import Any
+from typing import Any, TypedDict
 from uuid import UUID
 
 import msgpack
@@ -1062,14 +1062,21 @@ def clean_android_js_profile(profile: Profile) -> None:
     del p["dist"]
 
 
+class _ProjectKeyKwargs(TypedDict):
+    project_id: int
+    use_case: str
+
+
 @lru_cache(maxsize=100)
 def get_metrics_dsn(project_id: int) -> str:
-    kwargs = dict(project_id=project_id, use_case=UseCase.PROFILING.value)
+    kwargs: _ProjectKeyKwargs = {"project_id": project_id, "use_case": UseCase.PROFILING.value}
     try:
         project_key, _ = ProjectKey.objects.get_or_create(**kwargs)
     except ProjectKey.MultipleObjectsReturned:
         # See https://docs.djangoproject.com/en/5.0/ref/models/querysets/#get-or-create
-        project_key = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
+        project_key_first = ProjectKey.objects.filter(**kwargs).order_by("pk").first()
+        assert project_key_first is not None
+        project_key = project_key_first
     return project_key.get_dsn(public=True)
 
 
