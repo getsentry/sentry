@@ -80,7 +80,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(OrganizationFixture({}));
+      const tags = TagStore.getIssueAttributes(OrganizationFixture());
       expect(tags.is.values).toContain('archived');
     });
   });

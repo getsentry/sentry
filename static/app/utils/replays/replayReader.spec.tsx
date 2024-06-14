@@ -25,7 +25,7 @@ import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
 describe('ReplayReader', () => {
-  const replayRecord = ReplayRecordFixture({});
+  const replayRecord = ReplayRecordFixture();
 
   it('Should return null if there are missing arguments', () => {
     const missingAttachments = ReplayReader.factory({
@@ -89,7 +89,7 @@ describe('ReplayReader', () => {
     const secondTimestamp = new Date('2023-12-25T00:04:00');
     const thirdTimestamp = new Date('2023-12-25T00:05:00');
 
-    const optionsFrame = ReplayOptionFrameFixture({});
+    const optionsFrame = ReplayOptionFrameFixture();
     const optionsEvent = ReplayOptionFrameEventFixture({
       timestamp,
       data: {payload: optionsFrame},
@@ -223,7 +223,7 @@ describe('ReplayReader', () => {
 
   it('shoud return the SDK config if there is a RecordingOptions event found', () => {
     const timestamp = new Date();
-    const optionsFrame = ReplayOptionFrameFixture({});
+    const optionsFrame = ReplayOptionFrameFixture();
 
     const replay = ReplayReader.factory({
       attachments: [

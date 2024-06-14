@@ -15,7 +15,7 @@ import {EventOrGroupType} from 'sentry/types';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
 const organization = OrganizationFixture();
-const project = ProjectFixture({});
+const project = ProjectFixture();
 
 const integration = GitHubIntegrationFixture();
 const repo = RepositoryFixture({integrationId: integration.id});

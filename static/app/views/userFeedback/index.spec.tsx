@@ -88,7 +88,7 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -107,7 +107,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: OrganizationFixture({}),
+      organization: OrganizationFixture(),
       location: {
         ...routeProps.location,
         pathname: 'sentry',

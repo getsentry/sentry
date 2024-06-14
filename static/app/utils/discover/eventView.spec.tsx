@@ -3590,7 +3590,7 @@ describe('isAPIPayloadSimilar', function () {
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3607,7 +3607,7 @@ describe('isAPIPayloadSimilar', function () {
       });
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = thisEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3617,11 +3617,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.sortOnField({field: 'count()'}, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3631,14 +3631,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a new column is added', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = new EventView({
         ...state,
         fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
       });
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3648,7 +3648,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is updated with no changes', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3657,7 +3657,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3667,7 +3667,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced field', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3676,7 +3676,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3686,7 +3686,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is updated with a replaced aggregation', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3695,7 +3695,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3705,7 +3705,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a column is renamed', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3714,7 +3714,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3724,11 +3724,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is not similar when a column is deleted', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = thisEventView.withDeletedColumn(0, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3738,11 +3738,11 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar if column order changes', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherEventView = new EventView({...state, fields: shuffle(state.fields)});
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3760,7 +3760,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3770,7 +3770,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3788,7 +3788,7 @@ describe('isAPIPayloadSimilar', function () {
         otherEquationField,
       ];
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       state.fields = [
@@ -3798,7 +3798,7 @@ describe('isAPIPayloadSimilar', function () {
         equationField,
       ];
       const otherEventView = new EventView(state);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getEventsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3810,7 +3810,7 @@ describe('isAPIPayloadSimilar', function () {
   describe('getFacetsAPIPayload', function () {
     it('only includes relevant parameters', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const results = thisEventView.getFacetsAPIPayload(location);
       const expected = {
         query: state.query,
@@ -3824,7 +3824,7 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar on sort key sorted in opposite directions', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const newColumn: Column = {
@@ -3833,7 +3833,7 @@ describe('isAPIPayloadSimilar', function () {
       };
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
@@ -3842,14 +3842,14 @@ describe('isAPIPayloadSimilar', function () {
 
     it('is similar when a columns are different', function () {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({});
+      const location = LocationFixture();
       const thisAPIPayload = thisEventView.getFacetsAPIPayload(location);
 
       const otherEventView = new EventView({
         ...state,
         fields: [...state.fields, {field: 'title', width: COL_WIDTH_UNDEFINED}],
       });
-      const otherLocation = LocationFixture({});
+      const otherLocation = LocationFixture();
       const otherAPIPayload = otherEventView.getFacetsAPIPayload(otherLocation);
 
       const results = isAPIPayloadSimilar(thisAPIPayload, otherAPIPayload);
