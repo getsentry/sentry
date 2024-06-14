@@ -216,6 +216,7 @@ def recover_confirm(request, user_id, hash, mode="recover"):
                 # associated. We only need the first membership, since all of user's orgs will be in
                 # the same region.
                 membership = OrganizationMemberMapping.objects.filter(user=user).first()
+                assert membership is not None
                 mapping = OrganizationMapping.objects.get(
                     organization_id=membership.organization_id
                 )
