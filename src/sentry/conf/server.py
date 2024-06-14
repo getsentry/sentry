@@ -3435,6 +3435,9 @@ SEER_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
 
+# TODO: Remove this soon, just a way to configure a project for this before we implement properly
+UPTIME_POC_PROJECT_ID = 1
+
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
