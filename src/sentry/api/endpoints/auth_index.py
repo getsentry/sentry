@@ -71,14 +71,26 @@ class BaseAuthIndexEndpoint(Endpoint):
     @staticmethod
     def _verify_user_via_inputs(validator: AuthVerifyValidator, request: Request) -> bool:
         # See if we have a u2f challenge/response
-        if "challenge" in validator.validated_data and "response" in validator.validated_data:
+        valid_data = validator.validated_data
+        if "challenge" in valid_data and "response" in valid_data:
             try:
                 interface: U2fInterface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
                     raise LookupError()
-                challenge = json.loads(validator.validated_data["challenge"])
-                response = json.loads(validator.validated_data["response"])
-                authenticated = interface.validate_response(request, challenge, response)
+
+                challenge = json.loads(valid_data["challenge"])
+                response = json.loads(valid_data["response"])
+
+                if state := valid_data.get("auth_state"):
+                    state = json.loads(state)
+                else:
+                    # state may be an empty string, so we want to explicitly set
+                    # it to None before passing to validate_response
+                    state = None
+
+                authenticated = interface.validate_response(
+                    request=request, challenge=challenge, response=response, state=state
+                )
                 if not authenticated:
                     logger.warning(
                         "u2f_authentication.verification_failed",

@@ -8,11 +8,13 @@ class AuthVerifyValidator(serializers.Serializer):
     # For u2f
     challenge = serializers.CharField(required=False, trim_whitespace=False)
     response = serializers.CharField(required=False, trim_whitespace=False)
+    auth_state = serializers.CharField(required=False, trim_whitespace=False)
 
     def validate(self, data):
         if "password" in data:
             return data
         if "challenge" in data and "response" in data:
+            # TODO(schew2381): Require auth_state for U2F once new U2F flow in enabled
             return data
         raise serializers.ValidationError(
             detail="You must provide `password` or `challenge` and `response`.",

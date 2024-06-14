@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest import mock
+from unittest.mock import call, patch
 from urllib.parse import urlencode
 
 from django.test import override_settings
@@ -85,7 +85,11 @@ class AuthLoginEndpointTest(APITestCase):
 class AuthVerifyEndpointTest(APITestCase):
     path = "/api/0/auth/"
 
-    @mock.patch("sentry.api.endpoints.auth_index.metrics")
+    def setUp(self):
+        super().setUp()
+        self.validator_params = {"challenge": '{"foo":"bar"}', "response": '{"baz":"biz"}'}
+
+    @patch("sentry.api.endpoints.auth_index.metrics")
     def test_valid_password(self, mock_metrics):
         user = self.create_user("foo@example.com")
         self.login_as(user)
@@ -96,14 +100,14 @@ class AuthVerifyEndpointTest(APITestCase):
             "auth.password.success", sample_rate=1.0, skip_internal=False
         )
 
-    @mock.patch("sentry.api.endpoints.auth_index.metrics")
+    @patch("sentry.api.endpoints.auth_index.metrics")
     def test_invalid_password(self, mock_metrics):
         user = self.create_user("foo@example.com")
         self.login_as(user)
         response = self.client.put(self.path, data={"password": "foobar"})
         assert response.status_code == 403
         assert (
-            mock.call("auth.password.success", sample_rate=1.0, skip_internal=False)
+            call("auth.password.success", sample_rate=1.0, skip_internal=False)
             not in mock_metrics.incr.call_args_list
         )
 
@@ -114,10 +118,10 @@ class AuthVerifyEndpointTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
-    @mock.patch("sentry.api.endpoints.auth_index.metrics")
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_valid_password_u2f(self, validate_response, is_available, mock_metrics):
+    @patch("sentry.api.endpoints.auth_index.metrics")
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
+    def test_valid_password_u2f(self, mock_validate, mock_is_available, mock_metrics):
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -125,22 +129,20 @@ class AuthVerifyEndpointTest(APITestCase):
         response = self.client.put(
             self.path,
             user=user,
-            data={
-                "password": "admin",
-                "challenge": """{"challenge":"challenge"}""",
-                "response": """{"response":"response"}""",
-            },
+            data={"password": "admin", **self.validator_params},
         )
+
         assert response.status_code == 200
-        assert validate_response.call_count == 1
-        assert {"challenge": "challenge"} in validate_response.call_args[0]
-        assert {"response": "response"} in validate_response.call_args[0]
+        assert mock_validate.call_count == 1
+        assert mock_validate.call_args.kwargs["challenge"] == {"foo": "bar"}
+        assert mock_validate.call_args.kwargs["response"] == {"baz": "biz"}
+        assert mock_validate.call_args.kwargs["state"] is None
         mock_metrics.incr.assert_any_call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
 
-    @mock.patch("sentry.api.endpoints.auth_index.metrics")
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
-    def test_invalid_password_u2f(self, validate_response, is_available, mock_metrics):
+    @patch("sentry.api.endpoints.auth_index.metrics")
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
+    def test_valid_password_u2f_with_state(self, mock_validate, mock_is_available, mock_metrics):
         user = self.create_user("foo@example.com")
         self.org = self.create_organization(owner=user, name="foo")
         self.login_as(user)
@@ -148,18 +150,37 @@ class AuthVerifyEndpointTest(APITestCase):
         response = self.client.put(
             self.path,
             user=user,
-            data={
-                "password": "admin",
-                "challenge": """{"challenge":"challenge"}""",
-                "response": """{"response":"response"}""",
-            },
+            data={"password": "admin", "auth_state": '{"wiz":"waz"}', **self.validator_params},
         )
+
+        assert response.status_code == 200
+        assert mock_validate.call_count == 1
+        assert mock_validate.call_args.kwargs["challenge"] == {"foo": "bar"}
+        assert mock_validate.call_args.kwargs["response"] == {"baz": "biz"}
+        assert mock_validate.call_args.kwargs["state"] == {"wiz": "waz"}
+        mock_metrics.incr.assert_any_call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
+
+    @patch("sentry.api.endpoints.auth_index.metrics")
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
+    def test_invalid_password_u2f(self, mock_validate, mock_is_available, mock_metrics):
+        user = self.create_user("foo@example.com")
+        self.org = self.create_organization(owner=user, name="foo")
+        self.login_as(user)
+        create_authenticator(user)
+        response = self.client.put(
+            self.path,
+            user=user,
+            data={"password": "admin", **self.validator_params},
+        )
+
         assert response.status_code == 403
-        assert validate_response.call_count == 1
-        assert {"challenge": "challenge"} in validate_response.call_args[0]
-        assert {"response": "response"} in validate_response.call_args[0]
+        assert mock_validate.call_count == 1
+        assert mock_validate.call_args.kwargs["challenge"] == {"foo": "bar"}
+        assert mock_validate.call_args.kwargs["response"] == {"baz": "biz"}
+        assert mock_validate.call_args.kwargs["state"] is None
         assert (
-            mock.call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
+            call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
             not in mock_metrics.incr.call_args_list
         )
 
@@ -168,56 +189,73 @@ class AuthVerifyEndpointTest(APITestCase):
 class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     path = "/api/0/auth/"
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_no_password_saas_product(self, validate_response, is_available):
-        org_provider = AuthProvider.objects.create(
+    def setUp(self):
+        self.validator_params = {"challenge": '{"foo":"bar"}', "response": '{"baz":"biz"}'}
+        self.superuser = self.create_user("superuser@sentry.io", is_superuser=True)
+        self.org_provider = AuthProvider.objects.create(
             organization_id=self.organization.id, provider="dummy"
         )
 
-        user = self.create_user("foo@example.com", is_superuser=True)
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
+    def test_superuser_sso_user_no_password_saas_product(self, mock_validate, mock_is_available):
+        self.superuser.update(password="")
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser, organization_id=self.organization.id)
 
-        create_authenticator(user)
-
-        user.update(password="")
-
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user, organization_id=self.organization.id)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             response = self.client.put(
                 self.path,
                 data={
                     "isSuperuserModal": True,
-                    "challenge": """{"challenge":"challenge"}""",
-                    "response": """{"response":"response"}""",
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "for testing",
+                    **self.validator_params,
                 },
             )
-            assert response.status_code == 200
-            assert COOKIE_NAME in response.cookies
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
-    def test_superuser_expired_sso_user_no_password_saas_product(
-        self, validate_response, is_available
+        assert response.status_code == 200
+        assert COOKIE_NAME in response.cookies
+        assert mock_validate.call_args.kwargs["state"] is None
+
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
+    def test_superuser_sso_user_no_password_saas_product_with_state(
+        self, mock_validate, mock_is_available
     ):
-        org_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
+        self.superuser.update(password="")
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser, organization_id=self.organization.id)
 
-        user = self.create_user("foo@example.com", is_superuser=True)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
+            response = self.client.put(
+                self.path,
+                data={
+                    "isSuperuserModal": True,
+                    "superuserAccessCategory": "for_unit_test",
+                    "superuserReason": "for testing",
+                    "auth_state": '{"wiz":"waz"}',
+                    **self.validator_params,
+                },
+            )
 
-        create_authenticator(user)
+        assert response.status_code == 200
+        assert COOKIE_NAME in response.cookies
+        assert mock_validate.call_args.kwargs["state"] == {"wiz": "waz"}
 
-        user.update(password="")
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
+    def test_superuser_expired_sso_user_no_password_saas_product(
+        self, mock_validate, mock_is_available
+    ):
+        self.superuser.update(password="")
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser, organization_id=self.organization.id)
 
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user, organization_id=self.organization.id)
-
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             sso_session_expired = SsoSession(
                 self.organization.id,
                 datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
@@ -229,46 +267,37 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 data={
                     "isSuperuserModal": True,
-                    "challenge": """{"challenge":"challenge"}""",
-                    "response": """{"response":"response"}""",
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "for testing",
+                    **self.validator_params,
                 },
             )
-            # status code of 401 means invalid SSO session
-            assert response.status_code == 401
-            assert response.data == {
-                "detail": {
-                    "code": "sso-required",
-                    "extra": {"loginUrl": f"/auth/login/{self.organization.slug}/"},
-                    "message": "Must login via SSO",
-                }
-            }
-            assert COOKIE_NAME not in response.cookies
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
+        # status code of 401 means invalid SSO session
+        assert response.status_code == 401
+        assert response.data == {
+            "detail": {
+                "code": "sso-required",
+                "extra": {"loginUrl": f"/auth/login/{self.organization.slug}/"},
+                "message": "Must login via SSO",
+            }
+        }
+        assert COOKIE_NAME not in response.cookies
+
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=False)
     def test_superuser_expired_sso_user_no_password_saas_product_customer_domain(
-        self, validate_response, is_available
+        self, mock_validate, mock_is_available
     ):
         # An organization that a superuser is not a member of, but will try to access.
         other_org = self.create_organization(name="other_org")
 
-        org_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
+        self.superuser.update(password="")
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser, organization_id=self.organization.id)
 
-        user = self.create_user("foo@example.com", is_superuser=True)
-
-        create_authenticator(user)
-
-        user.update(password="")
-
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user, organization_id=self.organization.id)
-
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             sso_session_expired = SsoSession(
                 self.organization.id,
                 datetime.now(tz=timezone.utc) - SSO_EXPIRY_TIME - timedelta(hours=1),
@@ -282,41 +311,34 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                 self.path,
                 data={
                     "isSuperuserModal": True,
-                    "challenge": """{"challenge":"challenge"}""",
-                    "response": """{"response":"response"}""",
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "for testing",
+                    **self.validator_params,
                 },
                 SERVER_NAME=f"{other_org.slug}.testserver",
                 HTTP_REFERER=referrer,
             )
-            # status code of 401 means invalid SSO session
-            assert response.status_code == 401
-            query_string = urlencode({"next": referrer})
-            assert response.data == {
-                "detail": {
-                    "code": "sso-required",
-                    "extra": {
-                        "loginUrl": f"http://{self.organization.slug}.testserver/auth/login/{self.organization.slug}/?{query_string}"
-                    },
-                    "message": "Must login via SSO",
-                }
+
+        # status code of 401 means invalid SSO session
+        assert response.status_code == 401
+        query_string = urlencode({"next": referrer})
+        assert response.data == {
+            "detail": {
+                "code": "sso-required",
+                "extra": {
+                    "loginUrl": f"http://{self.organization.slug}.testserver/auth/login/{self.organization.slug}/?{query_string}"
+                },
+                "message": "Must login via SSO",
             }
-            assert COOKIE_NAME not in response.cookies
+        }
+        assert COOKIE_NAME not in response.cookies
 
     def test_superuser_sso_user_no_u2f_saas_product(self):
-        org_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser, organization_id=self.organization.id)
 
-        user = self.create_user("foo@example.com", is_superuser=True)
-
-        create_authenticator(user)
-
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user, organization_id=self.organization.id)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             response = self.client.put(
                 self.path,
                 data={
@@ -324,48 +346,40 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "superuserReason": "for testing",
                 },
             )
-            assert response.status_code == 400
-            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_sso_user_has_password_saas_product(self, validate_response, is_available):
-        org_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
+        assert response.status_code == 400
+        assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
-        user = self.create_user("foo@example.com", is_superuser=True)
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
+    def test_superuser_sso_user_has_password_saas_product(self, mock_validate, mock_is_available):
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser, organization_id=self.organization.id)
 
-        create_authenticator(user)
-
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user, organization_id=self.organization.id)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             response = self.client.put(
                 self.path,
                 data={
                     "isSuperuserModal": True,
-                    "challenge": """{"challenge":"challenge"}""",
-                    "response": """{"response":"response"}""",
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "for testing",
+                    **self.validator_params,
                 },
             )
-            assert response.status_code == 200
-            assert COOKIE_NAME in response.cookies
 
-    @mock.patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
-    @mock.patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
-    def test_superuser_no_sso_user_has_password_saas_product(self, validate_response, is_available):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+        assert response.status_code == 200
+        assert COOKIE_NAME in response.cookies
 
-        user = self.create_user("foo@example.com", is_superuser=True)
+    @patch("sentry.auth.authenticators.U2fInterface.is_available", return_value=True)
+    @patch("sentry.auth.authenticators.U2fInterface.validate_response", return_value=True)
+    def test_superuser_no_sso_user_has_password_saas_product(
+        self, mock_validate, mock_is_available
+    ):
+        create_authenticator(self.superuser)
+        self.login_as(self.superuser)
 
-        create_authenticator(user)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             response = self.client.put(
                 self.path,
                 data={
@@ -375,16 +389,13 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "superuserReason": "for testing",
                 },
             )
-            assert response.status_code == 401
+        assert response.status_code == 401
 
     @override_settings(SENTRY_SELF_HOSTED=True)
     def test_superuser_no_sso_user_has_password_self_hosted(self):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+        self.login_as(self.superuser)
 
-        user = self.create_user("foo@example.com", is_superuser=True)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             response = self.client.put(
                 self.path,
                 data={
@@ -392,56 +403,51 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 200
+        assert response.status_code == 200
 
     @override_settings(SENTRY_SELF_HOSTED=True)
     def test_superuser_no_sso_user_no_password_or_u2f_self_hosted(self):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
-        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(self.superuser)
 
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             response = self.client.put(
                 self.path,
                 data={
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 400
-            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
+
+        assert response.status_code == 400
+        assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     # su form is disabled by overriding local dev setting which skip checks
-    @mock.patch("sentry.api.endpoints.auth_index.DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True)
-    @mock.patch("sentry.api.endpoints.auth_index.has_completed_sso", return_value=True)
-    @mock.patch("sentry.auth.superuser.has_completed_sso", return_value=True)
+    @patch("sentry.api.endpoints.auth_index.DISABLE_SSO_CHECK_FOR_LOCAL_DEV", True)
+    @patch("sentry.api.endpoints.auth_index.has_completed_sso", return_value=True)
+    @patch("sentry.auth.superuser.has_completed_sso", return_value=True)
     def test_superuser_no_sso_user_no_password_or_u2f_sso_disabled_local_dev_saas(
         self, mock_endpoint_has_completed_sso, mock_superuser_has_completed_sso
     ):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
-        user = self.create_user("foo@example.com", is_superuser=True)
+        self.login_as(self.superuser)
 
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             response = self.client.put(
                 self.path,
                 data={
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 200
-            assert COOKIE_NAME in response.cookies
+
+        assert response.status_code == 200
+        assert COOKIE_NAME in response.cookies
 
     @override_settings(SENTRY_SELF_HOSTED=True)
     def test_superuser_no_sso_user_has_password_su_form_on_self_hosted(self):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+        self.login_as(self.superuser)
 
-        user = self.create_user("foo@example.com", is_superuser=True)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             response = self.client.put(
                 self.path,
                 data={
@@ -449,35 +455,29 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 200
+        assert response.status_code == 200
 
     @override_settings(SENTRY_SELF_HOSTED=True)
     def test_superuser_no_sso_su_form_on_no_password_or_u2f_self_hosted(self):
-        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+        self.login_as(self.superuser)
 
-        user = self.create_user("foo@example.com", is_superuser=True)
-
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", None):
             response = self.client.put(
                 self.path,
                 data={
                     "isSuperuserModal": True,
                 },
             )
-            assert response.status_code == 400
-            assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
+
+        assert response.status_code == 400
+        assert response.data["detail"]["code"] == MISSING_PASSWORD_OR_U2F_CODE
 
     def test_superuser_no_sso_with_referrer(self):
-        org_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
-        user = self.create_user("foo@example.com", is_superuser=True)
-        create_authenticator(user)
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser)
 
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             response = self.client.put(
                 self.path,
                 HTTP_REFERER="http://testserver/bar",
@@ -488,19 +488,16 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "superuserReason": "for testing",
                 },
             )
-            assert response.status_code == 401
-            assert self.client.session["_next"] == "http://testserver/bar"
+
+        assert response.status_code == 401
+        assert self.client.session["_next"] == "http://testserver/bar"
 
     def test_superuser_no_sso_with_bad_referrer(self):
-        org_provider = AuthProvider.objects.create(
-            organization_id=self.organization.id, provider="dummy"
-        )
-        user = self.create_user("foo@example.com", is_superuser=True)
-        create_authenticator(user)
-        AuthIdentity.objects.create(user=user, auth_provider=org_provider)
+        create_authenticator(self.superuser)
+        AuthIdentity.objects.create(user=self.superuser, auth_provider=self.org_provider)
+        self.login_as(self.superuser)
 
-        with mock.patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
-            self.login_as(user)
+        with patch("sentry.api.endpoints.auth_index.SUPERUSER_ORG_ID", self.organization.id):
             response = self.client.put(
                 self.path,
                 HTTP_REFERER="http://hacktheplanet/bar",
@@ -511,8 +508,9 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "superuserReason": "for testing",
                 },
             )
-            assert response.status_code == 401
-            assert self.client.session.get("_next") is None
+
+        assert response.status_code == 401
+        assert self.client.session.get("_next") is None
 
 
 @control_silo_test
