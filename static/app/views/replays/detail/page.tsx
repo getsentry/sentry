@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -7,11 +7,13 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import ConfigureReplayCard from 'sentry/components/replays/configureReplayCard';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete, IconEllipsis, IconUpload} from 'sentry/icons';
@@ -45,6 +47,15 @@ export default function Page({
 
   const onShareReplay = useShareReplayAtTimestamp();
   const onDeleteReplay = useDeleteReplay({replayId: replayRecord?.id, projectSlug});
+
+  const {replay} = useReplayContext();
+  const rrwebFrames = replay?.getRRWebFrames();
+  // The replay data takes a while to load in, which causes our `isVideoReplay`
+  // to return an early `false`, which used to cause UI jumping.
+  // One way to check whether it's finished loading is by checking the length
+  // of the rrweb frames, which should always be > 2 for any given replay.
+  // By default, the 2 frames are replay.start and replay.end
+  const isLoading = !rrwebFrames || (rrwebFrames && rrwebFrames.length <= 2);
 
   const dropdownItems: MenuItemProps[] = [
     {
@@ -80,8 +91,15 @@ export default function Page({
       <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
 
       <ButtonActionsWrapper>
-        {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
-        {isVideoReplay ? null : <ConfigureReplayCard />}
+        {isLoading ? (
+          <Placeholder height="33px" width="203px" />
+        ) : (
+          <Fragment>
+            {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
+            {isVideoReplay ? null : <ConfigureReplayCard />}
+          </Fragment>
+        )}
+
         <DropdownMenu
           position="bottom-end"
           triggerProps={{
@@ -128,6 +146,7 @@ export default function Page({
         replayRecord={replayRecord}
         replayErrors={replayErrors}
         showDeadRageClicks={!isVideoReplay}
+        isLoading={isLoading}
       />
     </Header>
   );

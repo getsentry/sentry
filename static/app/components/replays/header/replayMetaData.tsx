@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayViewers from 'sentry/components/replays/header/replayViewers';
@@ -16,12 +17,18 @@ import {useRoutes} from 'sentry/utils/useRoutes';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  isLoading: boolean;
   replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
   showDeadRageClicks?: boolean;
 };
 
-function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}: Props) {
+function ReplayMetaData({
+  replayErrors,
+  replayRecord,
+  showDeadRageClicks = true,
+  isLoading,
+}: Props) {
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
@@ -37,7 +44,9 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
     },
   };
 
-  return (
+  return isLoading ? (
+    <Placeholder height="45px" width="203px" />
+  ) : (
     <KeyMetrics>
       {showDeadRageClicks && (
         <Fragment>
