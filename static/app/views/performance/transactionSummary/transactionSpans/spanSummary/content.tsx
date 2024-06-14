@@ -110,8 +110,8 @@ function SpanSummaryContent(props: ContentProps) {
   const {data: spanHeaderData} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
-      fields: ['span.description', 'sum(span.self_time)', 'count()'],
-      sorts: [{field: 'sum(span.self_time)', kind: 'desc'}],
+      fields: ['span.description', 'sum(span.duration)', 'count()'],
+      sorts: [{field: 'sum(span.duration)', kind: 'desc'}],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA
   );
@@ -151,7 +151,7 @@ function parseSpanHeaderData(data: Partial<SpanMetricsResponse>[]) {
   if (data.length === 1) {
     return {
       description: data[0]?.['span.description'],
-      timeSpent: data[0]?.['sum(span.self_time)'],
+      timeSpent: data[0]?.['sum(span.duration)'],
       spanCount: data[0]?.['count()'],
     };
   }

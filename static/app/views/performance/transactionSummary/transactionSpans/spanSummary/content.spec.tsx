@@ -232,19 +232,19 @@ describe('SpanSummaryPage', function () {
             'span.description': 'SELECT thing FROM my_cool_db WHERE value = %s',
             'avg(span.duration)': 1.7381229881349218,
             'count()': 3677407172,
-            'sum(span.self_time)': 6391491809.035965,
+            'sum(span.duration)': 6391491809.035965,
           },
         ],
         meta: {
           fields: {
             'span.description': 'string',
-            'sum(span.self_time)': 'duration',
+            'sum(span.duration)': 'duration',
             'count()': 'integer',
             'avg(span.duration)': 'duration',
           },
           units: {
             'span.description': null,
-            'sum(span.self_time)': 'millisecond',
+            'sum(span.duration)': 'millisecond',
             'count()': null,
             'avg(span.duration)': 'millisecond',
           },
