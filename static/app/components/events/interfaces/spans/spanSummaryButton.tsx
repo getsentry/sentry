@@ -4,10 +4,7 @@ import {t, tct} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  DATA_TYPE as RESOURCE_DATA_TYPE,
-  PERFORMANCE_DATA_TYPE as PERFORMANCE_RESOURCE_DATA_TYPE,
-} from 'sentry/views/performance/browser/resources/settings';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
@@ -34,11 +31,6 @@ function SpanSummaryButton(props: Props) {
   }
 
   const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-
-  const resourceDataType = isInsightsEnabled
-    ? RESOURCE_DATA_TYPE
-    : PERFORMANCE_RESOURCE_DATA_TYPE;
 
   if (
     organization.features.includes('insights-initial-modules') &&
@@ -86,7 +78,7 @@ function SpanSummaryButton(props: Props) {
           });
         }}
       >
-        {tct('View [dataType] Summary', {dataType: resourceDataType})}
+        {tct('View [dataType] Summary', {dataType: DATA_TYPE})}
       </LinkButton>
     );
   }
