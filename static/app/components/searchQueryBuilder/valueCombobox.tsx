@@ -337,7 +337,7 @@ function getOtherSelectedValues(token: TokenResult<Token.FILTER>): string[] {
 function cleanFilterValue(key: string, value: string): string {
   const fieldDef = getFieldDefinition(key);
   if (!fieldDef) {
-    return value;
+    return escapeTagValue(value);
   }
 
   switch (fieldDef.valueType) {
