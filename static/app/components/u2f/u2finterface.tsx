@@ -258,7 +258,7 @@ class U2fInterface extends Component<Props, State> {
   bindResponseElement: React.RefCallback<HTMLInputElement> = ref =>
     this.setState({responseElement: ref});
 
-  bindStateElement: React.RefCallback<HTMLInputElement> = ref =>
+  bindAuthStateElement: React.RefCallback<HTMLInputElement> = ref =>
     this.setState({authStateElement: ref});
 
   renderUnsupported() {
@@ -369,7 +369,7 @@ class U2fInterface extends Component<Props, State> {
         </div>
         <input type="hidden" name="challenge" ref={this.bindChallengeElement} />
         <input type="hidden" name="response" ref={this.bindResponseElement} />
-        <input type="hidden" name="state" ref={this.bindStateElement} />
+        <input type="hidden" name="auth_state" ref={this.bindAuthStateElement} />
         <div className="inner">{this.renderBody()}</div>
       </div>
     );
