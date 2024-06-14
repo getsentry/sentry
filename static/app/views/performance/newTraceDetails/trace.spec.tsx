@@ -64,7 +64,7 @@ function mockTraceResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-trace/trace-id/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? {}),
+    ...(resp ?? {body: {}}),
   });
 }
 
@@ -74,10 +74,12 @@ function mockTraceMetaResponse(resp?: Partial<ResponseType>) {
     method: 'GET',
     asyncDelay: 1,
     ...(resp ?? {
-      errors: 0,
-      performance_issues: 0,
-      projects: 0,
-      transactions: 0,
+      body: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+      },
     }),
   });
 }
@@ -87,7 +89,7 @@ function mockTraceTagsResponse(resp?: Partial<ResponseType>) {
     url: '/organizations/org-slug/events-facets/',
     method: 'GET',
     asyncDelay: 1,
-    ...(resp ?? []),
+    ...(resp ?? {body: []}),
   });
 }
 
@@ -221,6 +223,25 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
   };
 }
 
+function getVirtualizedContainer(): HTMLElement {
+  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
+  if (!virtualizedContainer) {
+    throw new Error('Virtualized container not found');
+  }
+  return virtualizedContainer;
+}
+
+function getVirtualizedScrollContainer(): HTMLElement {
+  const virtualizedScrollContainer = screen.queryByTestId(
+    'trace-virtualized-list-scroll-container'
+  );
+
+  if (!virtualizedScrollContainer) {
+    throw new Error('Virtualized scroll container not found');
+  }
+  return virtualizedScrollContainer;
+}
+
 async function keyboardNavigationTestSetup() {
   const keyboard_navigation_transactions: TraceFullDetailed[] = [];
   for (let i = 0; i < 1e4; i++) {
@@ -247,18 +268,8 @@ async function keyboardNavigationTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
+  const virtualizedContainer = getVirtualizedContainer();
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
   expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
@@ -291,18 +302,8 @@ async function pageloadTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
+  const virtualizedContainer = getVirtualizedContainer();
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
   expect((await screen.findAllByText(/transaction-op-/i)).length).toBeGreaterThan(0);
@@ -335,18 +336,8 @@ async function searchTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
+  const virtualizedContainer = getVirtualizedContainer();
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
   expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
@@ -385,18 +376,8 @@ async function simpleTestSetup() {
   mockMetricsResponse();
 
   const value = render(<TraceView />, {router});
-  const virtualizedContainer = screen.queryByTestId('trace-virtualized-list');
-  const virtualizedScrollContainer = screen.queryByTestId(
-    'trace-virtualized-list-scroll-container'
-  );
-
-  if (!virtualizedContainer) {
-    throw new Error('Virtualized container not found');
-  }
-
-  if (!virtualizedScrollContainer) {
-    throw new Error('Virtualized scroll container not found');
-  }
+  const virtualizedContainer = getVirtualizedContainer();
+  const virtualizedScrollContainer = getVirtualizedScrollContainer();
 
   // Awaits for the placeholder rendering rows to be removed
   expect(await findByText(value.container, /transaction-op-0/i)).toBeInTheDocument();
@@ -412,16 +393,12 @@ const DRAWER_TABS_CONTAINER_TEST_ID = 'trace-drawer-tabs';
 const VISIBLE_TRACE_ROW_SELECTOR = '.TraceRow:not(.Hidden)';
 const ACTIVE_SEARCH_HIGHLIGHT_ROW = '.TraceRow.SearchResult.Highlight:not(.Hidden)';
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-const searchToUpdate = (): Promise<void> => {
-  return act(async () => {
-    await wait(500);
-  });
+const searchToUpdate = async (): Promise<void> => {
+  await wait(500);
 };
 
-const scrollToEnd = (): Promise<void> => {
-  return act(async () => {
-    await wait(1000);
-  });
+const scrollToEnd = async (): Promise<void> => {
+  await wait(1000);
 };
 
 // @ts-expect-error ignore this line
