@@ -9,7 +9,7 @@ class ViewSerializer(serializers.Serializer):
     id = serializers.CharField(required=False)
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True)
-    query_sort = serializers.ChoiceField(
+    querySort = serializers.ChoiceField(
         choices=SortOptions.as_choices(), default=SortOptions.DATE, required=False
     )
 

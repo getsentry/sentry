@@ -191,7 +191,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert len(response.data) == 4  # 3 existing views + 1 new view
         assert response.data[3]["name"] == "Custom View Four"
         assert response.data[3]["query"] == "is:unresolved"
-        assert response.data[3]["query_sort"] == "date"
+        assert response.data[3]["querySort"] == "date"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_reorder_views(self):
@@ -221,7 +221,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert len(response.data) == 3
         assert response.data[0]["name"] == "New Name"
         assert response.data[0]["query"] == view["query"]
-        assert response.data[0]["query_sort"] == view["query_sort"]
+        assert response.data[0]["querySort"] == view["querySort"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_change_query(self):
@@ -232,18 +232,18 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert len(response.data) == 3
         assert response.data[0]["name"] == view["name"]
         assert response.data[0]["query"] == "is:resolved"
-        assert response.data[0]["query_sort"] == view["query_sort"]
+        assert response.data[0]["querySort"] == view["querySort"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_change_sort(self):
         views = self.client.get(self.url).data
         view = views[0]
-        view["query_sort"] = "freq"
+        view["querySort"] = "freq"
         response = self.get_success_response(self.organization.slug, views=views)
         assert len(response.data) == 3
         assert response.data[0]["name"] == view["name"]
         assert response.data[0]["query"] == view["query"]
-        assert response.data[0]["query_sort"] == "freq"
+        assert response.data[0]["querySort"] == "freq"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_change_everything(self):
@@ -251,12 +251,12 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         view = views[0]
         view["name"] = "New Name"
         view["query"] = "is:resolved"
-        view["query_sort"] = "freq"
+        view["querySort"] = "freq"
         response = self.get_success_response(self.organization.slug, views=views)
         assert len(response.data) == 3
         assert response.data[0]["name"] == "New Name"
         assert response.data[0]["query"] == "is:resolved"
-        assert response.data[0]["query_sort"] == "freq"
+        assert response.data[0]["querySort"] == "freq"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
     def test_invalid_no_views(self):
@@ -272,12 +272,12 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
     def test_invalid_sort(self):
         views = self.client.get(self.url).data
         view = views[0]
-        view["query_sort"] = "alphabetically"
+        view["querySort"] = "alphabetically"
         response = self.get_error_response(self.organization.slug, views=views)
 
         assert response.data == {
             "views": {
-                "query_sort": [
+                "querySort": [
                     ErrorDetail(
                         string='"alphabetically" is not a valid choice.', code="invalid_choice"
                     )

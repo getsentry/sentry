@@ -1,5 +1,3 @@
-from typing import TypedDict
-
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,13 +36,6 @@ class MemberPermission(OrganizationPermission):
         "GET": ["member:read", "member:write"],
         "PUT": ["member:read", "member:write"],
     }
-
-
-class View(TypedDict):
-    id: str | None
-    name: str
-    query: str
-    query_sort: SortOptions
 
 
 @region_silo_endpoint
@@ -129,11 +120,11 @@ def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: lis
     ).delete()
 
 
-def _update_existing_view(view: View, position: int):
+def _update_existing_view(view: GroupSearchViewSerializerResponse, position: int):
     GroupSearchView.objects.filter(id=view["id"]).update(
         name=view["name"],
         query=view["query"],
-        query_sort=view["query_sort"],
+        query_sort=view["querySort"],
         position=position,
     )
 
@@ -144,6 +135,6 @@ def _create_view(org: Organization, user_id: int, view, position: int):
         user_id=user_id,
         name=view["name"],
         query=view["query"],
-        query_sort=view.get("query_sort", SortOptions.DATE),
+        query_sort=view.get("querySort", SortOptions.DATE),
         position=position,
     )
