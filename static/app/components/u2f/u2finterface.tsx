@@ -5,13 +5,13 @@ import * as cbor from 'cbor-web';
 import {base64urlToBuffer, bufferToBase64url} from 'sentry/components/u2f/webAuthnHelper';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {ChallengeData, StateData} from 'sentry/types';
+import type {AuthStateData, ChallengeData} from 'sentry/types';
 
 type TapParams = {
   challenge: string;
   response: string;
+  authState?: string;
   isSuperuserModal?: boolean;
-  state?: string;
   superuserAccessCategory?: string;
   superuserReason?: string;
 };
@@ -22,18 +22,19 @@ type Props = {
   onTap: ({
     response,
     challenge,
-    state,
+    authState,
     isSuperuserModal,
     superuserAccessCategory,
     superuserReason,
   }: TapParams) => Promise<void>;
   silentIfUnsupported: boolean;
+  authStateData?: AuthStateData;
   children?: React.ReactNode;
-  stateData?: StateData;
   style?: React.CSSProperties;
 };
 
 type State = {
+  authStateElement: HTMLInputElement | null;
   challengeElement: HTMLInputElement | null;
   deviceFailure: string | null;
   failCount: number;
@@ -42,7 +43,6 @@ type State = {
   isSafari: boolean;
   isSupported: boolean | null;
   responseElement: HTMLInputElement | null;
-  stateElement: HTMLInputElement | null;
 };
 
 class U2fInterface extends Component<Props, State> {
@@ -53,7 +53,7 @@ class U2fInterface extends Component<Props, State> {
     hasBeenTapped: false,
     deviceFailure: null,
     responseElement: null,
-    stateElement: null,
+    authStateElement: null,
     isSafari: false,
     failCount: 0,
   };
@@ -121,17 +121,17 @@ class U2fInterface extends Component<Props, State> {
           () => {
             const u2fResponse = this.getU2FResponse(data);
             const challenge = JSON.stringify(this.props.challengeData);
-            const stateData = this.props.stateData
-              ? JSON.stringify(this.props.stateData)
-              : this.props.stateData;
+            const authStateData = this.props.authStateData
+              ? JSON.stringify(this.props.authStateData)
+              : this.props.authStateData;
 
             if (this.state.responseElement) {
               // eslint-disable-next-line react/no-direct-mutation-state
               this.state.responseElement.value = u2fResponse;
             }
-            if (this.state.stateElement && stateData) {
+            if (this.state.authStateElement && authStateData) {
               // eslint-disable-next-line react/no-direct-mutation-state
-              this.state.stateElement.value = stateData;
+              this.state.authStateElement.value = authStateData;
             }
 
             if (!this.props.onTap) {
@@ -143,7 +143,7 @@ class U2fInterface extends Component<Props, State> {
               .onTap({
                 response: u2fResponse,
                 challenge,
-                ...(stateData ? {state: stateData} : {}),
+                ...(authStateData ? {authState: authStateData} : {}),
               })
               .catch(() => {
                 // This is kind of gross but I want to limit the amount of changes to this component
@@ -259,7 +259,7 @@ class U2fInterface extends Component<Props, State> {
     this.setState({responseElement: ref});
 
   bindStateElement: React.RefCallback<HTMLInputElement> = ref =>
-    this.setState({stateElement: ref});
+    this.setState({authStateElement: ref});
 
   renderUnsupported() {
     return this.props.silentIfUnsupported ? null : (

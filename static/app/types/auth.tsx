@@ -80,7 +80,7 @@ export interface U2fAuthenticator extends BaseAuthenticator {
   challenge: ChallengeData;
   id: 'u2f';
   // This may not be set depending on the option 'u2f.skip-session-cookie-allowlist'
-  state?: StateData;
+  authState?: AuthStateData;
 }
 export interface RecoveryAuthenticator extends BaseAuthenticator {
   id: 'recovery';
@@ -102,7 +102,7 @@ export type ChallengeData = {
   webAuthnRegisterData: string;
 };
 
-export type StateData = {
+export type AuthStateData = {
   challenge: string;
   user_verification: 'required' | 'preferred' | 'discouraged' | null;
 };
