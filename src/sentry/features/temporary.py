@@ -157,8 +157,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable ignoring archived issues in metric alerts
-    manager.add("organizations:metric-alert-ignore-archived", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable load shedding for newly created metric alerts
     manager.add("organizations:metric-alert-load-shedding", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable threshold period in metric alert rule builder

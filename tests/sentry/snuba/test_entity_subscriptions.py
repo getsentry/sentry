@@ -550,10 +550,9 @@ class EntitySubscriptionTestCase(TestCase):
 
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
 
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            snql_query = entity_subscription.build_query_builder(
-                "release:latest", [self.project.id], None
-            ).get_snql_query()
+        snql_query = entity_subscription.build_query_builder(
+            "release:latest", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.select == [
             Function(
                 function="uniq",
@@ -594,10 +593,9 @@ class EntitySubscriptionTestCase(TestCase):
         e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         g_entity = Entity("group_attributes", alias="ga")
 
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            snql_query = entity_subscription.build_query_builder(
-                "status:unresolved", [self.project.id], None
-            ).get_snql_query()
+        snql_query = entity_subscription.build_query_builder(
+            "status:unresolved", [self.project.id], None
+        ).get_snql_query()
         assert snql_query.query.match == Join([Relationship(e_entity, "attributes", g_entity)])
         assert snql_query.query.select == [
             Function(

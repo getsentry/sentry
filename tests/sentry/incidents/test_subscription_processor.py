@@ -51,7 +51,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
 EMPTY = object()
@@ -2048,7 +2047,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident, [self.action], [(50.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
-    @with_feature("organizations:metric-alert-ignore-archived")
     def test_is_unresolved_comparison_query(self):
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query) and requires an entity
