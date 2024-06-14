@@ -1,3 +1,4 @@
+from django.db import IntegrityError, router, transaction
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -86,9 +87,15 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
-        bulk_update_views(organization, request.user.id, validated_data)
+        try:
+            with transaction.atomic(using=router.db_for_write(GroupSearchView)):
+                bulk_update_views(organization, request.user.id, validated_data)
 
-        query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
+                query = GroupSearchView.objects.filter(
+                    organization=organization, user_id=request.user.id
+                )
+        except IntegrityError:
+            return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return self.paginate(
             request=request,
