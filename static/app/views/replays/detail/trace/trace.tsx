@@ -109,7 +109,6 @@ function Trace({replayRecord}: Props) {
   } = useTransactionData();
 
   const metaResults = useReplayTraceMeta(replayRecord);
-
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('replay-trace-view-preferences') ||
