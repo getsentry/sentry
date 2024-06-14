@@ -15,7 +15,7 @@ describe('hydrateFrames', () => {
     const crumbProps = {timestamp: new Date()};
     const spanProps = {startTimestamp: new Date(), endTimestamp: new Date()};
 
-    const optionsFrame = ReplayOptionFrameFixture({});
+    const optionsFrame = ReplayOptionFrameFixture();
     const attachments = [
       ...RRWebInitFrameEventsFixture(crumbProps),
       ReplayOptionFrameEventFixture({

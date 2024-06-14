@@ -412,7 +412,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == self.channel_id
         sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
+        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project and will send notifications to this channel."
         assert sent_blocks[0]["text"]["text"] == message
         assert (
             sent_blocks[1]["elements"][0]["text"]

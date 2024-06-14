@@ -34,6 +34,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
+from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
 EXCEPTION = {
@@ -175,6 +176,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -246,6 +248,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -282,6 +285,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -309,6 +313,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -346,6 +351,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -380,6 +386,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]

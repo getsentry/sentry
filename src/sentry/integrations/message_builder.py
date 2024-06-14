@@ -67,8 +67,9 @@ def build_attachment_title(obj: Group | GroupEvent) -> str:
 
     else:
         group = getattr(obj, "group", obj)
-        if isinstance(obj, GroupEvent) and obj.occurrence is not None:
-            title = obj.occurrence.issue_title
+        if isinstance(obj, GroupEvent):
+            if obj.occurrence is not None:
+                title = obj.occurrence.issue_title
         else:
             event = group.get_latest_event()
             if event is not None and event.occurrence is not None:

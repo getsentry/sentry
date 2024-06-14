@@ -15,7 +15,6 @@ describe('EventDetails', () => {
   const project = ProjectFixture();
   const organization = OrganizationFixture({
     features: ['performance-view'],
-    projects: [project],
   });
 
   beforeEach(() => {

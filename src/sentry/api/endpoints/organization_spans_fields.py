@@ -152,7 +152,8 @@ class SpanFieldValuesAutocompletionExecutor:
     }
     NUMERIC_KEYS = {"span.duration", "span.self_time"}
     TIMESTAMP_KEYS = {"timestamp"}
-    PROJECT_KEYS = {"project", "project.name"}
+    PROJECT_SLUG_KEYS = {"project", "project.name"}
+    PROJECT_ID_KEYS = {"project.id"}
     SPAN_STATUS_KEYS = {"span.status"}
 
     def __init__(
@@ -176,8 +177,11 @@ class SpanFieldValuesAutocompletionExecutor:
         ):
             return self.noop_autocomplete_function()
 
-        if self.key in self.PROJECT_KEYS:
-            return self.project_autocomplete_function()
+        if self.key in self.PROJECT_ID_KEYS:
+            return self.project_id_autocomplete_function()
+
+        if self.key in self.PROJECT_SLUG_KEYS:
+            return self.project_slug_autocomplete_function()
 
         if self.key in self.SPAN_STATUS_KEYS:
             return self.span_status_autocomplete_function()
@@ -187,7 +191,20 @@ class SpanFieldValuesAutocompletionExecutor:
     def noop_autocomplete_function(self) -> list[TagValue]:
         return []
 
-    def project_autocomplete_function(self) -> list[TagValue]:
+    def project_id_autocomplete_function(self) -> list[TagValue]:
+        return [
+            TagValue(
+                key=self.key,
+                value=str(project.id),
+                times_seen=None,
+                first_seen=None,
+                last_seen=None,
+            )
+            for project in self.snuba_params.projects
+            if not self.query or self.query in str(project.id)
+        ]
+
+    def project_slug_autocomplete_function(self) -> list[TagValue]:
         return [
             TagValue(
                 key=self.key,

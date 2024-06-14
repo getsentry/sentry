@@ -326,7 +326,6 @@ describe('SearchQueryBuilder', function () {
         'placeholder',
         '-1d'
       );
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       // Clicking the "-14d" option should update the value
       await userEvent.click(await screen.findByRole('option', {name: '-14d'}));
@@ -360,7 +359,6 @@ describe('SearchQueryBuilder', function () {
           'firefox,'
         )
       ).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       // Clicking the "Chrome option should add it to the list and commit changes
       await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
@@ -474,7 +472,6 @@ describe('SearchQueryBuilder', function () {
       // New token should be added with the correct key
       expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
       await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
@@ -482,11 +479,18 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can add free text by typing', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnSearch = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);
 
       await userEvent.click(screen.getByRole('grid'));
       await userEvent.type(screen.getByRole('combobox'), 'some free text{enter}');
+      await waitFor(() => {
+        expect(mockOnSearch).toHaveBeenCalledWith('some free text');
+      });
+      // Should still have text in the input
       expect(screen.getByRole('combobox')).toHaveValue('some free text');
+      // Should have closed the menu
+      expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('can add a filter after some free text', async function () {
