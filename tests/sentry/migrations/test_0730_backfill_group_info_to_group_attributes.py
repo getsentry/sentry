@@ -34,8 +34,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0724_discover_saved_query_dataset"
-    migrate_to = "0725_backfill_group_info_to_group_attributes"
+    migrate_from = "0729_backfill_groupsearchviews_with_pinned_searches"
+    migrate_to = "0730_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()
@@ -46,8 +46,8 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0724_discover_saved_query_dataset"
-    migrate_to = "0725_backfill_group_info_to_group_attributes"
+    migrate_from = "0729_backfill_groupsearchviews_with_pinned_searches"
+    migrate_to = "0730_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group()
