@@ -83,7 +83,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         serializer = GroupSearchViewRestSerializer(data=request.data)
 
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         validated_data = serializer.validated_data
         bulk_update_views(organization, request.user.id, validated_data)
@@ -133,6 +133,6 @@ def _create_view(org: Organization, user_id: int, view, position: int):
         user_id=user_id,
         name=view["name"],
         query=view["query"],
-        query_sort=view.get("querySort", SortOptions.DATE),
+        query_sort=view["querySort"],
         position=position,
     )
