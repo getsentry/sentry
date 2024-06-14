@@ -8,14 +8,16 @@ from arroyo.types import BrokerValue, Message, Partition
 from arroyo.types import Topic as ArroyoTopic
 from django.db import close_old_connections
 
+from sentry import features
 from sentry.conf.types.kafka_definition import Topic
-from sentry.issues.occurrence_consumer import process_occurrence_group
+from sentry.issues.occurrence_consumer import _process_message, process_occurrence_group
 from sentry.issues.producer import (
     PayloadType,
     _prepare_occurrence_message,
     _prepare_status_change_message,
 )
 from sentry.issues.run import OccurrenceStrategyFactory
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
@@ -391,6 +393,114 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
         assert len(item_list2) == 2
         assert item_list2[0]["event_id"] == occurrence2.event_id
         assert item_list2[1]["payload_type"] == PayloadType.STATUS_CHANGE.value
+
+    @with_feature("organizations:profile-file-io-main-thread-ingest")
+    @mock.patch(
+        "sentry.issues.occurrence_consumer._process_message",
+        side_effect=_process_message,
+    )
+    @mock.patch(
+        "sentry.issues.occurrence_consumer.process_occurrence_group",
+        side_effect=process_occurrence_group_with_shutdown,
+    )
+    @mock.patch("sentry.issues.occurrence_consumer.save_issue_occurrence")
+    def test_issue_multiple_status_changes(
+        self,
+        mock_save_issue_occurrence: mock.MagicMock,
+        mock_process_occurrence_group: mock.MagicMock,
+        mock__process_message: mock.MagicMock,
+    ) -> None:
+        topic = ArroyoTopic(get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"])
+        partition = Partition(topic, 0)
+        mock_commit = mock.Mock()
+        strategy = OccurrenceStrategyFactory(
+            mode="batched-parallel",
+            max_batch_size=6,
+            max_batch_time=1,
+        ).create_with_partitions(
+            commit=mock_commit,
+            partitions={},
+        )
+
+        messages = [
+            self.build_statuschange(project_id=self.project.id, fingerprint=["1"]) for _ in range(3)
+        ] + [self.build_occurrence(project_id=self.project.id, fingerprint=["1"]) for _ in range(3)]
+
+        payloads = [
+            (
+                _prepare_status_change_message(m)
+                if isinstance(m, StatusChangeMessage)
+                else _prepare_occurrence_message(
+                    m,
+                    {
+                        "project_id": self.project.id,
+                        "event_id": m.event_id,
+                        "platform": "python",
+                        "tags": {"my_tag": "1"},
+                        "timestamp": before_now(minutes=1).isoformat(),
+                        "received": before_now(minutes=1).isoformat(),
+                        "environment": "production",
+                    },
+                )
+            )
+            for m in messages
+        ]
+
+        mock_messages = [self.build_mock_message(payload, topic) for payload in payloads]
+
+        with self.tasks():
+            for message in mock_messages:
+                strategy.submit(
+                    Message(
+                        BrokerValue(
+                            KafkaPayload(b"group-1", message.value().encode("utf-8"), []),
+                            partition,
+                            1,
+                            datetime.now(),
+                        )
+                    )
+                )
+
+            strategy.poll()
+            strategy.join(1)
+            strategy.terminate()
+
+        assert mock_save_issue_occurrence.call_count == 3
+        assert mock_process_occurrence_group.call_count == 1
+        item_list = mock_process_occurrence_group.mock_calls[0].args[0]
+        assert len(item_list) == 6
+
+        # this behavior depends on the feature flag
+        if features.has("organizations:occurence-consumer-prune-status-changes", self.organization):
+            # two status change messages should be pruned
+            assert len(mock__process_message.mock_calls) == 4
+            # there should be only one status change message, and it should be the last message
+            assert (
+                mock__process_message.mock_calls[-1].args[0]["payload_type"]
+                == PayloadType.STATUS_CHANGE.value
+            )
+            assert (
+                len(
+                    [
+                        call
+                        for call in mock__process_message.mock_calls
+                        if call.args[0]["payload_type"] == PayloadType.STATUS_CHANGE.value
+                    ]
+                )
+                == 1
+            )
+        else:
+            assert len(mock__process_message.mock_calls) == 6
+            assert (
+                len(
+                    [
+                        call
+                        for call in mock__process_message.mock_calls
+                        if call.args[0]["payload_type"] == PayloadType.STATUS_CHANGE.value
+                    ]
+                )
+                == 3
+            )
 
 
 #
