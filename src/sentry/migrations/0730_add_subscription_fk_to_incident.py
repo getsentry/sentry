@@ -70,7 +70,7 @@ class Migration(CheckedMigration):
             name="subscription",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 null=True,
-                on_delete=django.db.models.deletion.CASCADE,
+                on_delete=django.db.models.deletion.SET_NULL,
                 to="sentry.querysubscription",
             ),
         ),

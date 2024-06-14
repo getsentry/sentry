@@ -212,7 +212,9 @@ class Incident(Model):
     activation = FlexibleForeignKey(
         "sentry.AlertRuleActivations", on_delete=models.SET_NULL, null=True
     )
-    subscription = FlexibleForeignKey("sentry.QuerySubscription", null=True)
+    subscription = FlexibleForeignKey(
+        "sentry.QuerySubscription", on_delete=models.SET_NULL, null=True
+    )
 
     class Meta:
         app_label = "sentry"
