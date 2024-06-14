@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -29,8 +30,17 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:custom-metrics-extraction-rule", organization, actor=request.user
+        )
+
     def put(self, request: Request, project: Project) -> Response:
+        if not self.has_feature(project.organization, request):
+            return Response(status=404)
+
         rules_update = request.data.get("metricsExtractionRules")
+
         if not rules_update or len(rules_update) == 0:
             return Response(status=200)
 
@@ -45,6 +55,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         return Response(status=200, data=updated_rules)
 
     def delete(self, request: Request, project: Project) -> Response:
+        if not self.has_feature(project.organization, request):
+            return Response(status=404)
+
         rules_update = request.data.get("metricsExtractionRules")
         if len(rules_update) == 0:
             return Response(status=200)
