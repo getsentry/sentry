@@ -18,7 +18,6 @@ from sentry.sentry_metrics.extraction_rules import (
 Open Questions
 1. Do we need to register the key metricsExtractionRules in the project config somehow?
 2. Do we need to prevent breaking something in the project config somehow?
-3. How can we use flagpole to activate / deactivate the endpoint?
 """
 
 
