@@ -59,6 +59,8 @@ import {
 } from './utils';
 
 const DEFAULT_PER_PAGE = 50;
+const SPAN_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
 export function Content() {
   const location = useLocation();
@@ -153,8 +155,6 @@ export function Content() {
   const isError = !isLoading && traces.isError;
   const isEmpty = !isLoading && !isError && (traces?.data?.data?.length ?? 0) === 0;
   const data = normalizeTraces(!isLoading && !isError ? traces?.data?.data : undefined);
-  const SPAN_PROPS_DOCS_URL =
-    'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
   return (
     <LayoutMain fullWidth>
@@ -228,19 +228,16 @@ export function Content() {
             <StyledPanelItem span={7} overflow>
               <EmptyStateWarning withIcon>
                 <EmptyStateText size="fontSizeExtraLarge">
-                  {t('No results found')}
+                  {t('No trace results found')}
                 </EmptyStateText>
                 <EmptyStateText size="fontSizeMedium">
-                  {tct(
-                    'Try adjusting your filters starting with your time range or [goToDocs] for more.',
-                    {
-                      goToDocs: (
-                        <ExternalLink href={SPAN_PROPS_DOCS_URL}>
-                          {t('go to docs')}
-                        </ExternalLink>
-                      ),
-                    }
-                  )}
+                  {tct('Try adjusting your filters or refer to [docSearchProps].', {
+                    docSearchProps: (
+                      <ExternalLink href={SPAN_PROPS_DOCS_URL}>
+                        {t('docs for search properties')}
+                      </ExternalLink>
+                    ),
+                  })}
                 </EmptyStateText>
               </EmptyStateWarning>
             </StyledPanelItem>
