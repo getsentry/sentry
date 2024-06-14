@@ -65,8 +65,9 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
   >['onSave'] = (prevData: Organization, updated: Organization) => {
     if (updated.slug && updated.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, updated);
+      const configFeatures = ConfigStore.get('features');
 
-      if (updated.features.includes('customer-domains')) {
+      if (configFeatures.has('system:multi-region')) {
         const {organizationUrl} = updated.links;
         window.location.replace(`${organizationUrl}/settings/organization/`);
       } else {

@@ -86,7 +86,7 @@ class LinkSignTestCase(TestCase):
         org = self.organization
         user = self.user
 
-        with self.feature("organizations:customer-domains"):
+        with self.feature("system:multi-region"):
             url = linksign.generate_signed_unsubscribe_link(
                 org,
                 user_id=user.id,

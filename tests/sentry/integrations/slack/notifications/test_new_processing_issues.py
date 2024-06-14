@@ -50,7 +50,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
         )
 
     @responses.activate
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_new_processing_issue_customer_domains_block(self):
         notification = NewProcessingIssuesActivityNotification(
             Activity(

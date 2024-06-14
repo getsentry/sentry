@@ -276,7 +276,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             IncidentStatus(incident.status),
         )
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_links_customer_domains(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()

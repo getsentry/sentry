@@ -2183,6 +2183,7 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # This flag activates code paths that are specific for customer domains
+# Deprecated: This setting will be replaced with feature checks for system:multi-region
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
 # This flag activates replay analyzer service in the development environment

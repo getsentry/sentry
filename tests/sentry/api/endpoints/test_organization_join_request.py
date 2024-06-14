@@ -154,7 +154,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             assert mail.outbox[i].to in ([user.email] for user in users_able_to_approve_requests)
             assert mail.outbox[i].subject == expected_subject
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_request_to_join_email_customer_domains(self):
         manager = self.create_user(email="manager@localhost")
         self.create_member(organization=self.organization, user=manager, role="manager")

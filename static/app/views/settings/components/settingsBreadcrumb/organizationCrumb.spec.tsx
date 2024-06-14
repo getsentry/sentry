@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -27,7 +28,7 @@ describe('OrganizationCrumb', function () {
     OrganizationsStore.init();
     OrganizationsStore.load(organizations);
 
-    initialData = window.__initialData;
+    initialData = ConfigStore.getState();
     jest.mocked(browserHistory.push).mockReset();
     jest.mocked(window.location.assign).mockReset();
   });
@@ -48,7 +49,7 @@ describe('OrganizationCrumb', function () {
     });
 
   afterEach(function () {
-    window.__initialData = initialData;
+    ConfigStore.loadInitialData(initialData);
   });
 
   it('switches organizations on settings index', async function () {
@@ -158,7 +159,6 @@ describe('OrganizationCrumb', function () {
       OrganizationFixture({
         id: '234',
         slug: 'acme',
-        features: ['customer-domains'],
         links: {
           organizationUrl: 'https://acme.sentry.io',
           regionUrl: 'https://us.sentry.io',

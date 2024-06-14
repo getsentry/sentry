@@ -49,7 +49,7 @@ class HomeTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/",
                 SERVER_NAME=f"{org.slug}.testserver",
@@ -66,7 +66,7 @@ class HomeTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/",
                 SERVER_NAME=f"{org.slug}.testserver",
@@ -85,7 +85,7 @@ class HomeTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/",
                 SERVER_NAME=f"{org.slug}.testserver",

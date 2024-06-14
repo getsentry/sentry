@@ -129,7 +129,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             message = mail.outbox[0]
             assert self.organization.name in message.subject
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_message_links_customer_domains(self):
         with unguarded_write(using=router.db_for_write(Project)):

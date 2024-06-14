@@ -1,10 +1,10 @@
-import {ConfigFixture} from 'sentry-fixture/config';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {logout} from 'sentry/actionCreators/account';
+import ConfigStore from 'sentry/stores/configStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import AcceptOrganizationInvite from 'sentry/views/acceptOrganizationInvite';
 
@@ -26,10 +26,10 @@ const getJoinButton = () => {
 
 describe('AcceptOrganizationInvite', function () {
   const organization = OrganizationFixture({slug: 'org-slug'});
-  const initialData = window.__initialData;
+  const configState = ConfigStore.getState();
 
   afterEach(() => {
-    window.__initialData = initialData;
+    ConfigStore.loadInitialData(configState);
   });
 
   it('can accept invitation', async function () {
@@ -62,16 +62,14 @@ describe('AcceptOrganizationInvite', function () {
   });
 
   it('can accept invitation on customer-domains', async function () {
-    window.__initialData = ConfigFixture({
-      customerDomain: {
-        subdomain: 'org-slug',
-        organizationUrl: 'https://org-slug.sentry.io',
-        sentryUrl: 'https://sentry.io',
-      },
-      links: {
-        ...(window.__initialData?.links ?? {}),
-        sentryUrl: 'https://sentry.io',
-      },
+    ConfigStore.set('customerDomain', {
+      subdomain: 'org-slug',
+      organizationUrl: 'https://org-slug.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
+    ConfigStore.set('links', {
+      ...configState.links,
+      sentryUrl: 'https://sentry.io',
     });
 
     addMock({

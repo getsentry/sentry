@@ -34,6 +34,7 @@ describe('withDomainRedirect', function () {
     window.location.hash = '#hash';
 
     window.__initialData = {
+      features: new Set(),
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
@@ -89,7 +90,6 @@ describe('withDomainRedirect', function () {
   it('redirects to sentryUrl on org slug mistmatch', function () {
     const organization = OrganizationFixture({
       slug: 'bobs-bagels',
-      features: ['customer-domains'],
     });
 
     const params = {
@@ -160,9 +160,10 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirect when :orgId is present in the routes', function () {
+    window.__initialData.features.add('system:multi-region');
+
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
-      features: ['customer-domains'],
     });
 
     const params = {
@@ -200,7 +201,6 @@ describe('withDomainRedirect', function () {
   it('does not redirect when :orgId is not present in the routes', function () {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
-      features: ['customer-domains'],
     });
 
     const params = {};
@@ -243,7 +243,6 @@ describe('withDomainRedirect', function () {
   it('updates path when :orgId is present in the routes and there is no subdomain', function () {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
-      features: ['customer-domains'],
     });
     window.__initialData.customerDomain = {
       organizationUrl: 'https://sentry.io',

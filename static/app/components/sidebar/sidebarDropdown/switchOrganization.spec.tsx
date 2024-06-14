@@ -3,9 +3,20 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import SwitchOrganization from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 describe('SwitchOrganization', function () {
+  let configstate;
+
+  beforeEach(() => {
+    configstate = ConfigStore.getState();
+  });
+
+  afterEach(() => {
+    ConfigStore.loadInitialData(configstate);
+  });
+
   it('can list organizations', async function () {
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1'}),
@@ -45,9 +56,9 @@ describe('SwitchOrganization', function () {
           organizationUrl: 'http://org2.sentry.io',
           regionUrl: 'http://eu.sentry.io',
         },
-        features: ['customer-domains'],
       }),
     ]);
+    ConfigStore.set('features', new Set(['system:multi-region']));
 
     jest.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization={false} />);
@@ -71,6 +82,7 @@ describe('SwitchOrganization', function () {
   });
 
   it('does not use organizationUrl when customer domain is disabled', async function () {
+    ConfigStore.set('features', new Set([]));
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
       OrganizationFixture({
@@ -80,7 +92,6 @@ describe('SwitchOrganization', function () {
           organizationUrl: 'http://org2.sentry.io',
           regionUrl: 'http://eu.sentry.io',
         },
-        features: [],
       }),
     ]);
 
@@ -111,8 +122,8 @@ describe('SwitchOrganization', function () {
         organizationUrl: 'http://org2.sentry.io',
         regionUrl: 'http://eu.sentry.io',
       },
-      features: ['customer-domains'],
     });
+    ConfigStore.set('features', new Set(['system:multi-region']));
 
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
@@ -167,9 +178,9 @@ describe('SwitchOrganization', function () {
           organizationUrl: 'http://org3.sentry.io',
           regionUrl: 'http://eu.sentry.io',
         },
-        features: ['customer-domains'],
       }),
     ]);
+    ConfigStore.set('features', new Set(['system:multi-region']));
 
     render(<SwitchOrganization canCreateOrganization={false} />, {
       organization: currentOrg,
@@ -220,6 +231,8 @@ describe('SwitchOrganization', function () {
   });
 
   it('uses sentry URL for "Create an Org"', async function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const currentOrg = OrganizationFixture({
       name: 'Organization',
       slug: 'org',
@@ -227,7 +240,6 @@ describe('SwitchOrganization', function () {
         organizationUrl: 'http://org.sentry.io',
         regionUrl: 'http://eu.sentry.io',
       },
-      features: ['customer-domains'],
     });
 
     jest.useFakeTimers();

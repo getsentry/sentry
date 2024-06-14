@@ -102,7 +102,7 @@ export function normalizeUrl(
  * (from window.__initialData.links) whenever one of the following conditions are not satisfied:
  *
  * - window.__initialData.customerDomain is present.
- * - window.__initialData.features contains organizations:customer-domains feature.
+ * - window.__initialData.features contains system:multi-region feature.
  *
  * If both conditions above are satisfied, then WrappedComponent will be rendered with orgId included in the route
  * params prop.
@@ -118,7 +118,7 @@ function withDomainRequired<P extends RouteComponentProps<{}, {}>>(
     const {sentryUrl} = window.__initialData.links;
 
     const hasCustomerDomain = (features as unknown as string[]).includes(
-      'organizations:customer-domains'
+      'system:multi-region'
     );
 
     if (!customerDomain || !hasCustomerDomain) {

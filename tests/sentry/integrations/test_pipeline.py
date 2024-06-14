@@ -87,7 +87,7 @@ class FinishPipelineTestCase(IntegrationTestCase):
         ).exists()
 
     def test_with_customer_domain(self, *args):
-        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+        with self.feature({"system:multi-region": True}):
             data = {
                 "external_id": self.external_id,
                 "name": "Name",

@@ -68,7 +68,7 @@ def generate_signed_unsubscribe_link(
     html_viewname = f"sentry-organization-unsubscribe-{resource}"
     api_endpointname = f"sentry-api-0-organization-unsubscribe-{resource}"
     url_args = [organization.slug, resource_id]
-    if features.has("organizations:customer-domains", organization):
+    if features.has("system:multi-region"):
         url_args = [resource_id]
         html_viewname = f"sentry-customer-domain-unsubscribe-{resource}"
 

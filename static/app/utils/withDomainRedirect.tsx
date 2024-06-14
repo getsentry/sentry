@@ -32,7 +32,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
   WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {
-    const {customerDomain, links} = window.__initialData;
+    const {customerDomain, links, features} = window.__initialData;
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
 
@@ -47,7 +47,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         currentOrganization &&
         customerDomain.subdomain &&
         (currentOrganization.slug !== customerDomain.subdomain ||
-          !currentOrganization.features.includes('customer-domains'))
+          !features.has('system:multi-region'))
       ) {
         window.location.replace(redirectURL);
         return null;

@@ -95,7 +95,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         msg = mail.outbox[0]
         assert msg.to == ["foo@example.com"]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_send_invite_email_customer_domains(self):
         member = OrganizationMember(id=1, organization=self.organization, email="admin@example.com")
         with self.tasks():

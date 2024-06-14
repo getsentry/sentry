@@ -45,7 +45,7 @@ class TestIntegrationRequestNotification(TestCase):
         assert len(recipients) == 1
         assert recipients[0].id == owner.id
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_get_context_customer_domain(self):
         owner = self.create_user("owner@example.com")
         org = self.create_organization(owner=owner)

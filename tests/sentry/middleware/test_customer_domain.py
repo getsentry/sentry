@@ -148,7 +148,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response.status_code == 302
         assert response["Location"] == "/organizations/sentry/issues/"
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_billing_route(self):
         non_staff_user = self.create_user(is_staff=False)
         self.login_as(user=non_staff_user)

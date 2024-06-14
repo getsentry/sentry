@@ -147,7 +147,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -158,7 +158,7 @@ class ClientConfigViewTest(TestCase):
                 "organizations:customer-domains",
             ]
 
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -240,7 +240,7 @@ class ClientConfigViewTest(TestCase):
         # Induce last active organization
         with (
             override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
-            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            self.feature({"system:multi-region": [other_org.slug]}),
             assume_test_silo_mode(SiloMode.MONOLITH),
         ):
             response = self.client.get(

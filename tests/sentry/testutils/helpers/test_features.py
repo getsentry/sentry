@@ -22,7 +22,7 @@ class TestTestUtilsFeatureHelper(TestCase):
         # Test that overrides work, and if no overrides are made that we still fall back to the
         # defaults
         with mock.patch("sentry.features.default_manager._entity_handler", new=None):
-            with self.feature("organizations:customer-domains"):
+            with self.feature("system:multi-region"):
                 # Make sure this check returns True for features that are defaulted to True and aren't
                 # mocked
                 ret = features.batch_has(
@@ -40,8 +40,7 @@ class TestTestUtilsFeatureHelper(TestCase):
                 assert not results["organizations:api-keys"]
 
     def test_feature_with_rpc_organization(self):
-
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             org_context = organization_service.get_organization_by_slug(
                 slug=self.org.slug, only_visible=False, user_id=None
             )
@@ -49,9 +48,9 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert org_context.organization
             assert isinstance(org_context.organization, RpcOrganization)
 
-            assert features.has("organizations:customer-domains", org_context.organization) is False
+            assert features.has("system:multi-region", org_context.organization) is False
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             org_context = organization_service.get_organization_by_slug(
                 slug=self.org.slug, only_visible=False, user_id=None
             )
@@ -59,17 +58,17 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert org_context.organization
             assert isinstance(org_context.organization, RpcOrganization)
 
-            assert features.has("organizations:customer-domains", org_context.organization)
+            assert features.has("system:multi-region", org_context.organization)
 
             # Works for RpcOrganizationSummary
             organization = org_context.organization
             org_summary = RpcOrganizationSummary(
                 id=organization.id, slug=organization.slug, name=organization.name
             )
-            assert features.has("organizations:customer-domains", org_summary)
+            assert features.has("system:multi-region", org_summary)
 
         other_org = self.create_organization()
-        with self.feature({"organizations:customer-domains": [other_org.slug]}):
+        with self.feature({"system:multi-region": [other_org.slug]}):
             # Feature not enabled for self.org
             org_context = organization_service.get_organization_by_slug(
                 slug=self.org.slug, only_visible=False, user_id=None
@@ -78,14 +77,14 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert org_context.organization
             assert isinstance(org_context.organization, RpcOrganization)
 
-            assert features.has("organizations:customer-domains", org_context.organization) is False
+            assert features.has("system:multi-region", org_context.organization) is False
 
             # Works for RpcOrganizationSummary
             organization = org_context.organization
             org_summary = RpcOrganizationSummary(
                 id=organization.id, slug=organization.slug, name=organization.name
             )
-            assert features.has("organizations:customer-domains", org_summary) is False
+            assert features.has("system:multi-region", org_summary) is False
 
             # Feature enabled for other_org
             org_context = organization_service.get_organization_by_slug(
@@ -95,11 +94,11 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert org_context.organization
             assert isinstance(org_context.organization, RpcOrganization)
 
-            assert features.has("organizations:customer-domains", org_context.organization)
+            assert features.has("system:multi-region", org_context.organization)
 
             # Works for RpcOrganizationSummary
             organization = org_context.organization
             org_summary = RpcOrganizationSummary(
                 id=organization.id, slug=organization.slug, name=organization.name
             )
-            assert features.has("organizations:customer-domains", org_summary)
+            assert features.has("system:multi-region", org_summary)

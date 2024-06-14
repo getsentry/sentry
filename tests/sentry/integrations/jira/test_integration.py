@@ -218,7 +218,7 @@ class RegionJiraIntegrationTest(APITestCase):
         group = event.group
 
         installation = self.integration.get_installation(self.organization.id)
-        with self.feature("organizations:customer-domains"), mock.patch.object(
+        with self.feature("system:multi-region"), mock.patch.object(
             installation, "get_client", get_client
         ):
             issue_config = installation.get_create_issue_config(group, self.user)

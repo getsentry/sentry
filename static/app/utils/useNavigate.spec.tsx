@@ -3,13 +3,15 @@ import {createMemoryHistory, Route, Router, RouterContext} from 'react-router';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {RouteContext} from 'sentry/views/routeContext';
 
 describe('useNavigate', () => {
-  const initialData = window.__initialData;
+  const configState = ConfigStore.getState();
+
   afterEach(() => {
-    window.__initialData = initialData;
+    ConfigStore.loadInitialData(configState);
   });
 
   it('returns the navigate function', function () {
@@ -42,13 +44,11 @@ describe('useNavigate', () => {
   });
 
   it('applies url normalization for customer-domains', function () {
-    window.__initialData = {
-      customerDomain: {
-        subdomain: 'albertos-apples',
-        organizationUrl: 'https://albertos-apples.sentry.io',
-        sentryUrl: 'https://sentry.io',
-      },
-    } as any;
+    ConfigStore.set('customerDomain', {
+      subdomain: 'albertos-apples',
+      organizationUrl: 'https://albertos-apples.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
 
     function HomePage() {
       const navigate = useNavigate();

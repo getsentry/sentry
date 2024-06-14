@@ -13,6 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -121,7 +122,9 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = OrganizationFixture({features: ['customer-domains']});
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
+    const org = OrganizationFixture();
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',

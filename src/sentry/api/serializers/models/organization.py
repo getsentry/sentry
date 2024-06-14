@@ -303,6 +303,7 @@ class OrganizationSerializer(Serializer):
         request = env.request
         if request and is_using_customer_domain(request):
             # If the current request is using a customer domain, then we activate the feature for this organization.
+            # TODO(hybridcloud) This needs to be removed alongside the customer-domain feature
             feature_set.add("customer-domains")
 
         if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:

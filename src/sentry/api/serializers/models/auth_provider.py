@@ -29,7 +29,7 @@ class AuthProviderSerializer(Serializer):
         login_url = Organization.get_url(organization.slug)
 
         absolute_login_url = OrganizationAbsoluteUrlMixin.organization_absolute_url(
-            features.has("organizations:customer-domains", organization),
+            features.has("system:multi-region"),
             slug=organization.slug,
             path=login_url,
         )

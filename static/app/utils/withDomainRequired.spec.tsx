@@ -236,7 +236,7 @@ describe('withDomainRequired', function () {
   it('redirects to sentryUrl in non-customer domain world', function () {
     window.__initialData = {
       customerDomain: null,
-      features: ['organizations:customer-domains'],
+      features: ['system:multi-region'],
       links: {
         organizationUrl: null,
         regionUrl: null,
@@ -278,7 +278,7 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('redirects to sentryUrl if customer-domains is omitted', function () {
+  it('redirects to sentryUrl if multi-region feature is omitted', function () {
     window.__initialData = {
       customerDomain: {
         subdomain: 'albertos-apples',
@@ -327,14 +327,14 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('renders when window.__initialData.customerDomain and customer-domains feature is present', function () {
+  it('renders when window.__initialData.customerDomain and multi-region feature is present', function () {
     window.__initialData = {
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-      features: ['organizations:customer-domains'],
+      features: ['system:multi-region'],
       links: {
         organizationUrl: 'https://albertos-apples.sentry.io',
         regionUrl: 'https://eu.sentry.io',

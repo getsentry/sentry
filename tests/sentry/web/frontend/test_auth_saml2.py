@@ -152,7 +152,7 @@ class AuthSAML2Test(AuthProviderTestCase):
             ("http://saml2-org.testserver/issues/", 302),
         ]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_auth_sp_initiated_login_customer_domain_feature(self):
         # setup an existing identity so we can complete login
         AuthIdentity.objects.create(
