@@ -482,11 +482,18 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can add free text by typing', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnSearch = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);
 
       await userEvent.click(screen.getByRole('grid'));
       await userEvent.type(screen.getByRole('combobox'), 'some free text{enter}');
+      await waitFor(() => {
+        expect(mockOnSearch).toHaveBeenCalledWith('some free text');
+      });
+      // Should still have text in the input
       expect(screen.getByRole('combobox')).toHaveValue('some free text');
+      // Should have closed the menu
+      expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('can add a filter after some free text', async function () {
