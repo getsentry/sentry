@@ -14,7 +14,7 @@ export function useModuleBreadcrumbs(moduleName: RoutableModuleNames): Crumb[] {
   const organization = useOrganization();
 
   const insightsURL = useInsightsURL(moduleName);
-  const insightsTitle = useInsightsTitle(moduleName);
+  const insightsTitle = useInsightsTitle();
 
   const moduleLabel = useModuleTitle(moduleName);
   const moduleTo = useModuleURL(moduleName);
