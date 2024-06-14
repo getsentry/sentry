@@ -1437,16 +1437,16 @@ function buildRoutes() {
     </Route>
   );
 
-  const llmMonitoringRoutes = (
-    <Route path={`/${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/llmMonitoring/landing'))} />
-      <Route
-        path="pipeline-type/:groupId/"
-        component={make(
-          () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
-        )}
-      />
-    </Route>
+  const llmMonitoringRoutes = USING_CUSTOMER_DOMAIN ? (
+    <Redirect
+      from="/llm-monitoring/"
+      to={`/insights/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+    />
+  ) : (
+    <Redirect
+      from="/organizations/:orgId/llm-monitoring/"
+      to="/organizations/:orgId/insights/llm-monitoring/"
+    />
   );
 
   const insightsSubRoutes = (

@@ -13,7 +13,7 @@ type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
 export function useModuleBreadcrumbs(moduleName: RoutableModuleNames): Crumb[] {
   const organization = useOrganization();
 
-  const insightsURL = useInsightsURL(moduleName);
+  const insightsURL = useInsightsURL();
   const insightsTitle = useInsightsTitle();
 
   const moduleLabel = useModuleTitle(moduleName);
