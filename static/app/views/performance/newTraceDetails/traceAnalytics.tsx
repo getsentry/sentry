@@ -2,13 +2,16 @@ import * as Sentry from '@sentry/react';
 
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceType} from 'sentry/views/performance/newTraceDetails/traceType';
 
-import type {TraceType} from './traceType';
-
-const trackTraceShape = (shape: TraceType, organization: Organization) => {
-  Sentry.metrics.increment(`trace.trace_shape.${shape}`);
-  trackAnalytics('trace.shape', {
-    shape,
+const trackTraceMetadata = (tree: TraceTree, organization: Organization) => {
+  Sentry.metrics.increment(`trace.trace_shape.${tree.shape}`);
+  trackAnalytics('trace.metadata', {
+    shape: tree.shape,
+    // space[1] represents the node duration (in milliseconds)
+    trace_duration_seconds: (tree.root.space?.[1] ?? 0) / 1000,
+    num_root_children: tree.root.children.length,
     organization,
   });
 };
@@ -73,7 +76,7 @@ const trackTraceWarningType = (type: TraceType, organization: Organization) =>
 
 const traceAnalytics = {
   // Trace shape
-  trackTraceShape,
+  trackTraceMetadata,
   trackEmptyTraceState,
   trackFailedToFetchTraceState,
   // Drawer actions

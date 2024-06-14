@@ -1,6 +1,8 @@
 export type TracingEventParameters = {
-  'trace.shape': {
+  'trace.metadata': {
+    num_root_children: number;
     shape: string;
+    trace_duration_seconds: number;
   };
   'trace.trace_layout.change': {
     layout: string;
@@ -23,6 +25,12 @@ export type TracingEventParameters = {
     module: string;
   };
   'trace.trace_layout.view_shortcuts': {};
+  'trace.trace_layout.view_similar_spans': {
+    module: string;
+  };
+  'trace.trace_layout.view_span_summary': {
+    module: string;
+  };
   'trace.trace_layout.zoom_to_fill': {};
   'trace.trace_warning_type': {
     type: string;
@@ -53,7 +61,7 @@ export type TracingEventParameters = {
 export type TracingEventKey = keyof TracingEventParameters;
 
 export const tracingEventMap: Record<TracingEventKey, string | null> = {
-  'trace.shape': 'Trace Shape',
+  'trace.metadata': 'Trace Load Metadata',
   'trace.trace_layout.change': 'Changed Trace Layout',
   'trace.trace_layout.drawer_minimize': 'Minimized Trace Drawer',
   'trace.trace_layout.show_in_view': 'Clicked Show in View Action',

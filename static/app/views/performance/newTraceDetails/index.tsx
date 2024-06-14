@@ -91,8 +91,8 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
-function logTraceType(type: TraceType, organization: Organization) {
-  switch (type) {
+function logTraceMetadata(tree: TraceTree, organization: Organization) {
+  switch (tree.shape) {
     case TraceType.BROKEN_SUBTRACES:
     case TraceType.EMPTY_TRACE:
     case TraceType.MULTIPLE_ROOTS:
@@ -100,7 +100,7 @@ function logTraceType(type: TraceType, organization: Organization) {
     case TraceType.NO_ROOT:
     case TraceType.ONLY_ERRORS:
     case TraceType.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceShape(type, organization);
+      traceAnalytics.trackTraceMetadata(tree, organization);
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
@@ -815,8 +815,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    logTraceType(shape, props.organization);
-  }, [tree, shape, props.organization]);
+    logTraceMetadata(tree, props.organization);
+  }, [tree, props.organization]);
 
   useLayoutEffect(() => {
     if (!tree.root?.space || tree.type !== 'trace') {
