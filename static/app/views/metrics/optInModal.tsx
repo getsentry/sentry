@@ -11,7 +11,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {hasRolledOutMetrics} from 'sentry/utils/metrics/features';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -23,11 +22,9 @@ export function useOptInModal() {
     false
   );
 
-  if (dismissedModal || hasRolledOutMetrics(organization)) {
-    return;
+  if (!dismissedModal) {
+    openMetricsOptInModal(organization, setDismissedModal);
   }
-
-  openMetricsOptInModal(organization, setDismissedModal);
 }
 
 function openMetricsOptInModal(
@@ -125,14 +122,14 @@ const Content = styled('div')`
 const Subheader = styled('h2')`
   color: ${p => p.theme.purple300};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(3)};
   text-transform: uppercase;
 `;
 
 const Header = styled('h1')`
   font-size: ${p => p.theme.headerFontSize};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin: ${space(1.5)} 0;
 `;
 

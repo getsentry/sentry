@@ -341,12 +341,12 @@ const AnswerContent = styled('div')`
 `;
 
 const QuestionContent = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   cursor: pointer;
 `;
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
   display: flex;

@@ -6,6 +6,7 @@ import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
@@ -13,6 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
@@ -44,6 +46,7 @@ export function DomainSelector({
   emptyOptionLocation = 'bottom',
 }: Props) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
   const [domainQuery, setDomainQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
@@ -143,6 +146,10 @@ export function DomainSelector({
         }
       }}
       onChange={newValue => {
+        trackAnalytics('insight.general.select_domain_value', {
+          organization,
+          source: moduleName,
+        });
         browserHistory.push({
           ...location,
           query: {

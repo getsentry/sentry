@@ -1,17 +1,12 @@
-import type {BadgeType} from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 export const MODULE_TITLE = t('Caches');
 export const BASE_URL = 'caches';
 
-export const RELEASE_LEVEL: BadgeType = 'beta';
-
 // NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
 export const releaseLevelAsBadgeProps = {
-  isAlpha: (RELEASE_LEVEL as BadgeType) === 'alpha',
-  isBeta: (RELEASE_LEVEL as BadgeType) === 'beta',
-  isNew: (RELEASE_LEVEL as BadgeType) === 'new',
+  isNew: true,
 };
 
 export const CHART_HEIGHT = 160;

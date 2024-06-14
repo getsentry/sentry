@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from sentry import http
 from sentry.identity.github_enterprise import get_user_info
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,

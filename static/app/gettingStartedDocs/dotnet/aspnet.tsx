@@ -14,6 +14,7 @@ import {
   getCrashReportModalIntroduction,
   getCrashReportSDKInstallFirstStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import {getDotnetMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
@@ -72,6 +73,9 @@ public class MvcApplication : HttpApplication
     // Global error catcher
     protected void Application_Error() => Server.CaptureLastError();
 
+    ${
+      params.isPerformanceSelected
+        ? `
     protected void Application_BeginRequest()
     {
         Context.StartSentryTransaction();
@@ -80,6 +84,8 @@ public class MvcApplication : HttpApplication
     protected void Application_EndRequest()
     {
         Context.FinishSentryTransaction();
+    }`
+        : ''
     }
 
     protected void Application_End()
@@ -221,6 +227,7 @@ const crashReportOnboarding: OnboardingConfig = {
 const docs: Docs = {
   onboarding,
   replayOnboardingJsLoader,
+  customMetricsOnboarding: getDotnetMetricsOnboarding({packageName: 'Sentry.AspNet'}),
   crashReportOnboarding,
 };
 

@@ -50,6 +50,7 @@ class RpcUserProfile(RpcModel):
     is_anonymous: bool = False
     is_active: bool = False
     is_staff: bool = False
+    is_unclaimed: bool = False
     last_active: datetime.datetime | None = None
     is_sentry_app: bool = False
     password_usable: bool = False

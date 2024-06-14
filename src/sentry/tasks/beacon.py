@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 import platform
 from datetime import timedelta
 from hashlib import sha1
+from typing import Any
 from uuid import uuid4
 
 import psutil
@@ -29,7 +32,7 @@ BEACON_URL = "https://sentry.io/remote/beacon/"
 logger = logging.getLogger(__name__)
 
 
-def get_install_id():
+def get_install_id() -> str:
     from sentry import options
 
     install_id = options.get("sentry:install-id")
@@ -41,7 +44,7 @@ def get_install_id():
     return install_id
 
 
-def should_skip_beacon(install_id):
+def should_skip_beacon(install_id: str) -> bool:
     if not settings.SENTRY_BEACON:
         logger.info("beacon.skipped", extra={"install_id": install_id, "reason": "disabled"})
         return True
@@ -100,7 +103,7 @@ def get_category_event_count_24h() -> dict[str, int]:
 
 
 @instrumented_task(name="sentry.tasks.send_beacon", queue="update")
-def send_beacon():
+def send_beacon() -> None:
     """
     Send a Beacon to a remote server operated by the Sentry team.
 
@@ -201,7 +204,7 @@ def send_beacon():
 
 
 @instrumented_task(name="sentry.tasks.send_beacon_metric", queue="update")
-def send_beacon_metric(metrics, **kwargs):
+def send_beacon_metric(metrics: list[dict[str, Any]], **kwargs: object) -> None:
     install_id = get_install_id()
 
     if should_skip_beacon(install_id):

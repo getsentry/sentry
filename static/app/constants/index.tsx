@@ -312,7 +312,7 @@ export const DATA_CATEGORY_INFO = {
   },
   [DataCategoryExact.SPAN]: {
     name: DataCategoryExact.SPAN,
-    apiName: 'span',
+    apiName: 'span_indexed',
     plural: 'spans',
     displayName: 'spans',
     titleName: t('Spans'),
@@ -339,7 +339,7 @@ export const DATA_CATEGORY_INFO = {
    */
   [DataCategoryExact.METRICS]: {
     name: DataCategoryExact.METRICS,
-    apiName: 'metrics',
+    apiName: 'metricOutcomes',
     plural: 'metrics',
     displayName: 'metrics',
     titleName: t('Metrics'),

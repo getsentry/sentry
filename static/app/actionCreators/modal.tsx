@@ -97,6 +97,20 @@ export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
+type RemoteConfigCreateFeatureModalProps = {
+  createFeature: (key: string, value: string) => void;
+  isValid: (key: string) => boolean;
+};
+
+export async function openRemoteConfigCreateFeatureModal(
+  options: RemoteConfigCreateFeatureModalProps
+) {
+  const mod = await import('sentry/components/modals/remoteConfigCreateFeatureModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
+}
+
 type CreateOwnershipRuleModalOptions = {
   issueId: string;
   /**
@@ -275,8 +289,8 @@ export async function openImportDashboardFromFileModal(options) {
   });
 }
 
-export async function openCreateDashboardFromScratchpad(options) {
-  const mod = await import('sentry/components/modals/createDashboardFromScratchpadModal');
+export async function openCreateDashboardFromMetrics(options) {
+  const mod = await import('sentry/components/modals/createDashboardFromMetricsModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {

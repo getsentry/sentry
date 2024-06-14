@@ -93,7 +93,7 @@ const ListItem = styled('li')`
   &[aria-current] {
     background: ${p => p.theme.blue300};
     color: ${p => p.theme.white};
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
   &[aria-current] a:before {
     background: ${p => p.theme.blue300};

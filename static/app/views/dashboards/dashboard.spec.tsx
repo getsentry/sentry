@@ -131,7 +131,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         isEditingDashboard={false}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
     expect(tagsMock).toHaveBeenCalled();
   });
@@ -154,7 +154,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
     await waitFor(() => expect(mockHandleAddCustomWidget).toHaveBeenCalled());
     expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();
@@ -220,7 +220,7 @@ describe('Dashboards > Dashboard', () => {
         widgetLimitReached={false}
         onSetNewWidget={mockCallbackToUnsetNewWidget}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
     expect(mockHandleAddCustomWidget).not.toHaveBeenCalled();
     expect(mockCallbackToUnsetNewWidget).not.toHaveBeenCalled();

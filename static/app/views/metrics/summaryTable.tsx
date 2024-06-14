@@ -6,6 +6,7 @@ import colorFn from 'color';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import type {Series} from 'sentry/components/metrics/chart/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
@@ -22,7 +23,6 @@ import {
 } from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Series} from 'sentry/views/metrics/chart/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({
@@ -489,7 +489,7 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   gap: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   line-height: ${p => p.theme.text.lineHeightBody};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.subText};
   user-select: none;

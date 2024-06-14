@@ -943,7 +943,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most time consuming resources widget', async function () {
-    const data = initializeData();
+    const data = initializeData(undefined, {features: ['performance-insights']});
 
     wrapper = render(
       <MEPSettingProvider forceTransactions>
@@ -955,11 +955,11 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Time Consuming Resources'
+      'Most Time-Consuming Assets'
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/performance/browser/resources/'
+      '/insights/browser/assets/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -1074,7 +1074,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.ttfb)',
           ],
           query:
-            'transaction.op:[pageload,""] span.op:[ui.interaction.click,""] avg(measurements.score.total):>=0',
+            'transaction.op:[pageload,""] span.op:[ui.interaction.click,ui.interaction.hover,ui.interaction.drag,ui.interaction.press,""] !transaction:"<< unparameterized >>" avg(measurements.score.total):>=0',
         }),
       })
     );

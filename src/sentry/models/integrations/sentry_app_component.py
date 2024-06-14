@@ -1,3 +1,4 @@
+from collections.abc import MutableMapping
 from typing import Any
 
 from django.db import models
@@ -21,6 +22,11 @@ class SentryAppComponent(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_sentryappcomponent"
+
+    @property
+    def app_schema(self) -> MutableMapping[str, Any]:
+        """Provides consistent interface with RpcSentryAppComponent"""
+        return self.schema
 
     @classmethod
     def sanitize_relocation_json(

@@ -222,6 +222,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
             "message": self.group.message,
+            "read_only": True,
             "k": 1,
         }
 
@@ -329,6 +330,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
                 "raw_similar_issue_data": {
                     "message_distance": 0.05,
@@ -451,10 +453,32 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
 
         assert response.data == []
 
+    @mock.patch("sentry.models.group.Group.get_latest_event")
+    def test_no_latest_event(self, mock_get_latest_event):
+        mock_get_latest_event.return_value = None
+
+        response = self.client.get(
+            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == []
+
+    @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.get_stacktrace_string")
+    def test_no_stacktrace_string(self, mock_get_stacktrace_string):
+        mock_get_stacktrace_string.return_value = ""
+
+        response = self.client.get(
+            f"/api/0/issues/{self.group.id}/similar-issues-embeddings/",
+            data={"k": "1", "threshold": "0.98"},
+        )
+
+        assert response.data == []
+
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_no_optional_params(self, mock_seer_request):
         """
-        Test that optional parameters, k and threshold, can not be included.
+        Test that optional parameters, k, threshold, and read_only can not be included.
         """
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
@@ -485,6 +509,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
             ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},
@@ -509,6 +534,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                     "k": 1,
                 },
             ).decode(),
@@ -534,6 +560,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
                     "message": self.group.message,
+                    "read_only": True,
                 },
             ).decode(),
             headers={"Content-Type": "application/json;charset=utf-8"},

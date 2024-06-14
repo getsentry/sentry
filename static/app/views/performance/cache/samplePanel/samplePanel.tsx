@@ -35,9 +35,12 @@ import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {
+  useMetrics,
+  useSpanMetrics,
+  useSpansIndexed,
+} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
   MetricsFields,
@@ -46,6 +49,7 @@ import {
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
+  type SpanIndexedResponse,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
@@ -58,7 +62,9 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags();
+  const supportedTags = useSpanFieldSupportedTags({
+    excludedTags: [SpanIndexedField.CACHE_HIT],
+  });
 
   const query = useLocationQuery({
     fields: {
@@ -146,29 +152,34 @@ export function CacheSamplePanel() {
     project_id: query.project,
   };
 
-  const useIndexedCacheSpans = (isCacheHit, limit) =>
-    useIndexedSpans({
-      search: MutableSearch.fromQueryObject({
-        ...sampleFilters,
-        ...new MutableSearch(query.spanSearchQuery).filters,
-        'cache.hit': isCacheHit,
-      }),
-      fields: [
-        SpanIndexedField.PROJECT,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.ID,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.CACHE_HIT,
-        SpanIndexedField.SPAN_OP,
-        SpanIndexedField.CACHE_ITEM_SIZE,
-      ],
-      sorts: [SPAN_SAMPLES_SORT],
-      limit: limit,
-      enabled: isPanelOpen,
-      referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
-    });
+  const useIndexedCacheSpans = (
+    isCacheHit: SpanIndexedResponse['cache.hit'],
+    limit: number
+  ) =>
+    useSpansIndexed(
+      {
+        search: MutableSearch.fromQueryObject({
+          ...sampleFilters,
+          ...new MutableSearch(query.spanSearchQuery).filters,
+          'cache.hit': isCacheHit,
+        }),
+        fields: [
+          SpanIndexedField.PROJECT,
+          SpanIndexedField.TRACE,
+          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.ID,
+          SpanIndexedField.TIMESTAMP,
+          SpanIndexedField.SPAN_DESCRIPTION,
+          SpanIndexedField.CACHE_HIT,
+          SpanIndexedField.SPAN_OP,
+          SpanIndexedField.CACHE_ITEM_SIZE,
+        ],
+        sorts: [SPAN_SAMPLES_SORT],
+        limit,
+        enabled: isPanelOpen,
+      },
+      Referrer.SAMPLES_CACHE_SPAN_SAMPLES
+    );
 
   // display half hits and half misses by default
   let cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT / 2;
@@ -267,22 +278,20 @@ export function CacheSamplePanel() {
                   tooltip={project.slug}
                 />
               )}
-              <TitleContainer>
-                <Title>
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                        {
-                          project: query.project,
-                          transaction: query.transaction,
-                        }
-                      )}`
-                    )}
-                  >
-                    {query.transaction}
-                  </Link>
-                </Title>
-              </TitleContainer>
+              <Title>
+                <Link
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                      {
+                        project: query.project,
+                        transaction: query.transaction,
+                      }
+                    )}`
+                  )}
+                >
+                  {query.transaction}
+                </Link>
+              </Title>
             </HeaderContainer>
           </ModuleLayout.Full>
 
@@ -469,26 +478,23 @@ const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
 
+// TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx
 const HeaderContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const MetricsRibbon = styled('div')`

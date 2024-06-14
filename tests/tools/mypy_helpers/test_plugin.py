@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os.path
+import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -164,3 +166,71 @@ x.{attr}
 
     ret, out = call_mypy(src)
     assert ret == 0, (ret, out)
+
+
+def test_lazy_service_wrapper(tmp_path: pathlib.Path) -> None:
+    src = """\
+from typing import assert_type, Literal
+from sentry.utils.lazy_service_wrapper import LazyServiceWrapper, Service, _EmptyType
+
+class MyService(Service):
+    X = "hello world"
+    def f(self) -> int:
+        return 5
+
+backend = LazyServiceWrapper(MyService, "some.path", {})
+
+# should proxy attributes properly
+assert_type(backend.X, str)
+assert_type(backend.f(), int)
+
+# should represent self types properly
+assert_type(backend._backend, str)
+assert_type(backend._wrapped, _EmptyType | MyService)
+"""
+
+    expected = """\
+<string>:12: error: Expression is of type "Any", not "str"  [assert-type]
+<string>:13: error: Expression is of type "Any", not "int"  [assert-type]
+Found 2 errors in 1 file (checked 1 source file)
+"""
+
+    # tools tests aren't allowed to import from `sentry` so we fixture
+    # the particular source file we are testing
+    utils_dir = tmp_path.joinpath("sentry/utils")
+    utils_dir.mkdir(parents=True)
+
+    here = os.path.dirname(__file__)
+    sentry_src = os.path.join(here, "../../../src/sentry/utils/lazy_service_wrapper.py")
+    shutil.copy(sentry_src, utils_dir)
+
+    init_pyi = "from typing import Any\ndef __getattr__(self) -> Any: ...\n"
+    utils_dir.joinpath("__init__.pyi").write_text(init_pyi)
+
+    cfg = tmp_path.joinpath("mypy.toml")
+    cfg.write_text("[tool.mypy]\nplugins = []\n")
+
+    # can't use our helper above because we're fixturing sentry src, so mimic it here
+    def _mypy() -> tuple[int, str]:
+        ret = subprocess.run(
+            (
+                *(sys.executable, "-m", "mypy"),
+                *("--config", cfg),
+                # we only stub out limited parts of the sentry source tree
+                "--ignore-missing-imports",
+                *("-c", src),
+            ),
+            env={**os.environ, "MYPYPATH": str(tmp_path)},
+            capture_output=True,
+            encoding="UTF-8",
+        )
+        assert not ret.stderr
+        return ret.returncode, ret.stdout
+
+    ret, out = _mypy()
+    assert ret
+    assert out == expected
+
+    cfg.write_text('[tool.mypy]\nplugins = ["tools.mypy_helpers.plugin"]\n')
+    ret, out = _mypy()
+    assert ret == 0

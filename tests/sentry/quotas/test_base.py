@@ -5,7 +5,7 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.projectkey import ProjectKey
 from sentry.monitors.constants import PermitCheckInStatus
 from sentry.monitors.models import Monitor, MonitorType
-from sentry.quotas.base import Quota, QuotaConfig, QuotaScope
+from sentry.quotas.base import Quota, QuotaConfig, QuotaScope, SeatAssignmentResult
 from sentry.testutils.cases import TestCase
 from sentry.utils.outcomes import Outcome
 
@@ -169,3 +169,10 @@ class QuotaTest(TestCase):
 )
 def test_quotas_to_json(obj, json):
     assert obj.to_json() == json
+
+
+def test_seat_assignable_must_have_reason():
+    with pytest.raises(ValueError):
+        SeatAssignmentResult(assignable=False)
+    SeatAssignmentResult(assignable=False, reason="because I said so")
+    SeatAssignmentResult(assignable=True)

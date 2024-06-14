@@ -11,8 +11,8 @@ import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {Container, NumberContainer} from 'sentry/utils/discover/styles';
-import {formatPercentage, formatRate} from 'sentry/utils/formatters';
-import {useLocation} from 'sentry/utils/useLocation';
+import {formatRate} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
 type RawDataRow<K extends string> = Record<K, any>;
 
@@ -51,8 +51,6 @@ interface EventRegressionTableProps<K extends string> {
 export function EventRegressionTable<K extends string>(
   props: EventRegressionTableProps<K>
 ) {
-  const location = useLocation();
-
   const columnOrder = useMemo(() => {
     if (props.causeType === 'throughput') {
       return [
@@ -87,7 +85,6 @@ export function EventRegressionTable<K extends string>(
       error={props.isError}
       isLoading={props.isLoading}
       data={props.data}
-      location={location}
       columnOrder={columnOrder}
       columnSortBy={[]}
       grid={{renderHeadCell, renderBodyCell}}

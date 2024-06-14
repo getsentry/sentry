@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {openCreateDashboardFromScratchpad} from 'sentry/actionCreators/modal';
+import {openCreateDashboardFromMetrics} from 'sentry/actionCreators/modal';
 import {convertToDashboardWidget} from 'sentry/utils/metrics/dashboard';
 import {
   isMetricsEquationWidget,
@@ -88,7 +88,7 @@ export function useCreateDashboard(
         dateCreated: '',
       };
 
-      openCreateDashboardFromScratchpad({newDashboard, router, organization});
+      openCreateDashboardFromMetrics({newDashboard, router, organization});
     };
   }, [selection, organization, router, dashboardWidgets]);
 }

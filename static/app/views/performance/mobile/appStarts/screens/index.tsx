@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -29,10 +30,12 @@ import {
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
@@ -57,6 +60,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     isLoading: isReleasesLoading,
   } = useReleaseSelection();
   const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
+  const {isProjectCrossPlatform, selectedPlatform} = useCrossPlatformProject();
 
   const router = useRouter();
 
@@ -69,6 +73,10 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     `count_starts(measurements.app_start_${appStartType}):>0`,
     ...(additionalFilters ?? []),
   ]);
+
+  if (isProjectCrossPlatform) {
+    query.addFilterValue('os.name', selectedPlatform);
+  }
 
   const searchQuery = decodeScalar(locationQuery.query, '');
   if (searchQuery) {
@@ -118,6 +126,10 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     ...(additionalFilters ?? []),
   ]);
 
+  if (isProjectCrossPlatform) {
+    topEventsQuery.addFilterValue('os.name', selectedPlatform);
+  }
+
   const topEventsQueryString = `${appendReleaseFilters(
     topEventsQuery,
     primaryRelease,
@@ -146,6 +158,12 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     enabled: !topTransactionsLoading,
     referrer: 'api.starfish.mobile-startup-bar-chart',
   });
+
+  useHasDataTrackAnalytics(
+    new MutableSearch('span.op:[app.start.cold,app.start.warm]'),
+    'api.performance.mobile.app-startup-landing',
+    'insight.page_loads.app_start'
+  );
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
@@ -210,6 +228,11 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
       <StyledSearchBar
         eventView={tableEventView}
         onSearch={search => {
+          trackAnalytics('insight.general.search', {
+            organization,
+            query: search,
+            source: ModuleName.APP_START,
+          });
           router.push({
             pathname: router.location.pathname,
             query: {

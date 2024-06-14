@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -22,6 +23,10 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {
+  DATA_TYPE as RESOURCE_DATA_TYPE,
+  PERFORMANCE_DATA_TYPE as PERFORMANCE_RESOURCE_DATA_TYPE,
+} from 'sentry/views/performance/browser/resources/settings';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
@@ -41,7 +46,7 @@ type Props = {
   moduleName: ModuleName;
   transactionName: string;
   onClose?: () => void;
-  spanDescription?: string;
+  referrer?: string;
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -51,9 +56,9 @@ export function SampleList({
   moduleName,
   transactionName,
   transactionMethod,
-  spanDescription,
   onClose,
   transactionRoute = '/performance/summary/',
+  referrer,
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -76,35 +81,35 @@ export function SampleList({
 
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const {query} = useLocation();
+  const location = useLocation();
   const {projects} = useProjects();
 
-  const spanSearchQuery = decodeScalar(query.spanSearchQuery);
+  const spanSearchQuery = decodeScalar(location.query.spanSearchQuery);
   const supportedTags = useSpanFieldSupportedTags();
 
   const project = useMemo(
-    () => projects.find(p => p.id === String(query.project)),
-    [projects, query.project]
+    () => projects.find(p => p.id === String(location.query.project)),
+    [projects, location.query.project]
   );
 
   const handleSearch = (newSpanSearchQuery: string) => {
     router.replace({
       pathname: location.pathname,
       query: {
-        ...query,
+        ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
   };
 
   const onOpenDetailPanel = useCallback(() => {
-    if (query.transaction) {
+    if (location.query.transaction) {
       trackAnalytics('performance_views.sample_spans.opened', {
         organization,
         source: moduleName,
       });
     }
-  }, [organization, query.transaction, moduleName]);
+  }, [organization, location.query.transaction, moduleName]);
 
   const label =
     transactionMethod && !transactionName.startsWith(transactionMethod)
@@ -113,15 +118,18 @@ export function SampleList({
 
   const link = normalizeUrl(
     `/organizations/${organization.slug}${transactionRoute}?${qs.stringify({
-      project: query.project,
+      project: location.query.project,
       transaction: transactionName,
     })}`
   );
 
   // set additional query filters from the span search bar and the `query` param
   const spanSearch = new MutableSearch(spanSearchQuery ?? '');
-  if (query.query) {
-    (Array.isArray(query.query) ? query.query : [query.query]).forEach(filter => {
+  if (location.query.query) {
+    (Array.isArray(location.query.query)
+      ? location.query.query
+      : [location.query.query]
+    ).forEach(filter => {
       spanSearch.addStringFilter(filter);
     });
   }
@@ -140,6 +148,11 @@ export function SampleList({
     SpanIndexedField.TRANSACTION_ID,
   ];
 
+  const isInsightsEnabled = organization.features.includes('performance-insights');
+  const resourceDataType = isInsightsEnabled
+    ? RESOURCE_DATA_TYPE
+    : PERFORMANCE_RESOURCE_DATA_TYPE;
+
   if (moduleName === ModuleName.RESOURCE) {
     additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
     additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
@@ -153,7 +166,7 @@ export function SampleList({
       },
       {
         key: SPAN_DESCRIPTION,
-        name: t('Resource Name'),
+        name: `${resourceDataType} ${t('Name')}`,
         width: COL_WIDTH_UNDEFINED,
       },
     ];
@@ -178,12 +191,9 @@ export function SampleList({
               tooltip={project.slug}
             />
           )}
-          <TitleContainer>
-            {spanDescription && <SpanDescription>{spanDescription}</SpanDescription>}
-            <Title>
-              <Link to={link}>{label}</Link>
-            </Title>
-          </TitleContainer>
+          <Title>
+            <Link to={link}>{label}</Link>
+          </Title>
         </HeaderContainer>
         <PageAlert />
 
@@ -200,7 +210,15 @@ export function SampleList({
           additionalFields={additionalFields}
           onClickSample={span => {
             router.push(
-              `/performance/${span.project}:${span['transaction.id']}/#span-${span.span_id}`
+              generateLinkToEventInTraceView({
+                eventId: span['transaction.id'],
+                projectSlug: span.project,
+                spanId: span.span_id,
+                location,
+                organization,
+                traceSlug: span.trace,
+                timestamp: span.timestamp,
+              })
             );
           }}
           onMouseOverSample={sample => debounceSetHighlightedSpanId(sample.span_id)}
@@ -234,6 +252,7 @@ export function SampleList({
           spanSearch={spanSearch}
           columnOrder={columnOrder}
           additionalFields={additionalFields}
+          referrer={referrer}
         />
       </DetailPanel>
     </PageAlertProvider>
@@ -251,31 +270,19 @@ const HeaderContainer = styled('div')`
 
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
-`;
-
-const SpanDescription = styled('div')`
-  display: inline-block;
-  white-space: nowrap;
-  overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 35vw;
+  overflow: hidden;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const StyledSearchBar = styled(SearchBar)`

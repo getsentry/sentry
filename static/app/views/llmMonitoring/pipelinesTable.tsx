@@ -39,16 +39,16 @@ type Row = Pick<
   | 'spm()'
   | 'avg(span.duration)'
   | 'sum(span.duration)'
-  | 'ai_total_tokens_used()'
-  | 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
+  | 'sum(ai.total_tokens.used)'
+  | 'sum(ai.total_cost)'
 >;
 
 type Column = GridColumnHeader<
   | 'span.description'
   | 'spm()'
   | 'avg(span.duration)'
-  | 'ai_total_tokens_used()'
-  | 'ai_total_tokens_used(c:spans/ai.total_cost@usd)'
+  | 'sum(ai.total_tokens.used)'
+  | 'sum(ai.total_cost)'
 >;
 
 const COLUMN_ORDER: Column[] = [
@@ -58,12 +58,12 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: 'ai_total_tokens_used()',
+    key: 'sum(ai.total_tokens.used)',
     name: t('Total tokens used'),
     width: 180,
   },
   {
-    key: 'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+    key: 'sum(ai.total_cost)',
     name: t('Total cost'),
     width: 180,
   },
@@ -79,7 +79,7 @@ const COLUMN_ORDER: Column[] = [
   },
 ];
 
-const SORTABLE_FIELDS = ['ai_total_tokens_used()', 'avg(span.duration)', 'spm()'];
+const SORTABLE_FIELDS = ['sum(ai.total_tokens.used)', 'avg(span.duration)', 'spm()'];
 
 type ValidSort = Sort & {
   field: 'spm()' | 'avg(span.duration)';
@@ -131,8 +131,8 @@ export function PipelinesTable() {
       ),
       fields: [
         'span.ai.pipeline.group',
-        'ai_total_tokens_used()',
-        'ai_total_tokens_used(c:spans/ai.total_cost@usd)',
+        'sum(ai.total_tokens.used)',
+        'sum(ai.total_cost)',
       ],
     },
     'api.performance.ai-analytics.token-usage-chart'
@@ -141,17 +141,17 @@ export function PipelinesTable() {
   const rows: Row[] = (data as Row[]).map(baseRow => {
     const row: Row = {
       ...baseRow,
-      'ai_total_tokens_used()': 0,
-      'ai_total_tokens_used(c:spans/ai.total_cost@usd)': 0,
+      'sum(ai.total_tokens.used)': 0,
+      'sum(ai.total_cost)': 0,
     };
     if (!tokensUsedLoading) {
       const tokenUsedDataPoint = tokensUsedData.find(
         tokenRow => tokenRow['span.ai.pipeline.group'] === row['span.group']
       );
       if (tokenUsedDataPoint) {
-        row['ai_total_tokens_used()'] = tokenUsedDataPoint['ai_total_tokens_used()'];
-        row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'] =
-          tokenUsedDataPoint['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
+        row['sum(ai.total_tokens.used)'] =
+          tokenUsedDataPoint['sum(ai.total_tokens.used)'];
+        row['sum(ai.total_cost)'] = tokenUsedDataPoint['sum(ai.total_cost)'];
       }
     }
     return row;
@@ -209,7 +209,6 @@ export function PipelinesTable() {
             renderBodyCell: (column, row) =>
               renderBodyCell(moduleURL, column, row, meta, location, organization),
           }}
-          location={location}
         />
         <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
       </Container>
@@ -246,8 +245,8 @@ function renderBodyCell(
       </Link>
     );
   }
-  if (column.key === 'ai_total_tokens_used(c:spans/ai.total_cost@usd)') {
-    const cost = row['ai_total_tokens_used(c:spans/ai.total_cost@usd)'];
+  if (column.key === 'sum(ai.total_cost)') {
+    const cost = row[column.key];
     if (cost) {
       return <span>US ${cost.toFixed(3)}</span>;
     }
@@ -255,7 +254,9 @@ function renderBodyCell(
       <span>
         Unknown{' '}
         <Tooltip
-          title="Cost can only be calculated for certain OpenAI and Anthropic models, other providers aren't yet supported."
+          title={t(
+            "Cost is calculated for some of the most popular models, but some providers aren't yet supported."
+          )}
           isHoverable
         >
           <IconInfo size="xs" />

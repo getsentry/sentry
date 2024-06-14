@@ -37,7 +37,8 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -463,7 +464,7 @@ const TaskStepNumber = styled('div')`
   margin-right: ${space(1.5)};
   background-color: ${p => p.theme.yellow300};
   border-radius: 50%;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   height: ${space(4)};
   width: ${space(4)};
   justify-content: center;
@@ -496,7 +497,7 @@ const Heading = styled('div')`
   color: ${p => p.theme.activeText};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   text-transform: uppercase;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   margin-top: ${space(3)};
 `;

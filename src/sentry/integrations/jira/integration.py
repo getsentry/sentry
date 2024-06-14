@@ -13,7 +13,7 @@ from django.utils.translation import gettext as _
 
 from sentry import features
 from sentry.eventstore.models import GroupEvent
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -37,7 +37,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
-from sentry.tasks.integrations import migrate_issues
+from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient

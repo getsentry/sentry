@@ -1,4 +1,4 @@
-from sentry.integrations import IntegrationInstallation
+from sentry.integrations.base import IntegrationInstallation
 from sentry.services.hybrid_cloud.identity.serial import serialize_identity
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

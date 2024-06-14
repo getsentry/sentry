@@ -29,7 +29,7 @@ function CommitFileFixture(params: Partial<CommitFile> = {}): CommitFile {
 describe('FilesChanged', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {routerProps, routerContext, organization} = initializeOrg({
+  const {routerProps, router, organization} = initializeOrg({
     router: {params: {release: release.version}},
   });
   const repos = [RepositoryFixture({integrationId: '1'})];
@@ -54,7 +54,7 @@ describe('FilesChanged', () => {
           {...routerProps}
         />
       </ReleaseContext.Provider>,
-      {context: routerContext}
+      {router}
     );
   }
 

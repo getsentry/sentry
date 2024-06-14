@@ -17,7 +17,8 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   CanvasPoolManager,
   useCanvasScheduler,
@@ -728,12 +729,12 @@ const DifferentialFlamegraphChangedFunctionsTitleContainer = styled('div')`
 `;
 
 const DifferentialFlamegraphChangedFunctionsTitleText = styled('div')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   flex: 1;
 `;
 
 const DifferentialFlamegraphChangedFunctionsSubtitleText = styled('div')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
 `;
@@ -749,7 +750,7 @@ const DifferentialFlamegraphPaginationButton = styled(Button)`
   padding-right: ${space(0.75)};
 `;
 const DifferentialFlamegraphTransactionName = styled('div')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;

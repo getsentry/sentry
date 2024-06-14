@@ -8,16 +8,21 @@ and perform RPC calls to propagate changes to relevant region(s).
 from __future__ import annotations
 
 import logging
+from collections import defaultdict
 from collections.abc import Mapping
 from typing import Any
 
 from django.dispatch import receiver
 
+from sentry.hybridcloud.rpc.services.caching import region_caching_service
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.services.hybrid_cloud.app.service import get_by_application_id, get_installation
 from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 
@@ -37,13 +42,40 @@ def process_integration_updates(object_identifier: int, region_name: str, **kwds
 
 @receiver(process_control_outbox, sender=OutboxCategory.SENTRY_APP_UPDATE)
 def process_sentry_app_updates(object_identifier: int, region_name: str, **kwds: Any):
+
     if (
         sentry_app := maybe_process_tombstone(
             model=SentryApp, object_identifier=object_identifier, region_name=region_name
         )
     ) is None:
         return
-    sentry_app  # Currently we do not sync any other sentry_app changes, but if we did, you can use this variable.
+
+    # When a sentry app's definition changes purge cache for all the installations.
+    # This could get slow for large applications, but generally big applications don't change often.
+    install_query = SentryAppInstallation.objects.filter(sentry_app=sentry_app).values(
+        "id", "organization_id"
+    )
+    # There isn't a constraint on org : sentryapp so we have to handle lists
+    install_map: dict[int, list[int]] = defaultdict(list)
+    for install_row in install_query:
+        install_map[install_row["organization_id"]].append(install_row["id"])
+
+    # Clear application_id cache
+    region_caching_service.clear_key(
+        key=get_by_application_id.key_from(sentry_app.application_id), region_name=region_name
+    )
+
+    # Limit our operations to the region this outbox is for.
+    # This could be a single query if we use raw_sql.
+    region_query = OrganizationMapping.objects.filter(
+        organization_id__in=list(install_map.keys()), region_name=region_name
+    ).values("organization_id")
+    for region_row in region_query:
+        installs = install_map[region_row["organization_id"]]
+        for install_id in installs:
+            region_caching_service.clear_key(
+                key=get_installation.key_from(install_id), region_name=region_name
+            )
 
 
 @receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)

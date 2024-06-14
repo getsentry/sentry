@@ -1,3 +1,4 @@
+import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -88,6 +89,7 @@ describe('getHighlightContextData', function () {
       highlightContext,
       project,
       organization,
+      location: {query: {}} as Location,
     });
     expect(highlightCtxData).toHaveLength(1);
     expect(highlightCtxData[0].alias).toBe('keyboard');
@@ -117,6 +119,7 @@ describe('getHighlightContextData', function () {
       highlightContext,
       project,
       organization,
+      location: {query: {}} as Location,
     });
     expect(highlightCtxData).toHaveLength(1);
     expect(highlightCtxData[0].type).toBe('os');

@@ -14,27 +14,46 @@ import storyBook from 'sentry/stories/storyBook';
 import {space} from 'sentry/styles/space';
 
 export default storyBook(Confirm, story => {
-  story('Triggers', () => (
-    <Fragment>
-      <p>
-        There are two way to use <JSXNode name="Confirm" />, either as a wrapper around a
-        trigger, or by calling <code>openConfirmModal()</code> in a callback.
-      </p>
-      <p>
-        It's recommended to call <code>openConfirmModal()</code>.
-      </p>
-      <SideBySide>
-        <Button onClick={() => openConfirmModal({})}>
-          <code>{'onClick={() => openConfirmModal({})}'}</code>
-        </Button>
-        <Confirm>
-          <Button>
-            Button is wrapped with <JSXNode name="Confirm" />
+  story('Triggers', () => {
+    const [state, setState] = useState('empty');
+
+    return (
+      <Fragment>
+        <p>
+          There are two ways to use <JSXNode name="Confirm" />, either as a wrapper around
+          a trigger, or by calling <code>openConfirmModal()</code> in a callback.
+        </p>
+        <p>
+          It's recommended to call <code>openConfirmModal()</code>.
+        </p>
+        <p>Current state is: {state}.</p>
+        <SideBySide>
+          <Button
+            onClick={() =>
+              openConfirmModal({
+                onConfirm: () => {
+                  setState('confirmed');
+                },
+                onCancel: () => {
+                  setState('cancelled');
+                },
+              })
+            }
+          >
+            <code>{'onClick={() => openConfirmModal({})}'}</code>
           </Button>
-        </Confirm>
-      </SideBySide>
-    </Fragment>
-  ));
+          <Confirm
+            onConfirm={() => setState('confirmed')}
+            onCancel={() => setState('cancelled')}
+          >
+            <Button>
+              Button is wrapped with <JSXNode name="Confirm" />
+            </Button>
+          </Confirm>
+        </SideBySide>
+      </Fragment>
+    );
+  });
 
   story('Labels', () => (
     <Fragment>

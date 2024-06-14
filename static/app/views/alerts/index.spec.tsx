@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -19,7 +18,6 @@ describe('AlertsContainer', function () {
           <SubView />
         </AlertsContainer>,
         {
-          context: RouterContextFixture([{organization}]),
           organization,
         }
       );
@@ -36,7 +34,6 @@ describe('AlertsContainer', function () {
           <SubView />
         </AlertsContainer>,
         {
-          context: RouterContextFixture([{organization}]),
           organization,
         }
       );
