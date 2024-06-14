@@ -3078,49 +3078,46 @@
     "@sentry/types" "8.9.2"
     "@sentry/utils" "8.9.2"
 
-"@sentry-internal/rrdom@2.20.0":
-  version "2.20.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.20.0.tgz#da72ded3140e1cb3d90ff8387b05b3473461bbad"
-  integrity sha512-S+3KB6B/pB5WGNprFdjaUOxE21grUqjMElcUYeC59kR01Hlc41snM+895kGv9/smW+YAUwIFqzSsGfk2koQEDQ==
+"@sentry-internal/rrdom@2.21.0":
+  version "2.21.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.21.0.tgz#ae27b27b70063ec3b7bd908e915db06b26c4115c"
+  integrity sha512-7uI8sVwvktI4lW03eIXSsswHBXFdlK7fGa/HMjMuTToGUT/k5USGBOhhqY9FPllAAI1DT4dOWLR/up0ZiDlPdA==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.20.0"
+    "@sentry-internal/rrweb-snapshot" "2.21.0"
 
-"@sentry-internal/rrweb-player@2.20.0":
-  version "2.20.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-2.20.0.tgz#e14a129dce9b0908863c736dacabcca71e000c3b"
-  integrity sha512-l+hCYMaUoUDI/t2bQfkZecz9g73TwfrDOdYB3YyZlfKqoWwtVugieSI2Y5YiMjNFvwSyYjxxr5vJ0AFC6LDJFA==
+"@sentry-internal/rrweb-player@2.21.0":
+  version "2.21.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-2.21.0.tgz#1938e054703b568a4a75db1f6836055b82382793"
+  integrity sha512-xM43qq1fQAoHEaM4IcmcwX84zsGU3DUulTcem0oqQn0ARfwtPkW0TFCGnBJ866Sc5KSvLgxrRsyrEfAsLclRvQ==
   dependencies:
-    "@sentry-internal/rrweb" "2.20.0"
+    "@sentry-internal/rrweb" "2.21.0"
     "@tsconfig/svelte" "^1.0.0"
 
-"@sentry-internal/rrweb-snapshot@2.20.0":
-  version "2.20.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.20.0.tgz#005be8b5a2da4a96f7a863dbed3eccc1c68bfd1f"
-  integrity sha512-T+KTcOWChgaYfAL0PCUv7PQuMI2k9BG+3X8IlVPgb2/NTPKvJYicHxwC7tcwRM5fCqZpf2Erohyb1R6SuLJJPA==
-  dependencies:
-    downlevel-dts "https://github.com/getsentry/downlevel-dts"
+"@sentry-internal/rrweb-snapshot@2.21.0":
+  version "2.21.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.21.0.tgz#cdee3841c03b049c452ae5d3edde7ba71b532827"
+  integrity sha512-urT976xKCwn0Kjx0tYwsaIB+KsXH4/oLa0FgGExuAm6ryH6rkj/K/PIUtKsyFa8k/qk+f4UTWRj5RISaJReVJA==
 
-"@sentry-internal/rrweb-types@2.20.0":
-  version "2.20.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.20.0.tgz#4e4531edf68c537a791cf0a44daa9bc3ca1e98ae"
-  integrity sha512-0LZDglrvCjCdyk9Uc1sJPIdS9IdQEDrfB0S/vC3EaaPteUfdsp4CK4yaXn1cCatbb75Uev5tIICtPZkq9zzqkg==
+"@sentry-internal/rrweb-types@2.21.0":
+  version "2.21.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.21.0.tgz#82a92262e972a7ff60f5b5d2c51d26f107c49a35"
+  integrity sha512-J0820cBJZXIg2oLMg+PtQXLq2yzgaCjHg+Ht5ZAN75BiIpgMU/m92MusQMtYPK9HmseKtEQOzt0RVCaP5/++sA==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.20.0"
+    "@sentry-internal/rrweb-snapshot" "2.21.0"
     "@types/css-font-loading-module" "0.0.7"
     downlevel-dts "https://github.com/getsentry/downlevel-dts"
 
-"@sentry-internal/rrweb@2.20.0":
-  version "2.20.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.20.0.tgz#5f8034542c2562da40b875516762afd04d0d5238"
-  integrity sha512-6uMZwDDVUtBy8KTegCM9IYUc91yHNJ87o7GMdUpBImPOQqmMt9HsHJl5vur/KBnPFTiAUNeRf1Ar8iMH62auQA==
+"@sentry-internal/rrweb@2.21.0":
+  version "2.21.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.21.0.tgz#7d1c38306d4584d888be1949efa308a25fc7ddc9"
+  integrity sha512-KwJ1KuqKrOm81xIUMuFsuIQADNNlt/Dct54T1XMHMCc1TyMt1mB+BkICXBUSXaJ2ch9RHLeZMrIig+Qq75TKfA==
   dependencies:
-    "@sentry-internal/rrdom" "2.20.0"
-    "@sentry-internal/rrweb-snapshot" "2.20.0"
-    "@sentry-internal/rrweb-types" "2.20.0"
+    "@sentry-internal/rrdom" "2.21.0"
+    "@sentry-internal/rrweb-snapshot" "2.21.0"
+    "@sentry-internal/rrweb-types" "2.21.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
-    downlevel-dts "https://github.com/getsentry/downlevel-dts"
     fflate "^0.4.4"
     mitt "^3.0.0"
 
@@ -6094,9 +6091,9 @@ dot-case@^3.0.4:
     no-case "^3.0.4"
     tslib "^2.0.3"
 
-"downlevel-dts@https://github.com/getsentry/downlevel-dts":
+"downlevel-dts@git+https://github.com/getsentry/downlevel-dts.git":
   version "0.11.0"
-  resolved "https://github.com/getsentry/downlevel-dts#26342728379689259f494d79053272c6f2f0ea14"
+  resolved "git+https://github.com/getsentry/downlevel-dts.git#26342728379689259f494d79053272c6f2f0ea14"
   dependencies:
     semver "^7.3.2"
     shelljs "^0.8.3"
