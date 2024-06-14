@@ -365,10 +365,8 @@ describe('Events > SearchBar', function () {
     ).toBeInTheDocument();
   });
 
-  it('is query works for metric alert search bar when the flag is on', async function () {
-    const OrganizationIs = OrganizationFixture({
-      features: ['metric-alert-ignore-archived'],
-    });
+  it('is query works for metric alert search bar', async function () {
+    const OrganizationIs = OrganizationFixture();
     render(
       <SearchBar
         {...props}
@@ -382,10 +380,8 @@ describe('Events > SearchBar', function () {
     expect(autocomplete.at(0)).toHaveTextContent('is:');
   });
 
-  it('handled query works for metric alert search bar when the flag is on', async function () {
-    const OrganizationIs = OrganizationFixture({
-      features: ['metric-alert-ignore-archived'],
-    });
+  it('handled query works for metric alert search bar', async function () {
+    const OrganizationIs = OrganizationFixture();
     render(
       <SearchBar
         {...props}
@@ -397,19 +393,5 @@ describe('Events > SearchBar', function () {
 
     const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
     expect(autocomplete.at(0)).toHaveTextContent('handled:');
-  });
-
-  it('is query does not work when the flag is off', async function () {
-    render(
-      <SearchBar
-        {...props}
-        metricAlert
-        supportedTags={datasetSupportedTags(Dataset.ERRORS, props.organization)}
-      />
-    );
-    await setQuery('is:');
-
-    const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
-    expect(autocomplete.at(0)).not.toHaveTextContent('is:');
   });
 });
