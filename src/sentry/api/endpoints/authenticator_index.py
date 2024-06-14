@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.models.authenticator import Authenticator
 
 
@@ -24,18 +25,25 @@ class AuthenticatorIndexEndpoint(Endpoint):
         # Currently just expose u2f challenge, not sure if it's necessary to list all
         # authenticator interfaces that are enabled
         try:
-            interface = Authenticator.objects.get_interface(request.user, "u2f")
+            interface: U2fInterface = Authenticator.objects.get_interface(request.user, "u2f")
             if not interface.is_enrolled():
                 raise LookupError()
         except LookupError:
             return Response([])
 
-        challenge = interface.activate(request._request).challenge
+        activation_result = interface.activate(request._request)
+        activation_challenge, state = activation_result.challenge, activation_result.state
 
-        webAuthnAuthenticationData = b64encode(challenge)
-        challenge = {}
-        challenge["webAuthnAuthenticationData"] = webAuthnAuthenticationData
+        webAuthnAuthenticationData = b64encode(activation_challenge)
 
         # I don't think we currently support multiple interfaces of the same type
         # but just future proofing I guess
-        return Response([{"id": "u2f", "challenge": challenge}])
+        return Response(
+            [
+                {
+                    "id": "u2f",
+                    "challenge": {"webAuthnAuthenticationData": webAuthnAuthenticationData},
+                    "auth_state": state,
+                }
+            ]
+        )
