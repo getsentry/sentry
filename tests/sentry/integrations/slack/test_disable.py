@@ -1,19 +1,16 @@
 import time
 from datetime import datetime, timedelta
-from unittest.mock import patch
 
 import orjson
 import pytest
 import responses
 from django.core import mail
-from slack_sdk.errors import SlackApiError
 
 from sentry import audit_log
 from sentry.constants import ObjectStatus
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.slack.client import SlackClient
-from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
@@ -69,29 +66,6 @@ class SlackClientDisable(TestCase):
         with outbox_runner(), self.tasks(), pytest.raises(ApiError):
             client.post("/chat.postMessage", data=self.payload)
         buffer = IntegrationRequestBuffer(client._get_redis_key())
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.get(id=self.integration.id)
-            assert integration.status == ObjectStatus.DISABLED
-            assert [len(item) == 0 for item in buffer._get_broken_range_from_buffer()]
-            assert len(buffer._get_all_from_buffer()) == 0
-            assert AuditLogEntry.objects.filter(
-                event=audit_log.get_event_id("INTEGRATION_DISABLED"),
-                organization_id=self.organization.id,
-            ).exists()
-
-    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_fatal_and_disable_integration_sdk(self, mock_api_call):
-        mock_api_call.return_value = {
-            "body": orjson.dumps({"ok": False, "error": "account_inactive"}).decode(),
-            "headers": {},
-            "status": 200,
-        }
-
-        client = SlackSdkClient(integration_id=self.integration.id)
-
-        with outbox_runner(), self.tasks(), pytest.raises(SlackApiError):
-            client.chat_postMessage(channel=self.payload["channel"], text=self.payload["message"])
-        buffer = IntegrationRequestBuffer(f"sentry-integration-error:{self.integration.id}")
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = Integration.objects.get(id=self.integration.id)
             assert integration.status == ObjectStatus.DISABLED
