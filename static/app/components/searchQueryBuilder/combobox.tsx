@@ -340,6 +340,9 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
 
   const state = useComboBoxState<T>({
     children,
+    // We handle closing on blur ourselves to prevent the combobox from closing
+    // when the user clicks inside the tabbed menu
+    shouldCloseOnBlur: false,
     ...comboBoxProps,
   });
 
@@ -356,7 +359,10 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         }
         onFocus?.(e);
       },
-      onBlur: () => {
+      onBlur: e => {
+        if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
+          return;
+        }
         onCustomValueBlurred(inputValue);
         state.close();
       },
