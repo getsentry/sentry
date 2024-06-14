@@ -22,7 +22,7 @@ class GroupSearchViewSerializer(Serializer):
             "id": str(obj.id),
             "name": obj.name,
             "query": obj.query,
-            "query_sort": obj.query_sort,
+            "querySort": obj.query_sort,
             "position": obj.position,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
