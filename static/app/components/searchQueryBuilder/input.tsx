@@ -35,6 +35,7 @@ type SearchQueryBuilderInputProps = {
 
 type SearchQueryBuilderInputInternalProps = {
   item: Node<ParseResultToken>;
+  rowRef: React.RefObject<HTMLDivElement>;
   state: ListState<ParseResultToken>;
   tabIndex: number;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
@@ -218,6 +219,7 @@ function SearchQueryBuilderInputInternal({
   token,
   tabIndex,
   state,
+  rowRef,
 }: SearchQueryBuilderInputInternalProps) {
   const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
@@ -371,6 +373,12 @@ function SearchQueryBuilderInputInternal({
       maxOptions={50}
       onPaste={onPaste}
       displayTabbedMenu={inputValue.length === 0}
+      shouldCloseOnInteractOutside={el => {
+        if (rowRef.current?.contains(el)) {
+          return false;
+        }
+        return true;
+      }}
     >
       {section => (
         <Section title={section.title} key={section.key}>
@@ -405,6 +413,7 @@ export function SearchQueryBuilderInput({
           state={state}
           token={token}
           tabIndex={isFocused ? 0 : -1}
+          rowRef={ref}
         />
       </GridCell>
     </Row>
