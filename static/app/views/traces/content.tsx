@@ -617,7 +617,7 @@ function useTraces<F extends string>({
       );
       const project_platforms = [...project_slugs]
         .map(slug => projects.find(p => p.slug === slug))
-        .map(project => project?.platform);
+        .map(project => project?.platform || 'other');
 
       trackAnalytics('trace_explorer.search_success', {
         organization,
