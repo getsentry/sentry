@@ -85,7 +85,5 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             type=search_type.value,
             visibility=Visibility.OWNER_PINNED,
         ).delete()
-        GroupSearchView.objects.filter(
-            organization=organization, user_id=request.user.id, position=0
-        ).delete()
+        GroupSearchView.objects.filter(organization=organization, user_id=request.user.id).delete()
         return Response(status=204)
