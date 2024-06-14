@@ -83,7 +83,7 @@ def schedule_organizations(
         # Create a celery task per organization
         logger.info(
             "weekly_reports.schedule_organizations",
-            extra={"batch_id": batch_id, "organization": organization.id},
+            extra={"batch_id": str(batch_id), "organization": organization.id},
         )
         prepare_organization_report.delay(
             timestamp, duration, organization.id, batch_id, dry_run=dry_run
@@ -112,7 +112,7 @@ def prepare_organization_report(
         logger.error(
             "Target user must have an ID",
             extra={
-                "batch_id": batch_id,
+                "batch_id": str(batch_id),
                 "organization": organization_id,
                 "target_user": target_user,
                 "email_override": email_override,
@@ -183,7 +183,7 @@ def prepare_organization_report(
                     logger.info(
                         "project_key_errors.results",
                         extra={
-                            "batch_id": batch_id,
+                            "batch_id": str(batch_id),
                             "project_id": project.id,
                             "num_key_errors": len(key_errors),
                         },
@@ -226,7 +226,7 @@ def prepare_organization_report(
     if not report_is_available:
         logger.info(
             "prepare_organization_report.skipping_empty",
-            extra={"batch_id": batch_id, "organization": organization_id},
+            extra={"batch_id": str(batch_id), "organization": organization_id},
         )
         return
 
@@ -235,7 +235,7 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",
-            extra={"batch_id": batch_id, "organization": organization_id},
+            extra={"batch_id": str(batch_id), "organization": organization_id},
         )
         batch.deliver_reports()
 
@@ -323,7 +323,7 @@ class OrganizationReportBatch:
             logger.info(
                 "weekly_report.send_email",
                 extra={
-                    "batch_id": self.batch_id,
+                    "batch_id": str(self.batch_id),
                     "organization": self.ctx.organization.id,
                     "uuid": template_ctx["notification_uuid"],
                     "user_id": user_id,
@@ -352,7 +352,7 @@ class _DuplicateDeliveryCheck:
 
     def _get_log_extras(self) -> dict[str, Any]:
         return {
-            "batch_id": self.batch.batch_id,
+            "batch_id": str(self.batch.batch_id),
             "organization": self.batch.ctx.organization.id,
             "user_id": self.user_id,
             "has_email_override": bool(self.batch.email_override),
