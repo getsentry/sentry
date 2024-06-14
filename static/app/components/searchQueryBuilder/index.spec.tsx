@@ -326,7 +326,6 @@ describe('SearchQueryBuilder', function () {
         'placeholder',
         '-1d'
       );
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       // Clicking the "-14d" option should update the value
       await userEvent.click(await screen.findByRole('option', {name: '-14d'}));
@@ -360,7 +359,6 @@ describe('SearchQueryBuilder', function () {
           'firefox,'
         )
       ).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       // Clicking the "Chrome option should add it to the list and commit changes
       await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
@@ -474,7 +472,6 @@ describe('SearchQueryBuilder', function () {
       // New token should be added with the correct key
       expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
       await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
