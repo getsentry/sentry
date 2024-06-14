@@ -50,12 +50,12 @@ class AlertRuleTriggerSerializer(Serializer):
 class DetailedAlertRuleTriggerSerializer(AlertRuleTriggerSerializer):
     def get_attrs(self, item_list, user, **kwargs):
         triggers = {item.id: item for item in item_list}
-        result: DefaultDict[str, dict[str, list[str]]] = defaultdict(dict)
+        result: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
         for trigger_id, project_slug in AlertRuleTriggerExclusion.objects.filter(
             alert_rule_trigger__in=item_list
         ).values_list("alert_rule_trigger_id", "query_subscription__project__slug"):
-            exclusions = result[triggers[trigger_id]].setdefault("excludedProjects", [])
-            exclusions.append(project_slug)
+            if project_slug is not None:
+                result[triggers[trigger_id]]["excludedProjects"].append(project_slug)
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
