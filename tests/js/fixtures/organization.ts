@@ -1,10 +1,10 @@
 import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 
-import type {DetailedOrganization} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 
-export function OrganizationFixture(
-  params: Partial<DetailedOrganization> = {}
-): DetailedOrganization {
+export function OrganizationFixture( params: Partial<Organization> = {}): Organization {
+
+
   const slug = params.slug ?? 'org-slug';
   return {
     id: '3',
@@ -81,8 +81,6 @@ export function OrganizationFixture(
     aggregatedDataConsent: false,
     storeCrashReports: 0,
     trustedRelays: [],
-    teams: [],
-    projects: [],
     ...params,
 
     orgRoleList: OrgRoleListFixture(),
