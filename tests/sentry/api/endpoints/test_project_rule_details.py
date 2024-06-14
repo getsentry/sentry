@@ -1187,7 +1187,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["actions"][0]["channel_id"] == "new_channel_id"
         sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
         message = "*Alert rule updated*\n"
-        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
+        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the Sentry <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
         assert sent_blocks[0]["text"]["text"] == message
 
         changes = "Changes\n"
