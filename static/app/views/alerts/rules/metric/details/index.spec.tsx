@@ -177,7 +177,9 @@ describe('MetricAlertDetails', () => {
   });
 
   it('renders open in discover button with dataset=errors for is:unresolved query', async () => {
-    const {organization, routerProps, router} = initializeOrg();
+    const {organization, routerProps, router} = initializeOrg({
+      organization: {features: ['discover-basic']},
+    });
     const rule = MetricRuleFixture({
       projects: [project.slug],
       dataset: Dataset.ERRORS,
