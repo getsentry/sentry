@@ -2,6 +2,7 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
+from sentry import features
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.slack.utils import (
     SLACK_RATE_LIMITED_MESSAGE,
@@ -75,7 +76,10 @@ def find_channel_id_for_rule(
     # we can always update later
     try:
         (prefix, item_id, _timed_out) = get_channel_id_with_timeout(
-            integration, channel_name, 3 * 60
+            integration,
+            channel_name,
+            3 * 60,
+            features.has("organizations:slack-sdk-get-channel-id", organization),
         )
     except DuplicateDisplayNameError:
         # if we find a duplicate display name and nothing else, we

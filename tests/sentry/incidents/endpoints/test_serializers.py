@@ -588,7 +588,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer.save()
         assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 10
+            serialize_integration(self.integration), "my-channel", 10, False
         )
 
     def test_event_types(self):

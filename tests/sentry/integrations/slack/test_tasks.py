@@ -192,7 +192,7 @@ class SlackTasksTest(TestCase):
         assert rule.created_by_id == self.user.id
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
+            serialize_integration(self.integration), "my-channel", 180, False
         )
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
@@ -220,7 +220,7 @@ class SlackTasksTest(TestCase):
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
         mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
+            serialize_integration(self.integration), "my-channel", 180, False
         )
 
     @responses.activate
@@ -245,7 +245,7 @@ class SlackTasksTest(TestCase):
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
         mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
+            serialize_integration(self.integration), "my-channel", 180, False
         )
 
     @responses.activate
@@ -274,7 +274,7 @@ class SlackTasksTest(TestCase):
         rule = AlertRule.objects.get(name="New Rule")
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
+            serialize_integration(self.integration), "my-channel", 180, False
         )
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
