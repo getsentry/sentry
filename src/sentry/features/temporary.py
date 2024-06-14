@@ -36,8 +36,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
-    # Enables region provisioning for individual users
-    manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Controls whether or not the relocation endpoints can be used.
     manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
