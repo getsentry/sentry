@@ -2,6 +2,7 @@ import {LinkButton} from 'sentry/components/button';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {
   DATA_TYPE as RESOURCE_DATA_TYPE,
@@ -52,6 +53,12 @@ function SpanSummaryButton(props: Props) {
           group: sentryTags.group,
           projectID: event.projectID,
         })}
+        onClick={() => {
+          trackAnalytics('trace.trace_layout.view_in_insight_module', {
+            organization,
+            module: ModuleName.DB,
+          });
+        }}
       >
         {t('View Query Summary')}
       </LinkButton>
@@ -72,6 +79,12 @@ function SpanSummaryButton(props: Props) {
           group: sentryTags.group,
           projectID: event.projectID,
         })}
+        onClick={() => {
+          trackAnalytics('trace.trace_layout.view_in_insight_module', {
+            organization,
+            module: ModuleName.RESOURCE,
+          });
+        }}
       >
         {tct('View [dataType] Summary', {dataType: resourceDataType})}
       </LinkButton>
