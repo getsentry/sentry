@@ -8,7 +8,7 @@ import TransactionAnomalies from 'sentry/views/performance/transactionSummary/tr
 const initializeData = (settings: InitializeDataSettings) => {
   const data = _initializeData(settings);
 
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(data.projects));
   return data;
 };
 

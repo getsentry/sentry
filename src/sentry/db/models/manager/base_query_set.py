@@ -79,9 +79,7 @@ class BaseQuerySet(QuerySet[M]):
 
     def update(self, **kwargs: Any) -> int:
         if self._with_post_update_signal:
-            pk_field = self.model._meta.pk
-            assert pk_field is not None
-            pk = pk_field.name
+            pk = self.model._meta.pk.name
             ids = [result[0] for result in self.update_with_returning([pk], **kwargs)]
             if ids:
                 updated_fields = list(kwargs.keys())

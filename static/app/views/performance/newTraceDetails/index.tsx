@@ -247,6 +247,7 @@ type TraceViewWaterfallProps = {
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const api = useApi();
   const {projects} = useProjects();
+  const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
@@ -839,7 +840,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   return (
     <Fragment>
       <TraceToolbar>
-        <TraceSearchInput onTraceSearch={onTraceSearch} />
+        <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}

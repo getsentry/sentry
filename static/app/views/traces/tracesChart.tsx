@@ -24,14 +24,14 @@ export function TracesChart({}: Props) {
   const location = useLocation();
 
   const queries = useMemo(() => {
-    return decodeList(location.query.query);
+    return decodeList(location.query.query)?.map(query => query.trim());
   }, [location.query.query]);
 
   const enabled = useMemo(
     () => [
       true, // always visualize the first series
-      Boolean(queries?.[1]?.trim()),
-      Boolean(queries?.[2]?.trim()),
+      Boolean(queries?.[1]),
+      Boolean(queries?.[2]),
     ],
     [queries]
   );
@@ -71,7 +71,7 @@ export function TracesChart({}: Props) {
       }
       const data = series[i]['count()'];
       data.color = CHART_PALETTE[2][i];
-      data.seriesName = queries[i] || t('All spans');
+      data.seriesName = `span ${i + 1}: ${queries[i]}` || t('All spans');
       allData.push(data);
     }
 

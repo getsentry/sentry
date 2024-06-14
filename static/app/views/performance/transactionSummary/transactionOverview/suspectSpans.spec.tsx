@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
@@ -18,10 +17,7 @@ import SuspectSpans from 'sentry/views/performance/transactionSummary/transactio
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view'];
-  const organization = OrganizationFixture({
-    features,
-    projects: [ProjectFixture()],
-  });
+  const organization = OrganizationFixture({features});
   const initialData = initializeOrg({
     organization,
     router: {
@@ -36,7 +32,7 @@ function initializeData({query} = {query: {}}) {
     projects: [],
   });
 
-  act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(initialData.projects));
   return {
     ...initialData,
     eventView: EventView.fromLocation(initialData.router.location),
