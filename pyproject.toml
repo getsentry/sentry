@@ -568,6 +568,7 @@ module = [
     "sentry.models.event",
     "sentry.models.eventattachment",
     "sentry.models.groupsubscription",
+    "sentry.models.integrations.integration_feature",
     "sentry.nodestore.base",
     "sentry.nodestore.bigtable.backend",
     "sentry.nodestore.django.backend",
