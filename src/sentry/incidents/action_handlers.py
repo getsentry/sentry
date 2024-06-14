@@ -14,8 +14,17 @@ from sentry import analytics, features
 from sentry.charts.types import ChartSize
 from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
-from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
+from sentry.incidents.models.alert_rule import (
+    AlertRuleThresholdType,
+    AlertRuleTrigger,
+    AlertRuleTriggerAction,
+)
+from sentry.incidents.models.incident import (
+    INCIDENT_STATUS,
+    Incident,
+    IncidentStatus,
+    TriggerStatus,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
@@ -154,7 +163,11 @@ class EmailActionHandler(ActionHandler):
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ):
-        self.email_users(TriggerStatus.ACTIVE, new_status, notification_uuid)
+        self.email_users(
+            trigger_status=TriggerStatus.ACTIVE,
+            incident_status=new_status,
+            notification_uuid=notification_uuid,
+        )
 
     def resolve(
         self,
@@ -162,7 +175,11 @@ class EmailActionHandler(ActionHandler):
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
     ):
-        self.email_users(TriggerStatus.RESOLVED, new_status, notification_uuid)
+        self.email_users(
+            trigger_status=TriggerStatus.RESOLVED,
+            incident_status=new_status,
+            notification_uuid=notification_uuid,
+        )
 
     def email_users(
         self,
@@ -175,13 +192,13 @@ class EmailActionHandler(ActionHandler):
         for index, (user_id, email) in enumerate(targets):
             user = users[index]
             email_context = generate_incident_trigger_email_context(
-                self.project,
-                self.incident,
-                self.action.alert_rule_trigger,
-                trigger_status,
-                incident_status,
-                user,
-                notification_uuid,
+                project=self.project,
+                incident=self.incident,
+                alert_rule_trigger=self.action.alert_rule_trigger,
+                trigger_status=trigger_status,
+                incident_status=incident_status,
+                user=user,
+                notification_uuid=notification_uuid,
             )
             self.build_message(email_context, trigger_status, user_id).send_async(to=[email])
             self.record_alert_sent_analytics(user_id, notification_uuid)
@@ -368,10 +385,10 @@ def format_duration(minutes):
 
 def generate_incident_trigger_email_context(
     project,
-    incident,
-    alert_rule_trigger,
-    trigger_status,
-    incident_status,
+    incident: Incident,
+    alert_rule_trigger: AlertRuleTrigger,
+    trigger_status: TriggerStatus,
+    incident_status: IncidentStatus,
     user: User | RpcUser | None = None,
     notification_uuid: str | None = None,
 ):
@@ -380,6 +397,12 @@ def generate_incident_trigger_email_context(
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+    subscription = incident.subscription
+    query_extra = ""
+    if subscription and subscription.query_extra:
+        if snuba_query.query:
+            query_extra = " and "
+        query_extra += subscription.query_extra
 
     # if alert threshold and threshold type is above then show '>'
     # if resolve threshold and threshold type is *BELOW* then show '>'
@@ -409,6 +432,8 @@ def generate_incident_trigger_email_context(
                 alert_rule=incident.alert_rule,
                 selected_incident=incident,
                 size=ChartSize({"width": 600, "height": 200}),
+                query_extra=query_extra,
+                project_id=subscription.project_id if subscription else None,
             )
         except Exception:
             logging.exception("Error while attempting to build_metric_alert_chart")
@@ -451,7 +476,7 @@ def generate_incident_trigger_email_context(
         "time_window": format_duration(snuba_query.time_window / 60),
         "triggered_at": incident.date_added,
         "aggregate": aggregate,
-        "query": snuba_query.query,
+        "query": f"{snuba_query.query}{query_extra}",
         "threshold": threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'
