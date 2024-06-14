@@ -43,15 +43,17 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         project_url_path = f"/organizations/{org_slug}/projects/{project_slug}/"
         project_url = self.linkify(org_slug, project_slug, project_url_path, project_slug)
         if self.new:
-            rule_text = f"Alert rule {rule_url} was created in the {project_url} project and will send notifications to this channel."
+            rule_text = "*Alert rule created*\n"
+            rule_text += f"{rule_url} was created in the {project_url} project and will send notifications to this channel."
         else:
-            rule_text = f"Alert rule {rule_url} in the {project_url} project was updated."
+            rule_text = "*Alert rule updated*\n"
+            rule_text += f"{rule_url} in the {project_url} project was recently updated."
             # TODO potentially use old name if it's changed?
 
         blocks.append(self.get_markdown_block(rule_text))
 
         if not self.new and self.changed:
-            changes_text = "*Changes*\n"
+            changes_text = "Changes\n"
             for changes in self.changed.values():
                 for change in changes:
                     changes_text += f"• {change}\n"
