@@ -1186,18 +1186,18 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == "new_channel_id"
         sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the *{self.project.slug}* project was updated."
+        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was updated."
         assert sent_blocks[0]["text"]["text"] == message
 
         changes = "*Changes*\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
-        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name* to *Send a notification to the Awesome Team Slack workspace to #new_channel_name*\n"
-        changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
-        changes += f"• Added *{staging_env.name}* environment\n"
-        changes += "• Changed rule name from *my rule* to *new rule*\n"
-        changes += "• Changed trigger from *None* to *any*\n"
-        changes += "• Changed filter from *None* to *any*\n"
-        changes += f"• Changed owner from *Unassigned* to *{self.user.email}*\n"
+        changes += "• Changed action from 'Send a notification to the Awesome Team Slack workspace to #old_channel_name' to 'Send a notification to the Awesome Team Slack workspace to #new_channel_name'\n"
+        changes += "• Changed frequency from '5 minutes' to '3 hours'\n"
+        changes += f"• Added '{staging_env.name}' environment\n"
+        changes += "• Changed rule name from 'my rule' to 'new rule'\n"
+        changes += "• Changed trigger from 'None' to 'any'\n"
+        changes += "• Changed filter from 'None' to 'any'\n"
+        changes += f"• Changed owner from 'Unassigned' to '{self.user.email}'\n"
         assert sent_blocks[1]["text"]["text"] == changes
         assert (
             sent_blocks[2]["elements"][0]["text"]
