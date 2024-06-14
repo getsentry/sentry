@@ -19,6 +19,7 @@ class CreateGroupingRecordData(TypedDict):
     hash: str
     project_id: int
     message: str
+    exception_type: str | None
 
 
 class CreateGroupingRecordsRequest(TypedDict):

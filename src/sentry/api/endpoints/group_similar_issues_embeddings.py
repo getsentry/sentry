@@ -18,6 +18,7 @@ from sentry.models.user import User
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import get_stacktrace_string
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 MAX_FRAME_COUNT = 50
@@ -78,6 +79,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
             "message": group.message,
+            "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
             "read_only": True,
         }
         # Add optional parameters

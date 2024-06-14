@@ -16,6 +16,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
 )
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -210,6 +211,7 @@ def get_seer_similar_issues(
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "message": filter_null_from_event_title(event.title),
+        "exception_type": get_path(event.data, "exception", "values", -1, "type"),
         "k": num_neighbors,
     }
 

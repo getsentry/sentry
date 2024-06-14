@@ -18,8 +18,20 @@ DUMMY_POOL = ConnectionPool("dummy")
 CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
     "group_id_list": [1, 2],
     "data": [
-        {"group_id": 1, "hash": "hash-1", "project_id": 1, "message": "message"},
-        {"group_id": 2, "hash": "hash-2", "project_id": 1, "message": "message 2"},
+        {
+            "group_id": 1,
+            "hash": "hash-1",
+            "project_id": 1,
+            "message": "message",
+            "exception_type": "Error",
+        },
+        {
+            "group_id": 2,
+            "hash": "hash-2",
+            "project_id": 1,
+            "message": "message 2",
+            "exception_type": "Error",
+        },
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
 }

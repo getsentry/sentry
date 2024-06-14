@@ -394,6 +394,7 @@ def get_events_from_nodestore(
                     group_id=group_id,
                     project_id=project.id,
                     message=filter_null_from_event_title(event.title),
+                    exception_type=get_path(event.data, "exception", "values", -1, "type"),
                     hash=primary_hash,
                 )
             )
