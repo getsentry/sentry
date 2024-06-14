@@ -12,10 +12,10 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import (
-    GroupSearchViewRestSerializer,
     GroupSearchViewSerializer,
     GroupSearchViewSerializerResponse,
 )
+from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewRestSerializer
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SortOptions
