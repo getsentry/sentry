@@ -1580,6 +1580,12 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
+    @with_feature("projects:similarity-embeddings-delete-by-hash")
+    @mock.patch("sentry.api.endpoints.project_details.delete_project_grouping_records")
+    def test_delete_project_and_delete_grouping_records(self, mock_delete_project_grouping_records):
+        self._delete_project_and_assert_deleted()
+        mock_delete_project_grouping_records.assert_called_with(self.project.id)
+
 
 class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
     endpoint = "sentry-api-0-project-details"

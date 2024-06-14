@@ -3,9 +3,12 @@ from __future__ import annotations
 import os
 from collections import defaultdict
 
-from sentry import eventstore, eventstream, models, nodestore
+from sentry import eventstore, eventstream, features, models, nodestore
 from sentry.eventstore.models import Event
+from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.tasks.delete_seer_grouping_records_by_hash import delete_seer_grouping_records_by_hash
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 
@@ -127,6 +130,17 @@ class GroupDeletionTask(ModelDeletionTask):
         self.mark_deletion_in_progress(instance_list)
 
         group_ids = [group.id for group in instance_list]
+
+        # Tell seer to delete grouping records with these group hashes
+        if group_ids:
+            group = Group.objects.get(id=group_ids[0])
+            project = group.project if group else None
+        if project and features.has("projects:similarity-embeddings-delete-by-hash", project):
+            # TODO (jangjodi): once we store seer grouping info in GroupHash, we should filter by that here
+            group_hashes = GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids)
+            delete_seer_grouping_records_by_hash.apply_async(
+                args=[project.id, [group_hash.hash for group_hash in group_hashes], 0]
+            )
 
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
