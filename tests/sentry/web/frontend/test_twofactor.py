@@ -23,17 +23,18 @@ class TwoFactorBaseTestCase(TestCase):
         self.login_as(self.user)
         self.session["_pending_2fa"] = [self.user.id, time() - 2]
         self.save_session()
+        self.url = "/auth/2fa/"
 
 
 @control_silo_test
 class GenericTwoFactorTest(TwoFactorBaseTestCase):
     def test_not_pending_2fa(self):
-        response = self.client.get("/auth/2fa/")
+        response = self.client.get(self.url)
         assert response.status_code == 302
         assert response["Location"] == "/auth/login/"
 
     def test_no_2fa_configured(self):
-        response = self.client.get("/auth/2fa/", follow=True)
+        response = self.client.get(self.url, follow=True)
         assert response.redirect_chain == [
             ("/auth/login/", 302),
             ("/organizations/new/", 302),
@@ -47,7 +48,7 @@ class OTPTest(TwoFactorBaseTestCase):
         TotpInterface().enroll(self.user)
 
     def test_otp_challenge(self):
-        response = self.client.get("/auth/2fa/")
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         self.assertTemplateUsed("sentry/twofactor.html")
@@ -56,7 +57,7 @@ class OTPTest(TwoFactorBaseTestCase):
     @patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=None)
     @patch("time.sleep")
     def test_otp_submit_error(self, mock_sleep, mock_validate):
-        response = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=True)
+        response = self.client.post(self.url, data={"otp": "123456"})
 
         assert response.status_code == 200
         assert mock_validate.called
@@ -64,7 +65,7 @@ class OTPTest(TwoFactorBaseTestCase):
 
     @patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True)
     def test_otp_submit_success(self, mock_validate):
-        response = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=True)
+        response = self.client.post(self.url, data={"otp": "123456"}, follow=True)
 
         assert mock_validate.called
         assert response.redirect_chain == [
@@ -78,7 +79,7 @@ class OTPTest(TwoFactorBaseTestCase):
         with freeze_time("2000-01-01"):
             for _ in range(5 + 2):
                 with self.tasks(), outbox_runner():
-                    response = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=False)
+                    response = self.client.post(self.url, data={"otp": "123456"})
 
         assert response.status_code == 429
         assert mock_validate.called
@@ -111,7 +112,7 @@ class U2FTest(TwoFactorBaseTestCase):
         side_effect=render_to_response,
     )
     def test_u2f_challenge(self, mock_render: Mock):
-        response = self.client.get("/auth/2fa/")
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         self.assertTemplateUsed("sentry/twofactor.html")
@@ -130,7 +131,7 @@ class U2FTest(TwoFactorBaseTestCase):
         side_effect=render_to_response,
     )
     def test_u2f_challenge_with_state(self, mock_render: Mock):
-        response = self.client.get("/auth/2fa/")
+        response = self.client.get(self.url)
 
         assert response.status_code == 200
         self.assertTemplateUsed("sentry/twofactor.html")
@@ -148,9 +149,8 @@ class U2FTest(TwoFactorBaseTestCase):
     @patch("time.sleep")
     def test_u2f_submit_error(self, mock_sleep, mock_validate):
         response = self.client.post(
-            "/auth/2fa/",
+            self.url,
             data={"challenge": '{"foo":"bar"}', "response": '{"biz":"baz"}'},
-            follow=True,
         )
 
         assert response.status_code == 200
@@ -161,23 +161,46 @@ class U2FTest(TwoFactorBaseTestCase):
     @patch("time.sleep")
     def test_u2f_submit_error_with_state(self, mock_sleep, mock_validate):
         response = self.client.post(
-            "/auth/2fa/",
+            self.url,
             data={
                 "challenge": '{"foo":"bar"}',
                 "response": '{"biz":"baz"}',
                 "state": '{"woz":"wiz"}',
             },
-            follow=True,
         )
 
         assert response.status_code == 200
         assert mock_validate.call_args.kwargs["state"] == {"woz": "wiz"}
         assert "Invalid confirmation code" in response.content.decode("utf8")
 
-    # def test_u2f_submit_success(self, mock_validate):
-    #     response = self.client.post("/auth/2fa/", data={"otp": "123456"}, follow=True)
-    #     assert mock_validate.called
-    #     assert response.redirect_chain == [
-    #         ("/auth/login/", 302),
-    #         ("/organizations/new/", 302),
-    #     ]
+    @patch.object(U2fInterface, "validate_response", return_value=True)
+    def test_u2f_submit_success(self, mock_validate):
+        response = self.client.post(
+            self.url,
+            data={"challenge": '{"foo":"bar"}', "response": '{"biz":"baz"}'},
+            follow=True,
+        )
+
+        assert mock_validate.call_args.kwargs["state"] is None
+        assert response.redirect_chain == [
+            ("/auth/login/", 302),
+            ("/organizations/new/", 302),
+        ]
+
+    @patch.object(U2fInterface, "validate_response", return_value=True)
+    def test_u2f_submit_success_with_state(self, mock_validate):
+        response = self.client.post(
+            self.url,
+            data={
+                "challenge": '{"foo":"bar"}',
+                "response": '{"biz":"baz"}',
+                "state": '{"woz": "wiz"}',
+            },
+            follow=True,
+        )
+
+        assert mock_validate.call_args.kwargs["state"] == {"woz": "wiz"}
+        assert response.redirect_chain == [
+            ("/auth/login/", 302),
+            ("/organizations/new/", 302),
+        ]
