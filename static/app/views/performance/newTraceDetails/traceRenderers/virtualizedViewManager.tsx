@@ -1685,6 +1685,7 @@ function getIconTimestamps(
   span_space: [number, number],
   icon_width: number
 ) {
+<<<<<<< HEAD
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
 
@@ -1692,6 +1693,15 @@ function getIconTimestamps(
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
+=======
+  if (!node.errors.size && !node.performance_issues.size) {
+    return [span_space[0], span_space[0] + span_space[1]];
+  }
+
+  let min_icon_timestamp = span_space[0];
+  let max_icon_timestamp = span_space[0] + span_space[1];
+
+>>>>>>> 7d674571dd1 (fix(trace) fix icon positioning by extending the window)
   for (const issue of node.performance_issues) {
     // Perf issues render icons at the start timestamp
     if (typeof issue.start === 'number') {
