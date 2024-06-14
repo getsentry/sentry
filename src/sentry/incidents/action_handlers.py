@@ -203,8 +203,12 @@ class EmailActionHandler(ActionHandler):
             self.build_message(email_context, trigger_status, user_id).send_async(to=[email])
             self.record_alert_sent_analytics(user_id, notification_uuid)
 
-    def build_message(self, context, status, user_id) -> MessageBuilder:
+    def build_message(
+        self, context: dict[str, any], status: TriggerStatus, user_id: int
+    ) -> MessageBuilder:
         display = self.status_display[status]
+        alert_rule = self.incident.alert_rule
+        activation = self.incident.activation
         return MessageBuilder(
             subject="[{}] {} - {}".format(
                 context["status"], context["incident_name"], self.project.slug
@@ -214,6 +218,9 @@ class EmailActionHandler(ActionHandler):
             type=f"incident.alert_rule_{display.lower()}",
             context=context,
             headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
+            monitor_type=alert_rule.monitor_type,  # 0 = continuous, 1 = activated
+            activator=activation.activator,
+            condition_type=activation.condition_type,  # 0 = release creation, 1 = deploy creation
         )
 
 
