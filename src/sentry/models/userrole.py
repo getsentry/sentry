@@ -51,17 +51,6 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
             )
         ]
 
-    @classmethod
-    def permissions_for_user(cls, user_id: int) -> frozenset[str]:
-        """
-        Return a set of permission for the given user ID scoped to roles.
-        """
-        return frozenset(
-            i
-            for sl in cls.objects.filter(users=user_id).values_list("permissions", flat=True)
-            for i in sl
-        )
-
 
 @control_silo_model
 class UserRoleUser(ControlOutboxProducingModel):
