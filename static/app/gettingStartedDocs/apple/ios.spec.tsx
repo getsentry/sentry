@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import docs, {InstallationMode} from './apple-ios';
+import docs, {InstallationMode} from './ios';
 
 describe('apple-ios onboarding docs', function () {
   it('renders docs correctly', function () {
