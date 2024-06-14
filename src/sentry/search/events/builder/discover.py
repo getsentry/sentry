@@ -1320,11 +1320,21 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            condition = Condition(
-                Function("match", [lhs, f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
+            if value.startswith("^.*") and value.endswith(".*$") and ".*" not in value[3:-3]:
+                # This is an optimization to avoid using regular expressions
+                # for wild card searches if it can be avoided.
+                # Here, we're just interested if the substring exists.
+                condition = Condition(
+                    Function("positionCaseInsensitive", [lhs, value[3:-3]]),
+                    Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+                    0,
+                )
+            else:
+                condition = Condition(
+                    Function("match", [lhs, f"(?i){value}"]),
+                    Op(search_filter.operator),
+                    1,
+                )
         else:
             # pull out the aliased expression if it exists
             if isinstance(lhs, AliasedExpression):
