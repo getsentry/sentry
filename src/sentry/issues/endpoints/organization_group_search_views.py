@@ -105,13 +105,11 @@ def bulk_update_views(org: Organization, user_id: int, validated_data):
 
     _delete_missing_views(org, user_id, view_ids_to_keep=existing_view_ids)
 
-    updated_views = []
     for idx, view in enumerate(validated_data["views"]):
         if "id" not in view:
-            updated_views.append(_create_view(org, user_id, view, position=idx))
+            _create_view(org, user_id, view, position=idx)
         else:
-            updated_views.append(_update_existing_view(view, position=idx))
-    return updated_views
+            _update_existing_view(view, position=idx)
 
 
 def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[int]):
