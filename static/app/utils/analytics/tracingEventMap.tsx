@@ -16,6 +16,10 @@ export type TracingEventParameters = {
     interaction: string;
   };
   'trace.trace_layout.show_in_view': {};
+  'trace.trace_layout.span_row_click': {
+    num_children: number;
+    project_platform: string;
+  };
   'trace.trace_layout.tab_pin': {};
   'trace.trace_layout.tab_view': {
     tab: string;

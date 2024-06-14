@@ -521,6 +521,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      trackAnalytics('trace.trace_layout.span_row_click', {
+        organization,
+        num_children: node.children.length,
+        project_platform:
+          projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
+      });
+
       if (traceStateRef.current.preferences.drawer.minimized) {
         traceDispatch({type: 'minimize drawer', payload: false});
       }
@@ -544,7 +551,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch]
+    [setRowAsFocused, traceDispatch, organization, projects]
   );
 
   const scrollRowIntoView = useCallback(
