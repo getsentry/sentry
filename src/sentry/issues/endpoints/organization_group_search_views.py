@@ -78,7 +78,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
     def put(self, request: Request, organization: Organization) -> Response:
         if not features.has("organizations:issue-stream-custom-views", organization):
-            return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response(status=status.HTTP_404_NOT_FOUND)
 
         serializer = GroupSearchViewRestSerializer(data=request.data)
 
