@@ -14,7 +14,7 @@ class AuthVerifyValidator(serializers.Serializer):
         if "password" in data:
             return data
         if "challenge" in data and "response" in data:
-            # TODO(schew2381): Require auth_state for U2F once new U2F flow in enabled
+            # TODO(schew2381): Require authState for U2F once new U2F flow in enabled
             return data
         raise serializers.ValidationError(
             detail="You must provide `password` or `challenge` and `response`.",

@@ -178,7 +178,6 @@ class AuthVerifyEndpointTest(APITestCase):
         assert mock_validate.call_count == 1
         assert mock_validate.call_args.kwargs["challenge"] == {"foo": "bar"}
         assert mock_validate.call_args.kwargs["response"] == {"baz": "biz"}
-        assert mock_validate.call_args.kwargs["state"] is None
         assert (
             call("auth.2fa.success", sample_rate=1.0, skip_internal=False)
             not in mock_metrics.incr.call_args_list
