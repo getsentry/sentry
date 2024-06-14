@@ -24,6 +24,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {MRI} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getFormattedMQL} from 'sentry/utils/metrics';
@@ -253,6 +254,7 @@ function TraceRow({
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
   const location = useLocation();
+  const organization = useOrganization();
   const queries = useMemo(() => {
     return decodeList(location.query.query);
   }, [location.query.query]);
@@ -276,8 +278,23 @@ function TraceRow({
           aria-expanded={expanded}
           size="zero"
           borderless
+          onClick={() =>
+            trackAnalytics('trace_explorer.toggle_trace_details', {
+              organization,
+              expanded,
+            })
+          }
         />
-        <TraceIdRenderer traceId={trace.trace} timestamp={trace.spans[0].timestamp} />
+        <TraceIdRenderer
+          traceId={trace.trace}
+          timestamp={trace.spans[0].timestamp}
+          onClick={() =>
+            trackAnalytics('trace_explorer.open_trace', {
+              organization,
+            })
+          }
+          location={location}
+        />
       </StyledPanelItem>
       <StyledPanelItem align="left" overflow>
         <Description>
@@ -319,7 +336,14 @@ function TraceRow({
         <SpanTimeRenderer timestamp={trace.end} tooltipShowSeconds />
       </StyledPanelItem>
       <StyledPanelItem align="right">
-        <TraceIssuesRenderer trace={trace} />
+        <TraceIssuesRenderer
+          trace={trace}
+          onClick={() =>
+            trackAnalytics('trace_explorer.open_in_issues', {
+              organization,
+            })
+          }
+        />
       </StyledPanelItem>
       {expanded && (
         <SpanTable
@@ -342,6 +366,7 @@ function SpanTable({
   trace: TraceResult<Field>;
 }) {
   const location = useLocation();
+  const organization = useOrganization();
   const queries = useMemo(() => {
     return decodeList(location.query.query);
   }, [location.query.query]);
@@ -365,6 +390,7 @@ function SpanTable({
           </StyledPanelHeader>
           {spans.map(span => (
             <SpanRow
+              organization={organization}
               key={span.id}
               span={span}
               trace={trace}
@@ -387,10 +413,12 @@ function SpanTable({
 }
 
 function SpanRow({
+  organization,
   span,
   trace,
   setHighlightedSliceName,
 }: {
+  organization: Organization;
   setHighlightedSliceName: (sliceName: string) => void;
   span: SpanResult<Field>;
 
@@ -406,6 +434,11 @@ function SpanRow({
           spanId={span.id}
           traceId={trace.trace}
           timestamp={span.timestamp}
+          onClick={() =>
+            trackAnalytics('trace_explorer.open_trace_span', {
+              organization,
+            })
+          }
         />
       </StyledSpanPanelItem>
       <StyledSpanPanelItem align="left" overflow>

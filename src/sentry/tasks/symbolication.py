@@ -22,7 +22,6 @@ from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_da
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.sdk import set_current_event_project
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -318,7 +317,7 @@ def _do_symbolicate_event(
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
-    if isinstance(data, CANONICAL_TYPES):
+    if not isinstance(data, dict):
         data = dict(data.items())
 
     if has_changed:

@@ -25,6 +25,7 @@ import RenderBlockingSelector from 'sentry/views/performance/browser/resources/s
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -141,6 +142,7 @@ function ResourceSummary() {
             groupId={groupId}
             moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
+            referrer={TraceViewSources.ASSETS_MODULE}
           />
         </Layout.Main>
       </Layout.Body>

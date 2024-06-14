@@ -150,7 +150,7 @@ class NodeData(MutableMapping[str, Any]):
         # We can't put our wrappers into the nodestore, so we need to
         # ensure that the data is converted into a plain old dict
         to_write = self._node_data
-        if isinstance(to_write, CANONICAL_TYPES):
+        if not isinstance(to_write, dict):
             to_write = dict(to_write.items())
 
         subkeys = subkeys or {}

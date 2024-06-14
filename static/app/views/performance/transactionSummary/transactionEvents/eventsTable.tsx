@@ -35,6 +35,8 @@ import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cell
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 import {COLUMN_TITLES} from '../../data';
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import Tab from '../tabs';
 import {
   generateProfileLink,
   generateReplayLink,
@@ -160,6 +162,7 @@ class EventsTable extends Component<Props, State> {
       const {issueId, isRegressionIssue} = this.props;
       const isIssue: boolean = !!issueId;
       let target: LocationDescriptor = {};
+      const locationWithTab = {...location, query: {...location.query, tab: Tab.EVENTS}};
       // TODO: set referrer properly
       if (isIssue && !isRegressionIssue && field === 'id') {
         target.pathname = `/organizations/${organization.slug}/issues/${issueId}/events/${dataRow.id}/`;
@@ -170,12 +173,17 @@ class EventsTable extends Component<Props, State> {
             projectSlug: dataRow['project.name']?.toString(),
             eventId: dataRow.id,
             timestamp: dataRow.timestamp,
-            location,
+            location: locationWithTab,
             organization,
             transactionName: transactionName,
+            source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
           });
         } else {
-          target = generateTraceLink(transactionName)(organization, dataRow, location);
+          target = generateTraceLink(transactionName)(
+            organization,
+            dataRow,
+            locationWithTab
+          );
         }
       }
 

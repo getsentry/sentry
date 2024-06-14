@@ -18,6 +18,8 @@ import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell
 import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
 
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+
 type DataRowKeys =
   | SpanIndexedField.PROJECT
   | SpanIndexedField.TRANSACTION_ID
@@ -170,6 +172,8 @@ function renderBodyCell(
         timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
         spanId={row[SpanIndexedField.ID]}
+        source={TraceViewSources.QUEUES_MODULE}
+        location={location}
       />
     );
   }

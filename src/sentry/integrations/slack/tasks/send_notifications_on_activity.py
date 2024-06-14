@@ -2,7 +2,6 @@ import logging
 
 from django.db import router, transaction
 
-from sentry import features
 from sentry.integrations.slack.service import SlackService
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -35,12 +34,6 @@ def send_activity_notifications_to_slack_threads(activity_id) -> None:
 
     organization = Organization.objects.get_from_cache(id=activity.project.organization_id)
     log_params["organization_id"] = organization.id
-
-    org_has_flag = features.has("organizations:slack-thread-issue-alert", organization)
-    log_params["org_has_flag"] = org_has_flag
-    if not org_has_flag:
-        _default_logger.debug("org does not have flag, skipping", extra=log_params)
-        return
 
     _default_logger.debug("attempting to send notifications", extra=log_params)
     slack_service = SlackService.default()

@@ -13,7 +13,7 @@ jest.mock('sentry/utils/useProjects');
 
 describe('destinationSummaryPage', () => {
   const organization = OrganizationFixture({
-    features: ['performance-queues-view', 'insights-addon-modules'],
+    features: ['insights-addon-modules'],
   });
 
   jest.mocked(usePageFilters).mockReturnValue({
