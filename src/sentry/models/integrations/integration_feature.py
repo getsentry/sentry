@@ -34,7 +34,7 @@ class Feature:
     SESSION_REPLAY = 12
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
         return (
             (cls.API, "integrations-api"),
             (cls.ISSUE_LINK, "integrations-issue-link"),
@@ -51,7 +51,7 @@ class Feature:
         )
 
     @classmethod
-    def as_str(cls, feature):
+    def as_str(cls, feature: int) -> str:
         if feature == cls.ISSUE_LINK:
             return "integrations-issue-link"
         if feature == cls.STACKTRACE_LINK:
@@ -77,7 +77,7 @@ class Feature:
         return "integrations-api"
 
     @classmethod
-    def description(cls, feature, name):
+    def description(cls, feature: int, name: str) -> str:
         if feature == cls.PROJECT_MANAGEMENT:
             return "Create or link issues in %s from Sentry issue groups." % name
         if feature == cls.INCIDENT_MANAGEMENT:
@@ -112,7 +112,7 @@ class IntegrationTypes(Enum):
     DOC_INTEGRATION = 1
 
 
-INTEGRATION_MODELS_BY_TYPE = {
+INTEGRATION_MODELS_BY_TYPE: dict[int, type[SentryApp] | type[DocIntegration]] = {
     IntegrationTypes.SENTRY_APP.value: SentryApp,
     IntegrationTypes.DOC_INTEGRATION.value: DocIntegration,
 }
@@ -121,7 +121,7 @@ INTEGRATION_MODELS_BY_TYPE = {
 class IntegrationFeatureManager(BaseManager["IntegrationFeature"]):
     def get_by_targets_as_dict(
         self, targets: list[SentryApp | DocIntegration], target_type: IntegrationTypes
-    ):
+    ) -> dict[int, set[IntegrationFeature]]:
         """
         Returns a dict mapping target_id (key) to List[IntegrationFeatures] (value)
         """
@@ -133,7 +133,7 @@ class IntegrationFeatureManager(BaseManager["IntegrationFeature"]):
             features_by_target[feature.target_id].add(feature)
         return features_by_target
 
-    def get_descriptions_as_dict(self, features: list[IntegrationFeature]):
+    def get_descriptions_as_dict(self, features: list[IntegrationFeature]) -> dict[int, str]:
         """
         Returns a dict mapping IntegrationFeature id (key) to description (value)
         This will do bulk requests for each type of Integration, rather than individual transactions for
@@ -163,7 +163,7 @@ class IntegrationFeatureManager(BaseManager["IntegrationFeature"]):
         incoming_features: list[int],
         target: SentryApp | DocIntegration,
         target_type: IntegrationTypes,
-    ):
+    ) -> None:
         # Delete any unused features
         IntegrationFeature.objects.filter(
             target_id=target.id, target_type=target_type.value
@@ -202,17 +202,18 @@ class IntegrationFeature(Model):
         db_table = "sentry_integrationfeature"
         unique_together = (("target_id", "target_type", "feature"),)
 
-    def feature_str(self):
+    def feature_str(self) -> str:
         return Feature.as_str(self.feature)
 
     @property
-    def description(self):
+    def description(self) -> str:
         from sentry.models.integrations.doc_integration import DocIntegration
         from sentry.models.integrations.sentry_app import SentryApp
 
         if self.user_description:
             return self.user_description
 
+        integration: SentryApp | DocIntegration
         if self.target_type == IntegrationTypes.SENTRY_APP.value:
             integration = SentryApp.objects.get(id=self.target_id)
         else:
