@@ -1445,7 +1445,7 @@ function buildRoutes() {
   ) : (
     <Redirect
       from="/organizations/:orgId/llm-monitoring/"
-      to="/organizations/:orgId/insights/llm-monitoring/"
+      to={`/organizations/:orgId/insights/${MODULE_BASE_URLS[ModuleName.AI]}/`}
     />
   );
 
