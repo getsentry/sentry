@@ -201,7 +201,7 @@ describe('Performance GridEditable Table', function () {
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findAllByTestId('relative-ops-breakdown')).toHaveLength(2);
@@ -254,7 +254,7 @@ describe('Performance GridEditable Table', function () {
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findAllByRole('columnheader')).toHaveLength(6);
@@ -288,17 +288,17 @@ describe('Performance GridEditable Table', function () {
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByRole('link', {name: 'deadbeef'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/undefined:deadbeef/?project=1&transaction=transactionName&transactionCursor=1%3A0%3A0'
+      '/organizations/org-slug/performance/undefined:deadbeef/?project=1&tab=events&transaction=transactionName&transactionCursor=1%3A0%3A0'
     );
 
     expect(screen.getByRole('link', {name: '1234'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/trace/1234/?'
+      '/organizations/org-slug/performance/trace/1234/?project=1&tab=events&transaction=%2Fperformance&transactionCursor=1%3A0%3A0'
     );
   });
 
@@ -338,7 +338,7 @@ describe('Performance GridEditable Table', function () {
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -376,7 +376,7 @@ describe('Performance GridEditable Table', function () {
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

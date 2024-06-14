@@ -9,17 +9,19 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 jest.mock('sentry/utils/analytics');
 
 describe('GuideStore', function () {
-  let data;
+  let data!: Parameters<typeof GuideStore.fetchSucceeded>[0];
 
   beforeEach(function () {
     jest.clearAllMocks();
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({
-        id: '5',
-        isSuperuser: false,
-        dateJoined: '2020-01-01T00:00:00',
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          id: '5',
+          isSuperuser: false,
+          dateJoined: '2020-01-01T00:00:00',
+        }),
+      })
+    );
     GuideStore.init();
     data = [
       {
@@ -127,5 +129,11 @@ describe('GuideStore', function () {
     ModalStore.closeModal();
 
     expect(GuideStore.getState().forceHide).toBe(false);
+  });
+
+  it('should return a stable reference from getState', function () {
+    ModalStore.openModal(() => <div />, {});
+    const state = GuideStore.getState();
+    expect(Object.is(state, GuideStore.getState())).toBe(true);
   });
 });

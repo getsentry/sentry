@@ -10,13 +10,14 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.types import NonNone
 
 
 class ShouldCallSeerTest(TestCase):
     # TODO: Add tests for rate limits, killswitches, etc once those are in place
     def setUp(self):
-        event_data = {
+        self.event_data = {
             "title": "FailedToFetchError('Charlie didn't bring the ball back')",
             "exception": {
                 "values": [
@@ -41,8 +42,9 @@ class ShouldCallSeerTest(TestCase):
         self.event = Event(
             project_id=self.project.id,
             event_id="11212012123120120415201309082013",
-            data=event_data,
+            data=self.event_data,
         )
+        self.primary_hashes = self.event.get_hashes()
 
     def test_obeys_seer_similarity_flags(self):
         for metadata_flag, grouping_flag, expected_result in [
@@ -58,7 +60,8 @@ class ShouldCallSeerTest(TestCase):
                 }
             ):
                 assert (
-                    should_call_seer_for_grouping(self.event, self.project) is expected_result
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
                 ), f"Case ({metadata_flag}, {grouping_flag}) failed."
 
     @with_feature("projects:similarity-embeddings-grouping")
@@ -68,7 +71,96 @@ class ShouldCallSeerTest(TestCase):
                 "sentry.grouping.ingest.seer.event_content_is_seer_eligible",
                 return_value=content_eligibility,
             ):
-                assert should_call_seer_for_grouping(self.event, self.project) is expected_result
+                assert (
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
+                )
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_global_seer_killswitch(self):
+        for killswitch_enabled, expected_result in [(True, False), (False, True)]:
+            with override_options({"seer.global-killswitch.enabled": killswitch_enabled}):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
+                )
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_similarity_service_killswitch(self):
+        for killswitch_enabled, expected_result in [(True, False), (False, True)]:
+            with override_options({"seer.similarity-killswitch.enabled": killswitch_enabled}):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
+                )
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_global_ratelimit(self):
+        for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
+            with patch(
+                "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
+                wraps=lambda key, is_enabled=ratelimit_enabled, **_kwargs: (
+                    is_enabled if key == "seer:similarity:global-limit" else False
+                ),
+            ):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
+                )
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_project_ratelimit(self):
+        for ratelimit_enabled, expected_result in [(True, False), (False, True)]:
+            with patch(
+                "sentry.grouping.ingest.seer.ratelimiter.backend.is_limited",
+                wraps=lambda key, is_enabled=ratelimit_enabled, **_kwargs: (
+                    is_enabled
+                    if key == f"seer:similarity:project-{self.project.id}-limit"
+                    else False
+                ),
+            ):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.primary_hashes)
+                    is expected_result
+                )
+
+    @with_feature("projects:similarity-embeddings-grouping")
+    def test_obeys_customized_fingerprint_check(self):
+        default_fingerprint_event = Event(
+            project_id=self.project.id,
+            event_id="11212012123120120415201309082013",
+            data={**self.event_data, "fingerprint": ["{{ default }}"]},
+        )
+        hybrid_fingerprint_event = Event(
+            project_id=self.project.id,
+            event_id="12312012041520130908201311212012",
+            data={**self.event_data, "fingerprint": ["{{ default }}", "maisey"]},
+        )
+        custom_fingerprint_event = Event(
+            project_id=self.project.id,
+            event_id="04152013090820131121201212312012",
+            data={**self.event_data, "fingerprint": ["charlie"]},
+        )
+        built_in_fingerprint_event = Event(
+            project_id=self.project.id,
+            event_id="09082013112120121231201204152013",
+            data={
+                **self.event_data,
+                "fingerprint": ["failedtofetcherror"],
+                "_fingerprint_info": {"is_builtin": True},
+            },
+        )
+
+        for event, expected_result in [
+            (default_fingerprint_event, True),
+            (hybrid_fingerprint_event, False),
+            (custom_fingerprint_event, False),
+            (built_in_fingerprint_event, False),
+        ]:
+
+            assert (
+                should_call_seer_for_grouping(event, event.get_hashes()) is expected_result
+            ), f'Case with fingerprint {event.data["fingerprint"]} failed.'
 
 
 class GetSeerSimilarIssuesTest(TestCase):
@@ -79,12 +171,7 @@ class GetSeerSimilarIssuesTest(TestCase):
             event_id="11212012123120120415201309082013",
             data={"message": "Adopt don't shop"},
         )
-        self.new_event_hashes = CalculatedHashes(
-            hashes=["20130809201315042012311220122111"],
-            hierarchical_hashes=[],
-            tree_labels=[],
-            variants={},
-        )
+        self.new_event_hashes = CalculatedHashes(["20130809201315042012311220122111"])
 
     @with_feature({"projects:similarity-embeddings-grouping": False})
     def test_returns_metadata_but_no_group_if_seer_grouping_flag_off(self):

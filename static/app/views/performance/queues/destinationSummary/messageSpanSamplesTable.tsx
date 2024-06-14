@@ -15,8 +15,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MessageActorType} from 'sentry/views/performance/queues/settings';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import type {IndexedResponse} from 'sentry/views/starfish/types';
+import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
@@ -40,7 +42,7 @@ type ColumnKeys =
   | SpanIndexedField.TRACE_STATUS
   | SpanIndexedField.SPAN_DURATION;
 
-type DataRow = Pick<IndexedResponse, DataRowKeys>;
+type DataRow = Pick<SpanIndexedResponse, DataRowKeys>;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -57,7 +59,7 @@ const CONSUMER_COLUMN_ORDER: Column[] = [
   },
   {
     key: SpanIndexedField.SPAN_DURATION,
-    name: t('Processing Time'),
+    name: t('Span Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -141,7 +143,6 @@ export function MessageSpanSamplesTable({
       highlightedRowKey={data.findIndex(row => row.span_id === highlightedSpanId)}
       onRowMouseOver={onSampleMouseOver}
       onRowMouseOut={onSampleMouseOut}
-      location={location}
     />
   );
 }
@@ -171,6 +172,8 @@ function renderBodyCell(
         timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
         spanId={row[SpanIndexedField.ID]}
+        source={TraceViewSources.QUEUES_MODULE}
+        location={location}
       />
     );
   }

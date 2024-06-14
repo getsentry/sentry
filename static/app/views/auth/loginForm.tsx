@@ -124,7 +124,7 @@ const FormWrapper = styled('div')<{hasLoginProvider: boolean}>`
 const ProviderHeading = styled('div')`
   margin: 0;
   font-size: 15px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 24px;
 `;
 

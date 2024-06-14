@@ -32,7 +32,7 @@ type MiddlewaresEvent<R extends React.Reducer<any, any>> = {
   [K in keyof DispatchingReducerMiddleware<R>]: Set<DispatchingReducerMiddleware<R>[K]>;
 };
 
-class Emitter<R extends React.Reducer<any, any>> {
+export class DispatchingReducerEmitter<R extends React.Reducer<any, any>> {
   listeners: MiddlewaresEvent<R> = {
     'before action': new Set<DispatchingReducerMiddleware<R>['before action']>(),
     'before next state': new Set<DispatchingReducerMiddleware<R>['before next state']>(),
@@ -81,7 +81,7 @@ function update<R extends React.Reducer<any, any>>(
   state: ReducerState<R>,
   actions: ReducerAction<R>[],
   reducer: R,
-  emitter: Emitter<R>
+  emitter: DispatchingReducerEmitter<R>
 ) {
   if (!actions.length) {
     return state;
@@ -103,8 +103,8 @@ export function useDispatchingReducer<R extends React.Reducer<any, any>>(
   reducer: R,
   initialState: ReducerState<R>,
   initializer?: (arg: ReducerState<R>) => ReducerState<R>
-): [ReducerState<R>, React.Dispatch<ReducerAction<R>>, Emitter<R>] {
-  const emitter = useMemo(() => new Emitter<R>(), []);
+): [ReducerState<R>, React.Dispatch<ReducerAction<R>>, DispatchingReducerEmitter<R>] {
+  const emitter = useMemo(() => new DispatchingReducerEmitter<R>(), []);
   const [state, setState] = useState(
     initialState ?? (initializer?.(initialState) as ReducerState<R>)
   );

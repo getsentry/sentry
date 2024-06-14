@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from sentry import options
 from sentry.constants import PLACEHOLDER_EVENT_TITLES
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
@@ -8,7 +9,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 MAX_FRAME_COUNT = 50
-SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
+SEER_ELIGIBLE_PLATFORMS = options.get("seer.similarity.supported_platforms")
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
@@ -97,3 +98,10 @@ def event_content_is_seer_eligible(event: Event) -> bool:
         return False
 
     return True
+
+
+def filter_null_from_event_title(title: str) -> str:
+    """
+    Filter out null bytes from event title so that it can be saved in records table.
+    """
+    return title.replace("\x00", "")

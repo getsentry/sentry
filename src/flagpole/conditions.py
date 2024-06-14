@@ -206,6 +206,6 @@ class Segment(BaseModel):
                 return False
         # Apply incremental rollout if available.
         if self.rollout is not None and self.rollout < 100:
-            return context.id() % 100 <= self.rollout
+            return context.id % 100 <= self.rollout
 
         return True

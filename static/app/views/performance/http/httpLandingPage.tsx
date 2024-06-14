@@ -11,6 +11,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -35,10 +36,12 @@ import {
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import {ModuleName} from 'sentry/views/starfish/types';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 export function HTTPLandingPage() {
@@ -69,6 +72,11 @@ export function HTTPLandingPage() {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.DOMAINS_CURSOR]);
 
   const handleSearch = (newDomain: string) => {
+    trackAnalytics('insight.general.search', {
+      organization,
+      query: newDomain,
+      source: ModuleName.HTTP,
+    });
     browserHistory.push({
       ...location,
       query: {
@@ -138,6 +146,12 @@ export function HTTPLandingPage() {
   );
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
+
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject(BASE_FILTERS),
+    Referrer.LANDING_DOMAINS,
+    'insight.page_loads.http'
+  );
 
   const crumbs = useModuleBreadcrumbs('http');
 
@@ -247,7 +261,7 @@ const DOMAIN_TABLE_ROW_COUNT = 10;
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="http" features="spans-first-ui">
+    <ModulePageProviders moduleName="http" features="insights-initial-modules">
       <HTTPLandingPage />
     </ModulePageProviders>
   );

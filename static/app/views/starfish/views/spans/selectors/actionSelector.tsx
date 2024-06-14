@@ -4,11 +4,13 @@ import omit from 'lodash/omit';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 import {buildEventViewQuery} from 'sentry/views/starfish/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/starfish/utils/useSpansQuery';
@@ -31,6 +33,7 @@ export function ActionSelector({
   // TODO: This only returns the top 25 actions. It should either load them all, or paginate, or allow searching
   //
   const location = useLocation();
+  const organization = useOrganization();
   const eventView = getEventView(location, moduleName, spanCategory);
 
   const useHTTPActions = moduleName === ModuleName.HTTP;
@@ -70,6 +73,11 @@ export function ActionSelector({
       value={value}
       options={options ?? []}
       onChange={newValue => {
+        trackAnalytics('insight.general.select_action_value', {
+          organization,
+          source: moduleName,
+          value: newValue.value,
+        });
         browserHistory.push({
           ...location,
           query: {

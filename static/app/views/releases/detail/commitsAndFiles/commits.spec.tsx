@@ -16,7 +16,7 @@ import Commits from './commits';
 describe('Commits', () => {
   const release = ReleaseFixture();
   const project = ReleaseProjectFixture() as Required<ReleaseProject>;
-  const {routerProps, routerContext, organization} = initializeOrg({
+  const {routerProps, router, organization} = initializeOrg({
     router: {params: {release: release.version}},
   });
   const repos = [RepositoryFixture({integrationId: '1'})];
@@ -36,7 +36,7 @@ describe('Commits', () => {
       >
         <Commits releaseRepos={[]} projectSlug={project.slug} {...routerProps} />
       </ReleaseContext.Provider>,
-      {context: routerContext}
+      {router}
     );
   }
 
@@ -133,7 +133,7 @@ describe('Commits', () => {
       integrationId: '1',
     });
     // Current repo is stored in query parameter activeRepo
-    const {routerContext: newRouterContext, routerProps: newRouterProps} = initializeOrg({
+    const {router: newRouterContext, routerProps: newRouterProps} = initializeOrg({
       router: {
         params: {release: release.version},
         location: {query: {activeRepo: otherRepo.name}},
@@ -170,7 +170,7 @@ describe('Commits', () => {
       >
         <Commits releaseRepos={[]} projectSlug={project.slug} {...newRouterProps} />
       </ReleaseContext.Provider>,
-      {context: newRouterContext}
+      {router: newRouterContext}
     );
     expect(await screen.findByRole('button')).toHaveTextContent(otherRepo.name);
     expect(screen.queryByText('example/repo-name')).not.toBeInTheDocument();

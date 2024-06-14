@@ -40,7 +40,6 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
-from sentry.snuba.tasks import build_query_builder
 
 from ...snuba.metrics.naming_layer.mri import is_mri
 from . import (
@@ -93,6 +92,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
 
     monitor_type = serializers.IntegerField(required=False, min_value=0)
     activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
+    description = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = AlertRule
@@ -116,6 +116,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
             "event_types",
             "monitor_type",
             "activation_condition",
+            "description",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
@@ -334,11 +335,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         end = timezone.now()
         start = end - timedelta(minutes=10)
         try:
-            query_builder = build_query_builder(
-                entity_subscription,
-                data["query"],
-                [p.id for p in projects],
-                data.get("environment"),
+            query_builder = entity_subscription.build_query_builder(
+                query=data["query"],
+                project_ids=[p.id for p in projects],
+                environment=data.get("environment"),
                 params={
                     "organization_id": projects[0].organization_id,
                     "project_id": [p.id for p in projects],

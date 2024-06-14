@@ -1,4 +1,4 @@
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
 
 

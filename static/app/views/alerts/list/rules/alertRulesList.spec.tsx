@@ -85,8 +85,8 @@ describe('AlertRulesList', () => {
   });
 
   it('displays list', async () => {
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
@@ -105,8 +105,8 @@ describe('AlertRulesList', () => {
       url: '/organizations/org-slug/combined-rules/',
       body: [],
     });
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
 
     expect(
       await screen.findByText('No alert rules found for the current query.')
@@ -116,8 +116,8 @@ describe('AlertRulesList', () => {
   });
 
   it('displays team dropdown context if unassigned', async () => {
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
     const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
     const btn = within(assignee).getAllByRole('button')[0];
 
@@ -136,8 +136,8 @@ describe('AlertRulesList', () => {
       url: '/projects/org-slug/earth/rules/123/',
       body: [],
     });
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
 
     const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
     const btn = within(assignee).getAllByRole('button')[0];
@@ -157,8 +157,8 @@ describe('AlertRulesList', () => {
   });
 
   it('displays dropdown context menu with actions', async () => {
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
@@ -170,7 +170,7 @@ describe('AlertRulesList', () => {
   });
 
   it('deletes a rule', async () => {
-    const {routerContext, organization} = initializeOrg({
+    const {router, organization} = initializeOrg({
       organization: defaultOrg,
     });
     const deletedRuleName = 'First Issue Alert';
@@ -192,7 +192,7 @@ describe('AlertRulesList', () => {
       body: {},
     });
 
-    render(<AlertRulesList />, {context: routerContext, organization});
+    render(<AlertRulesList />, {router, organization});
     renderGlobalModal();
 
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
@@ -215,10 +215,10 @@ describe('AlertRulesList', () => {
   });
 
   it('sends user to new alert page on duplicate action', async () => {
-    const {routerContext, organization, router} = initializeOrg({
+    const {organization, router} = initializeOrg({
       organization: defaultOrg,
     });
-    render(<AlertRulesList />, {context: routerContext, organization});
+    render(<AlertRulesList />, {router, organization});
     const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
@@ -241,7 +241,7 @@ describe('AlertRulesList', () => {
   });
 
   it('sorts by name', async () => {
-    const {routerContext, organization} = initializeOrg({
+    const {router, organization} = initializeOrg({
       organization: defaultOrg,
       router: {
         location: LocationFixture({
@@ -251,7 +251,7 @@ describe('AlertRulesList', () => {
         }),
       },
     });
-    render(<AlertRulesList />, {context: routerContext, organization});
+    render(<AlertRulesList />, {router, organization});
 
     expect(await screen.findByText('Alert Rule')).toHaveAttribute(
       'aria-sort',
@@ -272,15 +272,15 @@ describe('AlertRulesList', () => {
       ...defaultOrg,
       access: [],
     };
-    const {routerContext, organization} = initializeOrg({organization: noAccessOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: noAccessOrg});
+    render(<AlertRulesList />, {router, organization});
 
     expect(await screen.findByLabelText('Create Alert')).toBeDisabled();
   });
 
   it('searches by name', async () => {
-    const {routerContext, organization, router} = initializeOrg();
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {organization, router} = initializeOrg();
+    render(<AlertRulesList />, {router, organization});
 
     const search = await screen.findByPlaceholderText('Search by name');
     expect(search).toBeInTheDocument();
@@ -298,7 +298,7 @@ describe('AlertRulesList', () => {
   });
 
   it('uses empty team query parameter when removing all teams', async () => {
-    const {routerContext, organization, router} = initializeOrg({
+    const {organization, router} = initializeOrg({
       router: {
         location: LocationFixture({
           query: {team: 'myteams'},
@@ -306,7 +306,7 @@ describe('AlertRulesList', () => {
         }),
       },
     });
-    render(<AlertRulesList />, {context: routerContext, organization});
+    render(<AlertRulesList />, {router, organization});
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
@@ -326,8 +326,8 @@ describe('AlertRulesList', () => {
   });
 
   it('displays metric alert status', async () => {
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
     const rules = await screen.findAllByText('My Incident Rule');
 
     expect(rules[0]).toBeInTheDocument();
@@ -374,8 +374,8 @@ describe('AlertRulesList', () => {
         }),
       ],
     });
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
 
     expect(await screen.findByText('Active Activated Alert')).toBeInTheDocument();
     expect(await screen.findByText('Ready Activated Alert')).toBeInTheDocument();
@@ -399,8 +399,8 @@ describe('AlertRulesList', () => {
         }),
       ],
     });
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Disabled')).toBeInTheDocument();
   });
@@ -419,8 +419,8 @@ describe('AlertRulesList', () => {
         }),
       ],
     });
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Disabled')).toBeInTheDocument();
     expect(screen.queryByText('Muted')).not.toBeInTheDocument();
@@ -438,8 +438,8 @@ describe('AlertRulesList', () => {
         }),
       ],
     });
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
     expect(screen.getByText('Muted')).toBeInTheDocument();
   });
@@ -455,15 +455,15 @@ describe('AlertRulesList', () => {
         }),
       ],
     });
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
     expect(await screen.findByText('My Incident Rule')).toBeInTheDocument();
     expect(screen.getByText('Muted')).toBeInTheDocument();
   });
 
   it('sorts by alert rule', async () => {
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
 
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
@@ -480,10 +480,10 @@ describe('AlertRulesList', () => {
   });
 
   it('preserves empty team query parameter on pagination', async () => {
-    const {routerContext, organization, router} = initializeOrg({
+    const {organization, router} = initializeOrg({
       organization: defaultOrg,
     });
-    render(<AlertRulesList />, {context: routerContext, organization});
+    render(<AlertRulesList />, {router, organization});
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
     await userEvent.click(screen.getByLabelText('Next'));
@@ -528,8 +528,8 @@ describe('AlertRulesList', () => {
       ],
     });
 
-    const {routerContext, organization} = initializeOrg({organization: defaultOrg});
-    render(<AlertRulesList />, {context: routerContext, organization});
+    const {router, organization} = initializeOrg({organization: defaultOrg});
+    render(<AlertRulesList />, {router, organization});
 
     expect(await screen.findByText('Test Metric Alert 2')).toBeInTheDocument();
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();

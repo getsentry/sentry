@@ -8,6 +8,9 @@ TIMEOUT_ERROR_MESSAGE = """
 Query timeout. Please try again. If the problem persists try a smaller date range or fewer projects. Also consider a
 filter on the transaction field if you're filtering performance data.
 """
+TIMEOUT_SPAN_ERROR_MESSAGE = """
+Query timeout. Please try again. If the problem persists try a smaller date range or filtering on transaction or tag fields when filtering span data.
+"""
 PROJECT_THRESHOLD_CONFIG_INDEX_ALIAS = "project_threshold_config_index"
 PROJECT_THRESHOLD_OVERRIDE_CONFIG_INDEX_ALIAS = "project_threshold_override_config_index"
 PROJECT_THRESHOLD_CONFIG_ALIAS = "project_threshold_config"
@@ -332,6 +335,8 @@ SPAN_METRICS_MAP = {
     "user": "s:spans/user@none",
     "span.self_time": "d:spans/exclusive_time@millisecond",
     "span.duration": "d:spans/duration@millisecond",
+    "ai.total_tokens.used": "c:spans/ai.total_tokens.used@none",
+    "ai.total_cost": "c:spans/ai.total_cost@usd",
     "http.response_content_length": "d:spans/http.response_content_length@byte",
     "http.decoded_response_content_length": "d:spans/http.decoded_response_content_length@byte",
     "http.response_transfer_size": "d:spans/http.response_transfer_size@byte",
@@ -341,6 +346,9 @@ SPAN_METRICS_MAP = {
     "mobile.total_frames": "g:spans/mobile.total_frames@none",
     "mobile.frames_delay": "g:spans/mobile.frames_delay@second",
     "messaging.message.receive.latency": SPAN_MESSAGING_LATENCY,
+}
+PROFILE_METRICS_MAP = {
+    "function.duration": "d:profiles/function.duration@millisecond",
 }
 # 50 to match the size of tables in the UI + 1 for pagination reasons
 METRICS_MAX_LIMIT = 101
@@ -363,6 +371,9 @@ SPAN_METRIC_DURATION_COLUMNS = {
     for key, value in SPAN_METRICS_MAP.items()
     if value.endswith("@millisecond") or value.endswith("@second")
 }
+SPAN_METRIC_SUMMABLE_COLUMNS = SPAN_METRIC_DURATION_COLUMNS.union(
+    {"ai.total_tokens.used", "ai.total_cost"}
+)
 SPAN_METRIC_COUNT_COLUMNS = {
     key
     for key, value in SPAN_METRICS_MAP.items()
@@ -407,3 +418,7 @@ METRIC_FUNCTION_LIST_BY_TYPE = {
         "count_unique",
     ],
 }
+
+# The limit in snuba currently for a single query is 131,535bytes, including room for other parameters picking 120,000
+# for now
+MAX_PARAMETERS_IN_ARRAY = 120_000

@@ -19,7 +19,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 type Props = {
   data: TableData | undefined;
@@ -39,19 +39,19 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
   const columnNameMap = {
     transaction: t('Screen'),
     [`avg_if(measurements.app_start_cold,release,${primaryRelease})`]: t(
-      'Cold Start (%s)',
+      'Avg Cold Start (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_cold,release,${secondaryRelease})`]: t(
-      'Cold Start (%s)',
+      'Avg Cold Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_warm,release,${primaryRelease})`]: t(
-      'Warm Start (%s)',
+      'Avg Warm Start (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(measurements.app_start_warm,release,${secondaryRelease})`]: t(
-      'Warm Start (%s)',
+      'Avg Warm Start (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
     [`avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`]:
@@ -59,8 +59,8 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
     [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
       t('Change'),
     app_start_breakdown: t('Type Breakdown'),
-    'count_starts(measurements.app_start_cold)': t('Count'),
-    'count_starts(measurements.app_start_warm)': t('Count'),
+    'count_starts(measurements.app_start_cold)': t('Cold Start Count'),
+    'count_starts(measurements.app_start_warm)': t('Warm Start Count'),
   };
 
   function renderBodyCell(column, row): React.ReactNode {
@@ -138,6 +138,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
         },
       ]}
       customBodyCellRenderer={renderBodyCell}
+      moduleName={ModuleName.APP_START}
     />
   );
 }

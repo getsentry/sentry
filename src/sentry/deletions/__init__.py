@@ -139,6 +139,7 @@ def load_defaults():
     default_manager.register(
         models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
     )
+    default_manager.register(models.OrganizationMember, defaults.OrganizationMemberDeletionTask)
     default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
     default_manager.register(
         models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask

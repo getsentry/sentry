@@ -24,6 +24,8 @@ import {useGetCachedChartPalette} from 'sentry/views/metrics/utils/metricsChartP
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
 import {widgetToQuery} from 'sentry/views/metrics/utils/widgetToQuery';
 
+import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
+
 import {MetricWidget} from './widget';
 
 export function MetricScratchpad() {
@@ -95,6 +97,7 @@ export function MetricScratchpad() {
           organization,
           transactionName: isTransaction ? sample.transaction : undefined,
           spanId: isTransaction ? sample.id : undefined,
+          source: TraceViewSources.METRICS,
         })
       );
     },

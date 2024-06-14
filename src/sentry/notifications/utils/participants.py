@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any
 from django.db.models import Q
 
 from sentry import features
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_enum_from_string
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
@@ -34,7 +36,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviders, get_provider_enum_from_string
 from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
@@ -222,8 +223,8 @@ def get_owners(
 
     elif owners == ProjectOwnership.Everyone:
         outcome = "everyone"
-        users = user_service.get_many(
-            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
+        users = user_service.get_many_by_id(
+            ids=list(project.member_set.values_list("user_id", flat=True))
         )
         recipients = Actor.many_from_object(users)
 
@@ -409,15 +410,13 @@ def get_fallthrough_recipients(
         return []
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
-        return user_service.get_many(
-            filter=dict(user_ids=list(project.member_set.values_list("user_id", flat=True)))
+        return user_service.get_many_by_id(
+            ids=list(project.member_set.values_list("user_id", flat=True))
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        member_users = user_service.get_many(
-            filter={
-                "user_ids": list(project.member_set.values_list("user_id", flat=True)),
-            },
+        member_users = user_service.get_many_by_id(
+            ids=list(project.member_set.values_list("user_id", flat=True)),
         )
         member_users.sort(
             key=lambda u: u.last_active.isoformat() if u.last_active else "", reverse=True
@@ -493,7 +492,7 @@ def _get_users_from_team_fall_back(
         for member in members
         if member.organizationmember.user_id is not None
     }
-    return user_service.get_many(filter={"user_ids": list(user_ids)})
+    return user_service.get_many_by_id(ids=list(user_ids))
 
 
 def combine_recipients_by_provider(

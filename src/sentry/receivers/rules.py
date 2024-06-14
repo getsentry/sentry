@@ -29,7 +29,7 @@ DEFAULT_RULE_ACTIONS_NEW = [
     }
 ]
 DEFAULT_RULE_DATA_NEW = {
-    "action_match": "all",
+    "action_match": "any",
     "conditions": [
         {"id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"},
         {"id": "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"},

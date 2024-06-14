@@ -5,7 +5,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.integrations import IntegrationProvider
+from sentry.integrations.base import IntegrationProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.user import User

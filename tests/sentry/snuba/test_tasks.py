@@ -29,7 +29,6 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
-    build_query_builder,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -603,10 +602,9 @@ class BuildSnqlQueryTest(TestCase):
                 time_window=time_window,
                 extra_fields=entity_extra_fields,
             )
-            query_builder = build_query_builder(
-                entity_subscription,
-                query,
-                [self.project.id],
+            query_builder = entity_subscription.build_query_builder(
+                query=query,
+                project_ids=[self.project.id],
                 environment=environment,
                 params={
                     "organization_id": self.organization.id,
@@ -704,7 +702,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_performance_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             metric_id = resolve(UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["user"])
             self.run_test(
                 SnubaQuery.Type.PERFORMANCE,
@@ -764,7 +762,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_aliased_query_performance_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             version = "something"
             self.create_release(self.project, version=version)
             metric_id = resolve(
@@ -837,7 +835,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_tag_query_performance_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             # Note: We don't support user queries on the performance metrics dataset, so using a
             # different tag here.
             metric_id = resolve(
@@ -996,7 +994,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_sessions_for_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_SESSION.value, "session.status", "crashed", "init"]:
                 rh_indexer_record(org_id, tag)
@@ -1042,7 +1040,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_simple_users_for_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_USER.value, "session.status", "crashed"]:
                 rh_indexer_record(org_id, tag)
@@ -1075,7 +1073,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_sessions_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [
@@ -1155,7 +1153,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_users_metrics(self):
-        with Feature("organizations:use-metrics-layer-in-alerts"):
+        with Feature("organizations:custom-metrics"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [

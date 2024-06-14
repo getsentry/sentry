@@ -3,7 +3,6 @@ from uuid import uuid4
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 
 
@@ -14,12 +13,13 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
         super().setUp()
         self.login_as(user=self.user)
 
-    def do_request(self, features=None, **kwargs):
+    def do_request(self, query=None, features=None, **kwargs):
         if features is None:
             features = ["organizations:performance-trace-explorer"]
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
+                query,
                 format="json",
                 **kwargs,
             )
@@ -47,10 +47,7 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 exclusive_time=100,
                 tags={tag: tag},
             )
-        query = {
-            "project": [self.project.id],
-        }
-        response = self.do_request(query=query)
+        response = self.do_request()
         assert response.status_code == 200, response.data
         assert response.data == [
             {"key": "bar", "name": "Bar"},
@@ -105,10 +102,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 tags={"tag": tag},
             )
 
-        query = {
-            "project": [self.project.id],
-        }
-        response = self.do_request("tag", query=query)
+        response = self.do_request("tag")
         assert response.status_code == 200, response.data
         assert response.data == [
             {
@@ -137,7 +131,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             },
         ]
 
-    def test_tags_keys_autocomplete(self):
+    def test_tags_keys_autocomplete_default(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -153,34 +147,58 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 tags={"tag": tag},
             )
 
-        with override_options({"performance.spans-tags-values.search": True}):
-            for key in ["tag", "transaction"]:
-                query = {
-                    "project": [self.project.id],
-                    "query": "b",
-                }
-                response = self.do_request(key, query=query)
-                assert response.status_code == 200, response.data
-                assert response.data == [
-                    {
-                        "count": 1,
-                        "key": key,
-                        "value": "bar",
-                        "name": "bar",
-                        "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                        "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    },
-                    {
-                        "count": 1,
-                        "key": key,
-                        "value": "baz",
-                        "name": "baz",
-                        "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                        "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
-                    },
-                ]
+        for key in ["tag", "transaction"]:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {
+                    "count": 1,
+                    "key": key,
+                    "value": "bar",
+                    "name": "bar",
+                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                },
+                {
+                    "count": 1,
+                    "key": key,
+                    "value": "baz",
+                    "name": "baz",
+                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                },
+                {
+                    "count": 1,
+                    "key": key,
+                    "value": "foo",
+                    "name": "foo",
+                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                },
+            ]
 
-    def test_non_string_fields(self):
+            response = self.do_request(key, query={"query": "b"})
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {
+                    "count": 1,
+                    "key": key,
+                    "value": "bar",
+                    "name": "bar",
+                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                },
+                {
+                    "count": 1,
+                    "key": key,
+                    "value": "baz",
+                    "name": "baz",
+                    "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                    "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                },
+            ]
+
+    def test_tags_keys_autocomplete_noop(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
         for tag in ["foo", "bar", "baz"]:
             self.store_segment(
@@ -215,9 +233,126 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             "replay.id",
             "replay_id",
         ]:
-            query = {
-                "project": [self.project.id],
-            }
-            response = self.do_request(key, query=query)
+            response = self.do_request(key)
             assert response.status_code == 200, response.data
             assert response.data == [], key
+
+    def test_tags_keys_autocomplete_project(self):
+        self.create_project(name="foo")
+        self.create_project(name="bar")
+        self.create_project(name="baz")
+
+        for key in ["project", "project.name"]:
+            response = self.do_request(key)
+            assert response.status_code == 200, response.data
+            assert sorted(response.data, key=lambda v: v["value"]) == [
+                {
+                    "count": None,
+                    "key": key,
+                    "value": "bar",
+                    "name": "bar",
+                    "firstSeen": None,
+                    "lastSeen": None,
+                },
+                {
+                    "count": None,
+                    "key": key,
+                    "value": "baz",
+                    "name": "baz",
+                    "firstSeen": None,
+                    "lastSeen": None,
+                },
+                {
+                    "count": None,
+                    "key": key,
+                    "value": "foo",
+                    "name": "foo",
+                    "firstSeen": None,
+                    "lastSeen": None,
+                },
+            ]
+
+            response = self.do_request(key, query={"query": "ba"})
+            assert response.status_code == 200, response.data
+            assert sorted(response.data, key=lambda v: v["value"]) == [
+                {
+                    "count": None,
+                    "key": key,
+                    "value": "bar",
+                    "name": "bar",
+                    "firstSeen": None,
+                    "lastSeen": None,
+                },
+                {
+                    "count": None,
+                    "key": key,
+                    "value": "baz",
+                    "name": "baz",
+                    "firstSeen": None,
+                    "lastSeen": None,
+                },
+            ]
+
+    def test_tags_keys_autocomplete_span_status(self):
+        timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
+        for status in ["ok", "internal_error", "invalid_argument"]:
+            self.store_segment(
+                self.project.id,
+                uuid4().hex,
+                uuid4().hex,
+                span_id=uuid4().hex[:15],
+                parent_span_id=None,
+                timestamp=timestamp,
+                transaction="foo",
+                status=status,
+            )
+
+        response = self.do_request("span.status")
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "internal_error",
+                "name": "internal_error",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "invalid_argument",
+                "name": "invalid_argument",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "ok",
+                "name": "ok",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+        ]
+
+        response = self.do_request("span.status", query={"query": "in"})
+        assert response.status_code == 200, response.data
+        assert response.data == [
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "internal_error",
+                "name": "internal_error",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+            {
+                "count": 1,
+                "key": "span.status",
+                "value": "invalid_argument",
+                "name": "invalid_argument",
+                "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+                "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
+            },
+        ]

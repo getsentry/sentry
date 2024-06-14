@@ -155,7 +155,6 @@ export default function SelectorTable({
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location as Location<any>}
       title={title}
     />
   );

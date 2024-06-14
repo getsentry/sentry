@@ -7,6 +7,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -81,7 +82,7 @@ function ScreenLoadSpans() {
             />
             <HeaderWrapper>
               <Layout.Title>{transactionName}</Layout.Title>
-              {organization.features.includes('spans-first-ui') &&
+              {organization.features.includes('insights-initial-modules') &&
                 isProjectCrossPlatform && <PlatformSelector />}
             </HeaderWrapper>
           </Layout.HeaderContent>
@@ -97,6 +98,7 @@ function ScreenLoadSpans() {
             <Container>
               <FilterContainer>
                 <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 <ReleaseComparisonSelector />
@@ -119,27 +121,27 @@ function ScreenLoadSpans() {
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                    title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                    title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                    title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                    title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: 'count',
                     dataKey: 'count()',
-                    title: t('Count'),
+                    title: t('Total Count'),
                   },
                 ]}
                 referrer="api.starfish.mobile-screen-totals"
@@ -210,7 +212,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="screen_load"
       pageTitle={transaction}
-      features="spans-first-ui"
+      features="insights-initial-modules"
     >
       <ScreenLoadSpans />
     </ModulePageProviders>

@@ -45,9 +45,8 @@ import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanF
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetrics, useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
@@ -59,6 +58,8 @@ import {
 import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 export function HTTPSamplesPanel() {
   const router = useRouter();
@@ -250,22 +251,24 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeSamplesDataFetching,
     error: responseCodeSamplesDataError,
     refetch: refetchResponseCodeSpanSamples,
-  } = useIndexedSpans({
-    search: sampleSpansSearch,
-    fields: [
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.ID,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.RESPONSE_CODE,
-    ],
-    sorts: [SPAN_SAMPLES_SORT],
-    limit: SPAN_SAMPLE_LIMIT,
-    enabled: isPanelOpen && query.panel === 'status',
-    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES,
-  });
+  } = useSpansIndexed(
+    {
+      search: sampleSpansSearch,
+      fields: [
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.ID,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.RESPONSE_CODE,
+      ],
+      sorts: [SPAN_SAMPLES_SORT],
+      limit: SPAN_SAMPLE_LIMIT,
+      enabled: isPanelOpen && query.panel === 'status',
+    },
+    Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES
+  );
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,
@@ -318,26 +321,24 @@ export function HTTPSamplesPanel() {
                   tooltip={project.slug}
                 />
               )}
-              <TitleContainer>
-                <Title>
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                        {
-                          project: query.project,
-                          transaction: query.transaction,
-                        }
-                      )}`
-                    )}
-                  >
-                    {query.transaction &&
-                    query.transactionMethod &&
-                    !query.transaction.startsWith(query.transactionMethod)
-                      ? `${query.transactionMethod} ${query.transaction}`
-                      : query.transaction}
-                  </Link>
-                </Title>
-              </TitleContainer>
+              <Title>
+                <Link
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                      {
+                        project: query.project,
+                        transaction: query.transaction,
+                      }
+                    )}`
+                  )}
+                >
+                  {query.transaction &&
+                  query.transactionMethod &&
+                  !query.transaction.startsWith(query.transactionMethod)
+                    ? `${query.transactionMethod} ${query.transaction}`
+                    : query.transaction}
+                </Link>
+              </Title>
             </HeaderContainer>
           </ModuleLayout.Full>
 
@@ -508,6 +509,7 @@ export function HTTPSamplesPanel() {
                     },
                     units: {},
                   }}
+                  referrer={TraceViewSources.REQUESTS_MODULE}
                 />
               </ModuleLayout.Full>
 
@@ -602,26 +604,23 @@ const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
   },
 ];
 
+// TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx
 const HeaderContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const MetricsRibbon = styled('div')`

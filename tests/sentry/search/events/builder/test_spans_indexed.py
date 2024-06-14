@@ -144,10 +144,41 @@ def test_where_project(params):
 @pytest.mark.parametrize(
     ["query", "result"],
     [
-        pytest.param("span.op:params test", Condition(Column("description"), Op.EQ, "test")),
-        pytest.param("testing", Condition(Column("description"), Op.EQ, "testing")),
         pytest.param(
-            "span.description:test1 test2", Condition(Column("description"), Op.EQ, "test2")
+            "span.op:params test",
+            Condition(
+                Function("positionCaseInsensitive", [Column("description"), "test"]),
+                Op.NEQ,
+                0,
+            ),
+            id="span.op:params test",
+        ),
+        pytest.param(
+            "testing",
+            Condition(
+                Function("positionCaseInsensitive", [Column("description"), "testing"]),
+                Op.NEQ,
+                0,
+            ),
+            id="testing",
+        ),
+        pytest.param(
+            "span.description:test1 test2",
+            Condition(
+                Function("positionCaseInsensitive", [Column("description"), "test2"]),
+                Op.NEQ,
+                0,
+            ),
+            id="span.description:test1 test2",
+        ),
+        pytest.param(
+            "*testing*",
+            Condition(
+                Function("match", [Column("description"), "(?i).*testing.*"]),
+                Op.EQ,
+                1,
+            ),
+            id="*testing*",
         ),
     ],
 )

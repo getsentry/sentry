@@ -1,3 +1,4 @@
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -15,17 +16,28 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/llmMonitoring/llmMonitoringCharts';
 import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
-import {MODULE_DOC_LINK} from 'sentry/views/llmMonitoring/settings';
+import {
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+  RELEASE_LEVEL,
+} from 'sentry/views/llmMonitoring/settings';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
 import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
+
+  useHasDataTrackAnalytics(
+    new MutableSearch('span.category:"ai"'),
+    'api.performance.ai.llm-monitoring-landing',
+    'insight.page_loads.ai'
+  );
 
   return (
     <Layout.Page>
@@ -34,11 +46,12 @@ export function LLMMonitoringPage() {
           <Layout.HeaderContent>
             <Breadcrumbs crumbs={crumbs} />
             <Layout.Title>
-              {t('LLM Monitoring')}
+              {MODULE_TITLE}
               <PageHeadingQuestionTooltip
                 title={t('View analytics and information about your AI pipelines')}
                 docsUrl={MODULE_DOC_LINK}
               />
+              <FeatureBadge type={RELEASE_LEVEL} />
             </Layout.Title>
           </Layout.HeaderContent>
         </Layout.Header>
@@ -86,7 +99,7 @@ export function LLMMonitoringPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders moduleName="ai" features="ai-analytics">
+    <ModulePageProviders moduleName="ai" features="insights-addon-modules">
       <LLMMonitoringPage />
     </ModulePageProviders>
   );

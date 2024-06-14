@@ -22,6 +22,7 @@ export function convertToDashboardWidget(
   displayType?: MetricDisplayType,
   title = ''
 ): Widget {
+  // TODO: Ged rid of ts-expect-error
   // @ts-expect-error TODO: pass interval
   return {
     title,

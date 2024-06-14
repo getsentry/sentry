@@ -6,7 +6,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
-import {DeviceClassSelector} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
 import {
   MobileCursors,
   MobileSortKeys,

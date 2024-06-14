@@ -87,8 +87,7 @@
         "offset": 0.02
       },
       "span_id": "c048b4fffdc4279d",
-      "sentry_tags": {
-      }
+      "sentry_tags": {}
     },
     {
       "same_process_as_parent": true,
@@ -105,7 +104,7 @@
       },
       "span_id": "d047a3a8edc3276a",
       "sentry_tags": {
-	"group": "26b881987e4bad99"
+        "group": "26b881987e4bad99"
       }
     }
   ],

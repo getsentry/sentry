@@ -1,9 +1,9 @@
 import logging
-from collections.abc import Iterable
 from urllib.parse import urljoin
 
 from requests import RequestException
 
+from sentry.lang.native.symbolicator import SymbolicatorPlatform
 from sentry.net.http import Session
 
 from . import base
@@ -20,10 +20,12 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
         self.target = target
         self.session = Session()
 
-    def record_project_duration(self, project_id: int, duration: float) -> None:
+    def record_project_duration(
+        self, platform: SymbolicatorPlatform, project_id: int, duration: float
+    ) -> None:
         url = urljoin(self.target, "/record_spending")
         request = {
-            "config_name": "symbolication-native",
+            "config_name": f"symbolication-{platform.value}",
             "project_id": project_id,
             "spent": duration,
         }
@@ -36,10 +38,10 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
         except RequestException:
             pass
 
-    def is_lpq_project(self, project_id: int) -> bool:
+    def is_lpq_project(self, platform: SymbolicatorPlatform, project_id: int) -> bool:
         url = urljoin(self.target, "/exceeds_budget")
         request = {
-            "config_name": "symbolication-native",
+            "config_name": f"symbolication-{platform.value}",
             "project_id": project_id,
         }
         try:
@@ -58,18 +60,3 @@ class PbRealtimeMetricsStore(base.RealtimeMetricsStore):
 
     def validate(self) -> None:
         pass
-
-    def projects(self) -> Iterable[int]:
-        yield from ()
-
-    def get_used_budget_for_project(self, project_id: int) -> float:
-        return 0.0
-
-    def get_lpq_projects(self) -> set[int]:
-        return set()
-
-    def add_project_to_lpq(self, project_id: int) -> bool:
-        return False
-
-    def remove_projects_from_lpq(self, project_ids: set[int]) -> int:
-        return 0

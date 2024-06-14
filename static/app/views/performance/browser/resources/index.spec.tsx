@@ -27,7 +27,7 @@ const requestMocks: Record<string, jest.Mock> = {};
 
 describe('ResourcesLandingPage', function () {
   const organization = OrganizationFixture({
-    features: ['spans-first-ui', 'starfish-view'],
+    features: ['insights-initial-modules'],
   });
 
   beforeEach(() => {
@@ -176,6 +176,22 @@ const setupMockRequests = (organization: DetailedOrganization) => {
     ],
     body: {
       data: [{transaction: '/page/123/', 'count()': 1}],
+    },
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    method: 'GET',
+    match: [
+      MockApiClient.matchQuery({
+        referrer: 'api.performance.resource.resource-landing',
+      }),
+    ],
+    body: {
+      data: [{'count()': 43374}],
+      meta: {
+        fields: {'count()': 'integer'},
+      },
     },
   });
 

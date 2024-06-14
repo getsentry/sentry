@@ -21,7 +21,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -91,7 +91,7 @@ const Type = styled('div')`
 
 const TitleOp = styled('div')`
   font-size: 15px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -318,7 +318,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-right: ${space(1)};
 `;
 
@@ -523,13 +523,15 @@ function SectionCard({
   title,
   disableTruncate,
   sortAlphabetically = false,
+  itemProps = {},
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
+  itemProps?: Partial<KeyValueData.ContentProps>;
   sortAlphabetically?: boolean;
 }) {
-  const contentItems = items.map(item => ({item}));
+  const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
     <KeyValueData.Card

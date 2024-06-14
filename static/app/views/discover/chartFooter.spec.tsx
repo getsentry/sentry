@@ -56,7 +56,7 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {context: initialData.routerContext});
+    render(chartFooter, {router: initialData.router});
 
     expect(
       await screen.findByRole('button', {
@@ -98,7 +98,7 @@ describe('Discover > ChartFooter', function () {
       />
     );
 
-    render(chartFooter, {context: initialData.routerContext});
+    render(chartFooter, {router: initialData.router});
 
     expect(
       await screen.findByRole('button', {name: `Limit ${limit}`})

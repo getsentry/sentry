@@ -9,6 +9,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {LazyRenderProps} from 'sentry/components/lazyRender';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -17,7 +18,6 @@ import type {Project} from 'sentry/types/project';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {CacheMetrics} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/cacheMetrics';
@@ -93,6 +93,7 @@ export function TransactionNodeDetails({
   organization,
   onTabScrollToNode,
   onParentClick,
+  replayRecord,
 }: TraceTreeNodeDetailsProps<TraceTreeNode<TraceTree.Transaction>>) {
   const location = useLocation();
   const {projects} = useProjects();
@@ -181,7 +182,7 @@ export function TransactionNodeDetails({
 
       {project ? <EventEvidence event={event} project={project} /> : null}
 
-      <ReplayPreview event={event} organization={organization} />
+      {replayRecord ? null : <ReplayPreview event={event} organization={organization} />}
 
       <BreadCrumbs event={event} organization={organization} />
 

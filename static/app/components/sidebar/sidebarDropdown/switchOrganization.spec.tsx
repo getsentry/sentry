@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +6,6 @@ import SwitchOrganization from 'sentry/components/sidebar/sidebarDropdown/switch
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 
 describe('SwitchOrganization', function () {
-  const routerContext = RouterContextFixture();
   it('can list organizations', async function () {
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1'}),
@@ -15,9 +13,7 @@ describe('SwitchOrganization', function () {
     ]);
 
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} />, {
-      context: RouterContextFixture(),
-    });
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
@@ -25,13 +21,13 @@ describe('SwitchOrganization', function () {
     expect(screen.getByRole('list')).toBeInTheDocument();
 
     expect(screen.getByText('Organization 1')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'org slug Organization 1'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'OS Organization 1'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/'
     );
 
     expect(screen.getByText('Organization 2')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'org2 Organization 2'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'O Organization 2'})).toHaveAttribute(
       'href',
       '/organizations/org2/issues/'
     );
@@ -54,20 +50,18 @@ describe('SwitchOrganization', function () {
     ]);
 
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} />, {
-      context: routerContext,
-    });
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
-    const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
+    const org1Link = screen.getByRole('link', {name: 'O Organization 1'});
     expect(org1Link).toBeInTheDocument();
     expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
 
-    const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
+    const org2Link = screen.getByRole('link', {name: 'O Organization 2'});
     expect(org2Link).toBeInTheDocument();
     expect(org2Link).toHaveAttribute(
       'href',
@@ -91,20 +85,18 @@ describe('SwitchOrganization', function () {
     ]);
 
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} />, {
-      context: routerContext,
-    });
+    render(<SwitchOrganization canCreateOrganization={false} />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
-    const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
+    const org1Link = screen.getByRole('link', {name: 'O Organization 1'});
     expect(org1Link).toBeInTheDocument();
     expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
 
-    const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
+    const org2Link = screen.getByRole('link', {name: 'O Organization 2'});
     expect(org2Link).toBeInTheDocument();
     expect(org2Link).toHaveAttribute('href', '/organizations/org2/issues/');
     jest.useRealTimers();
@@ -136,7 +128,7 @@ describe('SwitchOrganization', function () {
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
-    const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
+    const org1Link = screen.getByRole('link', {name: 'O Organization 1'});
     expect(org1Link).toBeInTheDocument();
     // Current hostname in the URL is expected to be org2.sentry.io, so we need to make use of sentryUrl to link to an
     // organization that does not support customer domains.
@@ -145,7 +137,7 @@ describe('SwitchOrganization', function () {
       'https://sentry.io/organizations/org1/issues/'
     );
 
-    const org2Link = screen.getByRole('link', {name: 'org2 Organization 2'});
+    const org2Link = screen.getByRole('link', {name: 'O Organization 2'});
     expect(org2Link).toBeInTheDocument();
     expect(org2Link).toHaveAttribute(
       'href',
@@ -181,7 +173,6 @@ describe('SwitchOrganization', function () {
 
     render(<SwitchOrganization canCreateOrganization={false} />, {
       organization: currentOrg,
-      context: routerContext,
     });
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
@@ -189,11 +180,11 @@ describe('SwitchOrganization', function () {
 
     expect(screen.getByRole('list')).toBeInTheDocument();
 
-    const org1Link = screen.getByRole('link', {name: 'org1 Organization 1'});
+    const org1Link = screen.getByRole('link', {name: 'O Organization 1'});
     expect(org1Link).toBeInTheDocument();
     expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
 
-    const org3Link = screen.getByRole('link', {name: 'org3 Organization 3'});
+    const org3Link = screen.getByRole('link', {name: 'O Organization 3'});
     expect(org3Link).toBeInTheDocument();
     expect(org3Link).toHaveAttribute(
       'href',
@@ -204,9 +195,7 @@ describe('SwitchOrganization', function () {
 
   it('shows "Create an Org" if they have permission', async function () {
     jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization />, {
-      context: routerContext,
-    });
+    render(<SwitchOrganization canCreateOrganization />);
 
     await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));

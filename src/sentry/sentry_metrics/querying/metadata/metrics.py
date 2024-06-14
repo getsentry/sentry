@@ -2,7 +2,11 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import cast
 
-from sentry import options
+from sentry.constants import (
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+)
+from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.sentry_metrics.querying.metadata.utils import (
@@ -36,11 +40,10 @@ def get_metrics_meta(
 
     for use_case_id in use_case_ids:
         stored_metrics = get_available_mris(organization, projects, use_case_id)
-        metrics_blocking_state = (
-            get_metrics_blocking_state_of_projects(projects)
-            if UseCaseID.CUSTOM in use_case_ids
-            else {}
-        )
+        if use_case_id == UseCaseID.CUSTOM:
+            metrics_blocking_state = get_metrics_blocking_state_of_projects(projects)
+        else:
+            metrics_blocking_state = {}
 
         for metric_mri, project_ids in stored_metrics.items():
             parsed_mri = parse_mri(metric_mri)
@@ -88,14 +91,16 @@ def get_metrics_meta(
 
 def generate_operations_config(organization: Organization) -> OperationsConfiguration:
     operations_config = OperationsConfiguration()
-    configuration_options = [
-        "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
-        "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
-    ]
+    configuration_options: dict[str, bool] = {
+        "sentry:metrics_activate_percentiles": METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+        "sentry:metrics_activate_last_for_gauges": METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    }
 
-    for option in configuration_options:
-        if organization.id not in options.get(option):
-            operations_config.hide_operations(METRICS_API_HIDDEN_OPERATIONS[option])
+    for option_key, default_value in configuration_options.items():
+        if not OrganizationOption.objects.get_value(
+            organization=organization, key=option_key, default=default_value
+        ):
+            operations_config.hide_operations(METRICS_API_HIDDEN_OPERATIONS[option_key])
 
     return operations_config
 

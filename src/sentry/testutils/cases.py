@@ -1493,6 +1493,8 @@ class BaseSpansTestCase(SnubaTestCase):
         timestamp: datetime | None = None,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
+        op: str | None = None,
+        status: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1528,6 +1530,10 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
             payload["sentry_tags"]["sdk.name"] = sdk_name
+        if op is not None:
+            payload["sentry_tags"]["op"] = op
+        if status is not None:
+            payload["sentry_tags"]["status"] = status
 
         self.store_span(payload)
 
@@ -3318,6 +3324,7 @@ class TraceTestCase(SpanTestCase):
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         data["contexts"]["profile"] = {"profile_id": uuid4().hex}
+        data["sdk"] = {"name": "sentry.test.sdk", "version": "1.0"}
         if span_id:
             data["contexts"]["trace"]["span_id"] = span_id
         if measurements:
@@ -3392,6 +3399,7 @@ class TraceTestCase(SpanTestCase):
                 "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
+                "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),

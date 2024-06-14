@@ -503,5 +503,5 @@ const StyledLoadingError = styled(LoadingError)`
 `;
 
 const BoldButton = styled(Button)`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

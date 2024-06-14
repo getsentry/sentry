@@ -8,10 +8,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventReplay from 'sentry/components/events/eventReplay';
-import {
-  useHasOrganizationSentAnyReplayEvents,
-  useReplayOnboardingSidebarPanel,
-} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import useProjects from 'sentry/utils/useProjects';
@@ -100,10 +97,6 @@ describe('EventReplay', function () {
     useReplayOnboardingSidebarPanel
   );
 
-  const MockUseHasOrganizationSentAnyReplayEvents = jest.mocked(
-    useHasOrganizationSentAnyReplayEvents
-  );
-
   const organization = OrganizationFixture({
     features: ['session-replay'],
   });
@@ -137,20 +130,12 @@ describe('EventReplay', function () {
       placeholders: [],
       projects: [project],
     });
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: false,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
   });
 
   it('should render the replay inline onboarding component when replays are enabled and the project supports replay', async function () {
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: false,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
@@ -166,10 +151,6 @@ describe('EventReplay', function () {
   });
 
   it('should render a replay when there is a replayId from tags', async function () {
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: true,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });
@@ -189,10 +170,6 @@ describe('EventReplay', function () {
   });
 
   it('should render a replay when there is a replay_id from contexts', async function () {
-    MockUseHasOrganizationSentAnyReplayEvents.mockReturnValue({
-      hasOrgSentReplays: true,
-      fetching: false,
-    });
     MockUseReplayOnboardingSidebarPanel.mockReturnValue({
       activateSidebar: jest.fn(),
     });

@@ -16,10 +16,10 @@ import {
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
-import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {LoadingScreen} from 'sentry/views/starfish/components/chart';
 import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
 
@@ -175,7 +175,7 @@ const Header = styled('div')`
 const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menues */
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: -${space(0.5)} -${space(1)} -${space(0.25)};
   min-width: 0;
 

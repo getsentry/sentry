@@ -148,4 +148,18 @@ describe('formatUsageWithUnits', function () {
       })
     ).toBe('1.23 TB');
   });
+
+  it('should format profile duration correctly', function () {
+    const hourInMs = 1000 * 60 * 60;
+    expect(formatUsageWithUnits(0, DATA_CATEGORY_INFO.profileDuration.plural)).toBe('0');
+    expect(
+      formatUsageWithUnits(7.6 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('7.6');
+    expect(
+      formatUsageWithUnits(hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('1');
+    expect(
+      formatUsageWithUnits(24 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
+    ).toBe('24');
+  });
 });

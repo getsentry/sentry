@@ -203,6 +203,7 @@ class GitlabSearchTest(GitLabTestCase):
 
     def test_missing_installation(self):
         # remove organization integration aka "uninstalling" installation
+        assert self.installation.org_integration is not None
         org_integration = OrganizationIntegration.objects.get(
             id=self.installation.org_integration.id
         )

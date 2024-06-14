@@ -19,6 +19,7 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
+import {PERFORMANCE_BASE_URL as PERFORMANCE_RESOURCE_BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/performance/utils/useModuleURL';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
@@ -546,6 +547,13 @@ function buildRoutes() {
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
+      />
+      <Route
+        path="remote-config/"
+        name={t('Remote Config')}
+        component={make(
+          () => import('sentry/views/settings/project/projectRemoteConfig')
+        )}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -1505,6 +1513,22 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Route path={`${PERFORMANCE_RESOURCE_BASE_URL}/`}>
+        <IndexRoute
+          component={make(
+            () => import('sentry/views/performance/browser/resources/index')
+          )}
+        />
+        <Route
+          path="spans/span/:groupId/"
+          component={make(
+            () =>
+              import(
+                'sentry/views/performance/browser/resources/resourceSummaryPage/index'
+              )
+          )}
+        />
+      </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
         <IndexRoute
           component={make(
@@ -1585,9 +1609,6 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
-      <Route path="traces/">
-        <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
-      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1671,6 +1692,14 @@ function buildRoutes() {
         component={make(() => import('sentry/views/performance/transactionDetails'))}
       />
     </Route>
+  );
+
+  const tracesRoutes = (
+    <Route
+      path="/traces/"
+      component={make(() => import('sentry/views/traces'))}
+      withOrgPath
+    />
   );
 
   const userFeedbackRoutes = (
@@ -2057,6 +2086,7 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {tracesRoutes}
       {insightsRoutes}
       {llmMonitoringRoutes}
       {profilingRoutes}
