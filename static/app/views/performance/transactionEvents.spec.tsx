@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -21,7 +20,6 @@ function initializeData({features: additionalFeatures = [], query = {}}: Data = 
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
-    projects: [ProjectFixture()],
   });
   return initializeOrg({
     organization,
@@ -156,9 +154,9 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const {organization, router} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
       router,
@@ -190,9 +188,9 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders relative span breakdown header when no filter selected', async function () {
-    const {organization, router} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
       router,
@@ -205,9 +203,9 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders event column results correctly', async function () {
-    const {organization, router} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
       router,
@@ -234,11 +232,11 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders additional Web Vital column', async function () {
-    const {organization, router} = initializeData({
+    const {organization, projects, router} = initializeData({
       query: {webVital: WebVital.LCP},
     });
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
       router,

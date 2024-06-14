@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -63,7 +62,6 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
-    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -78,7 +76,7 @@ function initializeData({features: additionalFeatures = []}: Data = {}) {
     },
     projects: [],
   });
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  ProjectsStore.loadInitialData(initialData.projects);
   return initialData;
 }
 

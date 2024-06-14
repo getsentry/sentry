@@ -14,7 +14,7 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const {organization, router} = initializeOrg({
+const {organization, projects, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
   projects: [
     {id: '1', slug: 'project-1', isMember: true},
@@ -45,7 +45,7 @@ describe('ProjectPageFilter', function () {
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
   });
 
   afterEach(() => PageFiltersStore.reset());
@@ -226,8 +226,8 @@ describe('ProjectPageFilter', function () {
 
     PageFiltersStore.reset();
     initializeUrlState({
-      memberProjects: organization.projects.filter(p => p.isMember),
-      nonMemberProjects: organization.projects.filter(p => !p.isMember),
+      memberProjects: projects.filter(p => p.isMember),
+      nonMemberProjects: projects.filter(p => !p.isMember),
       organization: desyncOrganization,
       queryParams: {project: ['2']},
       router: desyncRouter,

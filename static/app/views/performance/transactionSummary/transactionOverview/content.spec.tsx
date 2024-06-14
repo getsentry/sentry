@@ -10,11 +10,10 @@ import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhan
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
 
-function initialize(project, query, additionalFeatures: string[] = []) {
+function initialize(query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
-    projects: [project],
   });
   const initialData = initializeOrg({
     organization,
@@ -145,7 +144,7 @@ describe('Transaction Summary Content', function () {
       spanOperationBreakdownFilter,
       transactionName,
       router,
-    } = initialize(project, {});
+    } = initialize({});
 
     render(
       <WrappedComponent

@@ -130,7 +130,7 @@ const initializeData = (settings?: InitializeDataSettings) => {
     ...settings,
   };
   const data = _initializeData(settings);
-  act(() => void ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(data.projects));
   return data;
 };
 

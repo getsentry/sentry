@@ -20,7 +20,7 @@ import {ReleasesSortOption} from 'sentry/views/releases/list/releasesSortOptions
 import {ReleasesStatusOption} from 'sentry/views/releases/list/releasesStatusOptions';
 
 describe('ReleasesList', () => {
-  const {organization, router, routerProps} = initializeOrg();
+  const {organization, projects, router, routerProps} = initializeOrg();
   const semverVersionInfo = {
     buildHash: null,
     description: '1.2.3',
@@ -64,7 +64,7 @@ describe('ReleasesList', () => {
   let endpointMock, sessionApiMock;
 
   beforeEach(() => {
-    act(() => ProjectsStore.loadInitialData(organization.projects));
+    act(() => ProjectsStore.loadInitialData(projects));
     endpointMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [
@@ -145,8 +145,8 @@ describe('ReleasesList', () => {
       name: 'test-name-2',
       features: [],
     });
-    const org = OrganizationFixture({projects: [project, projectWithouReleases]});
-    ProjectsStore.loadInitialData(org.projects);
+    const org = OrganizationFixture();
+    ProjectsStore.loadInitialData([project, projectWithouReleases]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
       body: [],

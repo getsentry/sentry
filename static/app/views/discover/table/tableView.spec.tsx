@@ -1,6 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -69,7 +68,6 @@ describe('TableView > CellActions', function () {
 
     const organization = OrganizationFixture({
       features: ['discover-basic'],
-      projects: [ProjectFixture()],
     });
 
     initialData = initializeOrg({
@@ -77,7 +75,7 @@ describe('TableView > CellActions', function () {
       router: {location},
     });
     act(() => {
-      ProjectsStore.loadInitialData(initialData.organization.projects);
+      ProjectsStore.loadInitialData(initialData.projects);
       TagStore.reset();
       TagStore.loadTagsSuccess([
         {name: 'size', key: 'size'},
@@ -352,9 +350,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('renders size columns correctly', function () {
-    const orgWithFeature = OrganizationFixture({
-      projects: [ProjectFixture()],
-    });
+    const orgWithFeature = OrganizationFixture();
 
     render(
       <TableView
@@ -404,9 +400,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('shows events with value less than selected custom performance metric', async function () {
-    const orgWithFeature = OrganizationFixture({
-      projects: [ProjectFixture()],
-    });
+    const orgWithFeature = OrganizationFixture();
 
     render(
       <TableView

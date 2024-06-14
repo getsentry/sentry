@@ -106,7 +106,7 @@ describe('groupDetails', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
-    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
+    act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -172,7 +172,7 @@ describe('groupDetails', () => {
 
     expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
-    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
+    act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
 

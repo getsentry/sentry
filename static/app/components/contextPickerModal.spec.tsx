@@ -26,7 +26,7 @@ describe('ContextPickerModal', function () {
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
-    org = OrganizationFixture({projects: [project]});
+    org = OrganizationFixture();
     project2 = ProjectFixture({slug: 'project2'});
     org2 = OrganizationFixture({
       slug: 'org2',
