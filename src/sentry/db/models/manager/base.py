@@ -11,6 +11,7 @@ from typing import Any, Generic
 from django.conf import settings
 from django.db import models, router
 from django.db.models import Model
+from django.db.models.fields import Field
 from django.db.models.manager import BaseManager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 
@@ -29,7 +30,7 @@ _local_cache_generation = 0
 _local_cache_enabled = False
 
 
-def flush_manager_local_cache():
+def flush_manager_local_cache() -> None:
     global _local_cache
     _local_cache = threading.local()
 
@@ -49,15 +50,21 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
     _queryset_class = BaseQuerySet
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        cache_fields: Sequence[str] | None = None,
+        cache_ttl: int = 60 * 5,
+        **kwargs: Any,
+    ) -> None:
         #: Model fields for which we should build up a cache to be used with
         #: Model.objects.get_from_cache(fieldname=value)`.
         #:
         #: Note that each field by its own needs to be a potential primary key
         #: (uniquely identify a row), so for example organization slug is ok,
         #: project slug is not.
-        self.cache_fields = kwargs.pop("cache_fields", [])
-        self.cache_ttl = kwargs.pop("cache_ttl", 60 * 5)
+        self.cache_fields = cache_fields if cache_fields is not None else ()
+        self.cache_ttl = cache_ttl
         self._cache_version: str | None = kwargs.pop("cache_version", None)
         self.__local_cache = threading.local()
 
@@ -238,6 +245,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         if key == "pk":
             return instance.pk
         field = instance._meta.get_field(key)
+        assert isinstance(field, Field), field
         return getattr(instance, field.attname)
 
     def contribute_to_class(self, model: type[Model], name: str) -> None:
@@ -308,7 +316,7 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
 
         return retval
 
-    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]):
+    def _get_cacheable_kv_from_kwargs(self, kwargs: Mapping[str, Any]) -> tuple[str, str, int]:
         if not kwargs or len(kwargs) > 1:
             raise ValueError("We cannot cache this query. Just hit the database.")
 
@@ -449,17 +457,17 @@ class BaseManager(DjangoBaseManager.from_queryset(BaseQuerySet), Generic[M]):  #
         cache_key = self.__get_lookup_cache_key(**{pk_name: instance_id})
         cache.delete(cache_key, version=self.cache_version)
 
-    def post_save(self, instance: M, **kwargs: Any) -> None:
+    def post_save(self, instance: M, **kwargs: Any) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is saved.
         """
 
-    def post_delete(self, instance: M, **kwargs: Any) -> None:
+    def post_delete(self, instance: M, **kwargs: Any) -> None:  # type: ignore[misc]  # python/mypy#6178
         """
         Triggered when a model bound to this manager is deleted.
         """
 
-    def get_queryset(self) -> BaseQuerySet:
+    def get_queryset(self) -> BaseQuerySet[M]:
         """
         Returns a new QuerySet object.  Subclasses can override this method to
         easily customize the behavior of the Manager.
