@@ -8,6 +8,10 @@ from sentry.utils import json
 METRICS_EXTRACTION_RULES_OPTION_KEY = "sentry:metrics_extraction_rules"
 
 
+class MetricsExtractionRuleValidationError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class MetricsExtractionRule:
     span_attribute: str
@@ -70,12 +74,6 @@ class MetricsExtractionRuleState:
         # once this is live, we need to invalidate the relay project config here.
         return
 
-    def validate(self) -> None:
-        raise NotImplementedError()
-
-    def to_json(self) -> dict[str, str | Sequence[str]]:
-        raise NotImplementedError()
-
     def get_rules(self) -> Sequence[MetricsExtractionRule]:
         return list(self.rules.values())
 
@@ -98,13 +96,8 @@ def update_metrics_extraction_rules(
         mri = rule.generate_mri()
         state.rules[mri] = rule
 
-    # save to
     state.save_to_project(project)
     return state.get_rules()
-
-
-class MetricsExtractionRuleValidationError(ValueError):
-    pass
 
 
 def delete_metrics_extraction_rules(
