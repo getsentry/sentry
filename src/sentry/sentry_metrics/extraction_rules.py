@@ -8,12 +8,12 @@ from sentry.utils import json
 METRICS_EXTRACTION_RULES_OPTION_KEY = "sentry:metrics_extraction_rules"
 
 
-@dataclass
+@dataclass(frozen=True)
 class MetricsExtractionRule:
     span_attribute: str
     type: str
     unit: str
-    tags: list[str]
+    tags: set[str]
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> Optional["MetricsExtractionRule"]:
@@ -21,7 +21,7 @@ class MetricsExtractionRule:
             span_attribute=dictionary["span_attribute"],
             type=dictionary["type"],
             unit=dictionary["unit"],
-            tags=dictionary.get("blocked_tags") or [],
+            tags=set(dictionary.get("tags") or set()),
         )
 
     def to_dict(self) -> Mapping[str, Any]:
@@ -31,20 +31,25 @@ class MetricsExtractionRule:
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
         return f"{self.type}:{use_case}/{self.span_attribute}@{self.unit}"
 
+    def __hash__(self):
+        return hash(self.generate_mri())
 
-@dataclass
+
+@dataclass(frozen=True)
 class MetricsExtractionRuleState:
     rules: dict[str, MetricsExtractionRule]
 
     @classmethod
     def load_from_project(cls, project: Project) -> "MetricsExtractionRuleState":
         json_payload = project.get_option(METRICS_EXTRACTION_RULES_OPTION_KEY)
+        return MetricsExtractionRuleState.from_json(json_payload)
+
+    @classmethod
+    def from_json(cls, json_payload: str):
         if not json_payload:
             return MetricsExtractionRuleState(rules={})
-
         try:
             metrics_extraction_rules = json.loads(json_payload)
-
         except Exception:
             raise MetricsExtractionRuleValidationError("Invalid JSON Payload.")
 
@@ -71,26 +76,46 @@ class MetricsExtractionRuleState:
     def to_json(self) -> dict[str, str | Sequence[str]]:
         raise NotImplementedError()
 
+    def get_rules(self) -> Sequence[MetricsExtractionRule]:
+        return list(self.rules.values())
+
+    def delete_rule(self, rule: MetricsExtractionRule) -> None:
+        mri = rule.generate_mri()
+        if mri in self.rules:
+            del self.rules[mri]
+        else:
+            return
+
 
 def update_metrics_extraction_rules(
-    project: Project, updated_rules: dict[str, Any]
-) -> MetricsExtractionRuleState:
+    project: Project, updated_rules: str
+) -> Sequence[MetricsExtractionRule]:
     state = MetricsExtractionRuleState.load_from_project(project)
+    deserialized_rules = json.loads(updated_rules)
 
-    for updated_rule in updated_rules.values():
+    for updated_rule in deserialized_rules:
         rule = MetricsExtractionRule.from_dict(updated_rule)
         mri = rule.generate_mri()
         state.rules[mri] = rule
 
-    # validate new state somehow?
-    state.validate()
     # save to
     state.save_to_project(project)
-    return state
+    return state.get_rules()
 
 
 class MetricsExtractionRuleValidationError(ValueError):
     pass
 
 
-# def delete_metrics_extraction_rules(project: Project)
+def delete_metrics_extraction_rules(
+    project: Project, deleted_rules: str
+) -> Sequence[MetricsExtractionRule]:
+    state = MetricsExtractionRuleState.load_from_project(project)
+    deserialized_rules = json.loads(deleted_rules)
+
+    for updated_rule in deserialized_rules:
+        rule = MetricsExtractionRule.from_dict(updated_rule)
+        state.delete_rule(rule)
+
+    state.save_to_project(project)
+    return state.get_rules()
