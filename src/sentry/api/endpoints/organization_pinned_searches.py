@@ -65,6 +65,18 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
                 "query_sort": result["sort"],
             },
         )
+
+        GroupSearchView.objects.create_or_update(
+            organization=organization,
+            user_id=request.user.id,
+            position=1,
+            values={
+                "name": "Prioritized",
+                "query": "is:unresolved issue.priority:[high, medium]",
+                "query_sort": SortOptions.DATE,
+            },
+        )
+
         pinned_search = SavedSearch.objects.get(
             organization=organization,
             owner_id=request.user.id,
