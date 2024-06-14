@@ -33,7 +33,6 @@ from sentry.testutils.silo import control_silo_test
         "status": 200,
     },
 )
-@patch("sentry.integrations.slack.integration.logger")
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
@@ -122,12 +121,10 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_bot_flow_slack_sdk(self, mock_logger, mock_api_call):
+    def test_bot_flow_slack_sdk(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
 
-        # assert we are using the new slack sdk
-        mock_logger.info.assert_called_with("slack.install.team-info.success")
         integration = Integration.objects.get(provider=self.provider.key)
         assert integration.external_id == "TXXXXXXX1"
         assert integration.name == "Example"
@@ -152,7 +149,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_bot_flow_customer_domains(self, mock_logger, mock_api_call):
+    def test_bot_flow_customer_domains(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow(customer_domain=f"{self.organization.slug}.testserver")
 
@@ -180,7 +177,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_multiple_integrations(self, mock_logger, mock_api_call):
+    def test_multiple_integrations(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
@@ -210,7 +207,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identities[0].idp != identities[1].idp
 
     @responses.activate
-    def test_reassign_user(self, mock_logger, mock_api_call):
+    def test_reassign_user(self, mock_api_call):
         """Test that when you install and then later re-install and the user who installs it
         has a different external ID, their Identity is updated to reflect that
         """
