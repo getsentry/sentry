@@ -1183,57 +1183,26 @@ export class VirtualizedViewManager {
     span_space: [number, number],
     text: string
   ): [number, number] {
+    const TEXT_PADDING = 2;
+
+    const icon_width_config_space = 18 / this.span_to_px / 2;
     const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
     const width = this.text_measurer.measure(text);
 
-    const has_profiles = node && node.profiles.length > 0;
-    const has_error_icons =
-      node &&
-      (node.profiles.length > 0 ||
-        node.errors.size > 0 ||
-        node.performance_issues.size > 0);
-
-    const has_icons = has_profiles || has_error_icons;
-
-    const node_width = span_space[1] * this.span_to_px;
-    const TEXT_PADDING = 2;
-    // This is inaccurate in the case of left anchored text. In order to determine a true overlap, we would need to compute
-    // the distance between the min timestamp of an icon and beginning of the span. Once we determine the distance, we can compute
-    // the width and see if there is an actual overlap. Since this is a rare case which only happens in the case where we anchor the text
-    // to the left (20% of the time) and the node may have many errors, this could be computationally expensive to do on every frame.
-    // We'll live with the inaccuracy for now as it is purely visual and just make sure to handle a single error case as it will be easy
-    // to determine if there is an overlap.
-    const TEXT_PADDING_LEFT = text_left && has_icons ? 10 : TEXT_PADDING;
-
-    const TEXT_PADDING_RIGHT =
-      !text_left && has_icons
-        ? node_width < 10
-          ? // If the node is too small, we need to make sure the text is anchored to the right edge of the icon.
-            // We take the distance from the right edge of the node to the right edge of the icon and subtract it from
-            // the base width (10) and the base padding when (expanded) to get the correct padding. If we take only 10px
-            // as our padding, the text can be anchored directly to the right edge of our icon - we want to preserve
-            // a min padding of 2px.
-            12 - node_width
-          : TEXT_PADDING
-        : TEXT_PADDING;
+    const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
+    const left = Math.min(span_space[0], timestamps[0]);
+    const right = Math.max(span_space[0] + span_space[1], timestamps[1]);
 
     // precompute all anchor points aot, so we make the control flow more readable.
-    // this wastes some cycles, but it's not a big deal as computers go brrrr when it comes to simple arithmetic.
     /// |---| text
-    const right_outside =
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) +
-      TEXT_PADDING_RIGHT;
-    /// text |---|
-    const left_outside =
-      this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING_LEFT - width;
-
-    // |   text|
+    const right_outside = this.computeTransformXFromTimestamp(right) + TEXT_PADDING;
+    // |---text|
     const right_inside =
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
-      width -
-      TEXT_PADDING;
-    // |text   |
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) - TEXT_PADDING;
+    // |text---|
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+    /// text |---|
+    const left_outside = this.computeTransformXFromTimestamp(left) - TEXT_PADDING - width;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
@@ -1712,6 +1681,51 @@ export class VirtualizedViewManager {
       this.container = null;
     }
   }
+}
+
+// Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
+// of the span to include the icon. We need this because when the icon is close to the edge
+// it can extend it and cause overlaps with duration labels
+function getIconTimestamps(
+  node: TraceTreeNode<any>,
+  span_space: [number, number],
+  icon_width: number
+) {
+  if (!node.errors.size) {
+    return [span_space[0], span_space[0] + span_space[1]];
+  }
+
+  let min_icon_timestamp = span_space[0];
+  let max_icon_timestamp = span_space[0] + span_space[1];
+
+  for (const err of node.performance_issues) {
+    if (typeof err.start === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, err.start - icon_width);
+    }
+    if (typeof err.end === 'number') {
+      max_icon_timestamp = Math.max(max_icon_timestamp, err.end + icon_width);
+    }
+  }
+
+  for (const err of node.errors) {
+    if (typeof err.timestamp === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, err.timestamp * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, err.timestamp * 1e3 + icon_width);
+    }
+  }
+
+  min_icon_timestamp = clamp(
+    min_icon_timestamp,
+    span_space[0] - icon_width,
+    span_space[0] + span_space[1] + icon_width
+  );
+  max_icon_timestamp = clamp(
+    max_icon_timestamp,
+    span_space[0] - icon_width,
+    span_space[0] + span_space[1] + icon_width
+  );
+
+  return [min_icon_timestamp, max_icon_timestamp];
 }
 
 // Jest does not implement scroll updates, however since we have the
