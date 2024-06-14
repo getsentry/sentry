@@ -548,7 +548,7 @@ class UniversalImportExportService(ImportExportService):
                     q &= Q(**query)
                     q = model.query_for_relocation_export(q, in_pk_map)
 
-                pk_name = model._meta.pk.name  # type: ignore[union-attr]
+                pk_name = model._meta.pk.name
                 queryset = model._base_manager.filter(q).order_by(pk_name)
                 return filter_objects(queryset.iterator())
 
