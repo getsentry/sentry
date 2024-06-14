@@ -210,3 +210,13 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert response.status_code == 200
         data = response.data
         assert len(data) == 0
+
+    def test_malformed_json(self):
+        malformed_json = """[{"span_attribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"],}]"""
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="delete",
+            metricsExtractionRules=malformed_json,
+        )
+        assert response.status_code == 500

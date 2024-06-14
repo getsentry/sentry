@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 from sentry.models.project import Project
 from sentry.utils import json
@@ -16,7 +16,7 @@ class MetricsExtractionRule:
     tags: set[str]
 
     @classmethod
-    def from_dict(cls, dictionary: Mapping[str, Any]) -> Optional["MetricsExtractionRule"]:
+    def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
         return MetricsExtractionRule(
             span_attribute=dictionary["span_attribute"],
             type=dictionary["type"],
