@@ -39,6 +39,8 @@ class GroupAttributesTest(TestCase):
 
     def test_bulk_retrieve_group_values(self) -> None:
         group = self.create_group()
+        release = self.create_release(project=group.project)
+        group.update(first_release=release)
         group_2 = self.create_group(
             status=GroupStatus.RESOLVED,
             substatus=GroupSubStatus.ESCALATING,
@@ -54,7 +56,7 @@ class GroupAttributesTest(TestCase):
                 first_seen=group.first_seen,
                 num_comments=group.num_comments,
                 priority=group.priority,
-                first_release_id=None,
+                first_release_id=release.id,
             ),
             GroupValues(
                 id=group_2.id,
@@ -70,6 +72,9 @@ class GroupAttributesTest(TestCase):
 
     def test_bulk_retrieve_snapshot_values_group_owner(self) -> None:
         group = self.create_group()
+        release = self.create_release(project=group.project)
+        group.update(first_release=release)
+
         GroupOwner.objects.create(
             group=group,
             project=group.project,
@@ -118,7 +123,7 @@ class GroupAttributesTest(TestCase):
                 "status": group.status,
                 "substatus": group.substatus,
                 "priority": group.priority,
-                "first_release_id": None,
+                "first_release_id": release.id,
                 "first_seen": group.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 "num_comments": group.num_comments,
                 "assignee_user_id": self.user.id,
@@ -136,7 +141,6 @@ class GroupAttributesTest(TestCase):
                 "status": group_2.status,
                 "substatus": group_2.substatus,
                 "priority": group_2.priority,
-                "first_release_id": None,
                 "first_seen": group_2.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 "num_comments": group_2.num_comments,
                 "assignee_user_id": None,

@@ -164,9 +164,7 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
                 first_seen=group_values["first_seen"],
                 num_comments=group_values["num_comments"],
                 priority=group_values["priority"],
-                first_release_id=(
-                    group_values["first_release"].id if group_values["first_release"] else None
-                ),
+                first_release_id=(group_values["first_release"] or None),
             )
         )
     return results
