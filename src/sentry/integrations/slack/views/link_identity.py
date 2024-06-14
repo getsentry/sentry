@@ -105,7 +105,7 @@ class SlackLinkIdentityView(BaseView):
         except IntegrityError:
             _logger.exception("slack.link.integrity_error")
             metrics.incr(
-                self._METRICS_FAILURE_KEYKEY + ".post.identity.integrity_error",
+                self._METRICS_FAILURE_KEY + ".post.identity.integrity_error",
                 sample_rate=1.0,
             )
             raise Http404
