@@ -739,11 +739,12 @@ class SubscriptionProcessor:
             else AlertRuleTriggerActionMethod.RESOLVE.value
         )
 
-        # NOTE: all incident_triggers are derived from self.active_incident
+        # NOTE: all incident_triggers are derived from self.active_incident, so if active_incident is
+        # still set we can save ourselves a query
         incident = self.active_incident
         if not incident:
-            # NOTE: resolve incident would have cleared the active incident cache
-            # So fetch the incident if it has
+            # NOTE: trigger_resolve_threshold clears the active incident cache
+            # So fetch the incident if active_incident has already been removed
             incident = Incident.objects.get(id=incident_trigger.incident_id)
 
         incident_activities = IncidentActivity.objects.filter(incident=incident).values_list(

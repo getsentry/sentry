@@ -59,17 +59,14 @@ class IncidentSeen(Model):
 
 
 class IncidentManager(BaseManager["Incident"]):
-    CACHE_KEY = "incidents:active:%s:%s"
-    SUB_CACHE_KEY = "incidents:active:%s:%s:%s"
+    CACHE_KEY = "incidents:active:%s:%s:%s"
 
     def fetch_for_organization(self, organization, projects):
         return self.filter(organization=organization, projects__in=projects).distinct()
 
     @classmethod
-    def _build_active_incident_cache_key(cls, alert_rule_id, project_id, subscription_id):
-        if subscription_id:
-            return cls.SUB_CACHE_KEY % (alert_rule_id, project_id, subscription_id)
-        return cls.CACHE_KEY % (alert_rule_id, project_id)
+    def _build_active_incident_cache_key(cls, alert_rule_id, project_id, subscription_id=None):
+        return cls.CACHE_KEY % (alert_rule_id, project_id, subscription_id)
 
     def get_active_incident(self, alert_rule, project, subscription=None):
         """
@@ -87,9 +84,8 @@ class IncidentManager(BaseManager["Incident"]):
                     type=IncidentType.ALERT_TRIGGERED.value,
                     alert_rule=alert_rule,
                     projects=project,
+                    subscription=subscription,
                 )
-                if subscription:
-                    incident_query = incident_query.filter(subscription=subscription)
                 incident = incident_query.exclude(status=IncidentStatus.CLOSED.value).order_by(
                     "-date_added"
                 )[0]
@@ -121,11 +117,10 @@ class IncidentManager(BaseManager["Incident"]):
     def clear_active_incident_project_cache(cls, instance, **kwargs):
         # instance is an IncidentProject
         project_id = instance.project_id
-        subscription_id = (
-            instance.incident.subscription_id if instance.incident.subscription else None
-        )
+        incident = instance.incident
+        subscription_id = incident.subscription_id if incident.subscription else None
         key = cls._build_active_incident_cache_key(
-            instance.incident.alert_rule_id, project_id, subscription_id
+            incident.alert_rule_id, project_id, subscription_id
         )
         cache.delete(key)
         assert cache.get(key) is None
