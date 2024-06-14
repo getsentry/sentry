@@ -44,7 +44,7 @@ export const MODULE_DESCRIPTION = t(
   'Understand the health and performance impact that queues have on your application and diagnose errors tied to jobs.'
 );
 export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/performance/queue-monitoring/';
+  'https://docs.sentry.io/product/insights/queue-monitoring/';
 
 export const ONBOARDING_CONTENT = {
   title: t('Start collecting Insights about your Queues!'),
