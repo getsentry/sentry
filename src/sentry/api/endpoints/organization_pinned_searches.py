@@ -65,7 +65,9 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
                 "query_sort": result["sort"],
             },
         )
-
+        # These groupsearchview entries are temporarily here to ensure that pinned searches
+        # are being dynamically upgraded to custom views until custom views are GA'd, at which
+        # point saved searches will be removed entirely, along with this endpoint.
         GroupSearchView.objects.create_or_update(
             organization=organization,
             user_id=request.user.id,
