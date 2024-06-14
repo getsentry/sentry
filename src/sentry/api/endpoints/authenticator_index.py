@@ -43,7 +43,7 @@ class AuthenticatorIndexEndpoint(Endpoint):
                 {
                     "id": "u2f",
                     "challenge": {"webAuthnAuthenticationData": webAuthnAuthenticationData},
-                    "state": state,
+                    "auth_state": state,
                 }
             ]
         )
