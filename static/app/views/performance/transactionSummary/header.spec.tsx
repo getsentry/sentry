@@ -18,7 +18,6 @@ function initializeData(opts?: InitialOpts) {
   const {features, platform} = opts ?? {};
   const project = ProjectFixture({platform});
   const organization = OrganizationFixture({
-    projects: [project],
     features: features ?? [],
   });
 
