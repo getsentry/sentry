@@ -1672,6 +1672,7 @@ class Factories:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
         with outbox_runner():
             organization_integration = integration.add_organization(organization)
+            assert organization_integration is not None
         organization_integration.update(**(oi_params or {}))
 
         return integration
