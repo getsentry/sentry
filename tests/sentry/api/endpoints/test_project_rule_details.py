@@ -1186,10 +1186,11 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == "new_channel_id"
         sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was updated."
+        message = "*Alert rule updated*\n\n"
+        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
         assert sent_blocks[0]["text"]["text"] == message
 
-        changes = "*Changes*\n"
+        changes = "Changes\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
         changes += "• Changed action from 'Send a notification to the Awesome Team Slack workspace to #old_channel_name' to 'Send a notification to the Awesome Team Slack workspace to #new_channel_name'\n"
         changes += "• Changed frequency from '5 minutes' to '3 hours'\n"
