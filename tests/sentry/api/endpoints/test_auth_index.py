@@ -150,7 +150,7 @@ class AuthVerifyEndpointTest(APITestCase):
         response = self.client.put(
             self.path,
             user=user,
-            data={"password": "admin", "auth_state": '{"wiz":"waz"}', **self.validator_params},
+            data={"password": "admin", "authState": '{"wiz":"waz"}', **self.validator_params},
         )
 
         assert response.status_code == 200
@@ -236,7 +236,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
                     "isSuperuserModal": True,
                     "superuserAccessCategory": "for_unit_test",
                     "superuserReason": "for testing",
-                    "auth_state": '{"wiz":"waz"}',
+                    "authState": '{"wiz":"waz"}',
                     **self.validator_params,
                 },
             )

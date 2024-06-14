@@ -81,7 +81,7 @@ class BaseAuthIndexEndpoint(Endpoint):
                 challenge = json.loads(valid_data["challenge"])
                 response = json.loads(valid_data["response"])
 
-                if state := valid_data.get("auth_state"):
+                if state := valid_data.get("authState"):
                     state = json.loads(state)
                 else:
                     # state may be an empty string, so we want to explicitly set

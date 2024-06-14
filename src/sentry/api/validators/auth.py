@@ -8,7 +8,7 @@ class AuthVerifyValidator(serializers.Serializer):
     # For u2f
     challenge = serializers.CharField(required=False, trim_whitespace=False)
     response = serializers.CharField(required=False, trim_whitespace=False)
-    auth_state = serializers.CharField(required=False, trim_whitespace=False)
+    authState = serializers.CharField(required=False, trim_whitespace=False)
 
     def validate(self, data):
         if "password" in data:
