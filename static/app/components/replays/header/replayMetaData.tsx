@@ -45,7 +45,7 @@ function ReplayMetaData({
   };
 
   return isLoading ? (
-    <Placeholder height="45px" width="203px" />
+    <Placeholder height="47px" width="203px" />
   ) : (
     <KeyMetrics>
       {showDeadRageClicks && (
