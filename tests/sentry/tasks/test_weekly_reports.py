@@ -959,7 +959,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         logger.error.assert_called_with(
             "Target user must have an ID",
             extra={
-                "batch_id": batch_id,
+                "batch_id": str(batch_id),
                 "organization": org.id,
                 "target_user": "dummy",
                 "email_override": "doesntmatter@smad.com",
@@ -1017,7 +1017,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         mock_logger.error.assert_called_once_with(
             "weekly_report.delivery_record.duplicate_detected",
             extra={
-                "batch_id": batch_id,
+                "batch_id": str(batch_id),
                 "organization": self.organization.id,
                 "user_id": self.user.id,
                 "has_email_override": False,
