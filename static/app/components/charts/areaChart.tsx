@@ -25,7 +25,7 @@ export function transformToAreaSeries({
     AreaSeries({
       stack: stacked ? 'area' : undefined,
       name: seriesName,
-      data: data.map(({name, value}) => [name, value]),
+      data: data?.map(({name, value}) => [name, value]),
       lineStyle: {
         color: colors?.[i],
         opacity: 1,
