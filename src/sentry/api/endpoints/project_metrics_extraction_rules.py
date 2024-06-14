@@ -16,7 +16,10 @@ from sentry.sentry_metrics.extraction_rules import (
 
 @region_silo_endpoint
 class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
-    publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL, "DELETE": ApiPublishStatus.EXPERIMENTAL}
+    publish_status = {
+        "PUT": ApiPublishStatus.EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+    }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
     def put(self, request: Request, project: Project) -> Response:
