@@ -12,7 +12,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
 class RequestSerializer(serializers.Serializer):  # type: ignore[type-arg]
-    type = serializers.CharField(required=True)
+    type = serializers.ChoiceField(["same_root_cause", "trace_connected"])
     event_id = serializers.CharField(required=False)
     project_id = serializers.IntegerField(required=False)
 
@@ -40,8 +40,9 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         :pparam Request request: the request object
         :pparam Group group: the group object
         """
-        serializer = RequestSerializer(data=request.data)
-        serializer.is_valid()
+        serializer = RequestSerializer(data=request.query_params)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
         # The type of related issues to retrieve. Can be either `same_root_cause` or `trace_connected`.
         related_type = request.query_params["type"]
         extra_args = {
