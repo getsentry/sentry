@@ -7,6 +7,7 @@ from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkTimeou
 
 from sentry.monitors.clock_tasks.check_timeout import dispatch_check_timeout, mark_checkin_timeout
 from sentry.monitors.clock_tasks.producer import MONITORS_CLOCK_TASKS_CODEC
+from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -20,8 +21,9 @@ from sentry.testutils.cases import TestCase
 
 
 class MonitorClockTasksCheckTimeoutTest(TestCase):
+    @mock.patch("sentry.monitors.clock_tasks.check_timeout.mark_failed", wraps=mark_failed)
     @mock.patch("sentry.monitors.clock_tasks.check_timeout.produce_task")
-    def test_timeout(self, mock_produce_task):
+    def test_timeout(self, mock_produce_task, mock_mark_failed):
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -93,6 +95,10 @@ class MonitorClockTasksCheckTimeoutTest(TestCase):
 
         # Check in is marked as timed out
         assert MonitorCheckIn.objects.filter(id=checkin.id, status=CheckInStatus.TIMEOUT).exists()
+
+        # mark_failed called with the check-in with the status correctly updated
+        assert mock_mark_failed.call_count == 1
+        assert mock_mark_failed.mock_calls[0].args[0].status == CheckInStatus.TIMEOUT
 
         # Monitor is in an error state
         monitor_env = MonitorEnvironment.objects.filter(

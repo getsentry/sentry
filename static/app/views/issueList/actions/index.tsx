@@ -107,6 +107,7 @@ function ActionsBarPriority({
           <Checkbox
             onChange={() => SelectedGroupStore.toggleSelectAll()}
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+            aria-label={pageSelected ? t('Deselect all') : t('Select all')}
             disabled={displayReprocessingActions}
           />
         </ActionsCheckbox>
@@ -377,6 +378,7 @@ function IssueListActions({
               <Checkbox
                 onChange={() => SelectedGroupStore.toggleSelectAll()}
                 checked={pageSelected || (anySelected ? 'indeterminate' : false)}
+                aria-label={pageSelected ? t('Deselect all') : t('Select all')}
                 disabled={displayReprocessingActions}
               />
             </ActionsCheckbox>
@@ -461,10 +463,10 @@ function IssueListActions({
 
 function useSelectedGroupsState() {
   const [allInQuerySelected, setAllInQuerySelected] = useState(false);
-  const selectedIds = useLegacyStore(SelectedGroupStore);
+  const selectedGroupState = useLegacyStore(SelectedGroupStore);
+  const selectedIds = SelectedGroupStore.getSelectedIds();
 
-  const selected = SelectedGroupStore.getSelectedIds();
-  const projects = [...selected]
+  const projects = [...selectedIds]
     .map(id => GroupStore.get(id))
     .filter((group): group is Group => !!group?.project)
     .map(group => group.project.slug);
@@ -482,7 +484,7 @@ function useSelectedGroupsState() {
 
   useEffect(() => {
     setAllInQuerySelected(false);
-  }, [selectedIds]);
+  }, [selectedGroupState]);
 
   return {
     pageSelected,

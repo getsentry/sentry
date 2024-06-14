@@ -93,13 +93,13 @@ def record_calculation_metric_with_result(
     metrics.incr("grouping.total_calculations", amount=2 if has_secondary_hashes else 1, tags=tags)
 
 
-def record_new_group_metrics(event: Event):
+def record_new_group_metrics(event: Event) -> None:
     metrics.incr(
         "group.created",
         skip_internal=True,
         tags={
             "platform": event.platform or "unknown",
-            "sdk": normalized_sdk_tag_from_event(event),
+            "sdk": normalized_sdk_tag_from_event(event.data),
         },
     )
 
@@ -111,7 +111,7 @@ def record_new_group_metrics(event: Event):
             sample_rate=1.0,
             tags={
                 "platform": event.platform or "unknown",
-                "sdk": normalized_sdk_tag_from_event(event),
+                "sdk": normalized_sdk_tag_from_event(event.data),
                 "frame_mix": frame_mix,
             },
         )

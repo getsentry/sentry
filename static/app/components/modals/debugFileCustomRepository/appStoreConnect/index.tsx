@@ -361,13 +361,13 @@ const NumericSymbol = styled('div')`
   justify-content: center;
   width: 24px;
   height: 24px;
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   background-color: ${p => p.theme.yellow300};
 `;
 
 const HeaderContentTitle = styled('div')`
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 

@@ -15,25 +15,25 @@ import {
   TreeContainer,
 } from 'sentry/components/events/eventTags/eventTagsTree';
 import EventTagsTreeRow from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {
-  useHasNewTagsUI,
-  useIssueDetailsColumnCount,
-} from 'sentry/components/events/eventTags/util';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import EditHighlightsModal from 'sentry/components/events/highlights/editHighlightsModal';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
+  HIGHLIGHT_DOCS_LINK,
 } from 'sentry/components/events/highlights/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconEdit, IconMegaphone} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {useDetailedProject} from 'sentry/utils/useDetailedProject';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface HighlightsDataSectionProps {
@@ -51,6 +51,7 @@ function HighlightsData({
   createEditAction: (action: React.ReactNode) => void;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
   const {isLoading, data: detailedProject} = useDetailedProject({
@@ -77,6 +78,7 @@ function HighlightsData({
     project,
     organization,
     highlightContext,
+    location,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
     (rowList, {alias, data}, i) => {
@@ -221,16 +223,11 @@ export default function HighlightsDataSection({
   viewAllRef,
   ...props
 }: HighlightsDataSectionProps) {
-  const hasNewTagsUI = useHasNewTagsUI();
   const organization = useOrganization();
   // XXX: A bit convoluted to have the edit action created by the child component, but this allows
   // us to wrap it with an Error Boundary and still display the EventDataSection header if something
   // goes wrong
   const [editAction, setEditAction] = useState<React.ReactNode>(null);
-
-  if (!hasNewTagsUI) {
-    return null;
-  }
 
   const viewAllButton = viewAllRef ? (
     <Button
@@ -246,9 +243,17 @@ export default function HighlightsDataSection({
 
   return (
     <EventDataSection
-      title={t('Event Highlights')}
-      data-test-id="event-highlights"
+      key="event-highlights"
       type="event-highlights"
+      title={t('Event Highlights')}
+      help={tct(
+        'Promoted tags and context items saved for this project. [link:Learn more]',
+        {
+          link: <ExternalLink openInNewTab href={HIGHLIGHT_DOCS_LINK} />,
+        }
+      )}
+      isHelpHoverable
+      data-test-id="event-highlights"
       actions={
         <ButtonBar gap={1}>
           <HighlightsFeedback />

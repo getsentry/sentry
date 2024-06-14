@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
@@ -12,10 +12,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDescription} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
@@ -54,6 +56,7 @@ export function WebVitalsDetailPanel({
   webVital: WebVitals | null;
 }) {
   const location = useLocation();
+  const organization = useOrganization();
 
   const {data: projectData} = useProjectRawWebVitalsQuery({});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
@@ -122,6 +125,15 @@ export function WebVitalsDetailPanel({
   };
 
   const detailKey = webVital;
+
+  useEffect(() => {
+    if (webVital !== null) {
+      trackAnalytics('insight.vital.vital_sidebar_opened', {
+        organization,
+        vital: webVital,
+      });
+    }
+  }, [organization, webVital]);
 
   const renderHeadCell = (col: Column) => {
     if (col.key === 'transaction') {
@@ -249,7 +261,6 @@ export function WebVitalsDetailPanel({
               renderHeadCell,
               renderBodyCell,
             }}
-            location={location}
           />
         </TableContainer>
         <PageAlert />

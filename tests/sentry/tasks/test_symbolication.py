@@ -145,19 +145,19 @@ def test_symbolicate_event_doesnt_call_process_inline(
 
 @django_db_all
 def test_should_demote_symbolication_empty(default_project):
-    assert not should_demote_symbolication(default_project.id)
+    assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
 
 
 @django_db_all
 def test_should_demote_symbolication_always(default_project):
     with override_options({"store.symbolicate-event-lpq-always": [default_project.id]}):
-        assert should_demote_symbolication(default_project.id)
+        assert should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
 
 
 @django_db_all
 def test_should_demote_symbolication_never(default_project):
     with override_options({"store.symbolicate-event-lpq-never": [default_project.id]}):
-        assert not should_demote_symbolication(default_project.id)
+        assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
 
 
 @django_db_all
@@ -168,19 +168,7 @@ def test_should_demote_symbolication_always_and_never(default_project):
             "store.symbolicate-event-lpq-always": [default_project.id],
         }
     ):
-        assert not should_demote_symbolication(default_project.id)
-
-
-@django_db_all
-@override_settings(SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE=True)
-def test_should_demote_symbolication_with_lpq_projects(default_project):
-    with override_options(
-        {
-            "store.symbolicate-event-lpq-never": [],
-            "store.symbolicate-event-lpq-always": [],
-        }
-    ):
-        assert should_demote_symbolication(default_project.id, lpq_projects={default_project.id})
+        assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
 
 
 @django_db_all
@@ -192,7 +180,7 @@ def test_should_demote_symbolication_with_non_existing_lpq_projects(default_proj
             "store.symbolicate-event-lpq-always": [],
         }
     ):
-        assert not should_demote_symbolication(default_project.id)
+        assert not should_demote_symbolication(SymbolicatorPlatform.native, default_project.id)
 
 
 @django_db_all
@@ -215,7 +203,9 @@ def test_submit_symbolicate_queue_switch(
     mock_event_processing_store.get.return_value = data
     mock_event_processing_store.store.return_value = "e:1"
 
-    is_low_priority = mock_should_demote_symbolication(default_project.id)
+    is_low_priority = mock_should_demote_symbolication(
+        SymbolicatorPlatform.native, default_project.id
+    )
     assert is_low_priority
     with TaskRunner():
         task_kind = SymbolicatorTaskKind(

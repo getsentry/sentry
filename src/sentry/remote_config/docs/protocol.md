@@ -14,13 +14,25 @@ Retrieve a project's configuration.
 
 **Attributes**
 
-| Field                      | Type   | Description                           |
-| -------------------------- | ------ | ------------------------------------- |
-| options                    | object | A statically typed options structure. |
-| options.sample_rate        | float  | The rate at which to sample errors.   |
-| options.traces_sample_rate | float  | The rate at which to sample traces.   |
-| options.user_config        | any    | Arbitrary JSON provided by the user.  |
-| version                    | number | The version of the protocol.          |
+| Field    | Type           | Description                                   |
+| -------- | -------------- | --------------------------------------------- |
+| features | array[Feature] | Custom, user-defined configuration container. |
+| options  | Option         | Sentry SDK options container.                 |
+| version  | number         | The version of the protocol.                  |
+
+**Feature Object**
+
+| Field | Type   | Description                        |
+| ----- | ------ | ---------------------------------- |
+| key   | string | The name used to lookup a feature. |
+| value | any    | A JSON value.                      |
+
+**Option Object**
+
+| Field              | Type  | Description        |
+| ------------------ | ----- | ------------------ |
+| sample_rate        | float | Error sample rate. |
+| traces_sample_rate | float | Trace sample rate. |
 
 **Server ETag Matches**
 
@@ -64,12 +76,19 @@ If the server's ETag does not match the request's a 200 response is returned.
 
     ```json
     {
+      "features": [
+        {
+          "key": "hello",
+          "value": "world"
+        },
+        {
+          "key": "has_access",
+          "value": true
+        }
+      ],
       "options": {
         "sample_rate": 1.0,
-        "traces_sample_rate": 0.5,
-        "user_config": {
-          "hello": "world"
-        }
+        "traces_sample_rate": 0.5
       },
       "version": 1
     }

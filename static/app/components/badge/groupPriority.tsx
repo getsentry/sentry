@@ -1,5 +1,4 @@
 import {Fragment, useMemo, useRef} from 'react';
-import isPropValid from '@emotion/is-prop-valid';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -99,14 +98,8 @@ export function makeGroupPriorityDropdownOptions({
 }
 
 export function GroupPriorityBadge({priority, children}: GroupPriorityBadgeProps) {
-  const organization = useOrganization();
   return (
-    <StyledTag
-      type={getTagTypeForPriority(priority)}
-      isBigtag={organization.features.includes(
-        'issue-stream-new-assignee-dropdown-trigger'
-      )}
-    >
+    <StyledTag type={getTagTypeForPriority(priority)}>
       {PRIORITY_KEY_TO_LABEL[priority] ?? t('Unknown')}
       {children}
     </StyledTag>
@@ -265,7 +258,7 @@ export function GroupPriorityDropdown({
 }
 
 const DropdownButton = styled(Button)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   border: none;
   padding: 0;
   height: unset;
@@ -273,9 +266,7 @@ const DropdownButton = styled(Button)`
   box-shadow: none;
 `;
 
-const StyledTag = styled(Tag, {
-  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
-})<{isBigtag: boolean}>`
+const StyledTag = styled(Tag)`
   span {
     display: flex;
     align-items: center;
@@ -283,7 +274,7 @@ const StyledTag = styled(Tag, {
   }
 
   & > div {
-    height: ${p => (p.isBigtag ? '24px' : '18px')};
+    height: 24px;
   }
 `;
 
@@ -301,7 +292,7 @@ const MenuTitleContainer = styled('div')`
 const StyledButton = styled(Button)`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: 0;
   border: none;
 

@@ -22,7 +22,8 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
-import {parsePeriodToHours, statsPeriodToDays} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import commonTheme from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -89,14 +90,14 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_INFO.metrics.titleName,
-    value: DATA_CATEGORY_INFO.metrics.plural,
+    label: DATA_CATEGORY_INFO.span.titleName,
+    value: DATA_CATEGORY_INFO.span.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
   {
-    label: DATA_CATEGORY_INFO.span.titleName,
-    value: DATA_CATEGORY_INFO.span.plural,
+    label: DATA_CATEGORY_INFO.profileDuration.titleName,
+    value: DATA_CATEGORY_INFO.profileDuration.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },

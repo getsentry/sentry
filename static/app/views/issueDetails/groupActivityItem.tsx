@@ -21,8 +21,8 @@ import type {
   User,
 } from 'sentry/types';
 import {GroupActivityType} from 'sentry/types/group';
-import {isSemverRelease} from 'sentry/utils/formatters';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
+import {isSemverRelease} from 'sentry/utils/versions/isSemverRelease';
 
 interface AssignedMessageProps {
   activity: GroupActivityAssigned;

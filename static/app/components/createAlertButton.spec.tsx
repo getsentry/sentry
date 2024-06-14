@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -38,8 +38,6 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('should trigger onClick callback', async () => {
-    const context = RouterContextFixture();
-
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
@@ -51,8 +49,7 @@ describe('CreateAlertFromViewButton', () => {
         eventView={eventView}
         projects={[ProjectFixture()]}
         onClick={onClickMock}
-      />,
-      {context}
+      />
     );
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
@@ -90,7 +87,6 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -126,7 +122,6 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: RouterContextFixture([{organization}]),
         organization,
       }
     );
@@ -175,7 +170,6 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />,
       {
-        context: RouterContextFixture([{organization: noAccessOrg}]),
         organization: noAccessOrg,
       }
     );
@@ -257,7 +251,7 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('removes a duplicate project filter', async () => {
-    const context = RouterContextFixture();
+    const router = RouterFixture();
 
     const projects = [ProjectFixture()];
     jest.mocked(useProjects).mockReturnValue({
@@ -282,10 +276,10 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {context}
+      {router}
     );
     await userEvent.click(screen.getByRole('button'));
-    expect(context.context.router.push).toHaveBeenCalledWith({
+    expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/org-slug/alerts/new/metric/`,
       query: expect.objectContaining({
         query: 'event.type:error ',

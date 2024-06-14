@@ -29,6 +29,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.db.models.base import BaseModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.models.userpermission import UserPermission
@@ -501,6 +502,17 @@ class UniversalImportExportService(ImportExportService):
                         for field, foreign_field in deps[model_name].foreign_keys.items():
                             dependency_model_name = get_model_name(foreign_field.model)
                             field_id = field if field.endswith("_id") else f"{field}_id"
+
+                            # Special case: We never want to filter on
+                            # `OrganizationMember.inviter_id`, since the inviter could be the
+                            # `user_id` of a `User` who is not in this `Organization`, and is
+                            # therefore not being exported. There is probably a more generic and
+                            # broadly applicable way to handle exceptional cases like this, but
+                            # since it is a one off for now, it seems easiest to just handle it
+                            # explicitly.
+                            if model == OrganizationMember and field_id == "inviter_id":
+                                continue
+
                             fk = getattr(item, field_id, None)
                             if fk is None:
                                 # Null deps are allowed.

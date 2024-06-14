@@ -21,7 +21,7 @@ jest.mock('sentry/utils/useProjects');
 describe('PageloadModule', function () {
   const project = ProjectFixture({platform: 'react-native'});
   const organization = OrganizationFixture({
-    features: ['spans-first-ui'],
+    features: ['insights-initial-modules'],
     projects: [project],
   });
   jest.mocked(useOnboardingProject).mockReturnValue(undefined);

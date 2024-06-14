@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Iterable
 from enum import Enum
 from typing import TYPE_CHECKING, ClassVar
 
@@ -25,7 +26,9 @@ class SentryAppAvatarTypes(Enum):
 
 
 class SentryAppAvatarManager(BaseManager["SentryAppAvatar"]):
-    def get_by_apps_as_dict(self, sentry_apps: list[SentryApp]):
+    def get_by_apps_as_dict(
+        self, sentry_apps: Iterable[SentryApp]
+    ) -> dict[int, set[SentryAppAvatar]]:
         """
         Returns a dict mapping sentry_app_id (key) to List[SentryAppAvatar] (value)
         """

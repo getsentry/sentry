@@ -2,7 +2,6 @@ from unittest import mock
 
 import pytest
 
-from sentry.eventstore.models import Event
 from sentry.utils.tag_normalization import normalize_sdk_tag, normalized_sdk_tag_from_event
 
 
@@ -75,11 +74,6 @@ def test_responses_cached():
     assert normalize_sdk_tag.cache_info().misses == 1
 
 
-@pytest.fixture
-def mock_event():
-    return mock.Mock(spec=Event)
-
-
 @pytest.mark.parametrize(
     ("tag", "expected"),
     (
@@ -90,11 +84,10 @@ def mock_event():
         ("sentry.javascript.react.native.expo", "sentry.javascript.react.native"),
     ),
 )
-def test_normalized_sdk_tag_from_event(tag, expected, mock_event):
-    mock_event.data = {"sdk": {"name": tag}}
-    assert normalized_sdk_tag_from_event(mock_event) == expected
+def test_normalized_sdk_tag_from_event(tag: str, expected: str) -> None:
+    assert normalized_sdk_tag_from_event({"sdk": {"name": tag}}) == expected
 
 
-def test_normalized_sdk_tag_from_event_exception(mock_event):
-    mock_event.side_effect = Exception("foo")
+def test_normalized_sdk_tag_from_event_exception():
+    mock_event = mock.Mock()
     assert normalized_sdk_tag_from_event(mock_event) == "other"

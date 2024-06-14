@@ -6,9 +6,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
-from sentry.api.endpoints.organization_metrics import get_use_case_id
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.metadata import convert_metric_names_to_mris, get_tag_values
+from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricParseException
 
 
@@ -23,6 +23,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization, tag_name) -> Response:
         metric_names = request.GET.getlist("metric") or []
+        tag_value_prefix = request.GET.get("prefix") or ""
         if len(metric_names) > 1:
             raise ParseError(
                 "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
@@ -41,6 +42,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                     use_case_ids=[get_use_case_id(request)],
                     mri=mri,
                     tag_key=tag_name,
+                    tag_value_prefix=tag_value_prefix,
                 )
                 tag_values = tag_values.union(mri_tag_values)
 
@@ -53,6 +55,8 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
         tag_values_formatted = [{"key": tag_name, "value": tag_value} for tag_value in tag_values]
 
         if len(tag_values_formatted) > 0:
+            return Response(tag_values_formatted, status=200)
+        elif len(tag_values_formatted) == 0 and len(tag_value_prefix) > 0:
             return Response(tag_values_formatted, status=200)
         else:
             raise NotFound(self._generate_not_found_message(metric_names, tag_name))

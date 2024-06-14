@@ -522,7 +522,7 @@ def run_symbolicate(
         task_kind=SymbolicatorTaskKind(platform=symbolicator_platform),
         on_request=on_symbolicator_request,
         project=project,
-        event_id=profile["event_id"],
+        event_id=get_event_id(profile),
     )
 
     try:
@@ -789,7 +789,7 @@ def _deobfuscate_using_symbolicator(project: Project, profile: Profile, debug_fi
         task_kind=SymbolicatorTaskKind(platform=SymbolicatorPlatform.jvm),
         on_request=on_symbolicator_request,
         project=project,
-        event_id=profile["event_id"],
+        event_id=get_event_id(profile),
     )
 
     try:
@@ -952,15 +952,12 @@ def _deobfuscate_locally(profile: Profile, project: Project, debug_file_id: str)
                     method["data"]["deobfuscation_status"] = "missing"
 
 
-def get_event_id(profile: Profile) -> str | None:
-    if "transaction_id" in profile:
-        return profile["transaction_id"]
-    elif "event_id" in profile:
-        return profile["event_id"]
-    elif "chunk_id" in profile:
+def get_event_id(profile: Profile) -> str:
+    if "chunk_id" in profile:
         return profile["chunk_id"]
-    else:
-        return None
+    elif "profile_id" in profile:
+        return profile["profile_id"]
+    return profile["event_id"]
 
 
 def get_data_category(profile: Profile) -> DataCategory:
@@ -1006,7 +1003,10 @@ def _insert_vroom_profile(profile: Profile) -> bool:
             elif response.status == 412:
                 metrics.incr(
                     "process_profile.insert_vroom_profile.error",
-                    tags={"platform": profile["platform"], "reason": "duplicate profile"},
+                    tags={
+                        "platform": profile["platform"],
+                        "reason": "duplicate profile",
+                    },
                     sample_rate=1.0,
                 )
                 return False
@@ -1047,7 +1047,7 @@ def prepare_android_js_profile(profile: Profile) -> None:
     p["platform"] = "javascript"
     p["debug_meta"] = profile["debug_meta"]
     p["version"] = "1"
-    p["event_id"] = profile["event_id"]
+    p["event_id"] = get_event_id(profile)
     p["release"] = profile["release"]
     p["dist"] = profile["dist"]
 

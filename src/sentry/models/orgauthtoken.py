@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar, Self
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
@@ -148,13 +149,24 @@ def get_org_auth_token_id_from_auth(auth: object) -> int | None:
     return None
 
 
-def update_org_auth_token_last_used(auth: object, project_ids: list[int]):
+def update_org_auth_token_last_used(auth: object, project_ids: list[int]) -> None:
     org_auth_token_id = get_org_auth_token_id_from_auth(auth)
     organization_id = getattr(auth, "organization_id", None)
-    if org_auth_token_id is not None and organization_id is not None:
-        orgauthtoken_service.update_orgauthtoken(
-            organization_id=organization_id,
-            org_auth_token_id=org_auth_token_id,
-            date_last_used=timezone.now(),
-            project_last_used_id=project_ids[0] if len(project_ids) > 0 else None,
-        )
+    if org_auth_token_id is None or organization_id is None:
+        return
+
+    # Debounce updates, as we often get bursts of requests when customer
+    # run CI or deploys and we don't need second level precision here.
+    # We vary on the project ids so that unique requests still make updates
+    project_segment = ",".join(str(i) for i in project_ids)
+    recent_key = f"orgauthtoken:{org_auth_token_id}:last_update:{project_segment}"
+    if cache.get(recent_key):
+        return
+    orgauthtoken_service.update_orgauthtoken(
+        organization_id=organization_id,
+        org_auth_token_id=org_auth_token_id,
+        date_last_used=timezone.now(),
+        project_last_used_id=project_ids[0] if len(project_ids) > 0 else None,
+    )
+    # Only update each minute.
+    cache.set(recent_key, 1, timeout=60)

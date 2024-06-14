@@ -2,9 +2,10 @@ from io import BytesIO
 from typing import TypedDict
 
 from sentry import options
+from sentry.cache import default_cache
 from sentry.models.files.utils import get_storage
-from sentry.models.projectkey import ProjectKey
-from sentry.utils import json
+from sentry.models.project import Project
+from sentry.utils import json, metrics
 
 JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSONValue"]
 
@@ -12,68 +13,51 @@ JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSO
 class Options(TypedDict):
     sample_rate: float
     traces_sample_rate: float
-    user_config: JSONValue
+
+
+class Feature(TypedDict):
+    key: str
+    value: JSONValue
 
 
 class StorageFormat(TypedDict):
+    features: list[Feature]
     options: Options
     version: int
 
 
 class APIFormat(TypedDict):
-    id: str
-    sample_rate: float
-    traces_sample_rate: float
-    user_config: JSONValue
+    features: list[Feature]
+    options: Options
 
 
-class StorageBackend:
-    def __init__(self, key: ProjectKey) -> None:
-        self.driver = BlobDriver(key)
+class ConfigurationCache:
+    def __init__(self, key: str) -> None:
         self.key = key
 
-    def get(self) -> APIFormat | None:
-        result = self.driver.get()
-        if result is None:
-            return None
-        return self._deserialize(result)
+    def get(self) -> StorageFormat | None:
+        cache_result = default_cache.get(self.key)
 
-    def set(self, value: APIFormat) -> None:
-        self.driver.set(self._serialize(value))
+        if cache_result is None:
+            metrics.incr("remote_config.configuration.cache_miss")
+        else:
+            metrics.incr("remote_config.configuration.cache_hit")
+
+        return cache_result
+
+    def set(self, value: StorageFormat) -> None:
+        default_cache.set(self.key, value=value, timeout=None)
 
     def pop(self) -> None:
-        self.driver.pop()
-
-    def _deserialize(self, result: StorageFormat) -> APIFormat:
-        assert self.key.public_key is not None
-        return {
-            "id": self.key.public_key,
-            "sample_rate": result["options"]["sample_rate"],
-            "traces_sample_rate": result["options"]["traces_sample_rate"],
-            "user_config": result["options"]["user_config"],
-        }
-
-    def _serialize(self, result: APIFormat) -> StorageFormat:
-        return {
-            "options": {
-                "sample_rate": result["sample_rate"],
-                "traces_sample_rate": result["traces_sample_rate"],
-                "user_config": result["user_config"],
-            },
-            "version": 1,
-        }
+        try:
+            default_cache.delete(self.key)
+        except Exception:
+            pass
 
 
-class BlobDriver:
-    def __init__(self, project_key: ProjectKey) -> None:
-        self.project_key = project_key
-
-    @property
-    def key(self):
-        assert self.project_key.public_key is not None
-        return (
-            f"configurations/{self.project_key.project_id}/{self.project_key.public_key}/production"
-        )
+class ConfigurationStorage:
+    def __init__(self, key: str) -> None:
+        self.key = key
 
     @property
     def storage(self):
@@ -111,5 +95,68 @@ class BlobDriver:
             return None
 
 
-def make_storage(key: ProjectKey):
-    return StorageBackend(key)
+class ConfigurationBackend:
+    def __init__(self, project: Project) -> None:
+        self.project = project
+        self.key = f"configurations/{self.project.id}/production"
+
+        self.cache = ConfigurationCache(self.key)
+        self.storage = ConfigurationStorage(self.key)
+
+    def get(self) -> tuple[StorageFormat | None, str]:
+        cache_result = self.cache.get()
+        if cache_result is not None:
+            return (cache_result, "cache")
+
+        storage_result = self.storage.get()
+        if storage_result:
+            self.cache.set(storage_result)
+
+        return (storage_result, "store")
+
+    def set(self, value: StorageFormat) -> None:
+        self.storage.set(value)
+        self.cache.set(value)
+
+    def pop(self) -> None:
+        self.cache.pop()
+        self.storage.pop()
+
+
+class APIBackendDecorator:
+    def __init__(self, backend: ConfigurationBackend) -> None:
+        self.driver = backend
+
+    def get(self) -> tuple[APIFormat | None, str]:
+        result, source = self.driver.get()
+        return self._deserialize(result), source
+
+    def set(self, value: APIFormat) -> None:
+        self.driver.set(self._serialize(value))
+
+    def pop(self) -> None:
+        self.driver.pop()
+
+    def _deserialize(self, result: StorageFormat | None) -> APIFormat | None:
+        if result is None:
+            return None
+
+        return {
+            "features": result["features"],
+            "options": result["options"],
+        }
+
+    def _serialize(self, result: APIFormat) -> StorageFormat:
+        return {
+            "features": result["features"],
+            "options": result["options"],
+            "version": 1,
+        }
+
+
+def make_configuration_backend(project: Project):
+    return ConfigurationBackend(project)
+
+
+def make_api_backend(project: Project):
+    return APIBackendDecorator(make_configuration_backend(project))

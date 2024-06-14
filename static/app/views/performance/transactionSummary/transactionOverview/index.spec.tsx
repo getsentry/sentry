@@ -26,7 +26,6 @@ import {
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import TransactionSummary from 'sentry/views/performance/transactionSummary/transactionOverview';
-import {RouteContext} from 'sentry/views/routeContext';
 
 const teams = [
   TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -71,7 +70,6 @@ function initializeData({
 }
 
 function TestComponent({
-  router,
   ...props
 }: React.ComponentProps<typeof TransactionSummary> & {
   router: InjectedRouter<Record<string, string>, any>;
@@ -82,14 +80,12 @@ function TestComponent({
 
   return (
     <QueryClientProvider client={makeTestQueryClient()}>
-      <RouteContext.Provider value={{router, ...router}}>
-        <MetricsCardinalityProvider
-          organization={props.organization}
-          location={props.location}
-        >
-          <TransactionSummary {...props} />
-        </MetricsCardinalityProvider>
-      </RouteContext.Provider>
+      <MetricsCardinalityProvider
+        organization={props.organization}
+        location={props.location}
+      >
+        <TransactionSummary {...props} />
+      </MetricsCardinalityProvider>
     </QueryClientProvider>
   );
 }
@@ -471,7 +467,7 @@ describe('Performance > TransactionSummary', function () {
 
   describe('with events', function () {
     it('renders basic UI elements', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -480,7 +476,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -521,7 +517,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('renders feature flagged UI elements', function () {
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         features: ['incidents'],
       });
 
@@ -532,7 +528,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -542,7 +538,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('renders Web Vitals widget', async function () {
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         project: ProjectFixture({teams, platform: 'javascript'}),
         query: {
           query:
@@ -557,7 +553,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -565,16 +561,18 @@ describe('Performance > TransactionSummary', function () {
       // It renders the web vitals widget
       await screen.findByRole('heading', {name: 'Web Vitals'});
 
-      const vitalStatues = screen.getAllByTestId('vital-status');
-      expect(vitalStatues).toHaveLength(3);
+      await waitFor(() => {
+        expect(screen.getAllByTestId('vital-status')).toHaveLength(3);
+      });
 
+      const vitalStatues = screen.getAllByTestId('vital-status');
       expect(vitalStatues[0]).toHaveTextContent('31%');
       expect(vitalStatues[1]).toHaveTextContent('65%');
       expect(vitalStatues[2]).toHaveTextContent('3%');
     });
 
     it('renders sidebar widgets', async function () {
-      const {organization, router, routerContext} = initializeData({});
+      const {organization, router} = initializeData({});
 
       render(
         <TestComponent
@@ -583,7 +581,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -640,7 +638,7 @@ describe('Performance > TransactionSummary', function () {
       OrganizationStore.onUpdate(OrganizationFixture({slug: 'org-slug'}), {
         replace: true,
       });
-      const {organization, router, routerContext} = initializeData({projects});
+      const {organization, router} = initializeData({projects});
       const spy = jest.spyOn(router, 'replace');
 
       // Ensure project id is not in path
@@ -652,7 +650,7 @@ describe('Performance > TransactionSummary', function () {
           router={router}
           location={router.location}
         />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       renderGlobalModal();
@@ -669,7 +667,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('fetches transaction threshold', function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/project-transaction-threshold-override/',
@@ -696,7 +694,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -706,7 +704,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('fetches project transaction threshdold', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/project-transaction-threshold-override/',
@@ -730,7 +728,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -742,7 +740,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('triggers a navigation on search', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -751,7 +749,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -777,7 +775,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('can mark a transaction as key', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -786,7 +784,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -809,7 +807,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('triggers a navigation on transaction filter', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -818,7 +816,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -848,7 +846,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('renders pagination buttons', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -857,7 +855,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -886,7 +884,7 @@ describe('Performance > TransactionSummary', function () {
         body: [],
       });
 
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         query: {query: 'tag:value'},
       });
 
@@ -897,7 +895,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -919,7 +917,7 @@ describe('Performance > TransactionSummary', function () {
         ],
       });
 
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         query: {query: 'tag:value event.type:transaction'},
       });
 
@@ -930,7 +928,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -946,7 +944,7 @@ describe('Performance > TransactionSummary', function () {
         body: [],
       });
 
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -955,7 +953,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -964,7 +962,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('adds search condition on transaction status when clicking on status breakdown', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -973,7 +971,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -993,7 +991,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('appends tag value to existing query when clicked', async function () {
-      const {organization, router, routerContext} = initializeData();
+      const {organization, router} = initializeData();
 
       render(
         <TestComponent
@@ -1002,7 +1000,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -1042,7 +1040,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('does not use MEP dataset for stats query without features', async function () {
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: [''], // No 'dynamic-sampling' feature to indicate it can use metrics dataset or metrics enhanced.
       });
@@ -1054,7 +1052,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -1091,7 +1089,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     it('uses MEP dataset for stats query', async function () {
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
@@ -1103,7 +1101,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -1147,7 +1145,7 @@ describe('Performance > TransactionSummary', function () {
           },
         },
       });
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         query: {query: 'transaction.op:pageload'}, // transaction.op is covered by the metrics dataset
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
@@ -1159,7 +1157,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -1230,7 +1228,7 @@ describe('Performance > TransactionSummary', function () {
           },
         ],
       });
-      const {organization, router, routerContext} = initializeData({
+      const {organization, router} = initializeData({
         query: {query: 'transaction.op:pageload has:not-compatible'}, // Adds incompatible w/ metrics tag
         features: ['dynamic-sampling', 'mep-rollout-flag'],
       });
@@ -1242,7 +1240,7 @@ describe('Performance > TransactionSummary', function () {
           location={router.location}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );

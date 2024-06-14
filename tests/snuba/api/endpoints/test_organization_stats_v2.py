@@ -1076,36 +1076,3 @@ class OrganizationStatsMetricsTestV2(APITestCase, BaseMetricsLayerTestCase):
             "intervals": ["2021-03-13T00:00:00Z", "2021-03-14T00:00:00Z"],
             "start": "2021-03-13T00:00:00Z",
         }
-
-    @freeze_time("2021-03-14T12:27:28.303Z")
-    @with_feature("organizations:custom-metrics")
-    def test_metric_hour(self):
-        response = self.do_request(
-            {
-                "project": [-1],
-                "category": ["metricHour"],
-                "groupBy": ["project"],
-                "statsPeriod": "1h",
-                "interval": "1h",
-                "field": ["sum(quantity)"],
-            },
-            status_code=200,
-        )
-
-        assert result_sorted(response.data) == {
-            "end": "2021-03-14T13:00:00Z",
-            "groups": [
-                {
-                    "by": {"project": self.project.id},
-                    "series": {"sum(quantity)": [1, 0]},
-                    "totals": {"sum(quantity)": 1},
-                },
-                {
-                    "by": {"project": self.project2.id},
-                    "series": {"sum(quantity)": [3, 0]},
-                    "totals": {"sum(quantity)": 3},
-                },
-            ],
-            "intervals": ["2021-03-14T11:00:00Z", "2021-03-14T12:00:00Z"],
-            "start": "2021-03-14T11:00:00Z",
-        }

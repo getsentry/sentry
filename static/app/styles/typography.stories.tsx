@@ -7,11 +7,11 @@ import LineHeightGraphic from 'sentry-images/stories/typography/line-height.svg'
 import WeightGraphic from 'sentry-images/stories/typography/weight.svg';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import {Flex} from 'sentry/components/container/flex';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
-import {Flex} from 'sentry/components/profiling/flex';
 import {IconCheckmark, IconCircleFill, IconClose} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -610,7 +610,7 @@ const PositiveLabel = styled(
   color: ${p => p.theme.green400};
   align-items: center;
   display: flex;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   gap: ${space(0.5)};
 `;
 
@@ -625,7 +625,7 @@ const NegativeLabel = styled(
   color: ${p => p.theme.red400};
   align-items: center;
   display: flex;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   gap: ${space(0.5)};
 `;
 
@@ -634,7 +634,7 @@ const ExamplePanel = styled(Panel)<{fontSize?: 'large'}>`
   ${p =>
     p.fontSize === 'large'
       ? `
-        font-weight: 600;
+        font-weight: ${p.theme.fontWeightBold};
         font-size: 1.875rem;
         line-height: 1.2;
         letter-spacing: -0.016em;

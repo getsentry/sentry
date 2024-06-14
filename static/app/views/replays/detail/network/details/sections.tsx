@@ -2,13 +2,13 @@ import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
+import {Flex} from 'sentry/components/container/flex';
 import ObjectInspector from 'sentry/components/objectInspector';
-import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   NetworkMetaWarning,
   ReplayNetworkRequestOrResponse,

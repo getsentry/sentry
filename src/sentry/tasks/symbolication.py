@@ -22,7 +22,6 @@ from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_da
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.sdk import set_current_event_project
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -34,7 +33,7 @@ SYMBOLICATOR_MAX_QUEUE_SWITCHES = 3
 
 
 def should_demote_symbolication(
-    project_id: int, lpq_projects: set[int] | None = None, emit_metrics=True
+    platform: SymbolicatorPlatform, project_id: int, emit_metrics=True
 ) -> bool:
     """
     Determines whether a project's symbolication events should be pushed to the low priority queue.
@@ -45,9 +44,6 @@ def should_demote_symbolication(
         3. has the project been selected for the lpq according to realtime_metrics? -> low priority queue
 
     Note that 3 is gated behind the config setting SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE.
-
-    If lpq projects is defined and the auto low priority queue is enabled, this function
-    will avoid making additional Redis calls for performance reasons.
     """
     never_lowpri = killswitch_matches_context(
         "store.symbolicate-event-lpq-never",
@@ -72,10 +68,7 @@ def should_demote_symbolication(
         return True
     elif settings.SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE:
         try:
-            if lpq_projects:
-                return project_id in lpq_projects
-            else:
-                return realtime_metrics.is_lpq_project(project_id)
+            return realtime_metrics.is_lpq_project(platform, project_id)
         # realtime_metrics is empty in getsentry
         except AttributeError:
             return False
@@ -152,7 +145,6 @@ def _do_symbolicate_event(
         error_logger.error("symbolicate.failed.empty", extra={"cache_key": cache_key})
         return
 
-    data = CanonicalKeyDict(data)
     event_id = str(data["event_id"])
     project_id = data["project"]
     has_changed = False
@@ -164,7 +156,7 @@ def _do_symbolicate_event(
     if queue_switches >= SYMBOLICATOR_MAX_QUEUE_SWITCHES:
         metrics.incr("tasks.store.symbolicate_event.low_priority.max_queue_switches", sample_rate=1)
     else:
-        should_be_low_priority = should_demote_symbolication(project_id)
+        should_be_low_priority = should_demote_symbolication(task_kind.platform, project_id)
 
         if task_kind.is_low_priority != should_be_low_priority:
             metrics.incr("tasks.store.symbolicate_event.low_priority.wrong_queue", sample_rate=1)
@@ -247,7 +239,9 @@ def _do_symbolicate_event(
                     # we adjust the duration according to the `submission_ratio` so that the budgeting works
                     # the same even considering sampling of metrics.
                     recorded_duration = symbolication_duration / submission_ratio
-                    realtime_metrics.record_project_duration(project_id, recorded_duration)
+                    realtime_metrics.record_project_duration(
+                        task_kind.platform, project_id, recorded_duration
+                    )
                 except Exception as e:
                     sentry_sdk.capture_exception(e)
         return symbolication_duration
@@ -323,7 +317,7 @@ def _do_symbolicate_event(
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
-    if isinstance(data, CANONICAL_TYPES):
+    if not isinstance(data, dict):
         data = dict(data.items())
 
     if has_changed:
@@ -455,8 +449,7 @@ symbolicate_js_event = make_task_fn(
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
-    # NOTE: Intentionally uses the same queue as `symbolicate_event`.
-    queue="events.symbolicate_event",
+    queue="events.symbolicate_jvm_event",
     task_kind=SymbolicatorTaskKind(
         platform=SymbolicatorPlatform.jvm, is_low_priority=False, is_reprocessing=False
     ),
@@ -479,8 +472,7 @@ symbolicate_js_event_low_priority = make_task_fn(
 )
 symbolicate_jvm_event_low_priority = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event_low_priority",
-    # NOTE: Intentionally uses the same queue as `symbolicate_event_low_priority`.
-    queue="events.symbolicate_event_low_priority",
+    queue="events.symbolicate_jvm_event_low_priority",
     task_kind=SymbolicatorTaskKind(
         platform=SymbolicatorPlatform.jvm, is_low_priority=True, is_reprocessing=False
     ),

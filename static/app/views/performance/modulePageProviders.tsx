@@ -3,6 +3,7 @@ import * as qs from 'query-string';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -60,7 +61,7 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
             organization={organization}
             renderDisabled={NoAccess}
           >
-            {children}
+            <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
           </Feature>
         </Layout.Page>
       </SentryDocumentTitle>

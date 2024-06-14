@@ -139,7 +139,8 @@ function DurationChart({
 
   const handleChartHighlight: EChartHighlightHandler = e => {
     const {seriesIndex} = e.batch[0];
-    const isSpanSample = seriesIndex > 1;
+    const isSpanSample =
+      seriesIndex > 1 && seriesIndex < 2 + sampledSpanDataSeries.length;
     if (isSpanSample && onMouseOverSample) {
       const spanSampleData = sampledSpanDataSeries?.[seriesIndex - 2]?.data[0];
       const {name: timestamp, value: duration} = spanSampleData;

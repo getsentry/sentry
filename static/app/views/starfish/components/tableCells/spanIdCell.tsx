@@ -1,19 +1,22 @@
+import type {Location} from 'history';
+
 import Link from 'sentry/components/links/link';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
 import type {ModuleName} from 'sentry/views/starfish/types';
 
 interface Props {
+  location: Location;
   moduleName: ModuleName;
   projectSlug: string;
   spanId: string;
   timestamp: string;
   traceId: string;
   transactionId: string;
+  source?: string;
 }
 
 export function SpanIdCell({
@@ -23,10 +26,10 @@ export function SpanIdCell({
   transactionId,
   spanId,
   timestamp,
+  source,
+  location,
 }: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-
   const url = normalizeUrl(
     generateLinkToEventInTraceView({
       eventId: transactionId,
@@ -36,6 +39,7 @@ export function SpanIdCell({
       organization,
       location,
       spanId,
+      source,
     })
   );
 

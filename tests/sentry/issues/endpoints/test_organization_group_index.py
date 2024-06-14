@@ -1947,6 +1947,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert response.data[0]["latestEventHasAttachments"] is True
 
+    @with_feature("organizations:event-attachments")
+    @patch("sentry.models.Group.get_latest_event", return_value=None)
+    def test_expand_no_latest_event_has_no_attachments(self, mock_latest_event) -> None:
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["latestEventHasAttachments"]
+        )
+        assert response.status_code == 200
+
+        # Expand should not execute since there is no latest event
+        assert "latestEventHasAttachments" not in response.data[0]
+
     def test_expand_owners(self) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2856,7 +2873,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    @with_feature("organizations:issue-platform")
     def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a performance issue
@@ -2917,7 +2933,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    @with_feature("organizations:issue-platform")
     @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
     @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
     def test_snuba_type_and_category(
@@ -4020,10 +4035,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # The current_release_version should be to the latest (in semver) release associated with
         # a group
-        grp_resolution = GroupResolution.objects.filter(group=group)
-
-        assert len(grp_resolution) == 1
-        grp_resolution = grp_resolution.first()
+        grp_resolution = GroupResolution.objects.get(group=group)
 
         assert grp_resolution.current_release_version == release_2.version
 
@@ -4042,11 +4054,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             assert not GroupResolution.has_resolution(group=group, release=release)
 
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
-        activity = Activity.objects.filter(
+        activity = Activity.objects.get(
             group=grp_resolution.group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=grp_resolution.id,
-        ).first()
+        )
 
         assert "current_release_version" in activity.data
         assert activity.data["current_release_version"] == release_2.version
@@ -4186,21 +4198,18 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
 
-        grp_resolution = GroupResolution.objects.filter(group=group)
-
-        assert len(grp_resolution) == 1
-        grp_resolution = grp_resolution[0]
+        grp_resolution = GroupResolution.objects.get(group=group)
 
         assert grp_resolution.current_release_version == release_1.version
         assert grp_resolution.release.id == release_2.id
         assert grp_resolution.type == GroupResolution.Type.in_release
         assert grp_resolution.status == GroupResolution.Status.resolved
 
-        activity = Activity.objects.filter(
+        activity = Activity.objects.get(
             group=grp_resolution.group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=grp_resolution.id,
-        ).first()
+        )
         assert activity.data["version"] == release_2.version
 
     def test_selective_status_update(self) -> None:

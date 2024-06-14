@@ -20,7 +20,7 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.testutils.helpers.backups import (
-    BackupTestCase,
+    BackupTransactionTestCase,
     ValidationError,
     export_to_encrypted_tarball,
     export_to_file,
@@ -29,7 +29,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from tests.sentry.backup import get_matching_exportable_models
 
 
-class ExportTestCase(BackupTestCase):
+class ExportTestCase(BackupTransactionTestCase):
     @staticmethod
     def count(data: Any, model: type[models.base.BaseModel]) -> int:
         return len(list(filter(lambda d: d["model"] == str(get_model_name(model)), data)))
@@ -130,9 +130,12 @@ class ScopingTests(ExportTestCase):
     @freeze_time("2023-10-11 18:00:00")
     def test_config_export_scoping(self):
         self.create_exhaustive_instance(is_superadmin=True)
-        self.create_exhaustive_user("admin", is_admin=True)
-        self.create_exhaustive_user("staff", is_staff=True)
-        self.create_exhaustive_user("superuser", is_superuser=True)
+        admin = self.create_exhaustive_user("admin", is_admin=True)
+        staff = self.create_exhaustive_user("staff", is_staff=True)
+        superuser = self.create_exhaustive_user("superuser", is_superuser=True)
+        self.create_exhaustive_api_keys_for_user(admin)
+        self.create_exhaustive_api_keys_for_user(staff)
+        self.create_exhaustive_api_keys_for_user(superuser)
         with tempfile.TemporaryDirectory() as tmp_dir:
             unencrypted = self.export(tmp_dir, scope=ExportScope.Config)
             self.verify_model_inclusion(unencrypted, ExportScope.Config)
@@ -204,25 +207,46 @@ class FilteringTests(ExportTestCase):
             assert len(data) == 0
 
     def test_export_filter_orgs_single(self):
+        # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s
+        # invited by users outside of their org are still properly exported.
+        superadmin = self.create_exhaustive_user(
+            "superadmin", is_admin=True, is_superuser=True, is_staff=True
+        )
         a = self.create_exhaustive_user("user_a_only", email="shared@example.com")
         b = self.create_exhaustive_user("user_b_only", email="shared@example.com")
         c = self.create_exhaustive_user("user_c_only", email="shared@example.com")
         a_b = self.create_exhaustive_user("user_a_and_b")
+        a_c = self.create_exhaustive_user("user_a_and_c")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all", email="shared@example.com")
         org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
-        org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
-        org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
+        org_b = self.create_exhaustive_organization(
+            "org-b",
+            owner=b_c,
+            member=a_b_c,
+            other_members=[b, a_b],
+            pending_invites={
+                superadmin: "invited-by-superadmin-not-in-org@example.com",
+                b_c: "invited-by-org-owner@example.com",
+                a_b_c: "invited-by-org-member@example.com",
+            },
+            accepted_invites={
+                superadmin: [self.create_exhaustive_user("added-by-superadmin-not-in-org")],
+                b_c: [self.create_exhaustive_user("added-by-org-owner")],
+                a_b_c: [self.create_exhaustive_user("added-by-org-member")],
+            },
+        )
+        org_c = self.create_exhaustive_organization("org-c", a_b_c, a_c, [c])
 
         # Add an invited email to each org.
         OrganizationMember.objects.create(
-            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+            organization=org_a, inviter_id=a.id, role="member", email="invited-a@example.com"
         )
         OrganizationMember.objects.create(
-            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+            organization=org_b, inviter_id=b.id, role="member", email="invited-b@example.com"
         )
         OrganizationMember.objects.create(
-            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+            organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -239,9 +263,9 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, Organization, "slug", "org-b")
             assert not self.exists(data, Organization, "slug", "org-c")
 
-            assert self.count(data, User) == 4
-            assert self.count(data, UserEmail) == 4
-            assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
+            assert self.count(data, User) == 7
+            assert self.count(data, UserEmail) == 7
+            assert self.count(data, Email) == 6  # Lower due to `shared@example.com`
 
             assert not self.exists(data, User, "username", "user_a_only")
             assert self.exists(data, User, "username", "user_b_only")
@@ -249,27 +273,66 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, User, "username", "user_a_and_b")
             assert self.exists(data, User, "username", "user_b_and_c")
             assert self.exists(data, User, "username", "user_all")
+            assert self.exists(data, User, "username", "added-by-superadmin-not-in-org")
+            assert self.exists(data, User, "username", "added-by-org-owner")
+            assert self.exists(data, User, "username", "added-by-org-member")
+
+            # Invited, uninvited, and pending invite members should all export fine...
+            assert self.exists(data, OrganizationMember, "user_email", "added-by-org-owner")
+            assert self.exists(data, OrganizationMember, "user_email", "added-by-org-owner")
+            assert self.exists(
+                data, OrganizationMember, "user_email", "added-by-superadmin-not-in-org"
+            )
+            assert self.exists(
+                data, OrganizationMember, "email", "invited-by-superadmin-not-in-org@example.com"
+            )
+            assert self.exists(
+                data, OrganizationMember, "email", "invited-by-org-member@example.com"
+            )
+
+            # ...but not members of different orgs.
+            assert not self.exists(data, OrganizationMember, "user_email", "user_a_and_c")
 
     def test_export_filter_orgs_multiple(self):
+        # Create a superadmin not in any orgs, so that we can test that `OrganizationMember`s
+        # invited by users outside of their org are still properly exported.
+        superadmin = self.create_exhaustive_user(
+            "superadmin", is_admin=True, is_superuser=True, is_staff=True
+        )
         a = self.create_exhaustive_user("user_a_only", email="shared@example.com")
         b = self.create_exhaustive_user("user_b_only", email="shared@example.com")
         c = self.create_exhaustive_user("user_c_only", email="shared@example.com")
         a_b = self.create_exhaustive_user("user_a_and_b")
         b_c = self.create_exhaustive_user("user_b_and_c")
         a_b_c = self.create_exhaustive_user("user_all", email="shared@example.com")
-        org_a = self.create_exhaustive_organization("org-a", a, a_b, [a_b_c])
+        org_a = self.create_exhaustive_organization(
+            "org-a",
+            owner=a,
+            member=a_b,
+            other_members=[a_b_c],
+            pending_invites={
+                superadmin: "invited-by-superadmin-not-in-org@example.com",
+                a: "invited-by-org-owner@example.com",
+                a_b: "invited-by-org-member@example.com",
+            },
+            accepted_invites={
+                superadmin: [self.create_exhaustive_user("added-by-superadmin-not-in-org")],
+                a: [self.create_exhaustive_user("added-by-org-owner")],
+                a_b: [self.create_exhaustive_user("added-by-org-member")],
+            },
+        )
         org_b = self.create_exhaustive_organization("org-b", b_c, a_b_c, [b, a_b])
         org_c = self.create_exhaustive_organization("org-c", a_b_c, b_c, [c])
 
         # Add an invited email to each org.
         OrganizationMember.objects.create(
-            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+            organization=org_a, inviter_id=a.id, role="member", email="invited-a@example.com"
         )
         OrganizationMember.objects.create(
-            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+            organization=org_b, inviter_id=b.id, role="member", email="invited-b@example.com"
         )
         OrganizationMember.objects.create(
-            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+            organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -286,9 +349,9 @@ class FilteringTests(ExportTestCase):
             assert not self.exists(data, Organization, "slug", "org-b")
             assert self.exists(data, Organization, "slug", "org-c")
 
-            assert self.count(data, User) == 5
-            assert self.count(data, UserEmail) == 5
-            assert self.count(data, Email) == 3  # Lower due to `shared@example.com`
+            assert self.count(data, User) == 8
+            assert self.count(data, UserEmail) == 8
+            assert self.count(data, Email) == 6  # Lower due to `shared@example.com`
 
             assert self.exists(data, User, "username", "user_a_only")
             assert not self.exists(data, User, "username", "user_b_only")
@@ -296,6 +359,26 @@ class FilteringTests(ExportTestCase):
             assert self.exists(data, User, "username", "user_a_and_b")
             assert self.exists(data, User, "username", "user_b_and_c")
             assert self.exists(data, User, "username", "user_all")
+            assert self.exists(data, User, "username", "added-by-superadmin-not-in-org")
+            assert self.exists(data, User, "username", "added-by-org-owner")
+            assert self.exists(data, User, "username", "added-by-org-member")
+
+            # Invited, uninvited, and pending invite members should all export fine...
+            assert self.exists(data, OrganizationMember, "user_email", "added-by-org-owner")
+            assert self.exists(data, OrganizationMember, "user_email", "added-by-org-owner")
+            assert self.exists(
+                data, OrganizationMember, "user_email", "added-by-superadmin-not-in-org"
+            )
+            assert self.exists(
+                data, OrganizationMember, "email", "invited-by-superadmin-not-in-org@example.com"
+            )
+            assert self.exists(
+                data, OrganizationMember, "email", "invited-by-org-member@example.com"
+            )
+
+            # ...but not members of different, unexported orgs.
+            assert not self.exists(data, OrganizationMember, "user_email", "user_b_only")
+            assert not self.exists(data, OrganizationMember, "email", "invited-b@example.com")
 
     def test_export_filter_orgs_empty(self):
         a = self.create_exhaustive_user("user_a_only")
@@ -310,13 +393,13 @@ class FilteringTests(ExportTestCase):
 
         # Add an invited email to each org.
         OrganizationMember.objects.create(
-            organization=org_a, inviter_id=a.id, role="member", email="invited@example.com"
+            organization=org_a, inviter_id=a.id, role="member", email="invited-a@example.com"
         )
         OrganizationMember.objects.create(
-            organization=org_b, inviter_id=b.id, role="member", email="invited@example.com"
+            organization=org_b, inviter_id=b.id, role="member", email="invited-b@example.com"
         )
         OrganizationMember.objects.create(
-            organization=org_c, inviter_id=c.id, role="member", email="invited@example.com"
+            organization=org_c, inviter_id=c.id, role="member", email="invited-c@example.com"
         )
 
         with tempfile.TemporaryDirectory() as tmp_dir:

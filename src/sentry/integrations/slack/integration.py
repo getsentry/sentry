@@ -6,9 +6,11 @@ from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from django.views import View
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -133,6 +135,19 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation
+
+        # first try with new SDK client (not attached to integration)
+        try:
+            client = WebClient(token=access_token)
+            sdk_response = client.team_info()
+
+            logger.info("slack.install.team-info.success")
+            return sdk_response.get("team")
+        except SlackApiError as e:
+            logger.error("slack.install.team-info.error", extra={"error": str(e)})
+            # don't raise error, try with old method
+
+        # TODO(cathy): deprecate this method
         headers = {"Authorization": f"Bearer {access_token}"}
         try:
             resp = SlackClient().get("/team.info", headers=headers)

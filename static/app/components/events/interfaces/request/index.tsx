@@ -15,7 +15,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {defined, isUrl} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {RichHttpContentClippedBoxBodySection} from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';
@@ -168,7 +169,7 @@ const Monospace = styled('span')`
 const Path = styled('span')`
   color: ${p => p.theme.textColor};
   text-transform: none;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   & strong {
     margin-right: ${space(0.5)};
