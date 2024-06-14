@@ -3,13 +3,9 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import useOrganization from 'sentry/utils/useOrganization';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
-import {
-  DATA_TYPE,
-  PERFORMANCE_DATA_TYPE,
-} from 'sentry/views/performance/browser/resources/settings';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
@@ -33,10 +29,6 @@ const {
 
 function ResourceSummaryCharts(props: {groupId: string}) {
   const filters = useResourceModuleFilters();
-  const organization = useOrganization();
-
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-  const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
 
   const {data: spanMetricsSeriesData, isLoading: areSpanMetricsSeriesLoading} =
     useSpanMetricsSeries(
@@ -105,7 +97,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
         </ChartPanel>
       </Block>
       <Block>
-        <ChartPanel title={tct('Average [dataType] Size', {dataType: resourceDataType})}>
+        <ChartPanel title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}>
           <Chart
             height={160}
             aggregateOutputFormat="size"

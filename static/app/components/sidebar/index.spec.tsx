@@ -366,7 +366,7 @@ describe('Sidebar', function () {
         /Queues/,
         'Screen Loads',
         'App Starts',
-        'Resources',
+        'Assets',
         /Mobile UI/,
         /Traces/,
         'Profiling',

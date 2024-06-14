@@ -16,10 +16,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import {
-  DATA_TYPE,
-  PERFORMANCE_DATA_TYPE,
-} from 'sentry/views/performance/browser/resources/settings';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
@@ -79,9 +76,6 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const {setPageInfo, pageAlert} = usePageAlert();
 
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-  const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
-
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
     defaultResourceTypes,
@@ -93,7 +87,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     {
       key: SPAN_DESCRIPTION,
       width: COL_WIDTH_UNDEFINED,
-      name: `${resourceDataType} ${t('Description')}`,
+      name: `${DATA_TYPE} ${t('Description')}`,
     },
     {
       key: `${SPM}()`,

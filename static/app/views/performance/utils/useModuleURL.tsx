@@ -1,10 +1,7 @@
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {BASE_URL as AI_BASE_URL} from 'sentry/views/llmMonitoring/settings';
-import {
-  BASE_URL as RESOURCES_BASE_URL,
-  PERFORMANCE_BASE_URL as PERFORMANCE_RESOURCES_BASE_URL,
-} from 'sentry/views/performance/browser/resources/settings';
+import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import {BASE_URL as DB_BASE_URL} from 'sentry/views/performance/database/settings';
@@ -46,7 +43,6 @@ type URLBuilder = (moduleName: RoutableModuleNames) => string;
 
 export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
-  const isInsightsEnabled = organization?.features?.includes('performance-insights');
 
   const insightsURLBuilder = useInsightsURLBuilder();
 
@@ -67,14 +63,6 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
       return bare
         ? moduleURLSegment
         : normalizeUrl(`/organizations/${slug}/${moduleURLSegment}`);
-    }
-
-    if (!isInsightsEnabled && moduleName === ModuleName.RESOURCE) {
-      return bare
-        ? `${insightsURL}/${PERFORMANCE_RESOURCES_BASE_URL}`
-        : normalizeUrl(
-            `/organizations/${slug}/${insightsURL}/${PERFORMANCE_RESOURCES_BASE_URL}`
-          );
     }
 
     return bare
