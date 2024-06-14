@@ -29,7 +29,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
     def put(self, request: Request, project: Project) -> Response:
         rules_update = request.data.get("metricsExtractionRules")
-        if len(rules_update) == 0:
+        if not rules_update or len(rules_update) == 0:
             return Response(status=200)
 
         try:

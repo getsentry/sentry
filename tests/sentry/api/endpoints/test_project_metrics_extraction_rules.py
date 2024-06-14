@@ -165,5 +165,48 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert len(project_rules) == 1
         assert ["count_clicks"] == [r.span_attribute for r in project_rules]
 
+    def test_idempotent_update(self):
+        rule_json = (
+            """[{"span_attribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            metricsExtractionRules=rule_json,
+        )
+        assert response.status_code == 200
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            metricsExtractionRules=rule_json,
+        )
+        assert response.status_code == 200
+        data = response.data
+        assert len(data) == 1
+        assert data[0]["span_attribute"] == "process_latency"
+        assert data[0]["type"] == "d"
+        assert data[0]["unit"] == "ms"
+        assert set(data[0]["tags"]) == {"tag3"}
+
+        project_state = MetricsExtractionRuleState.load_from_project(self.project)
+        project_rules = project_state.get_rules()
+        assert len(project_rules) == 1
+        assert ["process_latency"] == sorted(r.span_attribute for r in project_rules)
+
     def test_delete_non_existing_extraction_rule(self):
-        assert False
+        non_existing_rule = (
+            """[{"span_attribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
+        )
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="delete",
+            metricsExtractionRules=non_existing_rule,
+        )
+        assert response.status_code == 200
+        data = response.data
+        assert len(data) == 0
