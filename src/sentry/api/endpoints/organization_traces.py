@@ -854,11 +854,18 @@ class TraceSamplesExecutor:
     ) -> QueryBuilder:
         trace_ids_str = ",".join(trace_ids)
         trace_ids_condition = f"trace:[{trace_ids_str}]"
+        query = " ".join(
+            [
+                "is_transaction:1",  # service entry spans
+                "group:0",  # they always have group 0 because of how we compute groups
+                trace_ids_condition,
+            ],
+        )
         return SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
             snuba_params=snuba_params,
-            query=f"is_transaction:1 {trace_ids_condition}",
+            query=query,
             selected_columns=[
                 "trace",
                 "project",
