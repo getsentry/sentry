@@ -115,6 +115,48 @@ class TestOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         occurrence_data["fingerprint"] = ["cdfb5fbc0959e8e2f27a6e6027c6335b"]
         mock_save_issue_occurrence.assert_called_with(occurrence_data, mock.ANY)
 
+    @with_feature("organizations:profile-file-io-main-thread-ingest")
+    @mock.patch("sentry.issues.run.logger")
+    @mock.patch("sentry.issues.occurrence_consumer.save_issue_occurrence")
+    def test_malformed_json_payload(
+        self, mock_save_issue_occurrence: mock.MagicMock, mock_logger: mock.MagicMock
+    ) -> None:
+        topic = ArroyoTopic(get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"])
+        partition = Partition(topic, 0)
+        mock_commit = mock.Mock()
+        strategy = OccurrenceStrategyFactory(
+            num_processes=2,
+            input_block_size=1,
+            max_batch_size=1,
+            max_batch_time=1,
+            output_block_size=1,
+        ).create_with_partitions(
+            commit=mock_commit,
+            partitions={},
+        )
+
+        message = mock.Mock()
+        message.value.return_value = "malformed json"
+        message.topic.return_value = topic
+
+        strategy.submit(
+            Message(
+                BrokerValue(
+                    KafkaPayload(b"key", message.value().encode("utf-8"), []),
+                    partition,
+                    1,
+                    datetime.now(),
+                )
+            )
+        )
+
+        strategy.poll()
+        strategy.join(1)
+        strategy.terminate()
+
+        assert mock_save_issue_occurrence.call_count == 0
+        mock_logger.exception.assert_called_once_with("failed to process message payload")
+
 
 class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeTestMixin):
     def build_mock_message(

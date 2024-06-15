@@ -412,9 +412,6 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     completely serially.
     """
 
-    if not items:
-        return
-
     try:
         project = Project.objects.get_from_cache(id=items[0]["project_id"])
         organization = Organization.objects.get_from_cache(id=project.organization_id)
