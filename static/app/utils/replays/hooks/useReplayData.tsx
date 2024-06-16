@@ -251,7 +251,7 @@ function useReplayData({
       isFetchingPlatformErrors ||
       (!hasFetchedAttachments.current &&
         !fetchAttachmentsError &&
-        Boolean(replayRecord.count_segments));
+        Boolean(replayRecord?.count_segments));
 
     const allErrors = errorPages
       .concat(extraErrorPages)
