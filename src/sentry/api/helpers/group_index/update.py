@@ -225,7 +225,6 @@ def update_groups(
         )
         if user_options:
             self_assign_issue = user_options[0].value
-
     if search_fn and not group_ids:
         try:
             cursor_result, _ = search_fn(
