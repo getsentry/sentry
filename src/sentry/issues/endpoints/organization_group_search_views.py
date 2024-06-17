@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from rest_framework import status
 from rest_framework.request import Request
@@ -97,7 +98,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
                 bulk_update_views(organization, request.user.id, validated_data)
-        except IntegrityError:
+        except IntegrityError as e:
+            sentry_sdk.capture_exception(e)
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
@@ -111,7 +113,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
 
 def bulk_update_views(org: Organization, user_id: int, validated_data):
-    views = validated_data.get("views")
+    views = validated_data["views"]
 
     existing_view_ids = [view["id"] for view in views if "id" in view]
 
