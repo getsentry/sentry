@@ -551,10 +551,12 @@ function CopyableCardValueWithLink({
   value,
   linkTarget,
   linkText,
+  onClick,
 }: {
   value: React.ReactNode;
   linkTarget?: LocationDescriptor;
   linkText?: string;
+  onClick?: () => void;
 }) {
   return (
     <CardValueContainer>
@@ -569,7 +571,11 @@ function CopyableCardValueWithLink({
           />
         ) : null}
       </CardValueText>
-      {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
+      {linkTarget && linkTarget ? (
+        <Link to={linkTarget} onClick={onClick}>
+          {linkText}
+        </Link>
+      ) : null}
     </CardValueContainer>
   );
 }
