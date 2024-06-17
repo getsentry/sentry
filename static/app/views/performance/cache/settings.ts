@@ -23,7 +23,7 @@ export const MODULE_DESCRIPTION = t(
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/caches/';
 
 export const ONBOARDING_CONTENT = {
-  title: t('Start collecting Insights about your Caches!'),
-  description: t('Our robot is waiting to collect your first cache hit.'),
+  title: t('Make Sure Your Application Caches Are Behaving Properly'),
+  description: t('We tell you if your application is hitting cache as often as expected and whether caching is providing the performance improvements you imagined.'),
   link: MODULE_DOC_LINK,
 };
