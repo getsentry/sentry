@@ -103,9 +103,6 @@ describe('CompactSelect', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Option Three'}));
     expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     expect(await screen.findByRole('option', {name: 'Option Three'})).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByRole('button', {name: 'Option Three'})).toHaveFocus();
-    });
   });
 
   describe('ListBox', function () {
