@@ -97,12 +97,10 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
                 bulk_update_views(organization, request.user.id, validated_data)
-
-                query = GroupSearchView.objects.filter(
-                    organization=organization, user_id=request.user.id
-                )
         except IntegrityError:
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        query = GroupSearchView.objects.filter(organization=organization, user_id=request.user.id)
 
         return self.paginate(
             request=request,
