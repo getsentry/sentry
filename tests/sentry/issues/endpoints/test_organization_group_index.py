@@ -2317,7 +2317,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert int(response.data[0]["id"]) == event.group.id
 
     @with_feature("organizations:issue-stream-custom-views")
-    def test_default_custom_view_query(self) -> None:
+    def test_user_default_custom_view_query(self) -> None:
         SavedSearch.objects.create(
             name="Saved Search",
             query="TypeError",
@@ -2402,6 +2402,27 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
+
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_global_default_custom_view_query(self) -> None:
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+        event.group.update(priority=PriorityLevel.LOW)
+
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, collapse=["unhandled"])
+
+        # The request is not populated with a query, or a groupSearchViewId to draw a query from, so the
+        # query used should be the global default, the Prioritized query. Since the only event is a low priority event,
+        # we should expect no results here.
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_query_status_and_substatus_overlapping(self) -> None:
         event = self.store_event(
