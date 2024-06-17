@@ -216,7 +216,7 @@ function ResolveActions({
         label: t('The upcoming release'),
         details: actionTitle
           ? actionTitle
-          : t('The next release that is not yet released.'),
+          : t('The next release that is not yet released'),
         onAction: () => onActionOrConfirm(handleUpcomingReleaseResolution),
         hidden: !hasUpcomingRelease,
       },
