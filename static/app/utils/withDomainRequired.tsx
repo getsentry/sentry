@@ -3,6 +3,8 @@ import type {Location, LocationDescriptor} from 'history';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
+import ConfigStore from 'sentry/stores/configStore';
+
 // If you change this also update the patterns in sentry.api.utils
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
@@ -56,7 +58,8 @@ export function normalizeUrl(
     location = undefined;
   }
 
-  if (!options?.forceCustomerDomain && !window.__initialData?.customerDomain) {
+  const customerDomain = ConfigStore.get('customerDomain');
+  if (!options?.forceCustomerDomain && !customerDomain) {
     return path;
   }
 

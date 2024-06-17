@@ -31,7 +31,12 @@ function localizeDomain(domain?: string) {
  */
 function shouldUseSlugPath(organization: OrganizationSummary): boolean {
   const {organizationUrl} = organization.links;
-  return !organizationUrl || !ConfigStore.get('features').has('system:multi-region');
+
+  return (
+    !organizationUrl ||
+    !ConfigStore.get('features').has('system:multi-region') ||
+    DEPLOY_PREVIEW_CONFIG !== undefined
+  );
 }
 
 /**

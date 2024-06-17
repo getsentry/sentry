@@ -310,13 +310,13 @@ class ReactPageViewTest(TestCase):
                 ]
                 assert "activeorg" not in self.client.session
 
-            # Accessing org on non-customer domain with superuser and/or staff.
-            response = self.client.get(
-                reverse("sentry-organization-issue-list", args=[org.slug]),
-                follow=True,
-            )
-            assert response.status_code == 200
-            assert response.redirect_chain == []
+        # Accessing org without customer domain as superuser and/or staff.
+        response = self.client.get(
+            reverse("sentry-organization-issue-list", args=[org.slug]),
+            follow=True,
+        )
+        assert response.status_code == 200
+        assert response.redirect_chain == []
 
     def test_customer_domain_non_member_org_superuser(self):
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)

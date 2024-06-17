@@ -4,6 +4,7 @@ import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import Redirect from 'sentry/components/redirect';
+import ConfigStore from 'sentry/stores/configStore';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
@@ -32,9 +33,11 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
   WrappedComponent: RouteComponent
 ) {
   return function WithDomainRedirectWrapper(props: P) {
-    const {customerDomain, links, features} = window.__initialData;
+    const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
+    // types for window.__initialData aren't correct.
+    const featureSet = new Set(features);
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
@@ -47,7 +50,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         currentOrganization &&
         customerDomain.subdomain &&
         (currentOrganization.slug !== customerDomain.subdomain ||
-          !features.has('system:multi-region'))
+          !featureSet.has('system:multi-region'))
       ) {
         window.location.replace(redirectURL);
         return null;

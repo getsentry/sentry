@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -27,13 +28,16 @@ describe('withDomainRedirect', function () {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
+  let configState;
 
   beforeEach(function () {
     window.location.pathname = '/organizations/albertos-apples/issues/';
     window.location.search = '?q=123';
     window.location.hash = '#hash';
 
-    window.__initialData = {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       features: new Set(),
       customerDomain: {
         subdomain: 'albertos-apples',
@@ -45,23 +49,25 @@ describe('withDomainRedirect', function () {
         regionUrl: null,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
   });
 
   afterEach(function () {
     jest.resetAllMocks();
     window.location = originalLocation;
+    ConfigStore.loadInitialData(configState);
   });
 
   it('renders MyComponent in non-customer domain world', function () {
-    window.__initialData = {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: null,
       links: {
         organizationUrl: null,
         regionUrl: null,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const params = {
       orgId: 'albertos-apples',
@@ -125,7 +131,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirects to sentryUrl on missing customer domain feature', function () {
-    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
+    const organization = OrganizationFixture({slug: 'albertos-apples'});
 
     const params = {
       orgId: organization.slug,
@@ -160,8 +166,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('redirect when :orgId is present in the routes', function () {
-    window.__initialData.features.add('system:multi-region');
-
+    ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
@@ -199,6 +204,7 @@ describe('withDomainRedirect', function () {
   });
 
   it('does not redirect when :orgId is not present in the routes', function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
@@ -244,11 +250,11 @@ describe('withDomainRedirect', function () {
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
     });
-    window.__initialData.customerDomain = {
+    ConfigStore.set('customerDomain', {
       organizationUrl: 'https://sentry.io',
       sentryUrl: 'https://sentry.io',
       subdomain: '',
-    };
+    });
 
     const params = {
       orgId: organization.slug,

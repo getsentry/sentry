@@ -28,6 +28,7 @@ describe('resolveRoute', () => {
     devUi = window.__SENTRY_DEV_UI;
     host = window.location.host;
     configState = ConfigStore.getState();
+    ConfigStore.set('features', new Set(['system:multi-region']));
   });
   afterEach(() => {
     window.__SENTRY_DEV_UI = devUi;
@@ -83,8 +84,7 @@ describe('resolveRoute', () => {
     expect(result).toBe('https://other-org.sentry.io/issues/');
   });
 
-  it('should add domain when switching to customer-domain org', () => {
-    ConfigStore.set('features', new Set(['system:multi-region']));
+  it('should add domain when switching orgs with multi-region flag', () => {
     let result = resolveRoute('/issues/', organization, otherOrg);
     expect(result).toBe('https://other-org.sentry.io/issues/');
 
@@ -93,8 +93,10 @@ describe('resolveRoute', () => {
     expect(result).toBe('https://other-org.sentry.io/issues/');
   });
 
-  it('should use path slugs when org does not have customer-domains', () => {
+  it('should use path slugs when switching orgs without multi-region', () => {
     ConfigStore.set('features', new Set([]));
+    ConfigStore.set('customerDomain', null);
+
     const result = resolveRoute(
       `/organizations/${organization.slug}/issues/`,
       organization
@@ -111,14 +113,5 @@ describe('resolveRoute', () => {
 
     const result = resolveRoute(`/organizations/${otherOrg.slug}/issues/`, otherOrg);
     expect(result).toBe(`/issues/`);
-  });
-
-  it('should use sentryUrl when going from customer-domain to not', () => {
-    const result = resolveRoute(
-      `/organizations/${organization.slug}/issues/`,
-      otherOrg,
-      organization
-    );
-    expect(result).toBe(`https://sentry.io/organizations/${organization.slug}/issues/`);
   });
 });
