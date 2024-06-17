@@ -221,7 +221,7 @@ def query_using_optimized_search(
     can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     can_scalar_search = can_scalar_search_subquery(search_filters)
 
-    if mv_is_enabled and mv.can_search(search_filters) and mv.can_sort(sort or "started_at"):
+    if mv_is_enabled and mv.can_search(search_filters) and mv.can_sort(sort or DEFAULT_SORT_FIELD):
         query = make_materialized_view_search_query(
             search_filters=search_filters,
             sort=sort,
@@ -304,7 +304,7 @@ def make_materialized_view_search_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    orderby = handle_ordering(mv.sort_config, sort or "-started_at")
+    orderby = handle_ordering(mv.sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
     having: list[Condition] = handle_search_filters(mv.search_config, search_filters)
     having.append(Condition(Function("minMerge", parameters=[Column("min_segment_id")]), Op.EQ, 0))
