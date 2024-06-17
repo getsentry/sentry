@@ -10,6 +10,8 @@ function isInputElement(target: EventTarget): target is HTMLInputElement {
   return target instanceof HTMLInputElement;
 }
 
+const noop = () => {};
+
 /**
  * Modified version of React Aria's useGridListItem to support the search component.
  *
@@ -67,7 +69,10 @@ export function useQueryBuilderGridItem(
         return;
       }
 
-      const walker = getFocusableTreeWalker(e.currentTarget, {wrap: false});
+      const walker = getFocusableTreeWalker(e.currentTarget, {
+        wrap: false,
+        accept: node => node.tagName === 'BUTTON',
+      });
       walker.currentNode = e.target as FocusableElement;
 
       // On ArrowRight, we want to focus the next grid cell if there is one.
@@ -131,10 +136,29 @@ export function useQueryBuilderGridItem(
     [handleInputKeyDown, item.key, state.collection]
   );
 
+  const onKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      switch (e.key) {
+        // Default Behavior is for Enter and Space to select the item
+        case 'Enter':
+        case 'Space':
+          break;
+        default:
+          gridCellProps.onKeyDown?.(e);
+      }
+    },
+    [gridCellProps]
+  );
+
   return {
     rowProps: {
       ...rowProps,
       onKeyDownCapture,
+      onKeyDown,
+      // Default behavior is for click events to select the item
+      onClick: noop,
+      onMouseDown: noop,
+      onPointerDown: noop,
     },
     gridCellProps,
   };

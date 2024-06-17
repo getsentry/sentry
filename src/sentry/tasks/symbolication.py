@@ -22,7 +22,6 @@ from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_da
 from sentry.tasks import store
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
-from sentry.utils.canonical import CANONICAL_TYPES
 from sentry.utils.sdk import set_current_event_project
 
 error_logger = logging.getLogger("sentry.errors.events")
@@ -318,7 +317,7 @@ def _do_symbolicate_event(
 
     # We cannot persist canonical types in the cache, so we need to
     # downgrade this.
-    if isinstance(data, CANONICAL_TYPES):
+    if not isinstance(data, dict):
         data = dict(data.items())
 
     if has_changed:
@@ -450,8 +449,7 @@ symbolicate_js_event = make_task_fn(
 )
 symbolicate_jvm_event = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event",
-    # NOTE: Intentionally uses the same queue as `symbolicate_event`.
-    queue="events.symbolicate_event",
+    queue="events.symbolicate_jvm_event",
     task_kind=SymbolicatorTaskKind(
         platform=SymbolicatorPlatform.jvm, is_low_priority=False, is_reprocessing=False
     ),
@@ -474,8 +472,7 @@ symbolicate_js_event_low_priority = make_task_fn(
 )
 symbolicate_jvm_event_low_priority = make_task_fn(
     name="sentry.tasks.symbolicate_jvm_event_low_priority",
-    # NOTE: Intentionally uses the same queue as `symbolicate_event_low_priority`.
-    queue="events.symbolicate_event_low_priority",
+    queue="events.symbolicate_jvm_event_low_priority",
     task_kind=SymbolicatorTaskKind(
         platform=SymbolicatorPlatform.jvm, is_low_priority=True, is_reprocessing=False
     ),

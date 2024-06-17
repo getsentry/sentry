@@ -959,7 +959,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
         logger.error.assert_called_with(
             "Target user must have an ID",
             extra={
-                "batch_id": batch_id,
+                "batch_id": str(batch_id),
                 "organization": org.id,
                 "target_user": "dummy",
                 "email_override": "doesntmatter@smad.com",
@@ -1012,12 +1012,12 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
 
         # Duplicate send
         OrganizationReportBatch(ctx, batch_id).deliver_reports()
-        assert mock_send_email.call_count == 2  # When we halt instead of logging, expect 1 instead
+        assert mock_send_email.call_count == 1
         assert mock_logger.error.call_count == 1
         mock_logger.error.assert_called_once_with(
             "weekly_report.delivery_record.duplicate_detected",
             extra={
-                "batch_id": batch_id,
+                "batch_id": str(batch_id),
                 "organization": self.organization.id,
                 "user_id": self.user.id,
                 "has_email_override": False,

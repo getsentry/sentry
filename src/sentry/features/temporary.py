@@ -36,8 +36,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("auth:register", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable creating organizations within sentry (if SENTRY_SINGLE_ORGANIZATION is not enabled).
     manager.add("organizations:create", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
-    # Enables region provisioning for individual users
-    manager.add("organizations:multi-region-selector", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Controls whether or not the relocation endpoints can be used.
     manager.add("relocation:enabled", SystemFeature, FeatureHandlerStrategy.INTERNAL)
 
@@ -46,8 +44,6 @@ def register_temporary_features(manager: FeatureManager):
 
     # Enables activated alert rules
     manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable AI analytics pages (sentry for AI teams)
-    manager.add("organizations:ai-analytics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Use metrics as the dataset for crash free metric alerts
@@ -117,8 +113,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable tweaks to group title in relation to hierarchical grouping.
     manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable experimental new version of Merged Issues where sub-hashes are shown
-    manager.add("organizations:grouping-tree-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Allows an org to have a larger set of project ownership rules per project
     manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable increased issue_owners rate limit for auto-assignment
@@ -205,9 +199,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the SDK selection feature in the onboarding
     manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Prefix host with organization ID when giving users DSNs (can be
-    # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE) eg. o123.ingest.us.sentry.io
-    manager.add("organizations:org-subdomains", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable views for anomaly detection
     manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile performance score calculation for transactions in relay
@@ -367,6 +358,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-hydration-error-issue-creation", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable linking from 'new issue' email notifs to the issue replay list
     manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable queries to materialized view from replay index endpoint
+    manager.add("organizations:session-replay-materialized-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable mobile replay player
     manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile replay player network tab
@@ -391,19 +384,15 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable Slack messages using Block Kit
     manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
-    # Send Slack notifications to threads for Issue Alerts
-    manager.add("organizations:slack-thread-issue-alert", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable description field in Slack metric alerts
+    manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable improvements to Slack notifications
     manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Feature flags for migrating to the Slack SDK WebClient
-    # SlackNotifyServiceAction
-    manager.add("organizations:slack-sdk-issue-alert-action", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # Use new Slack SDK Client for verifying webhook signatures
-    manager.add("organizations:slack-sdk-signature", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # Use new Slack SDK Client for sending activity messages in threads
-    manager.add("organizations:slack-sdk-activity-threads", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client for sending metric alerts
     manager.add("organizations:slack-sdk-metric-alert", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    # Use new Slack SDK Client in _notify_recipient
+    manager.add("organizations:slack-sdk-notify-recipient", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
@@ -435,10 +424,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-webvitals-score-computed-total", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
     manager.add("organizations:performance-webvitals-avg", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable queues module ui
-    manager.add("organizations:performance-queues-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish cache module ui
-    manager.add("organizations:performance-cache-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable browser starfish webvitals module to use backend provided performance scores
     manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish app start module view

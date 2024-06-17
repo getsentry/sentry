@@ -52,9 +52,10 @@ class OrganizationMemberTeamSerializerResponse(TypedDict):
 class OrganizationMemberTeamSerializer(serializers.Serializer):
     isActive = serializers.BooleanField()
     teamRole = serializers.ChoiceField(
-        choices=team_roles.get_choices(),
+        choices=team_roles.get_descriptions(),
         default=team_roles.get_default().id,
-        help_text="The team-level role to switch to. Valid roles include:",  # choices will follow in the docs
+        help_text="The team-level role to switch to. Valid roles include:",
+        # choices will follow in the docs
     )
 
 

@@ -1,4 +1,4 @@
-import type {LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {Organization, OrganizationSummary} from 'sentry/types';
@@ -16,18 +16,31 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
 
-export function getTraceDetailsUrl(
-  organization: Pick<OrganizationSummary, 'slug' | 'features'>,
-  traceSlug: string,
+export function getTraceDetailsUrl({
+  organization,
+  traceSlug,
   dateSelection,
-  timestamp?: string | number,
-  eventId?: string,
-  spanId?: string,
-  demo?: string
-): LocationDescriptorObject {
+  timestamp,
+  spanId,
+  eventId,
+  demo,
+  location,
+  source,
+}: {
+  dateSelection;
+  location: Location;
+  organization: Pick<OrganizationSummary, 'slug' | 'features'>;
+  traceSlug: string;
+  demo?: string;
+  eventId?: string;
+  source?: string;
+  spanId?: string;
+  timestamp?: string | number;
+}): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
   const queryParams = {
+    ...location.query,
     statsPeriod,
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
@@ -46,6 +59,7 @@ export function getTraceDetailsUrl(
         timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
         demo,
+        source,
       },
     };
   }

@@ -14,6 +14,7 @@ from sentry.search.events.builder import (
     QueryBuilder,
     SpansIndexedQueryBuilder,
 )
+from sentry.search.events.constants import UNCLASSIFIED_SPAN_GROUP
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import (
@@ -277,7 +278,7 @@ class SegmentsSamplesListExecutor(AbstractSamplesListExecutor):
 
         return [
             SpanKey(
-                group="00",  # all segments have a group of `00` currently
+                group=UNCLASSIFIED_SPAN_GROUP,
                 timestamp=row["timestamp"],
                 span_id=row["span_id"],
             )

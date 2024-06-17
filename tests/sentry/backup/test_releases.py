@@ -15,7 +15,7 @@ from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
-    BackupTestCase,
+    BackupTransactionTestCase,
     clear_database,
     export_to_file,
 )
@@ -26,7 +26,7 @@ from tests.sentry.backup import expect_models, verify_models_in_output
 RELEASE_TESTED: set[NormalizedModelName] = set()
 
 
-class ReleaseTests(BackupTestCase):
+class ReleaseTests(BackupTransactionTestCase):
     """
     Ensure that exports from the last two released versions of self-hosted are still able to be
     imported.

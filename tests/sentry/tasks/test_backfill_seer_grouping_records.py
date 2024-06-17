@@ -22,6 +22,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.backfill_seer_grouping_records import (
     backfill_seer_grouping_records,
+    get_data_from_snuba,
     get_events_from_nodestore,
     lookup_event,
     lookup_group_data_stacktrace_bulk,
@@ -33,6 +34,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
+from sentry.utils.safe import get_path
 from sentry.utils.snuba import bulk_snuba_queries
 
 EXCEPTION = {
@@ -174,6 +176,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=self.group_hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -245,6 +248,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -281,6 +285,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -308,6 +313,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -345,6 +351,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -379,6 +386,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 hash=hashes[event.group.id],
                 project_id=self.project.id,
                 message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
             )
             for event in events
         ]
@@ -397,6 +405,18 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "event_id": 10000,
             },
         )
+
+    def test_get_data_from_snuba(self):
+        """
+        Test that all groups are queried when chunked and queried individually.
+        """
+        group_ids_last_seen = {
+            group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
+        }
+        group_event_rows = get_data_from_snuba(self.project, group_ids_last_seen)
+        group_ids_results = [row["data"][0]["group_id"] for row in group_event_rows]
+        for group_id in group_ids_last_seen:
+            assert group_id in group_ids_results
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.backfill_seer_grouping_records.post_bulk_grouping_records")

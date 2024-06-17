@@ -1,23 +1,19 @@
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {FilterOperator} from 'sentry/components/searchQueryBuilder/filterOperator';
+import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/useFilterButtonProps';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {
-  formatFilterValue,
-  getKeyLabel,
-  getValidOpsForFilter,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {formatFilterValue, getKeyLabel} from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   type ParseResultToken,
-  TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -31,73 +27,6 @@ type SearchQueryTokenProps = {
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FILTER>;
 };
-
-const OP_LABELS = {
-  [TermOperator.DEFAULT]: 'is',
-  [TermOperator.GREATER_THAN]: '>',
-  [TermOperator.GREATER_THAN_EQUAL]: '>=',
-  [TermOperator.LESS_THAN]: '<',
-  [TermOperator.LESS_THAN_EQUAL]: '<=',
-  [TermOperator.NOT_EQUAL]: 'is not',
-};
-
-const getOpLabel = (token: TokenResult<Token.FILTER>) => {
-  if (token.negated) {
-    return OP_LABELS[TermOperator.NOT_EQUAL];
-  }
-
-  return OP_LABELS[token.operator] ?? token.operator;
-};
-
-function useFilterButtonProps({
-  item,
-  state,
-}: Pick<SearchQueryTokenProps, 'item' | 'state'>) {
-  const onFocus = useCallback(() => {
-    // Ensure that the state is updated correctly
-    state.selectionManager.setFocusedKey(item.key);
-  }, [item.key, state.selectionManager]);
-
-  return {
-    onFocus,
-    tabIndex: -1,
-  };
-}
-
-function FilterOperator({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch} = useSearchQueryBuilder();
-
-  const items: MenuItemProps[] = useMemo(() => {
-    return getValidOpsForFilter(token).map(op => ({
-      key: op,
-      label: OP_LABELS[op] ?? op,
-      onAction: val => {
-        dispatch({
-          type: 'UPDATE_FILTER_OP',
-          token,
-          op: val as TermOperator,
-        });
-      },
-    }));
-  }, [dispatch, token]);
-
-  const filterButtonProps = useFilterButtonProps({state, item});
-
-  return (
-    <DropdownMenu
-      trigger={triggerProps => (
-        <OpButton
-          aria-label={t('Edit operator for filter: %s', token.key.text)}
-          {...mergeProps(triggerProps, filterButtonProps)}
-        >
-          <InteractionStateLayer />
-          {getOpLabel(token)}
-        </OpButton>
-      )}
-      items={items}
-    />
-  );
-}
 
 function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
   const {keys} = useSearchQueryBuilder();
@@ -265,6 +194,10 @@ const FilterWrapper = styled('div')`
     background-color: ${p => p.theme.gray100};
     outline: none;
   }
+
+  &[aria-selected='true'] {
+    background-color: ${p => p.theme.blue200};
+  }
 `;
 
 const BaseTokenPart = styled('div')`
@@ -295,20 +228,6 @@ const KeyLabel = styled('div')`
   :focus-within {
     background-color: ${p => p.theme.translucentGray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
-const OpButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.5)};
-  color: ${p => p.theme.subText};
-  height: 100%;
-  border-left: 1px solid transparent;
-  border-right: 1px solid transparent;
-
-  :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 

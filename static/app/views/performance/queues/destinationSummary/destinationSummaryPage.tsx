@@ -164,7 +164,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="queue"
       pageTitle={t('Destination Summary')}
-      features={['insights-addon-modules', 'performance-queues-view']}
+      features="insights-addon-modules"
     >
       <DestinationSummaryPage />
     </ModulePageProviders>

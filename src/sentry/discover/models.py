@@ -96,7 +96,7 @@ class DiscoverSavedQuery(Model):
                 discover_saved_query=self
             ).values_list("project", flat=True)
 
-            new_project_ids = list(set(project_ids) - set(existing_project_ids))
+            new_project_ids = sorted(set(project_ids) - set(existing_project_ids))
 
             DiscoverSavedQueryProject.objects.bulk_create(
                 [

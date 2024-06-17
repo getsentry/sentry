@@ -34,7 +34,7 @@ type DataRow = {
   [SpanMetricsField.SPAN_GROUP]: string;
   'avg(span.duration)': number;
   'spm()': number;
-  'sum(span.self_time)': number;
+  'sum(span.duration)': number;
 };
 
 type ColumnKeys =
@@ -42,7 +42,7 @@ type ColumnKeys =
   | SpanMetricsField.SPAN_DESCRIPTION
   | 'spm()'
   | `avg(${SpanMetricsField.SPAN_DURATION})`
-  | `sum(${SpanMetricsField.SPAN_SELF_TIME})`;
+  | `sum(${SpanMetricsField.SPAN_DURATION})`;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -68,7 +68,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+    key: `sum(${SpanMetricsField.SPAN_DURATION})`,
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -79,31 +79,31 @@ const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
   [SpanMetricsField.SPAN_DESCRIPTION]: 'string',
   ['spm()']: 'rate',
   [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
-  [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 'duration',
+  [`sum(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
 };
 
 const LIMIT = 12;
 
 type Props = {
   project: Project | undefined;
+  query: string;
   transactionName: string;
 };
 
 export default function SpanMetricsTable(props: Props) {
-  const {project, transactionName} = props;
+  const {project, transactionName, query: search} = props;
   const organization = useOrganization();
   const location = useLocation();
   const sort = useSpansTabTableSort();
 
   const query = useLocationQuery({
     fields: {
-      query: decodeScalar,
       spansCursor: decodeScalar,
       spanOp: decodeScalar,
     },
   });
 
-  const {query: search, spansCursor, spanOp} = query;
+  const {spansCursor, spanOp} = query;
 
   const filters: SpanMetricsQueryFilters = {
     transaction: transactionName,
@@ -129,7 +129,7 @@ export default function SpanMetricsTable(props: Props) {
         SpanMetricsField.SPAN_GROUP,
         `spm()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanMetricsField.SPAN_DURATION})`,
       ],
       sorts: [sort],
       cursor: spansCursor,

@@ -16,6 +16,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
 )
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -74,6 +75,7 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
         else:
             metrics.incr(
                 "grouping.similarity.did_call_seer",
+                sample_rate=1.0,
                 tags={"call_made": False, "blocker": "hybrid-fingerprint"},
             )
             return True
@@ -86,6 +88,7 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
     if fingerprint_variant:
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": fingerprint_variant.type},
         )
         return True
@@ -108,6 +111,7 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
         metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "global-killswitch"},
         )
         return True
@@ -120,6 +124,7 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
         metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
         return True
@@ -150,6 +155,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "global-rate-limit"},
         )
 
@@ -167,6 +173,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "project-rate-limit"},
         )
 
@@ -204,6 +211,7 @@ def get_seer_similar_issues(
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "message": filter_null_from_event_title(event.title),
+        "exception_type": get_path(event.data, "exception", "values", -1, "type"),
         "k": num_neighbors,
     }
 

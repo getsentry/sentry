@@ -10,6 +10,7 @@ from sentry.integrations.base import disable_integration, is_response_error, is_
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
@@ -46,6 +47,7 @@ def is_response_fatal(response: SlackResponse) -> bool:
     return False
 
 
+# TODO: add this to the client somehow
 def record_response_for_disabling_integration(response: SlackResponse, integration_id: int) -> None:
     redis_key = f"sentry-integration-error:{integration_id}"
 
@@ -62,7 +64,7 @@ def record_response_for_disabling_integration(response: SlackResponse, integrati
         disable_integration(buffer, redis_key, integration_id)
 
 
-def wrapper(method: FunctionType, integration_id):
+def wrapper(method: FunctionType):
     @wraps(method)
     def wrapped(*args, **kwargs):
         if method.__name__ not in SLACK_SDK_WRAP_METHODS:
@@ -71,12 +73,9 @@ def wrapper(method: FunctionType, integration_id):
         try:
             response = method(*args, **kwargs)
             track_response_data(response=response, method=method.__name__)
-            record_response_for_disabling_integration(response, integration_id)
         except SlackApiError as e:
             if e.response:
                 track_response_data(response=e.response, error=str(e), method=method.__name__)
-
-                record_response_for_disabling_integration(e.response, integration_id)
             else:
                 logger.info("slack_sdk.missing_error_response", extra={"error": str(e)})
             raise
@@ -86,27 +85,27 @@ def wrapper(method: FunctionType, integration_id):
     return wrapped
 
 
-def wrap_methods_in_class(cls, integration_id):
+def wrap_methods_in_class(cls):
     for name, attribute in vars(cls).items():
         if isinstance(attribute, FunctionType):
-            setattr(cls, name, wrapper(attribute, integration_id))
+            setattr(cls, name, wrapper(attribute))
 
     for base in cls.__bases__:
-        wrap_methods_in_class(base, integration_id)
+        wrap_methods_in_class(base)
 
 
 class MetaClass(type):
-    def __call__(cls, *args, **kwargs):
-        obj = super().__call__(*args, **kwargs)
-        wrap_methods_in_class(cls, obj.integration_id)
-        return obj
+    def __new__(meta, name, bases, dct):
+        cls = super().__new__(meta, name, bases, dct)
+        wrap_methods_in_class(cls)
+        return cls
 
 
 class SlackSdkClient(WebClient, metaclass=MetaClass):
     def __init__(self, integration_id: int):
         self.integration_id = integration_id
 
-        integration = None
+        integration: Integration | RpcIntegration | None
         if SiloMode.get_current_mode() == SiloMode.REGION:
             integration = integration_service.get_integration(integration_id=integration_id)
         else:  # control or monolith (local)

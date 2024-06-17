@@ -43,6 +43,7 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
+SNUBA_QUERY_RATELIMIT = 4
 
 logger = logging.getLogger(__name__)
 
@@ -305,47 +306,51 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
     # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
     events_entity = Entity("events", alias="events")
 
-    snuba_requests = []
-    for group_id in groups_to_backfill_with_no_embedding:
-        group = Group.objects.get(id=group_id)
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Column("event_id"),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("group_id"), Op.EQ, group_id),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.GTE,
-                    group.last_seen - timedelta(minutes=5),
-                ),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.LT,
-                    group.last_seen + timedelta(minutes=5),
-                ),
-            ],
-            limit=Limit(1),
-        )
+    snuba_results = []
+    for group_ids_chunk in chunked(groups_to_backfill_with_no_embedding, SNUBA_QUERY_RATELIMIT):
+        snuba_requests = []
+        for group_id in group_ids_chunk:
+            group = Group.objects.get(id=group_id)
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, project.id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        group.last_seen - timedelta(minutes=5),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        group.last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
 
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
-        )
-        snuba_requests.append(request)
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
 
-    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-        snuba_results = bulk_snuba_queries(
-            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
-        )
+        with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+            snuba_results_chunk = bulk_snuba_queries(
+                snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            )
+        snuba_results += snuba_results_chunk
+
     return snuba_results
 
 
@@ -389,6 +394,7 @@ def get_events_from_nodestore(
                     group_id=group_id,
                     project_id=project.id,
                     message=filter_null_from_event_title(event.title),
+                    exception_type=get_path(event.data, "exception", "values", -1, "type"),
                     hash=primary_hash,
                 )
             )

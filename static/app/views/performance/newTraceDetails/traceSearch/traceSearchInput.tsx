@@ -8,6 +8,8 @@ import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
@@ -24,6 +26,7 @@ interface TraceSearchInputProps {
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     behavior: 'track result' | 'persist'
   ) => void;
+  organization: Organization;
 }
 
 const MIN_LOADING_TIME = 300;
@@ -96,23 +99,41 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
   );
 
   const onSearchClear = useCallback(() => {
+    trackAnalytics('trace.trace_layout.search_clear', {
+      organization,
+    });
     traceDispatch({type: 'clear query'});
-  }, [traceDispatch]);
+  }, [traceDispatch, organization]);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       switch (event.key) {
         case 'ArrowDown':
+          trackAnalytics('trace.trace_layout.search_match_navigate', {
+            organization,
+            direction: 'next',
+            interaction: 'arrowKey',
+          });
           traceDispatch({
             type: event.shiftKey ? 'go to last match' : 'go to next match',
           });
           break;
         case 'ArrowUp':
+          trackAnalytics('trace.trace_layout.search_match_navigate', {
+            organization,
+            direction: 'prev',
+            interaction: 'arrowKey',
+          });
           traceDispatch({
             type: event.shiftKey ? 'go to first match' : 'go to previous match',
           });
           break;
         case 'Enter':
+          trackAnalytics('trace.trace_layout.search_match_navigate', {
+            organization,
+            direction: event.shiftKey ? 'prev' : 'next',
+            interaction: 'enterKey',
+          });
           traceDispatch({
             type: event.shiftKey ? 'go to previous match' : 'go to next match',
           });
@@ -120,22 +141,32 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         default:
       }
     },
-    [traceDispatch]
+    [traceDispatch, organization]
   );
 
   const onNextSearchClick = useCallback(() => {
+    trackAnalytics('trace.trace_layout.search_match_navigate', {
+      organization,
+      direction: 'next',
+      interaction: 'click',
+    });
     if (traceStateRef.current.rovingTabIndex.node) {
       traceDispatch({type: 'clear roving index'});
     }
     traceDispatch({type: 'go to next match'});
-  }, [traceDispatch]);
+  }, [traceDispatch, organization]);
 
   const onPreviousSearchClick = useCallback(() => {
+    trackAnalytics('trace.trace_layout.search_match_navigate', {
+      organization,
+      direction: 'prev',
+      interaction: 'click',
+    });
     if (traceStateRef.current.rovingTabIndex.node) {
       traceDispatch({type: 'clear roving index'});
     }
     traceDispatch({type: 'go to previous match'});
-  }, [traceDispatch]);
+  }, [traceDispatch, organization]);
 
   return (
     <StyledSearchBar>

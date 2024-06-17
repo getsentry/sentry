@@ -1760,12 +1760,6 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "performance.spans-tags-values.search",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -1795,14 +1789,6 @@ register(
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
-register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-register(
-    "hybrid_cloud.use_region_specific_upload_url", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -2553,6 +2539,15 @@ register(
     "sentry.save-event-attachments.project-per-sec-limit",
     type=Int,
     default=100,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# max number of profile chunks to use for computing
+# the merged profile.
+register(
+    "profiling.continuous-profiling.chunks-set.size",
+    type=Int,
+    default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

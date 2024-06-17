@@ -14,7 +14,7 @@ from sentry.backup.imports import (
 from sentry.backup.scopes import ExportScope
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
-    BackupTestCase,
+    BackupTransactionTestCase,
     clear_database,
     export_to_file,
 )
@@ -24,7 +24,7 @@ EXHAUSTIVELY_TESTED: set[NormalizedModelName] = set()
 UNIQUENESS_TESTED: set[NormalizedModelName] = set()
 
 
-class ExhaustiveTests(BackupTestCase):
+class ExhaustiveTests(BackupTransactionTestCase):
     """
     Ensure that a database with all exportable models filled out still works.
     """

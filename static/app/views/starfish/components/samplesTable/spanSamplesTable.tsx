@@ -69,15 +69,18 @@ type SpanTableRow = {
 type Props = {
   avg: number;
   data: SpanTableRow[];
+  groupId: string;
   isLoading: boolean;
   moduleName: ModuleName;
   columnOrder?: SamplesTableColumnHeader[];
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  source?: string;
 };
 
 export function SpanSamplesTable({
+  groupId,
   isLoading,
   data,
   avg,
@@ -86,6 +89,7 @@ export function SpanSamplesTable({
   onMouseLeaveSample,
   onMouseOverSample,
   columnOrder,
+  source,
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
@@ -117,8 +121,15 @@ export function SpanSamplesTable({
             traceSlug: row.trace,
             projectSlug: row.project,
             organization,
-            location,
+            location: {
+              ...location,
+              query: {
+                ...location.query,
+                groupId,
+              },
+            },
             spanId: row.span_id,
+            source,
           })}
         >
           {row['transaction.id'].slice(0, 8)}
@@ -141,8 +152,15 @@ export function SpanSamplesTable({
             traceSlug: row.trace,
             projectSlug: row.project,
             organization,
-            location,
+            location: {
+              ...location,
+              query: {
+                ...location.query,
+                groupId,
+              },
+            },
             spanId: row.span_id,
+            source,
           })}
         >
           {row.span_id}

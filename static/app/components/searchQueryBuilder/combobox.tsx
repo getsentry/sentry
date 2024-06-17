@@ -11,10 +11,10 @@ import {
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useComboBox} from '@react-aria/combobox';
+import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
-import type {CollectionChildren, Key} from '@react-types/shared';
+import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
 
 import {Button} from 'sentry/components/button';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
@@ -69,8 +69,9 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * Called when the user explicitly closes the combobox with the escape key.
    */
   onExit?: () => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
-  onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onKeyDown?: (e: KeyboardEvent) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
@@ -136,7 +137,7 @@ function menuIsOpen({
     0
   );
 
-  return totalOptions > hiddenOptions.size;
+  return state.isOpen && totalOptions > hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
@@ -293,6 +294,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onInputChange,
     autoFocus,
     openOnFocus,
+    onFocus,
     tabIndex = -1,
     maxOptions,
     shouldCloseOnInteractOutside,
@@ -327,31 +329,40 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     [items, onOptionSelected]
   );
 
-  const state = useComboBoxState<T>({
-    children,
+  const comboBoxProps: Partial<AriaComboBoxProps<T>> = {
     items,
     autoFocus,
     inputValue: filterValue,
     onSelectionChange,
+    allowsCustomValue: true,
     disabledKeys,
+  };
+
+  const state = useComboBoxState<T>({
+    children,
+    // We handle closing on blur ourselves to prevent the combobox from closing
+    // when the user clicks inside the tabbed menu
+    shouldCloseOnBlur: false,
+    ...comboBoxProps,
   });
 
   const {inputProps, listBoxProps} = useComboBox<T>(
     {
+      ...comboBoxProps,
       'aria-label': inputLabel,
       listBoxRef,
       inputRef,
       popoverRef,
-      items,
-      inputValue: filterValue,
-      onSelectionChange,
-      autoFocus,
-      onFocus: () => {
+      onFocus: e => {
         if (openOnFocus) {
           state.open();
         }
+        onFocus?.(e);
       },
-      onBlur: () => {
+      onBlur: e => {
+        if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
+          return;
+        }
         onCustomValueBlurred(inputValue);
         state.close();
       },

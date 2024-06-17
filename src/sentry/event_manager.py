@@ -122,7 +122,6 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
@@ -207,7 +206,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
         return {
             "sdk": {
                 "name": sdk_metadata.get("name") or "unknown",
-                "name_normalized": normalized_sdk_tag_from_event(event),
+                "name_normalized": normalized_sdk_tag_from_event(event.data),
             }
         }
     except Exception:
@@ -404,9 +403,7 @@ class EventManager:
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(
-            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
-        )
+        self._data = rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -490,7 +487,7 @@ class EventManager:
             job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
-                "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "sdk": normalized_sdk_tag_from_event(job["event"].data),
                 "using_transition_optimization": job["optimized_grouping"],
                 "in_transition": job["in_grouping_transition"],
             }
@@ -718,8 +715,8 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 @sentry_sdk.tracing.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
-    release_date_added: dict[tuple[int, Release], datetime] = {}
+    jobs_with_releases: dict[tuple[int, str], list[Job]] = {}
+    release_date_added: dict[tuple[int, str], datetime] = {}
 
     for job in jobs:
         if not job["release"]:
@@ -1234,7 +1231,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
         )
 
 
-def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
+def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
         event_id=data.get("event_id"),
@@ -1522,6 +1519,9 @@ def _save_aggregate(
 
                         metrics.incr(
                             "grouping.similarity.did_call_seer",
+                            # TODO: Consider lowering this (in all the spots this metric is
+                            # collected) once we roll Seer grouping out more widely
+                            sample_rate=1.0,
                             tags={"call_made": True, "blocker": "none"},
                         )
 
@@ -1533,6 +1533,7 @@ def _save_aggregate(
                         # (also below)? Right now they just fall into the `new_group` bucket.
                         metrics.incr(
                             "grouping.similarity.did_call_seer",
+                            sample_rate=1.0,
                             tags={"call_made": False, "blocker": "circuit-breaker"},
                         )
 
@@ -1540,6 +1541,7 @@ def _save_aggregate(
                     except Exception as e:
                         metrics.incr(
                             "grouping.similarity.did_call_seer",
+                            sample_rate=1.0,
                             tags={"call_made": True, "blocker": "none"},
                         )
                         sentry_sdk.capture_exception(
@@ -1585,7 +1587,7 @@ def _save_aggregate(
                         skip_internal=True,
                         tags={
                             "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event),
+                            "sdk": normalized_sdk_tag_from_event(event.data),
                         },
                     )
 
@@ -1599,7 +1601,7 @@ def _save_aggregate(
                             sample_rate=1.0,
                             tags={
                                 "platform": event.platform or "unknown",
-                                "sdk": normalized_sdk_tag_from_event(event),
+                                "sdk": normalized_sdk_tag_from_event(event.data),
                                 "frame_mix": frame_mix,
                             },
                         )
@@ -2627,7 +2629,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         skip_internal=True,
         tags={
             "platform": job["platform"],
-            "sdk": normalized_sdk_tag_from_event(job["event"]),
+            "sdk": normalized_sdk_tag_from_event(job["event"].data),
         },
     )
 
@@ -2929,7 +2931,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 amount=len(unique_default_hashes),
                 tags={
                     "platform": job["platform"] or "unknown",
-                    "sdk": normalized_sdk_tag_from_event(event),
+                    "sdk": normalized_sdk_tag_from_event(event.data),
                 },
             )
         except Exception:

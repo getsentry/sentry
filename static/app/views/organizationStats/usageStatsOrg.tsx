@@ -22,7 +22,6 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -80,10 +79,7 @@ class UsageStatsOrganization<
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    return [
-      ['orgStats', this.endpointPath, {query: this.endpointQuery}],
-      ...this.metricsEndpoint,
-    ];
+    return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
 
   /** List of components to render on single-project view */
@@ -125,51 +121,6 @@ class UsageStatsOrganization<
     };
   }
 
-  // Metric stats are not reported when grouping by category, so we make a separate request
-  // and combine the results
-  get metricsEndpoint(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
-    if (hasCustomMetrics(this.props.organization)) {
-      return [
-        [
-          'metricOrgStats',
-          this.endpointPath,
-          {
-            query: {
-              ...this.endpointQuery,
-              category: DATA_CATEGORY_INFO.metrics.apiName,
-              groupBy: ['outcome'],
-            },
-          },
-        ],
-      ];
-    }
-    return [];
-  }
-
-  // Combines non-metric and metric stats
-  get orgStats() {
-    const {orgStats, metricOrgStats} = this.state;
-
-    if (!orgStats || !metricOrgStats) {
-      return orgStats;
-    }
-
-    const metricsGroups = metricOrgStats.groups.map(group => {
-      return {
-        ...group,
-        by: {
-          ...group.by,
-          category: DATA_CATEGORY_INFO.metrics.apiName,
-        },
-      };
-    });
-
-    return {
-      ...orgStats,
-      groups: [...orgStats.groups, ...metricsGroups],
-    };
-  }
-
   get chartData(): {
     cardStats: {
       accepted?: string;
@@ -189,7 +140,7 @@ class UsageStatsOrganization<
     dataError?: Error;
   } {
     return {
-      ...this.mapSeriesToChart(this.orgStats),
+      ...this.mapSeriesToChart(this.state.orgStats),
       ...this.chartDateRange,
       ...this.chartTransform,
     };
@@ -315,14 +266,6 @@ class UsageStatsOrganization<
       }
     };
 
-    const navigateToMetricsSettings = (event: ReactMouseEvent) => {
-      event.preventDefault();
-      const url = `/settings/${organization.slug}/projects/:projectId/metrics/`;
-      if (router) {
-        navigateTo(url, router);
-      }
-    };
-
     const cardMetadata: Record<string, ScoreCardProps> = {
       total: {
         title: tct('Total [dataCategory]', {dataCategory: dataCategoryName}),
@@ -344,29 +287,15 @@ class UsageStatsOrganization<
       },
       filtered: {
         title: tct('Filtered [dataCategory]', {dataCategory: dataCategoryName}),
-        help:
-          dataCategory === DATA_CATEGORY_INFO.metrics.plural
-            ? tct(
-                'Filtered metrics were blocked due to your disabled metrics [settings: settings]',
-                {
-                  dataCategory,
-                  settings: (
-                    <a href="#" onClick={event => navigateToMetricsSettings(event)} />
-                  ),
-                }
-              )
-            : tct(
-                'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
-                {
-                  dataCategory,
-                  filterSettings: (
-                    <a
-                      href="#"
-                      onClick={event => navigateToInboundFilterSettings(event)}
-                    />
-                  ),
-                }
-              ),
+        help: tct(
+          'Filtered [dataCategory] were blocked due to your [filterSettings: inbound data filter] rules',
+          {
+            dataCategory,
+            filterSettings: (
+              <a href="#" onClick={event => navigateToInboundFilterSettings(event)} />
+            ),
+          }
+        ),
         score: filtered,
       },
       dropped: {
@@ -437,12 +366,7 @@ class UsageStatsOrganization<
       };
 
       orgStats.groups.forEach(group => {
-        const {outcome} = group.by;
-        // TODO(metrics): remove this when metrics category name is updated
-        const category =
-          group.by.category === DATA_CATEGORY_INFO.metrics.apiName
-            ? DATA_CATEGORY_INFO.metrics.plural
-            : group.by.category;
+        const {outcome, category} = group.by;
 
         // HACK: The backend enum are singular, but the frontend enums are plural
         const fullDataCategory = Object.values(DATA_CATEGORY_INFO).find(

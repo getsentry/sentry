@@ -60,15 +60,15 @@ def send_incident_alert_notification(
 
     channel = action.target_identifier
     attachment: Any = SlackIncidentsMessageBuilder(
-        incident, new_status, metric_value, chart_url, notification_uuid
+        action, incident, new_status, metric_value, chart_url, notification_uuid
     ).build()
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
-    json_blocks = orjson.dumps([blocks]).decode()
+    attachments = orjson.dumps([blocks]).decode()
     payload = {
         "channel": channel,
         "text": text,
-        "attachments": json_blocks,
+        "attachments": attachments,
         # Prevent duplicate unfurl
         # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
         "unfurl_links": False,
@@ -110,21 +110,25 @@ def send_incident_alert_notification(
         # To reply to a thread, use the specific key in the payload as referenced by the docs
         # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
         payload["thread_ts"] = parent_notification_message.message_identifier
+        thread_ts = parent_notification_message.message_identifier
 
         # If the incident is critical status, even if it's in a thread, send to main channel
         if incident.status == IncidentStatus.CRITICAL.value:
             payload["reply_broadcast"] = True
+            reply_broadcast = True
 
     success = False
     if features.has("organizations:slack-sdk-metric-alert", organization):
         try:
             sdk_client = SlackSdkClient(integration_id=integration.id)
             sdk_response = sdk_client.chat_postMessage(
-                blocks=json_blocks,
+                attachments=attachments,
                 text=text,
                 channel=str(channel),
                 thread_ts=thread_ts,
                 reply_broadcast=reply_broadcast,
+                unfurl_links=False,
+                unfurl_media=False,
             )
         except SlackApiError as e:
             # Record the error code and details from the exception
@@ -139,13 +143,16 @@ def send_incident_alert_notification(
                 "error": str(e),
                 "incident_id": incident.id,
                 "incident_status": new_status,
+                "attachments": attachments,
             }
             logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
         else:
             success = True
             ts = sdk_response.get("ts")
 
-            logger.info("slack.metric_alert.ts", extra={"ts": ts})
+            logger.info(
+                "slack.metric_alert.ts", extra={"ts": ts, "attachments": attachments, "text": text}
+            )
 
             new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
