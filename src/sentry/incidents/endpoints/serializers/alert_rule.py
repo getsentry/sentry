@@ -175,9 +175,9 @@ class AlertRuleSerializer(Serializer):
                 order_by=F("date_added").desc(),
             )
         )
-        activations = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
+        activations_qs = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
         activations_by_alert_rule_id = defaultdict(list)
-        for activation in activations:
+        for activation in activations_qs:
             activations_by_alert_rule_id[activation.alert_rule_id].append(activation)
 
         alert_rule_projects = set()
