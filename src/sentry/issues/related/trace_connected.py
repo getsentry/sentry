@@ -28,7 +28,7 @@ def trace_connected_analysis(
     if event_id:
         # If we are passing an specific event_id, we need to get the project_id
         assert project_id is not None
-        event = eventstore.backend.get_event_by_id(project_id, event_id, group_id=group.id)
+        event = eventstore.backend.get_event_by_id(int(project_id), event_id, group_id=group.id)
         # If we are requesting an specific event, we want to be notified with an error
         assert event is not None
         # This ensures that the event is actually part of the group and we are notified

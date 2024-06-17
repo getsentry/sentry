@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Collection, Iterable, Mapping
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
 import sentry_sdk
@@ -27,16 +27,14 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    OptionManager,
-    Value,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.manager import ValidateFunction
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
-from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
@@ -52,6 +50,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
+    from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
@@ -105,6 +104,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-nextjs",
     "javascript-react",
     "javascript-remix",
+    "javascript-solid",
+    "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-vue",
@@ -217,7 +218,7 @@ class ProjectManager(BaseManager["Project"]):
 
 @snowflake_id_model
 @region_silo_model
-class Project(Model, PendingDeletionMixin, OptionMixin):
+class Project(Model, PendingDeletionMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -374,18 +375,23 @@ class Project(Model, PendingDeletionMixin, OptionMixin):
         return False
 
     @property
-    def option_manager(self) -> OptionManager:
+    def option_manager(self) -> ProjectOptionManager:
         from sentry.models.options.project_option import ProjectOption
 
         return ProjectOption.objects
 
-    def update_option(self, key: str, value: Value) -> bool:
+    def get_option(
+        self, key: str, default: Any | None = None, validate: ValidateFunction | None = None
+    ) -> Any:
+        return self.option_manager.get_value(self, key, default, validate)
+
+    def update_option(self, key: str, value: Any) -> bool:
         projectoptions.update_rev_for_option(self)
-        return super().update_option(key, value)
+        return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
         projectoptions.update_rev_for_option(self)
-        super().delete_option(key)
+        self.option_manager.unset_value(self, key)
 
     def update_rev_for_option(self):
         return projectoptions.update_rev_for_option(self)

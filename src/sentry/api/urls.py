@@ -115,6 +115,7 @@ from sentry.issues.endpoints import (
     GroupEventsEndpoint,
     OrganizationActivityEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectStacktraceLinkEndpoint,
@@ -441,6 +442,7 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
+    OrganizationProfilingChunksEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
@@ -1700,6 +1702,11 @@ ORGANIZATION_URLS = [
         ),
         name="sentry-api-0-organization-monitor-check-in-attachment",
     ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/$",
+        OrganizationGroupSearchViewsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-views",
+    ),
     # Pinned and saved search
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/pinned-searches/$",
@@ -2093,6 +2100,11 @@ ORGANIZATION_URLS = [
                     r"^function-trends/$",
                     OrganizationProfilingFunctionTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-function-trends",
+                ),
+                re_path(
+                    r"^chunks/$",
+                    OrganizationProfilingChunksEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks",
                 ),
             ],
         ),

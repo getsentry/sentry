@@ -1,6 +1,7 @@
 import {type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
+import type {KeyboardEvent} from '@react-types/shared';
 import orderBy from 'lodash/orderBy';
 
 import Checkbox from 'sentry/components/checkbox';
@@ -28,6 +29,7 @@ import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 
 type SearchQueryValueBuilderProps = {
@@ -335,7 +337,7 @@ function getOtherSelectedValues(token: TokenResult<Token.FILTER>): string[] {
 function cleanFilterValue(key: string, value: string): string {
   const fieldDef = getFieldDefinition(key);
   if (!fieldDef) {
-    return value;
+    return escapeTagValue(value);
   }
 
   switch (fieldDef.valueType) {
@@ -546,7 +548,14 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent) => {
+      // Default combobox behavior stops events from propagating outside of input
+      // Certain keys like ctrl+z should be handled handled in useQueryBuilderGrid()
+      // so we need to continue propagation for those.
+      if (e.key === 'z' && isCtrlKeyPressed(e)) {
+        e.continuePropagation();
+      }
+
       // If at the start of the input and backspace is pressed, delete the last selected value
       if (
         e.key === 'Backspace' &&

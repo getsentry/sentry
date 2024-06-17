@@ -20,7 +20,6 @@ import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSumma
 function initializeData() {
   const organization = OrganizationFixture({
     features: ['discover-basic', 'performance-view'],
-    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -35,7 +34,7 @@ function initializeData() {
     },
     projects: [],
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 

@@ -4,7 +4,7 @@ import {getTabs} from './utils';
 
 describe('getTabs', () => {
   it('displays the correct list of tabs', () => {
-    expect(getTabs(OrganizationFixture({})).filter(tab => !tab[1].hidden)).toEqual([
+    expect(getTabs(OrganizationFixture()).filter(tab => !tab[1].hidden)).toEqual([
       ['is:unresolved', expect.objectContaining({name: 'Unresolved'})],
       [
         'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',

@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {DetailedOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
@@ -91,7 +91,7 @@ const setupMocks = () => {
 };
 
 const setupMockRequests = (
-  organization: DetailedOrganization,
+  organization: Organization,
   settings: {enableImages: boolean} = {enableImages: true}
 ) => {
   const {enableImages} = settings;

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 import moment from 'moment-timezone';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
@@ -427,10 +428,12 @@ export function getFormattedContextData({
   contextValue,
   organization,
   project,
+  location,
 }: {
   contextType: string;
   contextValue: any;
   event: Event;
+  location: Location;
   organization: Organization;
   project?: Project;
 }): KeyValueListData {
@@ -492,7 +495,13 @@ export function getFormattedContextData({
       ];
     case 'trace':
       return [
-        ...getKnownTraceContextData({data: contextValue, event, meta, organization}),
+        ...getKnownTraceContextData({
+          data: contextValue,
+          event,
+          meta,
+          organization,
+          location,
+        }),
         ...getUnknownTraceContextData({data: contextValue, meta}),
       ];
     case 'threadpool_info': // Current

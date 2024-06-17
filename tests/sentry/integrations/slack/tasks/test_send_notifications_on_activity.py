@@ -6,7 +6,6 @@ from sentry.integrations.slack.tasks.send_notifications_on_activity import (
 )
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.types.activity import ActivityType
 
 
@@ -73,7 +72,6 @@ class TestSendActivityNotifications(TestCase):
             send_activity_notifications_to_slack_threads(activity_id=123)
             self.mock_slack_service.notify_all_threads_for_activity.assert_not_called()
 
-    @with_feature("organizations:slack-thread-issue-alert")
     def test_calls_notify_all_threads_for_activity(self) -> None:
         with mock.patch(
             "sentry.integrations.slack.tasks.send_notifications_on_activity.SlackService",

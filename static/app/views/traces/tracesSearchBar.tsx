@@ -5,6 +5,7 @@ import SearchBar from 'sentry/components/events/searchBar';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
@@ -61,7 +62,14 @@ export function TracesSearchBar({
             aria-label={t('Remove span')}
             icon={<IconClose size="sm" />}
             size="sm"
-            onClick={() => (queries.length === 0 ? false : handleClearSearch(index))}
+            onClick={() => {
+              trackAnalytics('trace_explorer.remove_span_condition', {
+                organization,
+              });
+              if (queries.length >= 0) {
+                handleClearSearch(index);
+              }
+            }}
           />
         </TraceBar>
       ))}
@@ -71,7 +79,12 @@ export function TracesSearchBar({
           aria-label={t('Add query')}
           icon={<IconAdd size="xs" isCircled />}
           size="sm"
-          onClick={() => handleSearch(localQueries.length, '')}
+          onClick={() => {
+            trackAnalytics('trace_explorer.add_span_condition', {
+              organization,
+            });
+            handleSearch(localQueries.length, '');
+          }}
         >
           {t('Add Span Condition')}
         </Button>

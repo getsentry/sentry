@@ -22,15 +22,18 @@ function BaseFrame<T extends RawSpanFrame['op']>(
   } as MockFrame<T>;
 }
 
-export function ReplayLargestContentfulPaintFrameFixture(
-  fields: TestableFrame<'largest-contentful-paint'>
-): MockFrame<'largest-contentful-paint'> {
-  return BaseFrame('largest-contentful-paint', {
+export function ReplayWebVitalFrameFixture(
+  fields: TestableFrame<'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint'
+>
+): MockFrame<'largest-contentful-paint' | 'cumulative-layout-shift' | 'first-input-delay' | 'interaction-to-next-paint'
+> {
+  return BaseFrame(fields.op ?? 'largest-contentful-paint', {
     ...fields,
     data: {
       nodeId: fields.data?.nodeId,
       size: fields.data?.size ?? 0,
       value: fields.data?.value ?? 0,
+      rating: fields.data?.rating ?? "good",
     },
   });
 }

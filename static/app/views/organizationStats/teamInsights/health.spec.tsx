@@ -169,10 +169,7 @@ describe('TeamStatsHealth', () => {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = OrganizationFixture({
-      teams,
-      projects,
-    });
+    const organization = OrganizationFixture();
 
     if (isOrgOwner !== undefined && !isOrgOwner) {
       organization.access = organization.access.filter(scope => scope !== 'org:admin');

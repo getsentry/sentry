@@ -8,7 +8,9 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 interface TraceLinkProps {
   event: Event;
@@ -16,7 +18,19 @@ interface TraceLinkProps {
 
 export function TraceLink({event}: TraceLinkProps) {
   const organization = useOrganization();
-  const traceTarget = generateTraceTarget(event, organization);
+  const location = useLocation();
+  const traceTarget = generateTraceTarget(
+    event,
+    organization,
+    {
+      ...location,
+      query: {
+        ...location.query,
+        groupId: event.groupID,
+      },
+    },
+    TraceViewSources.ISSUE_DETAILS
+  );
 
   if (!event.contexts?.trace?.trace_id) {
     return (

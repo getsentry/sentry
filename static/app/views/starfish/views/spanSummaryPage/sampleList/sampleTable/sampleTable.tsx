@@ -35,6 +35,7 @@ type Props = {
   highlightedSpanId?: string;
   onMouseLeaveSample?: () => void;
   onMouseOverSample?: (sample: SpanSample) => void;
+  referrer?: string;
   release?: string;
   spanSearch?: MutableSearch;
   transactionMethod?: string;
@@ -53,6 +54,7 @@ function SampleTable({
   spanSearch,
   additionalFields,
   additionalFilters,
+  referrer,
 }: Props) {
   const filters: SpanMetricsQueryFilters = {
     'span.group': groupId,
@@ -154,6 +156,7 @@ function SampleTable({
         hasData={spans.length > 0}
       >
         <SpanSamplesTable
+          groupId={groupId}
           moduleName={moduleName}
           onMouseLeaveSample={onMouseLeaveSample}
           onMouseOverSample={onMouseOverSample}
@@ -168,6 +171,7 @@ function SampleTable({
           })}
           isLoading={isLoading}
           avg={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
+          source={referrer}
         />
       </VisuallyCompleteWithData>
       <Button

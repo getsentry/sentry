@@ -12,7 +12,6 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
@@ -20,15 +19,13 @@ import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/re
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
-import {
-  DATA_TYPE,
-  PERFORMANCE_DATA_TYPE,
-} from 'sentry/views/performance/browser/resources/settings';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -47,7 +44,6 @@ const {
 
 function ResourceSummary() {
   const webVitalsModuleURL = useModuleURL('vital');
-  const organization = useOrganization();
   const {groupId} = useParams();
   const filters = useResourceModuleFilters();
   const selectedSpanOp = filters[SPAN_OP];
@@ -89,9 +85,6 @@ function ResourceSummary() {
 
   const crumbs = useModuleBreadcrumbs('resource');
 
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-  const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
-
   return (
     <React.Fragment>
       <Layout.Header>
@@ -100,7 +93,7 @@ function ResourceSummary() {
             crumbs={[
               ...crumbs,
               {
-                label: tct('[dataType] Summary', {dataType: resourceDataType}),
+                label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
               },
             ]}
           />
@@ -149,6 +142,7 @@ function ResourceSummary() {
             groupId={groupId}
             moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
+            referrer={TraceViewSources.ASSETS_MODULE}
           />
         </Layout.Main>
       </Layout.Body>
@@ -157,14 +151,10 @@ function ResourceSummary() {
 }
 
 function PageWithProviders() {
-  const organization = useOrganization();
-
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-  const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
   return (
     <ModulePageProviders
       moduleName="resource"
-      pageTitle={`${resourceDataType} ${t('Summary')}`}
+      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
       features="insights-initial-modules"
     >
       <ResourceSummary />
