@@ -54,16 +54,7 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
   const {slug} = organization;
 
   return function (moduleName: RoutableModuleNames) {
-    const insightsURL = insightsURLBuilder(moduleName);
-
-    if (moduleName === ModuleName.AI) {
-      // AI Doesn't live under "/performance", which means `insightsURL` might be an empty string, so we need to account for that
-      const moduleURLSegment = [insightsURL, AI_BASE_URL].filter(Boolean).join('/');
-
-      return bare
-        ? moduleURLSegment
-        : normalizeUrl(`/organizations/${slug}/${moduleURLSegment}`);
-    }
+    const insightsURL = insightsURLBuilder();
 
     return bare
       ? `${insightsURL}/${MODULE_BASE_URLS[moduleName]}`
