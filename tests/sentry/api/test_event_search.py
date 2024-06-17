@@ -575,12 +575,14 @@ class ParseSearchQueryBackendTest(SimpleTestCase):
 
     def test_invalid_numeric_aggregate_filter(self):
         with self.assertRaisesMessage(
-            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
+            InvalidSearchQuery,
+            "The search condition does not require units. Numeric multiples can be specified using a suffix: k, m or b.",
         ):
             parse_search_query("min(measurements.size):3s")
 
         with self.assertRaisesMessage(
-            InvalidSearchQuery, "is not a valid number suffix, must be k, m or b"
+            InvalidSearchQuery,
+            "The search condition does not require units. Numeric multiples can be specified using a suffix: k, m or b.",
         ):
             parse_search_query("count_if(measurements.fcp, greater, 5s):3s")
 
