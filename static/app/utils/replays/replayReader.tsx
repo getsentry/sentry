@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
-import {IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment';
 
@@ -25,6 +23,7 @@ import type {
   ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
+  incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
@@ -36,6 +35,7 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
+  IncrementalSource,
   isDeadClick,
   isDeadRageClick,
   isLCPFrame,
@@ -403,6 +403,8 @@ export default class ReplayReader {
   };
 
   getRRWebFrames = () => this._sortedRRWebEvents;
+
+  getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
 
   getRRWebMutations = () =>
     this._sortedRRWebEvents.filter(

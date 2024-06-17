@@ -8,9 +8,13 @@ export function getReplayDiffOffsetsFromFrame(
 ) {
   return {
     leftOffsetMs: frame.offsetMs,
-    rightOffsetMs:
+    rightOffsetMs: Math.max(
+      0,
+      // `next.timestamp` is a timestamp since the unix epoch, so we remove the
+      // replay start timestamp to get an offset
       (frame.data.mutations.next?.timestamp ?? 0) -
-      (replay?.getReplay().started_at.getTime() ?? 0),
+        (replay?.getReplay().started_at.getTime() ?? 0)
+    ),
   };
 }
 
@@ -22,7 +26,7 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
   // `event.dateCreated` is the most common date to use, and it's in seconds not ms
 
   const hydrationFrame = replay
-    .getChapterFrames()
+    .getBreadcrumbFrames()
     .find(
       breadcrumb =>
         'category' in breadcrumb &&
@@ -42,15 +46,17 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
     .getRRWebFrames()
     .findIndex(frame => frame.timestamp < eventTimestampMs);
   const leftFrame = frames.at(Math.max(0, leftReplayFrameIndex));
-  const leftOffsetMs = replayStartTimestamp - (leftFrame?.timestamp ?? 0);
+  const leftOffsetMs = Math.max(0, replayStartTimestamp - (leftFrame?.timestamp ?? 0));
 
   const rightReplayFrameIndex = replay
     .getRRWebFrames()
     .findLastIndex(frame => frame.timestamp <= eventTimestampMs + 1);
 
   const rightFrame = frames.at(Math.min(frames.length, rightReplayFrameIndex + 1));
-  const rightOffsetMs =
-    (rightFrame?.timestamp ?? eventTimestampMs) + 1 - replayStartTimestamp;
+  const rightOffsetMs = Math.max(
+    0,
+    (rightFrame?.timestamp ?? eventTimestampMs) - replayStartTimestamp
+  );
 
   return {leftOffsetMs, rightOffsetMs};
 }
