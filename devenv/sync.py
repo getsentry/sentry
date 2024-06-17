@@ -6,7 +6,7 @@ import shlex
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, limactl, proc, venv, volta
+from devenv.lib import colima, config, fs, limactl, proc, venv, volta
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -124,7 +124,13 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    # .venv/bin/pre-commit install --install-hooks -f
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f")),),
+    ):
+        return 1
 
     git_config = configparser.ConfigParser()
     git_config.read(f"{reporoot}/.git/config")
