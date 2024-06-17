@@ -1,7 +1,6 @@
 from unittest import mock
-from urllib.parse import parse_qs
 
-import responses
+import orjson
 
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
@@ -9,7 +8,6 @@ from sentry.notifications.notifications.activity.assigned import AssignedActivit
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -28,7 +26,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             )
         )
 
-    @responses.activate
     def test_multiple_identities(self):
         """
         Test that we notify a user with multiple Identities in each place
@@ -50,30 +47,21 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             external_id="UXXXXXXX2",
             identity_provider=idp2,
         )
-        # create a second response
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
 
         with self.tasks():
             self.create_notification(self.group, AssignedActivityNotification).send()
 
-        assert len(responses.calls) >= 2
-        data = parse_qs(responses.calls[0].request.body)
+        assert self.mock_post.call_count == 2
+        data = self.mock_post.call_args_list[0].kwargs
         assert "channel" in data
-        channel = data["channel"][0]
+        channel = data["channel"]
         assert channel == self.identity.external_id
 
-        data = parse_qs(responses.calls[1].request.body)
+        data = self.mock_post.call_args_list[1].kwargs
         assert "channel" in data
-        channel = data["channel"][0]
+        channel = data["channel"]
         assert channel == identity2.external_id
 
-    @responses.activate
     def test_multiple_orgs(self):
         """
         Test that if a user is in 2 orgs with Slack and has an Identity linked in each,
@@ -93,25 +81,13 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
         idp2 = self.create_identity_provider(type="slack", external_id="TXXXXXXX2")
         self.create_identity(external_id="UXXXXXXX2", identity_provider=idp2, user=self.user)
-        # create a second response that won't actually be used, but here to make sure it's not a false positive
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
 
         with self.tasks():
             self.create_notification(self.group, AssignedActivityNotification).send()
 
-        assert len(responses.calls) == 1
-        data = parse_qs(responses.calls[0].request.body)
-        assert "channel" in data
-        channel = data["channel"][0]
-        assert channel == self.identity.external_id
+        assert self.mock_post.call_count == 1
+        assert self.mock_post.call_args.kwargs["channel"] == self.identity.external_id
 
-    @responses.activate
     def test_assignment_block(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
@@ -119,7 +95,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         """
         with self.tasks():
             self.create_notification(self.group, AssignedActivityNotification).send()
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         assert fallback_text == f"Issue assigned to {self.name} by themselves"
         assert blocks[0]["text"]["text"] == fallback_text
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
@@ -132,7 +109,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
@@ -150,7 +126,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
 
         with self.tasks():
             self.create_notification(group_event.group, AssignedActivityNotification).send()
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         assert fallback_text == f"Issue assigned to {self.name} by themselves"
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_generic_issue_blocks(
@@ -161,7 +138,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             "assigned_activity-slack",
         )
 
-    @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
@@ -176,7 +152,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         with self.tasks():
             self.create_notification(event.group, AssignedActivityNotification).send()
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         assert fallback_text == f"Issue assigned to {self.name} by themselves"
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks(

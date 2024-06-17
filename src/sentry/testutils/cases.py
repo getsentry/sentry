@@ -2893,13 +2893,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 

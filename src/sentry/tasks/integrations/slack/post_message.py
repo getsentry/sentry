@@ -33,6 +33,7 @@ def _send_message_to_slack_channel(
             channel=str(payload.get("channel", "")),
             unfurl_links=False,
             unfurl_media=False,
+            callback_id=str(payload.get("callback_id", "")),
         )
         metrics.incr(SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
     except SlackApiError as e:
