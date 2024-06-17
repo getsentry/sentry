@@ -112,8 +112,8 @@ def send_incident_alert_notification(
 
     success = False
     try:
-        sdk_client = SlackSdkClient(integration_id=integration.id)
-        sdk_response = sdk_client.chat_postMessage(
+        client = SlackSdkClient(integration_id=integration.id)
+        response = client.chat_postMessage(
             attachments=attachments,
             text=text,
             channel=str(channel),
@@ -146,7 +146,7 @@ def send_incident_alert_notification(
         )
     else:
         success = True
-        ts = sdk_response.get("ts")
+        ts = response.get("ts")
 
         new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
