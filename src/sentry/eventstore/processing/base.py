@@ -4,8 +4,6 @@ from collections.abc import MutableMapping
 from datetime import timedelta
 from typing import Any
 
-import sentry_sdk
-
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.kvstore.abstract import KVStorage
 from sentry.utils.services import Service
@@ -40,7 +38,6 @@ class EventProcessingStore(Service):
         key = cache_key_for_event(event)
         return self.get(key) is not None
 
-    @sentry_sdk.tracing.trace
     def store(self, event: Event, unprocessed: bool = False) -> str:
         key = cache_key_for_event(event)
         if unprocessed:
@@ -48,13 +45,11 @@ class EventProcessingStore(Service):
         self.inner.set(key, event, self.timeout)
         return key
 
-    @sentry_sdk.tracing.trace
     def get(self, key: str, unprocessed: bool = False) -> MutableMapping[str, Any] | None:
         if unprocessed:
             key = self.__get_unprocessed_key(key)
         return self.inner.get(key)
 
-    @sentry_sdk.tracing.trace
     def delete_by_key(self, key: str) -> None:
         self.inner.delete(key)
         self.inner.delete(self.__get_unprocessed_key(key))

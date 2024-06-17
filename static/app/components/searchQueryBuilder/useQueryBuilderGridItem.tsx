@@ -69,7 +69,10 @@ export function useQueryBuilderGridItem(
         return;
       }
 
-      const walker = getFocusableTreeWalker(e.currentTarget, {wrap: false});
+      const walker = getFocusableTreeWalker(e.currentTarget, {
+        wrap: false,
+        accept: node => node.tagName === 'BUTTON',
+      });
       walker.currentNode = e.target as FocusableElement;
 
       // On ArrowRight, we want to focus the next grid cell if there is one.

@@ -131,7 +131,7 @@ class FilestoreBlob(Blob):
         file.putfile(BytesIO(value), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
         try:
-            segment = ReplayRecordingSegment.objects.create(
+            ReplayRecordingSegment.objects.create(
                 project_id=segment.project_id,
                 replay_id=segment.replay_id,
                 segment_id=segment.segment_id,

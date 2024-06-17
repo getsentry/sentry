@@ -23,4 +23,4 @@ class FireTest(TestCase, abc.ABC):
             update_incident_status(
                 incident, IncidentStatus.CLOSED, status_method=IncidentStatusMethod.MANUAL
             )
-        self.run_test(incident, method, **kwargs)
+        return self.run_test(incident, method, **kwargs)

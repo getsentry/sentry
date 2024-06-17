@@ -104,6 +104,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-nextjs",
     "javascript-react",
     "javascript-remix",
+    "javascript-solid",
+    "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-vue",
@@ -173,7 +175,8 @@ class ProjectManager(BaseManager["Project"]):
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
-            projects_by_user_id[user_id].add(project_id)
+            if user_id is not None:
+                projects_by_user_id[user_id].add(project_id)
         return projects_by_user_id
 
     def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
@@ -476,6 +479,7 @@ class Project(Model, PendingDeletionMixin):
         for rule_id, environment_id in Rule.objects.filter(
             project_id=self.id, environment_id__isnull=False
         ).values_list("id", "environment_id"):
+            assert environment_id is not None
             rules_by_environment_id[environment_id].add(rule_id)
 
         environment_names = dict(
@@ -609,7 +613,7 @@ class Project(Model, PendingDeletionMixin):
     def get_lock_key(self):
         return f"project_token:{self.id}"
 
-    def copy_settings_from(self, project_id):
+    def copy_settings_from(self, project_id: int) -> bool:
         """
         Copies project level settings of the inputted project
         - General Settings
@@ -628,7 +632,13 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.rule import Rule
 
-        model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
+        # XXX: this type sucks but it helps the type checker understand
+        model_list: tuple[type[EnvironmentProject | ProjectOwnership | ProjectTeam | Rule], ...] = (
+            EnvironmentProject,
+            ProjectOwnership,
+            ProjectTeam,
+            Rule,
+        )
 
         project = Project.objects.get(id=project_id)
         try:

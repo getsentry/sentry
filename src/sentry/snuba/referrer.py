@@ -390,6 +390,7 @@ class Referrer(Enum):
     API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
         "api.profiling.functions.regression.transaction-stats"
     )
+    API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART = "api.profiling.continuous-profiling.flamechart"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
