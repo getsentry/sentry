@@ -1683,12 +1683,12 @@ function getIconTimestamps(
   span_space: [number, number],
   icon_width: number
 ) {
-  if (!node.errors.size && !node.performance_issues.size) {
-    return [span_space[0], span_space[0] + span_space[1]];
-  }
-
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
+  
+    if (!node.errors.size && !node.performance_issues.size) {
+    return [min_icon_timestamp, max_icon_timestamp];
+  }
 
   for (const issue of node.performance_issues) {
     // Perf issues render icons at the start timestamp
