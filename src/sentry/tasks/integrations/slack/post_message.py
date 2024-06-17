@@ -23,7 +23,7 @@ def _send_message_to_slack_channel(
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
-    has_sdk_flag: bool | None = False,  # TODO: remove all these
+    has_sdk_flag: bool | None = True,  # TODO: remove all these
 ) -> None:
     client = SlackSdkClient(integration_id=integration_id)
     try:
@@ -58,7 +58,7 @@ def post_message(
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
-    has_sdk_flag: bool | None = False,
+    has_sdk_flag: bool | None = True,
 ) -> None:
     _send_message_to_slack_channel(
         integration_id=integration_id,
@@ -80,7 +80,7 @@ def post_message_control(
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
-    has_sdk_flag: bool,
+    has_sdk_flag: bool | None = True,
 ) -> None:
     _send_message_to_slack_channel(
         integration_id=integration_id,
