@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -30,7 +32,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     name = models.CharField(max_length=MAX_USER_ROLE_NAME_LENGTH, unique=True)
-    permissions = ArrayField()
+    permissions: models.Field[Sequence[str], list[str]] = ArrayField()
     users = models.ManyToManyField("sentry.User", through="sentry.UserRoleUser")
 
     class Meta:
@@ -50,17 +52,6 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
                 object_identifier=user_id,
             )
         ]
-
-    @classmethod
-    def permissions_for_user(cls, user_id: int) -> frozenset[str]:
-        """
-        Return a set of permission for the given user ID scoped to roles.
-        """
-        return frozenset(
-            i
-            for sl in cls.objects.filter(users=user_id).values_list("permissions", flat=True)
-            for i in sl
-        )
 
 
 @control_silo_model

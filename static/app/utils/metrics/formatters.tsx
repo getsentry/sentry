@@ -128,6 +128,34 @@ export const formattingSupportedMetricUnits = [
 export type FormattingSupportedMetricUnit =
   (typeof formattingSupportedMetricUnits)[number];
 
+export const formattingSupportedMetricUnitsSingular: FormattingSupportedMetricUnit[] = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+];
+
 const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
   nanosecond: 'ns',
   nanoseconds: 'ns',

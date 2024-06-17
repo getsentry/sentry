@@ -1,5 +1,5 @@
 from dataclasses import asdict
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.conf.server import SEER_SIMILARITY_MODEL_VERSION
 from sentry.eventstore.models import Event
@@ -172,6 +172,52 @@ class GetSeerSimilarIssuesTest(TestCase):
             data={"message": "Adopt don't shop"},
         )
         self.new_event_hashes = CalculatedHashes(["20130809201315042012311220122111"])
+
+    @patch("sentry.grouping.ingest.seer.get_similarity_data_from_seer")
+    def test_sends_expected_data_to_seer(self, mock_get_similarity_data: MagicMock):
+        new_event = Event(
+            project_id=self.project.id,
+            event_id="12312012112120120908201304152013",
+            data={
+                "title": "FailedToFetchError('Charlie didn't bring the ball back')",
+                "exception": {
+                    "values": [
+                        {
+                            "type": "FailedToFetchError",
+                            "value": "Charlie didn't bring the ball back",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "function": "play_fetch",
+                                        "filename": "dogpark.py",
+                                        "context_line": "raise FailedToFetchError('Charlie didn't bring the ball back')",
+                                    }
+                                ]
+                            },
+                        }
+                    ]
+                },
+                "platform": "python",
+            },
+        )
+        new_event_hashes = CalculatedHashes(["20130809201315042012311220122111"])
+
+        with patch(
+            "sentry.grouping.ingest.seer.get_stacktrace_string",
+            return_value="<stacktrace string>",
+        ):
+            get_seer_similar_issues(new_event, new_event_hashes)
+
+            mock_get_similarity_data.assert_called_with(
+                {
+                    "hash": "20130809201315042012311220122111",
+                    "project_id": self.project.id,
+                    "stacktrace": "<stacktrace string>",
+                    "message": "FailedToFetchError('Charlie didn't bring the ball back')",
+                    "exception_type": "FailedToFetchError",
+                    "k": 1,
+                }
+            )
 
     @with_feature({"projects:similarity-embeddings-grouping": False})
     def test_returns_metadata_but_no_group_if_seer_grouping_flag_off(self):

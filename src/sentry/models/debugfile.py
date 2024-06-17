@@ -67,10 +67,9 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 
         found = ProjectDebugFile.objects.filter(
             checksum__in=checksums, project_id=project.id
-        ).values("checksum")
+        ).values_list("checksum", flat=True)
 
-        for values in found:
-            missing.discard(list(values.values())[0])
+        missing.difference_update(checksum for checksum in found if checksum is not None)
 
         return sorted(missing)
 

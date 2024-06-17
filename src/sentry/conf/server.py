@@ -2194,11 +2194,6 @@ SENTRY_USE_SPOTLIGHT = False
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
-# This flags enables the `peanutbutter` realtime metrics backend.
-# See https://github.com/getsentry/peanutbutter.
-# We do not want/need this in normal devservices, but we need it for certain tests.
-SENTRY_USE_PEANUTBUTTER = False
-
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2456,14 +2451,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"8969/tcp": 8969},
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
-        }
-    ),
-    "peanutbutter": lambda settings, options: (
-        {
-            "image": "us.gcr.io/sentryio/peanutbutter:latest",
-            "environment": {},
-            "ports": {"4433/tcp": 4433},
-            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
         }
     ),
 }
@@ -3434,6 +3421,9 @@ SEER_GROUPING_RECORDS_URL = (
 SEER_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
+
+# TODO: Remove this soon, just a way to configure a project for this before we implement properly
+UPTIME_POC_PROJECT_ID = 1
 
 
 # Devserver configuration overrides.
