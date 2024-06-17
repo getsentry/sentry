@@ -63,7 +63,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const order = ORDER_WITH_INP_WITHOUT_FID;
 
   const getAreaChart = _ => {
-    const segmentColors = theme.charts.getColorPalette(3);
+    const segmentColors = theme.charts.getColorPalette(3).slice(0, 5);
     return (
       <Chart
         stacked
@@ -85,6 +85,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         }}
         dataMax={100}
         chartColors={segmentColors}
+        hideYAxisSplitLine
       />
     );
   };
