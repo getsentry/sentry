@@ -9,7 +9,7 @@ from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.models.organization import Organization
 from sentry.replays.lib.kafka import initialize_replays_publisher
 from sentry.replays.post_process import generate_normalized_output
-from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
+from sentry.replays.query import query_replays_collection, replay_url_parser_config
 from sentry.replays.tasks import archive_replay, delete_replay_recording_async
 
 logger = logging.getLogger()
@@ -30,7 +30,7 @@ def delete_replays(
 
     has_more = True
     while has_more:
-        query_response = query_replays_collection_paginated(
+        query_response = query_replays_collection(
             project_ids=[project_id],
             start=start_utc,
             end=end_utc,
