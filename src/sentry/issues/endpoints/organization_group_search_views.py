@@ -126,7 +126,7 @@ def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: lis
 
 
 def _update_existing_view(view: GroupSearchViewSerializerResponse, position: int):
-    GroupSearchView.objects.filter(id=view["id"]).update(
+    GroupSearchView.objects.get(id=view["id"]).update(
         name=view["name"],
         query=view["query"],
         query_sort=view["querySort"],
