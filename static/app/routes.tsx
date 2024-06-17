@@ -1456,13 +1456,18 @@ function buildRoutes() {
     />
   );
 
-  const insightsRedirects = Object.values(MODULE_BASE_URLS).map(moduleBaseURL => (
-    <Redirect
-      key={moduleBaseURL}
-      from={`${moduleBaseURL}`}
-      to={`/insights/${moduleBaseURL}/`}
-    />
-  ));
+  const insightsRedirects = Object.values(MODULE_BASE_URLS)
+    .map(
+      moduleBaseURL =>
+        moduleBaseURL && (
+          <Redirect
+            key={moduleBaseURL}
+            from={`${moduleBaseURL}`}
+            to={`/insights/${moduleBaseURL}/`}
+          />
+        )
+    )
+    .filter(Boolean);
 
   const insightsRoutes = (
     <Route path="/insights/" withOrgPath>
