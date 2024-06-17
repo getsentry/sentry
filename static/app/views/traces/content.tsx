@@ -15,10 +15,12 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
@@ -53,6 +55,7 @@ import {
 import {TracesChart} from './tracesChart';
 import {TracesSearchBar} from './tracesSearchBar';
 import {
+  ALL_PROJECTS,
   areQueriesEmpty,
   getSecondaryNameFromSpan,
   getStylingSliceName,
@@ -160,6 +163,18 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
+        <Tooltip
+          title={tct(
+            "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
+            {
+              br: <br />,
+              code: <Code />,
+            }
+          )}
+          position="bottom"
+        >
+          <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
+        </Tooltip>
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -763,4 +778,8 @@ const StyledAlert = styled(Alert)`
 
 const StyledCloseButton = styled(IconClose)`
   cursor: pointer;
+`;
+
+const Code = styled('code')`
+  color: ${p => p.theme.red400};
 `;
