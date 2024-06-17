@@ -55,8 +55,15 @@ export interface ProjectPageFilterProps
    */
   footerMessage?: React.ReactNode;
   /**
-   * Override the selected projects that are displayed.
-   * Does NOT override the projects in the store.
+   * This overrides the selected projects that is DISPLAYED by
+   * the project select.
+   *
+   * Use this when you want to display a disabled project selector
+   * with a fixed set of projects. For example, if you always want
+   * it to show `All Projects`.
+   *
+   * It does NOT override the projects in the store, so hooks like
+   * `usePageFilters` will not reflect this override.
    */
   projectOverride?: number[];
   /**
