@@ -91,6 +91,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  TimeWindow,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -518,6 +519,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
       }));
       return;
+    }
+
+    if (
+      name === 'dataset' &&
+      value === 'generic_metrics' &&
+      this.state.timeWindow === TimeWindow.ONE_MINUTE
+    ) {
+      this.setState({timeWindow: TimeWindow.FIVE_MINUTES});
     }
 
     if (
