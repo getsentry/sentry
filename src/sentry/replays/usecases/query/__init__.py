@@ -36,6 +36,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
@@ -214,14 +215,17 @@ def query_using_optimized_search(
             SearchFilter(SearchKey("environment"), "IN", SearchValue(environments)),
         ]
 
-    mv_is_enabled = False
     # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
     search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
     can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     can_scalar_search = can_scalar_search_subquery(search_filters)
 
-    if mv_is_enabled and mv.can_search(search_filters) and mv.can_sort(sort or DEFAULT_SORT_FIELD):
+    if (
+        features.has("organizations:session-replay-materialized-view", organization)
+        and mv.can_search(search_filters)
+        and mv.can_sort(sort or DEFAULT_SORT_FIELD)
+    ):
         query = make_materialized_view_search_query(
             search_filters=search_filters,
             sort=sort,
