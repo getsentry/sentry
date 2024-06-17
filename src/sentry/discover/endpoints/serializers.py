@@ -1,7 +1,7 @@
 import re
 from collections.abc import Sequence
 
-from django.db.models import Count, Max
+from django.db.models import Count, Max, QuerySet
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
@@ -273,7 +273,7 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True, max_length=200)
     team = serializers.ListField(child=serializers.IntegerField())
 
-    def validate_team(self, team_ids: Sequence[int]) -> Team:
+    def validate_team(self, team_ids: Sequence[int]) -> QuerySet[Team]:
         request = self.context["request"]
         organization = self.context["organization"]
         verified_teams = {team.id for team in Team.objects.get_for_user(organization, request.user)}
