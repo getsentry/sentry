@@ -25,10 +25,9 @@ import {t, tct} from 'sentry/locale';
 type Params = DocsParams;
 
 const getSdkSetupSnippet = (params: Params) => `
-import "./app.css";
-import App from "./App.solid";
-
 import * as Sentry from "@sentry/solid";
+import { render } from "solid-js/web";
+import App from "./app";
 
 Sentry.init({
   dsn: "${params.dsn}",
@@ -69,16 +68,22 @@ ${getFeedbackConfigOptions(params.feedbackOptions)}}),`
 }
 });
 
-const app = new App({
-  target: document.getElementById("app"),
-});
+const app = document.getElementById("app");
 
-export default app;
+if (!app) throw new Error("No #app element found in the DOM.");
+
+render(() => <App />, app);
 `;
 
 const getVerifySolidSnippet = () => `
-// SomeComponent.solid
-<button type="button" on:click="{unknownFunction}">Break the world</button>`;
+<button
+  type="button"
+  onClick={() => {
+    throw new Error("Sentry Frontend Error");
+  }}
+>
+  Throw error
+</button>`;
 
 const getInstallConfig = () => [
   {
@@ -189,7 +194,7 @@ const replayOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       description: tct(
-        'You need a minimum version 7.27.0 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
+        'You need a minimum version 8.9.1 of [code:@sentry/solid] in order to use Session Replay. You do not need to install any additional packages.',
         {
           code: <code />,
         }

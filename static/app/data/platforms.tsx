@@ -321,7 +321,7 @@ export const platforms: PlatformIntegration[] = [
   },
   {
     id: 'javascript-solid',
-    name: 'Solid-js',
+    name: 'Solid',
     type: 'framework',
     language: 'javascript',
     link: 'https://docs.sentry.io/platforms/javascript/guides/solid/',
