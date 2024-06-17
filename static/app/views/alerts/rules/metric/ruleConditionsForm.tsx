@@ -142,6 +142,17 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
   get timeWindowOptions() {
     let options: Record<string, string> = TIME_WINDOW_MAP;
+    const {alertType} = this.props;
+
+    if (alertType === 'custom_metrics') {
+      // Do not show ONE MINUTE interval as an option for custom_metrics alert
+      options = Object.keys(TIME_WINDOW_MAP)
+        .filter(key => key !== TimeWindow.ONE_MINUTE.toString())
+        .reduce((obj, key) => {
+          obj[key] = options[key];
+          return obj;
+        }, {});
+    }
 
     if (isCrashFreeAlert(this.props.dataset)) {
       options = pick(TIME_WINDOW_MAP, [
