@@ -22,14 +22,19 @@ class MetricsExtractionRule:
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
         return MetricsExtractionRule(
-            span_attribute=dictionary["span_attribute"],
+            span_attribute=dictionary["spanAttribute"],
             type=dictionary["type"],
             unit=dictionary["unit"],
             tags=set(dictionary.get("tags") or set()),
         )
 
     def to_dict(self) -> Mapping[str, Any]:
-        return self.__dict__
+        return {
+            "spanAttribute": self.span_attribute,
+            "type": self.type,
+            "unit": self.unit,
+            "tags": self.tags,
+        }
 
     def generate_mri(self, use_case: str = "custom"):
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
@@ -85,6 +90,15 @@ class MetricsExtractionRuleState:
             return
 
 
+def create_metrics_extraction_rules(
+    project: Project, state_update: dict[str, MetricsExtractionRule]
+) -> Sequence[MetricsExtractionRule]:
+    state = MetricsExtractionRuleState.load_from_project(project)
+    state.rules.update(state_update)
+    state.save_to_project(project)
+    return state.get_rules()
+
+
 def update_metrics_extraction_rules(
     project: Project, state_update: dict[str, MetricsExtractionRule]
 ) -> Sequence[MetricsExtractionRule]:
@@ -104,3 +118,8 @@ def delete_metrics_extraction_rules(
 
     state.save_to_project(project)
     return
+
+
+def get_metrics_extraction_rules(project: Project) -> Sequence[MetricsExtractionRule]:
+    state = MetricsExtractionRuleState.load_from_project(project)
+    return state.get_rules()

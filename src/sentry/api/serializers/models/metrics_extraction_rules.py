@@ -10,7 +10,7 @@ class MetricsExtractionRuleSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "span_attribute": attrs.get("span_attribute"),
+            "spanAttribute": attrs.get("span_attribute"),
             "type": attrs.get("type"),
             "unit": attrs.get("unit"),
             "tags": list(attrs.get("tags") or set()),
