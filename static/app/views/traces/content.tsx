@@ -9,15 +9,18 @@ import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
+import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
@@ -33,6 +36,7 @@ import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString'
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 
 import {type Field, FIELDS, SORTS} from './data';
@@ -51,6 +55,7 @@ import {
 import {TracesChart} from './tracesChart';
 import {TracesSearchBar} from './tracesSearchBar';
 import {
+  ALL_PROJECTS,
   areQueriesEmpty,
   getSecondaryNameFromSpan,
   getStylingSliceName,
@@ -58,6 +63,8 @@ import {
 } from './utils';
 
 const DEFAULT_PER_PAGE = 50;
+const SPAN_PROPS_DOCS_URL =
+  'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
 export function Content() {
   const location = useLocation();
@@ -156,6 +163,18 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
+        <Tooltip
+          title={tct(
+            "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
+            {
+              br: <br />,
+              code: <Code />,
+            }
+          )}
+          position="bottom"
+        >
+          <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
+        </Tooltip>
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -225,12 +244,16 @@ export function Content() {
             <StyledPanelItem span={7} overflow>
               <EmptyStateWarning withIcon>
                 <EmptyStateText size="fontSizeExtraLarge">
-                  {t('No results found')}
+                  {t('No trace results found')}
                 </EmptyStateText>
                 <EmptyStateText size="fontSizeMedium">
-                  {t('There are no traces that match the conditions above.')}
-                  <br />
-                  {t('Try adjusting your filters starting with your time range.')}
+                  {tct('Try adjusting your filters or refer to [docSearchProps].', {
+                    docSearchProps: (
+                      <ExternalLink href={SPAN_PROPS_DOCS_URL}>
+                        {t('docs for search properties')}
+                      </ExternalLink>
+                    ),
+                  })}
                 </EmptyStateText>
               </EmptyStateWarning>
             </StyledPanelItem>
@@ -551,6 +574,7 @@ function useTraces<F extends string>({
   sort,
 }: UseTracesOptions<F>) {
   const organization = useOrganization();
+  const {projects} = useProjects();
   const {selection} = usePageFilters();
 
   const path = `/organizations/${organization.slug}/traces/`;
@@ -601,10 +625,21 @@ function useTraces<F extends string>({
 
   useEffect(() => {
     if (result.status === 'success') {
+      const project_slugs = new Set(
+        result.data.data.flatMap(trace =>
+          trace.spans.map((span: SpanResult<string>) => span.project)
+        )
+      );
+      const project_platforms = [...project_slugs]
+        .map(slug => projects.find(p => p.slug === slug))
+        .map(project => project?.platform || 'other');
+
       trackAnalytics('trace_explorer.search_success', {
         organization,
         queries,
+        project_platforms,
         has_data: result.data.data.length > 0,
+        num_traces: result.data.data.length,
       });
     } else if (result.status === 'error') {
       const response = result.error.responseJSON;
@@ -656,6 +691,7 @@ const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
 const EmptyStateText = styled('div')<{size: 'fontSizeExtraLarge' | 'fontSizeMedium'}>`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme[p.size]};
+  padding-bottom: ${space(1)};
 `;
 
 const Description = styled('div')`
@@ -742,4 +778,8 @@ const StyledAlert = styled(Alert)`
 
 const StyledCloseButton = styled(IconClose)`
   cursor: pointer;
+`;
+
+const Code = styled('code')`
+  color: ${p => p.theme.red400};
 `;

@@ -34,6 +34,7 @@ class AvatarBase(Model):
     # abstract
     AVATAR_TYPES: ClassVar[tuple[tuple[int, str], ...]]
     FILE_TYPE: ClassVar[str]
+    avatar_type: models.Field[int, int]
 
     ident = models.CharField(max_length=32, unique=True, db_index=True)
 

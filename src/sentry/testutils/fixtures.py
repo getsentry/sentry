@@ -363,14 +363,14 @@ class Fixtures:
     def create_integration_external_project(self, *args, **kwargs):
         return Factories.create_integration_external_project(*args, **kwargs)
 
-    def create_incident(self, organization=None, projects=None, *args, **kwargs):
+    def create_incident(self, organization=None, projects=None, subscription=None, *args, **kwargs):
         if not organization:
             organization = self.organization
         if projects is None:
             projects = [self.project]
 
         return Factories.create_incident(
-            organization=organization, projects=projects, *args, **kwargs
+            organization=organization, projects=projects, subscription=subscription, *args, **kwargs
         )
 
     def create_incident_activity(self, incident, *args, **kwargs):

@@ -259,7 +259,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'is not'}));
+      await userEvent.click(screen.getByRole('option', {name: 'is not'}));
 
       // Token should be modified to be negated
       expect(
@@ -292,7 +292,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'is not'}));
+      await userEvent.click(screen.getByRole('option', {name: 'is not'}));
 
       // Token should be modified to be negated
       expect(
@@ -326,7 +326,6 @@ describe('SearchQueryBuilder', function () {
         'placeholder',
         '-1d'
       );
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       // Clicking the "-14d" option should update the value
       await userEvent.click(await screen.findByRole('option', {name: '-14d'}));
@@ -360,7 +359,6 @@ describe('SearchQueryBuilder', function () {
           'firefox,'
         )
       ).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
 
       // Clicking the "Chrome option should add it to the list and commit changes
       await userEvent.click(screen.getByRole('option', {name: 'Chrome'}));
@@ -474,7 +472,6 @@ describe('SearchQueryBuilder', function () {
       // New token should be added with the correct key
       expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('combobox', {name: 'Edit filter value'}));
       await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
 
       // New token should have a value
@@ -482,11 +479,18 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can add free text by typing', async function () {
-      render(<SearchQueryBuilder {...defaultProps} />);
+      const mockOnSearch = jest.fn();
+      render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);
 
       await userEvent.click(screen.getByRole('grid'));
       await userEvent.type(screen.getByRole('combobox'), 'some free text{enter}');
+      await waitFor(() => {
+        expect(mockOnSearch).toHaveBeenCalledWith('some free text');
+      });
+      // Should still have text in the input
       expect(screen.getByRole('combobox')).toHaveValue('some free text');
+      // Should have closed the menu
+      expect(screen.getByRole('combobox')).toHaveAttribute('aria-expanded', 'false');
     });
 
     it('can add a filter after some free text', async function () {
@@ -664,8 +668,12 @@ describe('SearchQueryBuilder', function () {
         screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
       ).toHaveFocus();
 
-      // Shift-tabbing should exit the component
-      await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+      // One more tab should go to the clear button
+      await userEvent.keyboard('{Tab}');
+      expect(screen.getByRole('button', {name: 'Clear search query'})).toHaveFocus();
+
+      // Another should exit component
+      await userEvent.keyboard('{Tab}');
       expect(document.body).toHaveFocus();
     });
 
@@ -949,7 +957,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: timesSeen'})
         );
-        await userEvent.click(screen.getByRole('menuitemradio', {name: '<='}));
+        await userEvent.click(screen.getByRole('option', {name: '<='}));
 
         expect(
           await screen.findByRole('row', {name: 'timesSeen:<=100k'})

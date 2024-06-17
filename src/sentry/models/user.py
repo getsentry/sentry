@@ -62,10 +62,10 @@ RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
 
-class UserManager(BaseManager["User"], DjangoUserManager):
+class UserManager(BaseManager["User"], DjangoUserManager["User"]):
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
-    ) -> QuerySet:
+    ) -> QuerySet[User]:
         """
         For a given organization, get the list of members that are only
         connected to a single integration.
@@ -353,7 +353,6 @@ class User(BaseModel, AbstractBaseUser):
             "user.merge", extra={"from_user_id": from_user_id, "to_user_id": to_user_id}
         )
 
-        organization_ids: list[int]
         organization_ids = OrganizationMemberMapping.objects.filter(
             user_id=from_user_id
         ).values_list("organization_id", flat=True)

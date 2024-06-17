@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from rest_framework.request import Request
@@ -70,7 +72,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
             ).values_list("id", flat=True)
         )
 
-        union_qs = Activity.objects.none()
+        union_qs = Activity.objects.none().values_list("id", flat=True)
         if project_ids:
             projects_qs = [
                 base_qs.filter(project_id=project)[: paginator.max_limit] for project in project_ids

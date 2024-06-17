@@ -1,4 +1,5 @@
-from typing import Any
+from enum import StrEnum
+from typing import Any, Literal
 
 from django.db import models
 from django.db.models import Q, UniqueConstraint
@@ -14,7 +15,7 @@ from sentry.db.models.fields.text import CharField
 from sentry.models.search_common import SearchType
 
 
-class SortOptions:
+class SortOptions(StrEnum):
     DATE = "date"
     NEW = "new"
     TRENDS = "trends"
@@ -32,6 +33,9 @@ class SortOptions:
             (cls.USER, _("Users")),
             (cls.INBOX, _("Date Added")),
         )
+
+
+SORT_LITERALS = Literal["date", "new", "trends", "freq", "user", "inbox"]
 
 
 class Visibility:
