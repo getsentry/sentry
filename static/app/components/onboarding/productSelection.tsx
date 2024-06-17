@@ -43,7 +43,7 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasProfiling = organization.features.includes('profiling-view');
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const reason = t('This feature is not enabled on your Sentry installation.');
+  let reason = t('This feature is not enabled on your Sentry installation.');
   const createClickHandler = (feature: string, featureName: string) => () => {
     openModal(deps => (
       <FeatureDisabledModal {...deps} features={[feature]} featureName={featureName} />
@@ -51,15 +51,13 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   };
 
   if (isSelfHostedErrorsOnly) {
-    const products = Object.values(ProductSolution);
-    products.forEach(product => {
-      if (product !== ProductSolution.ERROR_MONITORING) {
-        disabledProducts[product] = {
-          reason,
-        };
-      }
-    });
-    return disabledProducts;
+    reason = t('This feature is disabled for errors only self-hosted');
+    return Object.values(ProductSolution)
+      .filter(product => product !== ProductSolution.ERROR_MONITORING)
+      .reduce((acc, prod) => {
+        acc[prod] = {reason};
+        return acc;
+      }, {});
   }
 
   if (!hasSessionReplay) {

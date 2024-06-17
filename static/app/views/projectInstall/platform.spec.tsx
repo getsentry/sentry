@@ -139,7 +139,7 @@ describe('ProjectInstallPlatform', function () {
       })
     ).toBeInTheDocument();
 
-    expect(await screen.findByText('Take me to Issues')).toBeInTheDocument();
+    expect(await screen.getByText('Take me to Issues')).toBeInTheDocument();
     expect(await screen.getByText('Take me to Performance')).toBeInTheDocument();
     expect(await screen.getByText('Take me to Session Replay')).toBeInTheDocument();
   });
@@ -176,7 +176,7 @@ describe('ProjectInstallPlatform', function () {
       })
     ).toBeInTheDocument();
 
-    expect(await screen.findByText('Take me to Issues')).toBeInTheDocument();
+    expect(screen.getByText('Take me to Issues')).toBeInTheDocument();
     expect(() => screen.getByText('Take me to Performance')).toThrow();
     expect(() => screen.getByText('Take me to Session Replay')).toThrow();
   });
