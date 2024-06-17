@@ -135,7 +135,7 @@ class ReplayPaginator:
         response = self.data_fn(offset, limit + 1)
 
         return CursorResult(
-            response.response,
+            response.results,
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
             next=Cursor(0, max(0, offset + limit), False, response.has_more),
         )

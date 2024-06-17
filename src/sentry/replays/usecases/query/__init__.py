@@ -186,9 +186,11 @@ class Paginators:
 
 @dataclasses.dataclass
 class QueryResponse:
-    response: list[Any]
+    results: list[Any]
     has_more: bool
-    source: str
+    source: str  # Used to add an X-Data-Source header to endpoint responses
+    # This is a non-standard HTTP header so there's no convention, but we use it to tell which subquery was used.
+    # E.g. scalar, aggregate, materialized view
 
 
 def query_using_optimized_search(
@@ -255,7 +257,7 @@ def query_using_optimized_search(
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
         return QueryResponse(
-            response=[],
+            results=[],
             has_more=has_more,
             source=source,
         )
@@ -279,7 +281,7 @@ def query_using_optimized_search(
     )["data"]
 
     return QueryResponse(
-        response=_make_ordered(replay_ids, results),
+        results=_make_ordered(replay_ids, results),
         has_more=has_more,
         source=source,
     )

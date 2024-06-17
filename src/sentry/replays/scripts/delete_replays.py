@@ -43,7 +43,7 @@ def delete_replays(
             organization=Organization.objects.filter(project__id=project_id).get(),
         )
         has_more = query_response.has_more
-        replays = list(generate_normalized_output(query_response.response))
+        replays = list(generate_normalized_output(query_response.results))
 
         # Exit early if no replays were found.
         if not replays:
