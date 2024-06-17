@@ -99,7 +99,7 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
     file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
 
     # Reject all files that exceed the maximum allowed size for this organization.
-    file_size = sum(x[2] for x in file_blobs)
+    file_size = sum(size for _, _, size in file_blobs if size is not None)
     max_file_size = get_max_file_size(organization)
     if file_size > max_file_size:
         set_assemble_status(
@@ -530,11 +530,13 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # We rather use the `project` of the bundle manifest instead.
         if len(self.project_ids) > 2 and self.is_release_bundle_migration:
             if project_in_manifest := self.archive.manifest.get("project"):
-                project_ids = Project.objects.filter(
-                    organization=self.organization,
-                    status=ObjectStatus.ACTIVE,
-                    slug=project_in_manifest,
-                ).values_list("id", flat=True)
+                project_ids = list(
+                    Project.objects.filter(
+                        organization=self.organization,
+                        status=ObjectStatus.ACTIVE,
+                        slug=project_in_manifest,
+                    ).values_list("id", flat=True)
+                )
                 if len(project_ids) > 0:
                     self.project_ids = project_ids
 

@@ -134,7 +134,7 @@ def schedule_auto_transition_issues_new_to_ongoing(
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for groups in chunked(
             RangeQuerySetWrapper(
-                base_queryset._clone(),
+                base_queryset,
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 callbacks=[get_total_count],
@@ -223,7 +223,7 @@ def schedule_auto_transition_issues_regressed_to_ongoing(
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for group_ids_with_regressed_history in chunked(
             RangeQuerySetWrapper(
-                base_queryset._clone().values_list("id", flat=True),
+                base_queryset.values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
@@ -311,7 +311,7 @@ def schedule_auto_transition_issues_escalating_to_ongoing(
     with sentry_sdk.start_span(description="iterate_chunked_group_ids"):
         for new_group_ids in chunked(
             RangeQuerySetWrapper(
-                base_queryset._clone().values_list("id", flat=True),
+                base_queryset.values_list("id", flat=True),
                 step=ITERATOR_CHUNK,
                 limit=ITERATOR_CHUNK * CHILD_TASK_COUNT,
                 result_value_getter=lambda item: item,
