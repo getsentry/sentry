@@ -502,26 +502,35 @@ class _RemoteSiloCall:
         )
 
     def _get_method_retry_count(self) -> int:
+        retry_key = f"{self.service_name}.{self.method_name}"
         try:
-            retry_count = options.get(
-                f"hybrid_cloud.rpc.{self.service_name}.{self.method_name}.retries"
-            )
-            return retry_count
-        except UnknownOption:
-            # This means we don't have a method-specific override for the retry count
-            pass
+            retry_counts_map = options.get("hybridcloud.rpc.method_retry_overrides")
+            assert isinstance(
+                retry_counts_map, dict
+            ), "An invalid RPC retry override option was set"
+            if retry_key in retry_counts_map:
+                return int(retry_counts_map[retry_key])
+        except Exception:
+            # Either we don't have an override option set correctly, or the
+            # value set for the override is invalid
+            sentry_sdk.capture_exception()
 
         return options.get("hybridcloud.rpc.retries")
 
-    def _get_method_timeout(self) -> int:
+    def _get_method_timeout(self) -> float:
+        timeout_key = f"{self.service_name}.{self.method_name}"
         try:
-            timeout_override = options.get(
-                f"hybrid_cloud.rpc.{self.service_name}.{self.method_name}.timeout"
-            )
-            return timeout_override
-        except UnknownOption:
-            # This means we don't have a method-specific override for timeout
-            pass
+            timeout_overrides_map = options.get("hybridcloud.rpc.method_timeout_overrides")
+            assert isinstance(
+                timeout_overrides_map, dict
+            ), "An invalid RPC timeout override option was set"
+
+            if timeout_key in timeout_overrides_map:
+                return float(timeout_overrides_map[timeout_key])
+        except Exception:
+            # Either we don't have an override option set correctly, or the
+            # value set for the override is invalid
+            sentry_sdk.capture_exception()
 
         return settings.RPC_TIMEOUT
 
