@@ -536,6 +536,13 @@ function buildRoutes() {
           component={make(() => import('sentry/views/settings/projectMetrics'))}
         />
         <Route
+          name={t('Extract Metric')}
+          path="extract-metric/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/extractMetric')
+          )}
+        />
+        <Route
           name={t('Metrics Details')}
           path=":mri/"
           component={make(
