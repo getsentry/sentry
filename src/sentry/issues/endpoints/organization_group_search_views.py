@@ -78,6 +78,13 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         )
 
     def put(self, request: Request, organization: Organization) -> Response:
+        """
+        Bulk updates the current organization member's custom views. This endpoint
+        will delete any views that are not included in the request, add views if
+        they are new, and update existing views if they are included in the request.
+        This endpoint is explcititly designed to be used by our frontend.
+
+        """
         if not features.has("organizations:issue-stream-custom-views", organization):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
