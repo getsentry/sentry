@@ -232,7 +232,7 @@ def _query_metrics_with_pagination(
                 metrics_offset,
                 category,
             )
-            projects = Project.objects.filter(id__in=project_ids)
+            projects = list(Project.objects.filter(id__in=project_ids))
             metrics_series_results = get_series(
                 projects=projects,
                 metrics_query=metrics_query,
