@@ -38,10 +38,10 @@ const INITIAL_DATA: FormData = {
 const PAGE_TITLE = t('Extract Metric');
 
 const TYPE_OPTIONS = [
-  {label: 'Counter', value: 'c'},
-  {label: 'Gauge', value: 'g'},
-  {label: 'Set', value: 's'},
-  {label: 'Distribution', value: 'd'},
+  {label: t('Counter'), value: 'c'},
+  {label: t('Gauge'), value: 'g'},
+  {label: t('Set'), value: 's'},
+  {label: t('Distribution'), value: 'd'},
 ];
 
 const UNIT_OPTIONS = formattingSupportedMetricUnitsSingular.map(value => ({
