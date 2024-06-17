@@ -1,5 +1,6 @@
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
@@ -19,6 +20,7 @@ export default function getConfiguration({
   debugFilesNeedsReview,
 }: ConfigParams): NavigationSection[] {
   const plugins = (project?.plugins || []).filter(plugin => plugin.enabled);
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
   return [
     {
       name: t('Project'),
@@ -61,6 +63,7 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/user-feedback/`,
           title: t('User Feedback'),
+          show: () => !isSelfHostedErrorsOnly,
         },
       ],
     },
@@ -114,17 +117,22 @@ export default function getConfiguration({
         {
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          show: () => !!organization?.features?.includes('performance-view'),
+          show: () =>
+            !!organization?.features?.includes('performance-view') &&
+            !isSelfHostedErrorsOnly,
         },
         {
           path: `${pathPrefix}/metrics/`,
           title: t('Metrics'),
-          show: () => !!(organization && hasCustomMetrics(organization)),
+          show: () =>
+            !!(organization && hasCustomMetrics(organization)) && !isSelfHostedErrorsOnly,
         },
         {
           path: `${pathPrefix}/replays/`,
           title: t('Replays'),
-          show: () => !!organization?.features?.includes('session-replay-ui'),
+          show: () =>
+            !!organization?.features?.includes('session-replay-ui') &&
+            !isSelfHostedErrorsOnly,
         },
       ],
     },
