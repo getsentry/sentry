@@ -15,6 +15,7 @@ from sentry.api.issue_search import convert_query_values, parse_search_query
 from sentry.api.serializers import serialize
 from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.endpoints.organization_group_search_views import DEFAULT_VIEWS
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
 from sentry.models.groupsearchview import GroupSearchView
@@ -339,5 +340,8 @@ def get_first_last_release_info(
 def _get_default_query(organization: Organization) -> str:
     if features.has("organizations:issue-priority-ui", organization):
         return "is:unresolved issue.priority:[high, medium]"
+
+    if features.has("organizations:issue-stream-custom-views", organization):
+        return DEFAULT_VIEWS[0]["query"]
 
     return "is:unresolved"
