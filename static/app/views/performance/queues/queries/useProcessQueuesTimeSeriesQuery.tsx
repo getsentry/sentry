@@ -1,6 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {Referrer} from 'sentry/views/performance/queues/referrers';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
 import type {SpanMetricsProperty} from 'sentry/views/starfish/types';
 
@@ -11,23 +10,21 @@ type Props = {
 };
 
 const yAxis: SpanMetricsProperty[] = [
-  'avg_if(span.duration,span.op,queue.publish)',
-  'avg_if(span.duration,span.op,queue.process)',
+  'avg(span.duration)',
   'avg(messaging.message.receive.latency)',
-  'count_op(queue.publish)',
-  'count_op(queue.process)',
+  'spm()',
 ];
 
-export function useQueuesTimeSeriesQuery({enabled, destination, referrer}: Props) {
-  const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
+export function useProcessQueuesTimeSeriesQuery({enabled, destination, referrer}: Props) {
+  const search = new MutableSearch('span.op:queue.process');
   if (destination) {
-    mutableSearch.addFilterValue('messaging.destination.name', destination, false);
+    search.addFilterValue('messaging.destination.name', destination, false);
   }
 
   return useSpanMetricsSeries(
     {
       yAxis,
-      search: mutableSearch,
+      search,
       enabled,
     },
     referrer

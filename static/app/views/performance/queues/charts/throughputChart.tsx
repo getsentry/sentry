@@ -1,7 +1,10 @@
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
+import {RateUnit} from 'sentry/utils/discover/fields';
+import {formatRate} from 'sentry/utils/formatters';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
-import {useQueuesTimeSeriesQuery} from 'sentry/views/performance/queues/queries/useQueuesTimeSeriesQuery';
+import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/performance/queues/queries/useProcessQueuesTimeSeriesQuery';
+import {usePublishQueuesTimeSeriesQuery} from 'sentry/views/performance/queues/queries/usePublishQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/performance/queues/referrers';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 import ChartPanel from 'sentry/views/starfish/components/chartPanel';
@@ -13,7 +16,16 @@ interface Props {
 }
 
 export function ThroughputChart({error, destination, referrer}: Props) {
-  const {data, isLoading} = useQueuesTimeSeriesQuery({destination, referrer});
+  const {data: publishData, isLoading: isPublishDataLoading} =
+    usePublishQueuesTimeSeriesQuery({
+      destination,
+      referrer,
+    });
+  const {data: processData, isLoading: isProcessDataLoading} =
+    useProcessQueuesTimeSeriesQuery({
+      destination,
+      referrer,
+    });
   return (
     <ChartPanel title={t('Published vs Processed')}>
       <Chart
@@ -28,18 +40,23 @@ export function ThroughputChart({error, destination, referrer}: Props) {
           [
             {
               seriesName: t('Published'),
-              data: data['count_op(queue.publish)'].data,
+              data: publishData['spm()'].data,
             },
             {
               seriesName: t('Processed'),
-              data: data['count_op(queue.process)'].data,
+              data: processData['spm()'].data,
             },
           ] ?? []
         }
-        loading={isLoading}
+        loading={isPublishDataLoading || isProcessDataLoading}
         error={error}
         chartColors={CHART_PALETTE[2].slice(1, 3)}
         type={ChartType.LINE}
+        aggregateOutputFormat="rate"
+        rateUnit={RateUnit.PER_MINUTE}
+        tooltipFormatterOptions={{
+          valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
+        }}
         showLegend
       />
     </ChartPanel>
