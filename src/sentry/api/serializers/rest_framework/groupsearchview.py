@@ -5,7 +5,7 @@ from sentry.models.savedsearch import SortOptions
 MAX_VIEWS = 50
 
 
-class ViewSerializer(serializers.Serializer):
+class ViewValidator(serializers.Serializer):
     id = serializers.CharField(required=False)
     name = serializers.CharField(required=True)
     query = serializers.CharField(required=True)
@@ -14,8 +14,8 @@ class ViewSerializer(serializers.Serializer):
     )
 
 
-class GroupSearchViewRestSerializer(serializers.Serializer):
-    views = serializers.ListField(child=ViewSerializer(), required=True, max_length=MAX_VIEWS)
+class GroupSearchViewValidator(serializers.Serializer):
+    views = serializers.ListField(child=ViewValidator(), required=True, max_length=MAX_VIEWS)
 
     def validate(self, data):
         if len(data.get("views", [])) == 0:

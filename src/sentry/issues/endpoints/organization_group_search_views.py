@@ -15,7 +15,7 @@ from sentry.api.serializers.models.groupsearchview import (
     GroupSearchViewSerializer,
     GroupSearchViewSerializerResponse,
 )
-from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewRestSerializer
+from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidator
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SortOptions
@@ -89,7 +89,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:issue-stream-custom-views", organization):
             return Response(status=status.HTTP_404_NOT_FOUND)
 
-        serializer = GroupSearchViewRestSerializer(data=request.data)
+        serializer = GroupSearchViewValidator(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
