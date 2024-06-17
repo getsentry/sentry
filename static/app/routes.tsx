@@ -1444,7 +1444,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const llmMonitoringRoutes = USING_CUSTOMER_DOMAIN ? (
+  const llmMonitoringRedirects = USING_CUSTOMER_DOMAIN ? (
     <Redirect
       from="/llm-monitoring/"
       to={`/insights/${MODULE_BASE_URLS[ModuleName.AI]}/`}
@@ -2084,7 +2084,7 @@ function buildRoutes() {
       {performanceRoutes}
       {tracesRoutes}
       {insightsRoutes}
-      {llmMonitoringRoutes}
+      {llmMonitoringRedirects}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}
