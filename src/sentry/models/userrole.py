@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -30,7 +32,7 @@ class UserRole(OverwritableConfigMixin, ControlOutboxProducingModel):
     date_added = models.DateTimeField(default=timezone.now, null=True)
 
     name = models.CharField(max_length=MAX_USER_ROLE_NAME_LENGTH, unique=True)
-    permissions = ArrayField()
+    permissions: models.Field[Sequence[str], list[str]] = ArrayField()
     users = models.ManyToManyField("sentry.User", through="sentry.UserRoleUser")
 
     class Meta:

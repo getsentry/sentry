@@ -353,7 +353,6 @@ class User(BaseModel, AbstractBaseUser):
             "user.merge", extra={"from_user_id": from_user_id, "to_user_id": to_user_id}
         )
 
-        organization_ids: list[int]
         organization_ids = OrganizationMemberMapping.objects.filter(
             user_id=from_user_id
         ).values_list("organization_id", flat=True)
