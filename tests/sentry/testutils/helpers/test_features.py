@@ -2,7 +2,6 @@ from unittest import mock
 
 from sentry import features
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 
@@ -48,7 +47,7 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert org_context.organization
             assert isinstance(org_context.organization, RpcOrganization)
 
-            assert features.has("system:multi-region", org_context.organization) is False
+            assert features.has("system:multi-region") is False
 
         with self.feature({"system:multi-region": True}):
             org_context = organization_service.get_organization_by_slug(
@@ -58,47 +57,4 @@ class TestTestUtilsFeatureHelper(TestCase):
             assert org_context.organization
             assert isinstance(org_context.organization, RpcOrganization)
 
-            assert features.has("system:multi-region", org_context.organization)
-
-            # Works for RpcOrganizationSummary
-            organization = org_context.organization
-            org_summary = RpcOrganizationSummary(
-                id=organization.id, slug=organization.slug, name=organization.name
-            )
-            assert features.has("system:multi-region", org_summary)
-
-        other_org = self.create_organization()
-        with self.feature({"system:multi-region": [other_org.slug]}):
-            # Feature not enabled for self.org
-            org_context = organization_service.get_organization_by_slug(
-                slug=self.org.slug, only_visible=False, user_id=None
-            )
-            assert org_context
-            assert org_context.organization
-            assert isinstance(org_context.organization, RpcOrganization)
-
-            assert features.has("system:multi-region", org_context.organization) is False
-
-            # Works for RpcOrganizationSummary
-            organization = org_context.organization
-            org_summary = RpcOrganizationSummary(
-                id=organization.id, slug=organization.slug, name=organization.name
-            )
-            assert features.has("system:multi-region", org_summary) is False
-
-            # Feature enabled for other_org
-            org_context = organization_service.get_organization_by_slug(
-                slug=other_org.slug, only_visible=False, user_id=None
-            )
-            assert org_context
-            assert org_context.organization
-            assert isinstance(org_context.organization, RpcOrganization)
-
-            assert features.has("system:multi-region", org_context.organization)
-
-            # Works for RpcOrganizationSummary
-            organization = org_context.organization
-            org_summary = RpcOrganizationSummary(
-                id=organization.id, slug=organization.slug, name=organization.name
-            )
-            assert features.has("system:multi-region", org_summary)
+            assert features.has("system:multi-region")

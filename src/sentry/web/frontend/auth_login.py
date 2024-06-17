@@ -457,7 +457,7 @@ class AuthLoginView(BaseView):
             self.refresh_organization_status(request=request, user=user, organization=organization)
         # On login, redirect to onboarding
         if self.active_organization:
-            if features.has("system:multi-region", actor=user):
+            if features.has("system:multi-region"):
                 setattr(request, "subdomain", self.active_organization.organization.slug)
         return self.redirect(url=get_login_redirect(request=request))
 
@@ -701,7 +701,7 @@ class AuthLoginView(BaseView):
 
                 # On login, redirect to onboarding
                 if self.active_organization:
-                    if features.has("system:multi-region", actor=user):
+                    if features.has("system:multi-region"):
                         setattr(request, "subdomain", self.active_organization.organization.slug)
                 return self.redirect(get_login_redirect(request))
             else:
