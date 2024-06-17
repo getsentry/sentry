@@ -10,6 +10,7 @@ from sentry.integrations.base import disable_integration, is_response_error, is_
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.integrations import Integration
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
@@ -104,7 +105,7 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
     def __init__(self, integration_id: int):
         self.integration_id = integration_id
 
-        integration = None
+        integration: Integration | RpcIntegration | None
         if SiloMode.get_current_mode() == SiloMode.REGION:
             integration = integration_service.get_integration(integration_id=integration_id)
         else:  # control or monolith (local)
