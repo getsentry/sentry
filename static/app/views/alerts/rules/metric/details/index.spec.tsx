@@ -49,7 +49,14 @@ describe('MetricAlertDetails', () => {
       projects: [project.slug],
       latestIncident: incident,
     });
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -87,7 +94,14 @@ describe('MetricAlertDetails', () => {
     const {organization, router, routerProps} = initializeOrg();
     const rule = MetricRuleFixture({projects: [project.slug]});
     const incident = IncidentFixture();
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -137,7 +151,6 @@ describe('MetricAlertDetails', () => {
       projects: [project.slug],
       latestIncident: incident,
     });
-
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/alert-rules/${rule.id}/`,
       body: rule,
@@ -146,7 +159,14 @@ describe('MetricAlertDetails', () => {
       url: `/organizations/org-slug/incidents/`,
       body: [incident],
     });
-
+    const promptResponse = {
+      dismissed_ts: undefined,
+      snoozed_ts: undefined,
+    };
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/prompts-activity/`,
+      body: promptResponse,
+    });
     const postRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/alert-rules/${rule.id}/snooze/`,
       method: 'POST',
@@ -178,7 +198,7 @@ describe('MetricAlertDetails', () => {
 
   it('renders open in discover button with dataset=errors for is:unresolved query', async () => {
     const {organization, routerProps, router} = initializeOrg({
-      organization: {features: ['discover-basic', 'metric-alert-ignore-archived']},
+      organization: {features: ['discover-basic']},
     });
     const rule = MetricRuleFixture({
       projects: [project.slug],
