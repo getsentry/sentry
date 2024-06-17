@@ -247,6 +247,7 @@ export function Control({
   children,
   ...wrapperProps
 }: ControlProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   // Set up list states (in composite selects, each region has its own state, that way
   // selection values are contained within each region).
   const [listStates, setListStates] = useState<ListState<any>[]>([]);
@@ -358,7 +359,14 @@ export function Control({
         setSearchInputValue('');
         setSearch('');
 
-        triggerRef.current?.focus();
+        // Only restore focus if it's already here or lost to the body.
+        // This prevents focus from being stolen from other elements.
+        if (
+          document.activeElement === document.body ||
+          wrapperRef.current?.contains(document.activeElement)
+        ) {
+          triggerRef.current?.focus();
+        }
       });
     },
   });
