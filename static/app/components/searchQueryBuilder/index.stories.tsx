@@ -41,6 +41,11 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
         predefined: true,
         values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
       },
+      {
+        key: FieldKey.LAST_SEEN,
+        name: 'Last Seen',
+        kind: FieldKind.FIELD,
+      },
     ],
   },
   {
