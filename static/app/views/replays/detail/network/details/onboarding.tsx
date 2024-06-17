@@ -129,7 +129,7 @@ function SetupInstructions({
 
   const code = `Sentry.init({
   integrations: [
-    new Replay({${urlSnippet + (includeHeadersSnippet ? headersSnippet : '')}
+    Sentry.replayIntegration({${urlSnippet + (includeHeadersSnippet ? headersSnippet : '')}
     }),
   ],
 })`;
