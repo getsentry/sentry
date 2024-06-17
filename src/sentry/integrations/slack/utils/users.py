@@ -45,7 +45,7 @@ def get_users(integration: Integration, organization: Organization) -> Sequence[
         for _ in range(SLACK_GET_USERS_PAGE_LIMIT):
             try:
                 user_list += next_users.get("members")
-                next_users = next(users)
+                next_users = next(next_users)
             except StopIteration:
                 break
             except SlackApiError:
