@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
@@ -24,9 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import commonTheme from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
 
 import {formatUsageWithUnits} from '../utils';
 
@@ -363,16 +360,6 @@ function UsageChartBody({
   handleDataTransformation = cumulativeTotalDataTransformation,
 }: UsageChartProps) {
   const theme = useTheme();
-  const organization = useOrganization();
-
-  const filteredOptions = useMemo(() => {
-    return categoryOptions.filter(option => {
-      if (option.value !== DATA_CATEGORY_INFO.metrics.plural) {
-        return true;
-      }
-      return hasCustomMetrics(organization);
-    });
-  }, [organization, categoryOptions]);
 
   if (isLoading) {
     return (
@@ -404,7 +391,7 @@ function UsageChartBody({
     xAxisLabelInterval,
     yAxisMinInterval,
   } = chartMetadata({
-    categoryOptions: filteredOptions,
+    categoryOptions,
     dataCategory,
     handleDataTransformation: handleDataTransformation!,
     usageStats,
