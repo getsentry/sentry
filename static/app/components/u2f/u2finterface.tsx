@@ -130,7 +130,8 @@ class U2fInterface extends Component<Props, State> {
             }
             if (this.state.authStateElement && authStateData) {
               this.setState({
-                authStateElement: authStateData as unknown as HTMLInputElement,
+                // @ts-ignore
+                authStateElement: authStateData,
               });
             }
 
