@@ -400,18 +400,19 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
     )
 
 
-def handle_ordering(config: dict[str, Function], sort: str) -> list[OrderBy]:
+def handle_ordering(sort_config: dict[str, Expression], sort: str) -> list[OrderBy]:
+    # hard to resolve mypy here, but OrderBy will raise an error if the expr is not Column | CurriedFunction | Function
     if sort.startswith("-"):
-        return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
+        return [OrderBy(_get_sort_expression(sort_config, sort[1:]), Direction.DESC)]
     else:
-        return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
+        return [OrderBy(_get_sort_expression(sort_config, sort), Direction.ASC)]
 
 
-def _get_sort_column(config: dict[str, Function], column_name: str) -> Function:
+def _get_sort_expression(sort_config: dict[str, Expression], sort: str) -> Expression:
     try:
-        return config[column_name]
+        return sort_config[sort]
     except KeyError:
-        raise ParseError(f"The field `{column_name}` is not a sortable field.")
+        raise ParseError(f"The field `{sort}` is not a sortable field.")
 
 
 def _make_tenant_id(organization: Organization | None) -> dict[str, int]:
