@@ -65,7 +65,7 @@ def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | No
         headers={
             "content-type": "application/json;charset=utf-8",
             **sign_with_seer_secret(
-                path=path,
+                url=f"{settings.SEER_AUTOFIX_URL}{path}",
                 body=body,
             ),
         },

@@ -12,7 +12,10 @@ from sentry import options
 def make_signed_seer_api_request(
     connection_pool: HTTPConnectionPool, path: str, body: bytes, timeout: int | None = None
 ) -> BaseHTTPResponse:
-    auth_headers = sign_with_seer_secret(path, body)
+    host = connection_pool.host
+    if connection_pool.port:
+        host += ":" + str(connection_pool.port)
+    auth_headers = sign_with_seer_secret(f"{connection_pool.scheme}://{host}{path}", body)
 
     timeout_options: dict[str, Any] = {}
     if timeout:
@@ -27,10 +30,10 @@ def make_signed_seer_api_request(
     )
 
 
-def sign_with_seer_secret(path: str, body: bytes):
+def sign_with_seer_secret(url: str, body: bytes):
     auth_headers: dict[str, str] = {}
-    if random() < options.get("seer.api.use-shared-secret"):
-        signature_input = b"%s:%s" % (path.encode("utf8"), body)
+    if random() < options.get("seer.api.use-shared-secret") and settings.SEER_API_SHARED_SECRET:
+        signature_input = b"%s:%s" % (url.encode("utf8"), body)
         signature = hmac.new(
             settings.SEER_API_SHARED_SECRET.encode("utf-8"), signature_input, hashlib.sha256
         ).hexdigest()

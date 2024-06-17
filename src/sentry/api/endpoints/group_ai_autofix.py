@@ -118,7 +118,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(
-                    path=path,
+                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
                     body=body,
                 ),
             },
@@ -139,7 +139,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(
-                    path=path,
+                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
                     body=body,
                 ),
             },

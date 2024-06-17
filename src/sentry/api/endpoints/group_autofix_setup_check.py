@@ -81,7 +81,7 @@ def get_repos_and_access(project: Project) -> list[dict]:
             headers={
                 "content-type": "application/json;charset=utf-8",
                 **sign_with_seer_secret(
-                    path=path,
+                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
                     body=body,
                 ),
             },
