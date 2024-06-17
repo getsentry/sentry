@@ -1,5 +1,6 @@
 import type {Location, LocationDescriptor} from 'history';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Organization} from 'sentry/types/organization';
 
 import type {SpanResult, TraceResult} from './content';
@@ -98,3 +99,5 @@ export function getShortenedSdkName(sdkName: string | null) {
   }
   return sdkNameParts[sdkNameParts.length - 1];
 }
+
+export const ALL_PROJECTS = [ALL_ACCESS_PROJECTS];
