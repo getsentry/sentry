@@ -1688,6 +1688,10 @@ function buildRoutes() {
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
       {insightsRedirects}
+      <Redirect
+        from="browser/resources"
+        to={`/insights/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
