@@ -31,7 +31,7 @@ def _click_count_sum_if_after(column_name: str) -> Function:
     )
 
 
-sort_config = {
+sort_config: dict[str, Function] = {
     "activity": aggregate_activity(),
     "browser.name": any_if("browser_name"),
     "browser.version": any_if("browser_version"),

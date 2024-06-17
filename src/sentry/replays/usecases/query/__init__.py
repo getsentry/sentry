@@ -92,7 +92,7 @@ def handle_search_filters(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
-    result: list[Condition] = []
+    result: list[Condition | And] = []
     look_back = None
     for search_filter in search_filters:
         # SearchFilters are transformed into Conditions and appended to the result set.  If they
@@ -135,7 +135,7 @@ def handle_search_filters(
 def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
-    condition_type: And | Or,
+    condition_cls: And.__class__ | Or.__class__,
 ):
     """Unnecessary query optimization.
 
@@ -144,10 +144,10 @@ def attempt_compressed_condition(
 
     (block OR block) OR block => (block OR block OR block)
     """
-    if isinstance(result[-1], condition_type):
+    if isinstance(result[-1], condition_cls):
         result[-1].conditions.append(condition)
     else:
-        result.append(condition_type([result.pop(), condition]))
+        result.append(condition_cls([result.pop(), condition]))
 
 
 def search_filter_to_condition(
@@ -400,14 +400,14 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
     )
 
 
-def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:
+def handle_ordering(config: dict[str, Function], sort: str) -> list[OrderBy]:
     if sort.startswith("-"):
         return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
     else:
         return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
 
 
-def _get_sort_column(config: dict[str, Expression], column_name: str) -> Function:
+def _get_sort_column(config: dict[str, Function], column_name: str) -> Function:
     try:
         return config[column_name]
     except KeyError:
