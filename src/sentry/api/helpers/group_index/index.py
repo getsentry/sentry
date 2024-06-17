@@ -95,13 +95,13 @@ def build_query_params_from_request(
             if selected_view_id:
                 default_view = GroupSearchView.objects.get(id=int(selected_view_id))
             else:
-                default_view = GroupSearchView.objects.get(
+                default_view = GroupSearchView.objects.filter(
                     organization=organization,
                     user_id=request.user.id,
                     position=0,
                 )
 
-            if default_view:
+            if default_view.exists():
                 query_kwargs["sort_by"] = default_view.query_sort
                 query = default_view.query
         else:
