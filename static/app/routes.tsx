@@ -1444,7 +1444,7 @@ function buildRoutes() {
     </Route>
   );
 
-  const llmMonitoringRoutes = USING_CUSTOMER_DOMAIN ? (
+  const llmMonitoringRedirects = USING_CUSTOMER_DOMAIN ? (
     <Redirect
       from="/llm-monitoring/"
       to={`/insights/${MODULE_BASE_URLS[ModuleName.AI]}/`}
@@ -1456,8 +1456,21 @@ function buildRoutes() {
     />
   );
 
-  const insightsSubRoutes = (
-    <Fragment>
+  const insightsRedirects = Object.values(MODULE_BASE_URLS)
+    .map(
+      moduleBaseURL =>
+        moduleBaseURL && (
+          <Redirect
+            key={moduleBaseURL}
+            from={`${moduleBaseURL}`}
+            to={`/insights/${moduleBaseURL}/`}
+          />
+        )
+    )
+    .filter(Boolean);
+
+  const insightsRoutes = (
+    <Route path="/insights/" withOrgPath>
       <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
         <IndexRoute
           component={make(
@@ -1583,12 +1596,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-    </Fragment>
-  );
-
-  const insightsRoutes = (
-    <Route path="/insights/" withOrgPath>
-      {insightsSubRoutes}
     </Route>
   );
 
@@ -1680,7 +1687,11 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
-      {insightsSubRoutes}
+      {insightsRedirects}
+      <Redirect
+        from="browser/resources"
+        to={`/insights/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
@@ -2082,7 +2093,7 @@ function buildRoutes() {
       {performanceRoutes}
       {tracesRoutes}
       {insightsRoutes}
-      {llmMonitoringRoutes}
+      {llmMonitoringRedirects}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}

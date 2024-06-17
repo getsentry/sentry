@@ -58,10 +58,7 @@ import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEven
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
-import {
-  hasIgnoreArchivedFeatureFlag,
-  ruleNeedsErrorMigration,
-} from 'sentry/views/alerts/utils/migrationUi';
+import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
@@ -200,9 +197,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const dataset = _dataset ?? rule.dataset;
 
     const isErrorMigration =
-      this.props.location?.query?.migration === '1' &&
-      hasIgnoreArchivedFeatureFlag(this.props.organization) &&
-      ruleNeedsErrorMigration(rule);
+      this.props.location?.query?.migration === '1' && ruleNeedsErrorMigration(rule);
     // TODO(issues): Does this need to be smarter about where its inserting the new filter?
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
@@ -1096,10 +1091,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showErrorMigrationWarning =
-      !!ruleId &&
-      isMigration &&
-      hasIgnoreArchivedFeatureFlag(organization) &&
-      ruleNeedsErrorMigration(rule);
+      !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
 
     // Rendering the main form body
     return (
