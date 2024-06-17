@@ -4,12 +4,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import AddIntegration from 'sentry/views/settings/organizationIntegrations/addIntegration';
 
 describe('AddIntegration', function () {
   const provider = GitHubIntegrationProviderFixture();
   const integration = GitHubIntegrationFixture();
+  let configState: Config;
 
   function interceptMessageEvent(event: MessageEvent) {
     if (event.origin === '') {
@@ -23,7 +25,9 @@ describe('AddIntegration', function () {
   }
 
   beforeEach(function () {
-    window.__initialData = {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'foobar',
         organizationUrl: 'https://foobar.sentry.io',
@@ -34,7 +38,7 @@ describe('AddIntegration', function () {
         regionUrl: 'https://us.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    } as Config;
+    });
 
     window.location.assign('https://foobar.sentry.io');
     window.addEventListener('message', interceptMessageEvent);
@@ -42,6 +46,7 @@ describe('AddIntegration', function () {
 
   afterEach(function () {
     window.removeEventListener('message', interceptMessageEvent);
+    ConfigStore.loadInitialData(configState);
   });
 
   it('Adds an integration on dialog completion', async function () {

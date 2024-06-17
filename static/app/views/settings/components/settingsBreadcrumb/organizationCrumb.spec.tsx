@@ -134,13 +134,12 @@ describe('OrganizationCrumb', function () {
   });
 
   it('switches organizations for child route with customer domains', async function () {
-    window.__initialData = {
-      customerDomain: {
-        subdomain: 'albertos-apples',
-        organizationUrl: 'https://albertos-apples.sentry.io',
-        sentryUrl: 'https://sentry.io',
-      },
-    } as Config;
+    ConfigStore.set('customerDomain', {
+      subdomain: 'albertos-apples',
+      organizationUrl: 'https://albertos-apples.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
+    ConfigStore.set('features', new Set(['system:multi-region']));
 
     const routes: RouteWithName[] = [
       {path: '/'},
