@@ -5,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import withDomainRedirect from 'sentry/utils/withDomainRedirect';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -28,7 +29,7 @@ describe('withDomainRedirect', function () {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
-  let configState;
+  let configState: Config;
 
   beforeEach(function () {
     window.location.pathname = '/organizations/albertos-apples/issues/';
@@ -45,8 +46,8 @@ describe('withDomainRedirect', function () {
         sentryUrl: 'https://sentry.io',
       },
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
     });
@@ -63,8 +64,8 @@ describe('withDomainRedirect', function () {
       ...configState,
       customerDomain: null,
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
     });

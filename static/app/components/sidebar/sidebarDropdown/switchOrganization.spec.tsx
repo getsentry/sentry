@@ -5,9 +5,10 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import SwitchOrganization from 'sentry/components/sidebar/sidebarDropdown/switchOrganization';
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
+import type {Config} from 'sentry/types/system';
 
 describe('SwitchOrganization', function () {
-  let configstate;
+  let configstate: Config;
 
   beforeEach(() => {
     configstate = ConfigStore.getState();

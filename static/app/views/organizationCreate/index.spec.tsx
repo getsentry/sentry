@@ -4,12 +4,13 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import OrganizationCreate, {
   DATA_STORAGE_DOCS_LINK,
 } from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
-  let configstate;
+  let configstate: Config;
 
   beforeEach(() => {
     ConfigStore.get('termsUrl');

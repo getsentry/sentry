@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 
 import {resolveRoute} from './resolveRoute';
 
@@ -17,7 +18,8 @@ jest.mock('sentry/constants', () => {
 });
 
 describe('resolveRoute', () => {
-  let devUi, host, configState;
+  let devUi, host;
+  let configState: Config;
 
   const organization = OrganizationFixture();
   const otherOrg = OrganizationFixture({

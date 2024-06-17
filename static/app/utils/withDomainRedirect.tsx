@@ -36,8 +36,6 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
     const {customerDomain, links, features} = ConfigStore.getState();
     const {sentryUrl} = links;
     const currentOrganization = useOrganization({allowNull: true});
-    // types for window.__initialData aren't correct.
-    const featureSet = new Set(features);
 
     if (customerDomain) {
       // Customer domain is being used on a route that has an :orgId parameter.
@@ -50,7 +48,7 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         currentOrganization &&
         customerDomain.subdomain &&
         (currentOrganization.slug !== customerDomain.subdomain ||
-          !featureSet.has('system:multi-region'))
+          !features.has('system:multi-region'))
       ) {
         window.location.replace(redirectURL);
         return null;
