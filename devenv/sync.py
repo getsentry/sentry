@@ -132,14 +132,6 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
-    git_config = configparser.ConfigParser()
-    git_config.read(f"{reporoot}/.git/config")
-    git_config["blame"] = {"ignoreRevsFile": ".git-blame-ignore-revs"}
-    git_config["branch"] = {"autosetuprebase": "always"}
-
-    with open(f"{reporoot}/.git/config", "w") as f:
-        git_config.write(f)
-
     fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
