@@ -28,14 +28,7 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         self.notification = DummyNotification(self.organization)
 
     @patch("sentry.tasks.integrations.slack.post_message.metrics")
-    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
-    def test_additional_attachment_block_kit(self, mock_post, mock_api_call, mock_metrics):
-        mock_api_call.return_value = {
-            "body": orjson.dumps({"ok": True}).decode(),
-            "headers": {},
-            "status": 200,
-        }
+    def test_additional_attachment_block_kit(self, mock_metrics):
         with (
             patch.dict(
                 manager.attachment_generators,
@@ -45,8 +38,8 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             with self.tasks():
                 send_notification_as_slack(self.notification, [self.user], {}, {})
 
-            blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-            text = mock_post.call_args.kwargs["text"]
+            blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+            text = self.mock_post.call_args.kwargs["text"]
 
             assert text == "Notification Title"
 
@@ -81,19 +74,12 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         )
 
     @patch("sentry.tasks.integrations.slack.post_message.metrics")
-    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    @patch("slack_sdk.web.client.WebClient.chat_postMessage")
-    def test_no_additional_attachment_block_kit(self, mock_post, mock_api_call, mock_metrics):
-        mock_api_call.return_value = {
-            "body": orjson.dumps({"ok": True}).decode(),
-            "headers": {},
-            "status": 200,
-        }
+    def test_no_additional_attachment_block_kit(self, mock_metrics):
         with self.tasks():
             send_notification_as_slack(self.notification, [self.user], {}, {})
 
-        blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        text = mock_post.call_args.kwargs["text"]
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        text = self.mock_post.call_args.kwargs["text"]
 
         assert text == "Notification Title"
         assert len(blocks) == 3
@@ -120,12 +106,10 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
         }
 
     @patch("sentry.tasks.integrations.slack.post_message.metrics")
-    def test_send_notification_as_slack_sdk(self, mock_metrics):
-        with (
-            patch.dict(
-                manager.attachment_generators,
-                {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
-            ),
+    def test_send_notification_as_slack(self, mock_metrics):
+        with patch.dict(
+            manager.attachment_generators,
+            {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
         ):
             with self.tasks():
                 send_notification_as_slack(self.notification, [self.user], {}, {})

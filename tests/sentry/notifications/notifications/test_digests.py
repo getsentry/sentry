@@ -2,6 +2,7 @@ import uuid
 from unittest import mock
 from unittest.mock import ANY, patch
 
+import orjson
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 
@@ -203,7 +204,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
             deliver_digest(key)
 
         assert self.mock_post.call_count == 1
-        blocks = self.mock_post.call_args.kwargs["blocks"]
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
         fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
