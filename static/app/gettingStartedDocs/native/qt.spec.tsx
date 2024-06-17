@@ -1,7 +1,7 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from './native-qt';
+import docs from './qt';
 
 describe('getting started with native-qt', function () {
   it('renders gradle docs correctly', function () {
