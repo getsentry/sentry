@@ -28,7 +28,7 @@ from sentry.search.events.builder import (
     SpansIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
 )
-from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
+from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE, UNCLASSIFIED_SPAN_GROUP
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.sentry_metrics.querying.samples_list import SpanKey, get_sample_list_executor_cls
 from sentry.services.hybrid_cloud.organization import RpcOrganization
@@ -857,7 +857,7 @@ class TraceSamplesExecutor:
         query = " ".join(
             [
                 "is_transaction:1",  # service entry spans
-                "group:0",  # they always have group 0 because of how we compute groups
+                f"group:{UNCLASSIFIED_SPAN_GROUP}",  # service entry spans do not have a group
                 trace_ids_condition,
             ],
         )
