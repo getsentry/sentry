@@ -25,7 +25,12 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
+from sentry.seer.breakpoints import (
+    BreakpointData,
+    BreakpointRequest,
+    BreakpointTransaction,
+    detect_breakpoints,
+)
 from sentry.statistical_detectors.algorithm import DetectorAlgorithm
 from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
@@ -199,10 +204,11 @@ class RegressionDetector(ABC):
         serializer = SnubaTSResultSerializer(None, None, None)
 
         for chunk in chunked(cls.all_timeseries(objects, start, function), timeseries_per_batch):
-            data = {}
+            data: dict[str, BreakpointTransaction] = {}
             for project_id, object_name, result in chunk:
                 serialized = serializer.serialize(result, get_function_alias(function))
-                data[f"{project_id},{object_name}"] = {
+
+                transaction: BreakpointTransaction = {
                     "data": serialized["data"],
                     "data_start": serialized["start"],
                     "data_end": serialized["end"],
@@ -210,6 +216,8 @@ class RegressionDetector(ABC):
                     "request_start": serialized["end"] - 3 * 24 * 60 * 60,
                     "request_end": serialized["end"],
                 }
+
+                data[f"{project_id},{object_name}"] = transaction
 
             request: BreakpointRequest = {
                 "data": data,
