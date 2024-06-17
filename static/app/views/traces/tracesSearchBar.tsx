@@ -10,6 +10,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
+import {ALL_PROJECTS} from './utils';
+
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
   handleSearch: (index: number, query: string) => void;
@@ -25,10 +27,6 @@ const getSpanName = (index: number) => {
   return spanNames[index];
 };
 
-// Since trace explorer permits cross project searches,
-// autocompletion should also be cross projects.
-const ALL_PROJECTS = [-1];
-
 export function TracesSearchBar({
   queries,
   handleSearch,
@@ -38,6 +36,9 @@ export function TracesSearchBar({
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
+
+  // Since trace explorer permits cross project searches,
+  // autocompletion should also be cross projects.
   const supportedTags = useSpanFieldSupportedTags({
     projects: ALL_PROJECTS,
   });
@@ -86,7 +87,7 @@ export function TracesSearchBar({
             handleSearch(localQueries.length, '');
           }}
         >
-          {t('Add Span Condition')}
+          {t('Add Another Span')}
         </Button>
       ) : null}
     </TraceSearchBarsContainer>

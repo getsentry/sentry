@@ -55,6 +55,11 @@ export interface ProjectPageFilterProps
    */
   footerMessage?: React.ReactNode;
   /**
+   * Override the selected projects that are displayed.
+   * Does NOT override the projects in the store.
+   */
+  projectOverride?: number[];
+  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
@@ -76,6 +81,7 @@ export function ProjectPageFilter({
   menuTitle,
   menuWidth,
   trigger,
+  projectOverride,
   resetParamsOnChange,
   footerMessage,
   ...selectProps
@@ -167,13 +173,13 @@ export function ProjectPageFilter({
   );
 
   const value = useMemo<number[]>(
-    () => mapURLValueToNormalValue(pageFilterValue),
-    [mapURLValueToNormalValue, pageFilterValue]
+    () => mapURLValueToNormalValue(projectOverride ?? pageFilterValue),
+    [mapURLValueToNormalValue, pageFilterValue, projectOverride]
   );
 
   const defaultValue = useMemo<number[]>(
-    () => mapURLValueToNormalValue([]),
-    [mapURLValueToNormalValue]
+    () => mapURLValueToNormalValue(projectOverride ?? []),
+    [mapURLValueToNormalValue, projectOverride]
   );
 
   const handleChange = useCallback(
