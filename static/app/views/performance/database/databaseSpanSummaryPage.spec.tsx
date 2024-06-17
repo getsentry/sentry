@@ -139,7 +139,7 @@ describe('DatabaseSpanSummaryPage', function () {
 
     render(
       <DatabaseSpanSummaryPage
-        {...RouteComponentPropsFixture({})}
+        {...RouteComponentPropsFixture()}
         params={{
           groupId: '1756baf8fd19c116',
           transaction: '',

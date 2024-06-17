@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Union, cast
 
 from snuba_sdk import (
+    And,
     BooleanCondition,
     Column,
     Condition,
@@ -570,7 +571,13 @@ def _query_meta_table(
         metric_id = resolve_weak(use_case_id, org_id, mri)
         if metric_id == -1:
             raise MetricDoesNotExistException(f"Unknown metric: {mri}")
-        extra_condition = Condition(Column("metric_id"), Op.EQ, metric_id)
+        extra_condition = And(
+            [
+                Condition(Column("metric_id"), Op.EQ, metric_id),
+                Condition(Column("tag_key"), Op.NEQ, 0),
+            ]
+        )
+
     else:
         column_name = "metric_id"
         extra_condition = None
@@ -622,19 +629,14 @@ def _query_meta_table(
     for result in results:
         indexed_ids.extend([row[column_name] for row in result["data"]])
 
-    # When the meta tables were added, it was discovered that some metrics were missing, because they did not have any
-    # tag set, which was something that the ingestion system assumed to be true. To alleviate this, an empty tag with
-    # tag_key=0 was added to those metrics during ingestion, leading to a tag_key that cannot be reverse-resolved. In order
-    # to prevent this from causing issues, we check if the id is larger than zero.
     resolved_ids = bulk_reverse_resolve(use_case_id, org_id, indexed_ids)
     # Group by project ID
     grouped_results: dict[int, list[str]] = {}
     for result in results:
         for row in result["data"]:
             indexed_id = row[column_name]
-            if indexed_id > 0:
-                mri = resolved_ids[indexed_id]
-                grouped_results.setdefault(row["project_id"], list()).append(mri)
+            val = resolved_ids[indexed_id]
+            grouped_results.setdefault(row["project_id"], list()).append(val)
 
     return grouped_results
 

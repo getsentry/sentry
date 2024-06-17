@@ -1490,7 +1490,8 @@ def get_current_widget_specs(organization: Organization) -> set[str]:
     ).values_list("spec_hashes", flat=True)
     current_widget_specs: set[str] = set()
     for spec_list in widget_specs:
-        current_widget_specs = current_widget_specs.union(spec_list)
+        if spec_list is not None:
+            current_widget_specs.update(spec_list)
     return current_widget_specs
 
 

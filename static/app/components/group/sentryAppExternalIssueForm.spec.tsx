@@ -22,7 +22,7 @@ describe('SentryAppExternalIssueForm', () => {
   });
   const component = SentryAppComponentFixture();
   const sentryApp = SentryAppFixture();
-  const sentryAppInstallation = SentryAppInstallationFixture({});
+  const sentryAppInstallation = SentryAppInstallationFixture();
   const submitUrl = `/sentry-app-installations/${sentryAppInstallation.uuid}/external-issue-actions/`;
   let externalIssueRequest;
 
@@ -161,7 +161,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
   const sentryApp = SentryAppFixture();
-  const sentryAppInstallation = SentryAppInstallationFixture({});
+  const sentryAppInstallation = SentryAppInstallationFixture();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -207,7 +207,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
     permalink: 'https://sentry.io/organizations/sentry/issues/123/?project=1',
   });
   const sentryApp = SentryAppFixture();
-  const sentryAppInstallation = SentryAppInstallationFixture({});
+  const sentryAppInstallation = SentryAppInstallationFixture();
   const component = SentryAppComponentDependentFixture();
 
   afterEach(() => {

@@ -20,6 +20,10 @@ export function hasMetricAlertFeature(organization: Organization) {
   return organization.features.includes('incidents');
 }
 
+export function hasCustomMetricsExtractionRules(organization: Organization) {
+  return organization.features.includes('custom-metrics-extraction-rule');
+}
+
 /**
  * Returns the forceMetricsLayer query param for the alert
  * wrapped in an object so it can be spread into existing query params
