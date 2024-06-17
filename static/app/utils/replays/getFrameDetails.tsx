@@ -54,10 +54,10 @@ interface Details {
 }
 
 const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
-  wifi: 'Device connected to wifi',
-  offline: 'Internet connection was lost',
-  cellular: 'Device connected to cellular network',
-  ethernet: 'Device connected to ethernet',
+  wifi: t('Device connected to wifi'),
+  offline: t('Internet connection was lost'),
+  cellular: t('Device connected to cellular network'),
+  ethernet: t('Device connected to ethernet'),
 };
 
 const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
