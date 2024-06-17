@@ -32,7 +32,7 @@ def sign_with_seer_secret(path: str, body: bytes):
     if random() < options.get("seer.api.use-shared-secret"):
         signature_input = b"%s:%s" % (path.encode("utf8"), body)
         signature = hmac.new(
-            settings.SEER_API_SHARED_SECRET, signature_input, hashlib.sha256
+            settings.SEER_API_SHARED_SECRET.encode("utf-8"), signature_input, hashlib.sha256
         ).hexdigest()
         auth_headers["Authorization"] = f"Rpcsignature rpc0:{signature}"
     return auth_headers

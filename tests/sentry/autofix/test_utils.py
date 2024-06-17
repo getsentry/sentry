@@ -52,7 +52,7 @@ class TestGetAutofixStateFromPrId(TestCase):
 
         mock_post.assert_called_once_with(
             f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state/pr",
-            data=json.dumps({"provider": "github", "pr_id": 1}),
+            data=json.dumps({"provider": "github", "pr_id": 1}).encode("utf-8"),
             headers={"content-type": "application/json;charset=utf-8"},
         )
 

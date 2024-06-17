@@ -230,7 +230,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
-            body=orjson.dumps(expected_seer_request_params).decode(),
+            body=orjson.dumps(expected_seer_request_params),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
@@ -514,7 +514,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                 },
-            ).decode(),
+            ),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
