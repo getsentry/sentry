@@ -170,7 +170,7 @@ def parse_numeric_value(value: str, suffix: str | None = None) -> float:
     numeric_multiples = {"k": 10.0**3, "m": 10.0**6, "b": 10.0**9}
     if suffix not in numeric_multiples:
         raise InvalidQuery(
-            "The search condition does not require units. Numeric multiples can be specified using a suffix: k, m or b."
+            "The search condition does not require units. Specify a number, then optional k, m, or b suffix (e.g. 500k)."
         )
 
     return parsed_value * numeric_multiples[suffix]
