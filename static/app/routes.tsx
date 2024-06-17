@@ -1456,8 +1456,16 @@ function buildRoutes() {
     />
   );
 
-  const insightsSubRoutes = (
-    <Fragment>
+  const insightsRedirects = Object.values(MODULE_BASE_URLS).map(moduleBaseURL => (
+    <Redirect
+      key={moduleBaseURL}
+      from={`${moduleBaseURL}`}
+      to={`/insights/${moduleBaseURL}/`}
+    />
+  ));
+
+  const insightsRoutes = (
+    <Route path="/insights/" withOrgPath>
       <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
         <IndexRoute
           component={make(
@@ -1583,12 +1591,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-    </Fragment>
-  );
-
-  const insightsRoutes = (
-    <Route path="/insights/" withOrgPath>
-      {insightsSubRoutes}
     </Route>
   );
 
@@ -1680,7 +1682,7 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
-      {insightsSubRoutes}
+      {insightsRedirects}
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
