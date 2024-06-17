@@ -26,7 +26,9 @@ const DIVIDER_SIZE = 16;
 function ReplayLayout({
   isVideoReplay = false,
   replayRecord,
+  isLoading,
 }: {
+  isLoading: boolean;
   replayRecord: ReplayRecord | undefined;
   isVideoReplay?: boolean;
 }) {
@@ -44,7 +46,7 @@ function ReplayLayout({
   const video = (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} />
+        <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
       </ErrorBoundary>
     </VideoSection>
   );
