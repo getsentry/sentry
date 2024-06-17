@@ -21,6 +21,7 @@ from requests.adapters import HTTPAdapter, Retry
 
 from sentry import options
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
+from sentry.options import UnknownOption
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
@@ -500,6 +501,30 @@ class _RemoteSiloCall:
             **additional_tags,
         )
 
+    def _get_method_retry_count(self) -> int:
+        try:
+            retry_count = options.get(
+                f"hybrid_cloud.rpc.{self.service_name}.{self.method_name}.retries"
+            )
+            return retry_count
+        except UnknownOption:
+            # This means we don't have a method-specific override for the retry count
+            pass
+
+        return options.get("hybridcloud.rpc.retries")
+
+    def _get_method_timeout(self) -> int:
+        try:
+            timeout_override = options.get(
+                f"hybrid_cloud.rpc.{self.service_name}.{self.method_name}.timeout"
+            )
+            return timeout_override
+        except UnknownOption:
+            # This means we don't have a method-specific override for timeout
+            pass
+
+        return settings.RPC_TIMEOUT
+
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
         request_body = {
             "meta": {},  # reserved for future use
@@ -594,9 +619,10 @@ class _RemoteSiloCall:
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
+        retry_count = self._get_method_retry_count()
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=options.get("hybridcloud.rpc.retries"),
+                total=retry_count,
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],
@@ -609,8 +635,9 @@ class _RemoteSiloCall:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
+        timeout = self._get_method_timeout()
         try:
-            return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+            return http.post(url, headers=headers, data=data, timeout=timeout)
         except requests.exceptions.ConnectionError as e:
             raise self._remote_exception("RPC Connection failed") from e
         except requests.exceptions.RetryError as e:
