@@ -71,10 +71,8 @@ jobs:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Setup pre-commit
-        # We don't need pre-commit install --install-hooks since we're just interested
-        # in running the hooks.
         run: |
-          pre-commit install-hooks
+          devenv --nocoderoot sync
 
       - name: Run pre-commit on PR commits
         run: |
