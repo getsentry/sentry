@@ -516,6 +516,7 @@ describe('Incident Rules Form', () => {
         dataset: Dataset.ERRORS,
         query: 'example-error',
       });
+      organization.features = [...organization.features];
       location = {...location, query: {migration: '1'}};
 
       const onSubmitSuccess = jest.fn();
