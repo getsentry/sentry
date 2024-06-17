@@ -60,7 +60,7 @@ export function TracesSearchBar({
             projectIds={ALL_PROJECTS}
           />
           <StyledButton
-            aria-label={t('Remove span')}
+            aria-label={t('Remove Span')}
             icon={<IconClose size="sm" />}
             size="sm"
             onClick={() => {
@@ -77,7 +77,7 @@ export function TracesSearchBar({
 
       {canAddMoreQueries ? (
         <Button
-          aria-label={t('Add query')}
+          aria-label={t('Add Query')}
           icon={<IconAdd size="xs" isCircled />}
           size="sm"
           onClick={() => {
@@ -105,8 +105,6 @@ const TraceSearchBarsContainer = styled('div')`
 const TraceBar = styled('div')`
   display: flex;
   flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
   width: 100%;
   gap: ${space(1)};
 `;
@@ -114,12 +112,12 @@ const TraceBar = styled('div')`
 const SpanLetter = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(2)};
   text-align: center;
   min-width: 220px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
+  align-content: center;
 `;
 
 const StyledSearchBar = styled(SearchBar)`
