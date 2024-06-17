@@ -22,7 +22,8 @@ function U2fContainer({className, authenticators, ...props}: Props) {
         auth.id === 'u2f' && auth.challenge ? (
           <U2fSign
             key={auth.id}
-            {...props}
+            onTap={props.onTap}
+            displayMode={props.displayMode}
             challengeData={auth.challenge}
             authStateData={auth.authState}
           />
