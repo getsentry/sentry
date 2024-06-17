@@ -131,10 +131,15 @@ def store_error(error: CheckinProcessingError, monitor: Monitor | None):
     pipeline = redis_client.pipeline(transaction=False)
     pipeline.zadd(error_set_key, {error.id.hex: error.checkin.ts.timestamp()})
     pipeline.set(error_key, serialized_error, ex=MONITOR_ERRORS_LIFETIME)
-    # Cap the error list to the `MAX_ERRORS_PER_SET` most recent errors
-    pipeline.zremrangebyrank(error_set_key, 0, -(MAX_ERRORS_PER_SET + 1))
     pipeline.expire(error_set_key, MONITOR_ERRORS_LIFETIME)
-    pipeline.execute()
+    pipeline.zrange(error_set_key, 0, -(MAX_ERRORS_PER_SET + 1))
+    results = pipeline.execute()[3]
+    # Cap the error list to the `MAX_ERRORS_PER_SET` most recent errors
+    if results:
+        pipeline = redis_client.pipeline(transaction=False)
+        pipeline.delete(*[build_error_identifier(uuid.UUID(result)) for result in results])
+        pipeline.zrem(error_set_key, *results)
+        pipeline.execute()
 
 
 def delete_error(project: Project, uuid: uuid.UUID):
