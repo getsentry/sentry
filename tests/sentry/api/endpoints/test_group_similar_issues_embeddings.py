@@ -231,7 +231,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "POST",
             SEER_SIMILAR_ISSUES_URL,
             body=orjson.dumps(expected_seer_request_params),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
         expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
@@ -515,7 +515,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "read_only": True,
                 },
             ),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
         # Include k
