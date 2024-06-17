@@ -263,8 +263,8 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         response = self.get_error_response(self.organization.slug, views=[])
 
         assert response.data == {
-            "non_field_errors": [
-                ErrorDetail(string="Must provide at least one view", code="invalid")
+            "views": [
+                ErrorDetail(string="Ensure this field has at least 1 elements.", code="min_length")
             ]
         }
 

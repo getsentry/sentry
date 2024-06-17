@@ -15,9 +15,9 @@ class ViewValidator(serializers.Serializer):
 
 
 class GroupSearchViewValidator(serializers.Serializer):
-    views = serializers.ListField(child=ViewValidator(), required=True, max_length=MAX_VIEWS)
+    views = serializers.ListField(
+        child=ViewValidator(), required=True, min_length=1, max_length=MAX_VIEWS
+    )
 
     def validate(self, data):
-        if len(data.get("views", [])) == 0:
-            raise serializers.ValidationError("Must provide at least one view")
         return data
