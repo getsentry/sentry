@@ -5,6 +5,7 @@ from django.db import IntegrityError
 from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
+from rest_framework.request import Request
 
 from sentry.integrations.slack.views import render_error_page
 from sentry.integrations.slack.views.types import IdentityParams
@@ -52,9 +53,8 @@ class SlackLinkIdentityView(BaseView):
     _METRICS_FAILURE_KEY = "sentry.integrations.slack.link_identity_view.failure"
 
     @method_decorator(never_cache)
-    def dispatch(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
+    def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
         try:
-            signed_params = kwargs.pop("signed_params")
             params = unsign(signed_params)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)
@@ -62,14 +62,6 @@ class SlackLinkIdentityView(BaseView):
             return render_to_response(
                 "sentry/integrations/slack/expired-link.html",
                 request=request,
-            )
-        except KeyError as e:
-            _logger.warning("dispatch.key_error", exc_info=e)
-            metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
-            return render_error_page(
-                request,
-                status=400,
-                body_text="HTTP 400: Missing required 'signed_params' parameter",
             )
 
         try:
@@ -83,14 +75,20 @@ class SlackLinkIdentityView(BaseView):
                 "get_identity_error", extra={"integration_id": params["integration_id"]}
             )
             metrics.incr(self._METRICS_FAILURE_KEY + ".get_identity", sample_rate=1.0)
-            raise
+            return render_error_page(
+                request,
+                status=404,
+                body_text="HTTP 404: Could not find the Slack identity.",
+            )
 
         _logger.info("get_identity_success", extra={"integration_id": params["integration_id"]})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".get_identity", sample_rate=1.0)
         params.update({"organization": organization, "integration": integration, "idp": idp})
-        return super().dispatch(request, params=params)
+        return super().dispatch(
+            request, organization=organization, integration=integration, idp=idp, params=params
+        )
 
-    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def get(self, request: Request, *args, **kwargs) -> HttpResponse:
         params = kwargs["params"]
         organization, integration = params["organization"], params["integration"]
 
@@ -100,15 +98,28 @@ class SlackLinkIdentityView(BaseView):
             context={"organization": organization, "provider": integration.get_provider()},
         )
 
-    def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        params_dict = kwargs["params"]
-        params = IdentityParams(
-            organization=params_dict["organization"],
-            integration=params_dict["integration"],
-            idp=params_dict["idp"],
-            slack_id=params_dict["slack_id"],
-            channel_id=params_dict["channel_id"],
-        )
+    def post(self, request: Request, *args, **kwargs) -> HttpResponse:
+        try:
+            params_dict = kwargs["params"]
+            params = IdentityParams(
+                organization=kwargs["organization"],
+                integration=kwargs["integration"],
+                idp=kwargs["idp"],
+                slack_id=params_dict["slack_id"],
+                channel_id=params_dict["channel_id"],
+            )
+        except KeyError as e:
+            _logger.exception("slack.link.missing_params")
+            metrics.incr(
+                self._METRICS_FAILURE_KEY + ".post.missing_params",
+                tags={"error": str(e)},
+                sample_rate=1.0,
+            )
+            return render_error_page(
+                request,
+                status=400,
+                body_text="HTTP 400: Missing required parameters.",
+            )
 
         try:
             Identity.objects.link_identity(
