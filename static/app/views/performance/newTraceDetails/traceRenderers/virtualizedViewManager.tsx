@@ -1175,7 +1175,7 @@ export class VirtualizedViewManager {
     const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
       span_space[0] > this.to_origin + this.trace_space.width * 0.8;
-    const width = this.text_measurer.measure(text);
+    const text_width = this.text_measurer.measure(text);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
     const text_left = Math.min(span_space[0], timestamps[0]);
@@ -1186,19 +1186,21 @@ export class VirtualizedViewManager {
     const right_outside = this.computeTransformXFromTimestamp(text_right) + TEXT_PADDING;
     // |---text|
     const right_inside =
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) - TEXT_PADDING;
+      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
+      text_width -
+      TEXT_PADDING;
     // |text---|
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
     const left_outside =
-      this.computeTransformXFromTimestamp(text_left) - TEXT_PADDING - width;
+      this.computeTransformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
       this.computeTransformXFromTimestamp(
         this.to_origin + this.trace_view.left + this.trace_view.width
       ) -
-      width -
+      text_width -
       TEXT_PADDING;
     const window_left =
       this.computeTransformXFromTimestamp(this.to_origin + this.trace_view.left) +
@@ -1241,7 +1243,7 @@ export class VirtualizedViewManager {
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= width) {
+      if (visible_width - TEXT_PADDING >= text_width) {
         return [1, window_left];
       }
 
@@ -1263,7 +1265,7 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < width
+        space_right / this.span_to_px[0] < text_width
       ) {
         return [1, right_inside];
       }
@@ -1271,14 +1273,14 @@ export class VirtualizedViewManager {
     }
 
     // If text fits inside the span
-    if (full_span_px_width > width) {
+    if (full_span_px_width > text_width) {
       const distance = span_right - this.trace_view.right;
       const visible_width =
         (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= width) {
+      if (visible_width - TEXT_PADDING >= text_width) {
         return [1, window_right];
       }
 
