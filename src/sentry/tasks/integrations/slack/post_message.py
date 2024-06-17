@@ -25,9 +25,9 @@ def _send_message_to_slack_channel(
     log_params: Mapping[str, Any],
     has_sdk_flag: bool | None = False,  # TODO: remove all these
 ) -> None:
-    sdk_client = SlackSdkClient(integration_id=integration_id)
+    client = SlackSdkClient(integration_id=integration_id)
     try:
-        sdk_client.chat_postMessage(
+        client.chat_postMessage(
             blocks=str(payload.get("blocks", "")),
             text=str(payload.get("text", "")),
             channel=str(payload.get("channel", "")),
