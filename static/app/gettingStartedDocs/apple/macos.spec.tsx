@@ -4,27 +4,36 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ProductSolution} from 'sentry/components/onboarding/productSelection';
 
-import docs, {InstallationMode} from './apple-ios';
+import docs from './macos';
 
-describe('apple-ios onboarding docs', function () {
-  it('renders docs correctly', function () {
-    renderWithOnboardingLayout(docs);
+describe('apple-macos onboarding docs', function () {
+  it('renders docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      releaseRegistry: {
+        'sentry.cocoa': {
+          version: '1.99.9',
+        },
+      },
+    });
 
     // Renders main headings
     expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Verify'})).toBeInTheDocument();
+
+    // Renders SDK version from registry
     expect(
-      screen.getByRole('heading', {name: 'Experimental Features'})
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /\.package\(url: "https:\/\/github.com\/getsentry\/sentry-cocoa", from: "1\.99\.9"\),/
+        )
+      )
     ).toBeInTheDocument();
   });
 
   it('renders performance onboarding docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
     });
 
     expect(
@@ -38,9 +47,6 @@ describe('apple-ios onboarding docs', function () {
         ProductSolution.PERFORMANCE_MONITORING,
         ProductSolution.PROFILING,
       ],
-      selectedOptions: {
-        installationMode: InstallationMode.MANUAL,
-      },
     });
 
     expect(
