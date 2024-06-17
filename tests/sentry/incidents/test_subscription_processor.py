@@ -183,7 +183,9 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 class ProcessUpdateTest(ProcessUpdateBaseClass):
     @pytest.fixture(autouse=True)
     def _setup_slack_client(self):
-        with mock.patch("sentry.integrations.slack.SlackClient.post") as self.slack_client:
+        with mock.patch(
+            "sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage"
+        ) as self.slack_client:
             yield
 
     @cached_property
@@ -292,7 +294,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def assert_slack_calls(self, trigger_labels):
         expected_result = [f"{label}: some rule 2" for label in trigger_labels]
         actual = [
-            (call_kwargs["data"]["text"], json.loads(call_kwargs["data"]["attachments"]))
+            (call_kwargs["text"], json.loads(call_kwargs["attachments"]))
             for (_, call_kwargs) in self.slack_client.call_args_list
         ]
 
