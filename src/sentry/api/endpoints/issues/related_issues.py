@@ -6,12 +6,13 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
-from sentry.issues.related import RELATED_ISSUES_ALGORITHMS
+from sentry.issues.related.same_root_cause import same_root_cause_analysis
+from sentry.issues.related.trace_connected import trace_connected_analysis
 from sentry.models.group import Group
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class RequestSerializer(serializers.Serializer):  # type: ignore[type-arg]
+class RequestSerializer(serializers.Serializer[None]):
     type = serializers.ChoiceField(["same_root_cause", "trace_connected"])
     event_id = serializers.CharField(required=False)
     project_id = serializers.IntegerField(required=False)
@@ -43,14 +44,16 @@ class RelatedIssuesEndpoint(GroupEndpoint):
         serializer = RequestSerializer(data=request.query_params)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
-        # The type of related issues to retrieve. Can be either `same_root_cause` or `trace_connected`.
-        related_type = request.query_params["type"]
-        extra_args = {
-            "event_id": request.query_params.get("event_id"),
-            "project_id": request.query_params.get("project_id"),
-        }
+        _data = serializer.validated_data
+        related_type = _data["type"]
         try:
-            data, meta = RELATED_ISSUES_ALGORITHMS[related_type](group, extra_args)
+            data, meta = (
+                same_root_cause_analysis(group)
+                if related_type == "same_root_cause"
+                else trace_connected_analysis(
+                    group, event_id=_data.get("event_id"), project_id=_data.get("project_id")
+                )
+            )
             return Response({"type": related_type, "data": data, "meta": meta})
         except AssertionError:
             return Response({}, status=400)
