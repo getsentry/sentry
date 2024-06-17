@@ -6,6 +6,8 @@ from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 
+from sentry.integrations.slack.views import render_error_page
+from sentry.integrations.slack.views.types import IdentityParams
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
@@ -61,6 +63,14 @@ class SlackLinkIdentityView(BaseView):
                 "sentry/integrations/slack/expired-link.html",
                 request=request,
             )
+        except KeyError as e:
+            _logger.warning("dispatch.key_error", exc_info=e)
+            metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
+            return render_error_page(
+                request,
+                status=400,
+                body_text="HTTP 400: Missing required 'signed_params' parameter",
+            )
 
         try:
             organization, integration, idp = get_identity_or_404(
@@ -91,16 +101,18 @@ class SlackLinkIdentityView(BaseView):
         )
 
     def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        params = kwargs["params"]
-        organization, integration, idp = (
-            params["organization"],
-            params["integration"],
-            params["idp"],
+        params_dict = kwargs["params"]
+        params = IdentityParams(
+            organization=params_dict["organization"],
+            integration=params_dict["integration"],
+            idp=params_dict["idp"],
+            slack_id=params_dict["slack_id"],
+            channel_id=params_dict["channel_id"],
         )
 
         try:
             Identity.objects.link_identity(
-                user=request.user, idp=idp, external_id=params["slack_id"]
+                user=request.user, idp=params.idp, external_id=params.slack_id
             )
         except IntegrityError:
             _logger.exception("slack.link.integrity_error")
@@ -110,23 +122,28 @@ class SlackLinkIdentityView(BaseView):
             )
             raise Http404
 
-        send_slack_response(integration, SUCCESS_LINKED_MESSAGE, params, command="link")
+        # TODO: We should use use the dataclass to send the slack response
+        send_slack_response(
+            params.integration, SUCCESS_LINKED_MESSAGE, params.__dict__, command="link"
+        )
 
         controller = NotificationController(
             recipients=[request.user],
-            organization_id=organization.id,
+            organization_id=params.organization.id,
             provider=ExternalProviderEnum.SLACK,
         )
         has_slack_settings = controller.user_has_any_provider_settings(ExternalProviderEnum.SLACK)
 
         if not has_slack_settings:
-            IntegrationNudgeNotification(organization, request.user, ExternalProviders.SLACK).send()
+            IntegrationNudgeNotification(
+                params.organization, request.user, ExternalProviders.SLACK
+            ).send()
 
-        _logger.info("link_identity_success", extra={"slack_id": params["slack_id"]})
+        _logger.info("link_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.link_identity", sample_rate=1.0)
 
         return render_to_response(
             "sentry/integrations/slack/linked.html",
             request=request,
-            context={"channel_id": params["channel_id"], "team_id": integration.external_id},
+            context={"channel_id": params.channel_id, "team_id": params.integration.external_id},
         )

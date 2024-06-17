@@ -8,7 +8,8 @@ from django.utils.decorators import method_decorator
 
 from sentry.integrations.slack.utils.notifications import send_slack_response
 from sentry.integrations.slack.views import build_linking_url as base_build_linking_url
-from sentry.integrations.slack.views import never_cache
+from sentry.integrations.slack.views import never_cache, render_error_page
+from sentry.integrations.slack.views.types import IdentityParams
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
@@ -54,6 +55,14 @@ class SlackUnlinkIdentityView(BaseView):
                 "sentry/integrations/slack/expired-link.html",
                 request=request,
             )
+        except KeyError as e:
+            _logger.warning("dispatch.key_error", exc_info=e)
+            metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
+            return render_error_page(
+                request,
+                status=400,
+                body_text="HTTP 400: Missing required 'signed_params' parameter",
+            )
 
         try:
             organization, integration, idp = get_identity_or_404(
@@ -84,26 +93,35 @@ class SlackUnlinkIdentityView(BaseView):
         )
 
     def post(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
-        params = kwargs["params"]
-        integration, idp = params["integration"], params["idp"]
+        params_dict = kwargs["params"]
+        params = IdentityParams(
+            organization=params_dict["organization"],
+            integration=params_dict["integration"],
+            idp=params_dict["idp"],
+            slack_id=params_dict["slack_id"],
+            channel_id=params_dict["channel_id"],
+        )
 
         try:
-            Identity.objects.filter(idp_id=idp.id, external_id=params["slack_id"]).delete()
+            Identity.objects.filter(idp_id=params.idp, external_id=params.slack_id).delete()
         except IntegrityError:
-            _logger.exception("slack.unlink.integrity-error")
+            _logger.exception("slack.unlink.integrity_error")
             metrics.incr(
                 self._METRICS_FAILURE_KEY + ".post.identity.integrity_error",
                 sample_rate=1.0,
             )
             raise Http404
 
-        send_slack_response(integration, SUCCESS_UNLINKED_MESSAGE, params, command="unlink")
+        # TODO: We should use use the dataclass to send the slack response
+        send_slack_response(
+            params.integration, SUCCESS_UNLINKED_MESSAGE, params.__dict__, command="unlink"
+        )
 
-        _logger.info("unlink_identity_success", extra={"slack_id": params["slack_id"]})
+        _logger.info("unlink_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.unlink_identity", sample_rate=1.0)
 
         return render_to_response(
             "sentry/integrations/slack/unlinked.html",
             request=request,
-            context={"channel_id": params["channel_id"], "team_id": integration.external_id},
+            context={"channel_id": params.channel_id, "team_id": params.integration.external_id},
         )
