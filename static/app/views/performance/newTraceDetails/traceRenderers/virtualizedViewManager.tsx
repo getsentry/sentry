@@ -1685,8 +1685,8 @@ function getIconTimestamps(
 ) {
   let min_icon_timestamp = span_space[0];
   let max_icon_timestamp = span_space[0] + span_space[1];
-  
-    if (!node.errors.size && !node.performance_issues.size) {
+
+  if (!node.errors.size && !node.performance_issues.size) {
     return [min_icon_timestamp, max_icon_timestamp];
   }
 
