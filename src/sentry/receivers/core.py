@@ -75,7 +75,8 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
 
     user = user_service.get_first_superuser()
 
-    with transaction.atomic(router.db_for_write(Organization)):
+    conn_name = router.db_for_write(Organization)
+    with transaction.atomic(conn_name):
         with outbox_context(flush=False):
             org, _ = Organization.objects.get_or_create(slug="sentry", defaults={"name": "Sentry"})
 
@@ -101,7 +102,7 @@ def create_default_project(id, name, slug, verbosity=2, **kwargs):
         )
 
         # HACK: Manually update the ID after insert due to Postgres sequence issues.
-        connection = connections[project._state.db]
+        connection = connections[conn_name]
         cursor = connection.cursor()
         cursor.execute(PROJECT_SEQUENCE_FIX)
 
