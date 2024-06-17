@@ -290,11 +290,12 @@ export function stringifyToken(token: TokenResult<Token>) {
       return `${token.prefix}[${token.key.value}]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
+    case Token.VALUE_RELATIVE_DATE:
+      return `${token.sign}${token.value}${token.unit}`;
     case Token.VALUE_BOOLEAN:
     case Token.VALUE_DURATION:
     case Token.VALUE_ISO_8601_DATE:
     case Token.VALUE_PERCENTAGE:
-    case Token.VALUE_RELATIVE_DATE:
     case Token.VALUE_SIZE:
     case Token.VALUE_NUMBER:
       return token.text;
