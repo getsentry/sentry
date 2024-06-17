@@ -526,6 +526,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       value === 'generic_metrics' &&
       this.state.timeWindow === TimeWindow.ONE_MINUTE
     ) {
+      // ONE MINUTE interval is not allowed for custom metrics alerts
       this.setState({timeWindow: TimeWindow.FIVE_MINUTES});
     }
 
