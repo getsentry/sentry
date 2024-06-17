@@ -157,7 +157,7 @@ function ProjectMetrics({project, location}: Props) {
 
       {hasExtractionRules && (
         <Fragment>
-          <SearchWrapper style={{marginBottom: space(1)}}>
+          <ExtractionRulesSearchWrapper>
             <h6>{t('Metric Extraction Rules')}</h6>
             <LinkButton
               to={`/settings/projects/${project.slug}/metrics/extract-metric`}
@@ -166,7 +166,7 @@ function ProjectMetrics({project, location}: Props) {
             >
               {t('Add Extraction Rule')}
             </LinkButton>
-          </SearchWrapper>
+          </ExtractionRulesSearchWrapper>
           <MetricsExtractionTable isLoading={false} extractionRules={[]} />
         </Fragment>
       )}
@@ -353,6 +353,10 @@ const SearchWrapper = styled('div')`
   & > h6 {
     margin: 0;
   }
+`;
+
+const ExtractionRulesSearchWrapper = styled(SearchWrapper)`
+  margin-bottom: ${space(1)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`
