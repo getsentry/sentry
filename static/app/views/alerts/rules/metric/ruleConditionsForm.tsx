@@ -3,6 +3,7 @@ import type {InjectedRouter} from 'react-router';
 import {components} from 'react-select';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -146,12 +147,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
     if (alertType === 'custom_metrics') {
       // Do not show ONE MINUTE interval as an option for custom_metrics alert
-      options = Object.keys(TIME_WINDOW_MAP)
-        .filter(key => key !== TimeWindow.ONE_MINUTE.toString())
-        .reduce((obj, key) => {
-          obj[key] = options[key];
-          return obj;
-        }, {});
+      options = omit(options, TimeWindow.ONE_MINUTE.toString());
     }
 
     if (isCrashFreeAlert(this.props.dataset)) {
