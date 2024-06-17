@@ -29,7 +29,7 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   const location = useLocation();
   const navigate = useNavigate();
 
-  const insightsTitle = useInsightsTitle(moduleName);
+  const insightsTitle = useInsightsTitle();
   const moduleTitle = useModuleTitle(moduleName);
 
   const fullPageTitle = [pageTitle, moduleTitle, insightsTitle]
