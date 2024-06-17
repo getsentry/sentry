@@ -2035,12 +2035,7 @@
   dependencies:
     "@opentelemetry/api" "^1.0.0"
 
-"@opentelemetry/api@^1.0.0", "@opentelemetry/api@^1.6.0":
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.8.0.tgz#5aa7abb48f23f693068ed2999ae627d2f7d902ec"
-  integrity sha512-I/s6F7yKUDdtMsoBWXJe8Qz40Tui5vsuKCWJEWVL+5q9sSWRzzx6v2KeNsOBEwd94j0eWkpWCH4yB6rZg9Mf0w==
-
-"@opentelemetry/api@^1.8", "@opentelemetry/api@^1.9.0":
+"@opentelemetry/api@^1.0.0", "@opentelemetry/api@^1.6.0", "@opentelemetry/api@^1.8", "@opentelemetry/api@^1.9.0":
   version "1.9.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/api/-/api-1.9.0.tgz#d03eba68273dc0f7509e2a3d5cba21eae10379fe"
   integrity sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg==
@@ -2057,19 +2052,12 @@
   dependencies:
     "@opentelemetry/semantic-conventions" "1.23.0"
 
-"@opentelemetry/core@1.25.0", "@opentelemetry/core@^1.25.0":
+"@opentelemetry/core@1.25.0", "@opentelemetry/core@^1.1.0", "@opentelemetry/core@^1.25.0", "@opentelemetry/core@^1.8.0":
   version "1.25.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-1.25.0.tgz#ad034f5c2669f589bd703bfbbaa38b51f8504053"
   integrity sha512-n0B3s8rrqGrasTgNkXLKXzN0fXo+6IYP7M5b7AMsrZM33f/y6DS6kJ0Btd7SespASWq8bgL3taLo0oe0vB52IQ==
   dependencies:
     "@opentelemetry/semantic-conventions" "1.25.0"
-
-"@opentelemetry/core@^1.1.0", "@opentelemetry/core@^1.8.0":
-  version "1.24.1"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/core/-/core-1.24.1.tgz#35ab9d2ac9ca938e0ffbdfa40c49c169ac8ba80d"
-  integrity sha512-wMSGfsdmibI88K9wB498zXY04yThPexo8jvwNNlm542HZB7XrrMRBbAyKJqG8qDRJwIBdBrPMi4V9ZPW/sqrcg==
-  dependencies:
-    "@opentelemetry/semantic-conventions" "1.24.1"
 
 "@opentelemetry/instrumentation-connect@0.37.0":
   version "0.37.0"
@@ -2288,12 +2276,7 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.23.0.tgz#627f2721b960fe586b7f72a07912cb7699f06eef"
   integrity sha512-MiqFvfOzfR31t8cc74CTP1OZfz7MbqpAnLCra8NqQoaHJX6ncIRTdYOQYBDQ2uFISDq0WY8Y9dDTWvsgzzBYRg==
 
-"@opentelemetry/semantic-conventions@1.24.1", "@opentelemetry/semantic-conventions@^1.17.0", "@opentelemetry/semantic-conventions@^1.22.0", "@opentelemetry/semantic-conventions@^1.23.0":
-  version "1.24.1"
-  resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.24.1.tgz#d4bcebda1cb5146d47a2a53daaa7922f8e084dfb"
-  integrity sha512-VkliWlS4/+GHLLW7J/rVBA00uXus1SWvwFvcUDxDwmFxYfg/2VI6ekwdXS28cjI8Qz2ky2BzG8OUHo+WeYIWqw==
-
-"@opentelemetry/semantic-conventions@1.25.0", "@opentelemetry/semantic-conventions@^1.25.0":
+"@opentelemetry/semantic-conventions@1.25.0", "@opentelemetry/semantic-conventions@^1.17.0", "@opentelemetry/semantic-conventions@^1.22.0", "@opentelemetry/semantic-conventions@^1.23.0", "@opentelemetry/semantic-conventions@^1.25.0":
   version "1.25.0"
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.25.0.tgz#390eb4d42a29c66bdc30066af9035645e9bb7270"
   integrity sha512-M+kkXKRAIAiAP6qYyesfrC5TOmDpDVtsxuGfPcqd9B/iBrac+E14jYwrgm0yZBUIbIP2OnqC3j+UgkXLm1vxUQ==
@@ -3095,41 +3078,42 @@
     "@sentry/types" "8.9.2"
     "@sentry/utils" "8.9.2"
 
-"@sentry-internal/rrdom@2.18.0":
-  version "2.18.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.18.0.tgz#163ade84879094420c2f915852f5d416f9dfc196"
-  integrity sha512-lXGWfX3e0E6PLZp/myD5snbf6IIDCoS6XiShhmCLHPb69bbR50O8vRlGEPiniL4qozezRi6hSY8Ass4uF+wdqg==
+"@sentry-internal/rrdom@2.22.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrdom/-/rrdom-2.22.0.tgz#464a70c5c0949d1684fa9e9ac3c3f5d01312f434"
+  integrity sha512-dcTFNxrjqABV9/6JANmxBgyb1jrWey0JJ/Ss2U8/MRaTq0GYLbf6/iGMaciH6NOGT9Fc1CYjkKDh7HllPWTQ1A==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.18.0"
+    "@sentry-internal/rrweb-snapshot" "2.22.0"
 
-"@sentry-internal/rrweb-player@2.18.0":
-  version "2.18.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-2.18.0.tgz#aba7b2faa30c7fda1006788121a8dcde262c6699"
-  integrity sha512-qObX+d5wnTRkeo4Btl61AN3dIP0bq3nbuxyehRYqu6B74O267Qub4KZ7qE4XzSyZ5P+9MdBVXKBNHvK6KjdQjg==
+"@sentry-internal/rrweb-player@2.22.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-player/-/rrweb-player-2.22.0.tgz#9e03ea3f8b604293a7ea8f013cc61d8a7168312d"
+  integrity sha512-HuCJjwhFKHkNKz01OTxclo1F9jhqGF7ym6mu/6EVqGe2r27WYrCpArkOtUKH/nmTiIw1a9fR8Zr9el2Haccy4A==
   dependencies:
-    "@sentry-internal/rrweb" "2.18.0"
+    "@sentry-internal/rrweb" "2.22.0"
     "@tsconfig/svelte" "^1.0.0"
 
-"@sentry-internal/rrweb-snapshot@2.18.0":
-  version "2.18.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.18.0.tgz#5dd348ac2d27eb717328add0112a5e463eb3afc0"
-  integrity sha512-HeyR/WZarWZIFya+6HeAfe7Fz5RF0ehVaBrKB3F08TqbD8pk1UHn6FFV4irB/vOUjcChJzKMZQ6rs2TlsjJjVg==
+"@sentry-internal/rrweb-snapshot@2.22.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-snapshot/-/rrweb-snapshot-2.22.0.tgz#28e274331bb062ddf81111d8906c0a286d48b162"
+  integrity sha512-bIe7kyS8ZBWFdmk36LgCI6iNnGV/SR1B+bqNbfwrG4OlB87mVO3BWevKise9+qEaNrtFeG4FyzaeB3L9KjjQMw==
 
-"@sentry-internal/rrweb-types@2.18.0":
-  version "2.18.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.18.0.tgz#97706642d86e2500e2fd31a8fb72a9c7a21f4d60"
-  integrity sha512-5WRVxz+jcUB/xo+m4vipcm6VbDbQtRL/l+8PusFAz8GuCwN5nR7VoNQU4uNbwrWcVg/U6rLi4cY3Rdb2e3mfxw==
+"@sentry-internal/rrweb-types@2.22.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb-types/-/rrweb-types-2.22.0.tgz#37b89d0be5da98162a2177d9f6a43efe38d17420"
+  integrity sha512-QNFUKf3lLEatiwcm+bVJrX478kGGTWOrWumf6rnNLT/YKgF4yuZekv478dYu6pvydw/hfl9WIR8dE6L8J6I0mQ==
   dependencies:
-    "@sentry-internal/rrweb-snapshot" "2.18.0"
+    "@sentry-internal/rrweb-snapshot" "2.22.0"
+    "@types/css-font-loading-module" "0.0.7"
 
-"@sentry-internal/rrweb@2.18.0":
-  version "2.18.0"
-  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.18.0.tgz#3726c5af0d41a352f7314efb20406a64b0691a71"
-  integrity sha512-FV+ZcndQyHkYAUB+1MChkINLS5Y6K+GIQ5WPFNSbue1LT98tCB6z0sMzVy5Z6TOCTl5GIaMcDwqwI8L96PmlIg==
+"@sentry-internal/rrweb@2.22.0":
+  version "2.22.0"
+  resolved "https://registry.yarnpkg.com/@sentry-internal/rrweb/-/rrweb-2.22.0.tgz#2a7bf421cd9d6b13855e3f37f2197a1c66d1ef1c"
+  integrity sha512-EBlINAN8acig/8840uKk5/8RT5CAvvzn0tyqrk3Xr2UahYnw37xU211anzZqbIS5BwST1cJw9lJBE3xoYBIGHA==
   dependencies:
-    "@sentry-internal/rrdom" "2.18.0"
-    "@sentry-internal/rrweb-snapshot" "2.18.0"
-    "@sentry-internal/rrweb-types" "2.18.0"
+    "@sentry-internal/rrdom" "2.22.0"
+    "@sentry-internal/rrweb-snapshot" "2.22.0"
+    "@sentry-internal/rrweb-types" "2.22.0"
     "@types/css-font-loading-module" "0.0.7"
     "@xstate/fsm" "^1.4.0"
     base64-arraybuffer "^1.0.1"
@@ -8947,13 +8931,6 @@ lru-cache@^5.1.1:
   dependencies:
     yallist "^3.0.2"
 
-lru-cache@^6.0.0:
-  version "6.0.0"
-  resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-6.0.0.tgz#6d6fe6570ebd96aaf90fcad1dafa3b2566db3a94"
-  integrity sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==
-  dependencies:
-    yallist "^4.0.0"
-
 "lru-cache@^9.1.1 || ^10.0.0":
   version "10.0.1"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-10.0.1.tgz#0a3be479df549cca0e5d693ac402ff19537a6b7a"
@@ -10829,11 +10806,9 @@ semver@^6.0.0, semver@^6.3.0, semver@^6.3.1:
   integrity sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==
 
 semver@^7.3.5, semver@^7.3.7, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4, semver@^7.6.0:
-  version "7.6.0"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.0.tgz#1a46a4db4bffcccd97b743b5005c8325f23d4e2d"
-  integrity sha512-EnwXhrlwXMk9gKu5/flx5sv/an57AkRplG3hTK68W7FRDN+k+OWBj65M7719OkA82XLBxrcX0KSHj+X5COhOVg==
-  dependencies:
-    lru-cache "^6.0.0"
+  version "7.6.2"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.2.tgz#1e3b34759f896e8f14d6134732ce798aeb0c6e13"
+  integrity sha512-FNAIBWCx9qcRhoHcgcJ0gvU7SN1lYU2ZXuSfl04bSC5OpvDHFyJCjdNHomPXxjQlCBU67YW64PzY7/VIEH7F2w==
 
 send@0.18.0:
   version "0.18.0"
@@ -12277,11 +12252,6 @@ yallist@^3.0.2:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/yallist/-/yallist-3.1.1.tgz#dbb7daf9bfd8bac9ab45ebf602b8cbad0d5d08fd"
   integrity sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==
-
-yallist@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/yallist/-/yallist-4.0.0.tgz#9bb92790d9c0effec63be73519e11a35019a3a72"
-  integrity sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==
 
 yaml@^1.10.0:
   version "1.10.2"
