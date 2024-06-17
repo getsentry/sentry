@@ -162,9 +162,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             method="delete",
             metricsExtractionRules=new_rule_json_2,
         )
-        assert response.status_code == 200
-        data = response.data
-        assert len(data) == 1
+        assert response.status_code == 204
 
         project_state = MetricsExtractionRuleState.load_from_project(self.project)
         project_rules = project_state.get_rules()
@@ -215,9 +213,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             method="delete",
             metricsExtractionRules=non_existing_rule,
         )
-        assert response.status_code == 200
-        data = response.data
-        assert len(data) == 0
+        assert response.status_code == 204
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_malformed_json(self):

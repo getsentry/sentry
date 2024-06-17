@@ -86,29 +86,21 @@ class MetricsExtractionRuleState:
 
 
 def update_metrics_extraction_rules(
-    project: Project, updated_rules: str
+    project: Project, state_update: dict[str, MetricsExtractionRule]
 ) -> Sequence[MetricsExtractionRule]:
     state = MetricsExtractionRuleState.load_from_project(project)
-    deserialized_rules = json.loads(updated_rules)
-
-    for updated_rule in deserialized_rules:
-        rule = MetricsExtractionRule.from_dict(updated_rule)
-        mri = rule.generate_mri()
-        state.rules[mri] = rule
-
+    state.rules.update(state_update)
     state.save_to_project(project)
     return state.get_rules()
 
 
 def delete_metrics_extraction_rules(
-    project: Project, deleted_rules: str
-) -> Sequence[MetricsExtractionRule]:
+    project: Project, state_update: Sequence[MetricsExtractionRule]
+) -> None:
     state = MetricsExtractionRuleState.load_from_project(project)
-    deserialized_rules = json.loads(deleted_rules)
 
-    for updated_rule in deserialized_rules:
-        rule = MetricsExtractionRule.from_dict(updated_rule)
+    for rule in state_update:
         state.delete_rule(rule)
 
     state.save_to_project(project)
-    return state.get_rules()
+    return

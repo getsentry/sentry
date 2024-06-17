@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,9 +12,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_extraction_rules import MetricsExtractionRuleSerializer
 from sentry.models.project import Project
 from sentry.sentry_metrics.extraction_rules import (
+    MetricsExtractionRule,
     delete_metrics_extraction_rules,
     update_metrics_extraction_rules,
 )
+from sentry.utils import json
 
 """
 Open Questions
@@ -44,7 +48,8 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             return Response(status=200)
 
         try:
-            persisted_rules = update_metrics_extraction_rules(project, rules_update)
+            state_update = self._deserialize_rules_update(rules_update)
+            persisted_rules = update_metrics_extraction_rules(project, state_update)
             updated_rules = serialize(
                 persisted_rules, request.user, MetricsExtractionRuleSerializer()
             )
@@ -53,20 +58,39 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
         return Response(status=200, data=updated_rules)
 
+    def _deserialize_rules_update(self, json_payload: str):
+        state_update = {}
+        deserialized_rules_update = json.loads(json_payload)
+
+        for deserialized_rule_update in deserialized_rules_update:
+            rule = MetricsExtractionRule.from_dict(deserialized_rule_update)
+            mri = rule.generate_mri()
+            state_update[mri] = rule
+
+        return state_update
+
     def delete(self, request: Request, project: Project) -> Response:
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
         rules_update = request.data.get("metricsExtractionRules") or ""
         if len(rules_update) == 0:
-            return Response(status=200)
+            return Response(status=204)
 
         try:
-            persisted_rules = delete_metrics_extraction_rules(project, rules_update)
-            updated_rules = serialize(
-                persisted_rules, request.user, MetricsExtractionRuleSerializer()
-            )
+            state_update = self._deserialize_deleted_rules_update(rules_update)
+            delete_metrics_extraction_rules(project, state_update)
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
-        return Response(status=200, data=updated_rules)
+        return Response(status=204)
+
+    def _deserialize_deleted_rules_update(
+        self, json_payload: str
+    ) -> Sequence[MetricsExtractionRule]:
+        deserialized_rules = json.loads(json_payload)
+        state_update = []
+        for updated_rule in deserialized_rules:
+            state_update.append(MetricsExtractionRule.from_dict(updated_rule))
+
+        return state_update
