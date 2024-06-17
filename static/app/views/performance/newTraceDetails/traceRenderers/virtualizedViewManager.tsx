@@ -1173,23 +1173,25 @@ export class VirtualizedViewManager {
     const TEXT_PADDING = 2;
 
     const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
-    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
+    const text_anchor_left =
+      span_space[0] > this.to_origin + this.trace_space.width * 0.8;
     const width = this.text_measurer.measure(text);
 
     const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
-    const left = Math.min(span_space[0], timestamps[0]);
-    const right = Math.max(span_space[0] + span_space[1], timestamps[1]);
+    const text_left = Math.min(span_space[0], timestamps[0]);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
 
     // precompute all anchor points aot, so we make the control flow more readable.
     /// |---| text
-    const right_outside = this.computeTransformXFromTimestamp(right) + TEXT_PADDING;
+    const right_outside = this.computeTransformXFromTimestamp(text_right) + TEXT_PADDING;
     // |---text|
     const right_inside =
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) - TEXT_PADDING;
     // |text---|
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
-    const left_outside = this.computeTransformXFromTimestamp(left) - TEXT_PADDING - width;
+    const left_outside =
+      this.computeTransformXFromTimestamp(text_left) - TEXT_PADDING - width;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
@@ -1213,22 +1215,22 @@ export class VirtualizedViewManager {
 
     // Span is completely outside of the view on the left side
     if (span_right < this.trace_view.x) {
-      return text_left ? [1, right_inside] : [0, right_outside];
+      return text_anchor_left ? [1, right_inside] : [0, right_outside];
     }
 
     // Span is completely outside of the view on the right side
     if (span_left > this.trace_view.right) {
-      return text_left ? [0, left_outside] : [1, left_inside];
+      return text_anchor_left ? [0, left_outside] : [1, left_inside];
     }
 
     // Span "spans" the entire view
     if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return text_left ? [1, window_left] : [1, window_right];
+      return text_anchor_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];
 
-    if (text_left) {
+    if (text_anchor_left) {
       // While we have space on the left, place the text there
       if (space_left > 0) {
         return [0, left_outside];
