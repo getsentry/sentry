@@ -14,6 +14,8 @@ FRONTEND = {
     "javascript-vue",
     "javascript-nextjs",
     "javascript-remix",
+    "javascript-solid",
+    "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-astro",
