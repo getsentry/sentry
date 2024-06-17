@@ -38,9 +38,8 @@ class BitbucketSearchEndpoint(IntegrationEndpoint):
         if not query:
             return Response({"detail": "query is a required parameter"}, status=400)
 
-        installation: BitbucketIntegration = integration.get_installation(
-            organization_id=organization.id
-        )
+        installation = integration.get_installation(organization_id=organization.id)
+        assert isinstance(installation, BitbucketIntegration), installation
 
         if field == "externalIssue":
             repo = request.GET.get("repo")

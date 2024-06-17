@@ -358,6 +358,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-hydration-error-issue-creation", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable linking from 'new issue' email notifs to the issue replay list
     manager.add("organizations:session-replay-issue-emails", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable queries to materialized view from replay index endpoint
+    manager.add("organizations:session-replay-materialized-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable mobile replay player
     manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile replay player network tab
@@ -387,8 +389,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable improvements to Slack notifications
     manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Feature flags for migrating to the Slack SDK WebClient
-    # Use new Slack SDK Client for sending activity messages in threads
-    manager.add("organizations:slack-sdk-activity-threads", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client for sending metric alerts
     manager.add("organizations:slack-sdk-metric-alert", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in _notify_recipient

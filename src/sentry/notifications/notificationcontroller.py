@@ -72,11 +72,10 @@ class NotificationController:
         self.type = type
         self.provider = provider
 
+        org_mapping = OrganizationMapping.objects.filter(organization_id=organization_id).first()
         org = (
-            serialize_organization_mapping(
-                OrganizationMapping.objects.filter(organization_id=organization_id).first()
-            )
-            if organization_id
+            serialize_organization_mapping(org_mapping)
+            if organization_id and org_mapping is not None
             else None
         )
         if org and features.has("organizations:team-workflow-notifications", org):
@@ -290,11 +289,12 @@ class NotificationController:
             )
         )
 
+        org_mapping = OrganizationMapping.objects.filter(
+            organization_id=self.organization_id
+        ).first()
         org = (
-            serialize_organization_mapping(
-                OrganizationMapping.objects.filter(organization_id=self.organization_id).first()
-            )
-            if self.organization_id
+            serialize_organization_mapping(org_mapping)
+            if self.organization_id and org_mapping is not None
             else None
         )
         has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)

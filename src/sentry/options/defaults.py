@@ -2542,6 +2542,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# max number of profile chunks to use for computing
+# the merged profile.
+register(
+    "profiling.continuous-profiling.chunks-set.size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enable orjson in the occurrence_consumer.process_[message|batch]
 register(
     "issues.occurrence_consumer.use_orjson",

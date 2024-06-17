@@ -1318,7 +1318,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: OrganizationFixture({}),
+        organization: OrganizationFixture(),
       });
 
       expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();

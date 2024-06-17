@@ -71,9 +71,7 @@ class ReleaseActivityNotification(ActivityNotification):
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:
         if not self.user_id_team_lookup:
-            lookup: Mapping[int, list[int]] = OrganizationMember.objects.get_teams_by_user(
-                self.organization
-            )
+            lookup = OrganizationMember.objects.get_teams_by_user(self.organization)
             self.user_id_team_lookup = lookup
         return self.user_id_team_lookup
 
