@@ -175,6 +175,42 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "count_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            self.resolve_metric("transaction.duration"),
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [self.builder.column(args["if_col"]), args["if_val"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "count_miserable",
                     required_args=[
                         fields.MetricArg(
@@ -641,12 +677,14 @@ class MetricsDatasetConfig(DatasetConfig):
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_weighted_web_vital_score_with_computed_total_count_function
-                    if features.has(
-                        "organizations:starfish-browser-webvitals-score-computed-total",
-                        self.builder.params.organization,
-                    )
-                    else self._resolve_weighted_web_vital_score_function,
+                    snql_distribution=(
+                        self._resolve_weighted_web_vital_score_with_computed_total_count_function
+                        if features.has(
+                            "organizations:starfish-browser-webvitals-score-computed-total",
+                            self.builder.params.organization,
+                        )
+                        else self._resolve_weighted_web_vital_score_function
+                    ),
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
