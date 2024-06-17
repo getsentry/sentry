@@ -25,7 +25,7 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.search.events.fields import get_function_alias
-from sentry.seer.breakpoints import BreakpointData, detect_breakpoints
+from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
 from sentry.statistical_detectors.algorithm import DetectorAlgorithm
 from sentry.statistical_detectors.base import DetectorPayload, DetectorState, TrendType
 from sentry.statistical_detectors.issue_platform_adapter import fingerprint_regression
@@ -211,7 +211,7 @@ class RegressionDetector(ABC):
                     "request_end": serialized["end"],
                 }
 
-            request = {
+            request: BreakpointRequest = {
                 "data": data,
                 "sort": "-trend_percentage()",
                 "min_change": cls.min_change,
