@@ -38,6 +38,7 @@ CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
 }
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.backfill.logger")
 @mock.patch("sentry.seer.similarity.backfill.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_logger: MagicMock):

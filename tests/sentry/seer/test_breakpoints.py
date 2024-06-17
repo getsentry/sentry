@@ -31,6 +31,7 @@ def test_detect_breakpoints(mock_urlopen):
     assert detect_breakpoints({"data": {}}) == data
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     ["body", "status"],
     [
