@@ -70,16 +70,10 @@ function ReplayLayout({
     );
   }
 
-  const focusArea = (
-    <FluidPanel
-      title={
-        isLoading ? (
-          <Placeholder width="704px" height="32px" style={{marginBottom: '8px'}} />
-        ) : (
-          <SmallMarginFocusTabs isVideoReplay={isVideoReplay} />
-        )
-      }
-    >
+  const focusArea = isLoading ? (
+    <Placeholder width="100%" height="100%" />
+  ) : (
+    <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
         <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
       </ErrorBoundary>
