@@ -7,10 +7,12 @@ import type {TraceType} from 'sentry/views/performance/newTraceDetails/traceType
 
 const trackTraceMetadata = (tree: TraceTree, organization: Organization) => {
   Sentry.metrics.increment(`trace.trace_shape.${tree.shape}`);
+  // space[1] represents the node duration (in milliseconds)
+  const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
   trackAnalytics('trace.metadata', {
     shape: tree.shape,
-    // space[1] represents the node duration (in milliseconds)
-    trace_duration_seconds: (tree.root.space?.[1] ?? 0) / 1000,
+    // round trace_duration_seconds to nearest two decimal places
+    trace_duration_seconds: Math.round(trace_duration_seconds * 100) / 100,
     num_root_children: tree.root.children.length,
     organization,
   });

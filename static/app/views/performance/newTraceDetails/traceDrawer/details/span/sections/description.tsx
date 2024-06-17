@@ -77,12 +77,18 @@ export function SpanDescription({
             spanSlug: {op: span.op, group: groupHash},
             projectID: event.projectID,
           })}
-          onClick={() =>
-            trackAnalytics('trace.trace_layout.view_span_summary', {
-              organization,
-              module: resolvedModule,
-            })
-          }
+          onClick={() => {
+            hasNewSpansUIFlag
+              ? trackAnalytics('trace.trace_layout.view_span_summary', {
+                  organization,
+                  module: resolvedModule,
+                })
+              : trackAnalytics('trace.trace_layout.view_similar_spans', {
+                  organization,
+                  module: resolvedModule,
+                  source: 'span_description',
+                });
+          }}
         >
           {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
         </Button>

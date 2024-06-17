@@ -31,6 +31,7 @@ export type TracingEventParameters = {
   'trace.trace_layout.view_shortcuts': {};
   'trace.trace_layout.view_similar_spans': {
     module: string;
+    source: string;
   };
   'trace.trace_layout.view_span_summary': {
     module: string;

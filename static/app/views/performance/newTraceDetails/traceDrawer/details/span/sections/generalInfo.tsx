@@ -95,6 +95,7 @@ export function GeneralInfo(props: GeneralnfoProps) {
               trackAnalytics('trace.trace_layout.view_similar_spans', {
                 organization: props.organization,
                 module: resolvedModule,
+                source: 'general_info',
               })
             }
           />
