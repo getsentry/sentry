@@ -943,7 +943,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most time consuming resources widget', async function () {
-    const data = initializeData(undefined, {features: ['performance-insights']});
+    const data = initializeData();
 
     wrapper = render(
       <MEPSettingProvider forceTransactions>
