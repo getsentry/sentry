@@ -14,7 +14,7 @@ export interface ColorConfig {
 
 export interface ItemProps {
   icon: React.ReactNode;
-  timestamp: string;
+  timeString: string;
   title: React.ReactNode;
   children?: React.ReactNode;
   colorConfig?: ColorConfig;
@@ -22,31 +22,30 @@ export interface ItemProps {
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
-  startTimestamp?: string;
+  startTimeString?: string;
 }
 
 export function Item({
   title,
   children,
   icon,
-  timestamp,
-  startTimestamp,
+  timeString,
+  startTimeString,
   colorConfig = {primary: 'gray300', secondary: 'gray200'},
   isActive = false,
   onClick,
   onMouseEnter,
   onMouseLeave,
 }: ItemProps) {
-  const hasRelativeTime = defined(startTimestamp);
+  const hasRelativeTime = defined(startTimeString);
   const placeholderTime = useMemo(() => new Date().toTimeString(), []);
-
   const {
     displayTime,
     date,
     timeWithMilliseconds: preciseTime,
   } = hasRelativeTime
-    ? getFormattedTimestamp(timestamp, startTimestamp, true)
-    : getFormattedTimestamp(timestamp, placeholderTime);
+    ? getFormattedTimestamp(timeString, startTimeString, true)
+    : getFormattedTimestamp(timeString, placeholderTime);
 
   return (
     <Row
