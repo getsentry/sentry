@@ -16,7 +16,7 @@ export default function BrowserOSIcons({
   const replayRecord = replay?.getReplay();
 
   return isLoading ? (
-    <Placeholder width="60px" height="32px" />
+    <Placeholder width="50px" height="32px" />
   ) : (
     <Fragment>
       <Tooltip title={`${replayRecord?.os.name ?? ''} ${replayRecord?.os.version ?? ''}`}>
