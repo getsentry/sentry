@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sentry.models.project import Project
+from sentry.sentry_metrics.use_case_utils import string_to_use_case_id
 from sentry.utils import json
 
 METRICS_EXTRACTION_RULES_OPTION_KEY = "sentry:metrics_extraction_rules"
@@ -38,7 +39,8 @@ class MetricsExtractionRule:
 
     def generate_mri(self, use_case: str = "custom"):
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
-        return f"{self.type}:{use_case}/{self.span_attribute}@{self.unit}"
+        use_case_id = string_to_use_case_id(use_case)
+        return f"{self.type}:{use_case_id}/{self.span_attribute}@{self.unit}"
 
     def __hash__(self):
         return hash(self.generate_mri())
