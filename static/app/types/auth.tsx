@@ -102,9 +102,19 @@ export type ChallengeData = {
   webAuthnRegisterData: string;
 };
 
+/**
+ * UserVerificationState is used in WebAuthn, see:
+ * https://developers.yubico.com/WebAuthn/WebAuthn_Developer_Guide/User_Presence_vs_User_Verification.html
+ */
+enum UserVerificationState {
+  REQUIRED = 'required',
+  PREFERRED = 'preferred',
+  DISCOURAGED = 'discouraged',
+}
+
 export type AuthStateData = {
   challenge: string;
-  user_verification: 'required' | 'preferred' | 'discouraged' | null;
+  user_verification?: UserVerificationState;
 };
 
 export type EnrolledAuthenticator = {

@@ -34,7 +34,6 @@ type Props = {
 };
 
 type State = {
-  authStateElement: HTMLInputElement | null;
   challengeElement: HTMLInputElement | null;
   deviceFailure: string | null;
   failCount: number;
@@ -43,19 +42,19 @@ type State = {
   isSafari: boolean;
   isSupported: boolean | null;
   responseElement: HTMLInputElement | null;
+  authStateElement?: HTMLInputElement | null;
 };
 
 class U2fInterface extends Component<Props, State> {
   state: State = {
-    isSupported: null,
-    formElement: null,
     challengeElement: null,
-    hasBeenTapped: false,
     deviceFailure: null,
-    responseElement: null,
-    authStateElement: null,
-    isSafari: false,
     failCount: 0,
+    formElement: null,
+    hasBeenTapped: false,
+    isSafari: false,
+    isSupported: null,
+    responseElement: null,
   };
 
   componentDidMount() {
@@ -130,8 +129,9 @@ class U2fInterface extends Component<Props, State> {
               this.state.responseElement.value = u2fResponse;
             }
             if (this.state.authStateElement && authStateData) {
-              // eslint-disable-next-line react/no-direct-mutation-state
-              this.state.authStateElement.value = authStateData;
+              this.setState({
+                authStateElement: authStateData as unknown as HTMLInputElement,
+              });
             }
 
             if (!this.props.onTap) {
