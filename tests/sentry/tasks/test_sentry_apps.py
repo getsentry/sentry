@@ -36,7 +36,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -240,6 +239,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -310,6 +310,7 @@ class TestProcessResourceChange(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         ((args, kwargs),) = safe_urlopen.call_args_list
@@ -405,6 +406,7 @@ class TestSendResourceChangeWebhook(TestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(safe_urlopen.mock_calls) == 2
@@ -441,7 +443,6 @@ class TestInstallationWebhook(TestCase):
         assert len(run.mock_calls) == 0
 
 
-@override_options({"sentryapps.get_installation_cached": 1.0})
 @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
 class TestCommentWebhook(TestCase):
     def setUp(self):

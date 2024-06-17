@@ -88,9 +88,7 @@ describe('UserFeedback', function () {
     });
 
     const params = {
-      organization: OrganizationFixture({
-        projects: [ProjectFixture({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -109,9 +107,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: OrganizationFixture({
-        projects: [ProjectFixture({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       location: {
         ...routeProps.location,
         pathname: 'sentry',
@@ -129,9 +125,7 @@ describe('UserFeedback', function () {
 
   it('renders issue status filter', async function () {
     const params = {
-      organization: OrganizationFixture({
-        projects: [ProjectFixture({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       params: {
         orgId: organization.slug,
       },
@@ -163,9 +157,7 @@ describe('UserFeedback', function () {
 
     const params = {
       ...routeProps,
-      organization: OrganizationFixture({
-        projects: [ProjectFixture({isMember: true})],
-      }),
+      organization: OrganizationFixture(),
       location: {
         ...routeProps.location,
         pathname: 'sentry',

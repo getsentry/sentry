@@ -1,7 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment} from 'react';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ExternalLink from 'sentry/components/links/externalLink';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
@@ -30,13 +28,13 @@ import type {
   DeviceOrientationFrame,
   ErrorFrame,
   FeedbackFrame,
-  LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
   NavFrame,
   ReplayFrame,
   SlowClickFrame,
   TapFrame,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
@@ -175,11 +173,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       'There was a conflict between the server rendered html and the first client render.'
     ),
     tabKey: TabKey.BREADCRUMBS,
-    title: (
-      <Fragment>
-        Hydration Error <FeatureBadge type="beta" />
-      </Fragment>
-    ),
+    title: 'Hydration Error',
     icon: <IconFire size="xs" />,
   }),
   'ui.click': frame => ({
@@ -273,7 +267,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
-  'largest-contentful-paint': (frame: LargestContentfulPaintFrame) => ({
+  'largest-contentful-paint': (frame: WebVitalFrame) => ({
     color: 'gray300',
     description:
       typeof frame.data.value === 'number' ? (

@@ -11,6 +11,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
@@ -31,7 +32,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/starfish/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 type Props = {
   data: TableData | undefined;
@@ -231,7 +232,17 @@ export function ScreensTable({data, eventView, isLoading, pageLinks, onCursor}: 
           renderBodyCell,
         }}
       />
-      <Pagination pageLinks={pageLinks} onCursor={onCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={onCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.SCREEN_LOAD,
+            direction,
+          });
+        }}
+      />
     </Fragment>
   );
 }

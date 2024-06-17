@@ -43,19 +43,12 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
+SNUBA_QUERY_RATELIMIT = 4
 
 logger = logging.getLogger(__name__)
 
 
 class FeatureError(Exception):
-    pass
-
-
-class NoNodestoreDataError(Exception):
-    pass
-
-
-class NoMoreGroupsToBackfillError(Exception):
     pass
 
 
@@ -112,13 +105,13 @@ def backfill_seer_grouping_records(
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
-    try:
-        (
-            groups_to_backfill_with_no_embedding,
-            batch_end_index,
-            total_groups_to_backfill_length,
-        ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
-    except NoMoreGroupsToBackfillError:
+    (
+        groups_to_backfill_with_no_embedding,
+        batch_end_index,
+        total_groups_to_backfill_length,
+    ) = get_current_batch_groups_from_postgres(project, last_processed_index, batch_size)
+
+    if len(groups_to_backfill_with_no_embedding) == 0:
         return
 
     last_group_id = groups_to_backfill_with_no_embedding[-1]
@@ -130,11 +123,21 @@ def backfill_seer_grouping_records(
         groups_to_backfill_with_no_embedding_has_snuba_row,
     ) = filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, project)
 
-    try:
-        nodestore_results, group_hashes_dict = get_events_from_nodestore(
-            project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+    if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:
+        call_next_backfill(
+            batch_end_index,
+            project_id,
+            redis_client,
+            total_groups_to_backfill_length,
+            last_group_id,
+            dry_run,
         )
-    except NoNodestoreDataError:
+        return
+
+    nodestore_results, group_hashes_dict = get_events_from_nodestore(
+        project, filtered_snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+    )
+    if not group_hashes_dict:
         call_next_backfill(
             batch_end_index,
             project_id,
@@ -272,7 +275,11 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
             "backfill_seer_grouping_records.no_more_groups",
             extra={"project_id": project.id},
         )
-        raise NoMoreGroupsToBackfillError("No more groups to backfill")
+        return (
+            groups_to_backfill_batch,
+            batch_end_index,
+            total_groups_to_backfill_length,
+        )
 
     groups_to_backfill_with_no_embedding = [
         group_id
@@ -295,56 +302,62 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
 
 
 @sentry_sdk.tracing.trace
-def get_data_from_snuba(project, group_id_batch_filtered):
+def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
     # TODO(jangjodi): Only query per group if it has over 1 million events, or batch queries with new where condition
     events_entity = Entity("events", alias="events")
 
-    snuba_requests = []
-    for group_id in group_id_batch_filtered:
-        group = Group.objects.get(id=group_id)
-        query = Query(
-            match=events_entity,
-            select=[
-                Column("group_id"),
-                Column("event_id"),
-            ],
-            where=[
-                Condition(Column("project_id"), Op.EQ, project.id),
-                Condition(Column("group_id"), Op.EQ, group_id),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.GTE,
-                    group.last_seen - timedelta(minutes=5),
-                ),
-                Condition(
-                    Column("timestamp", entity=events_entity),
-                    Op.LT,
-                    group.last_seen + timedelta(minutes=5),
-                ),
-            ],
-            limit=Limit(1),
-        )
+    snuba_results = []
+    for group_ids_chunk in chunked(groups_to_backfill_with_no_embedding, SNUBA_QUERY_RATELIMIT):
+        snuba_requests = []
+        for group_id in group_ids_chunk:
+            group = Group.objects.get(id=group_id)
+            query = Query(
+                match=events_entity,
+                select=[
+                    Column("group_id"),
+                    Column("event_id"),
+                ],
+                where=[
+                    Condition(Column("project_id"), Op.EQ, project.id),
+                    Condition(Column("group_id"), Op.EQ, group_id),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.GTE,
+                        group.last_seen - timedelta(minutes=5),
+                    ),
+                    Condition(
+                        Column("timestamp", entity=events_entity),
+                        Op.LT,
+                        group.last_seen + timedelta(minutes=5),
+                    ),
+                ],
+                limit=Limit(1),
+            )
 
-        request = Request(
-            dataset=Dataset.Events.value,
-            app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-            query=query,
-            tenant_ids={
-                "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
-                "cross_org_query": 1,
-            },
-        )
-        snuba_requests.append(request)
+            request = Request(
+                dataset=Dataset.Events.value,
+                app_id=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                query=query,
+                tenant_ids={
+                    "referrer": Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value,
+                    "cross_org_query": 1,
+                },
+            )
+            snuba_requests.append(request)
 
-    with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-        snuba_results = bulk_snuba_queries(
-            snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
-        )
+        with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
+            snuba_results_chunk = bulk_snuba_queries(
+                snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            )
+        snuba_results += snuba_results_chunk
+
     return snuba_results
 
 
 @sentry_sdk.tracing.trace
-def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
+def get_events_from_nodestore(
+    project, snuba_results, groups_to_backfill_with_no_embedding_has_snuba_row
+):
     nodestore_events = lookup_group_data_stacktrace_bulk(project, snuba_results)
     # If nodestore returns no data
     if len(nodestore_events) == 0:
@@ -352,10 +365,13 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
             "tasks.backfill_seer_grouping_records.no_data",
             extra={
                 "project_id": project.id,
-                "group_id_batch": json.dumps(group_id_batch_filtered),
+                "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding_has_snuba_row),
             },
         )
-        raise NoNodestoreDataError("No data found in nodestore")
+        return (
+            GroupStacktraceData(data=[], stacktrace_list=[]),
+            {},
+        )
 
     group_data = []
     stacktrace_strings = []
@@ -378,6 +394,7 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
                     group_id=group_id,
                     project_id=project.id,
                     message=filter_null_from_event_title(event.title),
+                    exception_type=get_path(event.data, "exception", "values", -1, "type"),
                     hash=primary_hash,
                 )
             )
@@ -390,13 +407,15 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
         group_stacktrace_data["group_id"]: group_stacktrace_data["hash"]
         for group_stacktrace_data in group_data
     }
-    logger.info(
-        "backfill_seer_grouping_records.invalid_group_ids",
-        extra={
-            "project_id": project.id,
-            "invalid_group_ids": invalid_event_group_ids,
-        },
-    )
+    if len(invalid_event_group_ids) > 0:
+        logger.info(
+            "backfill_seer_grouping_records.invalid_group_ids",
+            extra={
+                "project_id": project.id,
+                "invalid_group_ids": invalid_event_group_ids,
+            },
+        )
+
     return (
         GroupStacktraceData(data=group_data, stacktrace_list=stacktrace_strings),
         group_hashes_dict,
@@ -404,10 +423,12 @@ def get_events_from_nodestore(project, snuba_results, group_id_batch_filtered):
 
 
 @sentry_sdk.tracing.trace
-def send_group_and_stacktrace_to_seer(project, group_id_batch_filtered, nodestore_results):
+def send_group_and_stacktrace_to_seer(
+    project, groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
+):
     seer_response = post_bulk_grouping_records(
         CreateGroupingRecordsRequest(
-            group_id_list=group_id_batch_filtered,
+            group_id_list=groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
             data=nodestore_results["data"],
             stacktrace_list=nodestore_results["stacktrace_list"],
         )

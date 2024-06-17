@@ -1,6 +1,7 @@
 import {useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import Tag from 'sentry/components/badge/tag';
 import {LinkButton} from 'sentry/components/button';
@@ -26,6 +27,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
 
 import type {SpanResult, TraceResult} from './content';
 import type {Field} from './data';
@@ -264,6 +267,7 @@ interface SpanIdRendererProps {
   timestamp: string;
   traceId: string;
   transactionId: string;
+  onClick?: () => void;
 }
 
 export function SpanIdRenderer({
@@ -272,6 +276,7 @@ export function SpanIdRenderer({
   timestamp,
   traceId,
   transactionId,
+  onClick,
 }: SpanIdRendererProps) {
   const location = useLocation();
   const organization = useOrganization();
@@ -284,13 +289,20 @@ export function SpanIdRenderer({
     organization,
     location,
     spanId,
+    source: TraceViewSources.TRACES,
   });
 
-  return <Link to={target}>{getShortEventId(spanId)}</Link>;
+  return (
+    <Link to={target} onClick={onClick}>
+      {getShortEventId(spanId)}
+    </Link>
+  );
 }
 
 interface TraceIdRendererProps {
+  location: Location;
   traceId: string;
+  onClick?: () => void;
   timestamp?: DateString;
   transactionId?: string;
 }
@@ -299,26 +311,30 @@ export function TraceIdRenderer({
   traceId,
   timestamp,
   transactionId,
+  location,
+  onClick,
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const stringOrNumberTimestamp =
     timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
 
-  const target = getTraceDetailsUrl(
+  const target = getTraceDetailsUrl({
     organization,
-    traceId,
-    {
+    traceSlug: traceId,
+    dateSelection: {
       start: selection.datetime.start,
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    stringOrNumberTimestamp,
-    transactionId
-  );
+    timestamp: stringOrNumberTimestamp,
+    eventId: transactionId,
+    location,
+    source: TraceViewSources.TRACES,
+  });
 
   return (
-    <Link to={target} style={{minWidth: '66px', textAlign: 'right'}}>
+    <Link to={target} style={{minWidth: '66px', textAlign: 'right'}} onClick={onClick}>
       {getShortEventId(traceId)}
     </Link>
   );
@@ -350,7 +366,13 @@ export function TransactionRenderer({
   return <Link to={target}>{transaction}</Link>;
 }
 
-export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
+export function TraceIssuesRenderer({
+  trace,
+  onClick,
+}: {
+  trace: TraceResult<Field>;
+  onClick?: () => void;
+}) {
   const organization = useOrganization();
 
   const issueCount = trace.numErrors + trace.numOccurrences;
@@ -365,6 +387,7 @@ export function TraceIssuesRenderer({trace}: {trace: TraceResult<Field>}) {
           query: `trace:"${trace.trace}"`,
         },
       })}
+      onClick={onClick}
       size="xs"
       icon={<IconIssues size="xs" />}
       disabled={issueCount === 0}

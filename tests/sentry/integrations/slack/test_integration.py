@@ -1,5 +1,7 @@
+from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
+import orjson
 import responses
 from responses.matchers import query_string_matcher
 
@@ -15,6 +17,22 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
+@patch(
+    "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+    return_value={
+        "body": orjson.dumps(
+            {
+                "ok": True,
+                "team": {
+                    "domain": "test-slack-workspace",
+                    "icon": {"image_132": "http://example.com/ws_icon.jpg"},
+                },
+            }
+        ).decode(),
+        "headers": {},
+        "status": 200,
+    },
+)
 class SlackIntegrationTest(IntegrationTestCase):
     provider = SlackIntegrationProvider
 
@@ -79,17 +97,6 @@ class SlackIntegrationTest(IntegrationTestCase):
                 "response_metadata": {"next_cursor": ""},
             },
         )
-        responses.add(
-            responses.GET,
-            "https://slack.com/api/team.info",
-            json={
-                "ok": True,
-                "team": {
-                    "domain": "test-slack-workspace",
-                    "icon": {"image_132": "http://example.com/ws_icon.jpg"},
-                },
-            },
-        )
         resp = self.client.get(
             "{}?{}".format(
                 self.setup_path,
@@ -114,7 +121,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_bot_flow(self):
+    def test_bot_flow_slack_sdk(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
 
@@ -142,7 +149,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_bot_flow_customer_domains(self):
+    def test_bot_flow_customer_domains(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow(customer_domain=f"{self.organization.slug}.testserver")
 
@@ -170,7 +177,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert audit_log_event.render(audit_entry) == "installed Example for the slack integration"
 
     @responses.activate
-    def test_multiple_integrations(self):
+    def test_multiple_integrations(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
         with self.tasks():
@@ -200,7 +207,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         assert identities[0].idp != identities[1].idp
 
     @responses.activate
-    def test_reassign_user(self):
+    def test_reassign_user(self, mock_api_call):
         """Test that when you install and then later re-install and the user who installs it
         has a different external ID, their Identity is updated to reflect that
         """

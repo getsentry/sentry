@@ -85,7 +85,10 @@ export function CronTimelineSection({event, organization, project}: Props) {
       <LinkButton
         size="xs"
         icon={<IconOpen />}
-        to={`/organizations/${organization.slug}/crons/${project.slug}/${monitorSlug}`}
+        to={{
+          pathname: `/organizations/${organization.slug}/crons/${project.slug}/${monitorSlug}`,
+          query: {environment},
+        }}
       >
         {t('View in Monitor Details')}
       </LinkButton>

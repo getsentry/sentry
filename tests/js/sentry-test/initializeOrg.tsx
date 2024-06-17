@@ -2,7 +2,6 @@ import type {InjectedRouter, PlainRoute, RouteComponentProps} from 'react-router
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {OrgRoleListFixture, TeamRoleListFixture} from 'sentry-fixture/roleList';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import type {Organization} from 'sentry/types/organization';
@@ -34,21 +33,15 @@ interface InitializeOrgOptions<RouterParams> {
  */
 export function initializeOrg<RouterParams = {orgId: string; projectId: string}>({
   organization: additionalOrg,
-  project: additionalProject,
   projects: additionalProjects,
   router: additionalRouter,
 }: InitializeOrgOptions<RouterParams> = {}) {
-  const projects = (
-    additionalProjects ||
-    (additionalProject && [additionalProject]) || [{}]
-  ).map(p => ProjectFixture(p));
+  const organization = OrganizationFixture(additionalOrg);
+  const projects = additionalProjects
+    ? additionalProjects.map(ProjectFixture)
+    : [ProjectFixture()];
+
   const [project] = projects;
-  const organization = OrganizationFixture({
-    projects,
-    ...additionalOrg,
-    orgRoleList: OrgRoleListFixture(),
-    teamRoleList: TeamRoleListFixture(),
-  });
 
   const router = RouterFixture({
     ...additionalRouter,

@@ -65,6 +65,20 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
                 "query_sort": result["sort"],
             },
         )
+        # These groupsearchview entries are temporarily here to ensure that pinned searches
+        # are being dynamically upgraded to custom views until custom views are GA'd, at which
+        # point saved searches will be removed entirely, along with this endpoint.
+        GroupSearchView.objects.create_or_update(
+            organization=organization,
+            user_id=request.user.id,
+            position=1,
+            values={
+                "name": "Prioritized",
+                "query": "is:unresolved issue.priority:[high, medium]",
+                "query_sort": SortOptions.DATE,
+            },
+        )
+
         pinned_search = SavedSearch.objects.get(
             organization=organization,
             owner_id=request.user.id,
@@ -85,7 +99,5 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             type=search_type.value,
             visibility=Visibility.OWNER_PINNED,
         ).delete()
-        GroupSearchView.objects.filter(
-            organization=organization, user_id=request.user.id, position=0
-        ).delete()
+        GroupSearchView.objects.filter(organization=organization, user_id=request.user.id).delete()
         return Response(status=204)

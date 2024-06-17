@@ -463,6 +463,7 @@ const customMetricBackendPlatforms: readonly PlatformKey[] = [
   'dart',
   'deno',
   'dotnet',
+  'dotnet-aspnet',
   'dotnet-aspnetcore',
   'dotnet-awslambda',
   'dotnet-gcpfunctions',

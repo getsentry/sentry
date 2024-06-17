@@ -38,6 +38,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "project_id": self.project.id,
             "stacktrace": "string",
             "message": "message",
+            "exception_type": "FailedToFetchError",
         }
 
         similar_issue_data: Any = {
@@ -59,6 +60,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "project_id": self.project.id,
             "stacktrace": "string",
             "message": "message",
+            "exception_type": "FailedToFetchError",
         }
         assert get_similarity_data_from_seer(params) == []
 
@@ -90,6 +92,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "project_id": self.project.id,
             "stacktrace": "string",
             "message": "message",
+            "exception_type": "FailedToFetchError",
         }
 
         similar_issue_data: Any = {

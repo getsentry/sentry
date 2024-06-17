@@ -26,6 +26,7 @@ from sentry.backup.dependencies import (
     NormalizedModelName,
     PrimaryKeyMap,
     get_model_name,
+    merge_users_for_model_in_org,
 )
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
@@ -38,6 +39,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import unique_db_instance
+from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
 from sentry.models.authenticator import Authenticator
@@ -45,6 +47,7 @@ from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -59,10 +62,10 @@ RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
 
-class UserManager(BaseManager["User"], DjangoUserManager):
+class UserManager(BaseManager["User"], DjangoUserManager["User"]):
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
-    ) -> QuerySet:
+    ) -> QuerySet[User]:
         """
         For a given organization, get the list of members that are only
         connected to a single integration.
@@ -332,7 +335,7 @@ class User(BaseModel, AbstractBaseUser):
             shard_identifier=identifier,
         )
 
-    def merge_to(from_user, to_user):
+    def merge_to(from_user: User, to_user: User) -> None:
         # TODO: we could discover relations automatically and make this useful
         from sentry.models.auditlogentry import AuditLogEntry
         from sentry.models.authenticator import Authenticator
@@ -343,33 +346,55 @@ class User(BaseModel, AbstractBaseUser):
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
         from sentry.models.useremail import UserEmail
 
+        from_user_id = from_user.id
+        to_user_id = to_user.id
+
         audit_logger.info(
-            "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
+            "user.merge", extra={"from_user_id": from_user_id, "to_user_id": to_user_id}
         )
 
-        organization_ids: list[int]
         organization_ids = OrganizationMemberMapping.objects.filter(
-            user_id=from_user.id
+            user_id=from_user_id
         ).values_list("organization_id", flat=True)
 
         for organization_id in organization_ids:
             organization_service.merge_users(
-                organization_id=organization_id, from_user_id=from_user.id, to_user_id=to_user.id
+                organization_id=organization_id, from_user_id=from_user_id, to_user_id=to_user_id
             )
 
-        model_list: tuple[type[BaseModel], ...] = (
+            # Update all organization control models to only use the new user id.
+            #
+            # TODO: in the future, proactively update `OrganizationMemberTeamReplica` as well.
+            with enforce_constraints(
+                transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
+            ):
+                control_side_org_models: tuple[type[BaseModel], ...] = (
+                    OrgAuthToken,
+                    OrganizationMemberMapping,
+                )
+                for model in control_side_org_models:
+                    merge_users_for_model_in_org(
+                        model,
+                        organization_id=organization_id,
+                        from_user_id=from_user_id,
+                        to_user_id=to_user_id,
+                    )
+
+        # While it would be nice to make the following changes in a transaction, there are too many
+        # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
+        # the `IntegrityError`s.
+        user_related_models: tuple[type[BaseModel], ...] = (
             Authenticator,
             Identity,
             UserAvatar,
             UserEmail,
             UserOption,
         )
-
-        for model in model_list:
-            for obj in model.objects.filter(user_id=from_user.id):
+        for model in user_related_models:
+            for obj in model.objects.filter(user_id=from_user_id):
                 try:
                     with transaction.atomic(using=router.db_for_write(User)):
-                        obj.update(user_id=to_user.id)
+                        obj.update(user_id=to_user_id)
                 except IntegrityError:
                     pass
 
@@ -385,7 +410,7 @@ class User(BaseModel, AbstractBaseUser):
             for ai in AuthIdentity.objects.filter(
                 user=from_user,
                 auth_provider__organization_id__in=AuthIdentity.objects.filter(
-                    user_id=to_user.id
+                    user_id=to_user_id
                 ).values("auth_provider__organization_id"),
             ):
                 ai.delete()

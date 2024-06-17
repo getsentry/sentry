@@ -10,7 +10,6 @@ from pydantic.fields import Field
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import ValidateFunction, Value
-from sentry.models.options.option import HasOption
 from sentry.services.hybrid_cloud import OptionValue, RpcModel
 
 
@@ -22,7 +21,7 @@ class ProjectFilterArgs(TypedDict, total=False):
     project_ids: list[int]
 
 
-class RpcProject(RpcModel, HasOption):
+class RpcProject(RpcModel):
     id: int = -1
     slug: str = ""
     name: str = ""

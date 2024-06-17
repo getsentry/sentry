@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Union, cast
 
 from snuba_sdk import (
+    And,
     BooleanCondition,
     Column,
     Condition,
@@ -570,7 +571,13 @@ def _query_meta_table(
         metric_id = resolve_weak(use_case_id, org_id, mri)
         if metric_id == -1:
             raise MetricDoesNotExistException(f"Unknown metric: {mri}")
-        extra_condition = Condition(Column("metric_id"), Op.EQ, metric_id)
+        extra_condition = And(
+            [
+                Condition(Column("metric_id"), Op.EQ, metric_id),
+                Condition(Column("tag_key"), Op.NEQ, 0),
+            ]
+        )
+
     else:
         column_name = "metric_id"
         extra_condition = None
@@ -627,8 +634,9 @@ def _query_meta_table(
     grouped_results: dict[int, list[str]] = {}
     for result in results:
         for row in result["data"]:
-            mri = resolved_ids[row[column_name]]
-            grouped_results.setdefault(row["project_id"], list()).append(mri)
+            indexed_id = row[column_name]
+            val = resolved_ids[indexed_id]
+            grouped_results.setdefault(row["project_id"], list()).append(val)
 
     return grouped_results
 

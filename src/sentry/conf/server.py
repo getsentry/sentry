@@ -926,10 +926,6 @@ CELERY_QUEUES_REGION = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
-    Queue(
-        "symbolications.compute_low_priority_projects",
-        routing_key="symbolications.compute_low_priority_projects",
-    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
@@ -1444,7 +1440,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
-    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
     "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
@@ -1773,7 +1768,7 @@ SENTRY_ENDPOINT: str | None = None
 SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
-# `organizations:org-subdomains` feature.
+# `organizations:org-ingest-subdomains` feature.
 SENTRY_ORG_SUBDOMAIN_TEMPLATE = "o{organization_id}.ingest"
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
@@ -2202,11 +2197,6 @@ SENTRY_USE_SPOTLIGHT = False
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
-# This flags enables the `peanutbutter` realtime metrics backend.
-# See https://github.com/getsentry/peanutbutter.
-# We do not want/need this in normal devservices, but we need it for certain tests.
-SENTRY_USE_PEANUTBUTTER = False
-
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2464,14 +2454,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"8969/tcp": 8969},
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
-        }
-    ),
-    "peanutbutter": lambda settings, options: (
-        {
-            "image": "us.gcr.io/sentryio/peanutbutter:latest",
-            "environment": {},
-            "ports": {"4433/tcp": 4433},
-            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
         }
     ),
 }
@@ -3075,15 +3057,21 @@ SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 # This value is already adjusted according to the
 # `symbolicate-event.low-priority.metrics.submission-rate` option.
 SENTRY_LPQ_OPTIONS = {
-    # This is the per-project budget in per-second "symbolication time budget".
+    # These are the per-project budget in per-second "symbolication time budget".
+    # There is one budget for each of the symbolication platforms: native, js, and jvm.
+    # The "project_budget" value exists for backward compatibility.
     #
-    # This has been arbitrarily chosen as `5.0` for now, which means an average of:
+    # This has been arbitrarily chosen as `5.0` for native and js, which means an average of:
     # -  1x 5-second event per second, or
     # -  5x 1-second events per second, or
     # - 10x 0.5-second events per second
     #
+    # For jvm events we use a higher budget of `7.5`.
     # Cost increases quadratically with symbolication time.
-    "project_budget": 5.0
+    "project_budget": 5.0,
+    "project_budget_native": 5.0,
+    "project_budget_js": 5.0,
+    "project_budget_jvm": 7.5,
 }
 
 # XXX(meredith): Temporary metrics indexer
@@ -3378,7 +3366,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-notes",
     "sentry-api-0-group-note-details",
     "sentry-api-0-group-hashes",
-    "sentry-api-0-group-hashes-split",
     "sentry-api-0-group-reprocessing",
     "sentry-api-0-group-stats",
     "sentry-api-0-group-tags",
@@ -3437,6 +3424,9 @@ SEER_GROUPING_RECORDS_URL = (
 SEER_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
+
+# TODO: Remove this soon, just a way to configure a project for this before we implement properly
+UPTIME_POC_PROJECT_ID = 1
 
 
 # Devserver configuration overrides.

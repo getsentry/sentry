@@ -99,7 +99,7 @@ export const Queries = memo(function Queries({
   return (
     <ExpressionsWrapper>
       {metricQueries.map((query, index) => (
-        <ExpressionWrapper key={index}>
+        <ExpressionWrapper key={query.id}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={query.isHidden}
@@ -143,7 +143,7 @@ export const Queries = memo(function Queries({
         </ExpressionWrapper>
       ))}
       {metricEquations.map((equation, index) => (
-        <ExpressionWrapper key={index}>
+        <ExpressionWrapper key={equation.id}>
           {showQuerySymbols && (
             <QueryToggle
               isHidden={equation.isHidden}

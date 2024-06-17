@@ -23,10 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {
-  DATA_TYPE as RESOURCE_DATA_TYPE,
-  PERFORMANCE_DATA_TYPE as PERFORMANCE_RESOURCE_DATA_TYPE,
-} from 'sentry/views/performance/browser/resources/settings';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/starfish/components/samplesTable/spanSamplesTable';
@@ -46,6 +43,7 @@ type Props = {
   moduleName: ModuleName;
   transactionName: string;
   onClose?: () => void;
+  referrer?: string;
   transactionMethod?: string;
   transactionRoute?: string;
 };
@@ -57,6 +55,7 @@ export function SampleList({
   transactionMethod,
   onClose,
   transactionRoute = '/performance/summary/',
+  referrer,
 }: Props) {
   const router = useRouter();
   const [highlightedSpanId, setHighlightedSpanId] = useState<string | undefined>(
@@ -146,11 +145,6 @@ export function SampleList({
     SpanIndexedField.TRANSACTION_ID,
   ];
 
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-  const resourceDataType = isInsightsEnabled
-    ? RESOURCE_DATA_TYPE
-    : PERFORMANCE_RESOURCE_DATA_TYPE;
-
   if (moduleName === ModuleName.RESOURCE) {
     additionalFields?.push(SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH);
     additionalFields?.push(SpanIndexedField.SPAN_DESCRIPTION);
@@ -164,7 +158,7 @@ export function SampleList({
       },
       {
         key: SPAN_DESCRIPTION,
-        name: `${resourceDataType} ${t('Name')}`,
+        name: `${DATA_TYPE} ${t('Name')}`,
         width: COL_WIDTH_UNDEFINED,
       },
     ];
@@ -250,6 +244,7 @@ export function SampleList({
           spanSearch={spanSearch}
           columnOrder={columnOrder}
           additionalFields={additionalFields}
+          referrer={referrer}
         />
       </DetailPanel>
     </PageAlertProvider>

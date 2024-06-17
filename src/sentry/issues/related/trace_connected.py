@@ -15,16 +15,11 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 # If we drop trace connected issues from similar issues we can stop using the group
 def trace_connected_analysis(
-    group: Group, extra_args: dict[str, str | None] | None = None
+    group: Group, event_id: str | None = None, project_id: int | None = None
 ) -> tuple[list[int], dict[str, str]]:
     """Determine if the group has a trace connected to it and return other issues that were part of it."""
-    if extra_args is None:
-        extra_args = {}
-
     issues: list[int] = []
     meta: dict[str, str] = {}
-    event_id = extra_args.get("event_id")
-    project_id = extra_args.get("project_id")
     if event_id:
         # If we are passing an specific event_id, we need to get the project_id
         assert project_id is not None

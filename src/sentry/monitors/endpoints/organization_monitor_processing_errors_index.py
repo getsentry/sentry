@@ -27,7 +27,7 @@ class OrganizationMonitorProcessingErrorsIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Retrieve checkin processing errors for an Organization",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
         ],
         responses={
             200: inline_sentry_response_serializer(

@@ -79,18 +79,6 @@ class DatabaseBackedAppService(AppService):
         except SentryAppInstallation.DoesNotExist:
             return None
 
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        try:
-            install = SentryAppInstallation.objects.get(
-                organization_id=organization_id,
-                sentry_app_id=sentry_app_id,
-            )
-            return serialize_sentry_app_installation(install)
-        except SentryAppInstallation.DoesNotExist:
-            return None
-
     def get_sentry_app_by_slug(self, *, slug: str) -> RpcSentryApp | None:
         try:
             sentry_app = SentryApp.objects.get(slug=slug)
@@ -178,7 +166,7 @@ class DatabaseBackedAppService(AppService):
     ):
         def base_query(self, select_related: bool = True) -> QuerySet[SentryAppInstallation]:
             if not select_related:
-                return SentryAppInstallation.objects
+                return SentryAppInstallation.objects.all()
             return SentryAppInstallation.objects.select_related("sentry_app")
 
         def filter_arg_validator(

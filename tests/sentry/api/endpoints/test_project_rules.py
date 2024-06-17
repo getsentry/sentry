@@ -4,7 +4,6 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 from unittest.mock import patch
-from urllib.parse import parse_qs
 from uuid import uuid4
 
 import orjson
@@ -13,9 +12,6 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
@@ -380,7 +376,16 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
-    def test_slack_confirmation_notification_contents(self):
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch(
+        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+        return_value={
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        },
+    )
+    def test_slack_confirmation_notification_contents(self, mock_api_call, mock_post):
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
@@ -391,21 +396,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             ),
         )
 
-        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=True).build()
-        payload = {
-            "text": blocks.get("text"),
-            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
-            "channel": self.channel_id,
-            "unfurl_links": False,
-            "unfurl_media": False,
-        }
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(payload),
-        )
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -421,13 +411,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         rule_id = response.data["id"]
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == self.channel_id
-        data = parse_qs(responses.calls[1].request.body)
-        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
-        assert data["text"][0] == message
-        rendered_blocks = orjson.loads(data["blocks"][0])
-        assert rendered_blocks[0]["text"]["text"] == message
+        sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        message = "*Alert rule created*\n\n"
+        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project and will send notifications to this channel."
+        assert sent_blocks[0]["text"]["text"] == message
         assert (
-            rendered_blocks[1]["elements"][0]["text"]
+            sent_blocks[1]["elements"][0]["text"]
             == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
         )
 

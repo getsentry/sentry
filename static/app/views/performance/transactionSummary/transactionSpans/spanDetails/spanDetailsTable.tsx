@@ -21,13 +21,14 @@ import type {ColumnType} from 'sentry/utils/discover/fields';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import toPercent from 'sentry/utils/number/toPercent';
 import type {
   ExampleTransaction,
   SuspectSpan,
 } from 'sentry/utils/performance/suspectSpans/types';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type TableColumnKeys =
   | 'id'
@@ -169,6 +170,7 @@ function renderBodyCellWithMeta(
         organization,
         spanId: worstSpan.id,
         transactionName: transactionName,
+        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
       });
 
       rendered = <Link to={target}>{rendered}</Link>;

@@ -128,7 +128,7 @@ describe('Autofix', () => {
 
   it('can reset and try again while running', async () => {
     const autofixData = AutofixDataFixture({
-      steps: [AutofixStepFixture({})],
+      steps: [AutofixStepFixture()],
     });
 
     MockApiClient.addMockResponse({

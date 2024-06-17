@@ -2,7 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
 from typing import Any, TypedDict
@@ -13,7 +13,6 @@ from pydantic import Field
 
 from sentry import roles
 from sentry.db.models import ValidateFunction, Value
-from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
@@ -194,7 +193,7 @@ class RpcOrganizationInvite(RpcModel):
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
+class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -255,7 +254,7 @@ class RpcOrganization(RpcOrganizationSummary):
         from sentry.services.hybrid_cloud.user.service import user_service
 
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            owners = OrganizationMemberMapping.objects.filter(
+            owners: Iterable[int | None] = OrganizationMemberMapping.objects.filter(
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
         else:

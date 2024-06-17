@@ -221,7 +221,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
                 </TextBlock>
                 <TextBlock>
                   {t(
-                    'Please enter the email of an organization owner to whom you would like to transfer this project.'
+                    'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
                   )}
                 </TextBlock>
                 <Panel>
