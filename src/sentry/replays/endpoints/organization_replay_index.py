@@ -86,7 +86,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 # to do this for completeness sake.
                 return Response({"detail": "Missing start or end period."}, status=400)
 
-            return query_replays_collection_paginated(
+            query_response = query_replays_collection_paginated(
                 project_ids=filter_params["project_id"],
                 start=start,
                 end=end,
@@ -102,9 +102,9 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
 
             # We set the data-source header so we can figure out which query is giving
             # incorrect or slow results.
-            headers["X-Data-Source"] = response.source
+            headers["X-Data-Source"] = query_response.source
 
-            return response
+            return query_response
 
         response = self.paginate(
             request=request,
