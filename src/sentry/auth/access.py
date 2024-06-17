@@ -1061,7 +1061,7 @@ def _from_sentry_app(
     if not sentry_app_query.exists():
         return NoAccess()
 
-    sentry_app = sentry_app_query.first()
+    sentry_app = sentry_app_query.get()
 
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
