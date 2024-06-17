@@ -40,6 +40,7 @@ const browser: Set<PlatformKey> = new Set([
   'javascript-nextjs',
   'javascript-react',
   'javascript-remix',
+  'javascript-solid',
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
