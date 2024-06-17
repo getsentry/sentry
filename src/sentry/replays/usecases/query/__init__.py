@@ -202,7 +202,7 @@ def query_using_optimized_search(
     period_start: datetime,
     period_stop: datetime,
     request_user_id: int | None = None,
-):
+) -> QueryResponse:
     tenant_id = _make_tenant_id(organization)
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
