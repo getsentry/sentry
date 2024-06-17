@@ -362,7 +362,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
     @with_feature("organizations:slack-sdk-get-users")
     @responses.activate
     def test_link_multiple_users_sdk_client_pagination(self, mock_api_call):
-        self.response_json["response_metadata"]["next_cursor"] = "dXNlcjpVMEc5V0ZYTlo"
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
                 "body": orjson.dumps(
@@ -413,7 +413,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
     @with_feature("organizations:slack-sdk-get-users")
     @responses.activate
     def test_link_multiple_users_sdk_client_pagination_error(self, mock_api_call):
-        self.response_json["response_metadata"]["next_cursor"] = "dXNlcjpVMEc5V0ZYTlo"
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
                 "body": orjson.dumps(
