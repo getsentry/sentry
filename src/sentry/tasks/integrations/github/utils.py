@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class PullRequestIssue:
     title: str
-    subtitle: str
+    subtitle: str | None
     url: str
     affected_users: int | None = None
     event_count: int | None = None
@@ -38,7 +38,7 @@ class GithubAPIErrorType(Enum):
 def create_or_update_comment(
     client: GitHubAppsClient,
     repo: Repository,
-    pr_key: int,
+    pr_key: str,
     comment_body: str,
     pullrequest_id: int,
     issue_list: list[int],
