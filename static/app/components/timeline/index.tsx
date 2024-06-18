@@ -1,4 +1,5 @@
-import {useMemo} from 'react';
+import {useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getFormattedTimestamp} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/time/utils';
@@ -12,7 +13,7 @@ export interface ColorConfig {
   secondary: Color;
 }
 
-export interface ItemProps {
+export interface TimelineItemProps {
   icon: React.ReactNode;
   timeString: string;
   title: React.ReactNode;
@@ -36,9 +37,11 @@ export function Item({
   onClick,
   onMouseEnter,
   onMouseLeave,
-}: ItemProps) {
+}: TimelineItemProps) {
+  const theme = useTheme();
+  const placeholderTime = useRef(new Date().toTimeString()).current;
+  const {primary, secondary} = colorConfig;
   const hasRelativeTime = defined(startTimeString);
-  const placeholderTime = useMemo(() => new Date().toTimeString(), []);
   const {
     displayTime,
     date,
@@ -49,20 +52,32 @@ export function Item({
 
   return (
     <Row
-      color={colorConfig.secondary}
-      hasLowerBorder={isActive ?? false}
+      color={secondary}
+      hasLowerBorder={isActive}
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
+      style={{
+        borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
+      }}
     >
-      <IconWrapper colorConfig={colorConfig} hasIconBorder={isActive ?? false}>
+      <IconWrapper
+        style={{
+          borderColor: isActive ? theme[secondary] : 'transparent',
+          color: theme[primary],
+        }}
+      >
         {icon}
       </IconWrapper>
-      <Title color={colorConfig.primary}>{title}</Title>
+      <Title style={{color: theme[primary]}}>{title}</Title>
       <Timestamp>
-        <Tooltip title={`${preciseTime} - ${date}`}>{displayTime}</Tooltip>
+        <Tooltip title={`${preciseTime} - ${date}`} skipWrapper>
+          {displayTime}
+        </Tooltip>
       </Timestamp>
-      <Spacer hasLine={isActive ?? false} />
+      <Spacer
+        style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}
+      />
       <Content>{children}</Content>
     </Row>
   );
@@ -72,11 +87,11 @@ interface GroupProps {
   children: React.ReactNode;
 }
 
-export function Group({children}: GroupProps) {
-  return <GroupWrapper>{children}</GroupWrapper>;
+export function Container({children}: GroupProps) {
+  return <Wrapper>{children}</Wrapper>;
 }
 
-const GroupWrapper = styled('div')`
+const Wrapper = styled('div')`
   position: relative;
   /* vertical line connecting items */
   &::before {
@@ -90,14 +105,13 @@ const GroupWrapper = styled('div')`
   }
 `;
 
-const Row = styled('div')<{color: string; hasLowerBorder: boolean}>`
+const Row = styled('div')<{hasLowerBorder: boolean}>`
   position: relative;
   color: ${p => p.theme.subText};
   display: grid;
   align-items: center;
   grid-template: auto auto / 22px 1fr auto;
   grid-column-gap: ${space(1)};
-  border-bottom: 1px solid ${p => (p.hasLowerBorder ? p.theme[p.color] : 'transparent')};
   margin: ${space(1)} 0;
   &:first-child {
     margin-top: 0;
@@ -111,13 +125,10 @@ const Row = styled('div')<{color: string; hasLowerBorder: boolean}>`
   }
 `;
 
-const IconWrapper = styled('div')<{colorConfig: ColorConfig; hasIconBorder: boolean}>`
+const IconWrapper = styled('div')`
   grid-column: span 1;
   border-radius: 100%;
   border: 1px solid;
-  border-color: ${p =>
-    p.hasIconBorder ? p.theme[p.colorConfig.secondary] : 'transparent'};
-  color: ${p => p.theme[p.colorConfig.primary]};
   background: ${p => p.theme.background};
   svg {
     display: block;
@@ -125,8 +136,7 @@ const IconWrapper = styled('div')<{colorConfig: ColorConfig; hasIconBorder: bool
   }
 `;
 
-const Title = styled('p')<{color: string}>`
-  color: ${p => p.theme[p.color]};
+const Title = styled('p')`
   margin: 0;
   font-weight: bold;
   text-transform: capitalize;
@@ -136,18 +146,14 @@ const Title = styled('p')<{color: string}>`
 const Timestamp = styled('p')`
   margin: 0 ${space(1)};
   color: ${p => p.theme.subText};
-  span {
-    text-decoration: underline dashed ${p => p.theme.subText};
-  }
+  text-decoration: underline dashed ${p => p.theme.subText};
 `;
 
-const Spacer = styled('div')<{hasLine?: boolean}>`
+const Spacer = styled('div')`
   grid-column: span 1;
   height: 100%;
   width: 0;
   justify-self: center;
-  /* This line overlaps with the vertical line rendered from GroupWrapper */
-  border-left: 1px solid ${p => (p.hasLine ? p.theme.border : 'transparent')};
 `;
 
 const Content = styled('div')`
@@ -175,3 +181,12 @@ export const Data = styled('div')`
     margin-top: 0;
   }
 `;
+
+export const Timeline = {
+  Data,
+  Text,
+  Item,
+  Container,
+};
+
+export default Timeline;

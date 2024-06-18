@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import * as Timeline from 'sentry/components/timeline';
+import Timeline from 'sentry/components/timeline';
 import {
   IconClock,
   IconCursorArrow,
@@ -15,18 +15,16 @@ import storyBook from 'sentry/stories/storyBook';
 
 export default storyBook('Timeline (Updated 06/17/24)', story => {
   story('Usage', () => (
-    <Fragment>
-      <CodeSnippet language="js">
-        import * as Timeline from 'sentry/components/timeline';
-      </CodeSnippet>
-    </Fragment>
+    <CodeSnippet language="js">
+      import Timeline from 'sentry/components/timeline';
+    </CodeSnippet>
   ));
 
   story('<Timeline.Text />', () => (
     <Fragment>
       <p>
-        <code>{'<Timeline.Text/>'}</code> can be used to easily format the children of
-        <code>{'<Timeline.Item>'}</code>. It generally contains descriptive text.
+        <code>{'<Timeline.Text />'}</code> can be used to easily format the children of
+        <code>{'<Timeline.Item />'}</code>. It generally contains descriptive text.
       </p>
       <CodeSnippet language="jsx">
         {`<Timeline.Item ...>
@@ -52,8 +50,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
   story('<Timeline.Data />', () => (
     <Fragment>
       <p>
-        <code>{'<Timeline.Data/>'}</code> is used to format the children of
-        <code>{'<Timeline.Item>'}</code>. It generally contains code snippets or payloads.
+        <code>{'<Timeline.Data />'}</code> is used to format the children of
+        <code>{'<Timeline.Item />'}</code>. It generally contains code snippets or
+        payloads.
       </p>
       <CodeSnippet language="jsx">
         {`<Timeline.Item ...>
@@ -183,15 +182,15 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
     </Fragment>
   ));
 
-  story('<Timeline.Group />', () => (
+  story('<Timeline.Container />', () => (
     <Fragment>
       <p>
-        <code>{'<Timeline.Group/>'}</code> expects to contain{' '}
-        <code>{'<Timeline.Item>'}</code> components. Adds a vertical line behind the
+        <code>{'<Timeline.Container />'}</code> expects to contain{' '}
+        <code>{'<Timeline.Item />'}</code> components. Adds a vertical line behind the
         elements, even if the item is not marked 'isActive'.
       </p>
       <h6>Example</h6>
-      <Timeline.Group>
+      <Timeline.Container>
         <Timeline.Item
           title={'Error'}
           icon={<IconFire size="xs" />}
@@ -251,7 +250,7 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
             <a href="sentry.io">sentry.io</a>
           </Timeline.Text>
         </Timeline.Item>
-      </Timeline.Group>
+      </Timeline.Container>
     </Fragment>
   ));
 });
