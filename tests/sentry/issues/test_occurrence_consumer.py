@@ -29,7 +29,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
@@ -577,3 +577,18 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
 
         group = Group.objects.get(id=group.id)
         assert group.status == status
+
+
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class IssueOccurrenceProcessMessageWithPruningTest(IssueOccurrenceProcessMessageTest):
+    pass
+
+
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class IssueOccurrenceLookupEventIdWithPruningTest(IssueOccurrenceLookupEventIdTest):
+    pass
+
+
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class ParseEventPayloadWithPruningTest(ParseEventPayloadTest):
+    pass
