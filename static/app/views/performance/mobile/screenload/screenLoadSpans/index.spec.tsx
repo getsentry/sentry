@@ -113,10 +113,7 @@ describe('Screen Summary', function () {
     let organization;
     beforeEach(function () {
       const project = ProjectFixture({platform: 'react-native'});
-      organization = OrganizationFixture({
-        features: ['insights-initial-modules'],
-        projects: [project],
-      });
+      organization = OrganizationFixture({features: ['insights-initial-modules']});
       mockResponses(organization, project);
       localStorage.clear();
       browserHistory.push = jest.fn();
@@ -209,10 +206,7 @@ describe('Screen Summary', function () {
     let organization;
     beforeEach(function () {
       const project = ProjectFixture({platform: 'android'});
-      organization = OrganizationFixture({
-        features: ['insights-initial-modules'],
-        projects: [project],
-      });
+      organization = OrganizationFixture({features: ['insights-initial-modules']});
       mockResponses(organization, project);
       localStorage.clear();
       browserHistory.push = jest.fn();

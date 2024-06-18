@@ -1458,6 +1458,7 @@ class Factories:
         date_closed=None,
         seen_by=None,
         alert_rule=None,
+        subscription=None,
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
@@ -1476,6 +1477,7 @@ class Factories:
             date_detected=date_detected or timezone.now(),
             date_closed=timezone.now() if date_closed is not None else date_closed,
             type=IncidentType.ALERT_TRIGGERED.value,
+            subscription=subscription,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -1670,6 +1672,7 @@ class Factories:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
         with outbox_runner():
             organization_integration = integration.add_organization(organization)
+            assert organization_integration is not None
         organization_integration.update(**(oi_params or {}))
 
         return integration

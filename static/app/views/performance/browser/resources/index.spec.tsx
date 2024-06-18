@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import type {DetailedOrganization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ResourcesLandingPage from 'sentry/views/performance/browser/resources';
@@ -123,7 +123,7 @@ const setupMocks = () => {
   });
 };
 
-const setupMockRequests = (organization: DetailedOrganization) => {
+const setupMockRequests = (organization: Organization) => {
   requestMocks.mainTable = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     method: 'GET',

@@ -27,7 +27,6 @@ import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, DateString, PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -239,9 +238,6 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
       }
       if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
         return organization.features.includes('session-replay');
-      }
-      if (opt.value === DATA_CATEGORY_INFO.metrics.plural) {
-        return hasCustomMetrics(organization);
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
         return organization.features.includes('spans-usage-tracking');

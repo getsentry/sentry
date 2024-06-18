@@ -15,7 +15,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes
 from redis.client import Script
 
-from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBKey, TSDBModel
+from sentry.tsdb.base import BaseTSDB, IncrMultiOptions, TSDBItem, TSDBKey, TSDBModel
 from sentry.utils.dates import to_datetime
 from sentry.utils.redis import (
     check_cluster_versions,
@@ -915,13 +915,13 @@ class RedisTSDB(BaseTSDB):
     def get_frequency_series(
         self,
         model: TSDBModel,
-        items: Mapping[str, Sequence[str]],
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, list[tuple[float, dict[str, float]]]]:
+    ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         self.validate_arguments([model], [environment_id])
 
         if not self.enable_frequency_sketches:
@@ -935,7 +935,7 @@ class RedisTSDB(BaseTSDB):
         # provided) with the original input values to compose the result.
         items = {k: list(members) for k, members in items.items()}
 
-        commands: dict[str, list[tuple[Script, list[str], list[str | int]]]] = {}
+        commands: dict[TSDBKey, list[tuple[Script, list[str], list[str | int]]]] = {}
 
         arguments = ["ESTIMATE"] + list(self.DEFAULT_SKETCH_PARAMETERS)
         for item_key, members in items.items():
@@ -949,7 +949,7 @@ class RedisTSDB(BaseTSDB):
 
             commands[item_key] = [(CountMinScript, ks, arguments + list(members))]
 
-        results: dict[str, list[tuple[float, dict[str, float]]]] = {}
+        results: dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]] = {}
 
         cluster, _ = self.get_cluster(environment_id)
         for _key, responses in cluster.execute_commands(commands).items():
@@ -992,10 +992,10 @@ class RedisTSDB(BaseTSDB):
         self,
         model: TSDBModel,
         destination: str,
-        sources: list[str],
+        sources: Sequence[TSDBKey],
         timestamp: datetime | None = None,
         environment_ids: Iterable[int] | None = None,
-    ):
+    ) -> None:
         ids = (set(environment_ids) if environment_ids is not None else set()).union([None])
 
         self.validate_arguments([model], ids)
@@ -1013,9 +1013,8 @@ class RedisTSDB(BaseTSDB):
             rollups.append((rollup, [to_datetime(item) for item in rollup_series]))
 
         for (cluster, durable), _ids in self.get_cluster_groups(ids):
-            exports: dict[str, list[tuple[Script, list[str], list[str]] | list[str]]] = defaultdict(
-                list
-            )
+            exports: dict[TSDBKey, list[tuple[Script, list[str], list[str]] | list[str]]]
+            exports = defaultdict(list)
 
             for source in sources:
                 for rollup, series in rollups:

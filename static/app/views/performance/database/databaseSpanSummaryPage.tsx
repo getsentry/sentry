@@ -18,8 +18,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
+import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
@@ -49,7 +49,7 @@ type Props = RouteComponentProps<Query, {groupId: string}>;
 export function DatabaseSpanSummaryPage({params}: Props) {
   const location = useLocation<Query>();
 
-  const [selectedAggregate] = useSelectedDurationAggregate();
+  const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
 
   const {groupId} = params;
   const {transaction, transactionMethod} = location.query;

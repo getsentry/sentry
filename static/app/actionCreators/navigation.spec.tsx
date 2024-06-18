@@ -20,7 +20,7 @@ describe('navigation ActionCreator', () => {
       },
     });
     router = initialData.router;
-    ProjectsStore.loadInitialData(initialData.organization.projects);
+    ProjectsStore.loadInitialData(initialData.projects);
   });
 
   afterEach(() => {

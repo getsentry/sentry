@@ -42,7 +42,6 @@ function initialize({
   const data = initializeOrg({
     organization: OrganizationFixture({
       features,
-      projects: project ? [project] : [],
     }),
     router: {
       location: {
@@ -54,7 +53,7 @@ function initialize({
       },
     },
   });
-  act(() => ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => ProjectsStore.loadInitialData(data.projects));
   return data;
 }
 

@@ -8,7 +8,7 @@ import ProjectReleaseDetails from './projectReleaseDetails';
 describe('ProjectReleaseDetails', () => {
   it('should dislay if the release is using semver', () => {
     const release = ReleaseFixture();
-    const releaseMeta = ReleaseMetaFixture({});
+    const releaseMeta = ReleaseMetaFixture();
     const {container} = render(
       <ProjectReleaseDetails
         projectSlug="project-slug"

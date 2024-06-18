@@ -13,7 +13,6 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import useOrganization from 'sentry/utils/useOrganization';
 import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
@@ -21,7 +20,6 @@ import ResourceView, {
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
-  PERFORMANCE_MODULE_DESCRIPTION,
 } from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
@@ -40,11 +38,9 @@ export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
-  const organization = useOrganization();
   const moduleTitle = useModuleTitle(ModuleName.RESOURCE);
 
   const crumbs = useModuleBreadcrumbs('resource');
-  const isInsightsEnabled = organization.features.includes('performance-insights');
 
   return (
     <React.Fragment>
@@ -57,9 +53,7 @@ function ResourcesLandingPage() {
               {moduleTitle}
               <PageHeadingQuestionTooltip
                 docsUrl={MODULE_DOC_LINK}
-                title={
-                  isInsightsEnabled ? MODULE_DESCRIPTION : PERFORMANCE_MODULE_DESCRIPTION
-                }
+                title={MODULE_DESCRIPTION}
               />
             </Layout.Title>
           </Layout.HeaderContent>

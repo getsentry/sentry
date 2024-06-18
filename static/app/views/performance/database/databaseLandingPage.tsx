@@ -26,12 +26,12 @@ import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/performance/database/queriesTable';
 import {
   BASE_FILTERS,
+  DEFAULT_DURATION_AGGREGATE,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
@@ -51,7 +51,7 @@ export function DatabaseLandingPage() {
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
 
-  const [selectedAggregate] = useSelectedDurationAggregate();
+  const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
   const spanAction = decodeScalar(location.query?.['span.action']);
   const spanDomain = decodeScalar(location.query?.['span.domain']);
