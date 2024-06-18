@@ -8,8 +8,12 @@ import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect'
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/useFilterButtonProps';
-import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/utils';
 import {
+  getValidOpsForFilter,
+  isDateToken,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  FilterType,
   type ParseResultToken,
   TermOperator,
   type Token,
@@ -33,6 +37,36 @@ const OP_LABELS = {
   [TermOperator.NOT_EQUAL]: 'is not',
 };
 
+const DATE_OP_LABELS = {
+  [TermOperator.GREATER_THAN]: 'is after',
+  [TermOperator.GREATER_THAN_EQUAL]: 'is on or after',
+  [TermOperator.LESS_THAN]: 'is before',
+  [TermOperator.LESS_THAN_EQUAL]: 'is on or before',
+  [TermOperator.EQUAL]: 'is',
+};
+
+const DATE_OPTIONS: TermOperator[] = [
+  TermOperator.GREATER_THAN,
+  TermOperator.GREATER_THAN_EQUAL,
+  TermOperator.LESS_THAN,
+  TermOperator.LESS_THAN_EQUAL,
+  TermOperator.EQUAL,
+];
+
+function getOperatorFromDateToken(token: TokenResult<Token.FILTER>) {
+  switch (token.filter) {
+    case FilterType.DATE:
+    case FilterType.SPECIFIC_DATE:
+      return token.operator;
+    case FilterType.RELATIVE_DATE:
+      return token.value.sign === '+'
+        ? TermOperator.LESS_THAN
+        : TermOperator.GREATER_THAN;
+    default:
+      return TermOperator.DEFAULT;
+  }
+}
+
 function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
   if (token.negated) {
     return TermOperator.NOT_EQUAL;
@@ -41,22 +75,45 @@ function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
   return token.operator;
 }
 
-export function FilterOperator({token, state, item}: FilterOperatorProps) {
-  const {dispatch} = useSearchQueryBuilder();
-  const operator = getTermOperatorFromToken(token);
-  const label = OP_LABELS[operator] ?? operator;
-  const filterButtonProps = useFilterButtonProps({state, item});
+function getOperatorInfo(token: TokenResult<Token.FILTER>): {
+  label: string;
+  operator: TermOperator;
+  options: SelectOption<TermOperator>[];
+} {
+  if (isDateToken(token)) {
+    const operator = getOperatorFromDateToken(token);
+    return {
+      operator,
+      label: DATE_OP_LABELS[operator] ?? operator,
+      options: DATE_OPTIONS.map(
+        (op): SelectOption<TermOperator> => ({
+          value: op,
+          label: DATE_OP_LABELS[op] ?? op,
+        })
+      ),
+    };
+  }
 
-  const options = useMemo<SelectOption<TermOperator>[]>(() => {
-    return getValidOpsForFilter(token)
+  const operator = getTermOperatorFromToken(token);
+  return {
+    operator,
+    label: OP_LABELS[operator] ?? operator,
+    options: getValidOpsForFilter(token)
       .filter(op => op !== TermOperator.EQUAL)
       .map(
         (op): SelectOption<TermOperator> => ({
           value: op,
           label: OP_LABELS[op] ?? op,
         })
-      );
-  }, [token]);
+      ),
+  };
+}
+
+export function FilterOperator({token, state, item}: FilterOperatorProps) {
+  const {dispatch} = useSearchQueryBuilder();
+  const filterButtonProps = useFilterButtonProps({state, item});
+
+  const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
 
   return (
     <CompactSelect
