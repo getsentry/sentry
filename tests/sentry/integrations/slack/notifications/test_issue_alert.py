@@ -31,6 +31,7 @@ from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.silo import assume_test_silo_mode
@@ -351,6 +352,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature("organizations:slack-culprit-blocks")
     def test_issue_alert_team_issue_owners_block(self):
         """
         Test that issue alerts are sent to a team in Slack via an Issue Owners rule action with the

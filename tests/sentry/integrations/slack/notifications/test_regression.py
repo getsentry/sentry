@@ -5,6 +5,7 @@ import responses
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
@@ -69,6 +70,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature({"organizations:slack-culprit-blocks": True})
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
@@ -95,6 +97,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
+    @with_feature("organizations:slack-culprit-blocks")
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,

@@ -1013,6 +1013,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @responses.activate
     @with_feature("organizations:slack-thread-issue-alert")
+    @with_feature("organizations:slack-culprit-blocks")
     def test_resolve_perf_issue_block_kit_improvements(self):
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
