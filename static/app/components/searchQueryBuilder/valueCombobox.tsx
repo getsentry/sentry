@@ -375,7 +375,7 @@ function useFilterSuggestions({
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
 
   // TODO(malwilley): Display error states
-  const {data} = useQuery<string[]>({
+  const {data, isFetching} = useQuery<string[]>({
     queryKey: ['search-query-builder', token.key, inputValue] as QueryKey,
     queryFn: () => getTagValues(key, inputValue),
     keepPreviousData: true,
@@ -452,6 +452,7 @@ function useFilterSuggestions({
   return {
     items,
     suggestionSectionItems,
+    isFetching,
   };
 }
 
@@ -509,7 +510,7 @@ export function SearchQueryBuilderValueCombobox({
         : [],
     [canSelectMultipleValues, token]
   );
-  const {items, suggestionSectionItems} = useFilterSuggestions({
+  const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     inputValue,
     selectedValues,
@@ -600,6 +601,7 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
+        isLoading={isFetching}
         // Ensure that the menu stays open when clicking on the selected items
         shouldCloseOnInteractOutside={el => el !== ref.current}
       >
