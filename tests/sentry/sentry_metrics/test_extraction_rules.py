@@ -10,11 +10,12 @@ def test_serialization():
         MetricsExtractionRule(
             "process_latency",
             "d",
-            "ms",
+            "none",
             {"tag_3"},
             ["first:value second:value", "foo:bar", "greetings:['hello', 'goodbye']"],
         ),
         MetricsExtractionRule("unique_ids", "s", "none", set(), ["foo:bar"]),
+        MetricsExtractionRule("span.duration", "s", "millisecond", set(), ["foo:bar"]),
     ]
 
     rule_dict = {rule.generate_mri(): rule for rule in rules}
@@ -24,7 +25,7 @@ def test_serialization():
 
     serialized = serialize(output_rules, serializer=MetricsExtractionRuleSerializer())
 
-    assert len(serialized) == 3
+    assert len(serialized) == 4
     json_payload = json.dumps(serialized)
 
     serde_state = MetricsExtractionRuleState.from_json(json_payload)
