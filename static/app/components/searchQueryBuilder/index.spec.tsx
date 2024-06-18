@@ -71,7 +71,6 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
       {
         key: 'custom_tag_name',
         name: 'Custom_Tag_Name',
-        values: ['tag value one', 'tag value two', 'tag value three'],
       },
     ],
   },
@@ -918,6 +917,27 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
       expect(
         within(groups[2]).getByRole('option', {name: 'person2@sentry.io'})
+      ).toBeInTheDocument();
+    });
+
+    it('fetches tag values', async function () {
+      const mockGetTagValues = jest.fn().mockResolvedValue(['tag_value_one']);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+      await screen.findByRole('option', {name: 'tag_value_one'});
+      await userEvent.click(screen.getByRole('option', {name: 'tag_value_one'}));
+
+      expect(
+        await screen.findByRole('row', {name: 'custom_tag_name:tag_value_one'})
       ).toBeInTheDocument();
     });
   });
