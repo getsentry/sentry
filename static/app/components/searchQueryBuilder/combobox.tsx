@@ -89,7 +89,10 @@ function itemIsSection(
   return 'options' in item;
 }
 
-function findItemInSections(items: SelectOptionOrSectionWithKey<string>[], key: Key) {
+function findItemInSections(
+  items: SelectOptionOrSectionWithKey<string>[],
+  key: Key | null
+) {
   for (const item of items) {
     if (itemIsSection(item)) {
       const option = item.options.find(child => child.key === key);
@@ -318,7 +321,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   });
 
   const onSelectionChange = useCallback(
-    (key: Key) => {
+    (key: Key | null) => {
       const selectedOption = findItemInSections(items, key);
       if (selectedOption && 'textValue' in selectedOption && selectedOption.textValue) {
         onOptionSelected(selectedOption.textValue);
