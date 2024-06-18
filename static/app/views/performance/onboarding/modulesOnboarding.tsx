@@ -61,6 +61,7 @@ const PerfImage = styled('img')`
   position: absolute;
   bottom: 0;
   right: 0;
+  padding-left: ${space(1)};
 `;
 
 const Container = styled('div')`
