@@ -6,6 +6,7 @@ from django.urls import reverse
 from django.utils.text import slugify
 
 from sentry.api.endpoints.organization_projects_experiment import (
+    DISABLED_FEATURE_ERROR_STRING,
     OrganizationProjectsExperimentEndpoint,
     fetch_slugifed_email_username,
 )

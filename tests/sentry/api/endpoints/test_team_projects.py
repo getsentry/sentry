@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
