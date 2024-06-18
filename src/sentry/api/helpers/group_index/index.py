@@ -91,7 +91,7 @@ def build_query_params_from_request(
 
     if request.GET.get("savedSearch") == "0" and request.user and not has_query:
         if features.has("organizations:issue-stream-custom-views", organization):
-            selected_view_id = request.GET.get("groupSearchViewId")
+            selected_view_id = request.GET.get("searchId")
             if selected_view_id:
                 default_view = GroupSearchView.objects.get(id=int(selected_view_id))
             else:
@@ -127,9 +127,9 @@ def build_query_params_from_request(
                 # pinned saved search
                 saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
 
-            if saved_search:
-                query_kwargs["sort_by"] = saved_search.sort
-                query = saved_search.query
+        if saved_search:
+            query_kwargs["sort_by"] = saved_search.sort
+            query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_tag("search.sort", query)
