@@ -257,7 +257,7 @@ def build_group_to_groupevent(
             if not event:
                 logger.info(
                     "delayed_processing.missing_event",
-                    extra={"rule": rule_group[0], "project_id": project_id},
+                    extra={"rule": rule_group[0], "project_id": project_id, "group_id": group.id},  # type: ignore[union-attr]
                 )
             continue
 
@@ -401,6 +401,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                             "last_active": status.last_active,
                             "freq_offset": freq_offset,
                             "project_id": project_id,
+                            "group_id": group.id,
                         },
                     )
                     break
@@ -414,7 +415,11 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 if not updated:
                     logger.info(
                         "delayed_processing.not_updated",
-                        extra={"status_id": status.id, "project_id": project_id},
+                        extra={
+                            "status_id": status.id,
+                            "project_id": project_id,
+                            "group_id": group.id,
+                        },
                     )
                     break
 
