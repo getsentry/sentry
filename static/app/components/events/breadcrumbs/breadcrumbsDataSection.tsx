@@ -1,9 +1,9 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import color from 'color';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import ClippedBox from 'sentry/components/clippedBox';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -21,6 +21,7 @@ import {
   BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
+import {PANEL_INITIAL_HEIGHT} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
 import {getVirtualCrumb} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import Input from 'sentry/components/input';
 import {IconClock, IconFilter, IconSort} from 'sentry/icons';
@@ -142,7 +143,7 @@ export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionPr
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
         {searchedCrumbs.length ? (
-          <ClippedBox clipHeight={250}>
+          <ScrollBox>
             <BreadcrumbsTimeline
               breadcrumbs={searchedCrumbs}
               virtualCrumbIndex={virtualCrumbIndex}
@@ -150,7 +151,7 @@ export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionPr
               sort={sort}
               timeDisplay={timeDisplay}
             />
-          </ClippedBox>
+          </ScrollBox>
         ) : (
           <EmptyBreadcrumbsMessage>
             {t('No breadcrumbs found. ')}
@@ -185,4 +186,30 @@ const EmptyBreadcrumbsMessage = styled('div')`
 
 const ClearFiltersButton = styled(Button)`
   margin-top: ${space(1)};
+`;
+
+const ScrollBox = styled('div')`
+  position: relative;
+  overflow-y: scroll;
+  resize: vertical;
+  max-height: ${PANEL_INITIAL_HEIGHT}px;
+  /* Unsets max-height when resized */
+  &[style*='height'] {
+    max-height: unset;
+  }
+  padding-right: ${space(2)};
+  &:after {
+    content: '';
+    position: sticky;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 20px;
+    display: block;
+    background-image: linear-gradient(
+      to bottom,
+      ${p => color(p.theme.background).alpha(0.15).string()},
+      ${p => p.theme.background}
+    );
+  }
 `;
