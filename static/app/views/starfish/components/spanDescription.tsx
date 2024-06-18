@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   MissingFrame,
@@ -13,7 +14,6 @@ import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/starfish/queries/useFullSpanFromTrace';
 import type {SpanIndexedFieldTypes} from 'sentry/views/starfish/types';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 interface Props {
   groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];
