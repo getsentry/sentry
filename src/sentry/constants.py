@@ -8,6 +8,7 @@ import os.path
 from collections import namedtuple
 from collections.abc import Sequence
 from datetime import timedelta
+from enum import Enum
 from typing import cast
 
 import sentry_relay.consts
@@ -597,6 +598,18 @@ class ExportQueryType:
             return cls.DISCOVER
         else:
             raise ValueError(f"Not an ExportQueryType str: {string!r}")
+
+
+class InsightModules(Enum):
+    HTTP = "http"
+    DB = "db"
+    ASSETS = "assets"  # previously named resources
+    APP_START = "app_start"
+    SCREEN_LOAD = "screen_load"
+    VITAL = "vital"
+    CACHE = "cache"
+    QUEUE = "queue"
+    LLM_MONITORING = "llm_monitoring"
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
