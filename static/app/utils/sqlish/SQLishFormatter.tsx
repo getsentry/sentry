@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 
-import {simpleMarkup} from 'sentry/views/starfish/utils/sqlish/formatters/simpleMarkup';
-import {string} from 'sentry/views/starfish/utils/sqlish/formatters/string';
-import {SQLishParser} from 'sentry/views/starfish/utils/sqlish/SQLishParser';
+import {simpleMarkup} from 'sentry/utils/sqlish/formatters/simpleMarkup';
+import {string} from 'sentry/utils/sqlish/formatters/string';
+import {SQLishParser} from 'sentry/utils/sqlish/SQLishParser';
 
 type StringFormatterOptions = Parameters<typeof string>[1];
 
