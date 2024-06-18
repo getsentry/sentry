@@ -38,7 +38,6 @@ logger = logging.getLogger(__name__)
 def backfill_seer_grouping_records_for_project(
     project_id: int,
     last_processed_index: int | None,
-    dry_run: bool = False,
     only_delete=False,
     *args: Any,
     **kwargs: Any,
@@ -51,7 +50,7 @@ def backfill_seer_grouping_records_for_project(
 
     try:
         project, redis_client, last_processed_index = initialize_backfill(
-            project_id, last_processed_index, dry_run
+            project_id, last_processed_index
         )
     except FeatureError:
         logger.info(
@@ -95,7 +94,6 @@ def backfill_seer_grouping_records_for_project(
             redis_client,
             total_groups_to_backfill_length,
             last_group_id,
-            dry_run,
         )
         return
 
@@ -109,7 +107,6 @@ def backfill_seer_grouping_records_for_project(
             redis_client,
             total_groups_to_backfill_length,
             last_group_id,
-            dry_run,
         )
         return
 
@@ -136,7 +133,6 @@ def backfill_seer_grouping_records_for_project(
         seer_response,
         groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
         group_hashes_dict,
-        dry_run,
     )
 
     logger.info(
@@ -151,7 +147,6 @@ def backfill_seer_grouping_records_for_project(
         redis_client,
         total_groups_to_backfill_length,
         last_group_id,
-        dry_run,
     )
 
 
@@ -161,7 +156,6 @@ def call_next_backfill(
     redis_client: RedisCluster | StrictRedis,
     len_group_id_batch_unfiltered: int,
     last_group_id: int,
-    dry_run: bool,
 ):
     redis_client.set(
         f"{make_backfill_redis_key(project_id)}",
@@ -176,11 +170,10 @@ def call_next_backfill(
                 "project_id": project_id,
                 "last_processed_index": last_processed_index,
                 "last_processed_group_id": last_group_id,
-                "dry_run": dry_run,
             },
         )
         backfill_seer_grouping_records_for_project.apply_async(
-            args=[project_id, last_processed_index, dry_run],
+            args=[project_id, last_processed_index],
         )
     else:
         logger.info(
@@ -188,6 +181,5 @@ def call_next_backfill(
             extra={
                 "project_id": project_id,
                 "last_processed_index": last_processed_index,
-                "dry_run": dry_run,
             },
         )
