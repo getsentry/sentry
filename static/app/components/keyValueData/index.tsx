@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import type {KeyValueListDataItem, MetaError} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 
-export interface ContentProps {
+export interface KeyValueDataContentProps {
   /**
    * Specifies the item to display.
    * - If set, item.subjectNode will override displaying item.subject.
@@ -46,7 +46,7 @@ export function Content({
   disableLink = false,
   disableFormattedData = false,
   ...props
-}: ContentProps) {
+}: KeyValueDataContentProps) {
   const {subject, subjectNode, value: contextValue, action = {}} = item;
 
   const hasErrors = errors.length > 0;
@@ -89,11 +89,11 @@ export function Content({
   );
 }
 
-export interface CardProps {
+export interface KeyValueDataCardProps {
   /**
    * ContentProps items to be rendered in this card.
    */
-  contentItems: ContentProps[];
+  contentItems: KeyValueDataContentProps[];
   /**
    *  Flag to enable alphabetical sorting by item subject. Uses given item ordering if false.
    */
@@ -113,7 +113,7 @@ export function Card({
   title,
   truncateLength = Infinity,
   sortAlphabetically = false,
-}: CardProps) {
+}: KeyValueDataCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
   if (contentItems.length === 0) {
@@ -145,7 +145,7 @@ export function Card({
   );
 }
 
-type ReactFCWithProps = React.FC<CardProps>;
+type ReactFCWithProps = React.FC<KeyValueDataCardProps>;
 
 const isReactComponent = (type): type is ReactFCWithProps => {
   return (
@@ -175,7 +175,7 @@ const filterChildren = (children: ReactNode): ReactNode[] => {
 // Note: When rendered children have hooks, we need to ensure that there are no hook count mismatches between renders.
 // Instead of rendering rendering {condition ? <Component/> : null}, we should render
 // if(!condition) return null inside Component itself, where Component renders a Card.
-export function Group({children}: {children: React.ReactNode}) {
+export function Container({children}: {children: React.ReactNode}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const columnCount = useIssueDetailsColumnCount(containerRef);
 
@@ -272,3 +272,11 @@ const CardColumn = styled('div')`
 const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
 `;
+
+export const KeyValueData = {
+  Content,
+  Card,
+  Container,
+};
+
+export default KeyValueData;
