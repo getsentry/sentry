@@ -2548,9 +2548,15 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             tags={"release": "2.0.0"},
         )
 
+        countIfRelease1 = "count_if(transaction.duration,release,1.0.0)"
+        countIfRelease2 = "count_if(transaction.duration,release,2.0.0)"
+
         response = self.do_request(
             {
-                "field": ["count_if(release,1.0.0)", "count_if(release,2.0.0)"],
+                "field": [
+                    countIfRelease1,
+                    countIfRelease2,
+                ],
                 "query": "",
                 "project": self.project.id,
                 "dataset": "metrics",
@@ -2561,12 +2567,12 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
 
         assert len(data) == 1
-        assert data[0]["count_if(release,1.0.0)"] == 2
-        assert data[0]["count_if(release,2.0.0)"] == 1
+        assert data[0][countIfRelease1] == 2
+        assert data[0][countIfRelease2] == 1
 
         assert meta["dataset"] == "metrics"
-        assert meta["fields"]["count_if(release,1.0.0)"] == "integer"
-        assert meta["fields"]["count_if(release,2.0.0)"] == "integer"
+        assert meta["fields"][countIfRelease1] == "integer"
+        assert meta["fields"][countIfRelease2] == "integer"
 
     def test_device_class(self):
         self.store_transaction_metric(

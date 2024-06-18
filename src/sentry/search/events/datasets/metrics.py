@@ -178,6 +178,10 @@ class MetricsDatasetConfig(DatasetConfig):
                     "count_if",
                     required_args=[
                         fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.MetricArg(
                             "if_col",
                             allowed_columns=["release"],
                         ),
@@ -185,6 +189,7 @@ class MetricsDatasetConfig(DatasetConfig):
                             "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
                         ),
                     ],
+                    calculated_args=[resolve_metric_id],
                     snql_distribution=lambda args, alias: Function(
                         "countIf",
                         [
@@ -196,7 +201,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                         "equals",
                                         [
                                             Column("metric_id"),
-                                            self.resolve_metric("transaction.duration"),
+                                            args["metric_id"],
                                         ],
                                     ),
                                     Function(
