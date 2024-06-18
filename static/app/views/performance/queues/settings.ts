@@ -48,7 +48,9 @@ export const MODULE_DOC_LINK =
 
 export const ONBOARDING_CONTENT = {
   title: t('Make sure your jobs complete without errors'),
-  description: t('Track the behavior of background jobs at each step in their processing, allowing you to see whether jobs are completing on time and making it easy to debug when they are failing.'),
+  description: t(
+    'Track the behavior of background jobs at each step in their processing, allowing you to see whether jobs are completing on time and making it easy to debug when they are failing.'
+  ),
   link: MODULE_DOC_LINK,
 };
 
