@@ -5,7 +5,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 
-@dataclass
+@dataclass(frozen=True)
 class IdentityParams:
     organization: RpcOrganization
     integration: Integration
@@ -15,7 +15,7 @@ class IdentityParams:
     response_url: str | None = None
 
 
-@dataclass
+@dataclass(frozen=True)
 class TeamIdentityRequest:
     organization_id: str
     integration_id: str

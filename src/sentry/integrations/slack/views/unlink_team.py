@@ -1,4 +1,5 @@
 import logging
+from dataclasses import asdict
 
 from django.core.signing import BadSignature, SignatureExpired
 from django.http import HttpRequest, HttpResponse
@@ -6,6 +7,10 @@ from django.utils.decorators import method_decorator
 
 from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
+from sentry.integrations.slack.metrics import (
+    SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC,
+    SLACK_BOT_COMMAND_UNLINK_TEAM_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.views.types import TeamIdentityRequest
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
@@ -56,8 +61,8 @@ class SlackUnlinkTeamView(BaseView):
     Django view for unlinking team from slack channel. Deletes from ExternalActor table.
     """
 
-    _METRICS_SUCCESS_KEY = "sentry.integrations.slack.unlink_team_view.success"
-    _METRICS_FAILURE_KEY = "sentry.integrations.slack.unlink_team_view.failure"
+    _METRICS_SUCCESS_KEY = SLACK_BOT_COMMAND_UNLINK_TEAM_SUCCESS_DATADOG_METRIC
+    _METRICS_FAILURE_KEY = SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC
 
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponse:
@@ -79,14 +84,8 @@ class SlackUnlinkTeamView(BaseView):
             metrics.incr(self._METRICS_FAILURE_KEY, sample_rate=1.0)
             return render_error_page(request, status=400, body_text="HTTP 400: Invalid parameters")
 
-        logger_params = {
-            "organization_id": params.organization_id,
-            "integration_id": params.integration_id,
-            "channel_id": params.channel_id,
-            "channel_name": params.channel_name,
-            "slack_id": params.slack_id,
-            "user_id": request.user.id,
-        }
+        logger_params = asdict(params)
+        logger_params["user_id"] = request.user.id
 
         integration = integration_service.get_integration(integration_id=params.integration_id)
         if not integration:
@@ -120,7 +119,7 @@ class SlackUnlinkTeamView(BaseView):
         if len(external_teams) == 0:
             _logger.info(
                 "no-team-found",
-                extra={logger_params},
+                extra=logger_params,
             )
             metrics.incr(self._METRICS_FAILURE_KEY + ".get_team", sample_rate=1.0)
             return render_error_page(request, status=404, body_text="HTTP 404: Team not found")
@@ -129,7 +128,7 @@ class SlackUnlinkTeamView(BaseView):
         if team is None:
             _logger.info(
                 "no-team-found",
-                extra={logger_params},
+                extra=logger_params,
             )
             metrics.incr(self._METRICS_FAILURE_KEY + ".get_team", sample_rate=1.0)
             return render_error_page(request, status=404, body_text="HTTP 404: Team not found")
