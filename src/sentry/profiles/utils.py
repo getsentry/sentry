@@ -59,7 +59,7 @@ class RetrySkipTimeout(urllib3.Retry):
 
         metrics.incr("profiling.client.retry", tags={"method": method, "path": path})
 
-        return super().increment(  # type: ignore[return-value]  # urllib3/urllib3#3363
+        return super().increment(
             method=method,
             url=url,
             response=response,
