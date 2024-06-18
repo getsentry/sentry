@@ -23,6 +23,15 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {
+  ModuleName,
+  SpanIndexedField,
+  type SpanMetricsResponse,
+} from 'sentry/views/insights/common/types';
+import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
@@ -43,15 +52,6 @@ import {
 } from 'sentry/views/performance/queues/settings';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
-import {computeAxisMax} from 'sentry/views/starfish/components/chart';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {
-  ModuleName,
-  SpanIndexedField,
-  type SpanMetricsResponse,
-} from 'sentry/views/starfish/types';
-import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 export function MessageSpanSamplesPanel() {
   const router = useRouter();

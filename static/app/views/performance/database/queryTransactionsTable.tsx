@@ -15,13 +15,16 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import type {SpanMetricsResponse} from 'sentry/views/insights/common/types';
+import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
   SpanMetricsResponse,

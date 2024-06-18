@@ -1,8 +1,8 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import type {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_SELF_TIME} = SpanMetricsField;
 

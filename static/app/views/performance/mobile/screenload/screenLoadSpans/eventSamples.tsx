@@ -8,14 +8,14 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 const DEFAULT_SORT = {
   kind: 'desc',

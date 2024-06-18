@@ -23,6 +23,16 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
 import {
   COLD_START_TYPE,
@@ -32,16 +42,6 @@ import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;

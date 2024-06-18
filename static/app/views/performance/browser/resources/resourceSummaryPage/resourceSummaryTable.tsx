@@ -12,19 +12,22 @@ import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
+import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
+import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
 import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
-import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
-import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
-import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,

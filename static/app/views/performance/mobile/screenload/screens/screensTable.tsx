@@ -24,15 +24,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Props = {
   data: TableData | undefined;

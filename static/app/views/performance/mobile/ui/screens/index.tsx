@@ -15,6 +15,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {
@@ -28,9 +31,6 @@ import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
 import {UIScreensTable} from 'sentry/views/performance/mobile/ui/screens/table';
 import {TopScreensChart} from 'sentry/views/performance/mobile/ui/screens/topScreensChart';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 const Y_AXES = [YAxis.SLOW_FRAMES, YAxis.FROZEN_FRAMES, YAxis.FRAMES_DELAY];
 const Y_AXIS_COLUMNS = [

@@ -20,6 +20,13 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
+import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
@@ -37,13 +44,6 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {ActionSelector} from 'sentry/views/starfish/views/spans/selectors/actionSelector';
-import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();

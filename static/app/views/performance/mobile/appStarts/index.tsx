@@ -1,3 +1,4 @@
+import {ModuleName} from 'sentry/views/insights/common/types';
 import AppStartup from 'sentry/views/performance/mobile/appStarts/screens';
 import {StartTypeSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {
@@ -7,7 +8,6 @@ import {
 } from 'sentry/views/performance/mobile/appStarts/settings';
 import ScreensTemplate from 'sentry/views/performance/mobile/components/screensTemplate';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {ModuleName} from 'sentry/views/starfish/types';
 
 export function InitializationModule() {
   return (

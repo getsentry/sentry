@@ -13,11 +13,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import type {ModuleName} from 'sentry/views/insights/common/types';
 import {SpanSamplesContainer} from 'sentry/views/performance/mobile/components/spanSamplesPanelContainer';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import type {ModuleName} from 'sentry/views/starfish/types';
 
 type Props = {
   groupId: string;

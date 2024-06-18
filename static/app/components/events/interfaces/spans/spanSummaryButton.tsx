@@ -4,14 +4,14 @@ import {t, tct} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import {ModuleName} from 'sentry/views/insights/common/types';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 interface Props {
   event: Readonly<EventTransaction>;

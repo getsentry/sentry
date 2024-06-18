@@ -3,17 +3,17 @@ import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import {AVG_COLOR} from 'sentry/views/insights/common/colors';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import type {MetricsQueryFilters} from 'sentry/views/insights/common/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
 import type {DataRow} from 'sentry/views/performance/cache/tables/spanSamplesTable';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
-import {AVG_COLOR} from 'sentry/views/starfish/colors';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import type {MetricsQueryFilters} from 'sentry/views/starfish/types';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 type Props = {
   averageTransactionDuration: number;

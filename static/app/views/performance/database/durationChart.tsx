@@ -1,9 +1,9 @@
 import type {Series} from 'sentry/types/echarts';
+import {AVG_COLOR} from 'sentry/views/insights/common/colors';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colors';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {getDurationChartTitle} from 'sentry/views/starfish/views/spans/types';
 
 interface Props {
   isLoading: boolean;

@@ -5,8 +5,11 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/starfish/types';
-import {getDateConditions} from 'sentry/views/starfish/utils/getDateConditions';
+import type {
+  SpanIndexedField,
+  SpanIndexedResponse,
+} from 'sentry/views/insights/common/types';
+import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
 
 interface UseSpanSamplesOptions<Fields> {
   enabled?: boolean;

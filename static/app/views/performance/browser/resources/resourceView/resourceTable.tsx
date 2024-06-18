@@ -15,6 +15,22 @@ import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAle
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
+import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {
+  ModuleName,
+  SpanFunction,
+  SpanMetricsField,
+} from 'sentry/views/insights/common/types';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {
@@ -24,15 +40,6 @@ import {
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import type {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
-import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
-import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {
   SPAN_DESCRIPTION,

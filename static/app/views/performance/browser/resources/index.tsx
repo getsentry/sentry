@@ -13,6 +13,8 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
+import {ModuleName} from 'sentry/views/insights/common/types';
+import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
@@ -29,8 +31,6 @@ import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resourc
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 

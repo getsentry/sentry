@@ -18,23 +18,23 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/insights/common/colors';
+import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
+import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import {
-  PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/starfish/colors';
-import {LoadingScreen} from 'sentry/views/starfish/components/chart';
-import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 const YAXES = [YAxis.COLD_START, YAxis.WARM_START];
 const XAXIS_CATEGORIES = ['high', 'medium', 'low', 'Unknown'];

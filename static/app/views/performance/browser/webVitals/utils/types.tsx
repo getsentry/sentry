@@ -1,5 +1,5 @@
 import type {Sort} from 'sentry/utils/discover/fields';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import {SpanIndexedField} from 'sentry/views/insights/common/types';
 
 export type Row = {
   'count()': number;

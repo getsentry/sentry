@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
+import type {SpanIndexedResponse} from 'sentry/views/insights/common/types';
 
 export function CacheHitMissCell(props: {hit: SpanIndexedResponse['cache.hit']}) {
   const {hit} = props;
