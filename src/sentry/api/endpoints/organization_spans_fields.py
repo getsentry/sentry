@@ -81,7 +81,8 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 # TODO: prepend the list of sentry defined fields here
                 (row["array_join(tags.key)"], TagKey(row["array_join(tags.key)"]))
                 for row in results["data"]
-            ]
+            ],
+            max_limit=max_span_tags,
         )
 
         return self.paginate(
@@ -116,20 +117,28 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
 
         sentry_sdk.set_tag("query.tag_key", key)
 
+        max_span_tag_values = options.get("performance.spans-tags-values.max")
+
         executor = SpanFieldValuesAutocompletionExecutor(
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
             key=key,
             query=request.GET.get("query"),
+            max_span_tag_values=max_span_tag_values,
         )
         tag_values = executor.execute()
 
-        paginator = SequencePaginator([(tag_value.value, tag_value) for tag_value in tag_values])
+        paginator = SequencePaginator(
+            [(tag_value.value, tag_value) for tag_value in tag_values],
+            max_limit=max_span_tag_values,
+        )
 
         return self.paginate(
             request=request,
             paginator=paginator,
             on_results=lambda results: serialize(results, request.user),
+            default_per_page=max_span_tag_values,
+            max_per_page=max_span_tag_values,
         )
 
 
@@ -162,12 +171,13 @@ class SpanFieldValuesAutocompletionExecutor:
         snuba_params: SnubaParams,
         key: str,
         query: str | None,
+        max_span_tag_values: int,
     ):
         self.params = params
         self.snuba_params = snuba_params
         self.key = key
         self.query = query
-        self.max_span_tags = options.get("performance.spans-tags-values.max")
+        self.max_span_tag_values = max_span_tag_values
 
     def execute(self) -> list[TagValue]:
         if (
@@ -248,7 +258,7 @@ class SpanFieldValuesAutocompletionExecutor:
                 snuba_params=self.snuba_params,
                 selected_columns=[self.key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",
-                limit=self.max_span_tags,
+                limit=self.max_span_tag_values,
                 sample_rate=options.get("performance.spans-tags-key.sample-rate"),
                 config=QueryBuilderConfig(
                     transform_alias_to_input_format=True,
