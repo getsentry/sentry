@@ -174,6 +174,8 @@ describe('OrganizationCreate', function () {
   });
 
   it('renders without a pre-selected region, and does not submit until one is selected', async function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
@@ -210,6 +212,8 @@ describe('OrganizationCreate', function () {
   });
 
   it('uses the host of the selected region when submitting', async function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();

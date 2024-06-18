@@ -71,6 +71,7 @@ function resolveRoute(
     }
     return route;
   }
+
   return `${organizationUrl}${normalizeUrl(route)}`;
 }
 

@@ -47,43 +47,10 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('uses organizationUrl when customer domain is enabled', async function () {
-    OrganizationsStore.load([
-      OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
-      OrganizationFixture({
-        name: 'Organization 2',
-        slug: 'org2',
-        links: {
-          organizationUrl: 'http://org2.sentry.io',
-          regionUrl: 'http://eu.sentry.io',
-        },
-      }),
-    ]);
-    ConfigStore.set('features', new Set(['system:multi-region']));
-
-    jest.useFakeTimers();
-    render(<SwitchOrganization canCreateOrganization={false} />);
-
-    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
-
-    expect(screen.getByRole('list')).toBeInTheDocument();
-
-    const org1Link = screen.getByRole('link', {name: 'O Organization 1'});
-    expect(org1Link).toBeInTheDocument();
-    expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
-
-    const org2Link = screen.getByRole('link', {name: 'O Organization 2'});
-    expect(org2Link).toBeInTheDocument();
-    expect(org2Link).toHaveAttribute(
-      'href',
-      'http://org2.sentry.io/organizations/org2/issues/'
-    );
-    jest.useRealTimers();
-  });
-
-  it('does not use organizationUrl when customer domain is disabled', async function () {
+  it('uses sentryUrl when customer domain is disabled', async function () {
     ConfigStore.set('features', new Set([]));
+    ConfigStore.set('customerDomain', null);
+
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
       OrganizationFixture({
@@ -114,7 +81,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('uses sentryUrl when current org has customer domain enabled', async function () {
+  it('uses organizationUrl when customer domain enabled', async function () {
     jest.useFakeTimers();
     const currentOrg = OrganizationFixture({
       name: 'Organization 2',
@@ -125,6 +92,11 @@ describe('SwitchOrganization', function () {
       },
     });
     ConfigStore.set('features', new Set(['system:multi-region']));
+    ConfigStore.set('customerDomain', {
+      organizationUrl: 'http://org2.sentry.io',
+      sentryUrl: 'http://sentry.io',
+      subdomain: 'org2',
+    });
 
     OrganizationsStore.load([
       OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
@@ -142,66 +114,13 @@ describe('SwitchOrganization', function () {
 
     const org1Link = screen.getByRole('link', {name: 'O Organization 1'});
     expect(org1Link).toBeInTheDocument();
-    // Current hostname in the URL is expected to be org2.sentry.io, so we need to make use of sentryUrl to link to an
-    // organization that does not support customer domains.
-    expect(org1Link).toHaveAttribute(
-      'href',
-      'https://sentry.io/organizations/org1/issues/'
-    );
+    // Because multi-region is on and customerDomain has data
+    // all organization links will have subdomains
+    expect(org1Link).toHaveAttribute('href', 'https://org1.sentry.io/issues/');
 
     const org2Link = screen.getByRole('link', {name: 'O Organization 2'});
     expect(org2Link).toBeInTheDocument();
-    expect(org2Link).toHaveAttribute(
-      'href',
-      'http://org2.sentry.io/organizations/org2/issues/'
-    );
-    jest.useRealTimers();
-  });
-
-  it('does not use sentryUrl when current org does not have customer domain feature', async function () {
-    jest.useFakeTimers();
-    const currentOrg = OrganizationFixture({
-      name: 'Organization 2',
-      slug: 'org2',
-      links: {
-        organizationUrl: 'http://org2.sentry.io',
-        regionUrl: 'http://eu.sentry.io',
-      },
-      features: [],
-    });
-
-    OrganizationsStore.load([
-      OrganizationFixture({name: 'Organization 1', slug: 'org1'}),
-      OrganizationFixture({
-        name: 'Organization 3',
-        slug: 'org3',
-        links: {
-          organizationUrl: 'http://org3.sentry.io',
-          regionUrl: 'http://eu.sentry.io',
-        },
-      }),
-    ]);
-    ConfigStore.set('features', new Set(['system:multi-region']));
-
-    render(<SwitchOrganization canCreateOrganization={false} />, {
-      organization: currentOrg,
-    });
-
-    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
-    act(() => jest.advanceTimersByTime(500));
-
-    expect(screen.getByRole('list')).toBeInTheDocument();
-
-    const org1Link = screen.getByRole('link', {name: 'O Organization 1'});
-    expect(org1Link).toBeInTheDocument();
-    expect(org1Link).toHaveAttribute('href', '/organizations/org1/issues/');
-
-    const org3Link = screen.getByRole('link', {name: 'O Organization 3'});
-    expect(org3Link).toBeInTheDocument();
-    expect(org3Link).toHaveAttribute(
-      'href',
-      'http://org3.sentry.io/organizations/org3/issues/'
-    );
+    expect(org2Link).toHaveAttribute('href', 'http://org2.sentry.io/issues/');
     jest.useRealTimers();
   });
 
