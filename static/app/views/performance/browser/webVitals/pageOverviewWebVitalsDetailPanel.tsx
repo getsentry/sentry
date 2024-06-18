@@ -22,6 +22,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {WebVitalDetailHeader} from 'sentry/views/performance/browser/webVitals/components/webVitalDescription';
 import {WebVitalStatusLineChart} from 'sentry/views/performance/browser/webVitals/components/webVitalStatusLineChart';
@@ -38,8 +40,6 @@ import type {
   WebVitals,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 

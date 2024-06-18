@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
 function getChartTitle(yAxis: string, countTopScreens: number) {
   const TITLES = {
