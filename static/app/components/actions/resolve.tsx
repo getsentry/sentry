@@ -124,6 +124,23 @@ function ResolveActions({
     });
   }
 
+  function handleUpcomingReleaseResolution() {
+    if (hasRelease) {
+      onUpdate({
+        status: GroupStatus.RESOLVED,
+        statusDetails: {
+          inUpcomingRelease: true,
+        },
+        substatus: null,
+      });
+    }
+
+    trackAnalytics('resolve_issue', {
+      organization,
+      release: 'upcoming',
+    });
+  }
+
   function handleNextReleaseResolution() {
     if (hasRelease) {
       onUpdate({
@@ -188,12 +205,25 @@ function ResolveActions({
       });
     };
 
+    const hasUpcomingRelease = organization.features.includes(
+      'resolve-in-upcoming-release'
+    );
+
     const isSemver = latestRelease ? isSemverRelease(latestRelease.version) : false;
     const items: MenuItemProps[] = [
       {
+        key: 'upcoming-release',
+        label: t('The upcoming release'),
+        details: actionTitle
+          ? actionTitle
+          : t('The next release that is not yet released'),
+        onAction: () => onActionOrConfirm(handleUpcomingReleaseResolution),
+        hidden: !hasUpcomingRelease,
+      },
+      {
         key: 'next-release',
         label: t('The next release'),
-        details: actionTitle,
+        details: actionTitle ? actionTitle : t('The next release after the current one'),
         onAction: () => onActionOrConfirm(handleNextReleaseResolution),
       },
       {
@@ -238,9 +268,15 @@ function ResolveActions({
         )}
         disabledKeys={
           multipleProjectsSelected
-            ? ['next-release', 'current-release', 'another-release', 'a-commit']
+            ? [
+                'next-release',
+                'current-release',
+                'another-release',
+                'a-commit',
+                'upcoming-release',
+              ]
             : disabled || !hasRelease
-              ? ['next-release', 'current-release', 'another-release']
+              ? ['next-release', 'current-release', 'another-release', 'upcoming-release']
               : []
         }
         menuTitle={shouldDisplayCta ? <SetupReleasesPrompt /> : t('Resolved In')}
