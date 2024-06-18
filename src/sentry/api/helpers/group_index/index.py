@@ -93,15 +93,15 @@ def build_query_params_from_request(
         if features.has("organizations:issue-stream-custom-views", organization):
             selected_view_id = request.GET.get("searchId")
             if selected_view_id:
-                default_view = GroupSearchView.objects.get(id=int(selected_view_id))
+                default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
             else:
                 default_view = GroupSearchView.objects.filter(
                     organization=organization,
                     user_id=request.user.id,
                     position=0,
-                )
+                ).first()
 
-            if default_view.exists():
+            if default_view:
                 query_kwargs["sort_by"] = default_view.query_sort
                 query = default_view.query
         else:
@@ -127,9 +127,9 @@ def build_query_params_from_request(
                 # pinned saved search
                 saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
 
-        if saved_search:
-            query_kwargs["sort_by"] = saved_search.sort
-            query = saved_search.query
+            if saved_search:
+                query_kwargs["sort_by"] = saved_search.sort
+                query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_tag("search.sort", query)

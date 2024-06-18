@@ -2396,7 +2396,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort_by="date",
             limit=10,
             collapse=["unhandled"],
-            groupSearchViewId=view.id,
+            searchId=view.id,
             savedSearch=0,
         )
         assert response.status_code == 200
@@ -2418,7 +2418,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         response = self.get_response(sort_by="date", limit=10, collapse=["unhandled"])
 
-        # The request is not populated with a query, or a groupSearchViewId to draw a query from, so the
+        # The request is not populated with a query, or a searchId to extract a query from, so the
         # query used should be the global default, the Prioritized query. Since the only event is a low priority event,
         # we should expect no results here.
         assert response.status_code == 200
