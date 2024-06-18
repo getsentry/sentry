@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from slack_sdk.errors import SlackApiError
@@ -83,23 +84,30 @@ def get_slack_data_by_user(
 # USING SDK CLIENT
 
 
-def format_slack_data_by_user(emails_by_user, slack_info_by_email):
-    slack_data_by_user: MutableMapping[User, Mapping[str, str]] = {}
+@dataclass
+class SlackUserData:
+    email: str
+    team_id: str
+    slack_id: str
+
+
+def format_slack_data_by_user(
+    emails_by_user: Mapping[User, Sequence[str]], slack_info_by_email: dict[str, SlackUserData]
+) -> Mapping[User, SlackUserData]:
+    slack_data_by_user: MutableMapping[User, SlackUserData] = {}
     for user, emails in emails_by_user.items():
-        for email in emails:
-            if email in slack_info_by_email:
-                slack_data_by_user[user] = slack_info_by_email[email]
-                break
+        # get overlap between user emails and emails in slack
+        user_slack_emails = set(emails) & set(slack_info_by_email.keys())
+        if user_slack_emails:
+            slack_data_by_user[user] = slack_info_by_email[list(user_slack_emails)[0]]
     return slack_data_by_user
 
 
-def format_slack_info_by_email(users: dict[str, Any]):
+def format_slack_info_by_email(users: dict[str, Any]) -> dict[str, SlackUserData]:
     return {
-        member["profile"]["email"]: {
-            "email": member["profile"]["email"],
-            "team_id": member["team_id"],
-            "slack_id": member["id"],
-        }
+        member["profile"]["email"]: SlackUserData(
+            email=member["profile"]["email"], team_id=member["team_id"], slack_id=member["id"]
+        )
         for member in users
         if not member["deleted"] and member["profile"].get("email")
     }
@@ -109,7 +117,7 @@ def get_slack_data_by_user_via_sdk(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization,
     emails_by_user: Mapping[User, Sequence[str]],
-) -> Generator[Any, Any, Any] | None:
+) -> Generator[Mapping[User, Mapping[str, str]], None, None] | None:
     sdk_client = SlackSdkClient(integration_id=integration.id)
     try:
         users_list = sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
@@ -129,4 +137,5 @@ def get_slack_data_by_user_via_sdk(
                 "integration_id": integration.id,
             },
         )
-        return None
+
+    return None
