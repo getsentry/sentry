@@ -302,7 +302,7 @@ def update_groups(
         elif status_details.get("inUpcomingRelease"):
             if len(projects) > 1:
                 return Response(
-                    {"detail": "Cannot set resolved in next release for multiple projects."},
+                    {"detail": "Cannot set resolved in upcoming release for multiple projects."},
                     status=400,
                 )
             release = (
