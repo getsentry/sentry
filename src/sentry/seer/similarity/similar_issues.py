@@ -4,6 +4,7 @@ from django.conf import settings
 
 from sentry.conf.server import SEER_MAX_GROUPING_DISTANCE, SEER_SIMILAR_ISSUES_URL
 from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
     IncompleteSeerDataError,
     SeerSimilarIssueData,
@@ -31,11 +32,12 @@ def get_similarity_data_from_seer(
     sorted in order of descending similarity.
     """
 
-    response = seer_grouping_connection_pool.urlopen(
-        "POST",
+    response = make_signed_seer_api_request(
+        seer_grouping_connection_pool,
         SEER_SIMILAR_ISSUES_URL,
-        body=json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}),
-        headers={"Content-Type": "application/json;charset=utf-8"},
+        json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
+            "utf8"
+        ),
     )
 
     try:
@@ -50,6 +52,7 @@ def get_similarity_data_from_seer(
             extra={
                 "request_params": similar_issues_request,
                 "response_data": response.data,
+                "response_code": response.status,
             },
         )
         return []

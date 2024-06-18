@@ -6,6 +6,7 @@ from django.conf import settings
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.project import Project
 from sentry.models.repository import Repository
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.utils import json
 
 
@@ -51,15 +52,23 @@ def get_autofix_repos_from_project_code_mappings(project: Project) -> list[dict]
 
 
 def get_autofix_state_from_pr_id(provider: str, pr_id: int) -> AutofixState | None:
+    path = "/v1/automation/autofix/state/pr"
+    body = json.dumps(
+        {
+            "provider": provider,
+            "pr_id": pr_id,
+        }
+    ).encode("utf-8")
     response = requests.post(
-        f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state/pr",
-        data=json.dumps(
-            {
-                "provider": provider,
-                "pr_id": pr_id,
-            }
-        ),
-        headers={"content-type": "application/json;charset=utf-8"},
+        f"{settings.SEER_AUTOFIX_URL}{path}",
+        data=body,
+        headers={
+            "content-type": "application/json;charset=utf-8",
+            **sign_with_seer_secret(
+                url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                body=body,
+            ),
+        },
     )
 
     response.raise_for_status()

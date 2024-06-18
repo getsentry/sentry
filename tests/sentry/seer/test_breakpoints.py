@@ -7,6 +7,7 @@ from sentry.seer.breakpoints import detect_breakpoints
 from sentry.utils import json
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 def test_detect_breakpoints(mock_urlopen):
     data = {
@@ -27,9 +28,10 @@ def test_detect_breakpoints(mock_urlopen):
     }
     mock_urlopen.return_value = HTTPResponse(json.dumps(data), status=200)
 
-    assert detect_breakpoints({}) == data
+    assert detect_breakpoints({"data": {}}) == data
 
 
+@pytest.mark.django_db
 @pytest.mark.parametrize(
     ["body", "status"],
     [
@@ -43,5 +45,5 @@ def test_detect_breakpoints(mock_urlopen):
 def test_detect_breakpoints_errors(mock_urlopen, mock_capture_exception, body, status):
     mock_urlopen.return_value = HTTPResponse(body, status=status)
 
-    assert detect_breakpoints({}) == {"data": []}
+    assert detect_breakpoints({"data": {}}) == {"data": []}
     assert mock_capture_exception.called
