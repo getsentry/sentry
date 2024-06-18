@@ -298,3 +298,46 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert len(data) == 2
         assert data[0]["spanAttribute"] == "count_clicks"
         assert data[1]["spanAttribute"] == "process_latency"
+
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_get_pagination(self):
+        for i in range(0, 60):
+            new_rule = f"""[{{"spanAttribute": "count_clicks_{i:02d}", "type": "c","unit": "none","tags": ["tag1", "tag2", "tag3"]}}]"""
+
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                metricsExtractionRules=new_rule,
+            )
+            assert response.status_code == 200
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get"
+        )
+        assert response.status_code == 200
+        span_attributes = [x["spanAttribute"] for x in response.data]
+        assert len(span_attributes) == 25
+        assert min(span_attributes) == "count_clicks_00"
+        assert max(span_attributes) == "count_clicks_24"
+        assert len(set(span_attributes)) == len(span_attributes)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get", cursor="25:1:0"
+        )
+        assert response.status_code == 200
+        span_attributes = [x["spanAttribute"] for x in response.data]
+        assert len(span_attributes) == 25
+        assert min(span_attributes) == "count_clicks_25"
+        assert max(span_attributes) == "count_clicks_49"
+        assert len(set(span_attributes)) == len(span_attributes)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, method="get", cursor="25:2:0"
+        )
+        assert response.status_code == 200
+        span_attributes = [x["spanAttribute"] for x in response.data]
+        assert len(span_attributes) == 10
+        assert min(span_attributes) == "count_clicks_50"
+        assert max(span_attributes) == "count_clicks_59"
+        assert len(set(span_attributes)) == len(span_attributes)

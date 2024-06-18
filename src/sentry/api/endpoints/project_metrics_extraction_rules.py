@@ -8,6 +8,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_extraction_rules import MetricsExtractionRuleSerializer
 from sentry.models.project import Project
@@ -69,7 +70,15 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
-        return Response(status=200, data=extraction_rules)
+        return self.paginate(
+            request,
+            queryset=extraction_rules,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(
+                x, user=request.user, serializer=MetricsExtractionRuleSerializer()
+            ),
+            default_per_page=25,
+        )
 
     def post(self, request: Request, project: Project) -> Response:
         """POST an extraction rule to create a resource."""
