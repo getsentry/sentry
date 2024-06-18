@@ -1,5 +1,5 @@
 ---
-created: '2024-06-13T16:39:01.199833+00:00'
+created: '2024-06-18T23:44:13.843760+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -1328,6 +1328,10 @@ source: tests/sentry/backup/test_comparators.py
     - relocation
     - relocation_validation
   model_name: sentry.relocationvalidationattempt
+- comparators:
+  - class: ForeignKeyComparator
+    fields: []
+  model_name: sentry.remotesubscription
 - comparators:
   - class: ForeignKeyComparator
     fields:

@@ -5263,6 +5263,23 @@
       ]
     ]
   },
+  "sentry.remotesubscription": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "sentry.remotesubscription",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_remotesubscription",
+    "uniques": [
+      [
+        "subscription_id",
+        "type"
+      ]
+    ]
+  },
   "sentry.repository": {
     "dangling": false,
     "foreign_keys": {

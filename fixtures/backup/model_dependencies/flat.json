@@ -726,6 +726,7 @@
     "sentry.relocation",
     "sentry.relocationvalidation"
   ],
+  "sentry.remotesubscription": [],
   "sentry.repository": [
     "sentry.integration",
     "sentry.organization"

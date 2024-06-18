@@ -35,6 +35,7 @@
   "sentry_regiontombstone",
   "sentry_relay",
   "sentry_relayusage",
+  "sentry_remotesubscription",
   "sentry_repository",
   "sentry_scheduleddeletion",
   "sentry_sentryshot",
