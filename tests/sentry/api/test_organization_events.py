@@ -102,7 +102,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert bool(self.organization.flags.allow_joinleave) is False
         response = self.do_request({"field": ["project"], "project": -1})
 
-        assert response.status_code == 403, response.content
+        assert response.status_code == 400, response.content
         assert response.data == {
             "detail": ErrorDetail(
                 string="You cannot view events from multiple projects.", code="parse_error"
