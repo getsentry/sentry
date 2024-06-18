@@ -470,7 +470,7 @@ def _query_cardinality(
     params: ParamsType = {
         "statsPeriod": period,
         "organization_id": organization.id,
-        "project_objects": Project.objects.filter(organization=organization),
+        "project_objects": list(Project.objects.filter(organization=organization)),
     }
     start, end = get_date_range_from_params(params)
     params["start"] = start
