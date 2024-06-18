@@ -4,6 +4,7 @@ from typing import Any
 
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_utils import string_to_use_case_id
+from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import json
 
 METRICS_EXTRACTION_RULES_OPTION_KEY = "sentry:metrics_extraction_rules"
@@ -84,7 +85,11 @@ class MetricsExtractionRuleState:
 
         json_payload = json.dumps(metrics_extraction_rules)
         project.update_option(METRICS_EXTRACTION_RULES_OPTION_KEY, json_payload)
-        # once this is live, we need to invalidate the relay project config here.
+
+        # We invalidate the project configuration once the updated settings were stored.
+        schedule_invalidate_project_config(
+            project_id=project.id, trigger="metrics_extraction_rules"
+        )
         return
 
     def get_rules(self) -> Sequence[MetricsExtractionRule]:
