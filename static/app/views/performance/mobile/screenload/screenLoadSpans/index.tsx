@@ -17,6 +17,13 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  ReleaseComparisonSelector,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {ModuleName} from 'sentry/views/insights/types';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {
   ScreenCharts,
@@ -33,13 +40,6 @@ import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/scree
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  ReleaseComparisonSelector,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
   primaryRelease: string;

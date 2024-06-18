@@ -2,16 +2,16 @@ import * as Sentry from '@sentry/react';
 
 import type {DateTimeObject, GranularityLadder} from 'sentry/components/charts/utils';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
-import {
-  COUNTER_GRANULARITIES,
-  DISTRIBUTION_GRANULARITIES,
-} from 'sentry/views/performance/database/settings';
-import type {Aggregate, SpanFunctions} from 'sentry/views/starfish/types';
+import type {Aggregate, SpanFunctions} from 'sentry/views/insights/types';
 import {
   COUNTER_AGGREGATES,
   DISTRIBUTION_AGGREGATES,
   SPAN_FUNCTIONS,
-} from 'sentry/views/starfish/types';
+} from 'sentry/views/insights/types';
+import {
+  COUNTER_GRANULARITIES,
+  DISTRIBUTION_GRANULARITIES,
+} from 'sentry/views/performance/database/settings';
 
 export function getIntervalForMetricFunction(
   metricFunction: Aggregate | SpanFunctions | string,

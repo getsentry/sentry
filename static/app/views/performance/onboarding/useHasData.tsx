@@ -1,7 +1,7 @@
 import type {PageFilters} from 'sentry/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 
 export function useHasData(mutableSearch: MutableSearch, referrer: string) {
   const pageFilters = usePageFilters();

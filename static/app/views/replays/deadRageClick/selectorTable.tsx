@@ -20,8 +20,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import type {DeadRageSelectorItem} from 'sentry/views/replays/types';
-import {WiderHovercard} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
 
 export interface UrlState {
   widths: string[];

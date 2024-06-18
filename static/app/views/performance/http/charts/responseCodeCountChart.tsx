@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {CHART_HEIGHT} from 'sentry/views/performance/http/settings';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 interface Props {
   isLoading: boolean;

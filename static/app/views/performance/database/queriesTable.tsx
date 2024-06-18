@@ -15,12 +15,12 @@ import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import type {SpanMetricsResponse} from 'sentry/views/insights/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 type Row = Pick<
   SpanMetricsResponse,

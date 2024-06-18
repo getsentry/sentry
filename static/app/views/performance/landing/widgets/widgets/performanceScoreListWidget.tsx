@@ -11,6 +11,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {
   Badge,
   PerformanceBadge,
@@ -23,7 +24,6 @@ import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/brows
 import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
 import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';

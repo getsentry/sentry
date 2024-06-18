@@ -30,21 +30,21 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
-import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
-import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
-import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   ModuleName,
   SpanIndexedField,
   type SpanIndexedResponse,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+} from 'sentry/views/insights/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {SpanDurationBar} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/spanDetailsTable';
+import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
+import {useSpanSummarySort} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/useSpanSummarySort';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import Tab from '../../tabs';
 

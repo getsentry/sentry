@@ -10,13 +10,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 export const APP_START_SPANS = [
   ...TTID_CONTRIBUTING_SPAN_OPS,

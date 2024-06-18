@@ -18,15 +18,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+} from 'sentry/views/insights/types';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
 
 type DataRow = {
   [SpanMetricsField.SPAN_OP]: string;

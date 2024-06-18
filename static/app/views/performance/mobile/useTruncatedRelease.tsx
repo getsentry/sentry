@@ -1,6 +1,6 @@
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {MAX_CHART_RELEASE_CHARS} from 'sentry/views/performance/mobile/constants';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
 
 function useTruncatedReleaseNames(truncation?: number) {
   const {primaryRelease, secondaryRelease} = useReleaseSelection();

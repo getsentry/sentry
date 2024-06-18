@@ -26,6 +26,7 @@ import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import {ModuleName} from 'sentry/views/insights/types';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -33,7 +34,6 @@ import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/web
 import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {SORTABLE_FIELDS} from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
-import {ModuleName} from 'sentry/views/starfish/types';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 

@@ -7,8 +7,8 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModuleName} from 'sentry/views/insights/types';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {ModuleName} from 'sentry/views/starfish/types';
 
 interface Props {
   clearSpansTableCursor?: boolean;

@@ -18,6 +18,8 @@ import type {Project} from 'sentry/types/project';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {CacheMetrics} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/cacheMetrics';
@@ -26,8 +28,6 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
 
 import {IssueList} from '../issues/issues';
 import {TraceDrawerComponents} from '../styles';

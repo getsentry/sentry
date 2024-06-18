@@ -28,6 +28,28 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {
+  useSpanMetrics,
+  useSpansIndexed,
+} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
+import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/chart/findDataPoint';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
+import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+import {
+  ModuleName,
+  SpanFunction,
+  SpanIndexedField,
+  SpanMetricsField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/insights/types';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseCodeCountChart} from 'sentry/views/performance/http/charts/responseCodeCountChart';
@@ -42,22 +64,6 @@ import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-import {computeAxisMax} from 'sentry/views/starfish/components/chart';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics, useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
-import {
-  ModuleName,
-  SpanFunction,
-  SpanIndexedField,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 
 import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 

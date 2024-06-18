@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Caches');
 export const BASE_URL = 'caches';

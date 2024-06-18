@@ -4,12 +4,12 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Project} from 'sentry/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
 import {UIScreens} from 'sentry/views/performance/mobile/ui/screens';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/starfish/queries/useReleases');
+jest.mock('sentry/views/insights/common/queries/useReleases');
 
 jest.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5',

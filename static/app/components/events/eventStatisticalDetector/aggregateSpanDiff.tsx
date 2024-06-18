@@ -10,8 +10,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 import {EventRegressionTable} from './eventRegressionTable';
 

@@ -4,13 +4,13 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {ModuleName} from 'sentry/views/insights/types';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 

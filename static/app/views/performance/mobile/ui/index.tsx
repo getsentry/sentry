@@ -1,3 +1,4 @@
+import {ModuleName} from 'sentry/views/insights/types';
 import ScreensTemplate from 'sentry/views/performance/mobile/components/screensTemplate';
 import {UIScreens} from 'sentry/views/performance/mobile/ui/screens';
 import {
@@ -6,7 +7,6 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/performance/mobile/ui/settings';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {ModuleName} from 'sentry/views/starfish/types';
 
 export function ResponsivenessModule() {
   return (

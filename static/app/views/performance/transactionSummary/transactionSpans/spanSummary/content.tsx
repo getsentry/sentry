@@ -11,16 +11,16 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import type {
+  SpanMetricsQueryFilters,
+  SpanMetricsResponse,
+} from 'sentry/views/insights/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import type {
-  SpanMetricsQueryFilters,
-  SpanMetricsResponse,
-} from 'sentry/views/starfish/types';
 
 import Tab from '../../tabs';
 

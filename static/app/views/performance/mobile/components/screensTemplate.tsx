@@ -17,13 +17,13 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import type {ModuleName} from 'sentry/views/insights/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import type {ModuleName} from 'sentry/views/starfish/types';
 
 type ScreensTemplateProps = {
   content: ReactNode;
