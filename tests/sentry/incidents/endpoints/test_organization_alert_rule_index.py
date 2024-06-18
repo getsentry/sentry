@@ -256,7 +256,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:metric-alert-ignore-archived",
                 ]
             ),
         ):
