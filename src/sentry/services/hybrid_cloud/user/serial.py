@@ -5,7 +5,7 @@ from typing import Any
 
 from django.utils.functional import LazyObject
 
-from sentry.db.models import BaseQuerySet
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user import (

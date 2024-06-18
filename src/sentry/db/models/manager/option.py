@@ -6,8 +6,8 @@ from celery.signals import task_postrun
 from django.core.signals import request_finished
 from django.db.models import Model
 
-from sentry.db.models.manager import M
 from sentry.db.models.manager.base import BaseManager, _local_cache
+from sentry.db.models.manager.types import M
 
 
 class OptionManager(BaseManager[M]):

@@ -3,11 +3,12 @@ from typing import ClassVar, Self
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, BaseModel, BaseQuerySet, sane_repr
-from sentry.db.models.manager import M
+from sentry.db.models import BaseManager, BaseModel, sane_repr
+from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.db.models.manager.types import M
 
 
-class ParanoidQuerySet(BaseQuerySet):
+class ParanoidQuerySet(BaseQuerySet[M]):
     """
     Prevents objects from being hard-deleted. Instead, sets the
     ``date_deleted``, effectively soft-deleting the object.
@@ -22,7 +23,7 @@ class ParanoidManager(BaseManager[M]):
     Only exposes objects that have NOT been soft-deleted.
     """
 
-    def get_queryset(self) -> ParanoidQuerySet:
+    def get_queryset(self) -> ParanoidQuerySet[M]:
         return ParanoidQuerySet(self.model, using=self._db).filter(date_deleted__isnull=True)
 
 
