@@ -26,11 +26,13 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <code>{'<Timeline.Text />'}</code> can be used to easily format the children of
         <code>{'<Timeline.Item />'}</code>. It generally contains descriptive text.
       </p>
-      <CodeSnippet language="jsx">
-        {`<Timeline.Item ...>
+      <p>
+        <CodeSnippet language="jsx">
+          {`<Timeline.Item ...>
   <Timeline.Text>{someText}</Timeline.Text>
 </Timeline.Item>`}
-      </CodeSnippet>
+        </CodeSnippet>
+      </p>
       <h6>Example</h6>
       <Timeline.Item
         title={'SyntaxError'}
@@ -54,13 +56,15 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <code>{'<Timeline.Item />'}</code>. It generally contains code snippets or
         payloads.
       </p>
-      <CodeSnippet language="jsx">
-        {`<Timeline.Item ...>
+      <p>
+        <CodeSnippet language="jsx">
+          {`<Timeline.Item ...>
   <Timeline.Data>
     <StructuredData value={someJson} />
   </Timeline.Data>
 </Timeline.Item>`}
-      </CodeSnippet>
+        </CodeSnippet>
+      </p>
       <h6>Example</h6>
       <Timeline.Item
         title={'Navigation'}
