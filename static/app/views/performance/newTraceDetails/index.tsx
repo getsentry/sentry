@@ -44,6 +44,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
@@ -259,6 +260,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
+  const traceScheduler = useMemo(() => new TraceScheduler(), []);
 
   const forceRerender = useCallback(() => {
     flushSync(rerender);
@@ -804,11 +806,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         payload: list_width,
       });
     }
-    viewManager.on('divider resize end', onDividerResizeEnd);
+    traceScheduler.on('divider resize end', onDividerResizeEnd);
     return () => {
-      viewManager.off('divider resize end', onDividerResizeEnd);
+      traceScheduler.off('divider resize end', onDividerResizeEnd);
     };
-  }, [viewManager, traceDispatch]);
+  }, [traceScheduler, traceDispatch]);
 
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
@@ -836,7 +838,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
-
     // Whenever the timeline changes, update the trace space
     const onTraceTimelineChange = (s: [number, number]) => {
       viewManager.updateTraceSpace(s[0], s[1]);

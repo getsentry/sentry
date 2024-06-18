@@ -34,14 +34,6 @@ type ViewColumn = {
   width: number;
 };
 
-type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
-type EventStore = {
-  [K in keyof VirtualizedViewManagerEvents]: Set<VirtualizedViewManagerEvents[K]>;
-};
-interface VirtualizedViewManagerEvents {
-  ['divider resize end']: (list_width: number) => void;
-  ['virtualized list init']: () => void;
-}
 type VerticalIndicator = {
   ref: HTMLElement | null;
   timestamp: number | undefined;
@@ -51,7 +43,6 @@ type VerticalIndicator = {
  * Children components should call the appropriate register*Ref methods to register their
  * HTML elements.
  */
-
 export type ViewManagerScrollAnchor = 'top' | 'center if outside' | 'center';
 
 export class VirtualizedViewManager {
@@ -68,13 +59,6 @@ export class VirtualizedViewManager {
   // pixel space would be [0, 1000]
   trace_physical_space: TraceView = TraceView.Empty();
   container_physical_space: TraceView = TraceView.Empty();
-
-  events: EventStore = {
-    ['divider resize end']: new Set<VirtualizedViewManagerEvents['divider resize end']>(),
-    ['virtualized list init']: new Set<
-      VirtualizedViewManagerEvents['virtualized list init']
-    >(),
-  };
 
   row_measurer: TraceRowWidthMeasurer<TraceTreeNode<TraceTree.NodeValue>> =
     new TraceRowWidthMeasurer();
@@ -179,46 +163,6 @@ export class VirtualizedViewManager {
     this.onWheelStart = this.onWheelStart.bind(this);
     this.onNewMaxRowWidth = this.onNewMaxRowWidth.bind(this);
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
-  }
-
-  once<K extends keyof VirtualizedViewManagerEvents>(eventName: K, cb: Function) {
-    const wrapper = (...args: any[]) => {
-      cb(...args);
-      this.off(eventName, wrapper);
-    };
-    this.on(eventName, wrapper);
-  }
-
-  on<K extends keyof VirtualizedViewManagerEvents>(
-    eventName: K,
-    cb: VirtualizedViewManagerEvents[K]
-  ): void {
-    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
-    if (set.has(cb)) {
-      return;
-    }
-    set.add(cb);
-  }
-
-  off<K extends keyof VirtualizedViewManagerEvents>(
-    eventName: K,
-    cb: VirtualizedViewManagerEvents[K]
-  ): void {
-    const set = this.events[eventName] as unknown as Set<VirtualizedViewManagerEvents[K]>;
-
-    if (set.has(cb)) {
-      set.delete(cb);
-    }
-  }
-
-  dispatch<K extends keyof VirtualizedViewManagerEvents>(
-    event: K,
-    ...args: ArgumentTypes<VirtualizedViewManagerEvents[K]>
-  ): void {
-    for (const handler of this.events[event]) {
-      // @ts-expect-error
-      handler(...args);
-    }
   }
 
   updateTraceSpace(start: number, width: number) {

@@ -148,8 +148,6 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
 
-    managerRef.current.dispatch('virtualized list init');
-
     maybeToggleScrollbar(
       props.container,
       scrollHeightRef.current,
