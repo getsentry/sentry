@@ -53,7 +53,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   afterEach(function () {
-    act(() => {
+    act(function () {
       ConfigStore.loadInitialData(configState);
     });
   });

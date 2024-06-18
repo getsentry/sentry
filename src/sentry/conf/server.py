@@ -740,7 +740,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
-    "sentry.tasks.backfill_seer_grouping_records",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
@@ -2195,11 +2195,6 @@ SENTRY_USE_SPOTLIGHT = False
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
-# This flags enables the `peanutbutter` realtime metrics backend.
-# See https://github.com/getsentry/peanutbutter.
-# We do not want/need this in normal devservices, but we need it for certain tests.
-SENTRY_USE_PEANUTBUTTER = False
-
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2457,14 +2452,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "environment": {},
             "ports": {"8969/tcp": 8969},
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
-        }
-    ),
-    "peanutbutter": lambda settings, options: (
-        {
-            "image": "us.gcr.io/sentryio/peanutbutter:latest",
-            "environment": {},
-            "ports": {"4433/tcp": 4433},
-            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
         }
     ),
 }
@@ -3446,7 +3433,7 @@ if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
-    SENTRY_FEATURES["organizations:frontend-domainsplit"] = True
+    SENTRY_FEATURES["system:multi-region"] = True
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]

@@ -259,7 +259,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'is not'}));
+      await userEvent.click(screen.getByRole('option', {name: 'is not'}));
 
       // Token should be modified to be negated
       expect(
@@ -292,7 +292,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'is not'}));
+      await userEvent.click(screen.getByRole('option', {name: 'is not'}));
 
       // Token should be modified to be negated
       expect(
@@ -668,8 +668,12 @@ describe('SearchQueryBuilder', function () {
         screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1)
       ).toHaveFocus();
 
-      // Shift-tabbing should exit the component
-      await userEvent.keyboard('{Shift>}{Tab}{/Shift}');
+      // One more tab should go to the clear button
+      await userEvent.keyboard('{Tab}');
+      expect(screen.getByRole('button', {name: 'Clear search query'})).toHaveFocus();
+
+      // Another should exit component
+      await userEvent.keyboard('{Tab}');
       expect(document.body).toHaveFocus();
     });
 
@@ -953,7 +957,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: timesSeen'})
         );
-        await userEvent.click(screen.getByRole('menuitemradio', {name: '<='}));
+        await userEvent.click(screen.getByRole('option', {name: '<='}));
 
         expect(
           await screen.findByRole('row', {name: 'timesSeen:<=100k'})

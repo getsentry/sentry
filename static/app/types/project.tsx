@@ -211,6 +211,7 @@ export type PlatformKey =
   | 'javascript-nextjs'
   | 'javascript-react'
   | 'javascript-remix'
+  | 'javascript-solid'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
   | 'javascript-vue'

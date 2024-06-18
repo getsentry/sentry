@@ -58,10 +58,7 @@ import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEven
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
 import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
-import {
-  hasIgnoreArchivedFeatureFlag,
-  ruleNeedsErrorMigration,
-} from 'sentry/views/alerts/utils/migrationUi';
+import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
@@ -91,6 +88,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  TimeWindow,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -200,9 +198,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const dataset = _dataset ?? rule.dataset;
 
     const isErrorMigration =
-      this.props.location?.query?.migration === '1' &&
-      hasIgnoreArchivedFeatureFlag(this.props.organization) &&
-      ruleNeedsErrorMigration(rule);
+      this.props.location?.query?.migration === '1' && ruleNeedsErrorMigration(rule);
     // TODO(issues): Does this need to be smarter about where its inserting the new filter?
     const query = isErrorMigration
       ? `is:unresolved ${rule.query ?? ''}`
@@ -511,11 +507,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    const {timeWindow} = this.state;
 
     if (name === 'alertType') {
       this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
+        timeWindow:
+          value === 'custom_metrics' && timeWindow === TimeWindow.ONE_MINUTE
+            ? TimeWindow.FIVE_MINUTES
+            : timeWindow,
       }));
       return;
     }
@@ -1096,10 +1097,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
     const showErrorMigrationWarning =
-      !!ruleId &&
-      isMigration &&
-      hasIgnoreArchivedFeatureFlag(organization) &&
-      ruleNeedsErrorMigration(rule);
+      !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
 
     // Rendering the main form body
     return (

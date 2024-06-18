@@ -56,6 +56,9 @@ SPAN_OP = "span.op"
 SPAN_DESCRIPTION = "span.description"
 SPAN_STATUS = "span.status"
 
+# Not all spans get a group assigned to it. Unassigned ones has a default of 0.
+UNCLASSIFIED_SPAN_GROUP = "00"
+
 
 class ThresholdDict(TypedDict):
     poor: float
