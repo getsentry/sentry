@@ -30,6 +30,7 @@ class GroupResolution(Model):
     class Type:
         in_release = 0
         in_next_release = 1
+        in_upcoming_release = 2
 
     class Status:
         pending = 0

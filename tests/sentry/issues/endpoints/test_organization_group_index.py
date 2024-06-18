@@ -5085,6 +5085,22 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
         ).exists()
 
+    def test_resolved_in_upcoming_release_multiple_projects(self) -> None:
+        project_2 = self.create_project(slug="foo")
+        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED, project=project_2)
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            qs_params={
+                "id": [group1.id, group2.id],
+                "statd": "resolved",
+                "statusDetails": {"inUpcomingRelease": True},
+            }
+        )
+
+        assert response.status_code == 400
+
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
