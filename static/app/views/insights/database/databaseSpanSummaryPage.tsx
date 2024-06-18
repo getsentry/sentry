@@ -26,13 +26,13 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import {DurationChart} from 'sentry/views/insights/database/durationChart';
+import {isAValidSort} from 'sentry/views/insights/database/queriesTable';
+import {QueryTransactionsTable} from 'sentry/views/insights/database/queryTransactionsTable';
+import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
+import {ThroughputChart} from 'sentry/views/insights/database/throughputChart';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-import {DurationChart} from 'sentry/views/performance/database/durationChart';
-import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
-import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
-import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
-import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
