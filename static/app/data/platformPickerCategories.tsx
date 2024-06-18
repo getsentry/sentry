@@ -28,6 +28,7 @@ const popularPlatformCategories: Set<PlatformKey> = new Set([
   'ruby-rails',
   'ruby',
   'unity',
+  'rust',
 ]);
 
 const browser: Set<PlatformKey> = new Set([
