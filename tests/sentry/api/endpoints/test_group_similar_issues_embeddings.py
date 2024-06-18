@@ -230,8 +230,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.assert_called_with(
             "POST",
             SEER_SIMILAR_ISSUES_URL,
-            body=orjson.dumps(expected_seer_request_params).decode(),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            body=orjson.dumps(expected_seer_request_params),
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
         expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
@@ -514,8 +514,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                 },
-            ).decode(),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            ),
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
         # Include k
@@ -541,8 +541,8 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "read_only": True,
                     "k": 1,
                 },
-            ).decode(),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            ),
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
         # Include threshold
@@ -567,6 +567,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                 },
-            ).decode(),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            ),
+            headers={"content-type": "application/json;charset=utf-8"},
         )

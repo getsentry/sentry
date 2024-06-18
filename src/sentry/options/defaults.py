@@ -2550,3 +2550,18 @@ register(
     default=50,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Enable orjson in the occurrence_consumer.process_[message|batch]
+register(
+    "issues.occurrence_consumer.use_orjson",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls the rate of using the sentry api shared secret for communicating to sentry.
+register(
+    "seer.api.use-shared-secret",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

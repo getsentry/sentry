@@ -13,6 +13,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.project import Project
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 
 logger = logging.getLogger(__name__)
 
@@ -41,18 +42,26 @@ class ProjectAutofixCreateCodebaseIndexEndpoint(ProjectEndpoint):
         Create a codebase index for for a project's repositories, uses the code mapping to determine which repositories to index
         """
         repos = get_autofix_repos_from_project_code_mappings(project)
+        path = "/v1/automation/codebase/index/create"
 
         for repo in repos:
+            body = orjson.dumps(
+                {
+                    "organization_id": project.organization.id,
+                    "project_id": project.id,
+                    "repo": repo,
+                }
+            )
             response = requests.post(
-                f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/index/create",
-                data=orjson.dumps(
-                    {
-                        "organization_id": project.organization.id,
-                        "project_id": project.id,
-                        "repo": repo,
-                    }
-                ),
-                headers={"content-type": "application/json;charset=utf-8"},
+                f"{settings.SEER_AUTOFIX_URL}{path}",
+                data=body,
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    **sign_with_seer_secret(
+                        url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                        body=body,
+                    ),
+                },
             )
 
             response.raise_for_status()

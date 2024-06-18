@@ -19,6 +19,7 @@ from sentry.api.serializers import EventSerializer, serialize
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.group import Group
 from sentry.models.user import User
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -85,47 +86,63 @@ class GroupAutofixEndpoint(GroupEndpoint):
         instruction: str,
         timeout_secs: int,
     ):
-        response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/start",
-            data=orjson.dumps(
-                {
-                    "organization_id": group.organization.id,
-                    "project_id": group.project.id,
-                    "repos": repos,
-                    "issue": {
-                        "id": group.id,
-                        "title": group.title,
-                        "short_id": group.qualified_short_id,
-                        "events": [serialized_event],
-                    },
-                    "instruction": instruction,
-                    "timeout_secs": timeout_secs,
-                    "last_updated": datetime.now().isoformat(),
-                    "invoking_user": (
-                        {
-                            "id": user.id,
-                            "display_name": user.get_display_name(),
-                        }
-                        if not isinstance(user, AnonymousUser)
-                        else None
-                    ),
+        path = "/v1/automation/autofix/start"
+        body = orjson.dumps(
+            {
+                "organization_id": group.organization.id,
+                "project_id": group.project.id,
+                "repos": repos,
+                "issue": {
+                    "id": group.id,
+                    "title": group.title,
+                    "short_id": group.qualified_short_id,
+                    "events": [serialized_event],
                 },
-                option=orjson.OPT_NON_STR_KEYS,
-            ),
-            headers={"content-type": "application/json;charset=utf-8"},
+                "instruction": instruction,
+                "timeout_secs": timeout_secs,
+                "last_updated": datetime.now().isoformat(),
+                "invoking_user": (
+                    {
+                        "id": user.id,
+                        "display_name": user.get_display_name(),
+                    }
+                    if not isinstance(user, AnonymousUser)
+                    else None
+                ),
+            },
+            option=orjson.OPT_NON_STR_KEYS,
+        )
+        response = requests.post(
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(
+                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                    body=body,
+                ),
+            },
         )
 
         response.raise_for_status()
 
     def _call_get_autofix_state(self, group_id: int) -> dict[str, Any] | None:
+        path = "/v1/automation/autofix/state"
+        body = orjson.dumps(
+            {
+                "group_id": group_id,
+            }
+        )
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/state",
-            data=orjson.dumps(
-                {
-                    "group_id": group_id,
-                }
-            ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(
+                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                    body=body,
+                ),
+            },
         )
 
         response.raise_for_status()
