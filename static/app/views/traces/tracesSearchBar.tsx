@@ -5,6 +5,7 @@ import SearchBar from 'sentry/components/events/searchBar';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {SavedSearchType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -58,6 +59,7 @@ export function TracesSearchBar({
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
             projectIds={ALL_PROJECTS}
+            savedSearchType={SavedSearchType.SPAN}
           />
           <StyledButton
             aria-label={t('Remove span')}

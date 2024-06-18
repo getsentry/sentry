@@ -56,6 +56,7 @@ export enum SavedSearchType {
   SESSION = 2,
   REPLAY = 3,
   METRIC = 4,
+  SPAN = 5,
 }
 
 export enum IssueCategory {

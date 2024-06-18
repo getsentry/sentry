@@ -171,6 +171,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   metricAlert?: boolean;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
+  savedSearchType?: SavedSearchType;
   supportedTags?: TagCollection | undefined;
 };
 
@@ -188,6 +189,7 @@ function SearchBar(props: SearchBarProps) {
     maxMenuHeight,
     customMeasurements,
     dataset,
+    savedSearchType = SavedSearchType.EVENT,
   } = props;
 
   const api = useApi();
@@ -309,7 +311,7 @@ function SearchBar(props: SearchBarProps) {
       {({measurements}) => (
         <SmartSearchBar
           hasRecentSearches
-          savedSearchType={SavedSearchType.EVENT}
+          savedSearchType={savedSearchType}
           projectIds={projectIds}
           onGetTagValues={getEventFieldValues}
           prepareQuery={query => {
