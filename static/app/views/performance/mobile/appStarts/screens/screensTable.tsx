@@ -8,18 +8,18 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/insights/colors';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import Breakdown from 'sentry/views/performance/mobile/appStarts/screens/breakdown';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {COLD_START_COLOR, WARM_START_COLOR} from 'sentry/views/starfish/colors';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 type Props = {
   data: TableData | undefined;

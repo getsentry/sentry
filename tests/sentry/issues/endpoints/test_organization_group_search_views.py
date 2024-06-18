@@ -1,10 +1,13 @@
+from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
+
 from sentry.api.serializers.base import serialize
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
 
-class OrganizationGroupSearchViewsTest(APITestCase):
+class OrganizationGroupSearchViewsGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-views"
     method = "get"
 
@@ -103,3 +106,198 @@ class OrganizationGroupSearchViewsTest(APITestCase):
         assert view["query"] == "is:unresolved issue.priority:[high, medium]"
         assert view["querySort"] == "date"
         assert view["position"] == 0
+
+
+class OrganizationGroupSearchViewsPutTest(APITestCase):
+    endpoint = "sentry-api-0-organization-group-search-views"
+    method = "put"
+
+    def create_base_data(self):
+        self.custom_view_one = GroupSearchView.objects.create(
+            name="Custom View One",
+            organization=self.organization,
+            user_id=self.user.id,
+            query="is:unresolved",
+            query_sort="date",
+            position=0,
+        )
+
+        self.custom_view_two = GroupSearchView.objects.create(
+            name="Custom View Two",
+            organization=self.organization,
+            user_id=self.user.id,
+            query="is:resolved",
+            query_sort="new",
+            position=1,
+        )
+
+        self.custom_view_three = GroupSearchView.objects.create(
+            name="Custom View Three",
+            organization=self.organization,
+            user_id=self.user.id,
+            query="is:ignored",
+            query_sort="freq",
+            position=2,
+        )
+
+        return {
+            "views": [
+                self.custom_view_one,
+                self.custom_view_two,
+                self.custom_view_three,
+            ]
+        }
+
+    def setUp(self):
+        self.login_as(user=self.user)
+        self.base_data = self.create_base_data()
+
+        self.url = reverse(
+            "sentry-api-0-organization-group-search-views",
+            kwargs={"organization_id_or_slug": self.organization.slug},
+        )
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_deletes_missing_views(self):
+        views = self.client.get(self.url).data
+
+        update_custom_view_three = views[2]
+
+        views.pop(1)
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        # Since we removed custom view two from the views list, custom view three
+        # should now be at position 1 (previously position 2)
+        update_custom_view_three["position"] = 1
+
+        assert len(response.data) == 2
+        # The first view should remain unchanged
+        assert response.data[0] == views[0]
+        assert response.data[1] == update_custom_view_three
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_adds_view_with_no_id(self):
+        views = self.client.get(self.url).data
+        views.append(
+            {
+                "name": "Custom View Four",
+                "query": "is:unresolved",
+                "query_sort": "date",
+            }
+        )
+
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        assert len(response.data) == 4  # 3 existing views + 1 new view
+        assert response.data[3]["name"] == "Custom View Four"
+        assert response.data[3]["query"] == "is:unresolved"
+        assert response.data[3]["querySort"] == "date"
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_reorder_views(self):
+        views = self.client.get(self.url).data
+        view_one = views[0]
+        view_two = views[1]
+        views[0] = view_two
+        views[1] = view_one
+
+        # We should expect the position of these two views to be swapped in the response
+        view_one["position"] = 1
+        view_two["position"] = 0
+
+        response = self.get_success_response(self.organization.slug, views=views)
+
+        assert len(response.data) == 3
+        assert response.data[0] == view_two
+        assert response.data[1] == view_one
+        assert response.data[2] == views[2]
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_rename_views(self):
+        views = self.client.get(self.url).data
+        view = views[0]
+        view["name"] = "New Name"
+        response = self.get_success_response(self.organization.slug, views=views)
+        assert len(response.data) == 3
+        assert response.data[0]["name"] == "New Name"
+        assert response.data[0]["query"] == view["query"]
+        assert response.data[0]["querySort"] == view["querySort"]
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_change_query(self):
+        views = self.client.get(self.url).data
+        view = views[0]
+        view["query"] = "is:resolved"
+        response = self.get_success_response(self.organization.slug, views=views)
+        assert len(response.data) == 3
+        assert response.data[0]["name"] == view["name"]
+        assert response.data[0]["query"] == "is:resolved"
+        assert response.data[0]["querySort"] == view["querySort"]
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_change_sort(self):
+        views = self.client.get(self.url).data
+        view = views[0]
+        view["querySort"] = "freq"
+        response = self.get_success_response(self.organization.slug, views=views)
+        assert len(response.data) == 3
+        assert response.data[0]["name"] == view["name"]
+        assert response.data[0]["query"] == view["query"]
+        assert response.data[0]["querySort"] == "freq"
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_change_everything(self):
+        views = self.client.get(self.url).data
+        view = views[0]
+        view["name"] = "New Name"
+        view["query"] = "is:resolved"
+        view["querySort"] = "freq"
+        response = self.get_success_response(self.organization.slug, views=views)
+        assert len(response.data) == 3
+        assert response.data[0]["name"] == "New Name"
+        assert response.data[0]["query"] == "is:resolved"
+        assert response.data[0]["querySort"] == "freq"
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_invalid_no_views(self):
+        response = self.get_error_response(self.organization.slug, views=[])
+
+        assert response.data == {
+            "views": [
+                ErrorDetail(string="Ensure this field has at least 1 elements.", code="min_length")
+            ]
+        }
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_invalid_sort(self):
+        views = self.client.get(self.url).data
+        view = views[0]
+        view["querySort"] = "alphabetically"
+        response = self.get_error_response(self.organization.slug, views=views)
+
+        assert response.data == {
+            "views": {
+                "querySort": [
+                    ErrorDetail(
+                        string='"alphabetically" is not a valid choice.', code="invalid_choice"
+                    )
+                ]
+            }
+        }
+
+    @with_feature({"organizations:issue-stream-custom-views": True})
+    def test_invalid_over_max_views(self):
+        from sentry.api.serializers.rest_framework.groupsearchview import MAX_VIEWS
+
+        views = [
+            {"name": f"Custom View {i}", "query": "is:unresolved", "query_sort": "date"}
+            for i in range(MAX_VIEWS + 1)
+        ]
+        response = self.get_error_response(self.organization.slug, views=views)
+        assert response.data == {
+            "views": [
+                ErrorDetail(
+                    string="Ensure this field has no more than 50 elements.", code="max_length"
+                )
+            ]
+        }

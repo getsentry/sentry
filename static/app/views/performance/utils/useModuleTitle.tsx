@@ -1,3 +1,4 @@
+import {ModuleName} from 'sentry/views/insights/types';
 import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
 import {MODULE_TITLE as RESOURCES_MODULE_TITLE} from 'sentry/views/performance/browser/resources/settings';
 import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/performance/browser/webVitals/settings';
@@ -8,7 +9,6 @@ import {MODULE_TITLE as APP_STARTS_MODULE_TITLE} from 'sentry/views/performance/
 import {MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE} from 'sentry/views/performance/mobile/screenload/settings';
 import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/performance/mobile/ui/settings';
 import {MODULE_TITLE as QUEUE_MODULE_TITLE} from 'sentry/views/performance/queues/settings';
-import {ModuleName} from 'sentry/views/starfish/types';
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,

@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {QueuesTable} from 'sentry/views/performance/queues/queuesTable';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 describe('queuesTable', () => {
   const organization = OrganizationFixture();

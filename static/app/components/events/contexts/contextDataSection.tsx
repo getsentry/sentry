@@ -3,10 +3,12 @@ import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import * as KeyValueData from 'sentry/components/keyValueData/card';
+import KeyValueData from 'sentry/components/keyValueData';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {Event, Group, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 
 interface ContextDataSectionProps {
   event: Event;
@@ -47,7 +49,7 @@ export default function ContextDataSection({
       isHelpHoverable
     >
       <ErrorBoundary mini message={t('There was a problem loading event context.')}>
-        <KeyValueData.Group>{cards}</KeyValueData.Group>
+        <KeyValueData.Container>{cards}</KeyValueData.Container>
       </ErrorBoundary>
     </EventDataSection>
   );

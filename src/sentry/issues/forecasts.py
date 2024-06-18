@@ -3,7 +3,7 @@ This module is for helper functions for escalating issues forecasts.
 """
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from datetime import datetime
 
 from sentry import analytics
@@ -50,7 +50,7 @@ def save_forecast_per_group(
     analytics.record("issue_forecasts.saved", num_groups=len(group_counts.keys()))
 
 
-def generate_and_save_forecasts(groups: Sequence[Group]) -> None:
+def generate_and_save_forecasts(groups: Iterable[Group]) -> None:
     """
     Generates and saves a list of forecasted values for each group.
     `groups`: Sequence of groups to be forecasted

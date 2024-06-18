@@ -11,16 +11,16 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {PRIMARY_RELEASE_COLOR} from 'sentry/views/insights/colors';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
-import {PRIMARY_RELEASE_COLOR} from 'sentry/views/starfish/colors';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 interface Props {
   chartHeight?: number;

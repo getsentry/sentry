@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
@@ -31,7 +31,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
-from sentry.db.models.manager import ValidateFunction
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
@@ -104,6 +103,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-nextjs",
     "javascript-react",
     "javascript-remix",
+    "javascript-solid",
+    "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-vue",
@@ -173,7 +174,8 @@ class ProjectManager(BaseManager["Project"]):
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
-            projects_by_user_id[user_id].add(project_id)
+            if user_id is not None:
+                projects_by_user_id[user_id].add(project_id)
         return projects_by_user_id
 
     def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
@@ -303,6 +305,33 @@ class Project(Model, PendingDeletionMixin):
         # This Project has enough issue volume to use high priority alerts
         has_high_priority_alerts: bool
 
+        # This Project has sent insight request spans
+        has_insights_http: bool
+
+        # This Project has sent insight db spans
+        has_insights_db: bool
+
+        # This Project has sent insight assets spans
+        has_insights_assets: bool
+
+        # This Project has sent insight app starts spans
+        has_insights_app_start: bool
+
+        # This Project has sent insight screen load spans
+        has_insights_screen_load: bool
+
+        # This Project has sent insight vitals spans
+        has_insights_vitals: bool
+
+        # This Project has sent insight caches spans
+        has_insights_caches: bool
+
+        # This Project has sent insight queues spans
+        has_insights_queues: bool
+
+        # This Project has sent insight llm monitoring spans
+        has_insights_llm_monitoring: bool
+
         bitfield_default = 10
         bitfield_null = True
 
@@ -379,7 +408,7 @@ class Project(Model, PendingDeletionMixin):
         return ProjectOption.objects
 
     def get_option(
-        self, key: str, default: Any | None = None, validate: ValidateFunction | None = None
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
         return self.option_manager.get_value(self, key, default, validate)
 
@@ -476,6 +505,7 @@ class Project(Model, PendingDeletionMixin):
         for rule_id, environment_id in Rule.objects.filter(
             project_id=self.id, environment_id__isnull=False
         ).values_list("id", "environment_id"):
+            assert environment_id is not None
             rules_by_environment_id[environment_id].add(rule_id)
 
         environment_names = dict(
@@ -609,7 +639,7 @@ class Project(Model, PendingDeletionMixin):
     def get_lock_key(self):
         return f"project_token:{self.id}"
 
-    def copy_settings_from(self, project_id):
+    def copy_settings_from(self, project_id: int) -> bool:
         """
         Copies project level settings of the inputted project
         - General Settings
@@ -628,7 +658,13 @@ class Project(Model, PendingDeletionMixin):
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.rule import Rule
 
-        model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
+        # XXX: this type sucks but it helps the type checker understand
+        model_list: tuple[type[EnvironmentProject | ProjectOwnership | ProjectTeam | Rule], ...] = (
+            EnvironmentProject,
+            ProjectOwnership,
+            ProjectTeam,
+            Rule,
+        )
 
         project = Project.objects.get(id=project_id)
         try:

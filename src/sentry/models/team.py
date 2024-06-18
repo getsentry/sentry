@@ -119,9 +119,7 @@ class TeamManager(BaseManager["Team"]):
                     projects_by_team[team_id].append(project)
 
             # these kinds of queries make people sad :(
-            for idx, team in enumerate(results):
-                team_projects = projects_by_team[team.id]
-                results[idx] = (team, team_projects)
+            return [(team, projects_by_team[team.id]) for team in results]
 
         return results
 

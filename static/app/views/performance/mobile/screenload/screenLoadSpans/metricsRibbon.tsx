@@ -11,11 +11,11 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 interface BlockProps {
   dataKey: string | ((data?: TableDataRow[]) => number | undefined);

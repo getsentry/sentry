@@ -18,6 +18,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {ModuleName} from 'sentry/views/insights/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
@@ -38,11 +43,6 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import Onboarding from 'sentry/views/performance/onboarding';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 export function HTTPLandingPage() {
   const organization = useOrganization();

@@ -1,7 +1,7 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import type {Referrer} from 'sentry/views/performance/queues/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 
 type Props = {
   referrer: Referrer;

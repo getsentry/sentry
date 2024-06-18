@@ -1,4 +1,5 @@
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TraceTestCase
 
@@ -91,4 +92,18 @@ class RelatedIssuesTest(APITestCase, SnubaTestCase, TraceTestCase):
                 "event_id": another_proj_event.event_id,
                 "trace_id": another_proj_event.trace_id,
             },
+        }
+
+    def test_validation(self) -> None:
+        error_event, _, _ = self.load_errors(self.project)
+        self.group_id = error_event.group_id
+        response = self.get_response(qs_params={"type": "foo"})
+        assert response.data == {
+            "type": [ErrorDetail(string='"foo" is not a valid choice.', code="invalid_choice")]
+        }
+        response = self.get_response(
+            qs_params={"type": "same_root_cause", "event_id": 123, "project_id": "should be an int"}
+        )
+        assert response.data == {
+            "project_id": [ErrorDetail(string="A valid integer is required.", code="invalid")]
         }

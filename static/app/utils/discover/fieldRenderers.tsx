@@ -50,15 +50,15 @@ import Projects from 'sentry/utils/projects';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
+import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
+import {ResponseStatusCodeCell} from 'sentry/views/insights/common/components/tableCells/responseStatusCodeCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {
   filterToLocationQuery,
   SpanOperationBreakdownFilter,
   stringToFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
-import {ResponseStatusCodeCell} from 'sentry/views/starfish/components/tableCells/responseStatusCodeCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
 
 import {decodeScalar} from '../queryString';
 
