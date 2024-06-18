@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
@@ -69,7 +70,9 @@ function ReplayLayout({
     );
   }
 
-  const focusArea = (
+  const focusArea = isLoading ? (
+    <Placeholder width="100%" height="100%" />
+  ) : (
     <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
         <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
