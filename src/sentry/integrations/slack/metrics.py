@@ -4,3 +4,5 @@ SLACK_ISSUE_ALERT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.issue_aler
 SLACK_ISSUE_ALERT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.issue_alert.failure"
 SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.activity_thread.success"
 SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.activity_thread.failure"
+SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.metric_alert.success"
+SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.metric_alert.failure"

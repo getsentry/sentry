@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
@@ -18,7 +17,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import nodestore, options
+from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -30,7 +29,7 @@ from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.actor import parse_and_validate_actor
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -379,16 +378,11 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
 
     occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
 
-    if options.get("issues.occurrence_consumer.use_orjson"):
-        json_loads = orjson.loads
-    else:
-        json_loads = functools.partial(json.loads, use_rapid_json=True)
-
     for item in batch:
         assert isinstance(item, BrokerValue)
 
         try:
-            payload = json_loads(item.payload.value)
+            payload = orjson.loads(item.payload.value)
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
