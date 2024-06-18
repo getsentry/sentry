@@ -8,7 +8,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -27,7 +26,6 @@ from sentry.snuba.outcomes import (
     GROUPBY_MAP,
     QueryDefinition,
     massage_outcomes_result,
-    run_metrics_outcomes_query,
     run_outcomes_query_timeseries,
     run_outcomes_query_totals,
 )
@@ -166,20 +164,6 @@ class OrganizationStatsEndpointV2(OrganizationEndpoint):
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
-
-            if features.has("organizations:custom-metrics", organization):
-                if (
-                    request.GET.get("category") == "metricSecond"  # TODO(metrics): remove this
-                    or request.GET.get("category") == "metricOutcomes"
-                ):
-                    # TODO(metrics): align project resolution
-                    result = run_metrics_outcomes_query(
-                        request.GET,
-                        organization,
-                        self.get_projects(request, organization, include_all_accessible=True),
-                        self.get_environments(request, organization),
-                    )
-                    return Response(result, status=200)
 
             tenant_ids = {"organization_id": organization.id}
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):

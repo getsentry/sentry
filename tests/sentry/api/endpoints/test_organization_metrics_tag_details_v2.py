@@ -252,3 +252,10 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             response.json()["detail"]
             == "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
         )
+
+    def test_metrics_tags_when_organization_has_no_projects(self):
+        organization_without_projects = self.create_organization()
+        self.create_member(user=self.user, organization=organization_without_projects)
+        response = self.get_error_response(organization_without_projects.slug, "mytag")
+        assert response.status_code == 404
+        assert response.data["detail"] == "You must supply at least one project to see its metrics"
