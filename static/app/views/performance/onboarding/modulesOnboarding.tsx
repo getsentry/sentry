@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span-small.svg';
+import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
