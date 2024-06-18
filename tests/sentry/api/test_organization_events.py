@@ -77,16 +77,13 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert response.data["data"][0]["project.name"] == self.project.slug
 
     def test_multiple_projects_open_membership(self):
-        # Since we're going to modify the allow_joinleave flag in the test create a new org
-        org = self.create_organization()
-        assert bool(org.flags.allow_joinleave)
-        project1 = self.create_project()
+        assert bool(self.organization.flags.allow_joinleave)
         self.store_event(
             data={
                 "event_id": "a" * 32,
                 "timestamp": self.ten_mins_ago_iso,
             },
-            project_id=project1.id,
+            project_id=self.project.id,
         )
         project2 = self.create_project()
         self.store_event(
@@ -100,9 +97,9 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 2
 
-        org.flags.allow_joinleave = False
-        org.save()
-        assert bool(org.flags.allow_joinleave) is False
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        assert bool(self.organization.flags.allow_joinleave) is False
         response = self.do_request({"field": ["project"], "project": -1})
 
         assert response.status_code == 400, response.content
