@@ -3,17 +3,19 @@ import type {ReactNode} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCursorArrow,
   IconFire,
   IconFix,
+  IconHappy,
   IconInfo,
   IconInput,
   IconKeyDown,
   IconLocation,
   IconMegaphone,
+  IconMeh,
   IconMobile,
+  IconSad,
   IconSort,
   IconTerminal,
   IconUser,
@@ -274,24 +276,34 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
-  'largest-contentful-paint': (frame: WebVitalFrame) => ({
-    color: 'gray300',
-    description:
-      typeof frame.data.value === 'number' ? (
-        `${Math.round(frame.data.value)}ms ${frame.data.rating}`
-      ) : (
-        <Tooltip
-          title={t(
-            'This replay uses a SDK version that is subject to inaccurate LCP values. Please upgrade to the latest version for best results if you have not already done so.'
-          )}
-        >
-          <IconWarning />
-        </Tooltip>
-      ),
-    tabKey: TabKey.NETWORK,
-    title: frame.description,
-    icon: <IconInfo size="xs" />,
-  }),
+  'web-vital': (frame: WebVitalFrame) => {
+    switch (frame.data.rating) {
+      case 'good':
+        return {
+          color: 'green300',
+          description: `Good ${Math.round(frame.data.value * 100) / 100}ms`,
+          tabKey: TabKey.NETWORK,
+          title: frame.description.replaceAll('-', ' '),
+          icon: <IconHappy size="xs" />,
+        };
+      case 'needs-improvement':
+        return {
+          color: 'yellow300',
+          description: `Meh ${Math.round(frame.data.value * 100) / 100}ms`,
+          tabKey: TabKey.NETWORK,
+          title: frame.description.replaceAll('-', ' '),
+          icon: <IconMeh size="xs" />,
+        };
+      default:
+        return {
+          color: 'red300',
+          description: `Poor ${Math.round(frame.data.value * 100) / 100}ms`,
+          tabKey: TabKey.NETWORK,
+          title: frame.description.replaceAll('-', ' '),
+          icon: <IconSad size="xs" />,
+        };
+    }
+  },
   memory: () => ({
     color: 'gray300',
     description: undefined,
