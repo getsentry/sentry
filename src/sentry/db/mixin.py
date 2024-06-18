@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from django.db import router, transaction
 
-from sentry.db.models.manager import M
+from sentry.db.models.manager.types import M
 from sentry.models.options.organization_option import OrganizationOption
 
 logger = logging.getLogger("sentry.deletions")

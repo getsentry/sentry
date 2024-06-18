@@ -7,7 +7,7 @@ from django.core.exceptions import EmptyResultSet
 from django.db import connections, router, transaction
 from django.db.models import QuerySet, sql
 
-from sentry.db.models.manager import M
+from sentry.db.models.manager.types import M
 from sentry.signals import post_update
 
 

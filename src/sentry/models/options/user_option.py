@@ -12,7 +12,7 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import OptionManager, Value
+from sentry.db.models.manager.option import OptionManager
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -43,8 +43,8 @@ class UserOptionManager(OptionManager["UserOption"]):
         return super()._make_key(metakey)
 
     def get_value(
-        self, user: User | RpcUser, key: str, default: Value | None = None, **kwargs: Any
-    ) -> Value:
+        self, user: User | RpcUser, key: str, default: Any | None = None, **kwargs: Any
+    ) -> Any:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
 
@@ -71,7 +71,7 @@ class UserOptionManager(OptionManager["UserOption"]):
             return
         self._option_cache[metakey].pop(key, None)
 
-    def set_value(self, user: User | int, key: str, value: Value, **kwargs: Any) -> None:
+    def set_value(self, user: User | int, key: str, value: Any, **kwargs: Any) -> None:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
         project_id = kwargs.get("project_id", None)
@@ -106,7 +106,7 @@ class UserOptionManager(OptionManager["UserOption"]):
         project: Project | int | None = None,
         organization: Organization | int | None = None,
         force_reload: bool = False,
-    ) -> Mapping[str, Value]:
+    ) -> Mapping[str, Any]:
         if organization and project:
             raise NotImplementedError(option_scope_error)
 
