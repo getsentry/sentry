@@ -1959,15 +1959,13 @@ def _create_group(
             extra={"event_id": event.event_id},
         )
 
-    if features.has("projects:issue-priority", project, actor=None):
-        # the kwargs only include priority for non-error issue platform events, which takes precedence.
-        priority = group_creation_kwargs.get("priority", None)
-        if priority is None:
-            priority = _get_priority_for_group(severity, group_creation_kwargs)
+    # the kwargs only include priority for non-error issue platform events, which takes precedence.
+    priority = group_creation_kwargs.get("priority", None)
+    if priority is None:
+        priority = _get_priority_for_group(severity, group_creation_kwargs)
 
-        group_creation_kwargs["priority"] = priority
-        group_data["metadata"]["initial_priority"] = priority
-
+    group_creation_kwargs["priority"] = priority
+    group_data["metadata"]["initial_priority"] = priority
     group_creation_kwargs["data"] = group_data
 
     try:
