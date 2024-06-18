@@ -6,6 +6,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.utils import json
 
 
 class ProjectMetricsExtractionEndpointTestCase(APITestCase):
@@ -35,13 +36,21 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule(self):
-        new_rule_json_1 = """[{"spanAttribute": "count_clicks", "type": "c", "unit": "none","tags": ["tag1", "tag2", "tag3"]}]"""
+        new_rule_json_1 = [
+            {
+                "spanAttribute": "count_clicks",
+                "type": "c",
+                "unit": "none",
+                "tags": ["tag1", "tag2", "tag3"],
+                "conditions": ["foo:bar", "baz:faz"],
+            }
+        ]
 
-        response = self.get_success_response(
+        response = self.get_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=new_rule_json_1,
+            metricsExtractionRules=json.dumps(new_rule_json_1),
         )
 
         assert response.status_code == 200
@@ -52,22 +61,29 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert data[0]["unit"] == "none"
         assert set(data[0]["tags"]) == {"tag1", "tag2", "tag3"}
 
-        new_rule_json_2 = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
-        )
+        new_rule_json_2 = [
+            {
+                "spanAttribute": "process_latency",
+                "type": "d",
+                "unit": "ms",
+                "tags": ["tag3"],
+                "conditions": ["hello:world", "baz:faz"],
+            }
+        ]
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=new_rule_json_2,
+            metricsExtractionRules=json.dumps(new_rule_json_2),
         )
         assert response.status_code == 200
         data = response.data
         assert len(data) == 2
         assert data[1]["spanAttribute"] == "process_latency"
         assert data[1]["type"] == "d"
-        assert data[1]["unit"] == "ms"
+        assert data[1]["unit"] == "none"
+        assert data[1]["conditions"] == ["hello:world", "baz:faz"]
         assert set(data[1]["tags"]) == {"tag3"}
 
         project_state = MetricsExtractionRuleState.load_from_project(self.project)
@@ -78,16 +94,43 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         )
 
     @with_feature("organizations:custom-metrics-extraction-rule")
-    def test_update_existing_extraction_rule(self):
-        original_rule_json = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
+    def test_create_new_extraction_rule_hardcoded_units(self):
+        new_rule_json_1 = [
+            {
+                "spanAttribute": "span.duration",
+                "type": "d",
+                "unit": "none",
+                "tags": ["tag1", "tag2", "tag3"],
+                "conditions": ["foo:bar", "baz:faz"],
+            }
+        ]
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            metricsExtractionRules=json.dumps(new_rule_json_1),
         )
+
+        assert response.status_code == 200
+        data = response.data
+        assert len(data) == 1
+        assert data[0]["spanAttribute"] == "span.duration"
+        assert data[0]["type"] == "d"
+        assert data[0]["unit"] == "millisecond"
+        assert set(data[0]["tags"]) == {"tag1", "tag2", "tag3"}
+
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_update_existing_extraction_rule(self):
+        original_rule_json = [
+            {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+        ]
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="put",
-            metricsExtractionRules=original_rule_json,
+            metricsExtractionRules=json.dumps(original_rule_json),
         )
         assert response.status_code == 200
 
@@ -104,7 +147,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert len(data) == 1
         assert data[0]["spanAttribute"] == "process_latency"
         assert data[0]["type"] == "d"
-        assert data[0]["unit"] == "ms"
+        assert data[0]["unit"] == "none"
         assert set(data[0]["tags"]) == {"tag3", "new_tag"}
 
         project_state = MetricsExtractionRuleState.load_from_project(self.project)
@@ -146,7 +189,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert len(data) == 2
         assert data[1]["spanAttribute"] == "process_latency"
         assert data[1]["type"] == "d"
-        assert data[1]["unit"] == "ms"
+        assert data[1]["unit"] == "none"
         assert set(data[1]["tags"]) == {"tag3"}
 
         project_state = MetricsExtractionRuleState.load_from_project(self.project)
@@ -194,7 +237,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert len(data) == 1
         assert data[0]["spanAttribute"] == "process_latency"
         assert data[0]["type"] == "d"
-        assert data[0]["unit"] == "ms"
+        assert data[0]["unit"] == "none"
         assert set(data[0]["tags"]) == {"tag3"}
 
         project_state = MetricsExtractionRuleState.load_from_project(self.project)

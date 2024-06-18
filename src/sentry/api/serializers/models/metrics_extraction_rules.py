@@ -14,4 +14,5 @@ class MetricsExtractionRuleSerializer(Serializer):
             "type": attrs.get("type"),
             "unit": attrs.get("unit"),
             "tags": list(attrs.get("tags") or set()),
+            "conditions": list(attrs.get("conditions") or set()),
         }

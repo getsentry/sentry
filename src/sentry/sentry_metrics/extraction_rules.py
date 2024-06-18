@@ -13,20 +13,25 @@ class MetricsExtractionRuleValidationError(ValueError):
     pass
 
 
+HARD_CODED_UNITS = {"span.duration": "millisecond"}
+
+
 @dataclass(frozen=True)
 class MetricsExtractionRule:
     span_attribute: str
     type: str
     unit: str
     tags: set[str]
+    conditions: list[str]
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
         return MetricsExtractionRule(
             span_attribute=dictionary["spanAttribute"],
             type=dictionary["type"],
-            unit=dictionary["unit"],
+            unit=HARD_CODED_UNITS.get(dictionary["spanAttribute"], "none"),
             tags=set(dictionary.get("tags") or set()),
+            conditions=list(dictionary.get("conditions") or []),
         )
 
     def to_dict(self) -> Mapping[str, Any]:
@@ -35,6 +40,7 @@ class MetricsExtractionRule:
             "type": self.type,
             "unit": self.unit,
             "tags": self.tags,
+            "conditions": self.conditions,
         }
 
     def generate_mri(self, use_case: str = "custom"):
@@ -114,7 +120,6 @@ def delete_metrics_extraction_rules(
     project: Project, state_update: Sequence[MetricsExtractionRule]
 ) -> None:
     state = MetricsExtractionRuleState.load_from_project(project)
-
     for rule in state_update:
         state.delete_rule(rule)
 
