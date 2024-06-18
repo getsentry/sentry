@@ -43,6 +43,10 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   traceEvents: TimelineEvent[];
 } {
   const organization = useOrganization();
+  // If the org has global views, we want to look across all projects,
+  // otherwise, just look at the current project.
+  const hasGlobalViews = organization.features.includes('global-views');
+  const project = hasGlobalViews ? -1 : event.projectID;
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
@@ -65,6 +69,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
+          project: project,
         },
       },
     ],
@@ -100,6 +105,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
+          project: project,
         },
       },
     ],

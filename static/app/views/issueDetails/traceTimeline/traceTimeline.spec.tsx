@@ -15,7 +15,11 @@ jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 jest.mock('sentry/utils/analytics');
 
 describe('TraceTimeline', () => {
-  const organization = OrganizationFixture();
+  // Paid plans have global-views enabled
+  // Include project: -1 in all matchQuery calls to ensure we are looking at all projects
+  const organization = OrganizationFixture({
+    features: ['global-views'],
+  });
   // This creates the ApiException event
   const event = EventFixture({
     dateCreated: '2024-01-24T09:09:03+00:00',
@@ -72,12 +76,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
@@ -94,12 +98,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
@@ -115,12 +119,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
@@ -136,12 +140,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     render(<TraceTimeline event={event} />, {organization});
     // Checking for the presence of seconds
@@ -152,12 +156,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
@@ -167,12 +171,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     // I believe the call to projects is to determine what projects a user belongs to
     MockApiClient.addMockResponse({
@@ -182,7 +186,7 @@ describe('TraceTimeline', () => {
 
     render(<TraceTimeline event={event} />, {
       organization: OrganizationFixture({
-        features: ['related-issues-issue-details-page'],
+        features: ['related-issues-issue-details-page', 'global-views'],
       }),
     });
 
@@ -201,7 +205,7 @@ describe('TraceTimeline', () => {
       {
         group_id: issuePlatformBody.data[0]['issue.id'],
         organization: OrganizationFixture({
-          features: ['related-issues-issue-details-page'],
+          features: ['related-issues-issue-details-page', 'global-views'],
         }),
       }
     );
@@ -211,13 +215,13 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       // Only 1 issue
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     // I believe the call to projects is to determine what projects a user belongs to
     MockApiClient.addMockResponse({
@@ -227,7 +231,7 @@ describe('TraceTimeline', () => {
 
     render(<TraceTimeline event={event} />, {
       organization: OrganizationFixture({
-        features: ['related-issues-issue-details-page'],
+        features: ['related-issues-issue-details-page', 'global-views'],
       }),
     });
 
@@ -243,5 +247,37 @@ describe('TraceTimeline', () => {
       has_related_trace_issue: false,
       trace_timeline_status: 'empty',
     });
+  });
+
+  it('works for plans with no global-views feature', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'issuePlatform',
+          // Since we don't have global-views, we only look at the current project
+          project: event.projectID,
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: emptyBody,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'discover',
+          // Since we don't have global-views, we only look at the current project
+          project: event.projectID,
+        }),
+      ],
+    });
+
+    render(<TraceTimeline event={event} />, {
+      organization: OrganizationFixture({
+        features: [], // No global-views feature
+      }),
+    });
+    expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
 });
