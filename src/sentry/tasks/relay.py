@@ -190,7 +190,7 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
-        return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
+        return get_project_config(key.project, project_keys=[key]).to_dict()
 
 
 @instrumented_task(
