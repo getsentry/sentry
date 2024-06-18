@@ -113,9 +113,10 @@ export function ReplayHydrationErrorFrameFixture(
 ): MockFrame<'replay.hydrate-error'> {
   return {
     category: 'replay.hydrate-error',
+    message: '',
     timestamp: fields.timestamp.getTime() / 1000,
     data: fields.data ?? undefined,
-    type: '',
+    type: BreadcrumbType.DEFAULT,
   };
 }
 

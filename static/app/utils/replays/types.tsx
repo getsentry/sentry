@@ -22,10 +22,11 @@ import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 type StubBreadcrumbTypes = {
   category: 'replay.hydrate-error';
   timestamp: number;
-  type: '';
+  type: string;
   data?: {
     url?: string;
   };
+  message?: string;
 };
 
 // TODO: more types get added here
