@@ -39,23 +39,19 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
     return getReplayDiffOffsetsFromFrame(replay, hydrationFrame);
   }
 
-  const frames = replay.getRRWebFrames();
   const replayStartTimestamp = replay?.getReplay().started_at.getTime() ?? 0;
 
-  const leftReplayFrameIndex = replay
-    .getRRWebFrames()
-    .findIndex(frame => frame.timestamp < eventTimestampMs);
-  const leftFrame = frames.at(Math.max(0, leftReplayFrameIndex));
-  const leftOffsetMs = Math.max(0, replayStartTimestamp - (leftFrame?.timestamp ?? 0));
+  // Use the event timestamp for the left side.
+  // Event has only second precision, therefore the hydration error happened
+  // sometime after this timestamp.
+  const leftOffsetMs = Math.max(0, eventTimestampMs - replayStartTimestamp);
 
-  const rightReplayFrameIndex = replay
-    .getRRWebFrames()
-    .findLastIndex(frame => frame.timestamp <= eventTimestampMs + 1);
-
-  const rightFrame = frames.at(Math.min(frames.length, rightReplayFrameIndex + 1));
+  // Use the timestamp of the first mutation to happen after the timestamp of
+  // the error event.
   const rightOffsetMs = Math.max(
     0,
-    (rightFrame?.timestamp ?? eventTimestampMs) - replayStartTimestamp
+    (replay.getRRWebMutations().find(frame => frame.timestamp > eventTimestampMs + 1000)
+      ?.timestamp ?? eventTimestampMs) - replayStartTimestamp
   );
 
   return {leftOffsetMs, rightOffsetMs};
