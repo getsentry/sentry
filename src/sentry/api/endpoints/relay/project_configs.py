@@ -54,6 +54,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 "Requesting the non-full configuration is not possible anymore", status=400
             )
 
+        if not relay.is_internal:
+            return Response("Relay unauthorized for config information", status=403)
+
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
 
