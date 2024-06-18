@@ -1,6 +1,5 @@
 from fnmatch import fnmatch
 
-from django.test import override_settings
 from django.urls import URLResolver, get_resolver, reverse
 
 from sentry.models.organization import OrganizationStatus
@@ -266,10 +265,7 @@ class ReactPageViewTest(TestCase):
         other_org = self.create_organization()
 
         self.login_as(self.user)
-        with (
-            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
-            self.feature({"system:multi-region": True}),
-        ):
+        with self.feature({"system:multi-region": True}):
             # Should not be able to induce activeorg
             assert "activeorg" not in self.client.session
             response = self.client.get(
@@ -287,10 +283,7 @@ class ReactPageViewTest(TestCase):
         other_org = self.create_organization()
 
         self.login_as(user, superuser=is_superuser, staff=is_staff)
-        with (
-            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
-            self.feature({"system:multi-region": True}),
-        ):
+        with self.feature({"system:multi-region": True}):
             # Induce activeorg
             assert "activeorg" not in self.client.session
             response = self.client.get(
