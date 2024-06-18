@@ -24,6 +24,6 @@ export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/caches/'
 
 export const ONBOARDING_CONTENT = {
   title: t('Make Sure Your Application Caches Are Behaving Properly'),
-  description: t('We tell you if your application is hitting cache as often as expected and whether caching is providing the performance improvements you imagined.'),
+  description: t('We tell you if your application is hitting cache as often as expected and whether it’s delivering the anticipated performance improvements.'),
   link: MODULE_DOC_LINK,
 };

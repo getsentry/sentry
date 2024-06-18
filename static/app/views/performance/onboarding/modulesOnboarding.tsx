@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
+import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span-small.svg';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
@@ -56,7 +56,7 @@ function ModulesOnboardingPanel({children}: {children: React.ReactNode}) {
 const PerfImage = styled('img')`
   -webkit-transform: scaleX(-1);
   transform: scaleX(-1);
-  width: 600px;
+  width: 260px;
   user-select: none;
   position: absolute;
   bottom: 0;
@@ -72,6 +72,6 @@ const Container = styled('div')`
 
 const ContentContainer = styled('div')`
   position: relative;
-  width: 75%;
+  width: 70%;
   z-index: 1;
 `;
