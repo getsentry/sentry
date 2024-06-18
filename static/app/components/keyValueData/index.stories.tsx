@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import * as KeyValueData from 'sentry/components/keyValueData/card';
+import KeyValueData, {
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
 import {IconCodecov, IconSentry, IconSettings} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import theme from 'sentry/utils/theme';
@@ -11,7 +13,7 @@ export default storyBook('KeyValueData', story => {
   story('Usage', () => (
     <Fragment>
       <CodeSnippet language="js">
-        import * as KeyValueData from 'sentry/components/keyValueData/card';
+        import KeyValueData from 'sentry/components/keyValueData';
       </CodeSnippet>
     </Fragment>
   ));
@@ -76,7 +78,7 @@ export default storyBook('KeyValueData', story => {
           <code>subject</code>
         </li>
       </ul>
-      <KeyValueData.Group>
+      <KeyValueData.Container>
         <KeyValueData.Card
           title="Dataset Title"
           contentItems={contentItems.slice(0, 3)}
@@ -99,7 +101,7 @@ export default storyBook('KeyValueData', story => {
           contentItems={contentItems}
           truncateLength={4}
         />
-      </KeyValueData.Group>
+      </KeyValueData.Container>
     </Fragment>
   ));
 
@@ -124,18 +126,18 @@ export default storyBook('KeyValueData', story => {
         It should be noted that the number of items per card, or content size is not
         factored in, and can lead to some inconsistencies.
       </p>
-      <KeyValueData.Group>
+      <KeyValueData.Container>
         <KeyValueData.Card contentItems={contentItems.slice(0, 2)} />
         <KeyValueData.Card contentItems={contentItems.slice(4, 6)} />
         <KeyValueData.Card contentItems={contentItems.slice(1, 6)} />
         <KeyValueData.Card contentItems={contentItems.slice(0, 8)} />
         <KeyValueData.Card contentItems={contentItems.slice(2, 5)} />
-      </KeyValueData.Group>
+      </KeyValueData.Container>
     </Fragment>
   ));
 });
 
-const contentItems: KeyValueData.ContentProps[] = [
+const contentItems: KeyValueDataContentProps[] = [
   {
     item: {
       key: 'string',
