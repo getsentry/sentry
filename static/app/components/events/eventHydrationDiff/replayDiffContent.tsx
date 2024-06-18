@@ -7,6 +7,7 @@ import {ReplayGroupContextProvider} from 'sentry/components/replays/replayGroupC
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import {getReplayDiffOffsetsFromEvent} from 'sentry/utils/replays/getDiffTimestamps';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 
 interface Props {
@@ -31,11 +32,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
     return null;
   }
 
-  // TODO: base the event timestamp off the replay data itself.
-  const startTimestampMS =
-    'startTimestamp' in event ? event.startTimestamp * 1000 : undefined;
-  const timeOfEvent = event.dateCreated ?? startTimestampMS ?? event.dateReceived;
-  const eventTimestampMs = timeOfEvent ? Math.floor(new Date(timeOfEvent).getTime()) : 0;
+  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromEvent(replay, event);
 
   return (
     <EventDataSection
@@ -44,9 +41,9 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
       actions={
         <OpenReplayComparisonButton
           key="open-modal-button"
-          leftTimestamp={0}
+          leftOffsetMs={leftOffsetMs}
           replay={replay}
-          rightTimestamp={eventTimestampMs}
+          rightOffsetMs={rightOffsetMs}
           size="xs"
         >
           {t('Open Diff Viewer')}
@@ -57,9 +54,9 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
         <ReplayGroupContextProvider groupId={group?.id} eventId={event.id}>
           <ReplayDiff
             defaultTab={DiffType.VISUAL}
-            leftTimestamp={0}
+            leftOffsetMs={leftOffsetMs}
             replay={replay}
-            rightTimestamp={eventTimestampMs}
+            rightOffsetMs={rightOffsetMs}
           />
         </ReplayGroupContextProvider>
       </ErrorBoundary>

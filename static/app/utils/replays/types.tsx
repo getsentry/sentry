@@ -1,10 +1,10 @@
 import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
+export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
 
 export {NodeType} from '@sentry-internal/rrweb-snapshot';
-export {EventType} from '@sentry-internal/rrweb';
+export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 
 import type {
   ReplayBreadcrumbFrame as TRawBreadcrumbFrame,
@@ -16,6 +16,18 @@ import type {
 import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+
+// These stub types should be coming from the sdk, but they're hard-coded until
+// the SDK updates to the latest version... once that happens delete this!
+type StubBreadcrumbTypes = {
+  category: 'replay.hydrate-error';
+  timestamp: number;
+  type: string;
+  data?: {
+    url?: string;
+  };
+  message?: string;
+};
 
 // TODO: more types get added here
 type MobileBreadcrumbTypes =
@@ -55,6 +67,7 @@ type MobileBreadcrumbTypes =
  * because the mobile SDK does not send that property currently.
  */
 type ExtraBreadcrumbTypes =
+  | StubBreadcrumbTypes
   | MobileBreadcrumbTypes
   | {
       category: 'navigation';
@@ -260,6 +273,7 @@ export type InputFrame = HydratedBreadcrumb<'ui.input'>;
 export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
+export type HydrationErrorFrame = HydratedBreadcrumb<'replay.hydrate-error'>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 export type DeviceBatteryFrame = HydratedBreadcrumb<'device.battery'>;
