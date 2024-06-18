@@ -16,7 +16,7 @@ import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
+export const CRASH_FREE_DECIMAL_THRESHOLD = 90;
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);
