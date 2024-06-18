@@ -155,7 +155,7 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["features"] == [
                 "organizations:create",
-                "organizations:customer-domains",
+                "system:multi-region",
             ]
 
         with self.feature({"system:multi-region": False}):
