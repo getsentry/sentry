@@ -42,7 +42,7 @@ class ActivityManager(BaseManager["Activity"]):
         activity_qs = self.filter(group=group).order_by("-datetime")
         initial_priority = None
 
-        # Check if 'initial_priority' is available and the feature flag is on
+        # Check if 'initial_priority' is available
         initial_priority_value = group.get_event_metadata().get(
             "initial_priority", None
         ) or group.get_event_metadata().get("initial_priority", None)
