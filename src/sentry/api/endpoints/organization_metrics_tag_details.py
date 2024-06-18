@@ -30,7 +30,9 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
             )
         projects = self.get_projects(request, organization)
         if not projects:
-            raise InvalidParams("You must supply at least one project to see the tag values")
+            return Response(
+                {"detail": "You must supply at least one project to see its metrics"}, status=404
+            )
 
         try:
             mris = convert_metric_names_to_mris(metric_names)
