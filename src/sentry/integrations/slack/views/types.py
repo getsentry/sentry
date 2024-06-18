@@ -21,3 +21,23 @@ class IdentityParams:
         self.slack_id = slack_id
         self.channel_id = channel_id
         self.response_url = response_url
+
+
+@dataclass
+class TeamIdentityParams:
+    organization_id: str
+    integration_id: str
+    channel_id: str
+    channel_name: str
+    slack_id: str
+    response_url: str | None = None
+
+    def __init__(
+        self, organization_id, integration_id, channel_id, channel_name, slack_id, response_url=None
+    ):
+        self.organization_id = organization_id
+        self.integration_id = integration_id
+        self.channel_id = channel_id
+        self.channel_name = channel_name
+        self.slack_id = slack_id
+        self.response_url = response_url
