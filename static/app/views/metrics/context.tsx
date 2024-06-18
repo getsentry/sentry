@@ -11,7 +11,7 @@ import isEqual from 'lodash/isEqual';
 
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,

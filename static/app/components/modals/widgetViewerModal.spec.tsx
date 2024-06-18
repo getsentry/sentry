@@ -562,7 +562,7 @@ describe('Modals -> WidgetViewerModal', function () {
       });
 
       it('renders transaction summary link', async function () {
-        ProjectsStore.loadInitialData(initialData.organization.projects);
+        ProjectsStore.loadInitialData(initialData.projects);
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           body: {

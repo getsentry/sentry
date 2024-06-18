@@ -26,7 +26,7 @@ describe('ContextPickerModal', function () {
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
-    org = OrganizationFixture({projects: [project]});
+    org = OrganizationFixture();
     project2 = ProjectFixture({slug: 'project2'});
     org2 = OrganizationFixture({
       slug: 'org2',
@@ -138,7 +138,7 @@ describe('ContextPickerModal', function () {
     // Should see 1 selected, and 1 as an option
     expect(screen.getAllByText('org-slug')).toHaveLength(2);
 
-    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    expect(await screen.findByText('My Projects')).toBeInTheDocument();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();

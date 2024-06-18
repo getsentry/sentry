@@ -64,9 +64,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 import {transactionSummaryRouteWithQuery} from '../transactionSummary/utils';
 

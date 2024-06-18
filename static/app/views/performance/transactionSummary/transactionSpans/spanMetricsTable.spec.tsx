@@ -9,7 +9,7 @@ const initializeData = () => {
     features: ['performance-view'],
   });
 
-  act(() => ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => ProjectsStore.loadInitialData(data.projects));
   return data;
 };
 
@@ -27,14 +27,16 @@ describe('SuspectSpansTable', () => {
             'span.op': 'db',
             'span.description': 'SELECT thing FROM my_cool_db',
             'spm()': 4.448963396488444,
-            'sum(span.self_time)': 1236071121.5044901,
+            'sum(span.duration)': 1236071121.5044901,
             'avg(span.duration)': 30900.700924083318,
           },
         ],
       },
     });
 
-    render(<SpanMetricsTable transactionName="Test Transaction" project={project} />);
+    render(
+      <SpanMetricsTable transactionName="Test Transaction" project={project} query={''} />
+    );
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()
@@ -84,7 +86,9 @@ describe('SuspectSpansTable', () => {
       },
     });
 
-    render(<SpanMetricsTable transactionName="Test Transaction" project={project} />);
+    render(
+      <SpanMetricsTable transactionName="Test Transaction" project={project} query={''} />
+    );
 
     await waitFor(() =>
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument()

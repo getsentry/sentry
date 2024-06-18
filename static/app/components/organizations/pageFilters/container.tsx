@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useRef} from 'react';
 import isEqual from 'lodash/isEqual';
 
 import type {InitializeUrlStateParams} from 'sentry/actionCreators/pageFilters';
@@ -118,7 +118,7 @@ function PageFiltersContainer({
   // pinned, otherwise populate with defaults.
   //
   // This happens when we mount the container.
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!projectsLoaded) {
       return;
     }
@@ -134,7 +134,7 @@ function PageFiltersContainer({
 
   // This happens e.g. using browser's navigation button, in which case
   // we need to update our store to reflect URL changes
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (location.query === lastQuery.current) {
       return;
     }

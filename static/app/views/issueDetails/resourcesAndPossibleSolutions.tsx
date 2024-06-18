@@ -27,7 +27,10 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const config = getConfigForIssueType(group, project);
 
   const hasStacktrace = event.entries.some(
-    entry => entry.type === EntryType.EXCEPTION || entry.type === EntryType.STACKTRACE
+    entry =>
+      entry.type === EntryType.EXCEPTION ||
+      entry.type === EntryType.STACKTRACE ||
+      entry.type === EntryType.THREADS
   );
 
   // NOTE:  Autofix is for INTERNAL testing only for now.

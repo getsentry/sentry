@@ -83,11 +83,6 @@ export interface Organization extends OrganizationSummary {
   planSampleRate?: number | null;
 }
 
-export interface DetailedOrganization extends Organization {
-  projects: Project[];
-  teams: Team[];
-}
-
 export interface Team {
   access: Scope[];
   avatar: Avatar;

@@ -12,10 +12,12 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
-import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import type {SpanIndexedResponse} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
@@ -61,6 +63,7 @@ interface Props {
   meta?: EventsMetaType;
   onSampleMouseOut?: ComponentProps<typeof GridEditable>['onRowMouseOut'];
   onSampleMouseOver?: ComponentProps<typeof GridEditable>['onRowMouseOver'];
+  referrer?: string;
 }
 
 export function SpanSamplesTable({
@@ -115,6 +118,8 @@ function renderBodyCell(
         timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
         spanId={row[SpanIndexedField.ID]}
+        source={TraceViewSources.REQUESTS_MODULE}
+        location={location}
       />
     );
   }

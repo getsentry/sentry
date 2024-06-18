@@ -5,9 +5,11 @@ import orjson
 import responses
 
 from sentry.integrations.slack.notifications import send_notification_as_slack
+from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import DummyNotification
 
 
@@ -100,3 +102,45 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             ],
             "type": "actions",
         }
+
+    @mock.patch("sentry.integrations.slack.sdk_client.metrics")
+    @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-notify-recipient")
+    def test_send_notification_as_slack_sdk(self, mock_api_call, mock_metrics):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+        with (
+            mock.patch.dict(
+                manager.attachment_generators,
+                {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
+            ),
+        ):
+            with self.tasks():
+                send_notification_as_slack(self.notification, [self.user], {}, {})
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": True, "status": 200},
+        )
+
+    @mock.patch("sentry.integrations.slack.sdk_client.metrics")
+    @with_feature("organizations:slack-sdk-notify-recipient")
+    def test_send_notification_as_slack_sdk_error(self, mock_metrics):
+        with (
+            mock.patch.dict(
+                manager.attachment_generators,
+                {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
+            ),
+        ):
+            with self.tasks():
+                send_notification_as_slack(self.notification, [self.user], {}, {})
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": False, "status": 200},
+        )

@@ -12,7 +12,7 @@ describe('EventMetas', () => {
       dateReceived: '2017-05-21T18:01:48.762Z',
       dateCreated: '2017-05-21T18:02:48.762Z',
     });
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],

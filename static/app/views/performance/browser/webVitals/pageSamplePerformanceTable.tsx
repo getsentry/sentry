@@ -31,6 +31,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {PerformanceBadge} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
 import useProfileExists from 'sentry/views/performance/browser/webVitals/utils/profiling/useProfileExists';
@@ -46,7 +47,8 @@ import {
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
@@ -373,6 +375,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         timestamp: row.timestamp,
         organization,
         location,
+        source: TraceViewSources.WEB_VITALS_MODULE,
       });
 
       return (

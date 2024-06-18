@@ -1,7 +1,7 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 
-from sentry.tsdb.base import BaseTSDB, TSDBKey, TSDBModel
+from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
 
 
 class DummyTSDB(BaseTSDB):
@@ -120,13 +120,14 @@ class DummyTSDB(BaseTSDB):
 
     def get_frequency_series(
         self,
-        model,
-        items: Mapping[str, Sequence[str]],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-    ):
+        model: TSDBModel,
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         self.validate_arguments([model], [environment_id])
         rollup, series = self.get_optimal_rollup_series(start, end, rollup)
 
@@ -153,7 +154,14 @@ class DummyTSDB(BaseTSDB):
             results[key] = {member: 0.0 for member in members}
         return results
 
-    def merge_frequencies(self, model, destination, sources, timestamp=None, environment_ids=None):
+    def merge_frequencies(
+        self,
+        model: TSDBModel,
+        destination: str,
+        sources: Sequence[TSDBKey],
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
         environment_ids = list(
             (set(environment_ids) if environment_ids is not None else set()).union([None])
         )

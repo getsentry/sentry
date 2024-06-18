@@ -115,6 +115,7 @@ from sentry.issues.endpoints import (
     GroupEventsEndpoint,
     OrganizationActivityEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectStacktraceLinkEndpoint,
@@ -340,9 +341,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 )
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
-from .endpoints.organization_auth_provider_send_reminders import (
-    OrganizationAuthProviderSendRemindersEndpoint,
-)
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
@@ -444,6 +442,7 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
+    OrganizationProfilingChunksEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
@@ -484,6 +483,7 @@ from .endpoints.organization_spans_fields import (
     OrganizationSpansFieldsEndpoint,
     OrganizationSpansFieldValuesEndpoint,
 )
+from .endpoints.organization_spans_trace import OrganizationSpansTraceEndpoint
 from .endpoints.organization_stats import OrganizationStatsEndpoint
 from .endpoints.organization_stats_v2 import OrganizationStatsEndpointV2
 from .endpoints.organization_tagkey_values import OrganizationTagKeyValuesEndpoint
@@ -491,6 +491,7 @@ from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
+    OrganizationTraceSpansEndpoint,
     OrganizationTracesStatsEndpoint,
 )
 from .endpoints.organization_transaction_anomaly_detection import (
@@ -537,6 +538,7 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
+from .endpoints.project_metrics_extraction_rules import ProjectMetricsExtractionRulesEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -551,8 +553,6 @@ from .endpoints.project_processingissues import (
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
-    ProjectProfilingFlamegraphEndpoint,
-    ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
     ProjectProfilingTransactionIDProfileIDEndpoint,
@@ -1361,11 +1361,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-auth-providers",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/auth-provider/send-reminders/$",
-        OrganizationAuthProviderSendRemindersEndpoint.as_view(),
-        name="sentry-api-0-organization-auth-provider-send-reminders",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/avatar/$",
         OrganizationAvatarEndpoint.as_view(),
         name="sentry-api-0-organization-avatar",
@@ -1409,6 +1404,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
+        OrganizationTraceSpansEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-spans",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/traces/$",
@@ -1558,6 +1558,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-trace-meta",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
+        OrganizationSpansTraceEndpoint.as_view(),
+        name="sentry-api-0-organization-spans-trace",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/measurements-meta/$",
         OrganizationMeasurementsMeta.as_view(),
         name="sentry-api-0-organization-measurements-meta",
@@ -1703,6 +1708,11 @@ ORGANIZATION_URLS = [
             csrf_exempt=True,
         ),
         name="sentry-api-0-organization-monitor-check-in-attachment",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/$",
+        OrganizationGroupSearchViewsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-views",
     ),
     # Pinned and saved search
     re_path(
@@ -2098,6 +2108,11 @@ ORGANIZATION_URLS = [
                     OrganizationProfilingFunctionTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-function-trends",
                 ),
+                re_path(
+                    r"^chunks/$",
+                    OrganizationProfilingChunksEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks",
+                ),
             ],
         ),
     ),
@@ -2376,6 +2391,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/visibility/$",
         ProjectMetricsVisibilityEndpoint.as_view(),
         name="sentry-api-0-project-metrics-visibility",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/extraction-rules/$",
+        ProjectMetricsExtractionRulesEndpoint.as_view(),
+        name="sentry-api-0-project-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
@@ -2730,11 +2750,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-appstoreconnect-refresh",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/functions/$",
-        ProjectProfilingFunctionsEndpoint.as_view(),
-        name="sentry-api-0-project-profiling-functions",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-profile",
@@ -2743,11 +2758,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/raw_profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingRawProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-raw-profile",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/flamegraph/$",
-        ProjectProfilingFlamegraphEndpoint.as_view(),
-        name="sentry-api-0-project-profiling-flamegraph",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

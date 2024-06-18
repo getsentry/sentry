@@ -5,14 +5,17 @@ from logging import Logger, getLogger
 import orjson
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
 )
-from sentry.integrations.slack import BlockSlackMessageBuilder, SlackClient
+from sentry.integrations.slack import BlockSlackMessageBuilder
+from sentry.integrations.slack.metrics import (
+    SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
+    SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.threads.activity_notifications import (
     AssignedActivityNotification,
@@ -35,6 +38,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.types.activity import ActivityType
+from sentry.utils import metrics
 
 _default_logger = getLogger(__name__)
 
@@ -161,11 +165,7 @@ class SlackService:
             )
             return None
 
-        slack_client: SlackClient | SlackSdkClient = SlackClient(integration_id=integration.id)
-        if features.has(
-            "organizations:slack-sdk-activity-threads", organization=activity.group.organization
-        ):
-            slack_client = SlackSdkClient(integration_id=integration.id)
+        slack_client = SlackSdkClient(integration_id=integration.id)
 
         # Get all parent notifications, which will have the message identifier to use to reply in a thread
         parent_notifications = (
@@ -197,7 +197,7 @@ class SlackService:
         self,
         parent_notification: IssueAlertNotificationMessage,
         notification_to_send: str,
-        client: SlackClient | SlackSdkClient,
+        client: SlackSdkClient,
     ) -> None:
         # For each parent notification, we need to get the channel that the notification is replied to
         # Get the channel by using the action uuid
@@ -240,29 +240,25 @@ class SlackService:
             "rule_action_uuid": parent_notification.rule_action_uuid,
         }
 
-        if isinstance(client, SlackClient):
-            try:
-                client.post("/chat.postMessage", data=payload, timeout=5)
-            except Exception as err:
-                self._logger.info(
-                    "failed to post message to slack",
-                    extra={"error": str(err), "payload": payload, **extra},
-                )
-                raise
-        else:
-            try:
-                client.chat_postMessage(
-                    channel=channel_id,
-                    thread_ts=parent_notification.message_identifier,
-                    text=notification_to_send,
-                    blocks=json_blocks,
-                )
-            except SlackApiError as err:
-                self._logger.info(
-                    "failed to post message to slack",
-                    extra={"error": str(err), "blocks": json_blocks, **extra},
-                )
-                raise
+        try:
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=parent_notification.message_identifier,
+                text=notification_to_send,
+                blocks=json_blocks,
+            )
+            metrics.incr(SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+        except SlackApiError as e:
+            self._logger.info(
+                "failed to post message to slack",
+                extra={"error": str(e), "blocks": json_blocks, **extra},
+            )
+            metrics.incr(
+                SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
+            )
+            raise
 
     def _get_notification_message_to_send(self, activity: Activity) -> str | None:
         """

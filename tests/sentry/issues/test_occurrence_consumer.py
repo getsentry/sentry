@@ -28,9 +28,8 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.receivers import create_default_projects
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
@@ -580,16 +579,16 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         assert group.status == status
 
 
-@override_options({"issues.occurrence_consumer.use_orjson": True})
-class IssueOccurrenceProcessMessageWithOrjsonTest(IssueOccurrenceProcessMessageTest):
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class IssueOccurrenceProcessMessageWithPruningTest(IssueOccurrenceProcessMessageTest):
     pass
 
 
-@override_options({"issues.occurrence_consumer.use_orjson": True})
-class IssueOccurrenceLookupEventIdWithOrjsonTest(IssueOccurrenceLookupEventIdTest):
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class IssueOccurrenceLookupEventIdWithPruningTest(IssueOccurrenceLookupEventIdTest):
     pass
 
 
-@override_options({"issues.occurrence_consumer.use_orjson": True})
-class ParseEventPayloadWithOrjsonTest(ParseEventPayloadTest):
+@apply_feature_flag_on_cls("organizations:occurence-consumer-prune-status-changes")
+class ParseEventPayloadWithPruningTest(ParseEventPayloadTest):
     pass

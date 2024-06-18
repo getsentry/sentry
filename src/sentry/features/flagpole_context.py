@@ -96,7 +96,7 @@ def get_sentry_flagpole_context_builder() -> ContextBuilder[SentryContextData]:
     """
     return (
         ContextBuilder[SentryContextData]()
-        .add_context_transformer(organization_context_transformer)
-        .add_context_transformer(project_context_transformer)
+        .add_context_transformer(organization_context_transformer, ["organization_id"])
+        .add_context_transformer(project_context_transformer, ["project_id"])
         .add_context_transformer(user_context_transformer)
     )

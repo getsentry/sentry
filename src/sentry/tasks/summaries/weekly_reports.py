@@ -3,16 +3,16 @@ from __future__ import annotations
 import heapq
 import logging
 import uuid
-from collections.abc import Generator, Mapping
-from contextlib import contextmanager
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import timedelta
-from functools import partial, reduce
+from functools import partial
 from typing import Any, cast
 
 import sentry_sdk
 from django.db.models import F
 from django.utils import dateformat, timezone
+from rb.clients import LocalClient
 from sentry_sdk import set_tag
 
 from sentry import analytics
@@ -83,7 +83,7 @@ def schedule_organizations(
         # Create a celery task per organization
         logger.info(
             "weekly_reports.schedule_organizations",
-            extra={"batch_id": batch_id, "organization": organization.id},
+            extra={"batch_id": str(batch_id), "organization": organization.id},
         )
         prepare_organization_report.delay(
             timestamp, duration, organization.id, batch_id, dry_run=dry_run
@@ -112,7 +112,7 @@ def prepare_organization_report(
         logger.error(
             "Target user must have an ID",
             extra={
-                "batch_id": batch_id,
+                "batch_id": str(batch_id),
                 "organization": organization_id,
                 "target_user": target_user,
                 "email_override": email_override,
@@ -183,7 +183,7 @@ def prepare_organization_report(
                     logger.info(
                         "project_key_errors.results",
                         extra={
-                            "batch_id": batch_id,
+                            "batch_id": str(batch_id),
                             "project_id": project.id,
                             "num_key_errors": len(key_errors),
                         },
@@ -226,7 +226,7 @@ def prepare_organization_report(
     if not report_is_available:
         logger.info(
             "prepare_organization_report.skipping_empty",
-            extra={"batch_id": batch_id, "organization": organization_id},
+            extra={"batch_id": str(batch_id), "organization": organization_id},
         )
         return
 
@@ -235,7 +235,7 @@ def prepare_organization_report(
     with sentry_sdk.start_span(op="weekly_reports.deliver_reports"):
         logger.info(
             "weekly_reports.deliver_reports",
-            extra={"batch_id": batch_id, "organization": organization_id},
+            extra={"batch_id": str(batch_id), "organization": organization_id},
         )
         batch.deliver_reports()
 
@@ -274,12 +274,12 @@ class OrganizationReportBatch:
                 )
                 .values_list("user_id", flat=True)
             )
-            user_list = list(filter(lambda v: v is not None, user_list))
+            user_list = [v for v in user_list if v is not None]
             user_ids = notifications_service.get_users_for_weekly_reports(
                 organization_id=self.ctx.organization.id, user_ids=user_list
             )
             user_template_context_by_user_id_list = []
-            for user_id in user_ids:
+            if user_ids:
                 user_template_context_by_user_id_list = prepare_template_context(
                     ctx=self.ctx, user_ids=user_ids
                 )
@@ -291,8 +291,10 @@ class OrganizationReportBatch:
         template_context: Mapping[str, Any] | None = user_template_context.get("context")
         user_id: int | None = user_template_context.get("user_id")
         if template_context and user_id:
-            with self._check_for_duplicate_delivery(user_id):
+            dupe_check = _DuplicateDeliveryCheck(self, user_id)
+            if not dupe_check.check_for_duplicate_delivery():
                 self.send_email(template_ctx=template_context, user_id=user_id)
+                dupe_check.record_delivery()
 
     def send_email(self, template_ctx: Mapping[str, Any], user_id: int) -> None:
         message = MessageBuilder(
@@ -321,7 +323,7 @@ class OrganizationReportBatch:
             logger.info(
                 "weekly_report.send_email",
                 extra={
-                    "batch_id": self.batch_id,
+                    "batch_id": str(self.batch_id),
                     "organization": self.ctx.organization.id,
                     "uuid": template_ctx["notification_uuid"],
                     "user_id": user_id,
@@ -331,41 +333,66 @@ class OrganizationReportBatch:
             message.add_users((user_id,))
             message.send_async()
 
-    @contextmanager
-    def _check_for_duplicate_delivery(self, user_id: int) -> Generator[None, None, None]:
-        """Attempt to prevent duplicate deliveries of the same report."""
 
-        def log_error(msg: str) -> None:
-            extra = {
-                "batch_id": self.batch_id,
-                "organization": self.ctx.organization.id,
-                "user_id": user_id,
-                "has_email_override": bool(self.email_override),
-            }
-            logger.error(msg, extra=extra)
+class _DuplicateDeliveryCheck:
+    def __init__(self, batch: OrganizationReportBatch, user_id: int):
+        self.batch = batch
+        self.user_id = user_id
 
-        cluster = redis.clusters.get("default").get_local_client_for_key("weekly_reports")
-        name_parts = (self.batch_id, self.ctx.organization.id, user_id)
-        name = ":".join(str(part) for part in name_parts)
+        # Tracks state from `check_for_duplicate_delivery` to `record_delivery`
+        self.count: int | None = None
 
-        count_before = int(cluster.get(name) or 0)
-        if count_before > 0:
-            # When we have more confidence in this approach, we can upgrade this to
-            # an exception, thereby preventing the duplicate send.
-            log_error("weekly_report.delivery_record.duplicate_detected")
+    def _get_redis_cluster(self) -> LocalClient:
+        return redis.clusters.get("default").get_local_client_for_key("weekly_reports")
 
-        # Dispatch the send operation. There is no lock for concurrency, which leaves
-        # open the possibility of a race condition, in case another thread or server
-        # node received a duplicate Celery task somehow. But we do not think this is
-        # a likely failure mode.
-        yield
+    @property
+    def _redis_name(self) -> str:
+        name_parts = (self.batch.batch_id, self.batch.ctx.organization.id, self.user_id)
+        return ":".join(str(part) for part in name_parts)
 
-        count_after = cluster.incr(name)
-        cluster.expire(name, timedelta(days=1))
-        if count_after > count_before + 1:
-            # The `cluster.incr` operation is atomic, so if concurrent duplicates are
-            # happening, this should reliably detect them after the fact.
-            log_error("weekly_report.delivery_record.concurrent_detected")
+    def _get_log_extras(self) -> dict[str, Any]:
+        return {
+            "batch_id": str(self.batch.batch_id),
+            "organization": self.batch.ctx.organization.id,
+            "user_id": self.user_id,
+            "has_email_override": bool(self.batch.email_override),
+        }
+
+    def check_for_duplicate_delivery(self) -> bool:
+        """Check whether this delivery has been recorded in Redis already."""
+        if self.count is not None:
+            raise ValueError("This object has already checked a delivery")
+        cluster = self._get_redis_cluster()
+        self.count = int(cluster.get(self._redis_name) or 0)
+
+        is_duplicate_detected = self.count > 0
+        if is_duplicate_detected:
+            logger.error(
+                "weekly_report.delivery_record.duplicate_detected", extra=self._get_log_extras()
+            )
+        return is_duplicate_detected
+
+    def record_delivery(self) -> bool:
+        """Record in Redis that the delivery was completed successfully."""
+        if self.count is None:
+            raise ValueError("This object has not had `check_for_duplicate_delivery` called yet")
+        cluster = self._get_redis_cluster()
+        count_after = cluster.incr(self._redis_name)
+        cluster.expire(self._redis_name, timedelta(days=1))
+
+        is_duplicate_detected = count_after > self.count + 1
+        if is_duplicate_detected:
+            # There is no lock for concurrency, which leaves open the possibility of
+            # a race condition, in case another thread or server node received a
+            # duplicate Celery task somehow. But we do not think this is a likely
+            # failure mode.
+            #
+            # Nonetheless, the `cluster.incr` operation is atomic, so if concurrent
+            # duplicates are happening, this should reliably detect them after the fact.
+            logger.error(
+                "weekly_report.delivery_record.concurrent_detected", extra=self._get_log_extras()
+            )
+        return is_duplicate_detected
 
 
 project_breakdown_colors = ["#422C6E", "#895289", "#D6567F", "#F38150", "#F2B713"]
@@ -430,12 +457,11 @@ def render_template_context(ctx, user_id):
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
     if user_id and user_id in ctx.project_ownership:
-        user_projects = list(
-            filter(
-                lambda project_ctx: project_ctx.project.id in ctx.project_ownership[user_id],
-                ctx.projects_context_map.values(),
-            )
-        )
+        user_projects = [
+            project_ctx
+            for project_ctx in ctx.projects_context_map.values()
+            if project_ctx.project.id in ctx.project_ownership[user_id]
+        ]
         if len(user_projects) == 0:
             return None
     else:
@@ -449,28 +475,18 @@ def render_template_context(ctx, user_id):
     def trends():
         # Given an iterator of event counts, sum up their accepted/dropped errors/transaction counts.
         def sum_event_counts(project_ctxs):
-            return reduce(
-                lambda a, b: (
-                    a[0] + b[0],
-                    a[1] + b[1],
-                    a[2] + b[2],
-                    a[3] + b[3],
-                    a[4] + b[4],
-                    a[5] + b[5],
-                ),
-                [
-                    (
-                        project_ctx.accepted_error_count,
-                        project_ctx.dropped_error_count,
-                        project_ctx.accepted_transaction_count,
-                        project_ctx.dropped_transaction_count,
-                        project_ctx.accepted_replay_count,
-                        project_ctx.dropped_replay_count,
-                    )
-                    for project_ctx in project_ctxs
-                ],
-                (0, 0, 0, 0, 0, 0),
-            )
+            event_counts = [
+                (
+                    project_ctx.accepted_error_count,
+                    project_ctx.dropped_error_count,
+                    project_ctx.accepted_transaction_count,
+                    project_ctx.dropped_transaction_count,
+                    project_ctx.accepted_replay_count,
+                    project_ctx.dropped_replay_count,
+                )
+                for project_ctx in project_ctxs
+            ]
+            return tuple(sum(event[i] for event in event_counts) for i in range(6))
 
         # Highest volume projects go first
         projects_associated_with_user = sorted(
@@ -495,7 +511,7 @@ def render_template_context(ctx, user_id):
         projects_not_taken = projects_associated_with_user[len(project_breakdown_colors) :]
 
         # Calculate legend
-        legend = [
+        legend: list[dict[str, Any]] = [
             {
                 "slug": project_ctx.project.slug,
                 "url": project_ctx.project.get_absolute_url(
@@ -565,22 +581,16 @@ def render_template_context(ctx, user_id):
                     {
                         "color": other_color,
                         "error_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.error_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.error_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                         "transaction_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.transaction_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.transaction_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                         "replay_count": sum(
-                            map(
-                                lambda project_ctx: project_ctx.replay_count_by_day.get(t, 0),
-                                projects_not_taken,
-                            )
+                            project_ctx.replay_count_by_day.get(t, 0)
+                            for project_ctx in projects_not_taken
                         ),
                     }
                 )
@@ -597,11 +607,13 @@ def render_template_context(ctx, user_id):
             "transaction_maximum": max(  # The max transaction count on any single day
                 sum(value["transaction_count"] for value in values) for timestamp, values in series
             ),
-            "replay_maximum": max(  # The max replay count on any single day
-                sum(value["replay_count"] for value in values) for timestamp, values in series
-            )
-            if len(projects_taken) > 0
-            else 0,
+            "replay_maximum": (
+                max(  # The max replay count on any single day
+                    sum(value["replay_count"] for value in values) for timestamp, values in series
+                )
+                if len(projects_taken) > 0
+                else 0
+            ),
         }
 
     def key_errors():
@@ -644,12 +656,14 @@ def render_template_context(ctx, user_id):
                     yield {
                         "count": count,
                         "group": group,
-                        "status": group_history.get_status_display()
-                        if group_history
-                        else "Unresolved",
-                        "status_color": group_status_to_color[group_history.status]
-                        if group_history
-                        else group_status_to_color[GroupHistoryStatus.NEW],
+                        "status": (
+                            group_history.get_status_display() if group_history else "Unresolved"
+                        ),
+                        "status_color": (
+                            group_status_to_color[group_history.status]
+                            if group_history
+                            else group_status_to_color[GroupHistoryStatus.NEW]
+                        ),
                         "group_substatus": substatus,
                         "group_substatus_color": substatus_color,
                         "group_substatus_border_color": substatus_border_color,
@@ -684,12 +698,14 @@ def render_template_context(ctx, user_id):
                     yield {
                         "count": count,
                         "group": group,
-                        "status": group_history.get_status_display()
-                        if group_history
-                        else "Unresolved",
-                        "status_color": group_status_to_color[group_history.status]
-                        if group_history
-                        else group_status_to_color[GroupHistoryStatus.NEW],
+                        "status": (
+                            group_history.get_status_display() if group_history else "Unresolved"
+                        ),
+                        "status_color": (
+                            group_status_to_color[group_history.status]
+                            if group_history
+                            else group_status_to_color[GroupHistoryStatus.NEW]
+                        ),
                     }
 
         return heapq.nlargest(3, all_key_performance_issues(), lambda d: d["count"])

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from enum import IntEnum
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import models, router, transaction
@@ -20,19 +20,12 @@ from sentry.constants import (
     EVENTS_MEMBER_ADMIN_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
 )
-from sentry.db.models import (
-    BaseManager,
-    BoundedPositiveIntegerField,
-    OptionManager,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import BaseManager, BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
-from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory
 from sentry.roles.manager import Role
 from sentry.services.hybrid_cloud.notifications import notifications_service
@@ -43,6 +36,9 @@ from sentry.types.organization import OrganizationAbsoluteUrlMixin
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id, snowflake_id_model
+
+if TYPE_CHECKING:
+    from sentry.models.options.organization_option import OrganizationOptionManager
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
 NON_MEMBER_SCOPES = frozenset(["org:write", "project:write", "team:write"])
@@ -144,7 +140,7 @@ class OrganizationManager(BaseManager["Organization"]):
 
 @snowflake_id_model
 @region_silo_model
-class Organization(ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMixin):
+class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
     """
     An organization represents a group of individuals which maintain ownership of projects.
     """
@@ -323,10 +319,12 @@ class Organization(ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMi
         if there is no owner. Used for analytics primarily.
         """
         if not hasattr(self, "_default_owner_id"):
-            owners = self.get_owners()
-            if len(owners) == 0:
+            owner_ids = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+                "user_id", flat=True
+            )
+            if len(owner_ids) == 0:
                 return None
-            self._default_owner_id = owners[0].id
+            self._default_owner_id = owner_ids[0]
         return self._default_owner_id
 
     @classmethod
@@ -405,7 +403,7 @@ class Organization(ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMi
         return members_with_role
 
     @property
-    def option_manager(self) -> OptionManager:
+    def option_manager(self) -> OrganizationOptionManager:
         from sentry.models.options.organization_option import OrganizationOption
 
         return OrganizationOption.objects
@@ -474,3 +472,14 @@ class Organization(ReplicatedRegionModel, OptionMixin, OrganizationAbsoluteUrlMi
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
+
+    def get_option(
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
+    ) -> Any:
+        return self.option_manager.get_value(self, key, default, validate)
+
+    def update_option(self, key: str, value: Any) -> bool:
+        return self.option_manager.set_value(self, key, value)
+
+    def delete_option(self, key: str) -> None:
+        self.option_manager.unset_value(self, key)

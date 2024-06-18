@@ -4,7 +4,7 @@ import datetime
 import logging
 import secrets
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
@@ -165,11 +165,12 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             id=id,
         )
 
-    def get_teams_by_user(self, organization: Organization) -> Mapping[int, list[int]]:
-        user_teams: MutableMapping[int, list[int]] = defaultdict(list)
+    def get_teams_by_user(self, organization: Organization) -> dict[int, list[int]]:
         queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
+        user_teams: dict[int, list[int]] = defaultdict(list)
         for user_id, team_id in queryset:
-            user_teams[user_id].append(team_id)
+            if user_id is not None:
+                user_teams[user_id].append(team_id)
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:

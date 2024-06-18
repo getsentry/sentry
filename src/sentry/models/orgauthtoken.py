@@ -149,7 +149,7 @@ def get_org_auth_token_id_from_auth(auth: object) -> int | None:
     return None
 
 
-def update_org_auth_token_last_used(auth: object, project_ids: list[int]):
+def update_org_auth_token_last_used(auth: object, project_ids: list[int]) -> None:
     org_auth_token_id = get_org_auth_token_id_from_auth(auth)
     organization_id = getattr(auth, "organization_id", None)
     if org_auth_token_id is None or organization_id is None:

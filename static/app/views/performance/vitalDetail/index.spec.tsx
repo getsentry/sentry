@@ -1,7 +1,6 @@
 import type {InjectedRouter} from 'react-router';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -19,10 +18,13 @@ import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils
 const api = new MockApiClient();
 const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
-  projects: [ProjectFixture()],
 });
 
-const {organization: org, router} = initializeOrg({
+const {
+  organization: org,
+  project,
+  router,
+} = initializeOrg({
   organization,
   router: {
     location: {
@@ -65,7 +67,7 @@ const testSupportedBrowserRendering = (webVital: WebVital) => {
 describe('Performance > VitalDetail', function () {
   beforeEach(function () {
     TeamStore.loadInitialData([], false, null);
-    ProjectsStore.loadInitialData(org.projects);
+    ProjectsStore.loadInitialData([project]);
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,

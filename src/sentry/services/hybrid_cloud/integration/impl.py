@@ -471,7 +471,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         except OrganizationIntegration.DoesNotExist:
             return []
 
-        iep_kwargs = {"organization_integration_id": oi.id}
+        iep_kwargs: dict[str, Any] = {"organization_integration_id": oi.id}
         if external_id is not None:
             iep_kwargs["external_id"] = external_id
         external_projects = IntegrationExternalProject.objects.filter(**iep_kwargs)

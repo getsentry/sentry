@@ -6,6 +6,7 @@ import Breadcrumbs from 'sentry/components/breadcrumbs';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -15,6 +16,12 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  ReleaseComparisonSelector,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {SamplesTables} from 'sentry/views/performance/mobile/appStarts/screenSummary/samples';
 import {
   COLD_START_TYPE,
@@ -24,12 +31,6 @@ import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanS
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  ReleaseComparisonSelector,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 import AppStartWidgets from './widgets';
 
@@ -98,6 +99,7 @@ export function ScreenSummary() {
             <HeaderContainer>
               <ControlsContainer>
                 <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 <ReleaseComparisonSelector />

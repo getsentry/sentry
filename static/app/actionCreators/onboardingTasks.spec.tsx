@@ -1,6 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
-import {TeamFixture} from 'sentry-fixture/team';
 
 import {updateOnboardingTask} from 'sentry/actionCreators/onboardingTasks';
 import ConfigStore from 'sentry/stores/configStore';
@@ -15,10 +13,7 @@ describe('actionCreators/onboardingTasks', function () {
 
   describe('updateOnboardingTask', function () {
     it('Adds the task to the organization when task does not exists', async function () {
-      const detailedOrg = OrganizationFixture({
-        teams: [TeamFixture()],
-        projects: [ProjectFixture()],
-      });
+      const detailedOrg = OrganizationFixture();
 
       // User is not passed into the update request
       const testTask = {
@@ -44,8 +39,6 @@ describe('actionCreators/onboardingTasks', function () {
 
     it('Updates existing onboarding task', async function () {
       const detailedOrg = OrganizationFixture({
-        teams: [TeamFixture()],
-        projects: [ProjectFixture()],
         onboardingTasks: [{task: OnboardingTaskKey.FIRST_EVENT, status: 'skipped'}],
       });
 
@@ -74,10 +67,7 @@ describe('actionCreators/onboardingTasks', function () {
     });
 
     it('Does not make API request without api object', async function () {
-      const detailedOrg = OrganizationFixture({
-        teams: [TeamFixture()],
-        projects: [ProjectFixture()],
-      });
+      const detailedOrg = OrganizationFixture();
 
       const testTask = {
         task: OnboardingTaskKey.FIRST_EVENT,

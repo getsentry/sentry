@@ -4,16 +4,6 @@
  *
  * When a store implements this it becomes usable with the `useLegacyStore` hook.
  *
- * @deprecated Use `StrictStoreDefinition` instead
- */
-export interface CommonStoreDefinition<T> extends Reflux.StoreDefinition {
-  /**
-   * Returns the current state represented within the store
-   */
-  getState(): T;
-}
-
-/**
  * Does not have the `[key: string]: any;` index signature that `Reflux.StoreDefinition` has.
  */
 export interface StrictStoreDefinition<T> {

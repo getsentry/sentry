@@ -22,6 +22,14 @@ import {
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {
+  useMetrics,
+  useSpanMetrics,
+} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
@@ -45,11 +53,6 @@ import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingC
 import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -266,10 +269,7 @@ export function CacheLandingPage() {
 
 function PageWithProviders() {
   return (
-    <ModulePageProviders
-      moduleName="cache"
-      features={['insights-addon-modules', 'performance-cache-view']}
-    >
+    <ModulePageProviders moduleName="cache" features="insights-addon-modules">
       <PageAlertProvider>
         <CacheLandingPage />
       </PageAlertProvider>

@@ -30,7 +30,6 @@ describe('OrganizationStats', function () {
   const {organization, router} = initializeOrg({
     organization: {features: ['global-views', 'team-insights']},
     projects,
-    project: undefined,
     router: undefined,
   });
   const endpoint = `/organizations/${organization.slug}/stats_v2/`;

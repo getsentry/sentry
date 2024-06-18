@@ -28,13 +28,13 @@ import type {
   DeviceOrientationFrame,
   ErrorFrame,
   FeedbackFrame,
-  LargestContentfulPaintFrame,
   MultiClickFrame,
   MutationFrame,
   NavFrame,
   ReplayFrame,
   SlowClickFrame,
   TapFrame,
+  WebVitalFrame,
 } from 'sentry/utils/replays/types';
 import {
   getFrameOpOrCategory,
@@ -52,6 +52,13 @@ interface Details {
   tabKey: TabKey;
   title: ReactNode;
 }
+
+const DEVICE_CONNECTIVITY_MESSAGE: Record<string, string> = {
+  wifi: t('Device connected to wifi'),
+  offline: t('Internet connection was lost'),
+  cellular: t('Device connected to cellular network'),
+  ethernet: t('Device connected to ethernet'),
+};
 
 const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   'replay.init': (frame: BreadcrumbFrame) => ({
@@ -192,42 +199,42 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   'ui.input': () => ({
     color: 'blue300',
-    description: 'User Action',
+    description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Input',
     icon: <IconInput size="xs" />,
   }),
   'ui.keyDown': () => ({
     color: 'blue300',
-    description: 'User Action',
+    description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User KeyDown',
     icon: <IconKeyDown size="xs" />,
   }),
   'ui.blur': () => ({
     color: 'blue300',
-    description: 'User Action',
+    description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Blur',
     icon: <IconUser size="xs" />,
   }),
   'ui.focus': () => ({
     color: 'blue300',
-    description: 'User Action',
+    description: t('User Action'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'User Focus',
     icon: <IconUser size="xs" />,
   }),
   'app.foreground': () => ({
     color: 'blue300',
-    description: 'Replay started',
+    description: t('The user is currently focused on your application'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Foreground',
     icon: <IconUser size="xs" />,
   }),
   'app.background': () => ({
     color: 'blue300',
-    description: 'Replay paused',
+    description: t('The user is preoccupied with another app or activity'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'App in Background',
     icon: <IconUser size="xs" />,
@@ -267,7 +274,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
-  'largest-contentful-paint': (frame: LargestContentfulPaintFrame) => ({
+  'largest-contentful-paint': (frame: WebVitalFrame) => ({
     color: 'gray300',
     description:
       typeof frame.data.value === 'number' ? (
@@ -364,7 +371,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   'device.connectivity': (frame: DeviceConnectivityFrame) => ({
     color: 'pink300',
-    description: frame.data.state,
+    description: DEVICE_CONNECTIVITY_MESSAGE[frame.data.state],
     tabKey: TabKey.BREADCRUMBS,
     title: 'Device Connectivity',
     icon: <IconMobile size="xs" />,

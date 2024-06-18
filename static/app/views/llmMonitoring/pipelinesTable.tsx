@@ -25,11 +25,11 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import type {SpanMetricsResponse} from 'sentry/views/insights/types';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Row = Pick<
   SpanMetricsResponse,
@@ -254,7 +254,9 @@ function renderBodyCell(
       <span>
         Unknown{' '}
         <Tooltip
-          title="Cost can only be calculated for certain OpenAI and Anthropic models, other providers aren't yet supported."
+          title={t(
+            "Cost is calculated for some of the most popular models, but some providers aren't yet supported."
+          )}
           isHoverable
         >
           <IconInfo size="xs" />

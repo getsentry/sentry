@@ -73,7 +73,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.backups import (
     NOOP_PRINTER,
-    BackupTestCase,
+    BackupTransactionTestCase,
     clear_database,
     export_to_file,
     generate_rsa_key_pair,
@@ -88,7 +88,7 @@ from tests.sentry.backup import (
 )
 
 
-class ImportTestCase(BackupTestCase):
+class ImportTestCase(BackupTransactionTestCase):
     def export_to_tmp_file_and_clear_database(self, tmp_dir) -> Path:
         tmp_path = Path(tmp_dir).joinpath(f"{self._testMethodName}.json")
         export_to_file(tmp_path, ExportScope.Global)
@@ -1456,9 +1456,11 @@ class CollisionTests(ImportTestCase):
 
             # After exporting and clearing the database, insert a copy of the same `OrgAuthToken` as
             # the one found in the import.
+            new_user = self.create_user("new")
             org = self.create_organization()
 
             with assume_test_silo_mode(SiloMode.CONTROL):
+                colliding.created_by = new_user
                 colliding.organization_id = org.id
                 colliding.project_last_used_id = self.create_project(organization=org).id
                 colliding.save()

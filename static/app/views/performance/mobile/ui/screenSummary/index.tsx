@@ -4,19 +4,20 @@ import omit from 'lodash/omit';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {ReleaseComparisonSelector} from 'sentry/views/starfish/components/releaseSelector';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
 
 type Query = {
   'device.class': string;
@@ -66,6 +67,7 @@ function ScreenSummary() {
             <HeaderContainer>
               <ControlsContainer>
                 <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 <ReleaseComparisonSelector />

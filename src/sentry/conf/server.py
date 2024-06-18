@@ -673,8 +673,11 @@ RPC_SHARED_SECRET: list[str] | None = None
 # Timeout for RPC requests between regions
 RPC_TIMEOUT = 5.0
 
-# Shared secret used to sign cross-region RPC requests with the seer microservice.
+# TODO: Replace both of these secrets with mutual TLS and simplify our rpc channels.
+# Shared secret used to sign cross-region RPC requests from the seer microservice.
 SEER_RPC_SHARED_SECRET: list[str] | None = None
+# Shared secret used to sign cross-region RPC requests to the seer microservice.
+SEER_API_SHARED_SECRET: str = ""
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -740,7 +743,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
-    "sentry.tasks.backfill_seer_grouping_records",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
@@ -923,10 +926,6 @@ CELERY_QUEUES_REGION = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
-    Queue(
-        "symbolications.compute_low_priority_projects",
-        routing_key="symbolications.compute_low_priority_projects",
-    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
@@ -1441,7 +1440,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
-    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
     "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
@@ -1770,7 +1768,7 @@ SENTRY_ENDPOINT: str | None = None
 SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
-# `organizations:org-subdomains` feature.
+# `organizations:org-ingest-subdomains` feature.
 SENTRY_ORG_SUBDOMAIN_TEMPLATE = "o{organization_id}.ingest"
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
@@ -2199,11 +2197,6 @@ SENTRY_USE_SPOTLIGHT = False
 # This flag activates uptime checks in the developemnt environment
 SENTRY_USE_UPTIME = False
 
-# This flags enables the `peanutbutter` realtime metrics backend.
-# See https://github.com/getsentry/peanutbutter.
-# We do not want/need this in normal devservices, but we need it for certain tests.
-SENTRY_USE_PEANUTBUTTER = False
-
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
 #         {
@@ -2463,14 +2456,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
-    "peanutbutter": lambda settings, options: (
-        {
-            "image": "us.gcr.io/sentryio/peanutbutter:latest",
-            "environment": {},
-            "ports": {"4433/tcp": 4433},
-            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
-        }
-    ),
 }
 
 # Max file size for serialized file uploads in API
@@ -2490,7 +2475,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.5.1"
+SELF_HOSTED_STABLE_VERSION = "24.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3440,6 +3425,9 @@ SEER_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
 
+# TODO: Remove this soon, just a way to configure a project for this before we implement properly
+UPTIME_POC_PROJECT_ID = 1
+
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
@@ -3447,7 +3435,7 @@ if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
-    SENTRY_FEATURES["organizations:frontend-domainsplit"] = True
+    SENTRY_FEATURES["system:multi-region"] = True
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]

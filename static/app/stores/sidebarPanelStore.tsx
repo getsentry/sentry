@@ -4,7 +4,7 @@ import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 
 import type {StrictStoreDefinition} from './types';
 
-type ActivePanelType = SidebarPanelKey | '';
+type ActivePanelType = Readonly<SidebarPanelKey | ''>;
 
 interface SidebarPanelStoreDefinition extends StrictStoreDefinition<ActivePanelType> {
   activatePanel(panel: SidebarPanelKey): void;

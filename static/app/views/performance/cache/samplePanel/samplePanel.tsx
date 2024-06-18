@@ -24,24 +24,20 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
-import {Referrer} from 'sentry/views/performance/cache/referrers';
-import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
-import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
-import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSamplesTable';
-import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
-import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
-import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useMetrics,
   useSpanMetrics,
   useSpansIndexed,
-} from 'sentry/views/starfish/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
+} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
+import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/chart/findDataPoint';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {
   MetricsFields,
   type MetricsQueryFilters,
@@ -52,9 +48,16 @@ import {
   type SpanIndexedResponse,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
+} from 'sentry/views/insights/types';
+import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
+import {Referrer} from 'sentry/views/performance/cache/referrers';
+import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
+import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
+import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSamplesTable';
+import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 // This is similar to http sample table, its difficult to use the generic span samples sidebar as we require a bunch of custom things.
 export function CacheSamplePanel() {
@@ -62,7 +65,9 @@ export function CacheSamplePanel() {
   const location = useLocation();
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const supportedTags = useSpanFieldSupportedTags([SpanIndexedField.CACHE_HIT]);
+  const supportedTags = useSpanFieldSupportedTags({
+    excludedTags: [SpanIndexedField.CACHE_HIT],
+  });
 
   const query = useLocationQuery({
     fields: {

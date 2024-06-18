@@ -19,7 +19,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {Block} from 'sentry/views/starfish/views/spanSummaryPage/block';
+import {Block} from 'sentry/views/insights/common/views/spanSummaryPage/block';
 
 type Unit =
   | DurationUnit.MILLISECOND

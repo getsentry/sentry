@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import type {Field} from 'sentry/components/forms/types';
@@ -42,6 +43,11 @@ export default function RemoteConfigCreateFeatureModal({
         <h4>{t('Add Remote Config Feature')}</h4>
       </Header>
       <Body>
+        <Alert type="warning" showIcon>
+          {t(
+            'Feature keys and values are publicly readable with your DSN. Do NOT store secrets or sensitive information here.'
+          )}
+        </Alert>
         <Form
           submitLabel={t('Add')}
           cancelLabel={t('Cancel')}

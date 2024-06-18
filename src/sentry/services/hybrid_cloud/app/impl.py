@@ -166,7 +166,7 @@ class DatabaseBackedAppService(AppService):
     ):
         def base_query(self, select_related: bool = True) -> QuerySet[SentryAppInstallation]:
             if not select_related:
-                return SentryAppInstallation.objects
+                return SentryAppInstallation.objects.all()
             return SentryAppInstallation.objects.select_related("sentry_app")
 
         def filter_arg_validator(

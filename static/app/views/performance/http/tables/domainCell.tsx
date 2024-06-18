@@ -4,9 +4,9 @@ import * as qs from 'query-string';
 import Link from 'sentry/components/links/link';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {NULL_DOMAIN_DESCRIPTION} from 'sentry/views/performance/http/settings';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
 
 interface Props {
   domain?: string[];

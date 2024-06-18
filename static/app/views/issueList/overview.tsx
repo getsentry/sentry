@@ -628,7 +628,7 @@ class IssueListOverview extends Component<Props, State> {
     if (
       this.props.organization.features.includes('issue-stream-performance') &&
       this.props.savedSearchLoading &&
-      !this.props.location.query.query
+      !defined(this.props.location.query.query)
     ) {
       delete requestParams.query;
     }
