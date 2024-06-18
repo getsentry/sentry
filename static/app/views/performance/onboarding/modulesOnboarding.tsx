@@ -72,5 +72,6 @@ const Container = styled('div')`
 
 const ContentContainer = styled('div')`
   position: relative;
+  width: 75%;
   z-index: 1;
 `;
