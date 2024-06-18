@@ -239,7 +239,7 @@ describe('CacheLandingPage', function () {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
-      screen.getByText('Make Sure Your Application Caches Are Behaving Properly')
+      screen.getByText('Make sure your application’s caching is behaving properly')
     ).toBeInTheDocument();
   });
 });
