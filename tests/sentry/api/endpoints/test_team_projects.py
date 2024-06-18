@@ -147,12 +147,13 @@ class TeamProjectsCreateTest(APITestCase):
         test_member = self.create_user(is_superuser=False)
         self.create_member(user=test_member, organization=test_org, role="member", teams=[])
         self.login_as(user=test_member)
-        self.get_error_response(
+        response = self.get_error_response(
             test_org.slug,
             test_team.slug,
             **self.data,
             status_code=403,
         )
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
 
         test_manager = self.create_user(is_superuser=False)
         self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
