@@ -249,7 +249,7 @@ describe('TraceTimeline', () => {
     });
   });
 
-  it('works for free plans (no global-views feature)', async () => {
+  it('works for plans with no global-views feature', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
