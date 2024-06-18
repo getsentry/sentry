@@ -355,7 +355,7 @@ export async function openWidgetViewerModal({
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
+    closeEvents: 'none',
     modalCss,
     onClose,
   });
