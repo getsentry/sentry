@@ -217,6 +217,10 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
+    logger.info(
+        "get_seer_similar_issues.request",
+        extra={"event_id": event.event_id, "payload": request_data},
+    )
 
     similar_issues_metadata = asdict(
         SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
@@ -229,6 +233,17 @@ def get_seer_similar_issues(
             and features.has("projects:similarity-embeddings-grouping", event.project)
         )
         else None
+    )
+
+    logger.info(
+        "get_seer_similar_issues.results",
+        extra={
+            "event_id": event.event_id,
+            "project_id": event.project.id,
+            "hash": event_hash,
+            "results": similar_issues_metadata,
+            "group_returned": bool(parent_group),
+        },
     )
 
     return (similar_issues_metadata, parent_group)
