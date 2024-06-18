@@ -473,12 +473,11 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             if (
                 response_data.get("end")
                 and request.GET.get("end")
+                and request.GET.get("project")  # only works if projects are explicitly specified
                 and time.time() - response_data.get("end") > 7200
             ):
                 # this is a request for an absolute time range that ended over two hours ago, it won't change
                 resp.headers["Cache-Control"] = "max-age=86400, private, immutable"
-            else:
-                resp.headers["Cache-Control"] = "max-age=30, private"
             return resp
         except ValidationError:
             return Response({"detail": "Comparison period is outside retention window"}, status=400)
