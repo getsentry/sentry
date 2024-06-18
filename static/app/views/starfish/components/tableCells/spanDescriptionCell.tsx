@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {FullSpanDescription} from 'sentry/views/starfish/components/fullSpanDescription';
 import {SpanGroupDetailsLink} from 'sentry/views/starfish/components/spanGroupDetailsLink';
 import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 const formatter = new SQLishFormatter();
 

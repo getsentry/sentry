@@ -86,6 +86,10 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(retrieved_errors) == 2
         assert_processing_errors_equal(processing_errors[2], retrieved_errors[0])
         assert_processing_errors_equal(processing_errors[1], retrieved_errors[1])
+        redis_client = _get_cluster()
+        assert not redis_client.exists(build_error_identifier(processing_errors[0].id))
+        assert redis_client.exists(build_error_identifier(processing_errors[1].id))
+        assert redis_client.exists(build_error_identifier(processing_errors[2].id))
 
     def test_get_for_monitor_empty(self):
         monitor = self.create_monitor()

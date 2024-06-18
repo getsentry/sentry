@@ -171,6 +171,15 @@ def send_slack_response(
     }
 
     client = SlackClient(integration_id=integration.id)
+    logger.info(
+        "slack.send_slack_response",
+        extra={
+            "integration_id": integration.id,
+            "response_url": params.get("response_url"),
+            "payload": payload,
+        },
+    )
+
     if params["response_url"]:
         path = params["response_url"]
 

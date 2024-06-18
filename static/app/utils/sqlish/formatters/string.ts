@@ -1,5 +1,5 @@
-import {StringAccumulator} from 'sentry/views/starfish/utils/sqlish/formatters/stringAccumulator';
-import type {Token} from 'sentry/views/starfish/utils/sqlish/types';
+import {StringAccumulator} from 'sentry/utils/sqlish/formatters/stringAccumulator';
+import type {Token} from 'sentry/utils/sqlish/types';
 
 interface Options {
   maxLineLength?: number;

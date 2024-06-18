@@ -3,13 +3,12 @@
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
 
-
-from typing import TypedDict
+from collections.abc import Callable
+from typing import Any, TypedDict
 
 from pydantic.fields import Field
 
 from sentry.constants import ObjectStatus
-from sentry.db.models import ValidateFunction, Value
 from sentry.services.hybrid_cloud import OptionValue, RpcModel
 
 
@@ -30,8 +29,11 @@ class RpcProject(RpcModel):
     platform: str | None = None
 
     def get_option(
-        self, key: str, default: Value | None = None, validate: ValidateFunction | None = None
-    ) -> Value:
+        self,
+        key: str,
+        default: Any | None = None,
+        validate: Callable[[object], bool] | None = None,
+    ) -> Any:
         from sentry.services.hybrid_cloud.project import project_service
 
         keyed_result, well_known_result = project_service.get_option(project=self, key=key)
@@ -41,7 +43,7 @@ class RpcProject(RpcModel):
             return default
         return well_known_result
 
-    def update_option(self, key: str, value: Value) -> bool:
+    def update_option(self, key: str, value: Any) -> bool:
         from sentry.services.hybrid_cloud.project import project_service
 
         return project_service.update_option(self, key, value)

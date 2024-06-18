@@ -92,13 +92,12 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 
 
 @sentry_sdk.tracing.trace
-def initialize_backfill(project_id, last_processed_index, dry_run):
+def initialize_backfill(project_id, last_processed_index):
     logger.info(
         "backfill_seer_grouping_records.start",
         extra={
             "project_id": project_id,
             "last_processed_index": last_processed_index,
-            "dry_run": dry_run,
         },
     )
     project = Project.objects.get_from_cache(id=project_id)
@@ -307,7 +306,7 @@ def send_group_and_stacktrace_to_seer(
 
 
 @sentry_sdk.tracing.trace
-def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_dict, dry_run):
+def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_dict):
     groups_with_neighbor = seer_response["groups_with_neighbor"]
     groups = Group.objects.filter(project_id=project.id, id__in=group_id_batch_filtered)
     for group in groups:
@@ -351,12 +350,11 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
             else:
                 group.data["metadata"] = {"seer_similarity": seer_similarity}
 
-    if not dry_run:
-        num_updated = Group.objects.bulk_update(groups, ["data"])
-        logger.info(
-            "backfill_seer_grouping_records.bulk_update",
-            extra={"project_id": project.id, "num_updated": num_updated},
-        )
+    num_updated = Group.objects.bulk_update(groups, ["data"])
+    logger.info(
+        "backfill_seer_grouping_records.bulk_update",
+        extra={"project_id": project.id, "num_updated": num_updated},
+    )
 
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)

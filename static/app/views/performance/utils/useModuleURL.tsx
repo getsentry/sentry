@@ -10,7 +10,7 @@ import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/performance/mobile/a
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
 import {BASE_URL as MOBILE_UI_BASE_URL} from 'sentry/views/performance/mobile/ui/settings';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/performance/queues/settings';
-import {useInsightsURLBuilder} from 'sentry/views/performance/utils/useInsightsURL';
+import {INSIGHTS_BASE_URL} from 'sentry/views/performance/settings';
 import {ModuleName} from 'sentry/views/starfish/types';
 
 export const MODULE_BASE_URLS: Record<ModuleName, string> = {
@@ -44,8 +44,6 @@ type URLBuilder = (moduleName: RoutableModuleNames) => string;
 export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
   const organization = useOrganization({allowNull: true}); // Some parts of the app, like the main sidebar, render even if the organization isn't available (during loading, or at all).
 
-  const insightsURLBuilder = useInsightsURLBuilder();
-
   if (!organization) {
     // If there isn't an organization, items that link to modules won't be visible, so this is a fallback just-in-case, and isn't trying too hard to be useful
     return () => '';
@@ -54,12 +52,10 @@ export function useModuleURLBuilder(bare: boolean = false): URLBuilder {
   const {slug} = organization;
 
   return function (moduleName: RoutableModuleNames) {
-    const insightsURL = insightsURLBuilder();
-
     return bare
-      ? `${insightsURL}/${MODULE_BASE_URLS[moduleName]}`
+      ? `${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
       : normalizeUrl(
-          `/organizations/${slug}/${insightsURL}/${MODULE_BASE_URLS[moduleName]}`
+          `/organizations/${slug}/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[moduleName]}`
         );
   };
 }
