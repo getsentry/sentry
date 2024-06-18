@@ -42,7 +42,11 @@ from sentry.utils import auth, json
 from sentry.utils.assets import get_frontend_dist_prefix
 from sentry.utils.email import is_smtp_enabled
 from sentry.utils.http import is_using_customer_domain
-from sentry.utils.settings import is_self_hosted, should_show_beacon_consent_prompt
+from sentry.utils.settings import (
+    is_self_hosted,
+    is_self_hosted_errors_only,
+    should_show_beacon_consent_prompt,
+)
 
 
 def _get_support_mail() -> str | None:
@@ -217,12 +221,12 @@ class _ClientConfig:
             yield "auth:register"
         if features.has("relocation:enabled", actor=self.user):
             yield "relocation:enabled"
+        if features.has("system:multi-region", actor=self.user):
+            yield "system:multi-region"
         if self.customer_domain or (
             self.last_org and features.has("organizations:customer-domains", self.last_org)
         ):
             yield "organizations:customer-domains"
-
-        yield "organizations:multi-region-selector"
 
     @property
     def needs_upgrade(self) -> bool:
@@ -412,6 +416,7 @@ class _ClientConfig:
             # Maintain isOnPremise key for backcompat (plugins?).
             "isOnPremise": is_self_hosted(),
             "isSelfHosted": is_self_hosted(),
+            "isSelfHostedErrorsOnly": is_self_hosted_errors_only(),
             "shouldPreloadData": self.should_preload_data,
             "shouldShowBeaconConsentPrompt": not self.needs_upgrade
             and should_show_beacon_consent_prompt(),

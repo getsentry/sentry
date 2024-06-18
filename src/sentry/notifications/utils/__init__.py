@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union, cast
 from urllib.parse import parse_qs, urlparse
 
 from django.db.models import Count
@@ -14,10 +14,10 @@ from django.utils.http import urlencode
 from django.utils.safestring import mark_safe
 from django.utils.translation import gettext_lazy as _
 
-from sentry import integrations
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
-from sentry.integrations import IntegrationFeatures, IntegrationProvider
+from sentry.integrations.base import IntegrationFeatures, IntegrationProvider
+from sentry.integrations.manager import default_manager as integrations
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -87,12 +87,17 @@ def get_group_counts_by_project(
     )
 
 
+class _RepoCommitsDict(TypedDict):
+    name: str
+    commits: list[tuple[Commit, RpcUser | None]]
+
+
 def get_repos(
     commits: Iterable[Commit],
     users_by_email: Mapping[str, RpcUser],
     organization: Organization,
-) -> Iterable[Mapping[str, str | Iterable[tuple[Commit, RpcUser | None]]]]:
-    repositories_by_id = {
+) -> list[_RepoCommitsDict]:
+    repositories_by_id: dict[int, _RepoCommitsDict] = {
         repository_id: {"name": repository_name, "commits": []}
         for repository_id, repository_name in Repository.objects.filter(
             organization_id=organization.id,

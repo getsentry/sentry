@@ -564,7 +564,7 @@ const StyledLi = styled('li')`
 const ToggleButton = styled(Button)`
   color: ${p => p.theme.subText};
   font-style: italic;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.25)} ${space(0.5)};
 
   &:hover {

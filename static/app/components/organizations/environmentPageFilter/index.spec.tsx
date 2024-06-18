@@ -7,9 +7,8 @@ import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const {organization, router, routerContext} = initializeOrg({
+const {organization, projects, router} = initializeOrg({
   organization: {features: ['global-views', 'open-membership']},
-  project: undefined,
   projects: [
     {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
     {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -38,14 +37,14 @@ describe('EnvironmentPageFilter', function () {
     );
 
     OrganizationStore.onUpdate(organization, {replace: true});
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
   });
 
   afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -69,7 +68,7 @@ describe('EnvironmentPageFilter', function () {
 
   it('handles multiple selection', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -93,7 +92,7 @@ describe('EnvironmentPageFilter', function () {
   it('handles reset', async function () {
     const onReset = jest.fn();
     render(<EnvironmentPageFilter onReset={onReset} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -117,7 +116,7 @@ describe('EnvironmentPageFilter', function () {
 
   it('responds to page filter changes, async e.g. from back button nav', async function () {
     render(<EnvironmentPageFilter />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -132,13 +131,8 @@ describe('EnvironmentPageFilter', function () {
   });
 
   it('displays a desynced state message', async function () {
-    const {
-      organization: desyncOrganization,
-      router: desyncRouter,
-      routerContext: desyncRouterContext,
-    } = initializeOrg({
+    const {organization: desyncOrganization, router: desyncRouter} = initializeOrg({
       organization: {features: ['global-views', 'open-membership']},
-      project: undefined,
       projects: [
         {id: '1', slug: 'project-1', environments: ['prod', 'staging']},
         {id: '2', slug: 'project-2', environments: ['prod', 'stage']},
@@ -155,7 +149,7 @@ describe('EnvironmentPageFilter', function () {
 
     PageFiltersStore.reset();
     initializeUrlState({
-      memberProjects: organization.projects,
+      memberProjects: projects,
       nonMemberProjects: [],
       organization: desyncOrganization,
       queryParams: {project: ['1'], environment: 'staging'},
@@ -164,7 +158,7 @@ describe('EnvironmentPageFilter', function () {
     });
 
     render(<EnvironmentPageFilter />, {
-      context: desyncRouterContext,
+      router: desyncRouter,
       organization: desyncOrganization,
     });
 

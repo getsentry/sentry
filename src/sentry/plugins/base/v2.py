@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from threading import local
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Protocol
 
 from django.http import HttpResponseRedirect
 
@@ -16,6 +16,11 @@ from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
+
+
+class EventPreprocessor(Protocol):
+    def __call__(self, data: MutableMapping[str, Any]) -> MutableMapping[str, Any] | None:
+        ...
 
 
 class PluginMount(type):
@@ -114,10 +119,10 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.slug in HIDDEN_PLUGINS
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         from sentry.plugins.helpers import reset_options
 
-        return reset_options(self.get_conf_key(), project, user)
+        return reset_options(self.get_conf_key(), project)
 
     def get_option(self, key, project=None, user=None):
         """
@@ -343,17 +348,6 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_notifiers(self, **kwargs):
-        """
-        Return a list of notifiers to append to the registry.
-
-        Notifiers must extend :class:`sentry.plugins.Notifier`.
-
-        >>> def get_notifiers(self, **kwargs):
-        >>>     return [MyNotifier]
-        """
-        return []
-
     def get_tags(self, event, **kwargs):
         """
         Return a list of additional tags to add to this instance.
@@ -367,7 +361,7 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return []
 
-    def get_event_preprocessors(self, data, **kwargs):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         """
         Return a list of preprocessors to apply to the given event.
 

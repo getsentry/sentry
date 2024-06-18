@@ -87,6 +87,41 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
             "some/path/package/flutter/src/gestures/recognizer.dart",
             False,
         ),
+        (
+            "package:sentry_logging/src/sentry_logging.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_dio/src/sentry_dio.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_file/src/sentry_file.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_sqflite/src/sentry_sqflite.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_drift/src/sentry_drift.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_hive/src/sentry_hive.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
+        (
+            "package:sentry_isar/src/sentry_isar.dart",
+            "dart:core-patch/growable_array.dart",
+            True,
+        ),
     ],
 )
 @decorators
@@ -140,6 +175,21 @@ def test_sdk_crash_is_reported_with_flutter_paths(
 
     else:
         assert mock_sdk_crash_reporter.report.call_count == 0
+
+
+@decorators
+def test_ignore_get_sentry_exception(mock_sdk_crash_reporter, mock_random, store_event, configs):
+    event_data = get_crash_event(sdk_function="SentryExceptionFactory.getSentryException")
+    event = store_event(data=event_data)
+
+    configs[1].organization_allowlist = [event.project.organization_id]
+
+    sdk_crash_detection.detect_sdk_crash(
+        event=event,
+        configs=configs,
+    )
+
+    assert mock_sdk_crash_reporter.report.call_count == 0
 
 
 @decorators

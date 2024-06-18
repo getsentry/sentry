@@ -26,8 +26,9 @@ import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import type {DateString, PageFilters, PinnedPageFilter} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Environment, MinimalProject, Project} from 'sentry/types/project';
-import {defined, valueIsEqual} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 type EnvironmentId = Environment['id'];
 
@@ -475,7 +476,7 @@ function updateParams(obj: PageFiltersUpdate, router?: Router, options?: Options
  * Pinned state is always persisted.
  */
 async function persistPageFilters(filter: PinnedPageFilter | null, options?: Options) {
-  if (!options?.save || !PageFiltersStore.shouldPersist) {
+  if (!options?.save || !PageFiltersStore.getState().shouldPersist) {
     return;
   }
 
@@ -509,7 +510,7 @@ async function persistPageFilters(filter: PinnedPageFilter | null, options?: Opt
  */
 async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boolean) {
   // Cannot compare URL state without the router
-  if (!router || !PageFiltersStore.shouldPersist) {
+  if (!router || !PageFiltersStore.getState().shouldPersist) {
     return;
   }
 
@@ -589,7 +590,7 @@ async function checkDesyncedUrlState(router?: Router, shouldForceProject?: boole
  * Commits the new desynced filter values and clears the desynced filters list.
  */
 export function saveDesyncedFilters() {
-  const {desyncedFilters} = PageFiltersStore;
+  const {desyncedFilters} = PageFiltersStore.getState();
   [...desyncedFilters].forEach(filter => persistPageFilters(filter, {save: true}));
   PageFiltersStore.updateDesyncedFilters(new Set());
 }

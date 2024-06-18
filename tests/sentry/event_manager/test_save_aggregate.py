@@ -65,11 +65,7 @@ def test_group_creation_race_new(
         "11212012123120120415201309082013",
         data={"timestamp": time.time()},
     )
-    hashes = CalculatedHashes(
-        hashes=["pound sign", "octothorpe"],
-        hierarchical_hashes=[],
-        tree_labels=[],
-    )
+    hashes = CalculatedHashes(["pound sign", "octothorpe"])
 
     # Mypy has a bug and can't handle the combo of a `...` input type and a ternary for the value
     # See https://github.com/python/mypy/issues/14661

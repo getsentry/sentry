@@ -221,7 +221,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
                 </TextBlock>
                 <TextBlock>
                   {t(
-                    'Please enter the email of an organization owner to whom you would like to transfer this project.'
+                    'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
                   )}
                 </TextBlock>
                 <Panel>
@@ -281,7 +281,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
     // separate repository. This is not feasible to maintain and may introduce
     // compatability errors if something changes in either repository. For that
     // reason, the Form component is split in two, since the fields do not
-    // depend on one another, allowing for the Hook to manage it's own state.
+    // depend on one another, allowing for the Hook to manage its own state.
     const formProps: FormProps = {
       saveOnBlur: true,
       allowUndo: true,

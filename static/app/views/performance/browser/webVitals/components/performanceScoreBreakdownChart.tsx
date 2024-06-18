@@ -207,6 +207,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
       <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
       <Chart
         stacked
+        hideYAxisSplitLine
         height={180}
         data={
           isTimeseriesLoading ||
@@ -229,7 +230,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         }}
         dataMax={100}
         chartColors={segmentColors}
-        preserveIncompletePoints
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
             if (name === 'FID') {
@@ -275,7 +275,7 @@ const PerformanceScoreLabel = styled('div')`
   width: 100%;
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.textColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const PerformanceScoreSubtext = styled('div')`

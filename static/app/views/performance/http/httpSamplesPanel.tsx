@@ -2,15 +2,18 @@ import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {
@@ -21,6 +24,7 @@ import {
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -37,12 +41,12 @@ import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamples
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {computeAxisMax} from 'sentry/views/starfish/components/chart';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetrics, useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useSpanMetricsTopNSeries} from 'sentry/views/starfish/queries/useSpanMetricsTopNSeries';
 import {
   ModuleName,
@@ -54,6 +58,8 @@ import {
 import {findSampleFromDataPoint} from 'sentry/views/starfish/utils/chart/findDataPoint';
 import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 export function HTTPSamplesPanel() {
   const router = useRouter();
@@ -67,12 +73,16 @@ export function HTTPSamplesPanel() {
       transactionMethod: decodeScalar,
       panel: decodePanel,
       responseCodeClass: decodeResponseCodeClass,
+      spanSearchQuery: decodeScalar,
     },
   });
 
   const organization = useOrganization();
 
   const {projects} = useProjects();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags();
+
   const project = projects.find(p => query.project === p.id);
 
   const [highlightedSpanId, setHighlightedSpanId] = useDebouncedState<string | undefined>(
@@ -202,6 +212,9 @@ export function HTTPSamplesPanel() {
     'span.domain': undefined,
   });
 
+  // filter by key-value filters specified in the search bar query
+  sampleSpansSearch.addStringMultiFilter(query.spanSearchQuery);
+
   if (query.domain === '') {
     sampleSpansSearch.addOp('(');
     sampleSpansSearch.addFilterValue('!has', 'span.domain');
@@ -238,28 +251,40 @@ export function HTTPSamplesPanel() {
     isFetching: isResponseCodeSamplesDataFetching,
     error: responseCodeSamplesDataError,
     refetch: refetchResponseCodeSpanSamples,
-  } = useIndexedSpans({
-    search: sampleSpansSearch,
-    fields: [
-      SpanIndexedField.PROJECT,
-      SpanIndexedField.TRACE,
-      SpanIndexedField.TRANSACTION_ID,
-      SpanIndexedField.ID,
-      SpanIndexedField.TIMESTAMP,
-      SpanIndexedField.SPAN_DESCRIPTION,
-      SpanIndexedField.RESPONSE_CODE,
-    ],
-    sorts: [SPAN_SAMPLES_SORT],
-    limit: SPAN_SAMPLE_LIMIT,
-    enabled: isPanelOpen && query.panel === 'status',
-    referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES,
-  });
+  } = useSpansIndexed(
+    {
+      search: sampleSpansSearch,
+      fields: [
+        SpanIndexedField.PROJECT,
+        SpanIndexedField.TRACE,
+        SpanIndexedField.TRANSACTION_ID,
+        SpanIndexedField.ID,
+        SpanIndexedField.TIMESTAMP,
+        SpanIndexedField.SPAN_DESCRIPTION,
+        SpanIndexedField.RESPONSE_CODE,
+      ],
+      sorts: [SPAN_SAMPLES_SORT],
+      limit: SPAN_SAMPLE_LIMIT,
+      enabled: isPanelOpen && query.panel === 'status',
+    },
+    Referrer.SAMPLES_PANEL_RESPONSE_CODE_SAMPLES
+  );
 
   const sampledSpanDataSeries = useSampleScatterPlotSeries(
     durationSamplesData,
     domainTransactionMetrics?.[0]?.['avg(span.self_time)'],
     highlightedSpanId
   );
+
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
 
   const handleClose = () => {
     router.replace({
@@ -296,26 +321,24 @@ export function HTTPSamplesPanel() {
                   tooltip={project.slug}
                 />
               )}
-              <TitleContainer>
-                <Title>
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                        {
-                          project: query.project,
-                          transaction: query.transaction,
-                        }
-                      )}`
-                    )}
-                  >
-                    {query.transaction &&
-                    query.transactionMethod &&
-                    !query.transaction.startsWith(query.transactionMethod)
-                      ? `${query.transactionMethod} ${query.transaction}`
-                      : query.transaction}
-                  </Link>
-                </Title>
-              </TitleContainer>
+              <Title>
+                <Link
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                      {
+                        project: query.project,
+                        transaction: query.transaction,
+                      }
+                    )}`
+                  )}
+                >
+                  {query.transaction &&
+                  query.transactionMethod &&
+                  !query.transaction.startsWith(query.transactionMethod)
+                    ? `${query.transactionMethod} ${query.transaction}`
+                    : query.transaction}
+                </Link>
+              </Title>
             </HeaderContainer>
           </ModuleLayout.Full>
 
@@ -438,7 +461,39 @@ export function HTTPSamplesPanel() {
                   error={durationError}
                 />
               </ModuleLayout.Full>
+            </Fragment>
+          )}
 
+          {query.panel === 'status' && (
+            <Fragment>
+              <ModuleLayout.Full>
+                <ResponseCodeCountChart
+                  series={Object.values(responseCodeData).filter(Boolean)}
+                  isLoading={isResponseCodeDataLoading}
+                  error={responseCodeError}
+                />
+              </ModuleLayout.Full>
+            </Fragment>
+          )}
+
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
+              <SearchBar
+                searchSource={`${ModuleName.HTTP}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </ModuleLayout.Full>
+          </Feature>
+
+          {query.panel === 'duration' && (
+            <Fragment>
               <ModuleLayout.Full>
                 <SpanSamplesTable
                   data={durationSamplesData}
@@ -454,6 +509,7 @@ export function HTTPSamplesPanel() {
                     },
                     units: {},
                   }}
+                  referrer={TraceViewSources.REQUESTS_MODULE}
                 />
               </ModuleLayout.Full>
 
@@ -475,14 +531,6 @@ export function HTTPSamplesPanel() {
 
           {query.panel === 'status' && (
             <Fragment>
-              <ModuleLayout.Full>
-                <ResponseCodeCountChart
-                  series={Object.values(responseCodeData).filter(Boolean)}
-                  isLoading={isResponseCodeDataLoading}
-                  error={responseCodeError}
-                />
-              </ModuleLayout.Full>
-
               <ModuleLayout.Full>
                 <SpanSamplesTable
                   data={responseCodeSamplesData ?? []}
@@ -556,26 +604,23 @@ const HTTP_RESPONSE_CODE_CLASS_OPTIONS = [
   },
 ];
 
+// TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx
 const HeaderContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const MetricsRibbon = styled('div')`

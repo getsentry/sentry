@@ -17,6 +17,7 @@ import {IconChevron, IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getDuration from 'sentry/utils/duration/getDuration';
@@ -46,6 +47,8 @@ import {
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 import {SpanIndexedField} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type Column = GridColumnHeader<keyof TransactionSampleRowWithScore>;
 type InteractionsColumn = GridColumnHeader<keyof InteractionSpanSampleRowWithScore>;
@@ -372,6 +375,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         timestamp: row.timestamp,
         organization,
         location,
+        source: TraceViewSources.WEB_VITALS_MODULE,
       });
 
       return (
@@ -403,6 +407,10 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
           aria-label={t('Data Type')}
           onChange={newDataSet => {
             // Reset pagination and sort when switching datatypes
+            trackAnalytics('insight.vital.overview.toggle_data_type', {
+              organization,
+              type: newDataSet,
+            });
             router.replace({
               ...location,
               query: {
@@ -474,7 +482,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             renderHeadCell,
             renderBodyCell,
           }}
-          location={location}
           minimumColWidth={70}
         />
       )}
@@ -488,7 +495,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
             renderHeadCell,
             renderBodyCell,
           }}
-          location={location}
           minimumColWidth={70}
         />
       )}

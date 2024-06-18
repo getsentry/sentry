@@ -16,12 +16,12 @@ export function hasCustomMetrics(organization: Organization) {
   );
 }
 
-export function hasRolledOutMetrics(organization: Organization) {
-  return organization.features.includes('metrics-launch-rollout');
+export function hasMetricAlertFeature(organization: Organization) {
+  return organization.features.includes('incidents');
 }
 
-export function canSeeMetricsPage(organization: Organization) {
-  return hasCustomMetrics(organization) || hasRolledOutMetrics(organization);
+export function hasCustomMetricsExtractionRules(organization: Organization) {
+  return organization.features.includes('custom-metrics-extraction-rule');
 }
 
 /**

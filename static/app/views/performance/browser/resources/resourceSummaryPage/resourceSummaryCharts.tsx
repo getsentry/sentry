@@ -1,10 +1,11 @@
-import {t} from 'sentry/locale';
-import {formatBytesBase2} from 'sentry/utils';
+import {t, tct} from 'sentry/locale';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
@@ -96,7 +97,7 @@ function ResourceSummaryCharts(props: {groupId: string}) {
         </ChartPanel>
       </Block>
       <Block>
-        <ChartPanel title={t('Average Resource Size')}>
+        <ChartPanel title={tct('Average [dataType] Size', {dataType: DATA_TYPE})}>
           <Chart
             height={160}
             aggregateOutputFormat="size"

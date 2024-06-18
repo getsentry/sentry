@@ -535,6 +535,13 @@ function buildRoutes() {
           component={make(() => import('sentry/views/settings/projectMetrics'))}
         />
         <Route
+          name={t('Extract Metric')}
+          path="extract-metric/"
+          component={make(
+            () => import('sentry/views/settings/projectMetrics/extractMetric')
+          )}
+        />
+        <Route
           name={t('Metrics Details')}
           path=":mri/"
           component={make(
@@ -546,6 +553,13 @@ function buildRoutes() {
         path="replays/"
         name={t('Replays')}
         component={make(() => import('sentry/views/settings/project/projectReplays'))}
+      />
+      <Route
+        path="remote-config/"
+        name={t('Remote Config')}
+        component={make(
+          () => import('sentry/views/settings/project/projectRemoteConfig')
+        )}
       />
       <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
@@ -1430,20 +1444,33 @@ function buildRoutes() {
     </Route>
   );
 
-  const llmMonitoringRoutes = (
-    <Route path={`/${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/llmMonitoring/landing'))} />
-      <Route
-        path="pipeline-type/:groupId/"
-        component={make(
-          () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
-        )}
-      />
-    </Route>
+  const llmMonitoringRedirects = USING_CUSTOMER_DOMAIN ? (
+    <Redirect
+      from="/llm-monitoring/"
+      to={`/insights/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+    />
+  ) : (
+    <Redirect
+      from="/organizations/:orgId/llm-monitoring/"
+      to={`/organizations/:orgId/insights/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+    />
   );
 
-  const insightsSubRoutes = (
-    <Fragment>
+  const insightsRedirects = Object.values(MODULE_BASE_URLS)
+    .map(
+      moduleBaseURL =>
+        moduleBaseURL && (
+          <Redirect
+            key={moduleBaseURL}
+            from={`${moduleBaseURL}`}
+            to={`/insights/${moduleBaseURL}/`}
+          />
+        )
+    )
+    .filter(Boolean);
+
+  const insightsRoutes = (
+    <Route path="/insights/" withOrgPath>
       <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
         <IndexRoute
           component={make(
@@ -1489,6 +1516,10 @@ function buildRoutes() {
           )}
         />
       </Route>
+      <Redirect
+        from="browser/resources/"
+        to={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
       <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
         <IndexRoute
           component={make(
@@ -1565,12 +1596,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-    </Fragment>
-  );
-
-  const insightsRoutes = (
-    <Route path="/insights/" withOrgPath>
-      {insightsSubRoutes}
     </Route>
   );
 
@@ -1585,9 +1610,6 @@ function buildRoutes() {
         path="trends/"
         component={make(() => import('sentry/views/performance/trends'))}
       />
-      <Route path="traces/">
-        <IndexRoute component={make(() => import('sentry/views/performance/traces'))} />
-      </Route>
       <Route path="summary/">
         <IndexRoute
           component={make(
@@ -1665,12 +1687,24 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
-      {insightsSubRoutes}
+      {insightsRedirects}
+      <Redirect
+        from="browser/resources"
+        to={`/insights/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
       />
     </Route>
+  );
+
+  const tracesRoutes = (
+    <Route
+      path="/traces/"
+      component={make(() => import('sentry/views/traces'))}
+      withOrgPath
+    />
   );
 
   const userFeedbackRoutes = (
@@ -1858,51 +1892,30 @@ function buildRoutes() {
       <Redirect from="/organizations/:orgId/teams/new/" to="/settings/:orgId/teams/" />
       <Route path="/organizations/:orgId/">
         {hook('routes:organization')}
-        <IndexRedirect to="/organizations/:orgId/issues/" />
-        <Redirect from="/organizations/:orgId/teams/" to="/settings/:orgId/teams/" />
+        <IndexRedirect to="issues/" />
+        <Redirect from="teams/" to="/settings/:orgId/teams/" />
+        <Redirect from="teams/your-teams/" to="/settings/:orgId/teams/" />
+        <Redirect from="teams/all-teams/" to="/settings/:orgId/teams/" />
+        <Redirect from="teams/:teamId/" to="/settings/:orgId/teams/:teamId/" />
         <Redirect
-          from="/organizations/:orgId/teams/your-teams/"
-          to="/settings/:orgId/teams/"
-        />
-        <Redirect
-          from="/organizations/:orgId/teams/all-teams/"
-          to="/settings/:orgId/teams/"
-        />
-        <Redirect
-          from="/organizations/:orgId/teams/:teamId/"
-          to="/settings/:orgId/teams/:teamId/"
-        />
-        <Redirect
-          from="/organizations/:orgId/teams/:teamId/members/"
+          from="teams/:teamId/members/"
           to="/settings/:orgId/teams/:teamId/members/"
         />
         <Redirect
-          from="/organizations/:orgId/teams/:teamId/projects/"
+          from="teams/:teamId/projects/"
           to="/settings/:orgId/teams/:teamId/projects/"
         />
         <Redirect
-          from="/organizations/:orgId/teams/:teamId/settings/"
+          from="teams/:teamId/settings/"
           to="/settings/:orgId/teams/:teamId/settings/"
         />
-        <Redirect from="/organizations/:orgId/settings/" to="/settings/:orgId/" />
-        <Redirect
-          from="/organizations/:orgId/api-keys/"
-          to="/settings/:orgId/api-keys/"
-        />
-        <Redirect
-          from="/organizations/:orgId/api-keys/:apiKey/"
-          to="/settings/:orgId/api-keys/:apiKey/"
-        />
-        <Redirect from="/organizations/:orgId/members/" to="/settings/:orgId/members/" />
-        <Redirect
-          from="/organizations/:orgId/members/:memberId/"
-          to="/settings/:orgId/members/:memberId/"
-        />
-        <Redirect
-          from="/organizations/:orgId/rate-limits/"
-          to="/settings/:orgId/rate-limits/"
-        />
-        <Redirect from="/organizations/:orgId/repos/" to="/settings/:orgId/repos/" />
+        <Redirect from="settings/" to="/settings/:orgId/" />
+        <Redirect from="api-keys/" to="/settings/:orgId/api-keys/" />
+        <Redirect from="api-keys/:apiKey/" to="/settings/:orgId/api-keys/:apiKey/" />
+        <Redirect from="members/" to="/settings/:orgId/members/" />
+        <Redirect from="members/:memberId/" to="/settings/:orgId/members/:memberId/" />
+        <Redirect from="rate-limits/" to="/settings/:orgId/rate-limits/" />
+        <Redirect from="repos/" to="/settings/:orgId/repos/" />
       </Route>
     </Route>
   );
@@ -2078,8 +2091,9 @@ function buildRoutes() {
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
+      {tracesRoutes}
       {insightsRoutes}
-      {llmMonitoringRoutes}
+      {llmMonitoringRedirects}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}

@@ -65,7 +65,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         params,
       },
@@ -78,9 +78,9 @@ describe('withDomainRedirect', function () {
         params={params}
         routes={router.routes}
         routeParams={router.params}
-        route={route}
+        route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -111,10 +111,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -130,7 +130,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: organization.slug,
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -146,10 +146,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -169,7 +169,7 @@ describe('withDomainRedirect', function () {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -186,10 +186,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -205,7 +205,7 @@ describe('withDomainRedirect', function () {
 
     const params = {};
 
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -230,10 +230,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Org slug: no org slug')).toBeInTheDocument();
@@ -255,7 +255,7 @@ describe('withDomainRedirect', function () {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -272,10 +272,10 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
-      {context: routerContext}
+      {router}
     );
 
     expect(router.replace).toHaveBeenCalledTimes(1);

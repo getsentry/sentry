@@ -4,7 +4,7 @@ import datetime
 import logging
 import secrets
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
@@ -165,11 +165,12 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             id=id,
         )
 
-    def get_teams_by_user(self, organization: Organization) -> Mapping[int, list[int]]:
-        user_teams: MutableMapping[int, list[int]] = defaultdict(list)
+    def get_teams_by_user(self, organization: Organization) -> dict[int, list[int]]:
         queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
+        user_teams: dict[int, list[int]] = defaultdict(list)
         for user_id, team_id in queryset:
-            user_teams[user_id].append(team_id)
+            if user_id is not None:
+                user_teams[user_id].append(team_id)
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
@@ -643,6 +644,29 @@ class OrganizationMember(ReplicatedRegionModel):
             organization_id=shard_identifier,
             mapping=rpc_org_member_update,
         )
+
+    @classmethod
+    def query_for_relocation_export(cls, q: Q, pk_map: PrimaryKeyMap) -> Q:
+        q = super().query_for_relocation_export(q, pk_map)
+
+        # Manually avoid filtering on `inviter_id` when exporting. This ensures that
+        # `OrganizationMember`s that were invited by a user from a different organization are not
+        # filtered out when export in `Organization` scope.
+        new_q = Q()
+        for clause in q.children:
+            if not isinstance(clause, Q):
+                new_q.children.append(clause)
+                continue
+
+            mentioned_inviter = False
+            for subclause in clause.children:
+                if isinstance(subclause, tuple) and "inviter" in subclause[0]:
+                    mentioned_inviter = True
+                    break
+            if not mentioned_inviter:
+                new_q.children.append(clause)
+
+        return new_q
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags

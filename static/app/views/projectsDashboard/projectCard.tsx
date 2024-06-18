@@ -18,7 +18,6 @@ import ScoreCard, {
   Title,
   Trend,
 } from 'sentry/components/scoreCard';
-import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
@@ -81,26 +80,15 @@ class ProjectCard extends Component<Props> {
 
   renderMissingFeatureCard() {
     const {organization, project} = this.props;
-    if (project.platform && releaseHealth.includes(project.platform)) {
-      return (
-        <ScoreCard
-          title={t('Crash Free Sessions')}
-          score={<MissingReleasesButtons organization={organization} health />}
-        />
-      );
-    }
-
     return (
       <ScoreCard
         title={t('Crash Free Sessions')}
         score={
-          <NotAvailable>
-            {t('Not Available')}
-            <QuestionTooltip
-              title={t('Release Health is not yet supported on this platform.')}
-              size="xs"
-            />
-          </NotAvailable>
+          <MissingReleasesButtons
+            organization={organization}
+            health
+            platform={project.platform}
+          />
         }
       />
     );
@@ -409,7 +397,7 @@ const DeploysWrapper = styled('div')`
 
 const ReleaseTitle = styled('span')`
   color: ${p => p.theme.gray300};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -432,7 +420,7 @@ const SummaryLinks = styled('div')`
   position: relative;
   top: -${space(2)};
   align-items: center;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -460,15 +448,6 @@ const TransactionsLink = styled(Link)`
   > span {
     margin-left: ${space(0.5)};
   }
-`;
-
-const NotAvailable = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: normal;
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: ${space(0.5)};
-  align-items: center;
 `;
 
 const SummaryLinkPlaceholder = styled(Placeholder)`

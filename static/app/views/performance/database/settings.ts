@@ -9,10 +9,15 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import type {Aggregate} from 'sentry/views/starfish/types';
+import {type Aggregate, ModuleName} from 'sentry/views/starfish/types';
 
 export const MODULE_TITLE = t('Queries');
 export const BASE_URL = 'database';
+
+export const BASE_FILTERS = {
+  'span.module': ModuleName.DB,
+  has: 'span.description',
+};
 
 export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.python': '1.29.2',
@@ -54,4 +59,4 @@ export const DISTRIBUTION_GRANULARITIES = new GranularityLadder([
 export const MODULE_DESCRIPTION = t(
   'Investigate the performance of database queries and get the information necessary to improve them.'
 );
-export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/performance/queries/';
+export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/queries/';

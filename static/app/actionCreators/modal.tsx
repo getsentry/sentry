@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import type {ModalTypes} from 'sentry/components/globalModal';
 import type {CreateNewIntegrationModalOptions} from 'sentry/components/modals/createNewIntegrationModal';
 import type {CreateReleaseIntegrationModalOptions} from 'sentry/components/modals/createReleaseIntegrationModal';
@@ -60,6 +62,7 @@ export async function openEmailVerification({
 
 type OpenDiffModalOptions = {
   baseIssueId: Group['id'];
+  location: Location;
   orgId: Organization['id'];
   project: Project;
   targetIssueId: string;
@@ -89,6 +92,20 @@ type CreateTeamModalOptions = {
 
 export async function openCreateTeamModal(options: CreateTeamModalOptions) {
   const mod = await import('sentry/components/modals/createTeamModal');
+  const {default: Modal} = mod;
+
+  openModal(deps => <Modal {...deps} {...options} />);
+}
+
+type RemoteConfigCreateFeatureModalProps = {
+  createFeature: (key: string, value: string) => void;
+  isValid: (key: string) => boolean;
+};
+
+export async function openRemoteConfigCreateFeatureModal(
+  options: RemoteConfigCreateFeatureModalProps
+) {
+  const mod = await import('sentry/components/modals/remoteConfigCreateFeatureModal');
   const {default: Modal} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />);
@@ -272,8 +289,8 @@ export async function openImportDashboardFromFileModal(options) {
   });
 }
 
-export async function openCreateDashboardFromScratchpad(options) {
-  const mod = await import('sentry/components/modals/createDashboardFromScratchpadModal');
+export async function openCreateDashboardFromMetrics(options) {
+  const mod = await import('sentry/components/modals/createDashboardFromMetricsModal');
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {

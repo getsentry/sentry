@@ -429,8 +429,8 @@ class SnubaTagStorage(TagStorage):
         start,
         end,
         status=TagKeyStatus.ACTIVE,
-        use_cache=False,
-        include_transactions=False,
+        use_cache: bool = False,
+        include_transactions: bool = False,
         tenant_ids=None,
     ):
         max_unsampled_projects = _max_unsampled_projects
@@ -1181,9 +1181,9 @@ class SnubaTagStorage(TagStorage):
         end=None,
         query=None,
         order_by="-last_seen",
-        include_transactions=False,
-        include_sessions=False,
-        include_replays=False,
+        include_transactions: bool = False,
+        include_sessions: bool = False,
+        include_replays: bool = False,
         tenant_ids=None,
     ):
         from sentry.api.paginator import SequencePaginator
@@ -1418,8 +1418,8 @@ class SnubaTagStorage(TagStorage):
         key,
         callbacks=(),
         orderby="-first_seen",
-        limit=1000,
-        offset=0,
+        limit: int = 1000,
+        offset: int = 0,
         tenant_ids=None,
     ):
         filters = {

@@ -8,6 +8,7 @@ from typing import Any
 from uuid import UUID
 
 import jsonschema
+import orjson
 import sentry_sdk
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.batching import ValuesBatch
@@ -28,7 +29,7 @@ from sentry.issues.status_change_consumer import process_status_change_message
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.actor import parse_and_validate_actor
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -381,7 +382,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
         assert isinstance(item, BrokerValue)
 
         try:
-            payload = json.loads(item.payload.value, use_rapid_json=True)
+            payload = orjson.loads(item.payload.value)
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue

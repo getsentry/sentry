@@ -8,6 +8,7 @@ import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSum
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -56,7 +57,9 @@ export function SpanDescription({
     return null;
   }
 
-  const hasNewSpansUIFlag = organization.features.includes('performance-spans-new-ui');
+  const hasNewSpansUIFlag =
+    organization.features.includes('performance-spans-new-ui') &&
+    organization.features.includes('insights-initial-modules');
 
   // The new spans UI relies on the group hash assigned by Relay, which is different from the hash available on the span itself
   const groupHash = hasNewSpansUIFlag ? span.sentry_tags?.group ?? '' : span.hash ?? '';
@@ -74,6 +77,18 @@ export function SpanDescription({
             spanSlug: {op: span.op, group: groupHash},
             projectID: event.projectID,
           })}
+          onClick={() => {
+            hasNewSpansUIFlag
+              ? trackAnalytics('trace.trace_layout.view_span_summary', {
+                  organization,
+                  module: resolvedModule,
+                })
+              : trackAnalytics('trace.trace_layout.view_similar_spans', {
+                  organization,
+                  module: resolvedModule,
+                  source: 'span_description',
+                });
+          }}
         >
           {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
         </Button>
@@ -114,7 +129,8 @@ export function SpanDescription({
       items={[
         {
           key: 'description',
-          subject: null,
+          subject: t('Description'),
+          subjectNode: null,
           value,
         },
       ]}

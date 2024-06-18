@@ -679,22 +679,18 @@ def test_healthcheck_filter(default_project, health_check_set):
 
 @django_db_all
 @region_silo_test
-@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-def test_with_blocked_metrics(default_project, feature_flag):
+def test_with_blocked_metrics(default_project):
     block_metric("g:custom/*@millisecond", [default_project])
     block_tags_of_metric("c:custom/page_click@none", {"release", "transaction"}, [default_project])
 
-    with Feature({"organizations:metrics-blocking": feature_flag}):
-        project_config = get_project_config(default_project)
-        config = project_config.to_dict()["config"]
-        _validate_project_config(config)
+    project_config = get_project_config(default_project)
+    config = project_config.to_dict()["config"]
+    _validate_project_config(config)
 
-        if not feature_flag:
-            assert "metrics" not in config
-        else:
-            config = config["metrics"]
-            assert len(config["deniedNames"]) == 1
-            assert len(config["deniedTags"]) == 1
+    config = config["metrics"]
+
+    assert len(config["deniedNames"]) == 1
+    assert len(config["deniedTags"]) == 1
 
 
 @django_db_all
@@ -967,9 +963,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
         ],
     )
 
-    features = Feature({"organizations:relay-cardinality-limiter": True})
-
-    with override_options(options), features:
+    with override_options(options):
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
@@ -1029,9 +1023,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
         ],
     )
 
-    features = Feature({"organizations:relay-cardinality-limiter": True})
-
-    with override_options(options), features:
+    with override_options(options):
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()
@@ -1084,9 +1076,7 @@ def test_project_config_cardinality_limits_organization_options_override_options
         ],
     )
 
-    features = Feature({"organizations:relay-cardinality-limiter": True})
-
-    with override_options(options), features:
+    with override_options(options):
         project_cfg = get_project_config(default_project, full_config=True)
 
         cfg = project_cfg.to_dict()

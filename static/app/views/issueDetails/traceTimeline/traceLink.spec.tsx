@@ -23,6 +23,8 @@ describe('TraceLink', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
+        // In issuePlatform, we store the subtitle within the message
+        message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
         project: project.slug,
@@ -37,6 +39,7 @@ describe('TraceLink', () => {
   const discoverBody: TraceEventResponse = {
     data: [
       {
+        message: 'This is the subtitle of the issue',
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': 4909507143,
         project: project.slug,
@@ -66,13 +69,11 @@ describe('TraceLink', () => {
       match: [MockApiClient.matchQuery({dataset: 'discover'})],
     });
     render(<TraceLink event={event} />, {organization});
-    expect(
-      await screen.findByRole('link', {name: 'View Full Trace (2 issues)'})
-    ).toBeInTheDocument();
+    expect(await screen.findByText('View Full Trace')).toBeInTheDocument();
   });
 
   it('renders no trace available', async () => {
-    render(<TraceLink event={EventFixture({})} />, {organization});
+    render(<TraceLink event={EventFixture()} />, {organization});
     expect(await screen.findByText('No Trace Available')).toBeInTheDocument();
   });
 });

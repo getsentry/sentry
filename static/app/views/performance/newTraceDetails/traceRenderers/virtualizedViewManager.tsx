@@ -42,7 +42,10 @@ interface VirtualizedViewManagerEvents {
   ['divider resize end']: (list_width: number) => void;
   ['virtualized list init']: () => void;
 }
-
+type VerticalIndicator = {
+  ref: HTMLElement | null;
+  timestamp: number | undefined;
+};
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -126,6 +129,8 @@ export class VirtualizedViewManager {
   private readonly MAX_ZOOM_PRECISION = 1;
   private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
+
+  vertical_indicators: {[key: string]: VerticalIndicator} = {};
 
   timers: {
     onFovChange: {id: number} | null;
@@ -377,13 +382,6 @@ export class VirtualizedViewManager {
   }
 
   registerIndicatorContainerRef(ref: HTMLElement | null) {
-    if (ref) {
-      const correction =
-        (this.scrollbar_width / this.container_physical_space.width) *
-        this.columns.span_list.width;
-      ref.style.transform = `translateX(${-this.scrollbar_width}px)`;
-      ref.style.width = (this.columns.span_list.width - correction) * 100 + '%';
-    }
     this.indicator_container = ref;
   }
 
@@ -514,6 +512,13 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
+    if (indicator.ref) {
+      this.vertical_indicators[key] = indicator;
+      this.drawVerticalIndicator(indicator);
+    }
+  }
+
   registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
     if (ref) {
       ref.style.width = Math.round(this.columns.list.width * 100) + '%';
@@ -540,15 +545,23 @@ export class VirtualizedViewManager {
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
+
+      // If this is the first zoom event, then read the clientX and offset it from the container element as offset
+      // is relative to the **target element**. In subsequent events, we can use the offsetX property as
+      // the pointer-events are going to be disabled and we will receive the correct offsetX value
+      let offsetX = 0;
       if (!this.timers.onWheelEnd) {
+        offsetX =
+          (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()?.left ?? 0;
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
 
       const scale = 1 - event.deltaY * 0.01 * -1;
+      const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
       const configSpaceCursor = this.getConfigSpaceCursor({
-        x: event.offsetX,
-        y: event.offsetY,
+        x: x,
+        y: 0,
       });
 
       const center = vec2.fromValues(configSpaceCursor[0], 0);
@@ -563,8 +576,12 @@ export class VirtualizedViewManager {
       );
 
       const newView = this.trace_view.transform(centerScaleMatrix);
+
+      // When users zoom in, the matrix will compute a width value that is lower than the min,
+      // which results in the value of x being incorrectly set and the view moving to the right.
+      // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
       this.setTraceView({
-        x: newView[0],
+        x: newView[2] < this.MAX_ZOOM_PRECISION ? this.trace_view.x : newView[0],
         width: newView[2],
       });
       this.draw();
@@ -759,11 +776,15 @@ export class VirtualizedViewManager {
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
-    this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
     this.trace_view.width = clamp(
       width,
       this.MAX_ZOOM_PRECISION,
       this.trace_space.width - this.trace_view.x
+    );
+    this.trace_view.x = clamp(
+      x,
+      0,
+      Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION)
     );
 
     this.recomputeTimelineIntervals();
@@ -807,6 +828,20 @@ export class VirtualizedViewManager {
     if (!this.reset_zoom_button) return;
     this.reset_zoom_button.disabled =
       this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
+  }
+
+  maybeSyncViewWithVerticalIndicator(key: string) {
+    const indicator = this.vertical_indicators[key];
+    if (!indicator || typeof indicator.timestamp !== 'number') {
+      return;
+    }
+
+    const timestamp = indicator.timestamp - this.to_origin;
+    this.setTraceView({
+      x: timestamp - this.trace_view.width / 2,
+      width: this.trace_view.width,
+    });
+    this.draw();
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
@@ -1411,6 +1446,7 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
+    this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
 
@@ -1471,6 +1507,27 @@ export class VirtualizedViewManager {
         span_arrow.ref.className = 'TraceArrow';
       }
     }
+  }
+
+  drawVerticalIndicators() {
+    for (const key in this.vertical_indicators) {
+      this.drawVerticalIndicator(this.vertical_indicators[key]);
+    }
+  }
+
+  drawVerticalIndicator(indicator: VerticalIndicator) {
+    if (!indicator.ref) {
+      return;
+    }
+
+    if (indicator.timestamp === undefined) {
+      indicator.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.computeTransformXFromTimestamp(indicator.timestamp);
+    indicator.ref.style.opacity = '1';
+    indicator.ref.style.transform = `translateX(${placement}px)`;
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
@@ -1570,7 +1627,7 @@ export class VirtualizedViewManager {
       const correction =
         (this.scrollbar_width / this.container_physical_space.width) *
         options.span_list_width;
-      this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
       const new_indicator_container_width = options.span_list_width - correction;
 
       if (this.last_indicator_width !== new_indicator_container_width) {

@@ -7,6 +7,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPinnedSearchPermission
 from sentry.api.serializers import serialize
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 
@@ -52,6 +53,32 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             visibility=Visibility.OWNER_PINNED,
             values={"query": result["query"], "sort": result["sort"]},
         )
+
+        # This entire endpoint will be removed once custom views are GA'd
+        GroupSearchView.objects.create_or_update(
+            organization=organization,
+            user_id=request.user.id,
+            position=0,
+            values={
+                "name": "Default Search",
+                "query": result["query"],
+                "query_sort": result["sort"],
+            },
+        )
+        # These groupsearchview entries are temporarily here to ensure that pinned searches
+        # are being dynamically upgraded to custom views until custom views are GA'd, at which
+        # point saved searches will be removed entirely, along with this endpoint.
+        GroupSearchView.objects.create_or_update(
+            organization=organization,
+            user_id=request.user.id,
+            position=1,
+            values={
+                "name": "Prioritized",
+                "query": "is:unresolved issue.priority:[high, medium]",
+                "query_sort": SortOptions.DATE,
+            },
+        )
+
         pinned_search = SavedSearch.objects.get(
             organization=organization,
             owner_id=request.user.id,
@@ -72,4 +99,5 @@ class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
             type=search_type.value,
             visibility=Visibility.OWNER_PINNED,
         ).delete()
+        GroupSearchView.objects.filter(organization=organization, user_id=request.user.id).delete()
         return Response(status=204)

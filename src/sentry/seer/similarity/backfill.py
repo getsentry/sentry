@@ -6,7 +6,7 @@ from urllib3.exceptions import ReadTimeoutError
 
 from sentry.conf.server import SEER_GROUPING_RECORDS_DELETE_URL, SEER_GROUPING_RECORDS_URL
 from sentry.net.http import connection_from_url
-from sentry.seer.utils import RawSeerSimilarIssueData
+from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -19,6 +19,7 @@ class CreateGroupingRecordData(TypedDict):
     hash: str
     project_id: int
     message: str
+    exception_type: str | None
 
 
 class CreateGroupingRecordsRequest(TypedDict):

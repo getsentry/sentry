@@ -1,7 +1,9 @@
 import {useEffect} from 'react';
 
 import ExternalIssueStore from 'sentry/stores/externalIssueStore';
-import type {Group, OrganizationSummary, PlatformExternalIssue} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {PlatformExternalIssue} from 'sentry/types/integrations';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 // We want to do this explicitly so that we can handle errors gracefully,

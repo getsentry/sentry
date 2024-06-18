@@ -3,20 +3,24 @@ import styled from '@emotion/styled';
 import keyBy from 'lodash/keyBy';
 import * as qs from 'query-string';
 
+import Feature from 'sentry/components/acl/feature';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import SearchBar from 'sentry/components/events/searchBar';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -28,11 +32,15 @@ import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSample
 import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useMetrics, useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {
+  useMetrics,
+  useSpanMetrics,
+  useSpansIndexed,
+} from 'sentry/views/starfish/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
 import {useTransactions} from 'sentry/views/starfish/queries/useTransactions';
 import {
   MetricsFields,
@@ -41,6 +49,7 @@ import {
   SpanFunction,
   SpanIndexedField,
   type SpanIndexedQueryFilters,
+  type SpanIndexedResponse,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/starfish/types';
@@ -52,12 +61,17 @@ export function CacheSamplePanel() {
   const router = useRouter();
   const location = useLocation();
   const organization = useOrganization();
+  const {selection} = usePageFilters();
+  const supportedTags = useSpanFieldSupportedTags({
+    excludedTags: [SpanIndexedField.CACHE_HIT],
+  });
 
   const query = useLocationQuery({
     fields: {
       project: decodeScalar,
       transaction: decodeScalar,
       statusClass: decodeScalar,
+      spanSearchQuery: decodeScalar,
     },
   });
 
@@ -138,25 +152,34 @@ export function CacheSamplePanel() {
     project_id: query.project,
   };
 
-  const useIndexedCacheSpans = (isCacheHit, limit) =>
-    useIndexedSpans({
-      search: MutableSearch.fromQueryObject({...sampleFilters, 'cache.hit': isCacheHit}),
-      fields: [
-        SpanIndexedField.PROJECT,
-        SpanIndexedField.TRACE,
-        SpanIndexedField.TRANSACTION_ID,
-        SpanIndexedField.ID,
-        SpanIndexedField.TIMESTAMP,
-        SpanIndexedField.SPAN_DESCRIPTION,
-        SpanIndexedField.CACHE_HIT,
-        SpanIndexedField.SPAN_OP,
-        SpanIndexedField.CACHE_ITEM_SIZE,
-      ],
-      sorts: [SPAN_SAMPLES_SORT],
-      limit: limit,
-      enabled: isPanelOpen,
-      referrer: Referrer.SAMPLES_CACHE_SPAN_SAMPLES,
-    });
+  const useIndexedCacheSpans = (
+    isCacheHit: SpanIndexedResponse['cache.hit'],
+    limit: number
+  ) =>
+    useSpansIndexed(
+      {
+        search: MutableSearch.fromQueryObject({
+          ...sampleFilters,
+          ...new MutableSearch(query.spanSearchQuery).filters,
+          'cache.hit': isCacheHit,
+        }),
+        fields: [
+          SpanIndexedField.PROJECT,
+          SpanIndexedField.TRACE,
+          SpanIndexedField.TRANSACTION_ID,
+          SpanIndexedField.ID,
+          SpanIndexedField.TIMESTAMP,
+          SpanIndexedField.SPAN_DESCRIPTION,
+          SpanIndexedField.CACHE_HIT,
+          SpanIndexedField.SPAN_OP,
+          SpanIndexedField.CACHE_ITEM_SIZE,
+        ],
+        sorts: [SPAN_SAMPLES_SORT],
+        limit,
+        enabled: isPanelOpen,
+      },
+      Referrer.SAMPLES_CACHE_SPAN_SAMPLES
+    );
 
   // display half hits and half misses by default
   let cacheHitSamplesLimit = SPAN_SAMPLE_LIMIT / 2;
@@ -205,6 +228,16 @@ export function CacheSamplePanel() {
   const {projects} = useProjects();
   const project = projects.find(p => query.project === p.id);
 
+  const handleSearch = (newSpanSearchQuery: string) => {
+    router.replace({
+      pathname: location.pathname,
+      query: {
+        ...query,
+        spanSearchQuery: newSpanSearchQuery,
+      },
+    });
+  };
+
   const handleClose = () => {
     router.replace({
       pathname: router.location.pathname,
@@ -245,22 +278,20 @@ export function CacheSamplePanel() {
                   tooltip={project.slug}
                 />
               )}
-              <TitleContainer>
-                <Title>
-                  <Link
-                    to={normalizeUrl(
-                      `/organizations/${organization.slug}/performance/summary?${qs.stringify(
-                        {
-                          project: query.project,
-                          transaction: query.transaction,
-                        }
-                      )}`
-                    )}
-                  >
-                    {query.transaction}
-                  </Link>
-                </Title>
-              </TitleContainer>
+              <Title>
+                <Link
+                  to={normalizeUrl(
+                    `/organizations/${organization.slug}/performance/summary?${qs.stringify(
+                      {
+                        project: query.project,
+                        transaction: query.transaction,
+                      }
+                    )}`
+                  )}
+                >
+                  {query.transaction}
+                </Link>
+              </Title>
             </HeaderContainer>
           </ModuleLayout.Full>
 
@@ -299,7 +330,7 @@ export function CacheSamplePanel() {
 
               <MetricReadout
                 align="left"
-                title={DataTitles.cacheMissRate}
+                title={DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`]}
                 value={
                   cacheTransactionMetrics?.[0]?.[`${SpanFunction.CACHE_MISS_RATE}()`]
                 }
@@ -361,6 +392,22 @@ export function CacheSamplePanel() {
               }}
             />
           </ModuleLayout.Half>
+
+          <Feature features="performance-sample-panel-search">
+            <ModuleLayout.Full>
+              <SearchBar
+                searchSource={`${ModuleName.CACHE}-sample-panel`}
+                query={query.spanSearchQuery}
+                onSearch={handleSearch}
+                placeholder={t('Search for span attributes')}
+                organization={organization}
+                metricAlert={false}
+                supportedTags={supportedTags}
+                dataset={DiscoverDatasets.SPANS_INDEXED}
+                projectIds={selection.projects}
+              />
+            </ModuleLayout.Full>
+          </Feature>
 
           <Fragment>
             <ModuleLayout.Full>
@@ -431,26 +478,23 @@ const SpanSummaryProjectAvatar = styled(ProjectAvatar)`
   padding-right: ${space(1)};
 `;
 
+// TODO - copy of static/app/views/starfish/views/spanSummaryPage/sampleList/index.tsx
 const HeaderContainer = styled('div')`
   display: grid;
   grid-template-rows: auto auto auto;
+  align-items: center;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-rows: auto;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto 1fr;
   }
 `;
 
-const TitleContainer = styled('div')`
-  width: 100%;
-  position: relative;
-  height: 40px;
-`;
-
 const Title = styled('h4')`
-  position: absolute;
-  bottom: 0;
-  margin-bottom: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
 `;
 
 const MetricsRibbon = styled('div')`

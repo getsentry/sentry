@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -8,6 +7,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +16,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {
@@ -31,7 +30,7 @@ import {
   MobileSortKeys,
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {
@@ -56,11 +55,7 @@ function ScreenLoadSpans() {
   const location = useLocation<Query>();
   const organization = useOrganization();
   const router = useRouter();
-
-  const {projects} = useProjects();
-  const project = useMemo(() => {
-    return projects.find(p => p.id === location.query.project);
-  }, [location.query.project, projects]);
+  const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
 
@@ -87,9 +82,8 @@ function ScreenLoadSpans() {
             />
             <HeaderWrapper>
               <Layout.Title>{transactionName}</Layout.Title>
-              {organization.features.includes('spans-first-ui') &&
-                project &&
-                isCrossPlatform(project) && <PlatformSelector />}
+              {organization.features.includes('insights-initial-modules') &&
+                isProjectCrossPlatform && <PlatformSelector />}
             </HeaderWrapper>
           </Layout.HeaderContent>
           <Layout.HeaderActions>
@@ -104,6 +98,7 @@ function ScreenLoadSpans() {
             <Container>
               <FilterContainer>
                 <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 <ReleaseComparisonSelector />
@@ -126,27 +121,27 @@ function ScreenLoadSpans() {
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                    title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                    title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                    title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                    title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: 'count',
                     dataKey: 'count()',
-                    title: t('Count'),
+                    title: t('Total Count'),
                   },
                 ]}
                 referrer="api.starfish.mobile-screen-totals"
@@ -157,7 +152,6 @@ function ScreenLoadSpans() {
                 yAxes={[YAxis.TTID, YAxis.TTFD, YAxis.COUNT]}
                 additionalFilters={[`transaction:${transactionName}`]}
                 chartHeight={120}
-                project={project}
               />
               <SampleContainer>
                 <SampleContainerItem>
@@ -167,7 +161,6 @@ function ScreenLoadSpans() {
                     cursorName={MobileCursors.RELEASE_1_EVENT_SAMPLE_TABLE}
                     transaction={transactionName}
                     showDeviceClassSelector
-                    project={project}
                   />
                 </SampleContainerItem>
                 <SampleContainerItem>
@@ -176,7 +169,6 @@ function ScreenLoadSpans() {
                     sortKey={MobileSortKeys.RELEASE_2_EVENT_SAMPLE_TABLE}
                     cursorName={MobileCursors.RELEASE_2_EVENT_SAMPLE_TABLE}
                     transaction={transactionName}
-                    project={project}
                   />
                 </SampleContainerItem>
               </SampleContainer>
@@ -184,7 +176,6 @@ function ScreenLoadSpans() {
                 transaction={transactionName}
                 primaryRelease={primaryRelease}
                 secondaryRelease={secondaryRelease}
-                project={project}
               />
               {spanGroup && (
                 <SpanSamplesPanel
@@ -221,7 +212,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="screen_load"
       pageTitle={transaction}
-      features="spans-first-ui"
+      features="insights-initial-modules"
     >
       <ScreenLoadSpans />
     </ModulePageProviders>

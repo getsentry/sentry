@@ -40,6 +40,8 @@ import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTr
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import Tab from '../tabs';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
@@ -243,7 +245,8 @@ function TagsHeatMap(
 
     const newTransactionEventView = eventView.clone();
 
-    newTransactionEventView.fields = [{field: aggregateColumn}];
+    // We need the traceSlug here to navigate to the transaction in the trace view.
+    newTransactionEventView.fields = [{field: aggregateColumn}, {field: 'trace'}];
     const [_, tagValue] = bucket.value;
 
     if (histogramBucketInfo && histogramData) {
@@ -354,9 +357,16 @@ function TagsHeatMap(
                         traceSlug: row.trace?.toString(),
                         projectSlug: (row.project || row['project.name']).toString(),
                         timestamp: row.timestamp,
-                        location,
+                        location: {
+                          ...location,
+                          query: {
+                            ...location.query,
+                            tab: Tab.TAGS,
+                          },
+                        },
                         organization,
                         transactionName,
+                        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
                       });
 
                       return (

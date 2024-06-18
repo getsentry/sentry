@@ -9,6 +9,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -20,6 +21,7 @@ import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/render
 import {
   MetricsFields,
   type MetricsResponse,
+  ModuleName,
   SpanFunction,
   SpanMetricsField,
   type SpanMetricsResponse,
@@ -82,7 +84,7 @@ const COLUMN_ORDER: Column[] = [
   },
   {
     key: `${CACHE_MISS_RATE}()`,
-    name: DataTitles.cacheMissRate,
+    name: DataTitles[`${SpanFunction.CACHE_MISS_RATE}()`],
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -159,10 +161,19 @@ export function TransactionsTable({
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
         }}
-        location={location}
       />
 
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.CACHE,
+            direction,
+          });
+        }}
+      />
     </Fragment>
   );
 }

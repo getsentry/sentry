@@ -8,17 +8,17 @@ import {SearchBarTrailingButton} from 'sentry/components/searchBar';
 import {IconChevron, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import type {
-  TraceReducerAction,
-  TraceReducerState,
-} from 'sentry/views/performance/newTraceDetails/traceState';
 import type {TraceSearchState} from 'sentry/views/performance/newTraceDetails/traceState/traceSearch';
+
+import {useTraceState, useTraceStateDispatch} from '../traceState/traceStateProvider';
 
 interface TraceSearchInputProps {
   onTraceSearch: (
@@ -26,24 +26,23 @@ interface TraceSearchInputProps {
     node: TraceTreeNode<TraceTree.NodeValue> | null,
     behavior: 'track result' | 'persist'
   ) => void;
-  trace_dispatch: React.Dispatch<TraceReducerAction>;
-  trace_state: TraceReducerState;
+  organization: Organization;
 }
 
 const MIN_LOADING_TIME = 300;
 
 export function TraceSearchInput(props: TraceSearchInputProps) {
   const organization = useOrganization();
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
   const [status, setStatus] = useState<TraceSearchState['status']>();
 
   const timeoutRef = useRef<number | undefined>(undefined);
   const statusRef = useRef<TraceSearchState['status']>(status);
   statusRef.current = status;
 
-  const traceStateRef = useRef(props.trace_state);
-  traceStateRef.current = props.trace_state;
-
-  const trace_dispatch = props.trace_dispatch;
+  const traceStateRef = useRef(traceState);
+  traceStateRef.current = traceState;
   const onTraceSearch = props.onTraceSearch;
 
   useLayoutEffect(() => {
@@ -53,12 +52,12 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
 
     // if status is loading, show loading icon immediately
     // if previous status was loading, show loading icon for at least 500ms
-    if (!statusRef.current && props.trace_state.search.status) {
-      setStatus([performance.now(), props.trace_state.search.status[1]]);
+    if (!statusRef.current && traceState.search.status) {
+      setStatus([performance.now(), traceState.search.status[1]]);
       return;
     }
 
-    const nextStatus = props.trace_state.search.status;
+    const nextStatus = traceState.search.status;
     if (nextStatus) {
       const elapsed = performance.now() - nextStatus[0];
       if (elapsed > MIN_LOADING_TIME || nextStatus[1] === 'loading') {
@@ -73,73 +72,101 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
     } else {
       setStatus(nextStatus);
     }
-  }, [props.trace_state.search.status]);
+  }, [traceState.search.status]);
 
   const onSearchFocus = useCallback(() => {
     traceAnalytics.trackSearchFocus(organization);
     if (traceStateRef.current.rovingTabIndex.node) {
-      trace_dispatch({type: 'clear roving index'});
+      traceDispatch({type: 'clear roving index'});
     }
-  }, [trace_dispatch, organization]);
+  }, [traceDispatch, organization]);
 
   const onChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
       if (!event.target.value) {
-        trace_dispatch({type: 'clear query'});
+        traceDispatch({type: 'clear query'});
         return;
       }
 
-      trace_dispatch({type: 'set query', query: event.target.value});
+      traceDispatch({type: 'set query', query: event.target.value});
       onTraceSearch(
         event.target.value,
         traceStateRef.current.rovingTabIndex.node ?? traceStateRef.current.search.node,
         'track result'
       );
     },
-    [trace_dispatch, onTraceSearch]
+    [traceDispatch, onTraceSearch]
   );
 
   const onSearchClear = useCallback(() => {
-    trace_dispatch({type: 'clear query'});
-  }, [trace_dispatch]);
+    trackAnalytics('trace.trace_layout.search_clear', {
+      organization,
+    });
+    traceDispatch({type: 'clear query'});
+  }, [traceDispatch, organization]);
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>) => {
       switch (event.key) {
         case 'ArrowDown':
-          trace_dispatch({
+          trackAnalytics('trace.trace_layout.search_match_navigate', {
+            organization,
+            direction: 'next',
+            interaction: 'arrowKey',
+          });
+          traceDispatch({
             type: event.shiftKey ? 'go to last match' : 'go to next match',
           });
           break;
         case 'ArrowUp':
-          trace_dispatch({
+          trackAnalytics('trace.trace_layout.search_match_navigate', {
+            organization,
+            direction: 'prev',
+            interaction: 'arrowKey',
+          });
+          traceDispatch({
             type: event.shiftKey ? 'go to first match' : 'go to previous match',
           });
           break;
         case 'Enter':
-          trace_dispatch({
+          trackAnalytics('trace.trace_layout.search_match_navigate', {
+            organization,
+            direction: event.shiftKey ? 'prev' : 'next',
+            interaction: 'enterKey',
+          });
+          traceDispatch({
             type: event.shiftKey ? 'go to previous match' : 'go to next match',
           });
           break;
         default:
       }
     },
-    [trace_dispatch]
+    [traceDispatch, organization]
   );
 
   const onNextSearchClick = useCallback(() => {
+    trackAnalytics('trace.trace_layout.search_match_navigate', {
+      organization,
+      direction: 'next',
+      interaction: 'click',
+    });
     if (traceStateRef.current.rovingTabIndex.node) {
-      trace_dispatch({type: 'clear roving index'});
+      traceDispatch({type: 'clear roving index'});
     }
-    trace_dispatch({type: 'go to next match'});
-  }, [trace_dispatch]);
+    traceDispatch({type: 'go to next match'});
+  }, [traceDispatch, organization]);
 
   const onPreviousSearchClick = useCallback(() => {
+    trackAnalytics('trace.trace_layout.search_match_navigate', {
+      organization,
+      direction: 'prev',
+      interaction: 'click',
+    });
     if (traceStateRef.current.rovingTabIndex.node) {
-      trace_dispatch({type: 'clear roving index'});
+      traceDispatch({type: 'clear roving index'});
     }
-    trace_dispatch({type: 'go to previous match'});
-  }, [trace_dispatch]);
+    traceDispatch({type: 'go to previous match'});
+  }, [traceDispatch, organization]);
 
   return (
     <StyledSearchBar>
@@ -161,7 +188,7 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
         name="query"
         autoComplete="off"
         placeholder={t('Search in trace')}
-        defaultValue={props.trace_state.search.query ?? ''}
+        defaultValue={traceState.search.query ?? ''}
         onChange={onChange}
         onKeyDown={onKeyDown}
         onFocus={onSearchFocus}
@@ -169,16 +196,16 @@ export function TraceSearchInput(props: TraceSearchInputProps) {
       <InputGroup.TrailingItems>
         <StyledTrailingText data-test-id="trace-search-result-iterator">
           {`${
-            props.trace_state.search.query && !props.trace_state.search.results?.length
+            traceState.search.query && !traceState.search.results?.length
               ? t('no results')
-              : props.trace_state.search.query
-                ? (props.trace_state.search.resultIteratorIndex !== null
-                    ? props.trace_state.search.resultIteratorIndex + 1
-                    : '-') + `/${props.trace_state.search.results?.length ?? 0}`
+              : traceState.search.query
+                ? (traceState.search.resultIteratorIndex !== null
+                    ? traceState.search.resultIteratorIndex + 1
+                    : '-') + `/${traceState.search.results?.length ?? 0}`
                 : ''
           }`}
         </StyledTrailingText>
-        {props.trace_state.search.query ? (
+        {traceState.search.query ? (
           <Fragment>
             <StyledSearchBarTrailingButton
               size="zero"

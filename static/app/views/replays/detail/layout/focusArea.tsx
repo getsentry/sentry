@@ -8,7 +8,15 @@ import NetworkList from 'sentry/views/replays/detail/network';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 import Trace from 'sentry/views/replays/detail/trace/index';
 
-export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
+import type {ReplayRecord} from '../../types';
+
+export default function FocusArea({
+  isVideoReplay,
+  replayRecord,
+}: {
+  replayRecord: ReplayRecord | undefined;
+  isVideoReplay?: boolean;
+}) {
   const {getActiveTab} = useActiveReplayTab({isVideoReplay});
 
   switch (getActiveTab()) {
@@ -17,7 +25,7 @@ export default function FocusArea({isVideoReplay}: {isVideoReplay?: boolean}) {
     case TabKey.NETWORK:
       return <NetworkList />;
     case TabKey.TRACE:
-      return <Trace />;
+      return <Trace replayRecord={replayRecord} />;
     case TabKey.ERRORS:
       return <ErrorList />;
     case TabKey.MEMORY:

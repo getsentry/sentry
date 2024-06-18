@@ -1,5 +1,5 @@
 ---
-created: '2024-05-09T23:29:47.969852+00:00'
+created: '2024-06-13T16:39:01.199833+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -644,6 +644,18 @@ source: tests/sentry/backup/test_comparators.py
     - rule
   model_name: sentry.grouprulestatus
 - comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+  - class: ForeignKeyComparator
+    fields:
+    - organization
+    - user_id
+  model_name: sentry.groupsearchview
+- comparators:
   - class: ForeignKeyComparator
     fields:
     - group
@@ -700,6 +712,7 @@ source: tests/sentry/backup/test_comparators.py
     - activation
     - alert_rule
     - organization
+    - subscription
   model_name: sentry.incident
 - comparators:
   - class: UUID4Comparator
@@ -922,9 +935,6 @@ source: tests/sentry/backup/test_comparators.py
   - class: HashObfuscatingComparator
     fields:
     - token
-  - class: EqualOrRemovedComparator
-    fields:
-    - inviter_id
   - class: DatetimeEqualityComparator
     fields:
     - date_added

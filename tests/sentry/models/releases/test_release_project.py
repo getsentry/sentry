@@ -130,8 +130,5 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
                 assert created
                 assert wrapped_subscribe_project.call_count == 1
 
-                queryset = QuerySubscription.objects.filter(project=project)
-                assert queryset.exists()
-
-                sub = queryset.first()
+                sub = QuerySubscription.objects.filter(project=project).get()
                 assert sub.subscription_id is not None

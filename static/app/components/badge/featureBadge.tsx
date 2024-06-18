@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {captureException, withScope} from '@sentry/react';
@@ -18,7 +18,7 @@ type BadgeProps = {
   type: BadgeType;
   condensed?: boolean;
   expiresAt?: Date;
-  title?: string;
+  title?: ReactNode;
   tooltipProps?: Partial<TooltipProps>;
   variant?: 'badge' | 'indicator' | 'short';
 };
@@ -61,7 +61,7 @@ function BaseFeatureBadge({
     // Only get 1% of events as we don't need many to know that a badge needs to be cleaned up.
     if (Math.random() < 0.01) {
       withScope(scope => {
-        scope.setTag('title', title);
+        scope.setTag('title', title?.toString());
         scope.setTag('type', type);
         scope.setLevel('warning' as SeverityLevel);
         captureException(new Error('Expired Feature Badge'));
@@ -90,7 +90,7 @@ const StyledBadge = styled(Badge)`
   padding: 0 ${space(0.75)};
   line-height: ${space(2)};
   height: ${space(2)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   vertical-align: middle;
 `;

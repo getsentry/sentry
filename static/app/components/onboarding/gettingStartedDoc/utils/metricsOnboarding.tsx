@@ -13,9 +13,10 @@ import {getInstallConfig as getNodeInstallConfig} from 'sentry/utils/gettingStar
 const getJSConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
-  integrations: [
-    Sentry.metrics.metricsAggregatorIntegration(),
-  ],
+  // Only needed for SDK versions < 8.0.0
+  // integrations: [
+  //   Sentry.metrics.metricsAggregatorIntegration(),
+  // ],
 });`;
 
 const JSExampleConfig = {
@@ -100,22 +101,13 @@ export const getReactNativeMetricsOnboarding = ({
 const getJSMetricsOnboardingConfigure = (params: DocsParams) => [
   {
     type: StepType.CONFIGURE,
-    description: tct(
-      'To enable capturing metrics, you first need to add the metrics aggregator integration under the [codeNamespace:Sentry.metrics] namespace.',
-      {
-        codeNamespace: <code />,
-      }
+    description: t(
+      'With the default snippet in place, there is no need for any further configuration.'
     ),
     configurations: [
       {
-        code: [
-          {
-            label: 'Counter',
-            value: 'counter',
-            language: 'javascript',
-            code: getJSConfigureSnippet(params),
-          },
-        ],
+        code: getJSConfigureSnippet(params),
+        language: 'javascript',
       },
     ],
   },
@@ -141,7 +133,7 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
       JSExampleConfig,
       {
         description: t(
-          'With a bit of delay you can see the data appear in the Sentry UI.'
+          'It can take up to 3 minutes for the data to appear in the Sentry UI.'
         ),
       },
       {
@@ -159,9 +151,10 @@ const getJSMetricsOnboardingVerify = ({docsLink}: {docsLink: string}) => [
 const getJSServerConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
-  _experiments: {
-    metricsAggregator: true,
-  },
+  // Only needed for SDK versions < 8.0.0
+  // _experiments: {
+  //   metricsAggregator: true,
+  // },
 });`;
 
 export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
@@ -183,23 +176,13 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
-        {
-          codeIntegration: <code />,
-          codeNamespace: <code />,
-        }
+      description: t(
+        'With the default snippet in place, there is no need for any further configuration.'
       ),
       configurations: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getJSServerConfigureSnippet(params),
-            },
-          ],
+          code: getJSServerConfigureSnippet(params),
+          language: 'javascript',
         },
       ],
     },
@@ -224,7 +207,7 @@ export const getJSServerMetricsOnboarding = (): OnboardingConfig => ({
         JSExampleConfig,
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -459,7 +442,7 @@ export const getAndroidMetricsOnboarding = (): OnboardingConfig => ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -557,7 +540,7 @@ export const getJavaMetricsOnboarding = (): OnboardingConfig => ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -674,7 +657,7 @@ export const getPythonMetricsOnboarding = ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -786,7 +769,7 @@ export const getDotnetMetricsOnboarding = ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {
@@ -898,7 +881,7 @@ export const getRubyMetricsOnboarding = (): OnboardingConfig => ({
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {

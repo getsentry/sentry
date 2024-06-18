@@ -1951,6 +1951,7 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
         )
 
     def test_visit_dashboard(self):
+        assert self.dashboard.last_visited is not None
         last_visited = self.dashboard.last_visited
         assert self.dashboard.visits == 1
 
@@ -1959,6 +1960,7 @@ class OrganizationDashboardVisitTest(OrganizationDashboardDetailsTestCase):
 
         dashboard = Dashboard.objects.get(id=self.dashboard.id)
         assert dashboard.visits == 2
+        assert dashboard.last_visited is not None
         assert dashboard.last_visited > last_visited
 
     def test_visit_dashboard_no_access(self):

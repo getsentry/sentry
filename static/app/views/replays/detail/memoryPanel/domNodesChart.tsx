@@ -81,7 +81,7 @@ export default function DomNodesChart({
       xAxis: XAxis({
         type: 'time',
         axisLabel: {
-          formatter: (time: number) => formatTime(startTimestampMs + time, false),
+          formatter: (time: number) => formatTime(time),
         },
         theme,
       }),

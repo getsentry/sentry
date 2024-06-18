@@ -7,4 +7,4 @@ export const MODULE_DESCRIPTION = t(
   'View the most active screens in your mobile application and monitor your releases for TTID and TTFD regressions.'
 );
 export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/performance/mobile-vitals/screen-loads/';
+  'https://docs.sentry.io/product/insights/mobile-vitals/screen-loads/';

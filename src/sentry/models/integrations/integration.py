@@ -19,7 +19,7 @@ from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 
 if TYPE_CHECKING:
-    from sentry.integrations import (
+    from sentry.integrations.base import (
         IntegrationFeatures,
         IntegrationInstallation,
         IntegrationProvider,
@@ -94,9 +94,9 @@ class Integration(DefaultFieldsModel):
 
     @staticmethod
     def outboxes_for_update(identifier: int) -> list[ControlOutbox]:
-        org_ids: list[int] = OrganizationIntegration.objects.filter(
-            integration_id=identifier
-        ).values_list("organization_id", flat=True)
+        org_ids = OrganizationIntegration.objects.filter(integration_id=identifier).values_list(
+            "organization_id", flat=True
+        )
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.INTEGRATION_SCOPE,

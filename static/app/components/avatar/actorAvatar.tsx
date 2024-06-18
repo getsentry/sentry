@@ -8,7 +8,7 @@ import type {Actor} from 'sentry/types/core';
 import {useMembers} from 'sentry/utils/useMembers';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-import type {BaseAvatarProps} from './baseAvatar';
+import {BaseAvatar, type BaseAvatarProps} from './baseAvatar';
 
 interface Props extends BaseAvatarProps {
   actor: Actor;
@@ -36,19 +36,25 @@ function LoadTeamAvatar({
  * Wrapper to assist loading the user from api or store
  */
 function LoadMemberAvatar({
-  userId,
+  userActor,
   ...props
-}: {userId: string} & Omit<React.ComponentProps<typeof UserAvatar>, 'team'>) {
-  const ids = useMemo(() => [userId], [userId]);
+}: {userActor: Actor} & Omit<React.ComponentProps<typeof UserAvatar>, 'team'>) {
+  const ids = useMemo(() => [userActor.id], [userActor.id]);
   const {members, fetching} = useMembers({ids});
-  const user = members.find(u => u.id === userId);
+  const member = members.find(u => u.id === userActor.id);
 
   if (fetching) {
     const size = `${props.size}px`;
     return <Placeholder shape="circle" width={size} height={size} />;
   }
 
-  return <UserAvatar user={user} {...props} />;
+  if (!member) {
+    return (
+      <BaseAvatar size={props.size} title={userActor.name ?? userActor.email} round />
+    );
+  }
+
+  return <UserAvatar user={member} {...props} />;
 }
 
 function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
@@ -59,7 +65,7 @@ function ActorAvatar({size = 24, hasTooltip = true, actor, ...props}: Props) {
   };
 
   if (actor.type === 'user') {
-    return <LoadMemberAvatar userId={actor.id} {...otherProps} />;
+    return <LoadMemberAvatar userActor={actor} {...otherProps} />;
   }
 
   if (actor.type === 'team') {

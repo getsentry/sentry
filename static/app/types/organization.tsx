@@ -1,6 +1,6 @@
 import type {Project} from 'sentry/types/project';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -81,11 +81,6 @@ export interface Organization extends OrganizationSummary {
   effectiveSampleRate?: number | null;
   orgRole?: string;
   planSampleRate?: number | null;
-}
-
-export interface DetailedOrganization extends Organization {
-  projects: Project[];
-  teams: Team[];
 }
 
 export interface Team {
@@ -249,6 +244,7 @@ export interface NewQuery {
   orderby?: string;
   projects?: Readonly<number[]>;
   query?: string;
+  queryDataset?: SavedQueryDatasets;
   range?: string;
   start?: string | Date;
   teams?: Readonly<('myteams' | number)[]>;

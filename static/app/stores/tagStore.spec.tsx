@@ -80,7 +80,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(OrganizationFixture({}));
+      const tags = TagStore.getIssueAttributes(OrganizationFixture());
       expect(tags.is.values).toContain('archived');
     });
   });
@@ -108,5 +108,16 @@ describe('TagStore', function () {
       expect(tags['device.family']).toBeTruthy();
       expect(tags['device.family'].key).toBe('device.family');
     });
+  });
+
+  it('returns a stable reference from getState', () => {
+    TagStore.loadTagsSuccess([
+      {
+        key: 'mytag',
+        name: 'My Custom Tag',
+      },
+    ]);
+    const state = TagStore.getState();
+    expect(Object.is(state, TagStore.getState())).toBe(true);
   });
 });

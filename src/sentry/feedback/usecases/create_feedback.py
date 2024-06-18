@@ -32,7 +32,6 @@ UNREAL_FEEDBACK_UNATTENDED_MESSAGE = "Sent in the unattended mode"
 
 class FeedbackCreationSource(Enum):
     NEW_FEEDBACK_ENVELOPE = "new_feedback_envelope"
-    NEW_FEEDBACK_DJANGO_ENDPOINT = "new_feedback_sentry_django_endpoint"  # TODO: delete this once feedback_ingest API deprecated
     USER_REPORT_DJANGO_ENDPOINT = "user_report_sentry_django_endpoint"
     USER_REPORT_ENVELOPE = "user_report_envelope"
     CRASH_REPORT_EMBED_FORM = "crash_report_embed_form"
@@ -44,7 +43,6 @@ class FeedbackCreationSource(Enum):
             c.value
             for c in [
                 cls.NEW_FEEDBACK_ENVELOPE,
-                cls.NEW_FEEDBACK_DJANGO_ENDPOINT,
             ]
         }
 
@@ -244,7 +242,6 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         source
         in [
             FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE,
-            FeedbackCreationSource.NEW_FEEDBACK_DJANGO_ENDPOINT,
         ]
         and not project.flags.has_new_feedbacks
     ):
@@ -257,7 +254,10 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         auto_ignore_spam_feedbacks(project, issue_fingerprint)
     metrics.incr(
         "feedback.create_feedback_issue.produced_occurrence",
-        tags={"referrer": source.value},
+        tags={
+            "referrer": source.value,
+            "client_source": event["contexts"]["feedback"].get("source"),
+        },
         sample_rate=1.0,
     )
     track_outcome(

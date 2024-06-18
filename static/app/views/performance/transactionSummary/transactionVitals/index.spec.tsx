@@ -42,7 +42,6 @@ function initialize({
   const data = initializeOrg({
     organization: OrganizationFixture({
       features,
-      projects: project ? [project] : [],
     }),
     router: {
       location: {
@@ -54,7 +53,7 @@ function initialize({
       },
     },
   });
-  act(() => ProjectsStore.loadInitialData(data.organization.projects));
+  act(() => ProjectsStore.loadInitialData(data.projects));
   return data;
 }
 
@@ -174,24 +173,24 @@ describe('Performance > Web Vitals', function () {
   });
 
   it('render no access without feature', function () {
-    const {organization, router, routerContext} = initialize({
+    const {organization, router} = initialize({
       features: [],
     });
 
     render(<TransactionVitals organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
   it('renders the basic UI components', function () {
-    const {organization, router, routerContext} = initialize({
+    const {organization, router} = initialize({
       transaction: '/organizations/:orgId/',
     });
 
     render(<TransactionVitals organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -205,10 +204,10 @@ describe('Performance > Web Vitals', function () {
   });
 
   it('renders the correct bread crumbs', function () {
-    const {organization, router, routerContext} = initialize();
+    const {organization, router} = initialize();
 
     render(<TransactionVitals organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -216,35 +215,35 @@ describe('Performance > Web Vitals', function () {
   });
 
   describe('renders all vitals cards correctly', function () {
-    const {organization, router, routerContext} = initialize();
+    const {organization, router} = initialize();
 
     beforeEach(() => {
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
     });
 
     it.each(vitals)('Renders %s', async function (vital) {
       expect(await screen.findByText(vital.heading)).toBeInTheDocument();
-      expect(screen.getByText(vital.baseline)).toBeInTheDocument();
+      expect(await screen.findByText(vital.baseline)).toBeInTheDocument();
     });
   });
 
   describe('reset view', function () {
     it('disables button on default view', function () {
-      const {organization, router, routerContext} = initialize();
+      const {organization, router} = initialize();
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
     });
 
     it('enables button on left zoom', function () {
-      const {organization, router, routerContext} = initialize({
+      const {organization, router} = initialize({
         query: {
           lcpStart: '20',
         },
@@ -252,14 +251,14 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('enables button on right zoom', function () {
-      const {organization, router, routerContext} = initialize({
+      const {organization, router} = initialize({
         query: {
           fpEnd: '20',
         },
@@ -267,14 +266,14 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('enables button on left and right zoom', function () {
-      const {organization, router, routerContext} = initialize({
+      const {organization, router} = initialize({
         query: {
           fcpStart: '20',
           fcpEnd: '20',
@@ -283,14 +282,14 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
     it('resets view properly', async function () {
-      const {organization, router, routerContext} = initialize({
+      const {organization, router} = initialize({
         query: {
           fidStart: '20',
           lcpEnd: '20',
@@ -299,7 +298,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
@@ -323,7 +322,7 @@ describe('Performance > Web Vitals', function () {
         },
       });
 
-      const {organization, router, routerContext} = initialize({
+      const {organization, router} = initialize({
         query: {
           lcpStart: '20',
         },
@@ -331,7 +330,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       await waitForElementToBeRemoved(() =>
@@ -346,7 +345,7 @@ describe('Performance > Web Vitals', function () {
     });
 
     it('does not render an info alert when data from all web vitals is present', async function () {
-      const {organization, router, routerContext} = initialize({
+      const {organization, router} = initialize({
         query: {
           lcpStart: '20',
         },
@@ -354,7 +353,7 @@ describe('Performance > Web Vitals', function () {
 
       render(
         <TransactionVitals organization={organization} location={router.location} />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       await waitForElementToBeRemoved(() =>
@@ -381,14 +380,14 @@ describe('Performance > Web Vitals', function () {
       },
     });
 
-    const {organization, router, routerContext} = initialize({
+    const {organization, router} = initialize({
       query: {
         lcpStart: '20',
       },
     });
 
     render(<TransactionVitals organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
       organization,
     });
 

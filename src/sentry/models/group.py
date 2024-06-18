@@ -5,7 +5,7 @@ import math
 import re
 import warnings
 from collections import defaultdict, namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import reduce
@@ -390,7 +390,7 @@ class GroupManager(BaseManager["Group"]):
         integration: RpcIntegration,
         organizations: Sequence[Organization],
         external_issue_key: str,
-    ) -> QuerySet:
+    ) -> QuerySet[Group]:
         from sentry.models.grouplink import GroupLink
         from sentry.models.integrations.external_issue import ExternalIssue
         from sentry.services.hybrid_cloud.integration import integration_service
@@ -417,7 +417,7 @@ class GroupManager(BaseManager["Group"]):
 
     def update_group_status(
         self,
-        groups: Sequence[Group],
+        groups: Iterable[Group],
         status: int,
         substatus: int | None,
         activity_type: ActivityType,

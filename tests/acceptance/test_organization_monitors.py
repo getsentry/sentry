@@ -20,7 +20,6 @@ from sentry.testutils.silo import no_silo_test
 class OrganizationMontorsTest(AcceptanceTestCase):
     def setUp(self):
         super().setUp()
-        self.features = ["organizations:issue-platform"]
         self.path = f"/organizations/{self.organization.slug}/crons/"
         self.team = self.create_team(organization=self.organization, name="Mariachi Band")
 
@@ -113,8 +112,7 @@ class OrganizationMontorsTest(AcceptanceTestCase):
         self.browser.get(self.path)
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
         self.browser.wait_until(xpath="//a//*[text()='My Monitor']")
-
-        assert self.browser.element_exists_by_test_id("monitor-checkin-tick")
+        self.browser.wait_until('[data-test-id="monitor-checkin-tick"]')
 
     def test_edit_monitor(self):
         Monitor.objects.create(

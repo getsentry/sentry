@@ -9,6 +9,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.release_health.base import is_overview_stat
 from sentry.utils.dates import get_rollup_from_request
 
 
@@ -19,7 +20,7 @@ def upsert_missing_release(project, version):
     except ReleaseProject.DoesNotExist:
         rows = release_health.backend.get_oldest_health_data_for_releases([(project.id, version)])
         if rows:
-            oldest = next(rows.values())
+            oldest = next(iter(rows.values()))
             release = Release.get_or_create(project=project, version=version, date_added=oldest)
             release.add_project(project)
             return release
@@ -47,7 +48,7 @@ class ProjectReleaseStatsEndpoint(ProjectEndpoint):
         :auth: required
         """
         stats_type = request.GET.get("type") or "sessions"
-        if stats_type not in ("users", "sessions"):
+        if not is_overview_stat(stats_type):
             return Response({"detail": "invalid stat"}, status=400)
 
         try:

@@ -4,12 +4,12 @@ import {EventContexts} from 'sentry/components/events/contexts';
 import {SpanProfileDetails} from 'sentry/components/events/interfaces/spans/spanProfileDetails';
 import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {CustomMetricsEventData} from 'sentry/components/metrics/customMetricsEventData';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import type {Organization, Project} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
-import {CustomMetricsEventData} from 'sentry/views/metrics/customMetricsEventData';
 import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {
   TraceTree,
@@ -124,13 +124,11 @@ export function SpanNodeDetails({
                   <SpanHTTPInfo span={node.value} />
                   <Tags span={node.value} />
                   <SpanKeys node={node} />
-                  {node.value._metrics_summary ? (
-                    <CustomMetricsEventData
-                      projectId={project?.id || ''}
-                      metricsSummary={node.value._metrics_summary}
-                      startTimestamp={node.value.start_timestamp}
-                    />
-                  ) : null}
+                  <CustomMetricsEventData
+                    projectId={project?.id || ''}
+                    metricsSummary={node.value._metrics_summary}
+                    startTimestamp={node.value.start_timestamp}
+                  />
                 </TraceDrawerComponents.SectionCardGroup>
                 <EventContexts event={event} />
                 {organization.features.includes('profiling') ? (

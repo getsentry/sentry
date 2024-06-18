@@ -10,9 +10,12 @@ import orjson
 from django.core import serializers
 from django.db import DatabaseError, connections, router, transaction
 from django.db.models.base import Model
+from sentry_sdk import capture_exception
 
 from sentry.backup.crypto import Decryptor, decrypt_encrypted_tarball
 from sentry.backup.dependencies import (
+    DELETED_FIELDS,
+    DELETED_MODELS,
     ImportKind,
     ModelRelations,
     NormalizedModelName,
@@ -26,6 +29,7 @@ from sentry.backup.scopes import ImportScope
 from sentry.db.models.paranoia import ParanoidModel
 from sentry.models.importchunk import ControlImportChunkReplica
 from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.outbox import OutboxCategory, OutboxFlushError, OutboxScope, RegionOutbox
 from sentry.nodestore.django.models import Node
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcFilter,
@@ -38,7 +42,6 @@ from sentry.services.hybrid_cloud.import_export.model import (
 from sentry.services.hybrid_cloud.import_export.service import ImportExportService
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 __all__ = (
@@ -51,35 +54,11 @@ __all__ = (
 
 logger = logging.getLogger(__name__)
 
-# We have to be careful when removing fields from our model schemas, since exports created using
-# the old-but-still-in-the-support-window versions could have those fields set in the data they
-# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
-# valid in at least one of the versions we support. For example, since our current version
-# support window is two minor versions back, if we delete a field at version 24.5.N, we must
-# include an entry in this map for that field until that version is out of the support window
-# (in this case, we can remove shim once version 24.7.0 is released).
-#
-# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
-# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
-# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
-# the shim, noting in the comment which self-hosted release will trigger the removal.
-DELETED_FIELDS: dict[str, set[str]] = {
-    # The actor field should be retained until 24.6.0
-    "sentry.team": {"actor"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.rule": {"owner"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.alertrule": {"owner"},
-    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
-    "sentry.grouphistory": {"actor"},
-}
-
-# When models are removed from the application, they will continue to be in exports
-# from previous releases. Models in this list are elided from data as imports are processed.
-DELETED_MODELS = {"sentry.actor"}
-
 # The maximum number of models that may be sent at a time.
 MAX_BATCH_SIZE = 20
+
+# The maximum number of times we attempt to drain an organization's outbox before slug provisioning.
+MAX_SHARD_DRAIN_ATTEMPTS = 3
 
 
 class ImportingError(Exception):
@@ -174,10 +153,9 @@ def _import(
     )
 
     if len(DELETED_MODELS) > 0 or len(DELETED_FIELDS) > 0:
-        # Parse the content JSON and remove fields and models that we have marked for deletion in the
-        # function.
+        # Parse the content JSON and remove fields and models that we have marked for deletion in
+        # the function.
         content_as_json = orjson.loads(content)
-
         shimmed_models = set(DELETED_FIELDS.keys())
         for i, json_model in enumerate(content_as_json):
             if json_model["model"] in shimmed_models:
@@ -289,7 +267,11 @@ def _import(
                 batch = []
                 last_seen_model_name = model_name
             if len(batch) >= MAX_BATCH_SIZE:
-                yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+                yield (
+                    last_seen_model_name,
+                    orjson.dumps(batch, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS).decode(),
+                    num_current_model_instances_yielded,
+                )
                 num_current_model_instances_yielded += len(batch)
                 batch = []
 
@@ -435,6 +417,47 @@ def _import(
             slug_mapping[org_id] = org_slug or ""
 
         if len(slug_mapping) > 0:
+            # HACK(azaslavsky): Okay, this gets a bit complicated, but bear with me: the following
+            # `bulk_create...` calls will result in some actions on the control silo that call back
+            # into this region. So the client (this region) calls the server (the control silo)
+            # which may need to make one or more calls back into the client (this region). Because
+            # some of our `OrganizationMemberTeam` outboxes may not be drained due to the HACK we
+            # performed in `import_export/impl.py` (see that file for more details), there may be a
+            # massive backlog of `OrganizationMemberTeam` outboxes that need to clear before this
+            # region can respond. In the worst case scenario, this will result in a timeout of the
+            # original, outer `bulk_create...` call.
+            #
+            # So, the solution we take here is to manually clear all `ORGANIZATION_SCOPE` outboxes
+            # for each imported organization on this side first, so that when this region responds
+            # to the call triggered from the server-side of `bulk_create...`, the
+            # `ORGANIZATION`-scoped outbox queue is empty and is free to only serve requests
+            # specifically related to slug provisioning.
+            for id in slug_mapping.keys():
+                # To combat ephemeral errors, we'll try this a few times before accepting failure.
+                for attempt in range(MAX_SHARD_DRAIN_ATTEMPTS):
+                    try:
+                        # Manually create an empty outbox targeting this organization's shard, so
+                        # that we can force it to drain.
+                        RegionOutbox(
+                            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+                            shard_identifier=id,
+                            category=OutboxCategory.ORGANIZATION_UPDATE,
+                            object_identifier=id,
+                        ).drain_shard(flush_all=True)
+
+                        # If we reach this line without throwing, we've successfully drained the
+                        # outboxes for this organization, and are free to continue the outer loop.
+                        break
+                    except (OutboxFlushError, DatabaseError):
+                        # We'll capture this for now to see how often it happens, though eventually
+                        # we might want to remove this to reduce log spam on Sentry's side.
+                        capture_exception()
+
+                        # Only re-raise if we've exhausted our retries and want to actually error
+                        # out.
+                        if attempt + 1 == MAX_SHARD_DRAIN_ATTEMPTS:
+                            raise
+
             organization_provisioning_service.bulk_create_organization_slugs(
                 slug_mapping=slug_mapping
             )

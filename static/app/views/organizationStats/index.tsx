@@ -22,11 +22,11 @@ import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, DateString, PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -230,19 +230,26 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
 
   renderProjectPageControl = () => {
     const {organization} = this.props;
+    const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
     const options = CHART_OPTIONS_DATACATEGORY.filter(opt => {
+      if (isSelfHostedErrorsOnly) {
+        return opt.value === DATA_CATEGORY_INFO.error.plural;
+      }
       if (opt.value === DATA_CATEGORY_INFO.replay.plural) {
         return organization.features.includes('session-replay');
-      }
-      if (opt.value === DATA_CATEGORY_INFO.metrics.plural) {
-        return hasCustomMetrics(organization);
       }
       if (DATA_CATEGORY_INFO.span.plural === opt.value) {
         return organization.features.includes('spans-usage-tracking');
       }
       if (DATA_CATEGORY_INFO.transaction.plural === opt.value) {
         return !organization.features.includes('spans-usage-tracking');
+      }
+      if (DATA_CATEGORY_INFO.profileDuration.plural === opt.value) {
+        return organization.features.includes('continuous-profiling-stats');
+      }
+      if (DATA_CATEGORY_INFO.profile.plural === opt.value) {
+        return !organization.features.includes('continuous-profiling-stats');
       }
       return true;
     });

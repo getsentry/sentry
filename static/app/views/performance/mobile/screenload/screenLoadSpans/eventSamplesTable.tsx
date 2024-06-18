@@ -26,7 +26,9 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {DeviceClassSelector} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import {ModuleName} from 'sentry/views/starfish/types';
 
 type Props = {
   columnNameMap: Record<string, string>;
@@ -79,6 +81,7 @@ export function EventSamplesTable({
             timestamp: row.timestamp,
             organization,
             location,
+            source: TraceViewSources.SCREEN_LOADS_MODULE,
           })}
         >
           {row[eventIdKey].slice(0, 8)}
@@ -178,7 +181,9 @@ export function EventSamplesTable({
     <Fragment>
       {!footerAlignedPagination && (
         <Header>
-          {showDeviceClassSelector && <DeviceClassSelector />}
+          {showDeviceClassSelector && (
+            <DeviceClassSelector moduleName={ModuleName.SCREEN_LOAD} />
+          )}
 
           <StyledPagination size="xs" pageLinks={pageLinks} onCursor={handleCursor} />
         </Header>
@@ -195,7 +200,6 @@ export function EventSamplesTable({
               return {...col, name: columnNameMap[col.key]};
             })}
           columnSortBy={columnSortBy}
-          location={location}
           grid={{
             renderHeadCell: column => renderHeadCell(column, data?.meta),
             renderBodyCell,

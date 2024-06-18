@@ -5,9 +5,7 @@ import {CommitAuthorFixture} from 'sentry-fixture/commitAuthor';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppComponentFixture} from 'sentry-fixture/sentryAppComponent';
@@ -139,7 +137,7 @@ function TestComponent(
         routes: router.routes,
       }}
     >
-      <GroupEventDetails {...mergedProps} />;
+      <GroupEventDetails {...mergedProps} />
     </RouteContext.Provider>
   );
 }
@@ -343,16 +341,14 @@ describe('groupEventDetails', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    (browserHistory.replace as jest.Mock).mockClear();
+    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('redirects on switching to an invalid environment selection for event', async function () {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />, {
-      organization: props.organization,
-    });
+    const {rerender} = render(<TestComponent {...props} />);
     expect(browserHistory.replace).not.toHaveBeenCalled();
 
     rerender(<TestComponent query={{environment: ['prod']}} />);
@@ -364,9 +360,7 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
-    const {rerender} = render(<TestComponent {...props} />, {
-      organization: props.organization,
-    });
+    const {rerender} = render(<TestComponent {...props} />);
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
     rerender(<TestComponent query={{environment: []}} />);
@@ -394,9 +388,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    render(<TestComponent event={undefined} eventError />, {
-      organization: props.organization,
-    });
+    render(<TestComponent event={undefined} eventError />);
 
     expect(
       await screen.findByText(/events for this issue could not be found/)
@@ -428,10 +420,8 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = RouterContextFixture();
     render(<TestComponent group={group} event={transaction} />, {
       organization: props.organization,
-      context: routerContext,
     });
 
     expect(
@@ -478,11 +468,7 @@ describe('groupEventDetails', () => {
       })
     );
 
-    const routerContext = RouterContextFixture();
-    render(<TestComponent group={group} event={transaction} />, {
-      organization: props.organization,
-      context: routerContext,
-    });
+    render(<TestComponent group={group} event={transaction} />, {});
 
     expect(
       await screen.findByRole('heading', {
@@ -496,44 +482,24 @@ describe('groupEventDetails', () => {
     ).toBeInTheDocument();
   });
 
-  describe('changes to event tags ui', () => {
-    async function assertNewTagsView() {
-      expect(await screen.findByText('Event ID:')).toBeInTheDocument();
-      expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
-      expect(screen.getByTestId('event-tags')).toBeInTheDocument();
-      const highlights = screen.getByTestId('event-highlights');
-      expect(
-        within(highlights).getByRole('button', {name: 'View All'})
-      ).toBeInTheDocument();
-      expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
-      // No highlights setup
-      expect(
-        within(highlights).getByRole('button', {name: 'Add Highlights'})
-      ).toBeInTheDocument();
-      expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
-    }
+  it('renders event tags ui', async () => {
+    const props = makeDefaultMockData();
+    mockGroupApis(props.organization, props.project, props.group, props.event);
+    render(<TestComponent group={props.group} event={props.event} />, {});
 
-    it('works with the feature flag', async function () {
-      const props = makeDefaultMockData();
-      mockGroupApis(props.organization, props.project, props.group, props.event);
-      const organization = OrganizationFixture({
-        features: ['event-tags-tree-ui'],
-      });
-      render(<TestComponent group={props.group} event={props.event} />, {
-        organization,
-      });
-      await assertNewTagsView();
-    });
-    it('works with the query param', async function () {
-      const props = makeDefaultMockData();
-      mockGroupApis(props.organization, props.project, props.group, props.event);
-      const {organization} = initializeOrg();
-      render(
-        <TestComponent group={props.group} event={props.event} query={{tagsTree: '1'}} />,
-        {organization}
-      );
-      await assertNewTagsView();
-    });
+    expect(await screen.findByText('Event ID:')).toBeInTheDocument();
+    expect(screen.queryByTestId('context-summary')).not.toBeInTheDocument();
+    expect(screen.getByTestId('event-tags')).toBeInTheDocument();
+    const highlights = screen.getByTestId('event-highlights');
+    expect(
+      within(highlights).getByRole('button', {name: 'View All'})
+    ).toBeInTheDocument();
+    expect(within(highlights).getByRole('button', {name: 'Edit'})).toBeInTheDocument();
+    // No highlights setup
+    expect(
+      within(highlights).getByRole('button', {name: 'Add Highlights'})
+    ).toBeInTheDocument();
+    expect(screen.getByText("There's nothing here...")).toBeInTheDocument();
   });
 });
 
@@ -544,7 +510,7 @@ describe('EventCause', () => {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-    (browserHistory.replace as jest.Mock).mockClear();
+    jest.mocked(browserHistory.replace).mockClear();
   });
 
   it('renders suspect commit', async function () {
@@ -580,7 +546,7 @@ describe('EventCause', () => {
       },
     });
 
-    render(<TestComponent project={props.project} />, {organization: props.organization});
+    render(<TestComponent project={props.project} />);
 
     expect(await screen.findByTestId(/suspect-commit/)).toBeInTheDocument();
   });
@@ -647,7 +613,7 @@ describe('Platform Integrations', () => {
       match: [MockApiClient.matchQuery({projectId: props.project.id})],
     });
 
-    render(<TestComponent />, {organization: props.organization});
+    render(<TestComponent />);
 
     expect(await screen.findByText('Sample App Issue')).toBeInTheDocument();
     expect(componentsRequest).toHaveBeenCalled();
@@ -670,11 +636,9 @@ describe('Platform Integrations', () => {
         props.event,
         mockedTrace(props.project)
       );
-      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
-        context: routerContext,
       });
 
       expect(
@@ -696,11 +660,9 @@ describe('Platform Integrations', () => {
         ...trace,
         performance_issues: [],
       });
-      const routerContext = RouterContextFixture();
 
       render(<TestComponent group={props.group} event={props.event} />, {
         organization: props.organization,
-        context: routerContext,
       });
 
       // mechanism: ANR

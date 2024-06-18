@@ -81,6 +81,17 @@ class MetricsQueryBuilder(QueryBuilder):
 
     organization_column: str = "organization_id"
 
+    column_remapping = {
+        # This MetricsQueryBuilder is only used for transaction metrics.
+        # So `message` is mapped to `transaction` but subclasses of this
+        # should be mindful of this and override this value appropriately.
+        #
+        # Note: This really shouldn't be in the parent class at all, and
+        # should live strictly in child classes.
+        "message": "transaction",
+    }
+    default_metric_tags = constants.DEFAULT_METRIC_TAGS
+
     def __init__(
         self,
         *args: Any,
@@ -360,6 +371,8 @@ class MetricsQueryBuilder(QueryBuilder):
             return UseCaseID.SPANS
         elif self.is_performance:
             return UseCaseID.TRANSACTIONS
+        elif self.profile_functions_metrics_builder:
+            return UseCaseID.PROFILES
         else:
             return UseCaseID.SESSIONS
 
@@ -656,13 +669,18 @@ class MetricsQueryBuilder(QueryBuilder):
         return self._indexer_cache[value]
 
     def resolve_tag_value(self, value: str) -> int | str | None:
-        if self.is_performance or self.use_metrics_layer:
+        # We only use the indexer for alerts queries
+        if self.is_performance or self.use_metrics_layer or self.profile_functions_metrics_builder:
             return value
         return self.resolve_metric_index(value)
 
     def resolve_tag_key(self, value: str) -> int | str | None:
+        # some tag keys needs to be remapped to a different column name
+        # prior to resolving it via the indexer
+        value = self.column_remapping.get(value, value)
+
         if self.use_default_tags:
-            if value in constants.DEFAULT_METRIC_TAGS:
+            if value in self.default_metric_tags:
                 return self.resolve_metric_index(value)
             else:
                 raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")

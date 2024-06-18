@@ -35,7 +35,7 @@ from sentry.models.project import Project
 from sentry.models.statistical_detectors import RegressionType
 from sentry.profiles.utils import get_from_profiling_service
 from sentry.search.events.types import ParamsType
-from sentry.seer.utils import BreakpointData
+from sentry.seer.breakpoints import BreakpointData
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba import functions
@@ -975,14 +975,14 @@ def get_detector_enabled_projects(
     feature_name: str | None = None,
     project_option: InternalProjectOptions | None = None,
 ) -> list[Project]:
-    projects = Project.objects.filter(id__in=project_ids)
+    projects_qs = Project.objects.filter(id__in=project_ids)
 
     if feature_name is None:
-        projects = [project for project in projects]
+        projects = list(projects_qs)
     else:
         projects = [
             project
-            for project in projects.select_related("organization")
+            for project in projects_qs.select_related("organization")
             if features.has(feature_name, project.organization)
         ]
 

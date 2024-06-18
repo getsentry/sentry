@@ -117,8 +117,6 @@ def process_event(
     # Parse the JSON payload. This is required to compute the cache key and
     # call process_event. The payload will be put into Kafka raw, to avoid
     # serializing it again.
-    # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
-    # which assumes that data passed in is a raw dictionary.
     data = orjson.loads(payload)
 
     if project_id == settings.SENTRY_PROJECT:
@@ -279,23 +277,26 @@ def process_individual_attachment(message: IngestMessage, project: Project) -> N
     if event is not None:
         group_id = event.group_id
 
-    attachment = message["attachment"]
-    attachment = attachment_cache.get_from_chunks(
-        key=cache_key, type=attachment.pop("attachment_type"), **attachment
-    )
-    if attachment.type not in ("event.attachment", "event.view_hierarchy"):
-        logger.error("invalid individual attachment type: %s", attachment.type)
-        return
+    attachment_msg = message["attachment"]
+    attachment_type = attachment_msg.pop("attachment_type")
 
-    save_attachment(
-        cache_key,
-        attachment,
-        project,
-        event_id,
-        key_id=None,  # TODO: Inject this from Relay
-        group_id=group_id,
-        start_time=None,  # TODO: Inject this from Relay
+    # NOTE: `get_from_chunks` will avoid the cache if `attachment_msg` contains `data` inline
+    attachment = attachment_cache.get_from_chunks(
+        key=cache_key, type=attachment_type, **attachment_msg
     )
+
+    if attachment_type in ("event.attachment", "event.view_hierarchy"):
+        save_attachment(
+            cache_key,
+            attachment,
+            project,
+            event_id,
+            key_id=None,  # TODO: Inject this from Relay
+            group_id=group_id,
+            start_time=None,  # TODO: Inject this from Relay
+        )
+    else:
+        logger.error("invalid individual attachment type: %s", attachment_type)
 
     attachment.delete()
 

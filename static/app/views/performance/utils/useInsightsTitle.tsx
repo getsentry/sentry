@@ -1,14 +1,10 @@
-import {INSIGHTS_LABEL} from 'sentry/views/performance/settings';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {t} from 'sentry/locale';
+import useOrganization from 'sentry/utils/useOrganization';
 
-type ModuleNameStrings = `${ModuleName}`;
-type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
+export function useInsightsTitle() {
+  const organization = useOrganization();
 
-export function useInsightsTitle(moduleName: TitleableModuleNames) {
-  if (moduleName === ModuleName.AI) {
-    // AI doesn't live under Performance
-    return undefined;
-  }
-
-  return INSIGHTS_LABEL;
+  return organization?.features?.includes('performance-insights')
+    ? t('Insights')
+    : t('Performance');
 }

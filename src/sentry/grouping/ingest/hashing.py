@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import copy
 import logging
-from collections.abc import MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 
@@ -35,11 +35,10 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
+    from sentry.event_manager import Job
     from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events.grouping")
-
-Job = MutableMapping[str, Any]
 
 
 def _calculate_event_grouping(
@@ -52,7 +51,7 @@ def _calculate_event_grouping(
     metric_tags: MutableTags = {
         "grouping_config": grouping_config["id"],
         "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
+        "sdk": normalized_sdk_tag_from_event(event.data),
     }
 
     with metrics.timer("save_event._calculate_event_grouping", tags=metric_tags):
@@ -117,7 +116,7 @@ def _calculate_background_grouping(
     metric_tags: MutableTags = {
         "grouping_config": config["id"],
         "platform": event.platform or "unknown",
-        "sdk": normalized_sdk_tag_from_event(event),
+        "sdk": normalized_sdk_tag_from_event(event.data),
     }
     with metrics.timer("event_manager.background_grouping", tags=metric_tags):
         return _calculate_event_grouping(project, event, config)
@@ -370,6 +369,9 @@ def get_hash_values(
         tree_labels=(
             primary_hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
         ),
+        # We don't set a combo `variants` value here because one set of variants would/could
+        # partially or fully overwrite the other (it's a dictionary), and having variants from two
+        # different configs all mixed in together makes no sense.
     )
 
     if all_hashes.tree_labels:

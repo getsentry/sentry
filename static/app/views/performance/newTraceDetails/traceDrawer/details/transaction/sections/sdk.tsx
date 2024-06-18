@@ -1,12 +1,12 @@
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
 export function Sdk({event}: {event: EventTransaction}) {
-  if (!event.sdk || objectIsEmpty(event.sdk)) {
+  if (!event.sdk || isEmptyObject(event.sdk)) {
     return null;
   }
 
@@ -35,7 +35,7 @@ export function Sdk({event}: {event: EventTransaction}) {
   return (
     <TraceDrawerComponents.SectionCard
       items={items}
-      title={t('Sdk')}
+      title={t('SDK')}
       sortAlphabetically
     />
   );

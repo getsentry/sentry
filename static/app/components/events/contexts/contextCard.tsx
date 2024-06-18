@@ -3,17 +3,15 @@ import startCase from 'lodash/startCase';
 
 import type {ContextValue} from 'sentry/components/events/contexts';
 import {
+  getContextIcon,
   getContextMeta,
   getContextTitle,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
-import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
-import Link from 'sentry/components/links/link';
-import Panel from 'sentry/components/panels/panel';
-import {StructuredData} from 'sentry/components/structuredEventData';
-import {space} from 'sentry/styles/space';
+import * as KeyValueData from 'sentry/components/keyValueData/card';
 import type {Event, Group, KeyValueListDataItem, Project} from 'sentry/types';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
@@ -28,8 +26,8 @@ interface ContextCardProps {
 interface ContextCardContentConfig {
   // Omit error styling from being displayed, even if context is invalid
   disableErrors?: boolean;
-  // Displays tag value as plain text, rather than a hyperlink if applicable
-  disableRichValue?: boolean;
+  // Displays value as plain text, rather than a hyperlink if applicable
+  disableLink?: boolean;
   // Includes the Context Type as a prefix to the key. Useful if displaying a single Context key
   // apart from the rest of that Context. E.g. 'Email' -> 'User: Email'
   includeAliasInSubject?: boolean;
@@ -49,46 +47,23 @@ export function ContextCardContent({
   config,
   ...props
 }: ContextCardContentProps) {
-  const {key: contextKey, subject, value: contextValue, action = {}} = item;
+  const {key: contextKey, subject} = item;
   if (contextKey === 'type') {
     return null;
   }
   const contextMeta = meta?.[contextKey];
   const contextErrors = contextMeta?.['']?.err ?? [];
-  const hasErrors = contextErrors.length > 0 && !config?.disableErrors;
-
-  const dataComponent = (
-    <StructuredData
-      value={contextValue}
-      depth={0}
-      maxDefaultDepth={0}
-      meta={contextMeta}
-      withAnnotatedText
-      withOnlyFormattedText
-    />
-  );
-
   const contextSubject =
     config?.includeAliasInSubject && alias ? `${startCase(alias)}: ${subject}` : subject;
 
   return (
-    <ContextContent hasErrors={hasErrors} {...props}>
-      <ContextSubject>{contextSubject}</ContextSubject>
-      <ContextValueSection hasErrors={hasErrors}>
-        <ContextValueWrapper>
-          {!config?.disableRichValue && defined(action?.link) ? (
-            <Link to={action.link}>{dataComponent}</Link>
-          ) : (
-            dataComponent
-          )}
-        </ContextValueWrapper>
-        {hasErrors && (
-          <ContextErrors>
-            <AnnotatedTextErrors errors={contextErrors} />
-          </ContextErrors>
-        )}
-      </ContextValueSection>
-    </ContextContent>
+    <KeyValueData.Content
+      item={{...item, subject: contextSubject}}
+      meta={contextMeta}
+      errors={config?.disableErrors ? [] : contextErrors}
+      disableLink={config?.disableLink ?? false}
+      {...props}
+    />
   );
 }
 
@@ -99,11 +74,12 @@ export default function ContextCard({
   project,
   value = {},
 }: ContextCardProps) {
+  const location = useLocation();
   const organization = useOrganization();
-  if (objectIsEmpty(value)) {
+  if (isEmptyObject(value)) {
     return null;
   }
-  const meta = getContextMeta(event, type);
+  const meta = getContextMeta(event, type === 'default' ? alias : type);
 
   const contextItems = getFormattedContextData({
     event,
@@ -111,73 +87,35 @@ export default function ContextCard({
     contextType: type,
     organization,
     project,
+    location,
   });
 
-  const content = contextItems
-    .sort((a, b) => {
-      return a.subject.localeCompare(b.subject);
-    })
-    .map((item, i) => (
-      <ContextCardContent key={`context-card-${i}`} meta={meta} item={item} />
-    ));
+  const contentItems = contextItems.map<KeyValueData.ContentProps>(item => {
+    const itemMeta: KeyValueData.ContentProps['meta'] = meta?.[item?.key];
+    const itemErrors: KeyValueData.ContentProps['errors'] = itemMeta?.['']?.err ?? [];
+    return {
+      item,
+      meta: itemMeta,
+      errors: itemErrors,
+    };
+  });
 
   return (
-    <Card>
-      <ContextTitle>{getContextTitle({alias, type, value})}</ContextTitle>
-      {content}
-    </Card>
+    <KeyValueData.Card
+      contentItems={contentItems}
+      title={
+        <Title>
+          <div>{getContextTitle({alias, type, value})}</div>
+          <div>{getContextIcon({alias, type, value})}</div>
+        </Title>
+      }
+      sortAlphabetically
+    />
   );
 }
 
-const Card = styled(Panel)`
-  padding: ${space(0.75)};
-  display: grid;
-  column-gap: ${space(1.5)};
-  grid-template-columns: minmax(100px, auto) 1fr;
-  font-size: ${p => p.theme.fontSizeSmall};
+const Title = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
-
-const ContextTitle = styled('p')`
-  grid-column: span 2;
-  padding: ${space(0.25)} ${space(0.75)};
-  margin: 0;
-  color: ${p => p.theme.headingColor};
-  font-weight: bold;
-`;
-
-const ContextContent = styled('div')<{hasErrors: boolean}>`
-  display: grid;
-  grid-template-columns: subgrid;
-  grid-column: span 2;
-  column-gap: ${space(1.5)};
-  padding: ${space(0.25)} ${space(0.75)};
-  border-radius: 4px;
-  color: ${p => (p.hasErrors ? p.theme.alert.error.color : p.theme.subText)};
-  border: 1px solid ${p => (p.hasErrors ? p.theme.alert.error.border : 'transparent')};
-  background-color: ${p =>
-    p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.background};
-  &:nth-child(odd) {
-    background-color: ${p =>
-      p.hasErrors ? p.theme.alert.error.backgroundLight : p.theme.backgroundSecondary};
-  }
-`;
-
-const ContextSubject = styled('div')`
-  grid-column: span 1;
-  font-family: ${p => p.theme.text.familyMono};
-  word-break: break-word;
-`;
-
-const ContextValueSection = styled(ContextSubject)<{hasErrors: boolean}>`
-  color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
-  grid-column: span 1;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-column-gap: ${space(0.5)};
-`;
-
-const ContextValueWrapper = styled('div')`
-  word-break: break-word;
-`;
-
-const ContextErrors = styled('div')``;

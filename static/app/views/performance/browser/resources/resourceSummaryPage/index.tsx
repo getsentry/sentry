@@ -9,7 +9,7 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
@@ -19,11 +19,13 @@ import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/re
 import ResourceSummaryTable from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryTable';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 import {FilterOptionsContainer} from 'sentry/views/performance/browser/resources/resourceView';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {IMAGE_FILE_EXTENSIONS} from 'sentry/views/performance/browser/resources/shared/constants';
 import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
@@ -91,7 +93,7 @@ function ResourceSummary() {
             crumbs={[
               ...crumbs,
               {
-                label: 'Resource Summary',
+                label: tct('[dataType] Summary', {dataType: DATA_TYPE}),
               },
             ]}
           />
@@ -140,6 +142,7 @@ function ResourceSummary() {
             groupId={groupId}
             moduleName={ModuleName.RESOURCE}
             transactionName={transaction as string}
+            referrer={TraceViewSources.ASSETS_MODULE}
           />
         </Layout.Main>
       </Layout.Body>
@@ -151,8 +154,8 @@ function PageWithProviders() {
   return (
     <ModulePageProviders
       moduleName="resource"
-      pageTitle={t('Resource Summary')}
-      features="spans-first-ui"
+      pageTitle={`${DATA_TYPE} ${t('Summary')}`}
+      features="insights-initial-modules"
     >
       <ResourceSummary />
     </ModulePageProviders>

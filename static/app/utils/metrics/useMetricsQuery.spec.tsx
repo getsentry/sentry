@@ -1,4 +1,4 @@
-import type {MRI, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {
   createMqlQuery,
   getMetricsQueryApiRequestPayload,
@@ -45,7 +45,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
     const metric = {
       query: 'error',
       groupBy: ['project'],
-      mri: 'c:custom/sessions@none' as MRI,
+      mri: 'c:custom/sessions@none' as const,
       op: 'avg',
       name: 'query_1',
     };
@@ -62,6 +62,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-31T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '2h',
     });
 
@@ -78,7 +79,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should return the correct query object with default values (period)', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
+      mri: 'c:custom/sessions@none' as const,
       op: 'avg',
       query: 'error',
       groupBy: ['project'],
@@ -96,6 +97,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       statsPeriod: '7d',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '30m',
     });
 
@@ -112,7 +114,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should return the correct query object with overridden values', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
+      mri: 'c:custom/sessions@none' as const,
       op: 'avg',
       query: 'error',
       groupBy: ['project'],
@@ -126,6 +128,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
     const result = getMetricsQueryApiRequestPayload([metric], filters, {
       interval: '123m',
+      includeSeries: false,
     });
 
     expect(result.query).toEqual({
@@ -133,6 +136,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: false,
       interval: '123m',
     });
 
@@ -149,7 +153,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add a default orderBy if one is already present', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
+      mri: 'c:custom/sessions@none' as const,
       op: 'avg',
       query: 'error',
       groupBy: ['project'],
@@ -169,6 +173,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 
@@ -185,7 +190,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add a default orderBy if there are no groups', () => {
     const metric = {
-      mri: 'c:custom/sessions@none' as MRI,
+      mri: 'c:custom/sessions@none' as const,
       op: 'avg',
       query: 'error',
       groupBy: [],
@@ -204,6 +209,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 
@@ -220,7 +226,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
 
   it('should not add intervalLadder override into the request', () => {
     const metric = {
-      mri: 'c:custom/test@seconds' as MRI,
+      mri: 'c:custom/test@seconds' as const,
       op: 'sum',
       query: 'error',
       groupBy: [],
@@ -241,6 +247,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       end: '2023-01-02T00:00:00.000Z',
       project: [1],
       environment: ['production'],
+      includeSeries: true,
       interval: '5m',
     });
 

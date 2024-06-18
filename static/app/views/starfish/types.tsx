@@ -42,6 +42,8 @@ export enum SpanMetricsField {
   HTTP_DECODED_RESPONSE_CONTENT_LENGTH = 'http.decoded_response_content_length',
   HTTP_RESPONSE_TRANSFER_SIZE = 'http.response_transfer_size',
   FILE_EXTENSION = 'file_extension',
+  AI_TOTAL_TOKENS_USED = 'ai.total_tokens.used',
+  AI_TOTAL_COST = 'ai.total_cost',
   OS_NAME = 'os.name',
   APP_START_TYPE = 'app_start_type',
   DEVICE_CLASS = 'device.class',
@@ -51,6 +53,8 @@ export enum SpanMetricsField {
 }
 
 export type SpanNumberFields =
+  | SpanMetricsField.AI_TOTAL_COST
+  | SpanMetricsField.AI_TOTAL_TOKENS_USED
   | SpanMetricsField.SPAN_SELF_TIME
   | SpanMetricsField.SPAN_DURATION
   | SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH
@@ -112,7 +116,7 @@ export const SPAN_FUNCTIONS = [
   'http_error_count',
   'cache_hit_rate',
   'cache_miss_rate',
-  'ai_total_tokens_used',
+  'sum',
 ] as const;
 
 const BREAKPOINT_CONDITIONS = ['less', 'greater'] as const;
@@ -142,8 +146,6 @@ export type SpanMetricsResponse = {
   'http_response_rate(3)': number;
   'http_response_rate(4)': number;
   'http_response_rate(5)': number;
-} & {
-  'ai_total_tokens_used(c:spans/ai.total_cost@usd)': number;
 } & {
   ['project']: string;
   ['project.id']: number;
@@ -196,6 +198,9 @@ export enum SpanIndexedField {
   REPLAY_ID = 'replay.id',
   BROWSER_NAME = 'browser.name',
   USER = 'user',
+  USER_ID = 'user.id',
+  USER_EMAIL = 'user.email',
+  USER_USERNAME = 'user.username',
   INP = 'measurements.inp',
   INP_SCORE = 'measurements.score.inp',
   INP_SCORE_WEIGHT = 'measurements.score.weight.inp',
@@ -211,7 +216,7 @@ export enum SpanIndexedField {
   MESSAGING_MESSAGE_DESTINATION_NAME = 'messaging.destination.name',
 }
 
-export type IndexedResponse = {
+export type SpanIndexedResponse = {
   [SpanIndexedField.ENVIRONMENT]: string;
   [SpanIndexedField.RELEASE]: string;
   [SpanIndexedField.SDK_NAME]: string;
@@ -260,6 +265,9 @@ export type IndexedResponse = {
   [SpanIndexedField.REPLAY_ID]: string;
   [SpanIndexedField.BROWSER_NAME]: string;
   [SpanIndexedField.USER]: string;
+  [SpanIndexedField.USER_ID]: string;
+  [SpanIndexedField.USER_EMAIL]: string;
+  [SpanIndexedField.USER_USERNAME]: string;
   [SpanIndexedField.INP]: number;
   [SpanIndexedField.INP_SCORE]: number;
   [SpanIndexedField.INP_SCORE_WEIGHT]: number;
@@ -275,10 +283,10 @@ export type IndexedResponse = {
   [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: string;
 };
 
-export type IndexedProperty = keyof IndexedResponse;
+export type SpanIndexedPropery = keyof SpanIndexedResponse;
 
 // TODO: When convenient, remove this alias and use `IndexedResponse` everywhere
-export type SpanIndexedFieldTypes = IndexedResponse;
+export type SpanIndexedFieldTypes = SpanIndexedResponse;
 
 export type Op = SpanIndexedFieldTypes[SpanIndexedField.SPAN_OP];
 

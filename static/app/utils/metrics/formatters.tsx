@@ -1,10 +1,11 @@
 import {t} from 'sentry/locale';
 import type {MetricType} from 'sentry/types/metrics';
-import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   DAY,
   formatAbbreviatedNumberWithDynamicPrecision,
-  formatNumberWithDynamicDecimalPoints,
   HOUR,
   MICROSECOND,
   MILLISECOND,
@@ -14,6 +15,7 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 
 const metricTypeToReadable: Record<MetricType, string> = {
   c: t('counter'),
@@ -125,6 +127,34 @@ export const formattingSupportedMetricUnits = [
 
 export type FormattingSupportedMetricUnit =
   (typeof formattingSupportedMetricUnits)[number];
+
+export const formattingSupportedMetricUnitsSingular: FormattingSupportedMetricUnit[] = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+];
 
 const METRIC_UNIT_TO_SHORT: Record<FormattingSupportedMetricUnit, string> = {
   nanosecond: 'ns',

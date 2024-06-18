@@ -1,6 +1,6 @@
 import {PlatformIcon} from 'platformicons';
 
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -8,10 +8,11 @@ import localStorage from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-
-export const PLATFORM_LOCAL_STORAGE_KEY = 'mobile-performance-platform';
-export const PLATFORM_QUERY_PARAM = 'platform';
-export const DEFAULT_PLATFORM = 'Android';
+import {
+  DEFAULT_PLATFORM,
+  PLATFORM_LOCAL_STORAGE_KEY,
+  PLATFORM_QUERY_PARAM,
+} from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 export function PlatformSelector() {
   const {query, pathname} = useLocation();

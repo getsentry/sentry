@@ -2,6 +2,7 @@ import {useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import Placeholder from 'sentry/components/placeholder';
 import ReplayController from 'sentry/components/replays/replayController';
 import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
@@ -14,6 +15,8 @@ import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
 import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 
+import type {ReplayRecord} from '../../types';
+
 const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
@@ -21,7 +24,15 @@ const MIN_CONTENT_HEIGHT = 180;
 
 const DIVIDER_SIZE = 16;
 
-function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
+function ReplayLayout({
+  isVideoReplay = false,
+  replayRecord,
+  isLoading,
+}: {
+  isLoading: boolean;
+  replayRecord: ReplayRecord | undefined;
+  isVideoReplay?: boolean;
+}) {
   const {getLayout} = useReplayLayout();
   const layout = getLayout() ?? LayoutKey.TOPBAR;
 
@@ -36,7 +47,7 @@ function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
   const video = (
     <VideoSection ref={fullscreenRef}>
       <ErrorBoundary mini>
-        <ReplayView toggleFullscreen={toggleFullscreen} />
+        <ReplayView toggleFullscreen={toggleFullscreen} isLoading={isLoading} />
       </ErrorBoundary>
     </VideoSection>
   );
@@ -59,10 +70,12 @@ function ReplayLayout({isVideoReplay = false}: {isVideoReplay?: boolean}) {
     );
   }
 
-  const focusArea = (
+  const focusArea = isLoading ? (
+    <Placeholder width="100%" height="100%" />
+  ) : (
     <FluidPanel title={<SmallMarginFocusTabs isVideoReplay={isVideoReplay} />}>
       <ErrorBoundary mini>
-        <FocusArea isVideoReplay={isVideoReplay} />
+        <FocusArea isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
       </ErrorBoundary>
     </FluidPanel>
   );

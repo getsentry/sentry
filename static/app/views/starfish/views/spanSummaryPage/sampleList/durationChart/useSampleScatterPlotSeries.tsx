@@ -5,12 +5,12 @@ import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colors';
-import type {IndexedResponse} from 'sentry/views/starfish/types';
+import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 
 /** Given an array of indexed spans, create a `Series` for each one, and set the correct styling based on how it compares to the average value. This is a hack, in which our `Chart` component doesn't work otherwise. The right solution would be to create a single series of `type: "scatter"` but that doesn' work with the current implementation */
 export function useSampleScatterPlotSeries(
-  spans: Partial<IndexedResponse>[],
+  spans: Partial<SpanIndexedResponse>[],
   average?: number,
   highlightedSpanId?: string,
   key: string = 'span.self_time'

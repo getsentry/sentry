@@ -9,11 +9,14 @@ import Pagination from 'sentry/components/pagination';
 import {IconImage} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
@@ -69,6 +72,7 @@ type Props = {
 
 function ResourceTable({sort, defaultResourceTypes}: Props) {
   const location = useLocation();
+  const organization = useOrganization();
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const {setPageInfo, pageAlert} = usePageAlert();
 
@@ -80,7 +84,11 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   });
 
   const columnOrder: GridColumnOrder<keyof Row>[] = [
-    {key: SPAN_DESCRIPTION, width: COL_WIDTH_UNDEFINED, name: t('Resource Description')},
+    {
+      key: SPAN_DESCRIPTION,
+      width: COL_WIDTH_UNDEFINED,
+      name: `${DATA_TYPE} ${t('Description')}`,
+    },
     {
       key: `${SPM}()`,
       width: COL_WIDTH_UNDEFINED,
@@ -194,9 +202,18 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
             }),
           renderBodyCell,
         }}
-        location={location}
       />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.RESOURCE,
+            direction,
+          });
+        }}
+      />
     </Fragment>
   );
 }

@@ -64,7 +64,7 @@ describe('hydrateBreadcrumbs', () => {
 
 describe('replayInitBreadcrumb', () => {
   it('should return a RecordingFrame', () => {
-    const replayRecord = ReplayRecordFixture({});
+    const replayRecord = ReplayRecordFixture();
 
     const frame: BreadcrumbFrame = replayInitBreadcrumb(replayRecord);
     expect(frame).toStrictEqual({

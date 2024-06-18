@@ -26,7 +26,7 @@ describe('ContextPickerModal', function () {
     MockApiClient.clearMockResponses();
 
     project = ProjectFixture();
-    org = OrganizationFixture({projects: [project]});
+    org = OrganizationFixture();
     project2 = ProjectFixture({slug: 'project2'});
     org2 = OrganizationFixture({
       slug: 'org2',
@@ -138,7 +138,7 @@ describe('ContextPickerModal', function () {
     // Should see 1 selected, and 1 as an option
     expect(screen.getAllByText('org-slug')).toHaveLength(2);
 
-    expect(screen.getByText('My Projects')).toBeInTheDocument();
+    expect(await screen.findByText('My Projects')).toBeInTheDocument();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
     expect(screen.getByText(project2.slug)).toBeInTheDocument();
     expect(screen.getByText('All Projects')).toBeInTheDocument();
@@ -194,7 +194,7 @@ describe('ContextPickerModal', function () {
   it('isSuperUser and selects an integrationConfig and calls `onFinish` with URL to that configuration', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = UserFixture({isSuperuser: true});
+    ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
@@ -238,7 +238,7 @@ describe('ContextPickerModal', function () {
   it('not superUser and cannot select an integrationConfig and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = UserFixture({isSuperuser: false});
+    ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;
@@ -270,7 +270,7 @@ describe('ContextPickerModal', function () {
   it('is superUser and no integration configurations and calls `onFinish` with URL to integration overview page', async function () {
     OrganizationsStore.load([org]);
     OrganizationStore.onUpdate(org);
-    ConfigStore.config.user = UserFixture({isSuperuser: false});
+    ConfigStore.set('user', UserFixture({isSuperuser: false}));
 
     const provider = {slug: 'github'};
     const configUrl = `/api/0/organizations/${org.slug}/integrations/?provider_key=${provider.slug}&includeConfig=0`;

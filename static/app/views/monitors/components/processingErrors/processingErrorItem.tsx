@@ -54,7 +54,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
       );
     case ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA:
       return tct(
-        'A [checkinTooltip:check-in] upsert was sent but dropped due to insufficient quota. To create new monitors, increase your Crons on-demand budget in your [link: subscription settings].',
+        'A [checkinTooltip:check-in] upsert was sent, but due to insufficient quota a new monitor could not be enabled. Increase your Crons on-demand budget in your [link: subscription settings], and then enable this monitor.',
         {checkinTooltip, link: <Link to="/settings/billing/overview/" />}
       );
     case ProcessingErrorType.MONITOR_INVALID_CONFIG:
@@ -87,7 +87,7 @@ export function ProcessingErrorItem({error, checkinTooltip}: Props) {
       );
     case ProcessingErrorType.MONITOR_OVER_QUOTA:
       return tct(
-        'A [checkinTooltip:check-in] was sent but dropped due to the monitor being over quota. Please increase your on-demand budget in your [link:subscription settings] to resume processing check-ins.',
+        'A [checkinTooltip:check-in] was sent but dropped due to the monitor being disabled. Please increase your on-demand budget if needed in your [link:subscription settings]. Then, enable this monitor to resume processing check-ins.',
         {
           checkinTooltip,
           link: <Link to="/settings/billing/overview/" />,

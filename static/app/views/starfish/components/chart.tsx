@@ -1,5 +1,5 @@
 import type {RefObject} from 'react';
-import {useEffect, useRef, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LineSeriesOption} from 'echarts';
@@ -13,7 +13,6 @@ import type {
 } from 'echarts/types/dist/shared';
 import max from 'lodash/max';
 import min from 'lodash/min';
-import moment from 'moment';
 
 import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
@@ -29,6 +28,11 @@ import TransitionChart from 'sentry/components/charts/transitionChart';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {isChartHovered} from 'sentry/components/charts/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {
+  createIngestionSeries,
+  getIngestionDelayBucketCount,
+} from 'sentry/components/metrics/chart/chart';
+import type {Series as MetricSeries} from 'sentry/components/metrics/chart/types';
 import {IconWarning} from 'sentry/icons';
 import type {
   EChartClickHandler,
@@ -47,38 +51,11 @@ import {
 } from 'sentry/utils/discover/charts';
 import type {AggregationOutputType, RateUnit} from 'sentry/utils/discover/fields';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
+import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/starfish/types';
 
 const STARFISH_CHART_GROUP = 'starfish_chart_group';
-
-export const STARFISH_FIELDS: Record<string, {outputType: AggregationOutputType}> = {
-  [SpanMetricsField.SPAN_DURATION]: {
-    outputType: 'duration',
-  },
-  [SpanMetricsField.SPAN_SELF_TIME]: {
-    outputType: 'duration',
-  },
-  [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.HTTP_RESPONSE_CONTENT_LENGTH]: {
-    outputType: 'size',
-  },
-  [SpanIndexedField.CACHE_ITEM_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.CACHE_ITEM_SIZE]: {
-    outputType: 'size',
-  },
-  [SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
-    outputType: 'duration',
-  },
-};
 
 export enum ChartType {
   BAR = 0,
@@ -116,7 +93,6 @@ type Props = {
   }>;
   onMouseOut?: EChartMouseOutHandler;
   onMouseOver?: EChartMouseOverHandler;
-  preserveIncompletePoints?: boolean;
   previousData?: Series[];
   rateUnit?: RateUnit;
   scatterPlot?: Series[];
@@ -156,8 +132,11 @@ function Chart({
   error,
   onLegendSelectChanged,
   onDataZoom,
-  legendFormatter,
-  preserveIncompletePoints,
+  /**
+   * Setting a default formatter for some reason causes `>` to
+   * render correctly instead of rendering as `&gt;` in the legend.
+   */
+  legendFormatter = name => name,
 }: Props) {
   const router = useRouter();
   const theme = useTheme();
@@ -226,6 +205,51 @@ function Chart({
     });
   }
 
+  let series: Series[] = data.map((values, index) => ({
+    ...values,
+    yAxisIndex: 0,
+    xAxisIndex: 0,
+    id: values.seriesName,
+    color: colors[index],
+  }));
+  let incompleteSeries: Series[] = [];
+
+  const bucketSize =
+    new Date(series[0]?.data[1]?.name).getTime() -
+    new Date(series[0]?.data[0]?.name).getTime();
+  const lastBucketTimestamp = new Date(
+    series[0]?.data?.[series[0]?.data?.length - 1]?.name
+  ).getTime();
+  const ingestionBuckets = useMemo(() => {
+    if (isNaN(bucketSize) || isNaN(lastBucketTimestamp)) {
+      return 1;
+    }
+    return getIngestionDelayBucketCount(bucketSize, lastBucketTimestamp);
+  }, [bucketSize, lastBucketTimestamp]);
+
+  // TODO: Support area and bar charts
+  if (type === ChartType.LINE || type === ChartType.AREA) {
+    const metricChartType =
+      type === ChartType.AREA ? MetricDisplayType.AREA : MetricDisplayType.LINE;
+    const seriesToShow = series.map(serie =>
+      createIngestionSeries(serie as MetricSeries, ingestionBuckets, metricChartType)
+    );
+    [series, incompleteSeries] = seriesToShow.reduce(
+      (acc, serie, index) => {
+        const [trimmed, incomplete] = acc;
+        const {markLine: _, ...incompleteSerie} = serie[1] ?? {};
+        return [
+          [...trimmed, {...serie[0], color: colors[index]}],
+          [
+            ...incomplete,
+            ...(Object.keys(incompleteSerie).length > 0 ? [incompleteSerie] : []),
+          ],
+        ];
+      },
+      [[], []] as [MetricSeries[], MetricSeries[]]
+    );
+  }
+
   const yAxes = [
     {
       minInterval: durationUnit ?? getDurationUnit(data),
@@ -249,27 +273,52 @@ function Chart({
     ...additionalAxis,
   ];
 
+  const xAxis: XAXisOption = disableXAxis
+    ? {
+        show: false,
+        axisLabel: {show: true, margin: 0},
+        axisLine: {show: false},
+      }
+    : {};
+
   const formatter: TooltipFormatterCallback<TopLevelFormatterParams> = (
     params,
     asyncTicket
   ) => {
-    if (isChartHovered(chartRef?.current)) {
-      // Return undefined to use default formatter
-      return getFormatter({
-        isGroupedByDate: true,
-        showTimeInTooltip: true,
-        utc: utc ?? false,
-        valueFormatter: (value, seriesName) => {
-          return tooltipFormatter(
-            value,
-            aggregateOutputFormat ?? aggregateOutputType(seriesName)
-          );
-        },
-        ...tooltipFormatterOptions,
-      })(params, asyncTicket);
+    // Only show the tooltip if the current chart is hovered
+    // as chart groups trigger the tooltip for all charts in the group when one is hoverered
+    if (!isChartHovered(chartRef?.current)) {
+      return '';
     }
-    // Return empty string, ie no tooltip
-    return '';
+    let deDupedParams = params;
+    if (Array.isArray(params)) {
+      const uniqueSeries = new Set<string>();
+      deDupedParams = params.filter(param => {
+        // Filter null values from tooltip
+        if (param.value[1] === null) {
+          return false;
+        }
+
+        if (uniqueSeries.has(param.seriesName)) {
+          return false;
+        }
+        uniqueSeries.add(param.seriesName);
+        return true;
+      });
+    }
+    // Return undefined to use default formatter
+    return getFormatter({
+      isGroupedByDate: true,
+      showTimeInTooltip: true,
+      utc: utc ?? false,
+      valueFormatter: (value, seriesName) => {
+        return tooltipFormatter(
+          value,
+          aggregateOutputFormat ?? aggregateOutputType(seriesName)
+        );
+      },
+      ...tooltipFormatterOptions,
+    })(deDupedParams, asyncTicket);
   };
 
   const areaChartProps = {
@@ -279,13 +328,7 @@ function Chart({
     grid,
     yAxes,
     utc,
-    legend: showLegend
-      ? {
-          top: 0,
-          right: 10,
-          ...(legendFormatter ? {formatter: legendFormatter} : {}),
-        }
-      : undefined,
+    legend: showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined,
     isGroupedByDate: true,
     showTimeInTooltip: true,
     tooltip: {
@@ -307,36 +350,6 @@ function Chart({
       },
     },
   } as Omit<AreaChartProps, 'series'>;
-
-  const series: Series[] = data.map((values, _) => ({
-    ...values,
-    yAxisIndex: 0,
-    xAxisIndex: 0,
-  }));
-
-  // Trims off the last data point because it's incomplete
-  const trimmedSeries =
-    !preserveIncompletePoints && period && !start && !end
-      ? series.map(serie => {
-          return {
-            ...serie,
-            data: serie.data.slice(0, -1),
-          };
-        })
-      : series;
-
-  const xAxis: XAXisOption = disableXAxis
-    ? {
-        show: false,
-        axisLabel: {show: true, margin: 0},
-        axisLine: {show: false},
-      }
-    : {
-        min: moment(trimmedSeries[0]?.data[0]?.name).unix() * 1000,
-        max:
-          moment(trimmedSeries[0]?.data[trimmedSeries[0].data.length - 1]?.name).unix() *
-          1000,
-      };
 
   function getChart() {
     if (error) {
@@ -379,7 +392,7 @@ function Chart({
                 onMouseOver={onMouseOver}
                 onHighlight={onHighlight}
                 series={[
-                  ...trimmedSeries.map(({seriesName, data: seriesData, ...options}) =>
+                  ...series.map(({seriesName, data: seriesData, ...options}) =>
                     LineSeries({
                       ...options,
                       name: seriesName,
@@ -398,6 +411,16 @@ function Chart({
                         animation: false,
                       })
                   ),
+                  ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
+                    LineSeries({
+                      ...options,
+                      name: seriesName,
+                      data: seriesData?.map(({value, name}) => [name, value]),
+                      animation: false,
+                      animationThreshold: 1,
+                      animationDuration: 0,
+                    })
+                  ),
                 ]}
               />
             );
@@ -407,7 +430,7 @@ function Chart({
             return (
               <BarChart
                 height={height}
-                series={trimmedSeries}
+                series={series}
                 xAxis={{
                   type: 'category',
                   axisTick: {show: true},
@@ -446,7 +469,9 @@ function Chart({
                 }}
                 colors={colors}
                 grid={grid}
-                legend={showLegend ? {top: 0, right: 10} : undefined}
+                legend={
+                  showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
+                }
                 onClick={onClick}
               />
             );
@@ -457,7 +482,7 @@ function Chart({
               forwardedRef={chartRef}
               height={height}
               {...zoomRenderProps}
-              series={trimmedSeries}
+              series={[...series, ...incompleteSeries]}
               previousPeriod={previousData}
               additionalSeries={transformedThroughput}
               xAxis={xAxis}

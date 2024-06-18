@@ -1,4 +1,3 @@
-import type {BadgeType} from 'sentry/components/badge/featureBadge';
 import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Queues');
@@ -6,12 +5,8 @@ export const BASE_URL = 'queues';
 
 export const DESTINATION_TITLE = t('Destination Summary');
 
-export const RELEASE_LEVEL: BadgeType = 'beta';
-
 export const releaseLevelAsBadgeProps = {
-  isAlpha: (RELEASE_LEVEL as BadgeType) === 'alpha',
-  isBeta: (RELEASE_LEVEL as BadgeType) === 'beta',
-  isNew: (RELEASE_LEVEL as BadgeType) === 'new',
+  isNew: true,
 };
 
 export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';
@@ -45,14 +40,14 @@ export enum MessageActorType {
   CONSUMER = 'consumer',
 }
 
-export const ONBOARDING_CONTENT = {
-  title: t('Start collecting Insights about your Queues!'),
-  description: t('Our robot is waiting for your first background job to complete.'),
-  link: 'https://develop.sentry.dev/sdk/performance/modules/queues/',
-};
-
 export const MODULE_DESCRIPTION = t(
   'Understand the health and performance impact that queues have on your application and diagnose errors tied to jobs.'
 );
 export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/performance/queue-monitoring/';
+  'https://docs.sentry.io/product/insights/queue-monitoring/';
+
+export const ONBOARDING_CONTENT = {
+  title: t('Start collecting Insights about your Queues!'),
+  description: t('Our robot is waiting for your first background job to complete.'),
+  link: MODULE_DOC_LINK,
+};

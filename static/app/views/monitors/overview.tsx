@@ -28,6 +28,8 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorListErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 
 import {
   CronsLandingPanel,
@@ -37,7 +39,7 @@ import {
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {OwnerFilter} from './components/ownerFilter';
-import type {Monitor} from './types';
+import type {CheckinProcessingError, Monitor} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
 const CronsListPageHeader = HookOrDefault({
@@ -50,6 +52,7 @@ export default function Monitors() {
   const location = useLocation();
   const platform = decodeScalar(location.query?.platform) ?? null;
   const guide = decodeScalar(location.query?.guide);
+  const project = decodeList(location.query?.project);
 
   const queryKey = makeMonitorListQueryKey(organization, location.query);
 
@@ -61,6 +64,14 @@ export default function Monitors() {
   } = useApiQuery<Monitor[]>(queryKey, {
     staleTime: 0,
   });
+
+  const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
+  const {data: processingErrors} = useApiQuery<CheckinProcessingError[]>(
+    processingErrorQueryKey,
+    {
+      staleTime: 0,
+    }
+  );
 
   useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
@@ -143,6 +154,13 @@ export default function Monitors() {
                 onSearch={handleSearch}
               />
             </Filters>
+            {!!processingErrors?.length && (
+              <MonitorProcessingErrors checkinErrors={processingErrors}>
+                {t(
+                  'Errors were encountered while ingesting check-ins for the selected projects'
+                )}
+              </MonitorProcessingErrors>
+            )}
             {isLoading ? (
               <LoadingIndicator />
             ) : monitorList?.length ? (

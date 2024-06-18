@@ -1,6 +1,6 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -12,8 +12,7 @@ describe('EventMetas', () => {
       dateReceived: '2017-05-21T18:01:48.762Z',
       dateCreated: '2017-05-21T18:02:48.762Z',
     });
-    const routerContext = RouterContextFixture([]);
-    const organization = OrganizationFixture({});
+    const organization = OrganizationFixture();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [],
@@ -21,7 +20,7 @@ describe('EventMetas', () => {
     render(
       <EventMetas
         event={event}
-        location={routerContext.context.location}
+        location={LocationFixture()}
         organization={organization}
         errorDest="discover"
         transactionDest="discover"

@@ -1,5 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
 import {AVG_COLOR} from 'sentry/views/starfish/colors';
 import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
@@ -14,7 +14,7 @@ type Props = {
 
 export function CacheHitMissChart({series, isLoading, error}: Props) {
   return (
-    <ChartPanel title={DataTitles.cacheMissRate}>
+    <ChartPanel title={DataTitles[`cache_miss_rate()`]}>
       <Chart
         height={CHART_HEIGHT}
         grid={{

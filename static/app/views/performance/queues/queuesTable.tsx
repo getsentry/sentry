@@ -12,6 +12,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -24,6 +25,7 @@ import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {
+  ModuleName,
   SpanFunction,
   SpanIndexedField,
   type SpanMetricsResponse,
@@ -145,10 +147,19 @@ export function QueuesTable({error, destination, sort}: Props) {
           renderBodyCell: (column, row) =>
             renderBodyCell(column, row, meta, location, organization),
         }}
-        location={location}
       />
 
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.QUEUE,
+            direction,
+          });
+        }}
+      />
     </Fragment>
   );
 }

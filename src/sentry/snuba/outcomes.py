@@ -13,20 +13,15 @@ from snuba_sdk.expressions import Granularity, Limit, Offset
 from snuba_sdk.function import Function
 from snuba_sdk.query import Query
 
-from sentry.api.utils import get_date_range_from_params
 from sentry.constants import DataCategory
 from sentry.release_health.base import AllowedResolution
 from sentry.search.utils import InvalidQuery
-from sentry.sentry_metrics.querying.data import MQLQuery, run_queries
-from sentry.sentry_metrics.querying.data.transformation.stats import MetricsStatsTransformer
-from sentry.snuba.referrer import Referrer
 from sentry.snuba.sessions_v2 import (
     InvalidField,
     SimpleGroupBy,
     get_constrained_date_range,
     massage_sessions_result,
 )
-from sentry.utils.dates import parse_stats_period
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import raw_snql_query
 
@@ -366,7 +361,7 @@ class QueryDefinition:
 def run_outcomes_query_totals(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
 ) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
@@ -387,7 +382,7 @@ def run_outcomes_query_totals(
 def run_outcomes_query_timeseries(
     query: QueryDefinition,
     *,
-    tenant_ids: dict[str, int | str],
+    tenant_ids: Mapping[str, int | str],
     referrer: str = "outcomes.timeseries",
 ) -> ResultSet:
     """
@@ -465,51 +460,3 @@ def massage_outcomes_result(
         del result["intervals"]
     del result["query"]
     return result
-
-
-def _get_outcomes_mql_string(query: QueryDict) -> str:
-    # metric_stats/volume counts the metric outcomes
-    aggregate = "sum(c:metric_stats/volume@none)"
-
-    # TODO(metrics): add support for reason tag
-    group_by = []
-    if "outcome" in query.getlist("groupBy", []):
-        group_by.append("outcome.id")
-    if "project" in query.getlist("groupBy", []):
-        group_by.append("project_id")
-
-    if group_by:
-        return f"{aggregate} by ({', '.join(group_by)})"
-
-    return aggregate
-
-
-def run_metrics_outcomes_query(
-    query: QueryDict, organization, projects, environments
-) -> dict[str, list]:
-    start, end = get_date_range_from_params(query)
-    interval = parse_stats_period(query.get("interval", "1h"))
-
-    mql_string = _get_outcomes_mql_string(query)
-
-    rows = run_queries(
-        mql_queries=[MQLQuery(mql_string)],
-        start=start,
-        end=end,
-        interval=int(3600 if interval is None else interval.total_seconds()),
-        organization=organization,
-        projects=projects,
-        environments=environments,
-        referrer=Referrer.OUTCOMES_TIMESERIES.value,
-    ).apply_transformer(MetricsStatsTransformer())
-
-    # Dummy query definition to pass to the _format_rows, as it expects a QueryDefinition object
-    # TODO(metrics): add a `metrics` category or refactor _format_rows
-    copied = query.copy()
-    copied["category"] = "error"
-    query_def = QueryDefinition.from_query_dict(copied, {"organization_id": organization.id})
-
-    series = _format_rows(rows["series"], query_def)
-    totals = _format_rows(rows["totals"], query_def)
-
-    return massage_outcomes_result(query_def, totals, series)

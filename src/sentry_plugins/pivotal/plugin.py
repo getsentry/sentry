@@ -8,7 +8,7 @@ from rest_framework.response import Response
 
 from sentry.exceptions import PluginError
 from sentry.http import safe_urlopen, safe_urlread
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils import json
 from sentry_plugins.base import CorePluginMixin
@@ -80,7 +80,7 @@ class PivotalPlugin(CorePluginMixin, IssuePlugin2):
             },
         ]
 
-    def handle_api_error(self, error):
+    def handle_api_error(self, error: Exception) -> Response:
         msg = "Error communicating with Pivotal Tracker"
         status = 400 if isinstance(error, PluginError) else 502
         return Response({"error_type": "validation", "errors": {"__all__": msg}}, status=status)

@@ -12,7 +12,9 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 
 describe('destinationSummaryPage', () => {
-  const organization = OrganizationFixture({features: ['performance-queues-view']});
+  const organization = OrganizationFixture({
+    features: ['insights-addon-modules'],
+  });
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -51,7 +53,7 @@ describe('destinationSummaryPage', () => {
     initiallyLoaded: false,
   });
 
-  let eventsMock, eventsStatsMock;
+  let eventsMock, eventsStatsMock, spanFieldTagsMock;
 
   beforeEach(() => {
     eventsMock = MockApiClient.addMockResponse({
@@ -65,6 +67,21 @@ describe('destinationSummaryPage', () => {
       method: 'GET',
       body: {data: []},
     });
+
+    spanFieldTagsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/spans/fields/`,
+      method: 'GET',
+      body: [
+        {
+          key: 'api_key',
+          name: 'Api Key',
+        },
+        {
+          key: 'bytes.size',
+          name: 'Bytes.Size',
+        },
+      ],
+    });
   });
 
   it('renders', async () => {
@@ -75,5 +92,16 @@ describe('destinationSummaryPage', () => {
     screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalled();
     expect(eventsMock).toHaveBeenCalled();
+    expect(spanFieldTagsMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/spans/fields/`,
+      expect.objectContaining({
+        method: 'GET',
+        query: {
+          project: [],
+          environment: [],
+          statsPeriod: '1h',
+        },
+      })
+    );
   });
 });

@@ -15,8 +15,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {CacheHitMissCell} from 'sentry/views/performance/cache/tables/cacheHitMissCell';
 import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/starfish/components/tableCells/spanIdCell';
-import type {IndexedResponse} from 'sentry/views/starfish/types';
+import type {SpanIndexedResponse} from 'sentry/views/starfish/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/starfish/types';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
@@ -35,7 +37,7 @@ type ColumnKeys =
   | SpanIndexedField.CACHE_ITEM_SIZE
   | 'transaction.duration';
 
-export type DataRow = Pick<IndexedResponse, DataRowKeys> & {
+export type DataRow = Pick<SpanIndexedResponse, DataRowKeys> & {
   'transaction.duration': number;
 };
 
@@ -111,7 +113,6 @@ export function SpanSamplesTable({
       highlightedRowKey={data.findIndex(row => row.span_id === highlightedSpanId)}
       onRowMouseOver={onSampleMouseOver}
       onRowMouseOut={onSampleMouseOut}
-      location={location}
     />
   );
 }
@@ -132,6 +133,8 @@ function renderBodyCell(
         timestamp={row.timestamp}
         transactionId={row[SpanIndexedField.TRANSACTION_ID]}
         spanId={row[SpanIndexedField.ID]}
+        source={TraceViewSources.CACHES_MODULE}
+        location={location}
       />
     );
   }

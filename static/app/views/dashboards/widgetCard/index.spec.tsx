@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -27,10 +26,9 @@ jest.mock('sentry/components/lazyRender', () => ({
 }));
 
 describe('Dashboards > WidgetCard', function () {
-  const {router, organization, routerContext} = initializeOrg({
+  const {router, organization} = initializeOrg({
     organization: OrganizationFixture({
       features: ['dashboards-edit', 'discover-basic'],
-      projects: [ProjectFixture()],
     }),
     router: {orgId: 'orgId'},
   } as Parameters<typeof initializeOrg>[0]);
@@ -38,7 +36,7 @@ describe('Dashboards > WidgetCard', function () {
   const renderWithProviders = (component: React.ReactNode) =>
     render(
       <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>,
-      {organization, router, context: routerContext}
+      {organization, router}
     );
 
   const multipleQueryWidget: Widget = {

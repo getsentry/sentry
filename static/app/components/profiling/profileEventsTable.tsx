@@ -84,7 +84,6 @@ export function ProfileEventsTable<F extends FieldType>(
           {location, organization, projects}
         ),
       }}
-      location={location}
     />
   );
 }
@@ -171,12 +170,13 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     return (
       <Container>
         <Link
-          to={getTraceDetailsUrl(
-            props.baggage.organization,
-            props.dataRow[key] ?? '',
-            dataSelection,
-            timestamp
-          )}
+          to={getTraceDetailsUrl({
+            organization: props.baggage.organization,
+            traceSlug: traceId,
+            dateSelection: dataSelection,
+            timestamp,
+            location: props.baggage.location,
+          })}
         >
           {traceId}
         </Link>

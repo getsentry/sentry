@@ -111,12 +111,6 @@ function EventDetailsContent(props: Props) {
 
     const {organization, location, eventView, isHomepage} = props;
 
-    // metrics
-    trackAnalytics('discover_v2.event_details', {
-      event_type: event.type,
-      organization,
-    });
-
     const transactionName = event.tags.find(tag => tag.key === 'transaction')?.value;
     const transactionSummaryTarget =
       event.type === 'transaction' && transactionName
@@ -311,6 +305,7 @@ function EventDetailsContent(props: Props) {
                 event={event}
                 location={location}
                 orgSlug={organization.slug}
+                skipLight={false}
               >
                 {results => render(results, metaResults)}
               </QuickTraceQuery>

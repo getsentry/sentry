@@ -102,7 +102,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    const organization = OrganizationFixture({teams, features: ['team-roles']});
+    const organization = OrganizationFixture({features: ['team-roles']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -138,12 +138,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('changes org role to owner', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -170,12 +170,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('leaves a team', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -197,7 +197,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('cannot leave idp-provisioned team', function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail
@@ -205,7 +205,7 @@ describe('OrganizationMemberDetail', function () {
           params={{memberId: idpTeamMember.id}}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -214,12 +214,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('joins a team and assign a team-role', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -254,12 +254,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('cannot join idp-provisioned team', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -275,7 +275,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
-    const organization = OrganizationFixture({teams, access: ['org:read']});
+    const organization = OrganizationFixture({access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -302,12 +302,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('can not change roles, teams, or save', function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -322,7 +322,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Display status', function () {
-    const organization = OrganizationFixture({teams, access: ['org:read']});
+    const organization = OrganizationFixture({access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -349,7 +349,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('display pending status', function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail
@@ -357,7 +357,7 @@ describe('OrganizationMemberDetail', function () {
           params={{memberId: pendingMember.id}}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -366,7 +366,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('display expired status', function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail
@@ -374,7 +374,7 @@ describe('OrganizationMemberDetail', function () {
           params={{memberId: expiredMember.id}}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -384,7 +384,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Show resend button', function () {
-    const organization = OrganizationFixture({teams, access: ['org:read']});
+    const organization = OrganizationFixture({access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -411,7 +411,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows for pending', function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail
@@ -419,7 +419,7 @@ describe('OrganizationMemberDetail', function () {
           params={{memberId: pendingMember.id}}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -428,7 +428,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('does not show for expired', function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail
@@ -436,7 +436,7 @@ describe('OrganizationMemberDetail', function () {
           params={{memberId: expiredMember.id}}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -490,7 +490,7 @@ describe('OrganizationMemberDetail', function () {
       }),
     });
 
-    const organization = OrganizationFixture({teams});
+    const organization = OrganizationFixture();
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -540,7 +540,7 @@ describe('OrganizationMemberDetail', function () {
     };
 
     it('does not show for pending member', function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail
@@ -548,7 +548,7 @@ describe('OrganizationMemberDetail', function () {
           params={{memberId: pendingMember.id}}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -556,12 +556,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for joined member without permission to edit', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: noAccess.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -569,12 +569,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for member without 2fa', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: no2fa.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -582,7 +582,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('can reset member 2FA', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       const deleteMocks = (has2fa.user?.authenticators || []).map(auth =>
         MockApiClient.addMockResponse({
@@ -594,7 +594,7 @@ describe('OrganizationMemberDetail', function () {
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -611,7 +611,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('shows tooltip for member in multiple orgs', async function () {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail
@@ -619,7 +619,7 @@ describe('OrganizationMemberDetail', function () {
           params={{memberId: multipleOrgs.id}}
         />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -630,7 +630,7 @@ describe('OrganizationMemberDetail', function () {
 
     it('shows tooltip for member in 2FA required org', async function () {
       organization.require2FA = true;
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${has2fa.id}/`,
         body: has2fa,
@@ -639,7 +639,7 @@ describe('OrganizationMemberDetail', function () {
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: has2fa.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -673,7 +673,7 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     });
 
-    const organization = OrganizationFixture({teams, features: ['team-roles']});
+    const organization = OrganizationFixture({features: ['team-roles']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
@@ -696,12 +696,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('does not overwrite team-roles for org members', async () => {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
@@ -726,7 +726,7 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('overwrite team-roles for org admin/manager/owner', async () => {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       async function testForOrgRole(testMember) {
         cleanup();
@@ -736,7 +736,7 @@ describe('OrganizationMemberDetail', function () {
             params={{memberId: testMember.id}}
           />,
           {
-            context: routerContext,
+            router,
             organization,
           }
         );
@@ -762,12 +762,12 @@ describe('OrganizationMemberDetail', function () {
     });
 
     it('overwrites when changing from member to manager', async () => {
-      const {routerContext, routerProps} = initializeOrg({organization});
+      const {router, routerProps} = initializeOrg({organization});
 
       render(
         <OrganizationMemberDetail {...routerProps} params={{memberId: member.id}} />,
         {
-          context: routerContext,
+          router,
           organization,
         }
       );
