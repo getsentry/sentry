@@ -76,12 +76,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
@@ -98,12 +98,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
@@ -119,12 +119,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
@@ -140,12 +140,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     render(<TraceTimeline event={event} />, {organization});
     // Checking for the presence of seconds
@@ -156,12 +156,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
@@ -171,12 +171,12 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     // I believe the call to projects is to determine what projects a user belongs to
     MockApiClient.addMockResponse({
@@ -215,13 +215,13 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       // Only 1 issue
       body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover, project: -1'})],
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     // I believe the call to projects is to determine what projects a user belongs to
     MockApiClient.addMockResponse({
