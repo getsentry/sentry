@@ -617,7 +617,6 @@ module = [
     "sentry.utils.arroyo",
     "sentry.utils.assets",
     "sentry.utils.audit",
-    "sentry.utils.canonical",
     "sentry.utils.celery",
     "sentry.utils.codeowners",
     "sentry.utils.colors",
