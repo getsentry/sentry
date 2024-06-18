@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -19,6 +19,13 @@ from ..utils import logger
 
 SLACK_GET_USERS_PAGE_LIMIT = 100
 SLACK_GET_USERS_PAGE_SIZE = 200
+
+
+@dataclass(frozen=True)
+class SlackUserData:
+    email: str
+    team_id: str
+    slack_id: str
 
 
 def get_users(integration: Integration, organization: Organization) -> Sequence[Mapping[str, Any]]:
@@ -54,13 +61,11 @@ def get_users(integration: Integration, organization: Organization) -> Sequence[
 
 def get_slack_info_by_email(
     integration: Integration, organization: Organization
-) -> Mapping[str, Mapping[str, str]]:
+) -> Mapping[str, SlackUserData]:
     return {
-        member["profile"]["email"]: {
-            "email": member["profile"]["email"],
-            "team_id": member["team_id"],
-            "slack_id": member["id"],
-        }
+        member["profile"]["email"]: SlackUserData(
+            email=member["profile"]["email"], team_id=member["team_id"], slack_id=member["id"]
+        )
         for member in get_users(integration, organization)
         if not member["deleted"] and member["profile"].get("email")
     }
@@ -70,9 +75,9 @@ def get_slack_data_by_user(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization,
     emails_by_user: Mapping[User, Sequence[str]],
-) -> Mapping[User, Mapping[str, str]]:
+) -> Mapping[User, SlackUserData]:
     slack_info_by_email = get_slack_info_by_email(integration, organization)
-    slack_data_by_user: MutableMapping[User, Mapping[str, str]] = {}
+    slack_data_by_user: MutableMapping[User, SlackUserData] = {}
     for user, emails in emails_by_user.items():
         for email in emails:
             if email in slack_info_by_email:
@@ -82,13 +87,6 @@ def get_slack_data_by_user(
 
 
 # USING SDK CLIENT
-
-
-@dataclass
-class SlackUserData:
-    email: str
-    team_id: str
-    slack_id: str
 
 
 def format_slack_data_by_user(
@@ -117,7 +115,7 @@ def get_slack_data_by_user_via_sdk(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization,
     emails_by_user: Mapping[User, Sequence[str]],
-) -> Generator[Mapping[User, Mapping[str, str]], None, None] | None:
+) -> Iterable[Mapping[User, SlackUserData]]:
     sdk_client = SlackSdkClient(integration_id=integration.id)
     try:
         users_list = sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
@@ -137,5 +135,3 @@ def get_slack_data_by_user_via_sdk(
                 "integration_id": integration.id,
             },
         )
-
-    return None
