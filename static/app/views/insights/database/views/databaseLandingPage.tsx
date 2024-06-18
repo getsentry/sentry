@@ -29,7 +29,10 @@ import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors
 import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
 import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
 import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
-import {isAValidSort, QueriesTable} from 'sentry/views/insights/database/queriesTable';
+import {
+  isAValidSort,
+  QueriesTable,
+} from 'sentry/views/insights/database/components/tables/queriesTable';
 import {
   BASE_FILTERS,
   DEFAULT_DURATION_AGGREGATE,
