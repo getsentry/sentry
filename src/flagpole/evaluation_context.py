@@ -73,7 +73,7 @@ class EvaluationContext:
     def size(self) -> int:
         return len(self.__data)
 
-    def to_dict(self) -> T_CONTEXT_DATA:
+    def to_dict(self) -> EvaluationContextDict:
         return deepcopy(self.__data)
 
 
