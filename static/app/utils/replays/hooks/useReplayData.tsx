@@ -238,7 +238,7 @@ function useReplayData({
     // attachemnts yet). This can cause downstream components to
     // think it is no longer fetching and will display an error
     // because there are no attachments. The below will require
-    // that we have attempted to fetch an attachment once (or if it
+    // that we have attempted to fetch an attachment once (or it
     // errors) before we toggle fetching state to false.
     hasFetchedAttachments.current =
       hasFetchedAttachments.current || isFetchingAttachments;
