@@ -1,4 +1,4 @@
-import type {Token} from 'sentry/views/starfish/utils/sqlish/types';
+import type {Token} from 'sentry/utils/sqlish/types';
 
 import grammar from './sqlish.pegjs';
 

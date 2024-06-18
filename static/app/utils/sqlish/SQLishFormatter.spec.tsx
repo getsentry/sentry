@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 
 describe('SQLishFormatter', function () {
   describe('SQLishFormatter.toString()', () => {

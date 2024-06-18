@@ -1,4 +1,4 @@
-import {SQLishParser} from 'sentry/views/starfish/utils/sqlish/SQLishParser';
+import {SQLishParser} from 'sentry/utils/sqlish/SQLishParser';
 
 describe('SQLishParser', function () {
   describe('SQLishParser()', () => {
