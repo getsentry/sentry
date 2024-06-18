@@ -44,7 +44,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         assert relay is not None  # should be provided during Authentication
         response = {}
 
-        if not request.relay_request_data.get("fullConfig"):
+        if not request.relay_request_data.get("fullConfig", True):
             # We capture a message to make it apparent to self-hosted users that now it's only possible to query
             # full project configs.
             sentry_sdk.capture_message(
