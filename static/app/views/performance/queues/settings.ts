@@ -51,3 +51,5 @@ export const ONBOARDING_CONTENT = {
   description: t('Our robot is waiting for your first background job to complete.'),
   link: MODULE_DOC_LINK,
 };
+
+export const TABLE_ROWS_LIMIT = 25;
