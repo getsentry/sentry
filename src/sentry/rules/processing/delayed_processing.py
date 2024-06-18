@@ -94,7 +94,8 @@ def get_rules_to_slow_conditions(
 def get_condition_groups(
     alert_rules: list[Rule], rules_to_groups: DefaultDict[int, set[int]]
 ) -> dict[UniqueCondition, DataAndGroups]:
-    """Map unique conditions to the group IDs that need to checked for that
+    """
+    Map unique conditions to the group IDs that need to checked for that
     condition. We also store a pointer to that condition's JSON so we can
     instantiate the class later
     """
@@ -359,6 +360,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     # must be checked for that condition. We don't query per rule condition because
     # condition of the same class, interval, and environment can share a single scan.
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
+    logger.info(
+        "delayed_processing.condition_groups",
+        extra={"condition_groups": condition_groups, "project_id": project_id},
+    )
 
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
