@@ -60,7 +60,7 @@ describe('inviteBanner', function () {
   });
 
   it('does not render banner if no option', function () {
-    const org = OrganizationFixture({});
+    const org = OrganizationFixture();
 
     const {container} = render(
       <InviteBanner

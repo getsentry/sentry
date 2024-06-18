@@ -92,7 +92,9 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     # if blended rate is None that means no dynamic sampling behavior should happen.
     # Therefore no rules should be set.
     assert generate_rules(fake_project) == []
-    get_blended_sample_rate.assert_called_with(organization_id=fake_project.organization.id)
+    get_blended_sample_rate.assert_called_with(
+        organization_id=fake_project.organization.id, project=fake_project
+    )
     assert sentry_sdk.capture_exception.call_count == 1
     _validate_rules(fake_project)
 
@@ -121,7 +123,7 @@ def test_generate_rules_return_only_always_allowed_rules_if_sample_rate_is_100_a
             },
         ]
         get_blended_sample_rate.assert_called_with(
-            organization_id=default_old_project.organization.id
+            organization_id=default_old_project.organization.id, project=default_old_project
         )
         _validate_rules(default_old_project)
 
@@ -202,7 +204,9 @@ def test_generate_rules_return_uniform_rules_and_env_rule(
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
     _validate_rules(default_old_project)
 
 
@@ -490,7 +494,9 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
     _validate_rules(default_old_project)
 
 
@@ -563,7 +569,9 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "type": "trace",
         },
     ]
-    get_blended_sample_rate.assert_called_with(organization_id=default_old_project.organization.id)
+    get_blended_sample_rate.assert_called_with(
+        organization_id=default_old_project.organization.id, project=default_old_project
+    )
     _validate_rules(default_old_project)
 
 

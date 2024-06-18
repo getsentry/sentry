@@ -103,6 +103,30 @@ from sentry.stacktraces.functions import (
         ],
         ["pthread_cond_timedwait@@GLIBC_2.3.2", "pthread_cond_timedwait"],
         ["glob64@GLIBC_2.2", "glob64"],
+        [
+            "static Namespace.ThrowingFunction() throws -> Namespace.ExitValue?",
+            "Namespace.ThrowingFunction",
+        ],
+        [
+            "closure #1 @Swift.MainActor () -> () in static Foo.CallFunction(args: [Swift.String]) -> ()",
+            "closure in Foo.CallFunction",
+        ],
+        [
+            "closure #1 () -> () in Bar.PostTask(() -> ()) -> ()",
+            "closure in Bar.PostTask",
+        ],
+        [
+            "closure #1 @Sendable () -> Swift.String in variable initialization expression of static Namespace.Class.var : Namespace.Parent",
+            "closure in initializer expression of Namespace.Class.var",
+        ],
+        [
+            "variable initialization expression of static Namespace.Class.var : Namespace.Parent",
+            "initializer expression of Namespace.Class.var",
+        ],
+        [
+            "closure #1 () -> () in variable initialization expression of static (extension in SpaceCreation):Namespace.Class.var : Namespace.Parent",
+            "closure in initializer expression of Namespace.Class.var",
+        ],
     ],
 )
 def test_trim_native_function_name(input, output):
@@ -142,14 +166,13 @@ def test_trim_csharp_function_name(input, output):
             "partial apply for thunk for @escaping @callee_guaranteed (@guaranteed SomeType, @guaranteed [String : SomeType2], @guaranteed SomeType3) -> ()",
             "thunk for closure",
         ],
-        [  # "closure ... in ..." functions are converted to containing
-            # function. We might want to change this in the future
+        [
             "closure #1 (T1) in foo(bar: T2)",
-            "foo",
+            "closure in foo",
         ],
         [
             "partial apply for closure #1 () in closure #2 (T1) in f1(_: T2, arg: T3)",
-            "f1",
+            "closure in f1",
         ],
     ],
 )

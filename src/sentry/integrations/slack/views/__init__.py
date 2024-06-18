@@ -1,6 +1,6 @@
 from typing import Any
 
-from django.http import HttpResponse
+from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from django.views.decorators.cache import never_cache as django_never_cache
 from rest_framework.request import Request
@@ -23,7 +23,7 @@ def build_linking_url(endpoint: str, **kwargs: Any) -> str:
     return url
 
 
-def render_error_page(request: Request, status: int, body_text: str) -> HttpResponse:
+def render_error_page(request: Request | HttpRequest, status: int, body_text: str) -> HttpResponse:
     return render_to_response(
         "sentry/integrations/slack/link-team-error.html",
         request=request,

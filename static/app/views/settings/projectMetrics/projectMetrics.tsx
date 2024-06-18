@@ -5,7 +5,7 @@ import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import Tag from 'sentry/components/badge/tag';
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -24,6 +24,7 @@ import {
   DEFAULT_METRICS_CARDINALITY_LIMIT,
   METRICS_DOCS_URL,
 } from 'sentry/utils/metrics/constants';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
@@ -33,6 +34,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -54,6 +56,7 @@ enum BlockingStatusTab {
 type MetricWithCardinality = MetricMeta & {cardinality: number};
 
 function ProjectMetrics({project, location}: Props) {
+  const organization = useOrganization();
   const metricsMeta = useMetricsMeta(
     {projects: [parseInt(project.id, 10)]},
     ['custom'],
@@ -114,6 +117,8 @@ function ProjectMetrics({project, location}: Props) {
   const {activateSidebar} = useMetricsOnboardingSidebar();
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
 
+  const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
+
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Metrics'), project.slug, false)} />
@@ -149,6 +154,22 @@ function ProjectMetrics({project, location}: Props) {
       <PermissionAlert project={project} />
 
       <CardinalityLimit project={project} />
+
+      {hasExtractionRules && (
+        <Fragment>
+          <ExtractionRulesSearchWrapper>
+            <h6>{t('Metric Extraction Rules')}</h6>
+            <LinkButton
+              to={`/settings/projects/${project.slug}/metrics/extract-metric`}
+              priority="primary"
+              size="sm"
+            >
+              {t('Add Extraction Rule')}
+            </LinkButton>
+          </ExtractionRulesSearchWrapper>
+          <MetricsExtractionTable isLoading={false} extractionRules={[]} />
+        </Fragment>
+      )}
 
       <SearchWrapper>
         <h6>{t('Emitted Metrics')}</h6>
@@ -187,6 +208,39 @@ function ProjectMetrics({project, location}: Props) {
         </TabPanelsWrapper>
       </Tabs>
     </Fragment>
+  );
+}
+
+interface MetricsExtractionTableProps {
+  extractionRules: never[];
+  isLoading: boolean;
+}
+
+function MetricsExtractionTable({
+  extractionRules,
+  isLoading,
+}: MetricsExtractionTableProps) {
+  return (
+    <StyledPanelTable
+      headers={[
+        t('Span attribute'),
+        <Cell right key="type">
+          {t('Type')}
+        </Cell>,
+        <Cell right key="unit">
+          {t('Unit')}
+        </Cell>,
+        <Cell right key="tags">
+          {t('Tags')}
+        </Cell>,
+        <Cell right key="actions">
+          {t('Actions')}
+        </Cell>,
+      ]}
+      emptyMessage={t('You have not created any extraction rules yet.')}
+      isEmpty={extractionRules.length === 0}
+      isLoading={isLoading}
+    />
   );
 }
 
@@ -299,6 +353,10 @@ const SearchWrapper = styled('div')`
   & > h6 {
     margin: 0;
   }
+`;
+
+const ExtractionRulesSearchWrapper = styled(SearchWrapper)`
+  margin-bottom: ${space(1)};
 `;
 
 const StyledPanelTable = styled(PanelTable)`

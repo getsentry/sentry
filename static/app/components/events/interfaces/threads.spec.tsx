@@ -16,7 +16,7 @@ import {EntryType} from 'sentry/types/event';
 
 describe('Threads', function () {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
   const config = RepositoryProjectPathConfigFixture({project, repo, integration});

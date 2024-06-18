@@ -3,6 +3,7 @@ import type {Location} from 'history';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -90,6 +91,13 @@ export function GeneralInfo(props: GeneralnfoProps) {
               projectID: event.projectID,
             })}
             linkText={t('View Similar Spans')}
+            onClick={() =>
+              trackAnalytics('trace.trace_layout.view_similar_spans', {
+                organization: props.organization,
+                module: resolvedModule,
+                source: 'general_info',
+              })
+            }
           />
         ) : (
           <TraceDrawerComponents.CopyableCardValueWithLink value={span.description} />

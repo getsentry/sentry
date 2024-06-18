@@ -91,8 +91,8 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
-function logTraceType(type: TraceType, organization: Organization) {
-  switch (type) {
+function logTraceMetadata(tree: TraceTree, organization: Organization) {
+  switch (tree.shape) {
     case TraceType.BROKEN_SUBTRACES:
     case TraceType.EMPTY_TRACE:
     case TraceType.MULTIPLE_ROOTS:
@@ -100,7 +100,7 @@ function logTraceType(type: TraceType, organization: Organization) {
     case TraceType.NO_ROOT:
     case TraceType.ONLY_ERRORS:
     case TraceType.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceShape(type, organization);
+      traceAnalytics.trackTraceMetadata(tree, organization);
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
@@ -247,6 +247,7 @@ type TraceViewWaterfallProps = {
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const api = useApi();
   const {projects} = useProjects();
+  const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
 
@@ -520,6 +521,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      trackAnalytics('trace.trace_layout.span_row_click', {
+        organization,
+        num_children: node.children.length,
+        project_platform:
+          projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
+      });
+
       if (traceStateRef.current.preferences.drawer.minimized) {
         traceDispatch({type: 'minimize drawer', payload: false});
       }
@@ -543,7 +551,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch]
+    [setRowAsFocused, traceDispatch, organization, projects]
   );
 
   const scrollRowIntoView = useCallback(
@@ -814,8 +822,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    logTraceType(shape, props.organization);
-  }, [tree, shape, props.organization]);
+    logTraceMetadata(tree, props.organization);
+  }, [tree, props.organization]);
 
   useLayoutEffect(() => {
     if (!tree.root?.space || tree.type !== 'trace') {
@@ -839,7 +847,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   return (
     <Fragment>
       <TraceToolbar>
-        <TraceSearchInput onTraceSearch={onTraceSearch} />
+        <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}

@@ -45,6 +45,15 @@ class CreateOrganizationPinnedSearchTest(APITestCase):
             position=0,
         ).exists()
 
+        assert GroupSearchView.objects.filter(
+            organization=self.organization,
+            user_id=self.member.id,
+            position=1,
+            name="Prioritized",
+            query="is:unresolved issue.priority:[high, medium]",
+            query_sort="date",
+        ).exists()
+
         query = "test_2"
         self.get_success_response(type=search_type, query=query, sort=sort, status_code=201)
         assert SavedSearch.objects.filter(
@@ -185,7 +194,7 @@ class DeleteOrganizationPinnedSearchTest(APITestCase):
         self.get_success_response(type=saved_search.type, status_code=204)
         assert not SavedSearch.objects.filter(id=saved_search.id).exists()
         assert not GroupSearchView.objects.filter(
-            organization=self.organization, user_id=self.member.id, position=0
+            organization=self.organization, user_id=self.member.id
         ).exists()
 
     def test_invalid_type(self):

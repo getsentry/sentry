@@ -146,16 +146,8 @@ function getRuleChangeSeries(
   ];
 }
 
-function shouldUseErrorsDataset(
-  organization: Organization,
-  dataset: Dataset,
-  query: string
-): boolean {
-  return (
-    dataset === Dataset.ERRORS &&
-    /\bis:unresolved\b/.test(query) &&
-    organization.features.includes('metric-alert-ignore-archived')
-  );
+function shouldUseErrorsDataset(dataset: Dataset, query: string): boolean {
+  return dataset === Dataset.ERRORS && /\bis:unresolved\b/.test(query);
 }
 
 class MetricChart extends PureComponent<Props, State> {
@@ -181,7 +173,7 @@ class MetricChart extends PureComponent<Props, State> {
     const {rule, organization, project, timePeriod, query} = this.props;
 
     let dataset: DiscoverDatasets | undefined = undefined;
-    if (shouldUseErrorsDataset(organization, rule.dataset, query)) {
+    if (shouldUseErrorsDataset(rule.dataset, query)) {
       dataset = DiscoverDatasets.ERRORS;
     }
 
@@ -555,7 +547,7 @@ class MetricChart extends PureComponent<Props, State> {
       ...getForceMetricsLayerQueryExtras(organization, dataset),
     };
 
-    if (shouldUseErrorsDataset(organization, dataset, query)) {
+    if (shouldUseErrorsDataset(dataset, query)) {
       queryExtras.dataset = 'errors';
     }
 

@@ -73,7 +73,7 @@ describe('TraceLink', () => {
   });
 
   it('renders no trace available', async () => {
-    render(<TraceLink event={EventFixture({})} />, {organization});
+    render(<TraceLink event={EventFixture()} />, {organization});
     expect(await screen.findByText('No Trace Available')).toBeInTheDocument();
   });
 });

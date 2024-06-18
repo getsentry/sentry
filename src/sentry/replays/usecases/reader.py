@@ -80,7 +80,7 @@ def fetch_filestore_segments_meta(
     limit: int,
 ) -> list[RecordingSegmentStorageMeta]:
     """Return filestore metadata derived from our Postgres table."""
-    segments: list[ReplayRecordingSegment] = (
+    segments = (
         ReplayRecordingSegment.objects.filter(project_id=project_id, replay_id=replay_id)
         .order_by("segment_id")
         .all()[offset : limit + offset]
