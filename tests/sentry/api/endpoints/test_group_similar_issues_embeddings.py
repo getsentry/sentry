@@ -542,7 +542,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "k": 1,
                 },
             ),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            headers={"content-type": "application/json;charset=utf-8"},
         )
 
         # Include threshold
@@ -568,5 +568,5 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "read_only": True,
                 },
             ).decode(),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            headers={"content-type": "application/json;charset=utf-8"},
         )
