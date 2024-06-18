@@ -16,7 +16,6 @@ import type {
 import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
-import useOrganization from 'sentry/utils/useOrganization';
 
 // TODO: more types get added here
 type MobileBreadcrumbTypes =
@@ -145,8 +144,7 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
 }
 
 export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
-  const organization = useOrganization();
-  return organization.features.includes('replay-web-vitals') && frame.op === 'web-vital';
+  return frame.op === 'web-vital';
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {

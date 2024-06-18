@@ -41,6 +41,7 @@ import {
   isPaintFrame,
   isWebVitalFrame,
 } from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
@@ -507,7 +508,13 @@ export default class ReplayReader {
     return [...uniqueCrumbs, ...spans].sort(sortFrames);
   });
 
-  getWebVitalFrames = memoize(() => this._sortedSpanFrames.filter(isWebVitalFrame));
+  getWebVitalFrames = memoize(() => {
+    const organization = useOrganization();
+    if (organization.features.includes('replay-web-vitals')) {
+      return this._sortedSpanFrames.filter(isWebVitalFrame);
+    }
+    return [];
+  });
 
   getVideoEvents = () => this._videoEvents;
 
