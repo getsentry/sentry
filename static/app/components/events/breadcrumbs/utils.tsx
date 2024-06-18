@@ -39,12 +39,15 @@ const Color = styled('span')<{colorConfig: Timeline.ColorConfig}>`
 `;
 
 export function applyBreadcrumbSearch(search: string, crumbs: RawCrumb[]): RawCrumb[] {
+  if (search === '') {
+    return crumbs;
+  }
   return crumbs.filter(
     c =>
       c.type.includes(search) ||
       c.message?.includes(search) ||
       c.category?.includes(search) ||
-      JSON.stringify(c.data).includes(search)
+      (c.data && JSON.stringify(c.data)?.includes(search))
   );
 }
 
