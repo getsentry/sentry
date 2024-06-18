@@ -6,8 +6,8 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getIntervalForMetricFunction} from 'sentry/views/insights/database/getIntervalForMetricFunction';
 import {DEFAULT_INTERVAL} from 'sentry/views/insights/database/settings';
+import {getIntervalForMetricFunction} from 'sentry/views/insights/database/utils/getIntervalForMetricFunction';
 
 export function getSeriesEventView(
   search: MutableSearch | undefined,
