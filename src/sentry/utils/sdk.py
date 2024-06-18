@@ -82,7 +82,7 @@ SAMPLED_TASKS = {
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
-    "sentry.tasks.backfill_seer_grouping_records": 1.0,
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
