@@ -541,7 +541,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "read_only": True,
                     "k": 1,
                 },
-            ).decode(),
+            ),
             headers={"Content-Type": "application/json;charset=utf-8"},
         )
 
