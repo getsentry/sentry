@@ -32,11 +32,7 @@ function localizeDomain(domain?: string) {
 function shouldUseSlugPath(organization: OrganizationSummary): boolean {
   const {organizationUrl} = organization.links;
 
-  return (
-    !organizationUrl ||
-    !ConfigStore.get('features').has('system:multi-region') ||
-    DEPLOY_PREVIEW_CONFIG !== undefined
-  );
+  return !organizationUrl || !ConfigStore.get('features').has('system:multi-region');
 }
 
 /**
@@ -71,7 +67,6 @@ function resolveRoute(
     }
     return route;
   }
-
   return `${organizationUrl}${normalizeUrl(route)}`;
 }
 
