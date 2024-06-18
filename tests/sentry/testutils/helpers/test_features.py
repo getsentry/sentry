@@ -26,7 +26,6 @@ class TestTestUtilsFeatureHelper(TestCase):
                 # mocked
                 ret = features.batch_has(
                     [
-                        "organizations:customer-domains",
                         "organizations:advanced-search",
                         "organizations:api-keys",
                     ],
@@ -34,7 +33,6 @@ class TestTestUtilsFeatureHelper(TestCase):
                 )
                 assert ret is not None
                 results = list(ret.values())[0]
-                assert results["organizations:customer-domains"]
                 assert results["organizations:advanced-search"]
                 assert not results["organizations:api-keys"]
 
