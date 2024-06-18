@@ -2,7 +2,7 @@
 #     from __future__ import annotations
 # in modules such as this one where hybrid cloud data models or service classes are
 # defined, because we want to reflect on type annotations and avoid forward references.
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
 from typing import Any, TypedDict
@@ -12,8 +12,6 @@ from django.utils import timezone
 from pydantic import Field
 
 from sentry import roles
-from sentry.db.models import ValidateFunction, Value
-from sentry.models.options.option import HasOption
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
@@ -194,7 +192,7 @@ class RpcOrganizationInvite(RpcModel):
     email: str = ""
 
 
-class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
+class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     """
     The subset of organization metadata available from the control silo specifically.
     """
@@ -209,13 +207,16 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin, HasOption):
         return hash((self.id, self.slug))
 
     def get_option(
-        self, key: str, default: Value | None = None, validate: ValidateFunction | None = None
-    ) -> Value:
+        self,
+        key: str,
+        default: Any | None = None,
+        validate: Callable[[object], bool] | None = None,
+    ) -> Any:
         from sentry.services.hybrid_cloud.organization import organization_service
 
         return organization_service.get_option(organization_id=self.id, key=key)
 
-    def update_option(self, key: str, value: Value) -> bool:
+    def update_option(self, key: str, value: Any) -> bool:
         from sentry.services.hybrid_cloud.organization import organization_service
 
         return organization_service.update_option(organization_id=self.id, key=key, value=value)
@@ -255,15 +256,15 @@ class RpcOrganization(RpcOrganizationSummary):
         from sentry.services.hybrid_cloud.user.service import user_service
 
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
-            owners = OrganizationMemberMapping.objects.filter(
+            owners: Iterable[int | None] = OrganizationMemberMapping.objects.filter(
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
         else:
             owners = OrganizationMember.objects.filter(
                 organization_id=self.id, role__in=[roles.get_top_dog().id]
             ).values_list("user_id", flat=True)
-        return user_service.get_many(
-            filter={"user_ids": [owner_id for owner_id in owners if owner_id is not None]}
+        return user_service.get_many_by_id(
+            ids=[owner_id for owner_id in owners if owner_id is not None]
         )
 
     @property

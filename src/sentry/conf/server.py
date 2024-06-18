@@ -394,6 +394,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.analytics.events",
     "sentry.nodestore",
     "sentry.monitors",
+    "sentry.uptime",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -672,8 +673,11 @@ RPC_SHARED_SECRET: list[str] | None = None
 # Timeout for RPC requests between regions
 RPC_TIMEOUT = 5.0
 
-# Shared secret used to sign cross-region RPC requests with the seer microservice.
+# TODO: Replace both of these secrets with mutual TLS and simplify our rpc channels.
+# Shared secret used to sign cross-region RPC requests from the seer microservice.
 SEER_RPC_SHARED_SECRET: list[str] | None = None
+# Shared secret used to sign cross-region RPC requests to the seer microservice.
+SEER_API_SHARED_SECRET: str = ""
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -739,7 +743,7 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_remove_inbox",
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.backfill_outboxes",
-    "sentry.tasks.backfill_seer_grouping_records",
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
     "sentry.tasks.check_new_issue_threshold_met",
@@ -760,7 +764,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.files",
     "sentry.tasks.groupowner",
     "sentry.tasks.integrations",
-    "sentry.tasks.low_priority_symbolication",
     "sentry.tasks.merge",
     "sentry.tasks.options",
     "sentry.tasks.ping",
@@ -883,6 +886,11 @@ CELERY_QUEUES_REGION = [
         "events.symbolicate_js_event_low_priority",
         routing_key="events.symbolicate_js_event_low_priority",
     ),
+    Queue("events.symbolicate_jvm_event", routing_key="events.symbolicate_jvm_event"),
+    Queue(
+        "events.symbolicate_jvm_event_low_priority",
+        routing_key="events.symbolicate_jvm_event_low_priority",
+    ),
     Queue("files.copy", routing_key="files.copy"),
     Queue("files.delete", routing_key="files.delete"),
     Queue(
@@ -918,10 +926,6 @@ CELERY_QUEUES_REGION = [
     Queue("sleep", routing_key="sleep"),
     Queue("stats", routing_key="stats"),
     Queue("subscriptions", routing_key="subscriptions"),
-    Queue(
-        "symbolications.compute_low_priority_projects",
-        routing_key="symbolications.compute_low_priority_projects",
-    ),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
     Queue("profiles.process", routing_key="profiles.process"),
@@ -1436,7 +1440,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
-    "organizations:grouping-tree-ui": "Enable experimental new version of Merged Issues where sub-hashes are shown",
     "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
@@ -1452,66 +1455,8 @@ SENTRY_EARLY_FEATURES = {
 # `features.manager.add()`. Defining feature defaults here is deprecated.
 # If you must add a feature here, please maintain alphabetical ordering
 SENTRY_FEATURES: dict[str, bool | None] = {
-    # potentially unused.
-    "organizations:api-keys": False,
-    # Enable creating organizations within sentry
-    # (if SENTRY_SINGLE_ORGANIZATION is not enabled).
-    "organizations:create": True,
-    # Enable dashboard widget indicators.
-    "organizations:dashboard-widget-indicators": True,
-    # Delightful Developer Metrics (DDM):
-    # Enables experimental WIP custom metrics related features
-    "organizations:custom-metrics-experimental": False,
-    # Enables automatically deriving of code mappings
-    "organizations:derive-code-mappings": True,
-    # Enable integration functionality to work deployment integrations like Vercel
-    "organizations:integrations-deployment": True,
-    # Enable inviting members to organizations.
-    "organizations:invite-members": True,
-    # Enable rate limits for inviting members.
-    "organizations:invite-members-rate-limits": True,
-    # Enable Session Stats down to a minute resolution
-    "organizations:minute-resolution-sessions": True,
-    # Enables region provisioning for individual users
-    "organizations:multi-region-selector": True,
-    # Enable new page filter UI
-    "organizations:new-page-filter": True,
-    # Temporary flag to test search performance that's running slow in S4S
-    "organizations:performance-issues-search": True,
-    # Enable FE/BE for tracing without performance
-    "organizations:performance-tracing-without-performance": True,
-    # Enable project selection on the stats page
-    "organizations:project-stats": True,
-    # Enable core Session Replay link in the sidebar
-    "organizations:session-replay-ui": True,
-    # Enable the UI for user spend notification settings
-    "organizations:user-spend-notifications-settings": False,
-    # Enable Slack messages using Block Kit
-    "organizations:slack-block-kit": True,
-    # Allow organizations to configure all symbol sources.
-    "organizations:symbol-sources": True,
-    # Mark URL transactions scrubbed by regex patterns as "sanitized".
-    # NOTE: This flag does not concern transactions rewritten by clusterer rules.
-    # Those are always marked as "sanitized".
-    "organizations:transaction-name-mark-scrubbed-as-sanitized": True,
-    # Normalize URL transaction names during ingestion.
-    "organizations:transaction-name-normalize": True,
-    # Mobile replay killswitch
-    # TODO: Delete me on or before public beta.
-    "organizations:session-replay-video": True,
-    # Adds additional filters and a new section to issue alert rules.
-    "projects:alert-filters": True,
-    # Enable setting priority for issues
-    "projects:issue-priority": True,
-    # Enable functionality for attaching  minidumps to events and displaying
-    # then in the group UI.
-    "projects:minidump": True,
-    # Enable functionality for project plugins.
-    "projects:plugins": True,
-    # Enable alternative version of group creation that is supposed to be less racy.
-    "projects:race-free-group-creation": True,
-    # NOTE: Don't add feature defaults down here! Please add them in their associated
-    # group sorted alphabetically.
+    # NOTE: Don't add feature defaults down here! Please add a default to
+    # the manager.add() call that defines the feature.
 }
 
 # Default time zone for localization in the UI.
@@ -1823,7 +1768,7 @@ SENTRY_ENDPOINT: str | None = None
 SENTRY_PUBLIC_ENDPOINT: str | None = None
 
 # Hostname prefix to add for organizations that are opted into the
-# `organizations:org-subdomains` feature.
+# `organizations:org-ingest-subdomains` feature.
 SENTRY_ORG_SUBDOMAIN_TEMPLATE = "o{organization_id}.ingest"
 
 # Prevent variables (e.g. context locals, http data, etc) from exceeding this
@@ -2129,8 +2074,7 @@ SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
             # TODO: Editing pass
             """
             Admin privileges on the team. They can create and remove projects,
-            and can manage the team's memberships. They cannot invite members to
-            the organization.
+            and can manage the team's memberships.
             """
         ),
         "scopes": {
@@ -2250,10 +2194,8 @@ SENTRY_USE_REPLAY_ANALYZER_SERVICE = False
 # This flag activates Spotlight Sidecar in the development environment
 SENTRY_USE_SPOTLIGHT = False
 
-# This flags enables the `peanutbutter` realtime metrics backend.
-# See https://github.com/getsentry/peanutbutter.
-# We do not want/need this in normal devservices, but we need it for certain tests.
-SENTRY_USE_PEANUTBUTTER = False
+# This flag activates uptime checks in the developemnt environment
+SENTRY_USE_UPTIME = False
 
 # SENTRY_DEVSERVICES = {
 #     "service-name": lambda settings, options: (
@@ -2514,14 +2456,6 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
             "only_if": settings.SENTRY_USE_SPOTLIGHT,
         }
     ),
-    "peanutbutter": lambda settings, options: (
-        {
-            "image": "us.gcr.io/sentryio/peanutbutter:latest",
-            "environment": {},
-            "ports": {"4433/tcp": 4433},
-            "only_if": settings.SENTRY_USE_PEANUTBUTTER,
-        }
-    ),
 }
 
 # Max file size for serialized file uploads in API
@@ -2541,7 +2475,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.5.1"
+SELF_HOSTED_STABLE_VERSION = "24.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2948,6 +2882,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -3122,15 +3057,21 @@ SENTRY_ENABLE_AUTO_LOW_PRIORITY_QUEUE = False
 # This value is already adjusted according to the
 # `symbolicate-event.low-priority.metrics.submission-rate` option.
 SENTRY_LPQ_OPTIONS = {
-    # This is the per-project budget in per-second "symbolication time budget".
+    # These are the per-project budget in per-second "symbolication time budget".
+    # There is one budget for each of the symbolication platforms: native, js, and jvm.
+    # The "project_budget" value exists for backward compatibility.
     #
-    # This has been arbitrarily chosen as `5.0` for now, which means an average of:
+    # This has been arbitrarily chosen as `5.0` for native and js, which means an average of:
     # -  1x 5-second event per second, or
     # -  5x 1-second events per second, or
     # - 10x 0.5-second events per second
     #
+    # For jvm events we use a higher budget of `7.5`.
     # Cost increases quadratically with symbolication time.
-    "project_budget": 5.0
+    "project_budget": 5.0,
+    "project_budget_native": 5.0,
+    "project_budget_js": 5.0,
+    "project_budget_jvm": 7.5,
 }
 
 # XXX(meredith): Temporary metrics indexer
@@ -3198,6 +3139,8 @@ SEER_ANOMALY_DETECTION_URL = SEER_DEFAULT_URL  # for local development, these sh
 SEER_ANOMALY_DETECTION_TIMEOUT = 5
 
 SEER_AUTOFIX_GITHUB_APP_USER_ID = 157164994
+
+SEER_AUTOFIX_FORCE_USE_REPOS: list[dict] = []
 
 
 # This is the URL to the profiling service
@@ -3423,7 +3366,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-notes",
     "sentry-api-0-group-note-details",
     "sentry-api-0-group-hashes",
-    "sentry-api-0-group-hashes-split",
     "sentry-api-0-group-reprocessing",
     "sentry-api-0-group-stats",
     "sentry-api-0-group-tags",
@@ -3483,6 +3425,9 @@ SEER_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
 )
 
+# TODO: Remove this soon, just a way to configure a project for this before we implement properly
+UPTIME_POC_PROJECT_ID = 1
+
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")
@@ -3490,7 +3435,7 @@ if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
-    SENTRY_FEATURES["organizations:frontend-domainsplit"] = True
+    SENTRY_FEATURES["system:multi-region"] = True
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]

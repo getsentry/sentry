@@ -1,6 +1,6 @@
 import type {Sort} from 'sentry/utils/discover/fields';
-import {useSpanTransactionMetrics} from 'sentry/views/starfish/queries/useSpanTransactionMetrics';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
+import {useSpanTransactionMetrics} from 'sentry/views/insights/common/queries/useSpanTransactionMetrics';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, RESOURCE_RENDER_BLOCKING_STATUS} = SpanMetricsField;
 

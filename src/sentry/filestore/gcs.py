@@ -27,6 +27,8 @@ from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 
 # how many times do we want to try if stuff goes wrong
 GCS_RETRIES = 5
+REPLAY_GCS_RETRIES = GCS_RETRIES + 2
+
 
 # Which errors are eligible for retry.
 GCS_RETRYABLE_ERRORS = (
@@ -401,8 +403,8 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
 
         def should_retry(attempt: int, e: Exception) -> bool:
             """Retry gateway timeout exceptions up to the limit."""
-            return attempt <= GCS_RETRIES and isinstance(e, GCS_RETRYABLE_ERRORS)
+            return attempt <= REPLAY_GCS_RETRIES and isinstance(e, GCS_RETRYABLE_ERRORS)
 
-        # Retry cadence: 0.025, 0.05, 0.1, 0.2, 0.4, 0.8 => ~1.7 seconds
+        # Retry cadence: 0.025, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2 => ~6.5 seconds
         policy = ConditionalRetryPolicy(should_retry, exponential_delay(0.05))
         policy(callable)

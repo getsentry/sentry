@@ -247,7 +247,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         # require 2FA disabled when saml is enabled
         with assume_test_silo_mode(SiloMode.REGION):
             org = Organization.objects.get(id=self.organization.id)
-            assert not org.flags.require_2fa.is_set
+            assert not org.flags.require_2fa
 
         event = AuditLogEntry.objects.get(
             target_object=org.id, event=audit_log.get_event_id("ORG_EDIT"), actor=self.user

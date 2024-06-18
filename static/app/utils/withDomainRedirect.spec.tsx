@@ -65,7 +65,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       router: {
         params,
       },
@@ -78,7 +78,7 @@ describe('withDomainRedirect', function () {
         params={params}
         routes={router.routes}
         routeParams={router.params}
-        route={route}
+        route={{}}
       />,
       {router}
     );
@@ -95,7 +95,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -111,7 +111,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -130,7 +130,7 @@ describe('withDomainRedirect', function () {
     const params = {
       orgId: organization.slug,
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -146,7 +146,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -169,7 +169,7 @@ describe('withDomainRedirect', function () {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -186,7 +186,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -205,7 +205,7 @@ describe('withDomainRedirect', function () {
 
     const params = {};
 
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -230,7 +230,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}
@@ -255,7 +255,7 @@ describe('withDomainRedirect', function () {
       orgId: organization.slug,
       projectId: 'react',
     };
-    const {router, route} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -272,7 +272,7 @@ describe('withDomainRedirect', function () {
           params={params}
           routes={router.routes}
           routeParams={router.params}
-          route={route}
+          route={{}}
         />
       </OrganizationContext.Provider>,
       {router}

@@ -21,10 +21,6 @@ class InvalidOrigin(InvalidRequest):
         return "Invalid origin: '%s'" % self.origin
 
 
-class CacheNotPopulated(Exception):
-    pass
-
-
 class InvalidConfiguration(Exception):
     pass
 

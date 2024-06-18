@@ -142,9 +142,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
                 external_issue = ExternalIssue.objects.get(
                     integration_id=integration.id, key=issue_key
                 )
-                organization = Organization.objects.filter(
-                    id=external_issue.organization_id
-                ).first()
+                organization = Organization.objects.get(id=external_issue.organization_id)
                 if (
                     integration_service.get_organization_integration(
                         organization_id=external_issue.organization_id,

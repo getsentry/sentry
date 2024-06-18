@@ -17,10 +17,11 @@ import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {CanvasSupportNotice} from './canvasSupportNotice';
 
 type Props = {
+  isLoading: boolean;
   toggleFullscreen: () => void;
 };
 
-function ReplayView({toggleFullscreen}: Props) {
+function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const {isFetching, replay} = useReplayContext();
@@ -32,7 +33,7 @@ function ReplayView({toggleFullscreen}: Props) {
         <PlayerContainer>
           <ContextContainer>
             {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
-            <BrowserOSIcons showBrowser={!isVideoReplay} />
+            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
             {isFullscreen ? (
               <ReplaySidebarToggleButton
                 isOpen={isSidebarOpen}
@@ -77,7 +78,7 @@ const Panel = styled(FluidHeight)`
 const ContextContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(1)};
 `;
@@ -86,7 +87,7 @@ const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: ${space(1)};
+  gap: 10px;
   flex-grow: 1;
 `;
 

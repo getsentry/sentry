@@ -9,14 +9,15 @@ import type EventView from 'sentry/utils/discover/eventView';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {useLocation} from 'sentry/utils/useLocation';
 import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
-import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
-import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 import {
   PRIMARY_RELEASE_ALIAS,
   SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {ModuleName} from 'sentry/views/insights/types';
+import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
+import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Props = {
   data: TableData | undefined;
@@ -136,6 +137,7 @@ export function UIScreensTable({data, eventView, isLoading, pageLinks}: Props) {
         },
       ]}
       customBodyCellRenderer={renderBodyCell}
+      moduleName={ModuleName.MOBILE_UI}
     />
   );
 }

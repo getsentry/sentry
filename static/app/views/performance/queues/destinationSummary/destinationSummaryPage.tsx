@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -16,6 +15,7 @@ import {DurationUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
@@ -27,9 +27,8 @@ import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinati
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
 import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
-import {DESTINATION_TITLE, RELEASE_LEVEL} from 'sentry/views/performance/queues/settings';
+import {DESTINATION_TITLE} from 'sentry/views/performance/queues/settings';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
 
 function DestinationSummaryPage() {
   const organization = useOrganization();
@@ -59,10 +58,7 @@ function DestinationSummaryPage() {
             ]}
           />
 
-          <Layout.Title>
-            {destination}
-            <FeatureBadge type={RELEASE_LEVEL} />
-          </Layout.Title>
+          <Layout.Title>{destination}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
           <ButtonBar gap={1}>
@@ -168,7 +164,7 @@ function PageWithProviders() {
     <ModulePageProviders
       moduleName="queue"
       pageTitle={t('Destination Summary')}
-      features={['insights-addon-modules', 'performance-queues-view']}
+      features="insights-addon-modules"
     >
       <DestinationSummaryPage />
     </ModulePageProviders>

@@ -912,6 +912,10 @@ class DashboardDetail extends Component<Props, State> {
                                 onDashboardFilterChange={this.handleChangeFilter}
                                 onCancel={() => {
                                   resetPageFilters(dashboard, location);
+                                  trackAnalytics('dashboards2.filter.cancel', {
+                                    organization,
+                                  });
+
                                   this.setState({
                                     modifiedDashboard: {
                                       ...(modifiedDashboard ?? dashboard),
@@ -934,6 +938,9 @@ class DashboardDetail extends Component<Props, State> {
                                   ).then(
                                     (newDashboard: DashboardDetails) => {
                                       addSuccessMessage(t('Dashboard filters updated'));
+                                      trackAnalytics('dashboards2.filter.save', {
+                                        organization,
+                                      });
 
                                       const navigateToDashboard = () => {
                                         browserHistory.replace(

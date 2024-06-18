@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
-import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/boolean';
@@ -40,8 +39,7 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const state = useListState<ParseResultToken>(props);
-  const {gridProps} = useQueryBuilderGrid(props, state, ref);
+  const {state, gridProps} = useQueryBuilderGrid(props, ref);
 
   useApplyFocusOverride(state);
 
@@ -107,7 +105,11 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
   }
 
   return (
-    <Grid aria-label={label ?? t('Create a search query')} items={parsedQuery}>
+    <Grid
+      aria-label={label ?? t('Create a search query')}
+      items={parsedQuery}
+      selectionMode="multiple"
+    >
       {item => (
         <Item key={makeTokenKey(item, parsedQuery)}>
           {item.text.trim() ? item.text : t('Space')}
@@ -118,9 +120,13 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
 }
 
 const SearchQueryGridWrapper = styled('div')`
-  padding: ${space(0.75)} 48px ${space(0.75)} 32px;
+  padding: ${space(0.75)} 34px ${space(0.75)} 32px;
   display: flex;
   align-items: stretch;
   row-gap: ${space(0.5)};
   flex-wrap: wrap;
+
+  &:focus {
+    outline: none;
+  }
 `;

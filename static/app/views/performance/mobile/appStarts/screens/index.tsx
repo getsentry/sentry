@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -15,6 +16,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {AverageComparisonChart} from 'sentry/views/performance/mobile/appStarts/screens/averageComparisonChart';
 import {CountChart} from 'sentry/views/performance/mobile/appStarts/screens/countChart';
@@ -32,9 +36,7 @@ import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
 const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];
@@ -157,6 +159,12 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     referrer: 'api.starfish.mobile-startup-bar-chart',
   });
 
+  useHasDataTrackAnalytics(
+    new MutableSearch('span.op:[app.start.cold,app.start.warm]'),
+    'api.performance.mobile.app-startup-landing',
+    'insight.page_loads.app_start'
+  );
+
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (
       <Alert type="warning" showIcon>
@@ -220,6 +228,11 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
       <StyledSearchBar
         eventView={tableEventView}
         onSearch={search => {
+          trackAnalytics('insight.general.search', {
+            organization,
+            query: search,
+            source: ModuleName.APP_START,
+          });
           router.push({
             pathname: router.location.pathname,
             query: {

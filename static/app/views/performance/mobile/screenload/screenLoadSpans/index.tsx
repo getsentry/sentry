@@ -7,6 +7,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,6 +17,13 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  ReleaseComparisonSelector,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {ModuleName} from 'sentry/views/insights/types';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {
   ScreenCharts,
@@ -32,13 +40,6 @@ import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/scree
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  ReleaseComparisonSelector,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 type Query = {
   primaryRelease: string;
@@ -97,6 +98,7 @@ function ScreenLoadSpans() {
             <Container>
               <FilterContainer>
                 <PageFilterBar condensed>
+                  <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
                 <ReleaseComparisonSelector />
@@ -119,27 +121,27 @@ function ScreenLoadSpans() {
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${primaryRelease})`,
-                    title: t('TTID (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
-                    title: t('TTID (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTID (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
-                    title: t('TTFD (%s)', PRIMARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: DurationUnit.MILLISECOND,
                     dataKey: `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                    title: t('TTFD (%s)', SECONDARY_RELEASE_ALIAS),
+                    title: t('Avg TTFD (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                   {
                     unit: 'count',
                     dataKey: 'count()',
-                    title: t('Count'),
+                    title: t('Total Count'),
                   },
                 ]}
                 referrer="api.starfish.mobile-screen-totals"

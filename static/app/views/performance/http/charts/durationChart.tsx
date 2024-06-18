@@ -1,11 +1,11 @@
 import type {ComponentProps} from 'react';
 
 import type {EChartHighlightHandler, Series} from 'sentry/types/echarts';
+import {AVG_COLOR} from 'sentry/views/insights/colors';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {getDurationChartTitle} from 'sentry/views/insights/common/views/spans/types';
 import {CHART_HEIGHT} from 'sentry/views/performance/http/settings';
-import {AVG_COLOR} from 'sentry/views/starfish/colors';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {getDurationChartTitle} from 'sentry/views/starfish/views/spans/types';
 
 interface Props {
   isLoading: boolean;
@@ -33,10 +33,13 @@ export function DurationChart({
     const allSeries = [...series, ...(scatterPlot ?? [])];
 
     const highlightedDataPoints = event.batch.map(batch => {
-      const {seriesIndex, dataIndex} = batch;
+      let {seriesIndex} = batch;
+      const {dataIndex} = batch;
+      // TODO: More hacks. The Chart component partitions the data series into a complete and incomplete series. Wrap the series index to work around overflowing index.
+      seriesIndex = seriesIndex % allSeries.length;
 
       const highlightedSeries = allSeries?.[seriesIndex];
-      const highlightedDataPoint = highlightedSeries.data?.[dataIndex];
+      const highlightedDataPoint = highlightedSeries?.data?.[dataIndex];
 
       return {series: highlightedSeries, dataPoint: highlightedDataPoint};
     });

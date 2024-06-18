@@ -3,8 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 jest.mock('sentry/utils/useLocation');
 

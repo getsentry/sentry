@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -512,7 +512,8 @@ def post_process_group(
     cache_key,
     group_id=None,
     occurrence_id: str | None = None,
-    project_id: int | None = None,
+    *,
+    project_id: int,
     **kwargs,
 ):
     """
@@ -748,7 +749,7 @@ def run_post_process_job(job: PostProcessJob) -> None:
             )
 
 
-def process_event(data: dict, group_id: int | None) -> Event:
+def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
     from sentry.eventstore.models import Event
     from sentry.models.event import EventDict
 

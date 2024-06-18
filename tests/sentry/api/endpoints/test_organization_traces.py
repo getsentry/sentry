@@ -13,8 +13,8 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 
 
-class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
-    view = "sentry-api-0-organization-traces"
+class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
+    view: str
 
     def setUp(self):
         super().setUp()
@@ -270,22 +270,16 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
             span_ids,
         )
 
-    def test_no_feature(self):
-        query = {
-            "field": ["id"],
-            "project": [self.project.id],
-        }
 
-        response = self.do_request(query, features=[])
+class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
+    view = "sentry-api-0-organization-traces"
+
+    def test_no_feature(self):
+        response = self.do_request({}, features=[])
         assert response.status_code == 404, response.data
 
     def test_no_project(self):
-        query = {
-            "field": ["id"],
-            "project": [],
-        }
-
-        response = self.do_request(query)
+        response = self.do_request({})
         assert response.status_code == 404, response.data
 
     def test_bad_params_missing_fields(self):
@@ -728,7 +722,7 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                 "field": ["id", "parent_span", "span.duration"],
                 "query": q,
                 "suggestedQuery": "foo:baz span.duration:>0s",
-                "maxSpansPerTrace": 3,
+                "maxSpansPerTrace": 4,
                 "sort": ["-span.duration"],
             }
 
@@ -1020,6 +1014,316 @@ class OrganizationTracesEndpointTest(BaseSpansTestCase, APITestCase):
                         "units": {},
                     },
                 }
+
+    def test_limit_by_span_condition(self):
+        (
+            project_1,
+            project_2,
+            trace_id_1,
+            trace_id_2,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        query = {
+            "project": [project_2.id],
+            "field": ["id", "parent_span", "span.duration", "foo"],
+            "query": ["foo:bar", "foo:baz"],
+            "suggestedQuery": "foo:baz span.duration:>0s",
+            "maxSpansPerTrace": 3,
+            "sort": ["foo", "-span.duration"],
+        }
+
+        response = self.do_request(query)
+        assert response.status_code == 200, response.data
+
+        spans = {
+            result["trace"]: {span["id"] for span in result["spans"]}
+            for result in response.data["data"]
+        }
+
+        assert spans == {
+            trace_id_1: {span_ids[2], span_ids[3]},
+            trace_id_2: {span_ids[5], span_ids[6]},
+        }
+
+
+class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
+    view = "sentry-api-0-organization-trace-spans"
+
+    def do_request(self, trace_id, query, features=None, **kwargs):
+        if features is None:
+            features = ["organizations:performance-trace-explorer"]
+        with self.feature(features):
+            return self.client.get(
+                reverse(
+                    self.view,
+                    kwargs={
+                        "organization_id_or_slug": self.organization.slug,
+                        "trace_id": trace_id,
+                    },
+                ),
+                query,
+                format="json",
+                **kwargs,
+            )
+
+    def test_no_feature(self):
+        response = self.do_request(uuid4().hex, {}, features=[])
+        assert response.status_code == 404, response.data
+
+    def test_no_project(self):
+        response = self.do_request(uuid4().hex, {})
+        assert response.status_code == 404, response.data
+
+    def test_bad_params_missing_field(self):
+        (
+            _,
+            _,
+            trace_id,
+            _,
+            _,
+            _,
+            _,
+        ) = self.create_mock_traces()
+
+        query = {
+            "project": [self.project.id],
+        }
+
+        response = self.do_request(trace_id, query)
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "field": [
+                ErrorDetail(string="This field is required.", code="required"),
+            ],
+        }
+
+    def test_get_spans_for_trace(self):
+        (
+            project_1,
+            project_2,
+            trace_id,
+            _,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        query = {
+            "project": [self.project.id],
+            "field": ["id"],
+            "sort": "id",
+        }
+
+        response = self.do_request(trace_id, query)
+        assert response.status_code == 200, response.data
+        assert response.data["meta"] == {
+            "dataset": "unknown",
+            "datasetReason": "unchanged",
+            "fields": {
+                "id": "string",
+            },
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {
+                "id": None,
+            },
+        }
+        assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[:4])]
+
+    def test_get_spans_for_trace_matching_tags(self):
+        (
+            project_1,
+            project_2,
+            trace_id,
+            _,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        for user_query in [
+            ["foo:bar", "foo:baz"],
+            ["foo:[bar, baz]"],
+        ]:
+            query = {
+                "project": [self.project.id],
+                "field": ["id"],
+                "sort": "id",
+                "query": user_query,
+            }
+
+            response = self.do_request(trace_id, query)
+            assert response.status_code == 200, response.data
+            assert response.data["meta"] == {
+                "dataset": "unknown",
+                "datasetReason": "unchanged",
+                "fields": {
+                    "id": "string",
+                },
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {
+                    "id": None,
+                },
+            }
+            assert response.data["data"] == [{"id": span_id} for span_id in sorted(span_ids[1:4])]
+
+    def test_get_spans_for_trace_matching_tags_metrics(self):
+        (
+            project_1,
+            project_2,
+            _,
+            _,
+            trace_id,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        for (mri, op) in [
+            (TransactionMRI.DURATION.value, "count"),
+            ("d:transactions/measurements.lcp@millisecond", "max"),
+            (SpanMRI.DURATION.value, "min"),
+            (SpanMRI.SELF_TIME.value, "avg"),
+            ("d:spans/webvital.score.total@ratio", "count"),
+            ("d:spans/webvital.score.inp@ratio", "max"),
+            ("d:spans/webvital.score.weight.inp@ratio", "min"),
+            ("d:spans/http.response_content_length@byte", "avg"),
+            ("d:spans/http.decoded_response_content_length@byte", "count"),
+            ("d:spans/http.response_transfer_size@byte", "max"),
+            ("d:custom/value@millisecond", "min"),
+        ]:
+            for user_query in ["foo:qux", None]:
+                query = {
+                    "mri": mri,
+                    "metricsMin": 30_000,
+                    "metricsMax": 50_000,
+                    "metricsOp": op,
+                    "metricsQuery": ["foo:qux"],
+                    "project": [self.project.id],
+                    "field": ["id"],
+                    "sort": "id",
+                }
+                if user_query:
+                    query["query"] = user_query
+
+                response = self.do_request(trace_id, query)
+                assert response.status_code == 200, response.data
+                assert response.data["meta"] == {
+                    "dataset": "unknown",
+                    "datasetReason": "unchanged",
+                    "fields": {
+                        "id": "string",
+                    },
+                    "isMetricsData": False,
+                    "isMetricsExtractedData": False,
+                    "tips": {},
+                    "units": {
+                        "id": None,
+                    },
+                }
+                assert response.data["data"] == [{"id": span_ids[10]}]
+
+
+class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
+    view = "sentry-api-0-organization-traces-stats"
+
+    def test_no_feature(self):
+        response = self.do_request({}, features=[])
+        assert response.status_code == 404, response.data
+
+    def test_no_project(self):
+        response = self.do_request({})
+        assert response.status_code == 404, response.data
+
+    def test_bad_params_missing_y_axis(self):
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+            }
+        )
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "yAxis": [
+                ErrorDetail(string="This field is required.", code="required"),
+            ],
+        }
+
+    def test_span_duration_filter(self):
+        for q in [
+            ["span.duration:>100"],
+        ]:
+            query = {
+                "yAxis": ["count()"],
+                "query": q,
+                "project": [self.project.id],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+    def test_stats(self):
+        project_1 = self.create_project()
+        project_2 = self.create_project()
+
+        timestamp = before_now()
+        timestamp = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        timestamp = timestamp - timedelta(minutes=10)
+
+        self.double_write_segment(
+            project_id=project_1.id,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            timestamp=timestamp,
+            transaction="foo",
+            duration=100,
+            exclusive_time=100,
+        )
+
+        self.double_write_segment(
+            project_id=project_1.id,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            timestamp=timestamp,
+            transaction="bar",
+            duration=100,
+            exclusive_time=100,
+        )
+
+        self.double_write_segment(
+            project_id=project_2.id,
+            trace_id=uuid4().hex,
+            transaction_id=uuid4().hex,
+            span_id="1" + uuid4().hex[:15],
+            timestamp=timestamp,
+            transaction="bar",
+            duration=100,
+            exclusive_time=100,
+        )
+
+        for q in [
+            [f"project:{project_1.slug}"],
+            [
+                f"project:{project_1.slug} transaction:bar",
+                f"project:{project_2.slug} transaction:bar",
+            ],
+        ]:
+            query = {
+                "yAxis": ["count()"],
+                "query": q,
+                "project": [project_1.id],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+        assert sum(bucket[0]["count"] for _, bucket in response.data["data"]) == 2
 
 
 @pytest.mark.parametrize(

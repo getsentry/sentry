@@ -175,7 +175,15 @@ class FeatureManager(RegisteredFeatureManager):
                 )
             self.option_features.add(name)
 
-        if entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE:
+        is_external_flag = (
+            entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE
+            or entity_feature_strategy == FeatureHandlerStrategy.REMOTE
+        )
+
+        # Register all remote and flagpole features with options automator,
+        # so long as they haven't already been registered. This will allow
+        # us to backfill and cut over to Flagpole without interruptions.
+        if is_external_flag and name not in self.flagpole_features:
             self.flagpole_features.add(name)
             # Set a default of {} to ensure the feature evaluates to None when checked
             feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"

@@ -88,7 +88,7 @@ class ServiceHook(Model):
 
     @cached_property
     def sentry_app(self):
-        return app_service.find_service_hook_sentry_app(api_application_id=self.application_id)
+        return app_service.get_by_application_id(application_id=self.application_id)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -19,19 +19,21 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
+import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {
   type ModuleName,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
-import DurationChart from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart';
-import SampleTable from 'sentry/views/starfish/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+} from 'sentry/views/insights/types';
+import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
+import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 
@@ -184,6 +186,7 @@ export function SpanSamplesContainer({
               organization,
               traceSlug: span.trace,
               timestamp: span.timestamp,
+              source: TraceViewSources.APP_STARTS_MODULE,
             })
           );
         }}
@@ -196,7 +199,7 @@ export function SpanSamplesContainer({
 
       <Feature features="performance-sample-panel-search">
         <StyledSearchBar
-          searchSource="queries-sample-panel"
+          searchSource={`${moduleName}-sample-panel`}
           query={searchQuery}
           onSearch={handleSearch}
           placeholder={t('Search for span attributes')}
@@ -208,6 +211,7 @@ export function SpanSamplesContainer({
         />
       </Feature>
       <SampleTable
+        referrer={TraceViewSources.APP_STARTS_MODULE}
         spanSearch={spanSearch}
         additionalFilters={additionalFilters}
         highlightedSpanId={highlightedSpanId}

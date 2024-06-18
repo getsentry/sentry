@@ -346,11 +346,10 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
 
 
 def pytest_runtest_teardown(item: pytest.Item) -> None:
-    # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
+    from sentry.newsletter.dummy import DummyNewsletter
 
-    if hasattr(newsletter.backend, "clear"):
-        newsletter.backend.clear()
+    newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
     from sentry.utils.redis import clusters
 
@@ -368,8 +367,9 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     from sentry.models.options.project_option import ProjectOption
     from sentry.models.options.user_option import UserOption
 
-    for model in (OrganizationOption, ProjectOption, UserOption):
-        model.objects.clear_local_cache()
+    OrganizationOption.objects.clear_local_cache()
+    ProjectOption.objects.clear_local_cache()
+    UserOption.objects.clear_local_cache()
 
     Hub.main.bind_client(None)
 

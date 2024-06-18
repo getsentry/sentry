@@ -50,7 +50,7 @@ class OrganizationMemberSerializer(Serializer):
             }
         )
         inviters_by_id: Mapping[int, RpcUser] = {
-            u.id: u for u in user_service.get_many(filter={"user_ids": inviters_set})
+            u.id: u for u in user_service.get_many_by_id(ids=inviters_set)
         }
 
         external_users_map = defaultdict(list)

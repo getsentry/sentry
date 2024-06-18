@@ -12,6 +12,14 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
 import type {SpanOperationTableProps} from 'sentry/views/performance/mobile/components/samplesTables';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
@@ -19,14 +27,6 @@ import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 const {SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanMetricsField;
 
@@ -193,6 +193,7 @@ export function SpanOperationTable({
         },
       ]}
       customBodyCellRenderer={renderBodyCell}
+      moduleName={ModuleName.MOBILE_UI}
     />
   );
 }

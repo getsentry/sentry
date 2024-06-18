@@ -27,6 +27,16 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {
+  PRIMARY_RELEASE_ALIAS,
+  SECONDARY_RELEASE_ALIAS,
+} from 'sentry/views/insights/common/components/releaseSelector';
+import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanMetricsField} from 'sentry/views/insights/types';
+import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
 } from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
@@ -35,16 +45,6 @@ import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/
 import {MODULE_DOC_LINK} from 'sentry/views/performance/mobile/screenload/settings';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {
-  PRIMARY_RELEASE_ALIAS,
-  SECONDARY_RELEASE_ALIAS,
-} from 'sentry/views/starfish/components/releaseSelector';
-import {OverflowEllipsisTextContainer} from 'sentry/views/starfish/components/textAlign';
-import {useTTFDConfigured} from 'sentry/views/starfish/queries/useHasTtfdConfigured';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
@@ -140,11 +140,11 @@ export function ScreenLoadSpansTable({
     affects: hasTTFD ? t('Affects') : t('Affects TTID'),
     'time_spent_percentage()': t('Total Time Spent'),
     [`avg_if(${SPAN_SELF_TIME},release,${primaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       PRIMARY_RELEASE_ALIAS
     ),
     [`avg_if(${SPAN_SELF_TIME},release,${secondaryRelease})`]: t(
-      'Duration (%s)',
+      'Avg Duration (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
   };
@@ -166,9 +166,9 @@ export function ScreenLoadSpansTable({
       };
 
       return (
-        <Link to={`${pathname}?${qs.stringify(query)}`}>
-          <OverflowEllipsisTextContainer>{label}</OverflowEllipsisTextContainer>
-        </Link>
+        <OverflowEllipsisTextContainer>
+          <Link to={`${pathname}?${qs.stringify(query)}`}>{label}</Link>
+        </OverflowEllipsisTextContainer>
       );
     }
 

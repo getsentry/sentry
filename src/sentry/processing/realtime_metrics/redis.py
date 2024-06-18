@@ -4,6 +4,7 @@ from time import time
 from django.conf import settings
 
 from sentry.exceptions import InvalidConfiguration
+from sentry.lang.native.symbolicator import SymbolicatorPlatform
 from sentry.utils import redis
 
 from . import base
@@ -51,12 +52,14 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         if self._backoff_timer < 1:
             raise InvalidConfiguration("backoff timer must be at least a second")
 
-    def _budget_key_prefix(self) -> str:
-        return f"{BUDGET_KEY_PREFIX}:{self._budget_bucket_size}"
+    def _budget_key(self, platform: SymbolicatorPlatform, project_id: int, timestamp: int) -> str:
+        return f"{BUDGET_KEY_PREFIX}:{self._budget_bucket_size}:{platform.value}:{project_id}:{timestamp}"
 
-    def record_project_duration(self, project_id: int, duration: float) -> None:
+    def record_project_duration(
+        self, platform: SymbolicatorPlatform, project_id: int, duration: float
+    ) -> None:
         """
-        Records the duration of a symbolication request for the given project_id.
+        Records the duration of a symbolication request for the given project_id and platform.
 
         The duration (from the start of the symbolication request)
         should be recorded at regular intervals *as the event is being processed*.
@@ -86,7 +89,7 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         timestamp -= timestamp % self._budget_bucket_size
 
-        key = f"{self._budget_key_prefix()}:{project_id}:{timestamp}"
+        key = self._budget_key(platform, project_id, timestamp)
 
         # the duration internally is stores as ms
         duration = int(duration * 1000)
@@ -96,9 +99,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
             pipeline.expire(key, self._budget_time_window + self._budget_bucket_size)
             pipeline.execute()
 
-    def is_lpq_project(self, project_id: int) -> bool:
+    def is_lpq_project(self, platform: SymbolicatorPlatform, project_id: int) -> bool:
         """
-        Checks whether the given project is currently using the low priority queue.
+        Checks whether the given project is currently using the low priority queue for
+        the given platform.
         """
         timestamp = int(time())
 
@@ -109,8 +113,8 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
         first_bucket = first_bucket - first_bucket % bucket_size
 
         buckets = range(first_bucket, now_bucket + bucket_size, bucket_size)
-        keys = [f"{self._budget_key_prefix()}:{project_id}:{ts}" for ts in buckets]
-        member_key = f"{MEMBER_KEY_PREFIX}:{project_id}"
+        keys = [self._budget_key(platform, project_id, ts) for ts in buckets]
+        member_key = f"{MEMBER_KEY_PREFIX}:{platform.value}:{project_id}"
         keys.insert(0, member_key)
         results = self.cluster.mget(keys)
         is_lpq = results[0]
@@ -124,7 +128,10 @@ class RedisRealtimeMetricsStore(base.RealtimeMetricsStore):
 
         # the counts in redis are in ms resolution.
         average_used = total_sum / total_time_window / 1000
-        budget = settings.SENTRY_LPQ_OPTIONS["project_budget"]
+        budget = (
+            settings.SENTRY_LPQ_OPTIONS.get(f"project_budget_{platform.value}")
+            or settings.SENTRY_LPQ_OPTIONS["project_budget"]
+        )
         new_is_lpq = average_used > budget
 
         if new_is_lpq:

@@ -70,6 +70,22 @@ describe('HTTPLandingPage', function () {
       body: [ProjectFixture({name: 'frontend'}), ProjectFixture({name: 'backend'})],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.performance.http.landing-domains',
+        }),
+      ],
+      body: {
+        data: [{'count()': 43374}],
+        meta: {
+          fields: {'count()': 'integer'},
+        },
+      },
+    });
+
     spanListRequestMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
@@ -274,7 +290,7 @@ describe('HTTPLandingPage', function () {
     expect(screen.getByRole('cell', {name: '*.sentry.io'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '*.sentry.io'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/performance/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
+      '/organizations/org-slug/insights/http/domains/?domain=%2A.sentry.io&project=1&statsPeriod=10d'
     );
     expect(screen.getByRole('cell', {name: 'backend'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'backend'})).toHaveAttribute(

@@ -29,19 +29,17 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
     event,
   });
+  const showTraceLink = isRelatedIssuesEnabled && !isLoading;
 
   return (
     <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      {isRelatedIssuesEnabled && !isLoading && oneOtherIssueEvent && (
+      {/* XXX: Remove TraceLink from groupEventCarousel when we GA. */}
+      {showTraceLink && (
         <StyledTraceLink>
-          One other issue appears in the same trace.
+          {oneOtherIssueEvent && <span>One other issue appears in the same trace.</span>}
           <TraceLink event={event} />
         </StyledTraceLink>
-      )}
-      {/* This will be the default when we have GAed related issues  */}
-      {isRelatedIssuesEnabled && !isLoading && oneOtherIssueEvent === undefined && (
-        <TraceLink event={event} />
       )}
       {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}
       <StyledGlobalAppStoreConnectUpdateAlert

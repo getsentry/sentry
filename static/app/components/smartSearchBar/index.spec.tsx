@@ -22,16 +22,18 @@ describe('SmartSearchBar', function () {
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(TagsFixture());
+    TagStore.loadTagsSuccess([
+      ...TagsFixture(),
+      {
+        key: 'firstRelease',
+        name: 'firstRelease',
+      },
+      {
+        key: 'is',
+        name: 'is',
+      },
+    ]);
     const supportedTags = TagStore.getState();
-    supportedTags.firstRelease = {
-      key: 'firstRelease',
-      name: 'firstRelease',
-    };
-    supportedTags.is = {
-      key: 'is',
-      name: 'is',
-    };
 
     const organization = OrganizationFixture({id: '123'});
 

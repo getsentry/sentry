@@ -679,23 +679,18 @@ def test_healthcheck_filter(default_project, health_check_set):
 
 @django_db_all
 @region_silo_test
-@pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
-def test_with_blocked_metrics(default_project, feature_flag):
+def test_with_blocked_metrics(default_project):
     block_metric("g:custom/*@millisecond", [default_project])
     block_tags_of_metric("c:custom/page_click@none", {"release", "transaction"}, [default_project])
 
-    with Feature({"organizations:metrics-blocking": feature_flag}):
-        project_config = get_project_config(default_project)
-        config = project_config.to_dict()["config"]
-        _validate_project_config(config)
+    project_config = get_project_config(default_project)
+    config = project_config.to_dict()["config"]
+    _validate_project_config(config)
 
-        config = config["metrics"]
-        if not feature_flag:
-            assert "deniedNames" not in config
-            assert "deniedTags" not in config
-        else:
-            assert len(config["deniedNames"]) == 1
-            assert len(config["deniedTags"]) == 1
+    config = config["metrics"]
+
+    assert len(config["deniedNames"]) == 1
+    assert len(config["deniedTags"]) == 1
 
 
 @django_db_all

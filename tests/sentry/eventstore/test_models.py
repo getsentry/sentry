@@ -410,7 +410,7 @@ class EventTest(TestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
         )
 
-        assert event.get_hashes() == CalculatedHashes(hashes, [], [], None)
+        assert event.get_hashes() == CalculatedHashes(hashes)
 
     def test_get_hashes_gets_hashes_and_variants_if_none_on_event(self):
         self.project.update_option("sentry:grouping_config", NEWSTYLE_GROUPING_CONFIG)

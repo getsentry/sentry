@@ -4,10 +4,17 @@ import debounce from 'lodash/debounce';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
+import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
+import {ModuleName} from 'sentry/views/insights/types';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceTable from 'sentry/views/performance/browser/resources/resourceView/resourceTable';
 import {
   FONT_FILE_EXTENSIONS,
@@ -23,10 +30,7 @@ import {
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {getResourceTypeFilter} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
-import type {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
+import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 
 const {
   SPAN_OP: RESOURCE_TYPE,
@@ -58,6 +62,14 @@ function ResourceView() {
 
   const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
 
+  useHasDataTrackAnalytics(
+    MutableSearch.fromQueryObject({
+      'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+    }),
+    Referrer.RESOURCE_LANDING,
+    'insight.page_loads.assets'
+  );
+
   return (
     <Fragment>
       <SpanTimeChartsContainer>
@@ -84,8 +96,8 @@ function ResourceView() {
 
 function ResourceTypeSelector({value}: {value?: string}) {
   const location = useLocation();
-  const {features} = useOrganization();
-  const hasImageView = features.includes('insights-initial-modules');
+  const organization = useOrganization();
+  const hasImageView = organization.features.includes('insights-initial-modules');
 
   const options: Option[] = [
     {value: '', label: 'All'},
@@ -111,6 +123,10 @@ function ResourceTypeSelector({value}: {value?: string}) {
       options={options}
       value={value}
       onChange={newValue => {
+        trackAnalytics('insight.asset.filter_by_type', {
+          organization,
+          filter: newValue?.value,
+        });
         browserHistory.push({
           ...location,
           query: {
@@ -137,6 +153,7 @@ export function TransactionSelector({
     shouldRequeryOnInputChange: false,
   });
   const location = useLocation();
+  const organization = useOrganization();
 
   const {data: pages, isLoading} = useResourcePagesQuery(
     defaultResourceTypes,
@@ -183,6 +200,9 @@ export function TransactionSelector({
       }}
       noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
       onChange={newValue => {
+        trackAnalytics('insight.asset.filter_by_page', {
+          organization,
+        });
         browserHistory.push({
           ...location,
           query: {

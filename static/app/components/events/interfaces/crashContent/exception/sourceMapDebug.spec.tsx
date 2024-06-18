@@ -18,7 +18,7 @@ import {
 jest.mock('sentry/utils/analytics');
 
 describe('SourceMapDebug', () => {
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const eventId = '1ec1bd65b0b1484b97162087a652421b';
   const exceptionValues: ExceptionValue[] = [

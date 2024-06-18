@@ -1,5 +1,5 @@
 ---
-created: '2024-05-31T16:54:33.641435+00:00'
+created: '2024-06-13T16:39:01.199833+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -712,6 +712,7 @@ source: tests/sentry/backup/test_comparators.py
     - activation
     - alert_rule
     - organization
+    - subscription
   model_name: sentry.incident
 - comparators:
   - class: UUID4Comparator

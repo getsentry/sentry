@@ -15,7 +15,7 @@ class GroupTagDetailsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 project_id=self.project.id,
             )
 
-        group = Group.objects.first()
+        group = Group.objects.get()
 
         self.login_as(user=self.user)
 

@@ -56,6 +56,7 @@ export enum SavedSearchType {
   SESSION = 2,
   REPLAY = 3,
   METRIC = 4,
+  SPAN = 5,
 }
 
 export enum IssueCategory {
@@ -97,6 +98,7 @@ export enum IssueType {
 
   // Replay
   REPLAY_RAGE_CLICK = 'replay_click_rage',
+  REPLAY_HYDRATION_ERROR = 'replay_hydration_error',
 }
 
 export enum IssueTitle {
@@ -127,6 +129,7 @@ export enum IssueTitle {
 
   // Replay
   REPLAY_RAGE_CLICK = 'Rage Click Detected',
+  REPLAY_HYDRATION_ERROR = 'Hydration Error Detected',
 }
 
 const ISSUE_TYPE_TO_ISSUE_TITLE = {
@@ -154,6 +157,7 @@ const ISSUE_TYPE_TO_ISSUE_TITLE = {
   profile_function_regression_exp: IssueTitle.PROFILE_FUNCTION_REGRESSION_EXPERIMENTAL,
 
   replay_click_rage: IssueTitle.REPLAY_RAGE_CLICK,
+  replay_hydration_error: IssueTitle.REPLAY_HYDRATION_ERROR,
 };
 
 export function getIssueTitleFromType(issueType: string): IssueTitle | undefined {
@@ -711,6 +715,7 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
+  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {

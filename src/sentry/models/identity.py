@@ -20,8 +20,8 @@ from sentry.db.models import (
     control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
@@ -173,7 +173,7 @@ class IdentityManager(BaseManager["Identity"]):
         """
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
-        identity_model = query.first()
+        identity_model = query.get()
         logger.info(
             "updated-identity",
             extra={

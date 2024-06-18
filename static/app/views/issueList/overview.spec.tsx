@@ -43,7 +43,7 @@ const project = ProjectFixture({
   firstEvent: new Date().toISOString(),
 });
 
-const {organization, router} = initializeOrg({
+const {organization, projects, router} = initializeOrg({
   organization: {
     id: '1337',
     slug: 'org-slug',
@@ -54,7 +54,7 @@ const {organization, router} = initializeOrg({
     location: {query: {}, search: ''},
     params: {},
   },
-  project,
+  projects: [project],
 });
 
 const routerProps = {
@@ -154,7 +154,7 @@ describe('IssueList', function () {
       savedSearches: [savedSearch],
       useOrgSavedSearches: true,
       selection: {
-        projects: [parseInt(organization.projects[0].id, 10)],
+        projects: [parseInt(projects[0].id, 10)],
         environments: [],
         datetime: {period: '14d'},
       },
@@ -450,7 +450,6 @@ describe('IssueList', function () {
         },
         organization: OrganizationFixture({
           features: ['issue-stream-performance'],
-          projects: [],
         }),
       };
       const {unmount} = render(<IssueListWithStores {...defaultProps} />, {
@@ -1140,9 +1139,7 @@ describe('IssueList', function () {
           params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
-        organization: OrganizationFixture({
-          projects: [],
-        }),
+        organization: OrganizationFixture(),
         ...moreProps,
       };
       render(<IssueListOverview {...defaultProps} />, {router});
@@ -1151,7 +1148,7 @@ describe('IssueList', function () {
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1180,7 +1177,7 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/foo/issues/',
@@ -1188,16 +1185,14 @@ describe('IssueList', function () {
       });
 
       await createWrapper({
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1226,19 +1221,17 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
       await createWrapper({
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
     });
 
     it('displays when all selected projects do not have first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1267,7 +1260,7 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/foo/issues/',
@@ -1280,16 +1273,14 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when any selected projects have first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1318,7 +1309,7 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
 
       await createWrapper({
@@ -1327,9 +1318,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();

@@ -435,7 +435,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert result.data == {"require_link": "to False", "default_role": "to owner"}
 
@@ -466,7 +466,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert result.data == {"require_link": "to False"}
 
@@ -497,7 +497,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
         assert result.data == {"default_role": "to owner"}
 
     def test_edit_sso_settings__no_change(self):
@@ -681,7 +681,7 @@ class OrganizationAuthSettingsSAML2Test(AuthProviderTestCase):
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
-        ).first()
+        ).get()
 
         assert audit_logs.data == {
             "x509cert": "to bar_x509_cert",

@@ -20,7 +20,7 @@ import {StacktraceLink} from './stacktraceLink';
 describe('StacktraceLink', function () {
   const org = OrganizationFixture();
   const platform = 'python';
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
   const event = EventFixture({
     projectID: project.id,
     release: ReleaseFixture({lastCommit: CommitFixture()}),

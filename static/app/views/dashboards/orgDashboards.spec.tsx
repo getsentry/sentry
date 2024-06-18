@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
@@ -43,6 +44,7 @@ describe('OrgDashboards', () => {
       url: '/organizations/org-slug/dashboards/',
       body: [mockDashboard],
     });
+    ProjectsStore.loadInitialData(initialData.projects);
   });
 
   afterEach(() => {

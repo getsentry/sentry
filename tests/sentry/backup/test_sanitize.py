@@ -30,7 +30,7 @@ from sentry.db.models.fields.slug import SentrySlugField
 from sentry.db.models.fields.uuid import UUIDField
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
-from sentry.testutils.helpers.backups import BackupTestCase
+from sentry.testutils.helpers.backups import BackupTransactionTestCase
 from sentry.testutils.silo import strip_silo_mode_test_suffix
 from tests.sentry.backup import expect_models, verify_models_in_output
 
@@ -487,7 +487,7 @@ class SanitizationIntegrationTests(IntegrationTestCase):
 SANITIZATION_TESTED: set[NormalizedModelName] = set()
 
 
-class SanitizationExhaustiveTests(BackupTestCase, IntegrationTestCase):
+class SanitizationExhaustiveTests(BackupTransactionTestCase, IntegrationTestCase):
     """
     Take our exhaustive test case and sanitize it, ensuring that the specific fields that
     were sanitized remain constant.

@@ -65,6 +65,7 @@ from datetime import datetime
 from typing import Any
 
 import orjson
+import yaml
 from pydantic import BaseModel, Field, ValidationError, constr
 
 from flagpole.conditions import Segment
@@ -93,9 +94,10 @@ class Feature(BaseModel):
 
         return False
 
-    def dump_schema_to_file(self, file_path: str) -> None:
+    @classmethod
+    def dump_schema_to_file(cls, file_path: str) -> None:
         with open(file_path, "w") as file:
-            file.write(self.schema_json())
+            file.write(cls.schema_json(indent=2))
 
     @classmethod
     def from_feature_dictionary(cls, name: str, config_dict: dict[str, Any]) -> Feature:
@@ -119,6 +121,36 @@ class Feature(BaseModel):
             raise InvalidFeatureFlagConfiguration("Feature JSON is not a valid feature")
 
         return cls.from_feature_dictionary(name=name, config_dict=config_data_dict)
+
+    @classmethod
+    def from_bulk_json(cls, json: str) -> list[Feature]:
+        features: list[Feature] = []
+        features_json = orjson.loads(json)
+
+        for feature, json_dict in features_json.items():
+            features.append(cls.from_feature_dictionary(name=feature, config_dict=json_dict))
+
+        return features
+
+    @classmethod
+    def from_bulk_yaml(cls, yaml_str) -> list[Feature]:
+        features: list[Feature] = []
+        parsed_yaml = yaml.safe_load(yaml_str)
+        for feature, yaml_dict in parsed_yaml.items():
+            features.append(cls.from_feature_dictionary(name=feature, config_dict=yaml_dict))
+
+        return features
+
+    def to_dict(self) -> dict[str, Any]:
+        json_dict = dict(orjson.loads(self.json()))
+        json_dict.pop("name")
+        return {self.name: json_dict}
+
+    def to_yaml_str(self) -> str:
+        return yaml.dump(self.to_dict())
+
+    def to_json_str(self) -> str:
+        return orjson.dumps(self.to_dict()).decode()
 
 
 __all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder", "EvaluationContext"]

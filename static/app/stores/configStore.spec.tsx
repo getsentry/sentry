@@ -26,4 +26,10 @@ describe('ConfigStore', () => {
       sentryUrl: 'https://sentry.io',
     });
   });
+
+  it('returns a stable reference from getState()', () => {
+    ConfigStore.set('theme', 'dark');
+    const state = ConfigStore.getState();
+    expect(Object.is(state, ConfigStore.getState())).toBe(true);
+  });
 });

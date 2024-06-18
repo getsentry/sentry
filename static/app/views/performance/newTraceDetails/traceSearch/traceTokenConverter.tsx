@@ -63,7 +63,6 @@ const SPAN_TEXT_KEYS: SpanKey[] = [
 ];
 
 const SPAN_NUMERIC_KEYS: SpanKey[] = ['timestamp', 'start_timestamp'];
-
 const SPAN_DURATION_KEYS: SpanKey[] = ['exclusive_time'];
 
 // The keys below are not real keys returned by the API, but are instead
@@ -90,8 +89,13 @@ function withPrefixedPermutation(
 ): string[] {
   return [...keys, ...keys.map(key => `${prefix}.${key}`)];
 }
+
+// Keys that do not belong to a particular entity, and can be inferred from the context
+const SYNTHETIC_KEYS = new Set(['has']);
+
 // @TODO Add issue keys
 const TEXT_KEYS = new Set([
+  ...SYNTHETIC_KEYS,
   ...withPrefixedPermutation('transaction', TRANSACTION_TEXT_KEYS),
   ...withPrefixedPermutation('span', SPAN_TEXT_KEYS),
 ]);

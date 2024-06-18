@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 import uuid
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -110,7 +112,7 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 
 def get_public_key_configs(
-    project: Project, full_config: bool, project_keys: Sequence[ProjectKey] | None = None
+    project: Project, full_config: bool, project_keys: Iterable[ProjectKey] | None = None
 ) -> list[Mapping[str, Any]]:
     public_keys: list[Mapping[str, Any]] = []
     for project_key in project_keys or ():
@@ -225,7 +227,7 @@ def _get_generic_project_filters() -> GenericFiltersConfig:
     }
 
 
-def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:
+def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
@@ -318,18 +320,17 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
 
     metrics_config["cardinalityLimits"] = cardinality_limits
 
-    if features.has("organizations:metrics-blocking", project.organization):
-        metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
-        timeout.check()
-        if metrics_blocking_state is not None:
-            metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
+    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+    timeout.check()
+    if metrics_blocking_state is not None:
+        metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 
 
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Sequence[ProjectKey] | None = None
-) -> "ProjectConfig":
+    project: Project, full_config: bool = True, project_keys: Iterable[ProjectKey] | None = None
+) -> ProjectConfig:
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
@@ -738,8 +739,8 @@ def _get_mobile_performance_profiles(organization: Organization) -> list[dict[st
 
 
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Sequence[ProjectKey] | None = None
-) -> "ProjectConfig":
+    project: Project, full_config: bool = True, project_keys: Iterable[ProjectKey] | None = None
+) -> ProjectConfig:
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 

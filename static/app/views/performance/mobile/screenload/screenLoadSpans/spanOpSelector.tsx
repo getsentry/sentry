@@ -4,17 +4,19 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 export const TTID_CONTRIBUTING_SPAN_OPS = [
   'file.read',
@@ -35,6 +37,7 @@ type Props = {
 
 export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: Props) {
   const location = useLocation();
+  const organization = useOrganization();
   const {selection} = usePageFilters();
 
   const value = decodeScalar(location.query[SpanMetricsField.SPAN_OP]) ?? '';
@@ -86,6 +89,11 @@ export function SpanOpSelector({transaction, primaryRelease, secondaryRelease}: 
       value={value}
       options={options ?? []}
       onChange={newValue => {
+        trackAnalytics('insight.screen_load.spans.filter_by_operation', {
+          organization,
+          filter: newValue.value as string,
+        });
+
         browserHistory.push({
           ...location,
           query: {

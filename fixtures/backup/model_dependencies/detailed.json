@@ -2870,6 +2870,11 @@
         "kind": "FlexibleForeignKey",
         "model": "sentry.organization",
         "nullable": false
+      },
+      "subscription": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.querysubscription",
+        "nullable": true
       }
     },
     "model": "sentry.incident",

@@ -134,7 +134,9 @@ export function getEventTimestamp(event: Event): string | number | undefined {
 
 export function generateTraceTarget(
   event: Event,
-  organization: OrganizationSummary
+  organization: OrganizationSummary,
+  location: Location,
+  source?: string
 ): LocationDescriptor {
   const traceId = event.contexts?.trace?.trace_id ?? '';
 
@@ -142,13 +144,15 @@ export function generateTraceTarget(
 
   if (organization.features.includes('performance-view')) {
     // TODO(txiao): Should this persist the current query when going to trace view?
-    return getTraceDetailsUrl(
+    return getTraceDetailsUrl({
       organization,
-      traceId,
+      traceSlug: traceId,
       dateSelection,
-      getEventTimestamp(event),
-      event.eventID
-    );
+      timestamp: getEventTimestamp(event),
+      eventId: event.eventID,
+      location,
+      source,
+    });
   }
 
   const eventView = EventView.fromSavedQuery({

@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import TYPE_CHECKING, Any, TypedDict, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, overload
 
 import orjson
 import sentry_sdk
@@ -41,6 +41,7 @@ from sentry.constants import (
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
 from sentry.eventstore.processing import event_processing_store
+from sentry.eventstream.base import GroupState
 from sentry.eventtypes import EventType
 from sentry.eventtypes.transaction import TransactionEvent
 from sentry.exceptions import HashDiscarded
@@ -121,11 +122,12 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.circuit_breaker import (
     ERROR_COUNT_CACHE_KEY,
     CircuitBreakerPassthrough,
+    CircuitBreakerTripped,
     circuit_breaker_activated,
+    with_circuit_breaker,
 )
 from sentry.utils.dates import to_datetime
 from sentry.utils.event import has_event_minified_stack_trace, has_stacktrace, is_handled
@@ -204,7 +206,7 @@ def sdk_metadata_from_event(event: Event) -> Mapping[str, Any]:
         return {
             "sdk": {
                 "name": sdk_metadata.get("name") or "unknown",
-                "name_normalized": normalized_sdk_tag_from_event(event),
+                "name_normalized": normalized_sdk_tag_from_event(event.data),
             }
         }
     except Exception:
@@ -253,7 +255,17 @@ def has_pending_commit_resolution(group: Group) -> bool:
         return True
 
 
-def get_max_crashreports(model: Project | Organization, allow_none: bool = False) -> int | None:
+@overload
+def get_max_crashreports(model: Project | Organization) -> int:
+    ...
+
+
+@overload
+def get_max_crashreports(model: Project | Organization, *, allow_none: Literal[True]) -> int | None:
+    ...
+
+
+def get_max_crashreports(model: Project | Organization, *, allow_none: bool = False) -> int | None:
     value = model.get_option("sentry:store_crash_reports")
     return convert_crashreport_count(value, allow_none=allow_none)
 
@@ -323,7 +335,7 @@ class EventManager:
 
     def __init__(
         self,
-        data: dict[str, Any],
+        data: MutableMapping[str, Any],
         version: str = "5",
         project: Project | None = None,
         grouping_config: GroupingConfig | None = None,
@@ -391,9 +403,7 @@ class EventManager:
         )
 
         pre_normalize_type = self._data.get("type")
-        self._data = CanonicalKeyDict(
-            rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
-        )
+        self._data = rust_normalizer.normalize_event(dict(self._data), json_loads=orjson.loads)
         # XXX: This is a hack to make generic events work (for now?). I'm not sure whether we should
         # include this in the rust normalizer, since we don't want people sending us these via the
         # sdk.
@@ -477,7 +487,7 @@ class EventManager:
             job["in_grouping_transition"] = is_in_transition(project)
             metric_tags = {
                 "platform": job["event"].platform or "unknown",
-                "sdk": normalized_sdk_tag_from_event(job["event"]),
+                "sdk": normalized_sdk_tag_from_event(job["event"].data),
                 "using_transition_optimization": job["optimized_grouping"],
                 "in_transition": job["in_grouping_transition"],
             }
@@ -705,8 +715,8 @@ def _pull_out_data(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
 
 @sentry_sdk.tracing.trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
-    jobs_with_releases: dict[tuple[int, Release], list[Job]] = {}
-    release_date_added: dict[tuple[int, Release], datetime] = {}
+    jobs_with_releases: dict[tuple[int, str], list[Job]] = {}
+    release_date_added: dict[tuple[int, str], datetime] = {}
 
     for job in jobs:
         if not job["release"]:
@@ -1150,7 +1160,7 @@ def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
         # XXX: Temporary hack so that we keep this group info working for error issues. We'll need
         # to change the format of eventstream to be able to handle data for multiple groups
         if not job["groups"]:
-            group_states = None
+            group_states: list[GroupState] | None = None
             is_new = False
             is_regression = False
             is_new_group_environment = False
@@ -1221,7 +1231,7 @@ def _track_outcome_accepted_many(jobs: Sequence[Job]) -> None:
         )
 
 
-def _get_event_instance(data: Mapping[str, Any], project_id: int) -> Event:
+def _get_event_instance(data: MutableMapping[str, Any], project_id: int) -> Event:
     return eventstore.backend.create_event(
         project_id=project_id,
         event_id=data.get("event_id"),
@@ -1489,12 +1499,14 @@ def _save_aggregate(
             if existing_grouphash is None:
                 seer_matched_group = None
 
-                if should_call_seer_for_grouping(event, project):
+                if should_call_seer_for_grouping(event, primary_hashes):
                     try:
                         # If the `projects:similarity-embeddings-grouping` feature is disabled,
                         # we'll still get back result metadata, but `seer_matched_group` will be None
-                        seer_response_data, seer_matched_group = get_seer_similar_issues(
-                            event, primary_hashes
+                        seer_response_data, seer_matched_group = with_circuit_breaker(
+                            "event_manager.get_seer_similar_issues",
+                            lambda: get_seer_similar_issues(event, primary_hashes),
+                            options.get("seer.similarity.circuit-breaker-config"),
                         )
                         event.data["seer_similarity"] = seer_response_data
 
@@ -1505,8 +1517,33 @@ def _save_aggregate(
                                 "seer_similarity"
                             ] = seer_response_data
 
+                        metrics.incr(
+                            "grouping.similarity.did_call_seer",
+                            # TODO: Consider lowering this (in all the spots this metric is
+                            # collected) once we roll Seer grouping out more widely
+                            sample_rate=1.0,
+                            tags={"call_made": True, "blocker": "none"},
+                        )
+
+                    except CircuitBreakerTripped:
+                        # TODO: Do we want to include all of the conditions which cause us to log a
+                        # `grouping.similarity.seer_call_blocked` metric (here and in
+                        # `should_call_seer_for_grouping`) under a single outcome tag on the span
+                        # and timer metric below and in `record_calculation_metric_with_result`
+                        # (also below)? Right now they just fall into the `new_group` bucket.
+                        metrics.incr(
+                            "grouping.similarity.did_call_seer",
+                            sample_rate=1.0,
+                            tags={"call_made": False, "blocker": "circuit-breaker"},
+                        )
+
                     # Insurance - in theory we shouldn't ever land here
                     except Exception as e:
+                        metrics.incr(
+                            "grouping.similarity.did_call_seer",
+                            sample_rate=1.0,
+                            tags={"call_made": True, "blocker": "none"},
+                        )
                         sentry_sdk.capture_exception(
                             e, tags={"event": event.event_id, "project": project.id}
                         )
@@ -1550,7 +1587,7 @@ def _save_aggregate(
                         skip_internal=True,
                         tags={
                             "platform": event.platform or "unknown",
-                            "sdk": normalized_sdk_tag_from_event(event),
+                            "sdk": normalized_sdk_tag_from_event(event.data),
                         },
                     )
 
@@ -1564,7 +1601,7 @@ def _save_aggregate(
                             sample_rate=1.0,
                             tags={
                                 "platform": event.platform or "unknown",
-                                "sdk": normalized_sdk_tag_from_event(event),
+                                "sdk": normalized_sdk_tag_from_event(event.data),
                                 "frame_mix": frame_mix,
                             },
                         )
@@ -1886,17 +1923,20 @@ def create_group_with_grouphashes(
             )
 
 
-def _create_group(project: Project, event: Event, **group_creation_kwargs: Any) -> Group:
+def _create_group(
+    project: Project,
+    event: Event,
+    *,
+    first_release: Release | None = None,
+    **group_creation_kwargs: Any,
+) -> Group:
     short_id = _get_next_short_id(project)
 
     # it's possible the release was deleted between
     # when we queried for the release and now, so
     # make sure it still exists
-    first_release = group_creation_kwargs.pop("first_release", None)
     group_creation_kwargs["first_release_id"] = (
-        Release.objects.filter(id=cast(Release, first_release).id)
-        .values_list("id", flat=True)
-        .first()
+        Release.objects.filter(id=first_release.id).values_list("id", flat=True).first()
         if first_release
         else None
     )
@@ -2589,7 +2629,7 @@ def discard_event(job: Job, attachments: Sequence[Attachment]) -> None:
         skip_internal=True,
         tags={
             "platform": job["platform"],
-            "sdk": normalized_sdk_tag_from_event(job["event"]),
+            "sdk": normalized_sdk_tag_from_event(job["event"].data),
         },
     )
 
@@ -2646,10 +2686,6 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     max_crashreports = get_max_crashreports(project, allow_none=True)
     if max_crashreports is None:
         max_crashreports = get_max_crashreports(project.organization)
-
-    max_crashreports = cast(
-        int, max_crashreports
-    )  # this is safe since the second call doesn't allow None
 
     # The number of crash reports is cached per group
     crashreports_key = get_crashreport_key(event.group_id)
@@ -2895,7 +2931,7 @@ def _calculate_span_grouping(jobs: Sequence[Job], projects: ProjectsMapping) -> 
                 amount=len(unique_default_hashes),
                 tags={
                     "platform": job["platform"] or "unknown",
-                    "sdk": normalized_sdk_tag_from_event(event),
+                    "sdk": normalized_sdk_tag_from_event(event.data),
                 },
             )
         except Exception:

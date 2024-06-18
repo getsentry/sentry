@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
 
+import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import type {MRI} from 'sentry/types/metrics';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
@@ -18,8 +20,6 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {

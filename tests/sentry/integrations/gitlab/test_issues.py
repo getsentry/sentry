@@ -218,6 +218,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
@@ -284,6 +285,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         project_id = 10
         project_name = "This_is / a_project"
+        assert self.installation.org_integration is not None
         self.installation.org_integration = integration_service.update_organization_integration(
             org_integration_id=self.installation.org_integration.id,
             config={
@@ -394,6 +396,7 @@ class GitlabIssuesTest(GitLabTestCase):
         )
         self.installation.after_link_issue(external_issue, data=data)
 
+    @responses.activate
     def test_after_link_issue_required_fields(self):
         data = {"externalIssue": "2#231", "comment": "This is not good."}
         external_issue = ExternalIssue.objects.create(

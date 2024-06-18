@@ -20,17 +20,15 @@ class TestUpdatesPriority(TestCase):
     def assert_activity_grouphistory_set(
         self, group: Group, priority: PriorityLevel, reason: PriorityChangeReason
     ) -> None:
-        activity = (
-            Activity.objects.filter(group=group, type=ActivityType.SET_PRIORITY.value)
-            .order_by("-datetime")
-            .first()
-        )
+        activity = Activity.objects.filter(
+            group=group, type=ActivityType.SET_PRIORITY.value
+        ).order_by("-datetime")[0]
         assert activity.data == {
             "priority": priority.to_str(),
             "reason": reason.value,
         }
 
-        grouphistory = GroupHistory.objects.filter(group=group).order_by("-date_added").first()
+        grouphistory = GroupHistory.objects.filter(group=group).order_by("-date_added")[0]
         assert grouphistory.status == PRIORITY_TO_GROUP_HISTORY_STATUS[priority]
 
     def test_updates_priority_escalating(self) -> None:

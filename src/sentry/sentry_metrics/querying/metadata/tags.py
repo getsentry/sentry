@@ -20,7 +20,7 @@ def get_tag_keys(
     organization: Organization,
     projects: Sequence[Project],
     use_case_ids: Sequence[UseCaseID],
-    mris: list[str],
+    mri: str,
 ) -> list[str]:
     """
     Get all available tag keys for a given MRI, specified projects and use_case_ids.
@@ -28,13 +28,10 @@ def get_tag_keys(
     """
     all_tag_keys: set[str] = set()
     project_ids = [project.id for project in projects]
-    for mri in mris:
-        for use_case_id in use_case_ids:
-            tag_keys_per_project = fetch_metric_tag_keys(
-                organization.id, project_ids, use_case_id, mri
-            )
-            for tag_keys in tag_keys_per_project.values():
-                all_tag_keys = all_tag_keys.union(tag_keys)
+    for use_case_id in use_case_ids:
+        tag_keys_per_project = fetch_metric_tag_keys(organization.id, project_ids, use_case_id, mri)
+        for tag_keys in tag_keys_per_project.values():
+            all_tag_keys = all_tag_keys.union(tag_keys)
 
     return sorted(list(all_tag_keys))
 

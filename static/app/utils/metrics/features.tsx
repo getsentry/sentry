@@ -17,7 +17,11 @@ export function hasCustomMetrics(organization: Organization) {
 }
 
 export function hasMetricAlertFeature(organization: Organization) {
-  return organization.features.includes('organizations:incidents');
+  return organization.features.includes('incidents');
+}
+
+export function hasCustomMetricsExtractionRules(organization: Organization) {
+  return organization.features.includes('custom-metrics-extraction-rule');
 }
 
 /**

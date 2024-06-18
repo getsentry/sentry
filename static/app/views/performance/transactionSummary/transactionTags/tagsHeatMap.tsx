@@ -40,6 +40,8 @@ import TagTransactionsQuery from 'sentry/utils/performance/segmentExplorer/tagTr
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
 
+import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import Tab from '../tabs';
 import {eventsRouteWithQuery} from '../transactionEvents/utils';
 
 import {parseHistogramBucketInfo, trackTagPageInteraction} from './utils';
@@ -355,9 +357,16 @@ function TagsHeatMap(
                         traceSlug: row.trace?.toString(),
                         projectSlug: (row.project || row['project.name']).toString(),
                         timestamp: row.timestamp,
-                        location,
+                        location: {
+                          ...location,
+                          query: {
+                            ...location.query,
+                            tab: Tab.TAGS,
+                          },
+                        },
                         organization,
                         transactionName,
+                        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
                       });
 
                       return (

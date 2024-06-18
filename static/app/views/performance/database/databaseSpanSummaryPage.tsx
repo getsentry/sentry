@@ -15,25 +15,30 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
+import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
+import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';
+import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/performance/database/settings';
 import {ThroughputChart} from 'sentry/views/performance/database/throughputChart';
-import {useSelectedDurationAggregate} from 'sentry/views/performance/database/useSelectedDurationAggregate';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {DatabaseSpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
-import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
+
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 type Query = {
   transaction: string;
@@ -47,7 +52,7 @@ type Props = RouteComponentProps<Query, {groupId: string}>;
 export function DatabaseSpanSummaryPage({params}: Props) {
   const location = useLocation<Query>();
 
-  const [selectedAggregate] = useSelectedDurationAggregate();
+  const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
 
   const {groupId} = params;
   const {transaction, transactionMethod} = location.query;
@@ -258,6 +263,7 @@ export function DatabaseSpanSummaryPage({params}: Props) {
             moduleName={ModuleName.DB}
             transactionName={transaction}
             transactionMethod={transactionMethod}
+            referrer={TraceViewSources.QUERIES_MODULE}
           />
         </Layout.Main>
       </Layout.Body>

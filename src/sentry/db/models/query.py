@@ -2,14 +2,18 @@ from __future__ import annotations
 
 import itertools
 from functools import reduce
-from typing import Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Model, Q
 from django.db.models.expressions import CombinedExpression
+from django.db.models.fields import Field
 from django.db.models.signals import post_save
 
 from .utils import resolve_combined_expression
+
+if TYPE_CHECKING:
+    from sentry.db.models.base import BaseModel
 
 __all__ = (
     "create_or_update",
@@ -18,22 +22,28 @@ __all__ = (
 )
 
 
-def _handle_value(instance: Model, value: Any) -> Any:
+def _get_field(model: type[BaseModel], key: str) -> Field[object, object]:
+    field = model._meta.get_field(key)
+    if not isinstance(field, Field):
+        raise TypeError(f"expected Field for {key}, got ({field})")
+    return field
+
+
+def _handle_value(instance: BaseModel, value: Any) -> Any:
     if isinstance(value, CombinedExpression):
         return resolve_combined_expression(instance, value)
     return value
 
 
-def _handle_key(model: type[Model], key: str, value: Any) -> str:
+def _handle_key(model: type[BaseModel], key: str, value: Any) -> str:
     # XXX(dcramer): we want to support column shortcut on create so we can do
     #  create_or_update(..., {'project': 1})
     if not isinstance(value, Model):
-        key_: str = model._meta.get_field(key).attname
-        return key_
+        return _get_field(model, key).attname
     return key
 
 
-def update(instance: Model, using: str | None = None, **kwargs: Any) -> int:
+def update(instance: BaseModel, using: str | None = None, **kwargs: Any) -> int:
     """
     Updates specified attributes on the current instance.
     """
@@ -76,10 +86,10 @@ update.alters_data = True  # type: ignore[attr-defined]
 
 
 def update_or_create(
-    model: type[Model],
+    model: type[BaseModel],
     using: str | None = None,
     **kwargs: Any,
-) -> tuple[Model, bool]:
+) -> tuple[int, Literal[False]] | tuple[BaseModel, Literal[True]]:
     """
     Similar to `get_or_create()`, either updates a row or creates it.
 
@@ -121,8 +131,8 @@ def update_or_create(
 
 
 def create_or_update(
-    model: type[Model], using: str | None = None, **kwargs: Any
-) -> tuple[int, bool]:
+    model: type[BaseModel], using: str | None = None, **kwargs: Any
+) -> tuple[int, Literal[False]] | tuple[BaseModel, Literal[True]]:
     """
     Similar to get_or_create, either updates a row or creates it.
 
@@ -158,7 +168,7 @@ def create_or_update(
         # XXX(dcramer): we want to support column shortcut on create so
         # we can do create_or_update(..., {'project': 1})
         if not isinstance(v, Model):
-            k = model._meta.get_field(k).attname
+            k = _get_field(model, k).attname
         if isinstance(v, CombinedExpression):
             create_kwargs[k] = resolve_combined_expression(inst, v)
         else:

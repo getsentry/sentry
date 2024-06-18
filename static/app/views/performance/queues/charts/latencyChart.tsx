@@ -1,10 +1,10 @@
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
-import {useQueuesTimeSeriesQuery} from 'sentry/views/performance/queues/queries/useQueuesTimeSeriesQuery';
+import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/performance/queues/queries/useProcessQueuesTimeSeriesQuery';
 import type {Referrer} from 'sentry/views/performance/queues/referrers';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
 
 interface Props {
   referrer: Referrer;
@@ -13,7 +13,11 @@ interface Props {
 }
 
 export function LatencyChart({error, destination, referrer}: Props) {
-  const {data, isLoading} = useQueuesTimeSeriesQuery({destination, referrer});
+  const {data, isLoading} = useProcessQueuesTimeSeriesQuery({
+    destination,
+    referrer,
+  });
+
   return (
     <ChartPanel title={t('Avg Latency')}>
       <Chart
@@ -32,7 +36,7 @@ export function LatencyChart({error, destination, referrer}: Props) {
             },
             {
               seriesName: t('Average Processing Time'),
-              data: data['avg_if(span.duration,span.op,queue.process)'].data,
+              data: data['avg(span.duration)'].data,
             },
           ] ?? []
         }

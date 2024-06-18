@@ -975,14 +975,14 @@ def get_detector_enabled_projects(
     feature_name: str | None = None,
     project_option: InternalProjectOptions | None = None,
 ) -> list[Project]:
-    projects = Project.objects.filter(id__in=project_ids)
+    projects_qs = Project.objects.filter(id__in=project_ids)
 
     if feature_name is None:
-        projects = [project for project in projects]
+        projects = list(projects_qs)
     else:
         projects = [
             project
-            for project in projects.select_related("organization")
+            for project in projects_qs.select_related("organization")
             if features.has(feature_name, project.organization)
         ]
 

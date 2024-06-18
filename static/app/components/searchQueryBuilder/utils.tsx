@@ -4,22 +4,70 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {
+  FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
   type ParseResult,
   type ParseResultToken,
   parseSearch,
+  type SearchConfig,
   type TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import type {Tag} from 'sentry/types';
+import {t} from 'sentry/locale';
+import type {Tag, TagCollection} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
+import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
-export function parseQueryBuilderValue(value: string): ParseResult | null {
-  return collapseTextTokens(parseSearch(value || ' ', {flattenParenGroups: true}));
+function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
+  const config = {
+    booleanKeys: new Set<string>(),
+    numericKeys: new Set<string>(),
+    dateKeys: new Set<string>(),
+    durationKeys: new Set<string>(),
+  } satisfies Partial<SearchConfig>;
+
+  for (const key in keys) {
+    const fieldDef = getFieldDefinition(key);
+    if (!fieldDef) {
+      continue;
+    }
+
+    switch (fieldDef.valueType) {
+      case FieldValueType.BOOLEAN:
+        config.booleanKeys.add(key);
+        break;
+      case FieldValueType.NUMBER:
+      case FieldValueType.INTEGER:
+        config.numericKeys.add(key);
+        break;
+      case FieldValueType.DATE:
+        config.dateKeys.add(key);
+        break;
+      case FieldValueType.DURATION:
+        config.durationKeys.add(key);
+        break;
+      default:
+        break;
+    }
+  }
+
+  return config;
+}
+
+export function parseQueryBuilderValue(
+  value: string,
+  options?: {keys: TagCollection}
+): ParseResult | null {
+  return collapseTextTokens(
+    parseSearch(value || ' ', {
+      flattenParenGroups: true,
+      ...getSearchConfigFromKeys(options?.keys ?? {}),
+    })
+  );
 }
 
 /**
@@ -34,7 +82,7 @@ export function parseQueryBuilderValue(value: string): ParseResult | null {
  */
 export function makeTokenKey(token: ParseResultToken, allTokens: ParseResult | null) {
   const tokenTypeIndex =
-    allTokens?.filter(t => t.type === token.type).indexOf(token) ?? 0;
+    allTokens?.filter(tk => tk.type === token.type).indexOf(token) ?? 0;
 
   return `${token.type}:${tokenTypeIndex}`;
 }
@@ -120,6 +168,8 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
   switch (token.type) {
     case Token.VALUE_TEXT:
       return unescapeTagValue(token.value);
+    case Token.VALUE_RELATIVE_DATE:
+      return t('%s', `${token.value}${token.unit} ago`);
     default:
       return token.text;
   }
@@ -155,4 +205,10 @@ export function useShiftFocusToChild(
   return {
     shiftFocusProps: {onFocus},
   };
+}
+
+export function isDateToken(token: TokenResult<Token.FILTER>) {
+  return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
+    token.filter
+  );
 }

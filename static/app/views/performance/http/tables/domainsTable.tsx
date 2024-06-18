@@ -6,6 +6,7 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -14,11 +15,11 @@ import {RATE_UNIT_TITLE, RateUnit} from 'sentry/utils/discover/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {ModuleName, type SpanMetricsResponse} from 'sentry/views/insights/types';
 import {DomainCell} from 'sentry/views/performance/http/tables/domainCell';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
 
 type Row = Pick<
   SpanMetricsResponse,
@@ -158,7 +159,17 @@ export function DomainsTable({response, sort}: Props) {
             renderBodyCell(column, row, meta, location, organization),
         }}
       />
-      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={handleCursor}
+        paginationAnalyticsEvent={(direction: string) => {
+          trackAnalytics('insight.general.table_paginate', {
+            organization,
+            source: ModuleName.HTTP,
+            direction,
+          });
+        }}
+      />
     </VisuallyCompleteWithData>
   );
 }

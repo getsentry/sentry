@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -125,23 +125,6 @@ describe('PageOverview', function () {
     );
   });
 
-  it('renders FID deprecation alert', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {useStoredScores: 'true', transaction: '/'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-    render(<PageOverview />, {organization});
-    await screen.findByText(/\(Interaction to Next Paint\) will replace/);
-    await screen.findByText(
-      /\(First Input Delay\) in our performance score calculation./
-    );
-  });
-
   it('renders interaction samples', async () => {
     const organizationWithInp = OrganizationFixture({
       features: ['insights-initial-modules'],
@@ -179,7 +162,7 @@ describe('PageOverview', function () {
               'span.description',
             ],
             query:
-              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
+              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:/',
           }),
         })
       )
@@ -227,7 +210,7 @@ describe('PageOverview', function () {
               'span.description',
             ],
             query:
-              'span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
+              'has:message !span.description:<unknown> span.op:ui.interaction.click measurements.score.weight.inp:>0 origin.transaction:"/page-with-a-\\*/"',
           }),
         })
       )

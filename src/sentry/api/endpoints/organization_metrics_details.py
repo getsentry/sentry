@@ -5,7 +5,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationAndStaffPermission, OrganizationEndpoint
-from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.metadata import get_metrics_meta
 from sentry.sentry_metrics.use_case_utils import get_use_case_ids
 
@@ -23,7 +22,9 @@ class OrganizationMetricsDetailsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
         if not projects:
-            raise InvalidParams("You must supply at least one project to see its metrics")
+            return Response(
+                {"detail": "You must supply at least one project to see its metrics"}, status=404
+            )
 
         metrics = get_metrics_meta(
             organization=organization, projects=projects, use_case_ids=get_use_case_ids(request)

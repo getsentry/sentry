@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
 import withApi from 'sentry/utils/withApi';
@@ -280,7 +281,18 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDeleteWidget = (widgetToDelete: Widget) => () => {
-    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.delete', {
+      organization,
+      widget_type: widgetToDelete.displayType,
+    });
 
     let nextList = dashboard.widgets.filter(widget => widget !== widgetToDelete);
     nextList = generateWidgetsAfterCompaction(nextList);
@@ -293,7 +305,18 @@ class Dashboard extends Component<Props, State> {
   };
 
   handleDuplicateWidget = (widget: Widget, index: number) => () => {
-    const {dashboard, onUpdate, isEditingDashboard, handleUpdateWidgetList} = this.props;
+    const {
+      organization,
+      dashboard,
+      onUpdate,
+      isEditingDashboard,
+      handleUpdateWidgetList,
+    } = this.props;
+
+    trackAnalytics('dashboards_views.widget.duplicate', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
     const widgetCopy = cloneDeep(
       assignTempId({...widget, id: undefined, tempId: undefined})
@@ -311,8 +334,12 @@ class Dashboard extends Component<Props, State> {
 
   handleEditWidget = (index: number) => () => {
     const {organization, router, location, paramDashboardId} = this.props;
-
     const widget = this.props.dashboard.widgets[index];
+
+    trackAnalytics('dashboards_views.widget.edit', {
+      organization,
+      widget_type: widget.displayType,
+    });
 
     if (widget.widgetType === WidgetType.METRICS && hasCustomMetrics(organization)) {
       // TODO(ddm): open preview modal

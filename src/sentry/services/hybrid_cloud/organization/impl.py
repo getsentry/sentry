@@ -3,26 +3,39 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from django.db import IntegrityError, models, router, transaction
+from django.db import models, router, transaction
 from django.db.models.expressions import CombinedExpression, F
 from django.dispatch import Signal
 
 from sentry import roles
 from sentry.api.serializers import serialize
+from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
+from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
 from sentry.models.activity import Activity
+from sentry.models.dashboard import Dashboard
+from sentry.models.dynamicsampling import CustomDynamicSamplingRule
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
+from sentry.models.projectbookmark import ProjectBookmark
+from sentry.models.recentsearch import RecentSearch
+from sentry.models.rule import Rule, RuleActivity
+from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.savedsearch import SavedSearch
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
+from sentry.monitors.models import Monitor
 from sentry.services.hybrid_cloud import OptionValue, logger
 from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.organization import (
@@ -515,33 +528,75 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         assert to_member
 
-        for team in from_member.teams.all():
-            try:
-                with enforce_constraints(
-                    transaction.atomic(router.db_for_write(OrganizationMemberTeam))
-                ):
+        with enforce_constraints(transaction.atomic(using=router.db_for_write(OrganizationMember))):
+            # Delete all org access requests between the two now-merged users.
+            OrganizationAccessRequest.objects.filter(
+                member=from_member, requester_id=to_user_id
+            ).delete()
+            OrganizationAccessRequest.objects.filter(
+                member=to_member, requester_id=from_user_id
+            ).delete()
+
+            # All other org access requests should be pointed from the old member to the new
+            # one.
+            reqs = OrganizationAccessRequest.objects.filter(member=from_member)
+            for req in reqs:
+                req.member = to_member
+                req.save()
+
+            # Move all old team memberships to the newly merged `OrganizationMember`.
+            for team in from_member.teams.all():
+                OrganizationMemberTeam.objects.filter(
+                    organizationmember=from_member, team=team
+                ).delete()
+                to_member_team = OrganizationMemberTeam.objects.filter(
+                    organizationmember=to_member, team=team
+                ).first()
+                if to_member_team is None:
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
-            except IntegrityError:
-                pass
 
-        model_list = (
-            GroupAssignee,
-            GroupBookmark,
-            GroupSeen,
-            GroupShare,
-            GroupSubscription,
-            Activity,
+            # Update all organization region models to only use the new user id.
+            model_list = [
+                Activity,
+                AlertRule,
+                AlertRuleActivity,
+                CustomDynamicSamplingRule,
+                Dashboard,
+                GroupAssignee,
+                GroupBookmark,
+                GroupSeen,
+                GroupShare,
+                GroupSearchView,
+                GroupSubscription,
+                IncidentActivity,
+                IncidentSubscription,
+                OrganizationAccessRequest,
+                ProjectBookmark,
+                RecentSearch,
+                Rule,
+                RuleActivity,
+                RuleSnooze,
+                SavedSearch,
+            ]
+            for model in model_list:
+                merge_users_for_model_in_org(
+                    model,
+                    organization_id=organization_id,
+                    from_user_id=from_user_id,
+                    to_user_id=to_user_id,
+                )
+
+            # Finally, delete the old member.
+            from_member.delete()
+
+        # TODO: for some reason, `Monitor` insists on being updated outside of the transaction, even
+        # though it's also not region siloed?
+        merge_users_for_model_in_org(
+            Monitor,
+            organization_id=organization_id,
+            from_user_id=from_user_id,
+            to_user_id=to_user_id,
         )
-
-        for model in model_list:
-            for obj in model.objects.filter(
-                user_id=from_user_id, project__organization_id=organization_id
-            ):
-                try:
-                    with enforce_constraints(transaction.atomic(router.db_for_write(model))):
-                        obj.update(user_id=to_user_id)
-                except IntegrityError:
-                    pass
 
     def reset_idp_flags(self, *, organization_id: int) -> None:
         with unguarded_write(using=router.db_for_write(OrganizationMember)):

@@ -12,21 +12,21 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import {
+  PRIMARY_RELEASE_COLOR,
+  SECONDARY_RELEASE_COLOR,
+} from 'sentry/views/insights/colors';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
-import {
-  PRIMARY_RELEASE_COLOR,
-  SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/starfish/colors';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/starfish/types';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[release: string]: Series} = {};
@@ -115,9 +115,12 @@ export function CountChart({chartHeight}: Props) {
 
   const {truncatedPrimaryRelease, truncatedSecondaryRelease} = useTruncatedReleaseNames();
 
+  const chartTitle =
+    appStartType === COLD_START_TYPE ? t('Cold Start Count') : t('Warm Start Count');
+
   return (
     <MiniChartPanel
-      title={t('Count')}
+      title={chartTitle}
       subtitle={
         primaryRelease
           ? t(

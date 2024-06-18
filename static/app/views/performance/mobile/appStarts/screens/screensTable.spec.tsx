@@ -2,10 +2,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
-jest.mock('sentry/views/starfish/queries/useReleases');
+jest.mock('sentry/views/insights/common/queries/useReleases');
 
 jest.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5',
@@ -54,16 +54,18 @@ describe('AppStartScreens', () => {
 
     expect(screen.getByRole('columnheader', {name: 'Screen'})).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', {name: 'Cold Start (R1)'})
+      screen.getByRole('columnheader', {name: 'Avg Cold Start (R1)'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('columnheader', {name: 'Cold Start (R2)'})
+      screen.getByRole('columnheader', {name: 'Avg Cold Start (R2)'})
     ).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Change'})).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', {name: 'Type Breakdown'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Count'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', {name: 'Cold Start Count'})
+    ).toBeInTheDocument();
   });
 
   it('renders custom transaction and breakdown fields', () => {
