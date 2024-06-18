@@ -6,7 +6,7 @@ from django.utils.decorators import method_decorator
 
 from sentry.api.helpers.teams import is_team_admin
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
-from sentry.integrations.slack.views.types import TeamIdentityParams
+from sentry.integrations.slack.views.types import TeamIdentityRequest
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
@@ -66,7 +66,7 @@ class SlackUnlinkTeamView(BaseView):
 
         try:
             converted = unsign(signed_params)
-            params = TeamIdentityParams(**converted)
+            params = TeamIdentityRequest(**converted)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)
             metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
