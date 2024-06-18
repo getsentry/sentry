@@ -106,10 +106,10 @@ describe('EventTagsTree', function () {
     for (const link of linkDropdowns) {
       await userEvent.click(link);
       expect(
-        screen.getByLabelText('View issues with this tag value')
+        await screen.findByLabelText('View issues with this tag value')
       ).toBeInTheDocument();
       expect(
-        screen.getByLabelText('View other events with this tag value')
+        await screen.findByLabelText('View other events with this tag value')
       ).toBeInTheDocument();
       expect(screen.getByLabelText('Copy tag value to clipboard')).toBeInTheDocument();
     }

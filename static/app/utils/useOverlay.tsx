@@ -250,10 +250,13 @@ function useOverlay({
         if (interactedOutside.current) {
           onInteractOutside?.();
           interactedOutside.current = false;
-
-          interactOutsideTrigger.current?.focus();
-          interactOutsideTrigger.current?.click();
+          const trigger = interactOutsideTrigger.current;
           interactOutsideTrigger.current = null;
+
+          requestAnimationFrame(() => {
+            trigger?.focus();
+            trigger?.click();
+          });
         }
 
         openState.close();

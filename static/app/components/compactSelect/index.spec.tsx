@@ -76,6 +76,9 @@ describe('CompactSelect', function () {
     await waitFor(() => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Option One'})).toHaveFocus();
+    });
 
     // Can be dismissed by pressing Escape
     await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
@@ -89,6 +92,9 @@ describe('CompactSelect', function () {
     await waitFor(() => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Option One'})).toHaveFocus();
+    });
 
     // When menu A is open, clicking once on menu B's trigger button closes menu A and
     // then opens menu B
@@ -96,7 +102,7 @@ describe('CompactSelect', function () {
     expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Option Three'}));
     expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'Option Three'})).toBeInTheDocument();
   });
 
   describe('ListBox', function () {
