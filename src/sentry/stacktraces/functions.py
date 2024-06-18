@@ -228,19 +228,40 @@ def trim_native_function_name(function, platform, normalize_lambdas=True):
     #
     # ["unsigned", "int", "whatever"] -> whatever
     # ["@objc", "whatever", "->", "int"] -> whatever
-    try:
-        func_token = tokens[tokens.index("⟿") - 1]
-    except ValueError:
-        if tokens:
+    if function.find("initialization expression of") != -1:
+        # Swift initializer expression.
+        last_of_index = len(tokens) - 1 - tokens[::-1].index("of")
+        func_token = tokens[last_of_index + 1]
+        if func_token == "static":
+            # Static initializer expression, the object is the next token.
+            func_token = tokens[last_of_index + 2]
+        if func_token.startswith(":"):
+            # Trim the colon from the function name.
+            func_token = func_token[1:]
+        func_token = "initializer expression of " + func_token
+    elif tokens:
+        try:
+            last_arrow_index = len(tokens) - 1 - tokens[::-1].index("⟿")
+            func_token = tokens[last_arrow_index - 1]
+            if func_token == "throws":
+                # Throwing Swift function, the function name is the previous token.
+                func_token = tokens[last_arrow_index - 2]
+        except (ValueError, IndexError):
+            # No arrow, use the last token.
+            last_arrow_index = -1
             func_token = tokens[-1]
-        else:
-            func_token = None
+    else:
+        func_token = None
 
     if func_token:
         if func_token.startswith("@") and platform in ("cocoa", "swift"):
             # Found a Swift attribute instead of a function name, must be an
             # anonymous function
             func_token = ("thunk for " if is_thunk else "") + "closure"
+        elif "closure" in tokens and func_token != "closure":
+            # Found a closure.
+            func_token = "closure in " + func_token
+
         function = (
             func_token.replace("⟨", "<")
             .replace("◯", "()")
