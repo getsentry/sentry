@@ -3,7 +3,8 @@ from typing import ClassVar, Self
 from django.db import models
 from django.utils import timezone
 
-from sentry.db.models import BaseManager, BaseModel, sane_repr
+from sentry.db.models import BaseModel, sane_repr
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
 

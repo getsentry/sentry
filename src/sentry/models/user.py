@@ -31,7 +31,8 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import BaseManager, Model, control_silo_model, sane_repr
+from sentry.db.models import Model, control_silo_model, sane_repr
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
