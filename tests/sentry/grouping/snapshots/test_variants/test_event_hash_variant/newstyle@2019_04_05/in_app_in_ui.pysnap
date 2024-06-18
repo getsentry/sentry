@@ -4,7 +4,7 @@ creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "9b037f38798ea127aac3e8b8e1e1024a"
+  hash: "61c031e5e187212561f67b5567f8ae47"
   component:
     app*
       exception*
@@ -122,7 +122,7 @@ app:
             filename*
               "mediaslideshow+extensions.swift"
             function* (isolated function)
-              "MediaSlideshow.toSources"
+              "closure in MediaSlideshow.toSources"
           frame*
             filename*
               "mediaslideshow+extensions.swift"
@@ -147,7 +147,7 @@ app:
           "EXC_BREAKPOINT"
 --------------------------------------------------------------------------
 system:
-  hash: "fe8b15fe322c91ede2fc48363fe43587"
+  hash: "7c47e696e27052f4849cb07e99cf649e"
   component:
     system*
       exception*
@@ -265,7 +265,7 @@ system:
             filename*
               "mediaslideshow+extensions.swift"
             function* (isolated function)
-              "MediaSlideshow.toSources"
+              "closure in MediaSlideshow.toSources"
           frame*
             filename*
               "mediaslideshow+extensions.swift"

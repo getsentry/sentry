@@ -13,7 +13,6 @@ from sentry.issues.occurrence_consumer import process_occurrence_group
 from sentry.issues.producer import _prepare_occurrence_message
 from sentry.issues.run import OccurrenceStrategyFactory
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
@@ -261,13 +260,3 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin):
         assert len(item_list2) == 2
         assert item_list2[0]["event_id"] == occurrence2.event_id
         assert item_list2[1]["event_id"] == occurrence3.event_id
-
-
-@override_options({"issues.occurrence_consumer.use_orjson": True})
-class TestOccurrenceConsumerWithOrjson(TestOccurrenceConsumer):
-    pass
-
-
-@override_options({"issues.occurrence_consumer.use_orjson": True})
-class TestBatchedOccurrenceConsumerWithOrjson(TestBatchedOccurrenceConsumer):
-    pass

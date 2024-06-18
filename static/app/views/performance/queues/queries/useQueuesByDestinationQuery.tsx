@@ -3,7 +3,10 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {Referrer} from 'sentry/views/performance/queues/referrers';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
+import {
+  DEFAULT_QUERY_FILTER,
+  TABLE_ROWS_LIMIT,
+} from 'sentry/views/performance/queues/settings';
 import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
 
@@ -45,7 +48,7 @@ export function useQueuesByDestinationQuery({
       ],
       enabled,
       sorts: sort ? [sort] : [],
-      limit: 10,
+      limit: TABLE_ROWS_LIMIT,
       cursor,
     },
     referrer

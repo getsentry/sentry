@@ -44,7 +44,9 @@ def is_recently_added(model: Model) -> bool:
 
 
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
-    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=organization.id)
+    sample_rate = quotas.backend.get_blended_sample_rate(
+        organization_id=organization.id, project=project
+    )
 
     # If the sample rate is None, it means that dynamic sampling rules shouldn't be generated.
     if sample_rate is None:

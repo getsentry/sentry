@@ -737,9 +737,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     def test_error_issue_status(self):
         params = self.valid_params.copy()
         params["query"] = "status:abcd"
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-            assert not serializer.is_valid()
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert not serializer.is_valid()
         assert serializer.errors == {
             "nonFieldErrors": [
                 ErrorDetail(
@@ -750,10 +749,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
 
         params = self.valid_params.copy()
         params["query"] = "status:unresolved"
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-            assert serializer.is_valid()
-            alert_rule = serializer.save()
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid()
+        alert_rule = serializer.save()
         assert alert_rule.snuba_query.query == "status:unresolved"
 
 

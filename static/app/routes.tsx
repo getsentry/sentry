@@ -19,6 +19,7 @@ import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContainer from 'sentry/views/organizationContainer';
 import OrganizationLayout from 'sentry/views/organizationLayout';
 import OrganizationRoot from 'sentry/views/organizationRoot';
+import {INSIGHTS_BASE_URL} from 'sentry/views/performance/settings';
 import {MODULE_BASE_URLS} from 'sentry/views/performance/utils/useModuleURL';
 import ProjectEventRedirect from 'sentry/views/projectEventRedirect';
 import redirectDeprecatedProjectRoute from 'sentry/views/projects/redirectDeprecatedProjectRoute';
@@ -1444,20 +1445,33 @@ function buildRoutes() {
     </Route>
   );
 
-  const llmMonitoringRoutes = (
-    <Route path={`/${MODULE_BASE_URLS[ModuleName.AI]}/`} withOrgPath>
-      <IndexRoute component={make(() => import('sentry/views/llmMonitoring/landing'))} />
-      <Route
-        path="pipeline-type/:groupId/"
-        component={make(
-          () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
-        )}
-      />
-    </Route>
+  const llmMonitoringRedirects = USING_CUSTOMER_DOMAIN ? (
+    <Redirect
+      from="/llm-monitoring/"
+      to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+    />
+  ) : (
+    <Redirect
+      from="/organizations/:orgId/llm-monitoring/"
+      to={`/organizations/:orgId/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.AI]}/`}
+    />
   );
 
-  const insightsSubRoutes = (
-    <Fragment>
+  const insightsRedirects = Object.values(MODULE_BASE_URLS)
+    .map(
+      moduleBaseURL =>
+        moduleBaseURL && (
+          <Redirect
+            key={moduleBaseURL}
+            from={`${moduleBaseURL}`}
+            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/`}
+          />
+        )
+    )
+    .filter(Boolean);
+
+  const insightsRoutes = (
+    <Route path={`/${INSIGHTS_BASE_URL}/`} withOrgPath>
       <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
         <IndexRoute
           component={make(
@@ -1583,12 +1597,6 @@ function buildRoutes() {
           )}
         />
       </Route>
-    </Fragment>
-  );
-
-  const insightsRoutes = (
-    <Route path="/insights/" withOrgPath>
-      {insightsSubRoutes}
     </Route>
   );
 
@@ -1680,7 +1688,11 @@ function buildRoutes() {
         path="trace/:traceSlug/"
         component={make(() => import('sentry/views/performance/traceDetails'))}
       />
-      {insightsSubRoutes}
+      {insightsRedirects}
+      <Redirect
+        from="browser/resources"
+        to={`/${INSIGHTS_BASE_URL}/${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}
+      />
       <Route
         path=":eventSlug/"
         component={make(() => import('sentry/views/performance/transactionDetails'))}
@@ -2082,7 +2094,7 @@ function buildRoutes() {
       {performanceRoutes}
       {tracesRoutes}
       {insightsRoutes}
-      {llmMonitoringRoutes}
+      {llmMonitoringRedirects}
       {profilingRoutes}
       {metricsRoutes}
       {gettingStartedRoutes}

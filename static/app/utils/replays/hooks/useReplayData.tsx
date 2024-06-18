@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
@@ -76,8 +76,8 @@ function useReplayData({
   errorsPerPage = 50,
   segmentsPerPage = 100,
 }: Options): Result {
+  const hasFetchedAttachments = useRef(false);
   const projects = useProjects();
-
   const queryClient = useQueryClient();
 
   // Fetch every field of the replay. The TS type definition lists every field
@@ -120,13 +120,16 @@ function useReplayData({
     [orgSlug, projectSlug, replayId]
   );
 
-  const {pages: attachmentPages, isFetching: isFetchingAttachments} =
-    useFetchParallelPages({
-      enabled: !fetchReplayError && Boolean(projectSlug) && Boolean(replayRecord),
-      hits: replayRecord?.count_segments ?? 0,
-      getQueryKey: getAttachmentsQueryKey,
-      perPage: segmentsPerPage,
-    });
+  const {
+    pages: attachmentPages,
+    isFetching: isFetchingAttachments,
+    error: fetchAttachmentsError,
+  } = useFetchParallelPages({
+    enabled: !fetchReplayError && Boolean(projectSlug) && Boolean(replayRecord),
+    hits: replayRecord?.count_segments ?? 0,
+    getQueryKey: getAttachmentsQueryKey,
+    perPage: segmentsPerPage,
+  });
 
   const getErrorsQueryKey = useCallback(
     ({cursor, per_page}): ApiQueryKey => {
@@ -230,12 +233,25 @@ function useReplayData({
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
   return useMemo(() => {
+    // This hook can enter a state where `fetching` below is false
+    // before it is entirely ready (i.e. it has not fetched
+    // attachemnts yet). This can cause downstream components to
+    // think it is no longer fetching and will display an error
+    // because there are no attachments. The below will require
+    // that we have attempted to fetch an attachment once (or it
+    // errors) before we toggle fetching state to false.
+    hasFetchedAttachments.current =
+      hasFetchedAttachments.current || isFetchingAttachments;
+
     const fetching =
       isFetchingReplay ||
       isFetchingAttachments ||
       isFetchingErrors ||
       isFetchingExtraErrors ||
-      isFetchingPlatformErrors;
+      isFetchingPlatformErrors ||
+      (!hasFetchedAttachments.current &&
+        !fetchAttachmentsError &&
+        Boolean(replayRecord?.count_segments));
 
     const allErrors = errorPages
       .concat(extraErrorPages)
@@ -256,6 +272,7 @@ function useReplayData({
     errorPages,
     extraErrorPages,
     fetchReplayError,
+    fetchAttachmentsError,
     isFetchingAttachments,
     isFetchingErrors,
     isFetchingExtraErrors,

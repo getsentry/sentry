@@ -10,7 +10,7 @@ import {ErrorMigrationWarning} from './errorMigrationWarning';
 
 describe('ErrorMigrationWarning', () => {
   const project = ProjectFixture();
-  const organization = OrganizationFixture({features: ['metric-alert-ignore-archived']});
+  const organization = OrganizationFixture();
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
