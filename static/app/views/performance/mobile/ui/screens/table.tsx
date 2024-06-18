@@ -14,7 +14,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {ModuleName} from 'sentry/views/insights/common/types';
+import {ModuleName} from 'sentry/views/insights/types';
 import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';

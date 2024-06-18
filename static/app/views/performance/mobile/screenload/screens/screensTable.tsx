@@ -29,7 +29,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';

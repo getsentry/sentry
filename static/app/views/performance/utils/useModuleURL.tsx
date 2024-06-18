@@ -1,6 +1,6 @@
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {ModuleName} from 'sentry/views/insights/common/types';
+import {ModuleName} from 'sentry/views/insights/types';
 import {BASE_URL as AI_BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/performance/browser/webVitals/settings';

@@ -6,12 +6,12 @@ import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/common/types';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 
 type Props = {

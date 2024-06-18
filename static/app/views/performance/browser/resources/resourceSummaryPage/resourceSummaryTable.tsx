@@ -18,12 +18,12 @@ import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells
 import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
 import {WiderHovercard} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
-import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/common/types';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';

@@ -33,6 +33,11 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
+import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/chart/findDataPoint';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
 import {
   MetricsFields,
   type MetricsQueryFilters,
@@ -43,12 +48,7 @@ import {
   type SpanIndexedResponse,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/common/types';
-import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/chart/findDataPoint';
-import {
-  DataTitles,
-  getThroughputTitle,
-} from 'sentry/views/insights/common/views/spans/types';
+} from 'sentry/views/insights/types';
 import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
 import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';

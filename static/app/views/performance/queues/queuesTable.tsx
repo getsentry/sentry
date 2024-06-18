@@ -21,13 +21,13 @@ import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   ModuleName,
   SpanFunction,
   SpanIndexedField,
   type SpanMetricsResponse,
-} from 'sentry/views/insights/common/types';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+} from 'sentry/views/insights/types';
 import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
 import {Referrer} from 'sentry/views/performance/queues/referrers';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';

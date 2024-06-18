@@ -21,7 +21,7 @@ import {
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {SamplesTables} from 'sentry/views/performance/mobile/appStarts/screenSummary/samples';
 import {
   COLD_START_TYPE,

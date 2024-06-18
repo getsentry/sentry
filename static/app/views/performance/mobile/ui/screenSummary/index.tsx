@@ -12,7 +12,7 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';

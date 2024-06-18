@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SpanIndexedField} from 'sentry/views/insights/common/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {QueuesTable} from 'sentry/views/performance/queues/queuesTable';
 
 describe('queuesTable', () => {

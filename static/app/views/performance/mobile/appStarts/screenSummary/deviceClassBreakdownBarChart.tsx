@@ -21,14 +21,14 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/insights/common/colors';
+} from 'sentry/views/insights/colors';
 import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';

@@ -25,14 +25,14 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
+import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
+import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
+import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
 import {
   ModuleName,
   SpanIndexedField,
   SpanMetricsField,
-} from 'sentry/views/insights/common/types';
-import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
-import SampleInfo from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleInfo';
-import SampleTable from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/sampleTable/sampleTable';
+} from 'sentry/views/insights/types';
 import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 

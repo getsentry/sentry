@@ -13,8 +13,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 

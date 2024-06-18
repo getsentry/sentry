@@ -15,14 +15,14 @@ import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {
   PRIMARY_RELEASE_COLOR,
   SECONDARY_RELEASE_COLOR,
-} from 'sentry/views/insights/common/colors';
+} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';

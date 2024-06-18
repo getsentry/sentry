@@ -16,8 +16,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {

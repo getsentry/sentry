@@ -19,7 +19,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/common/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {Referrer} from 'sentry/views/performance/newTraceDetails/referrers';
 import {useTransaction} from 'sentry/views/performance/newTraceDetails/traceApi/useTransaction';
 import {CacheMetrics} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/transaction/sections/cacheMetrics';

@@ -12,17 +12,12 @@ import {formatRate} from 'sentry/utils/formatters';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  AVG_COLOR,
-  ERRORS_COLOR,
-  THROUGHPUT_COLOR,
-} from 'sentry/views/insights/common/colors';
+import {AVG_COLOR, ERRORS_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {
   ChartType,
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {useSpansQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/insights/common/views/spans/queries';
@@ -32,6 +27,7 @@ import {
   getThroughputChartTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 

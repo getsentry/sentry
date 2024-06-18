@@ -16,18 +16,18 @@ import {
   AVG_COLOR,
   THROUGHPUT_COLOR,
   TXN_THROUGHPUT_COLOR,
-} from 'sentry/views/insights/common/colors';
+} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/common/types';
-import {
   Block,
   BlockContainer,
 } from 'sentry/views/insights/common/views/spanSummaryPage/block';
+import {
+  SpanMetricsField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/insights/types';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 
 function SpanSummaryCharts() {

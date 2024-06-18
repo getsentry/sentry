@@ -1,8 +1,8 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {SpanIndexedField} from 'sentry/views/insights/common/types';
 import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Query = {
   sort?: string;

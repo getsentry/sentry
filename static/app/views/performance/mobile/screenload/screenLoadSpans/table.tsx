@@ -32,10 +32,10 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,

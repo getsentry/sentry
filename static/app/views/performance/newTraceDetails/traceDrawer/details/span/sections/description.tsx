@@ -14,8 +14,8 @@ import {
   MissingFrame,
   StackTraceMiniFrame,
 } from 'sentry/views/insights/common/components/stackTraceMiniFrame';
-import {ModuleName} from 'sentry/views/insights/common/types';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {ModuleName} from 'sentry/views/insights/types';
 import type {
   TraceTree,
   TraceTreeNode,

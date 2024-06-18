@@ -1,4 +1,4 @@
-import {ModuleName} from 'sentry/views/insights/common/types';
+import {ModuleName} from 'sentry/views/insights/types';
 import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
 import {MODULE_TITLE as RESOURCES_MODULE_TITLE} from 'sentry/views/performance/browser/resources/settings';
 import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/performance/browser/webVitals/settings';

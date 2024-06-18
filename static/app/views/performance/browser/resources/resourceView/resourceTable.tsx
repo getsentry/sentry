@@ -21,16 +21,12 @@ import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {
-  ModuleName,
-  SpanFunction,
-  SpanMetricsField,
-} from 'sentry/views/insights/common/types';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {

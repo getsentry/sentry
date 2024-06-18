@@ -1,4 +1,4 @@
-import type {ModuleName} from 'sentry/views/insights/common/types';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 const OP_MAPPING = {
   'db.redis': 'cache',

@@ -3,7 +3,7 @@ import type {Location} from 'history';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const NULL_SPAN_CATEGORY = t('custom');
 

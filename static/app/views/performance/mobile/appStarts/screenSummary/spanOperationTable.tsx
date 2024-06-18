@@ -29,10 +29,10 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
 import {
   COLD_START_TYPE,

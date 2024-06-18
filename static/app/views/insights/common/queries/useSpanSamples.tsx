@@ -9,13 +9,13 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
+import {DATE_FORMAT} from 'sentry/views/insights/common/utils/useSpansQuery';
 import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,
-} from 'sentry/views/insights/common/types';
-import {SpanIndexedField} from 'sentry/views/insights/common/types';
-import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {DATE_FORMAT} from 'sentry/views/insights/common/utils/useSpansQuery';
+} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_GROUP} = SpanIndexedField;
 

@@ -18,7 +18,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
-import type {ModuleName} from 'sentry/views/insights/common/types';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   columnNameMap: Record<string, string>;

@@ -22,8 +22,8 @@ import {
   ReleaseComparisonSelector,
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
-import {ModuleName} from 'sentry/views/insights/common/types';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {ModuleName} from 'sentry/views/insights/types';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {
   ScreenCharts,

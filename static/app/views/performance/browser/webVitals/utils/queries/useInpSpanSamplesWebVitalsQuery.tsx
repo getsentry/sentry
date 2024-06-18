@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField} from 'sentry/views/insights/common/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   DEFAULT_INDEXED_INTERACTION_SORT,
   type InteractionSpanSampleRowWithScore,

@@ -9,12 +9,12 @@ import {
   fieldAlignment,
   parseFunction,
 } from 'sentry/utils/discover/fields';
+import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   SpanFunction,
   SpanIndexedField,
   SpanMetricsField,
-} from 'sentry/views/insights/common/types';
-import type {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+} from 'sentry/views/insights/types';
 
 type Options = {
   column: GridColumnHeader<string>;

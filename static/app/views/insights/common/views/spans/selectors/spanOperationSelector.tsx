@@ -8,10 +8,10 @@ import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useSpansQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
 import {DefaultEmptyOption} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_OP} = SpanMetricsField;
 

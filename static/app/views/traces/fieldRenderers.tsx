@@ -24,10 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import type {
-  SpanIndexedField,
-  SpanIndexedResponse,
-} from 'sentry/views/insights/common/types';
+import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 

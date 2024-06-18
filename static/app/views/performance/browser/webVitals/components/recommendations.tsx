@@ -5,7 +5,7 @@ import {IconFile} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import type {WebVitals} from 'sentry/views/performance/browser/webVitals/utils/types';
 

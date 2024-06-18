@@ -20,18 +20,14 @@ import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/s
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/common/types';
-import {
-  ModuleName,
-  SpanFunction,
-  SpanMetricsField,
-} from 'sentry/views/insights/common/types';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {DurationChart} from 'sentry/views/performance/database/durationChart';
 import {isAValidSort} from 'sentry/views/performance/database/queriesTable';
 import {QueryTransactionsTable} from 'sentry/views/performance/database/queryTransactionsTable';

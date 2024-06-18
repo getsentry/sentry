@@ -5,13 +5,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
+import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
 import type {
   MetricsProperty,
   SpanFunctions,
   SpanIndexedField,
   SpanMetricsProperty,
-} from 'sentry/views/insights/common/types';
-import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
+} from 'sentry/views/insights/types';
 
 export interface MetricTimeseriesRow {
   [key: string]: number;

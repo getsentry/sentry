@@ -10,8 +10,8 @@ import {
 import selectEvent from 'sentry-test/selectEvent';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ModuleName} from 'sentry/views/insights/common/types';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
+import {ModuleName} from 'sentry/views/insights/types';
 
 jest.mock('sentry/utils/usePageFilters');
 

@@ -1,4 +1,4 @@
-import {ModuleName} from 'sentry/views/insights/common/types';
+import {ModuleName} from 'sentry/views/insights/types';
 import AppStartup from 'sentry/views/performance/mobile/appStarts/screens';
 import {StartTypeSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {

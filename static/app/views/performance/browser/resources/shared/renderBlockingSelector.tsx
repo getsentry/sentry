@@ -3,8 +3,8 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import type {Option} from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
 

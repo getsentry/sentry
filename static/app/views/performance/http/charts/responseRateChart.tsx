@@ -4,7 +4,7 @@ import {
   HTTP_RESPONSE_3XX_COLOR,
   HTTP_RESPONSE_4XX_COLOR,
   HTTP_RESPONSE_5XX_COLOR,
-} from 'sentry/views/insights/common/colors';
+} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';

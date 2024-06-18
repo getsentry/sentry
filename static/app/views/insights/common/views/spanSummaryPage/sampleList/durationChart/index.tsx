@@ -7,16 +7,16 @@ import type {
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {AVG_COLOR} from 'sentry/views/insights/common/colors';
+import {AVG_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/common/types';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;

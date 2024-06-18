@@ -15,7 +15,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import type {ModuleName} from 'sentry/views/insights/common/types';
+import type {ModuleName} from 'sentry/views/insights/types';
 import {SpanSamplesContainer} from 'sentry/views/performance/mobile/components/spanSamplesPanelContainer';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 

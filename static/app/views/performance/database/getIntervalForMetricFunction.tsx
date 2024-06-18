@@ -2,12 +2,12 @@ import * as Sentry from '@sentry/react';
 
 import type {DateTimeObject, GranularityLadder} from 'sentry/components/charts/utils';
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
-import type {Aggregate, SpanFunctions} from 'sentry/views/insights/common/types';
+import type {Aggregate, SpanFunctions} from 'sentry/views/insights/types';
 import {
   COUNTER_AGGREGATES,
   DISTRIBUTION_AGGREGATES,
   SPAN_FUNCTIONS,
-} from 'sentry/views/insights/common/types';
+} from 'sentry/views/insights/types';
 import {
   COUNTER_GRANULARITIES,
   DISTRIBUTION_GRANULARITIES,

@@ -3,11 +3,10 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/common/colors';
+import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {
   DataTitles,
   getDurationChartTitle,
@@ -17,6 +16,7 @@ import {
   Block,
   BlockContainer,
 } from 'sentry/views/insights/common/views/spanSummaryPage/block';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';

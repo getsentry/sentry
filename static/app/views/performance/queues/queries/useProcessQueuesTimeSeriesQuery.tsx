@@ -1,6 +1,6 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import type {SpanMetricsProperty} from 'sentry/views/insights/common/types';
+import type {SpanMetricsProperty} from 'sentry/views/insights/types';
 import type {Referrer} from 'sentry/views/performance/queues/referrers';
 
 type Props = {

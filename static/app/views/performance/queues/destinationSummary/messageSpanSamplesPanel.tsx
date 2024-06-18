@@ -26,12 +26,12 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import {
   ModuleName,
   SpanIndexedField,
   type SpanMetricsResponse,
-} from 'sentry/views/insights/common/types';
-import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+} from 'sentry/views/insights/types';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';

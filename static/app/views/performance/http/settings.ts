@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {ModuleName} from 'sentry/views/insights/common/types';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Requests');
 export const BASE_URL = 'http';

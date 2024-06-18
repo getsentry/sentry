@@ -6,9 +6,9 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {MetricsFilters} from 'sentry/views/insights/common/types';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
 import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
+import type {MetricsFilters} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME} = SpanMetricsField;
 

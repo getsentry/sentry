@@ -12,8 +12,8 @@ import {
 } from 'sentry/views/insights/common/components/stackTraceMiniFrame';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
-import type {SpanIndexedFieldTypes} from 'sentry/views/insights/common/types';
-import {SpanIndexedField} from 'sentry/views/insights/common/types';
+import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 interface Props {
   groupId: SpanIndexedFieldTypes[SpanIndexedField.SPAN_GROUP];

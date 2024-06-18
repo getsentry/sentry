@@ -5,7 +5,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import type {ModuleName} from 'sentry/views/insights/common/types';
+import type {ModuleName} from 'sentry/views/insights/types';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
 
 interface Props {

@@ -7,7 +7,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField} from 'sentry/views/insights/common/types';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import SampleImages from 'sentry/views/performance/browser/resources/resourceSummaryPage/sampleImages';
 
 const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =

@@ -4,7 +4,7 @@ import Link from 'sentry/components/links/link';
 import {useLocation} from 'sentry/utils/useLocation';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/common/types';
+import {type ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 const {SPAN_OP} = SpanMetricsField;

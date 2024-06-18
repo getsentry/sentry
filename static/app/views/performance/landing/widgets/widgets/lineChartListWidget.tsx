@@ -26,12 +26,8 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
-import {
-  ModuleName,
-  SpanFunction,
-  SpanMetricsField,
-} from 'sentry/views/insights/common/types';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {DEFAULT_RESOURCE_TYPES} from 'sentry/views/performance/browser/resources/resourceView';
 import {getResourcesEventViewQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {BASE_FILTERS, CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';

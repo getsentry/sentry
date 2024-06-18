@@ -13,7 +13,7 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';

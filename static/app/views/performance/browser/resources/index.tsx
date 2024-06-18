@@ -13,8 +13,8 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import {ModuleName} from 'sentry/views/insights/common/types';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
+import {ModuleName} from 'sentry/views/insights/types';
 import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,

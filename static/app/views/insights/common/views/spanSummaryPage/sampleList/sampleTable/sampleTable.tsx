@@ -16,11 +16,8 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useTransactions} from 'sentry/views/insights/common/queries/useTransactions';
-import type {
-  ModuleName,
-  SpanMetricsQueryFilters,
-} from 'sentry/views/insights/common/types';
-import {SpanMetricsField} from 'sentry/views/insights/common/types';
+import type {ModuleName, SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {SpanMetricsField} from 'sentry/views/insights/types';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 

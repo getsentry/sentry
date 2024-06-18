@@ -15,7 +15,7 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import type {
   SpanMetricsQueryFilters,
   SpanMetricsResponse,
-} from 'sentry/views/insights/common/types';
+} from 'sentry/views/insights/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';

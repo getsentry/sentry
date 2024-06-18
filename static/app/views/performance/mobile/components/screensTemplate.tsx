@@ -18,7 +18,7 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import type {ModuleName} from 'sentry/views/insights/common/types';
+import type {ModuleName} from 'sentry/views/insights/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';

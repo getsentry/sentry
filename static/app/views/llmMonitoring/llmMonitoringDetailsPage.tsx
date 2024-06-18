@@ -20,7 +20,7 @@ import {
   SpanFunction,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/common/types';
+} from 'sentry/views/insights/types';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,

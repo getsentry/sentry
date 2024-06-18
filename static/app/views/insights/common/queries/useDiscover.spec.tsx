@@ -13,10 +13,7 @@ import {
   useSpanMetrics,
   useSpansIndexed,
 } from 'sentry/views/insights/common/queries/useDiscover';
-import {
-  SpanIndexedField,
-  type SpanMetricsProperty,
-} from 'sentry/views/insights/common/types';
+import {SpanIndexedField, type SpanMetricsProperty} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 jest.mock('sentry/utils/useLocation');

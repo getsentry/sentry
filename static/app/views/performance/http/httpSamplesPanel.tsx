@@ -37,19 +37,19 @@ import {
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useSpanMetricsTopNSeries} from 'sentry/views/insights/common/queries/useSpanMetricsTopNSeries';
-import {
-  ModuleName,
-  SpanFunction,
-  SpanIndexedField,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/common/types';
 import {findSampleFromDataPoint} from 'sentry/views/insights/common/utils/chart/findDataPoint';
 import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+import {
+  ModuleName,
+  SpanFunction,
+  SpanIndexedField,
+  SpanMetricsField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/insights/types';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseCodeCountChart} from 'sentry/views/performance/http/charts/responseCodeCountChart';

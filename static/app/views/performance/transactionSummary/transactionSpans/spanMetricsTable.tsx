@@ -20,11 +20,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/insights/common/types';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+} from 'sentry/views/insights/types';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
 
