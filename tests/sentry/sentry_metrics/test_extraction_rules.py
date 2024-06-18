@@ -6,10 +6,17 @@ from sentry.utils import json
 
 def test_serialization():
     rules = [
-        MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}),
-        MetricsExtractionRule("process_latency", "d", "ms", {"tag_3"}),
-        MetricsExtractionRule("unique_ids", "s", "none", set()),
+        MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}, []),
+        MetricsExtractionRule(
+            "process_latency",
+            "d",
+            "ms",
+            {"tag_3"},
+            ["first:value second:value", "foo:bar", "greetings:['hello', 'goodbye']"],
+        ),
+        MetricsExtractionRule("unique_ids", "s", "none", set(), ["foo:bar"]),
     ]
+
     rule_dict = {rule.generate_mri(): rule for rule in rules}
 
     state = MetricsExtractionRuleState(rule_dict)
