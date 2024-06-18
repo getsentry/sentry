@@ -306,6 +306,33 @@ class Project(Model, PendingDeletionMixin):
         # This Project has enough issue volume to use high priority alerts
         has_high_priority_alerts: bool
 
+        # This Project has sent insight request spans
+        has_insights_http: bool
+
+        # This Project has sent insight db spans
+        has_insights_db: bool
+
+        # This Project has sent insight assets spans
+        has_insights_assets: bool
+
+        # This Project has sent insight app starts spans
+        has_insights_app_start: bool
+
+        # This Project has sent insight screen load spans
+        has_insights_screen_load: bool
+
+        # This Project has sent insight vitals spans
+        has_insights_vitals: bool
+
+        # This Project has sent insight caches spans
+        has_insights_caches: bool
+
+        # This Project has sent insight queues spans
+        has_insights_queues: bool
+
+        # This Project has sent insight llm monitoring spans
+        has_insights_llm_monitoring: bool
+
         bitfield_default = 10
         bitfield_null = True
 
