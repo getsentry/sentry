@@ -201,7 +201,7 @@ def handle_organization_provisioning_outbox_payload(
         )
         return
 
-    org_slug_reservation = org_slug_reservation_qs.first()
+    org_slug_reservation = org_slug_reservation_qs.get()
 
     able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_region(
         organization_id=organization_id,
@@ -257,6 +257,7 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
         return
 
     org_slug_reservation = org_slug_reservation_qs.first()
+    assert org_slug_reservation is not None
 
     from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
         serialize_slug_reservation,
