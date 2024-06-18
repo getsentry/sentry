@@ -387,7 +387,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
                             }
                         ],
                     },
-                ),
+                ).decode(),
                 "headers": {},
                 "status": 200,
             },
@@ -423,7 +423,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
                 "status": 200,
             },
             {
-                "body": orjson.dumps({"ok": False}),
+                "body": orjson.dumps({"ok": False}).decode(),
                 "headers": {},
                 "status": 200,
             },

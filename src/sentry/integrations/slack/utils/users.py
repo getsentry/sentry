@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Generator, Mapping, MutableMapping, Sequence
 from typing import Any
 
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.models.integrations.integration import Integration
@@ -25,55 +24,29 @@ def get_users(integration: Integration, organization: Organization) -> Sequence[
     user_list = []
     next_cursor = None
 
-    if features.has("organizations:slack-sdk-get-users", organization):
-        sdk_client = SlackSdkClient(integration_id=integration.id)
+    client = SlackClient(integration_id=integration.id)
 
+    for _ in range(SLACK_GET_USERS_PAGE_LIMIT):
         try:
-            users = sdk_client.users_list(cursor=next_cursor, limit=SLACK_GET_USERS_PAGE_SIZE)
-        except SlackApiError as e:
+            next_users = client.get(
+                "/users.list",
+                params={"limit": SLACK_GET_USERS_PAGE_SIZE, "cursor": next_cursor},
+            )
+        except ApiError as e:
             logger.info(
-                "slack.post_install.get_users.error",
+                "post_install.fail.slack_users.list",
                 extra={
                     "error": str(e),
                     "organization": organization.slug,
                     "integration_id": integration.id,
                 },
             )
-            return []
+            break
+        user_list += next_users["members"]
 
-        next_users = iter(users)
-        for _ in range(SLACK_GET_USERS_PAGE_LIMIT):
-            try:
-                user_list += next_users.get("members")
-                next_users = next(next_users)
-            except StopIteration:
-                break
-            except SlackApiError:
-                break
-    else:
-        client = SlackClient(integration_id=integration.id)
-
-        for _ in range(SLACK_GET_USERS_PAGE_LIMIT):
-            try:
-                next_users = client.get(
-                    "/users.list",
-                    params={"limit": SLACK_GET_USERS_PAGE_SIZE, "cursor": next_cursor},
-                )
-            except ApiError as e:
-                logger.info(
-                    "post_install.fail.slack_users.list",
-                    extra={
-                        "error": str(e),
-                        "organization": organization.slug,
-                        "integration_id": integration.id,
-                    },
-                )
-                break
-            user_list += next_users["members"]
-
-            next_cursor = next_users["response_metadata"]["next_cursor"]
-            if not next_cursor:
-                break
+        next_cursor = next_users["response_metadata"]["next_cursor"]
+        if not next_cursor:
+            break
 
     return user_list
 
@@ -105,3 +78,55 @@ def get_slack_data_by_user(
                 slack_data_by_user[user] = slack_info_by_email[email]
                 break
     return slack_data_by_user
+
+
+# USING SDK CLIENT
+
+
+def format_slack_data_by_user(emails_by_user, slack_info_by_email):
+    slack_data_by_user: MutableMapping[User, Mapping[str, str]] = {}
+    for user, emails in emails_by_user.items():
+        for email in emails:
+            if email in slack_info_by_email:
+                slack_data_by_user[user] = slack_info_by_email[email]
+                break
+    return slack_data_by_user
+
+
+def format_slack_info_by_email(users: dict[str, Any]):
+    return {
+        member["profile"]["email"]: {
+            "email": member["profile"]["email"],
+            "team_id": member["team_id"],
+            "slack_id": member["id"],
+        }
+        for member in users
+        if not member["deleted"] and member["profile"].get("email")
+    }
+
+
+def get_slack_data_by_user_via_sdk(
+    integration: Integration | RpcIntegration,
+    organization: Organization | RpcOrganization,
+    emails_by_user: Mapping[User, Sequence[str]],
+) -> Generator[Any, Any, Any] | None:
+    sdk_client = SlackSdkClient(integration_id=integration.id)
+    try:
+        users_list = sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
+
+        for page in users_list:
+            users: dict[str, Any] = page.get("members")
+            slack_info_by_email = format_slack_info_by_email(users)
+            slack_data_by_user = format_slack_data_by_user(emails_by_user, slack_info_by_email)
+
+            yield slack_data_by_user
+    except SlackApiError as e:
+        logger.info(
+            "slack.post_install.get_users.error",
+            extra={
+                "error": str(e),
+                "organization": organization.slug,
+                "integration_id": integration.id,
+            },
+        )
+        return None
