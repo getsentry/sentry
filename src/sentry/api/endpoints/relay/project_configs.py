@@ -2,6 +2,7 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span
@@ -43,10 +44,15 @@ class RelayProjectConfigsEndpoint(Endpoint):
         assert relay is not None  # should be provided during Authentication
         response = {}
 
-        full_config_requested = request.relay_request_data.get("fullConfig")
-
-        if full_config_requested and not relay.is_internal:
-            return Response("Relay unauthorized for full config information", 403)
+        if not request.relay_request_data.get("fullConfig"):
+            # We capture a message to make it apparent to self-hosted users that now it's only possible to query
+            # full project configs.
+            sentry_sdk.capture_message(
+                "Requesting the non-full configuration is not possible anymore"
+            )
+            return Response(
+                "Requesting the non-full configuration is not possible anymore", status=400
+            )
 
         version = request.GET.get("version") or "1"
         set_tag("relay_protocol_version", version)
@@ -61,15 +67,9 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # get with permissions and trim configs down accordingly.
             response.update(self._post_or_schedule_by_key(request))
         elif version in ["2", "3"]:
-            response["configs"] = self._post_by_key(
-                request=request,
-                full_config_requested=full_config_requested,
-            )
+            response["configs"] = self._post_by_key(request=request)
         elif version == "1":
-            response["configs"] = self._post_by_project(
-                request=request,
-                full_config_requested=full_config_requested,
-            )
+            response["configs"] = self._post_by_project(request=request)
         else:
             return Response("Unsupported version, we only support versions 1 to 3.", 400)
 
@@ -157,9 +157,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
         schedule_build_project_config(public_key=public_key)
         return None
 
-    def _post_by_key(
-        self, request: Request, full_config_requested
-    ) -> MutableMapping[str, ProjectConfig]:
+    def _post_by_key(self, request: Request) -> MutableMapping[str, ProjectConfig]:
         public_keys = request.relay_request_data.get("publicKeys")
         public_keys = set(public_keys or ())
 
@@ -227,20 +225,16 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,
-                        full_config=full_config_requested,
                         project_keys=[key],
                     )
 
             configs[public_key] = project_config.to_dict()
 
-        if full_config_requested:
-            projectconfig_cache.backend.set_many(configs)
+        projectconfig_cache.backend.set_many(configs)
 
         return configs
 
-    def _post_by_project(
-        self, request: Request, full_config_requested
-    ) -> MutableMapping[str, ProjectConfig]:
+    def _post_by_project(self, request: Request) -> MutableMapping[str, ProjectConfig]:
         project_ids = set(request.relay_request_data.get("projects") or ())
 
         with start_span(op="relay_fetch_projects"):
@@ -293,13 +287,11 @@ class RelayProjectConfigsEndpoint(Endpoint):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,
-                        full_config=full_config_requested,
                         project_keys=project_keys.get(project.id) or [],
                     )
 
             configs[str(project_id)] = project_config.to_dict()
 
-        if full_config_requested:
-            projectconfig_cache.backend.set_many(configs)
+        projectconfig_cache.backend.set_many(configs)
 
         return configs
