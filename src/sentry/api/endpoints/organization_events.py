@@ -290,6 +290,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
         except InvalidParams as err:
             raise ParseError(err)
+        except Exception as err:
+            if str(err) == "You cannot view events from multiple projects.":
+                return Response(status=403, data={"detail": str(err)})
+            raise
 
         referrer = request.GET.get("referrer")
 
