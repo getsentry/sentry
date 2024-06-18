@@ -51,3 +51,5 @@ export const ONBOARDING_CONTENT = {
   description: t('Track the behavior of background jobs at each step in their processing, allowing you to see whether jobs are completing on time and making it easy to debug when they are failing.'),
   link: MODULE_DOC_LINK,
 };
+
+export const TABLE_ROWS_LIMIT = 25;
