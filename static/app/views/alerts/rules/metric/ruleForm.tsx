@@ -512,22 +512,18 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    const {timeWindow} = this.state;
 
     if (name === 'alertType') {
       this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
+        timeWindow:
+          value === 'custom_metrics' && timeWindow === TimeWindow.ONE_MINUTE
+            ? TimeWindow.FIVE_MINUTES
+            : timeWindow,
       }));
       return;
-    }
-
-    if (
-      name === 'dataset' &&
-      value === 'generic_metrics' &&
-      this.state.timeWindow === TimeWindow.ONE_MINUTE
-    ) {
-      // ONE MINUTE interval is not allowed for custom metrics alerts
-      this.setState({timeWindow: TimeWindow.FIVE_MINUTES});
     }
 
     if (
