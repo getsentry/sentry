@@ -129,10 +129,8 @@ class U2fInterface extends Component<Props, State> {
               this.state.responseElement.value = u2fResponse;
             }
             if (this.state.authStateElement && authStateData) {
-              this.setState({
-                // @ts-ignore
-                authStateElement: authStateData,
-              });
+              // eslint-disable-next-line react/no-direct-mutation-state
+              this.state.authStateElement.value = authStateData;
             }
 
             if (!this.props.onTap) {
