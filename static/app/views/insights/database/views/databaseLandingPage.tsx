@@ -26,8 +26,9 @@ import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDisc
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
-import {DurationChart} from 'sentry/views/insights/database/durationChart';
-import {NoDataMessage} from 'sentry/views/insights/database/noDataMessage';
+import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
+import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
+import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {isAValidSort, QueriesTable} from 'sentry/views/insights/database/queriesTable';
 import {
   BASE_FILTERS,
@@ -36,7 +37,6 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
-import {ThroughputChart} from 'sentry/views/insights/database/throughputChart';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';

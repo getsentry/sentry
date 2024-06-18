@@ -26,11 +26,11 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
-import {DurationChart} from 'sentry/views/insights/database/durationChart';
+import {DurationChart} from 'sentry/views/insights/database/components/charts/durationChart';
+import {ThroughputChart} from 'sentry/views/insights/database/components/charts/throughputChart';
+import {QueryTransactionsTable} from 'sentry/views/insights/database/components/tables/queryTransactionsTable';
 import {isAValidSort} from 'sentry/views/insights/database/queriesTable';
-import {QueryTransactionsTable} from 'sentry/views/insights/database/queryTransactionsTable';
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
-import {ThroughputChart} from 'sentry/views/insights/database/throughputChart';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';

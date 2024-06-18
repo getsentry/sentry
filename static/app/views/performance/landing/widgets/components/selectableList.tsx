@@ -13,7 +13,7 @@ import {space} from 'sentry/styles/space';
 import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {NoDataMessage} from 'sentry/views/insights/database/noDataMessage';
+import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 import {CACHE_BASE_URL} from 'sentry/views/performance/cache/settings';
 import {
   MODULE_DOC_LINK,
