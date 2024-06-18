@@ -1433,17 +1433,16 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
             );
 
             return (
-              <Fragment key={i}>
-                <div
-                  className="TracePatternContainer"
-                  style={{
-                    left: left * 100 + '%',
-                    width: (1 - left) * 100 + '%',
-                  }}
-                >
-                  <div className="TracePattern performance_issue" />
-                </div>
-              </Fragment>
+              <div
+                key={i}
+                className="TracePatternContainer"
+                style={{
+                  left: left * 100 + '%',
+                  width: (1 - left) * 100 + '%',
+                }}
+              >
+                <div className="TracePattern performance_issue" />
+              </div>
             );
           })}
         </Fragment>
@@ -2245,6 +2244,17 @@ const TraceStylingWrapper = styled('div')`
         }
         svg {
           fill: ${p => p.theme.white};
+        }
+      }
+
+      &.error {
+        color: ${p => p.theme.red300};
+
+        .TraceChildrenCountWrapper {
+          button {
+            color: ${p => p.theme.white};
+            background-color: ${p => p.theme.red300};
+          }
         }
       }
     }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Collection, Iterable, Mapping
+from collections.abc import Callable, Collection, Iterable, Mapping
 from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
@@ -31,7 +31,6 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
-from sentry.db.models.manager import ValidateFunction
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
@@ -306,6 +305,33 @@ class Project(Model, PendingDeletionMixin):
         # This Project has enough issue volume to use high priority alerts
         has_high_priority_alerts: bool
 
+        # This Project has sent insight request spans
+        has_insights_http: bool
+
+        # This Project has sent insight db spans
+        has_insights_db: bool
+
+        # This Project has sent insight assets spans
+        has_insights_assets: bool
+
+        # This Project has sent insight app starts spans
+        has_insights_app_start: bool
+
+        # This Project has sent insight screen load spans
+        has_insights_screen_load: bool
+
+        # This Project has sent insight vitals spans
+        has_insights_vitals: bool
+
+        # This Project has sent insight caches spans
+        has_insights_caches: bool
+
+        # This Project has sent insight queues spans
+        has_insights_queues: bool
+
+        # This Project has sent insight llm monitoring spans
+        has_insights_llm_monitoring: bool
+
         bitfield_default = 10
         bitfield_null = True
 
@@ -382,7 +408,7 @@ class Project(Model, PendingDeletionMixin):
         return ProjectOption.objects
 
     def get_option(
-        self, key: str, default: Any | None = None, validate: ValidateFunction | None = None
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
         return self.option_manager.get_value(self, key, default, validate)
 

@@ -102,7 +102,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
   });
 
   const rrwebFrames = replay?.getRRWebFrames();
-  // The replay data takes a while to load in, which causes our `isVideoReplay`
+  // The replay data takes a while to load in, which causes `isVideoReplay`
   // to return an early `false`, which used to cause UI jumping.
   // One way to check whether it's finished loading is by checking the length
   // of the rrweb frames, which should always be > 2 for any given replay.
@@ -199,7 +199,11 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           replayErrors={replayErrors}
           isLoading={isLoading}
         >
-          <ReplaysLayout isVideoReplay={isVideoReplay} replayRecord={replayRecord} />
+          <ReplaysLayout
+            isVideoReplay={isVideoReplay}
+            replayRecord={replayRecord}
+            isLoading={isLoading}
+          />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>
