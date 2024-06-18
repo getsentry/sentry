@@ -567,6 +567,6 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                 },
-            ).decode(),
+            ),
             headers={"content-type": "application/json;charset=utf-8"},
         )
