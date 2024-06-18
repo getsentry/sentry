@@ -156,11 +156,8 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.subscription_id is not None
 
     def test_status_join(self):
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            sub = self.create_subscription(
-                QuerySubscription.Status.CREATING, query="status:unresolved"
-            )
-            create_subscription_in_snuba(sub.id)
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
+        create_subscription_in_snuba(sub.id)
         sub = QuerySubscription.objects.get(id=sub.id)
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
@@ -594,24 +591,23 @@ class BuildSnqlQueryTest(TestCase):
     ):
         aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
         time_window = 3600
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            entity_subscription = get_entity_subscription(
-                query_type=query_type,
-                dataset=dataset,
-                aggregate=aggregate,
-                time_window=time_window,
-                extra_fields=entity_extra_fields,
-            )
-            query_builder = entity_subscription.build_query_builder(
-                query=query,
-                project_ids=[self.project.id],
-                environment=environment,
-                params={
-                    "organization_id": self.organization.id,
-                    "project_id": [self.project.id],
-                },
-            )
-            snql_query = query_builder.get_snql_query()
+        entity_subscription = get_entity_subscription(
+            query_type=query_type,
+            dataset=dataset,
+            aggregate=aggregate,
+            time_window=time_window,
+            extra_fields=entity_extra_fields,
+        )
+        query_builder = entity_subscription.build_query_builder(
+            query=query,
+            project_ids=[self.project.id],
+            environment=environment,
+            params={
+                "organization_id": self.organization.id,
+                "project_id": [self.project.id],
+            },
+        )
+        snql_query = query_builder.get_snql_query()
         select = self.string_aggregate_to_snql(query_type, dataset, aggregate, aggregate_kwargs)
         if dataset == Dataset.Sessions:
             col_name = "sessions" if "sessions" in aggregate else "users"
