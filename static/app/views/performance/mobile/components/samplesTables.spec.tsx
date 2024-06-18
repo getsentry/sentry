@@ -1,9 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
-jest.mock('sentry/views/starfish/queries/useReleases');
+jest.mock('sentry/views/insights/common/queries/useReleases');
 
 jest.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5-alpha.1+42',

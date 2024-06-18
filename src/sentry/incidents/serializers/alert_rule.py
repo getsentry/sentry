@@ -53,7 +53,7 @@ from .alert_rule_trigger import AlertRuleTriggerSerializer
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleSerializer(CamelSnakeModelSerializer):
+class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
     """
     Serializer for creating/updating an alert rule. Required context:
      - `organization`: The organization related to this alert rule.
@@ -357,9 +357,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
-        entity = None
-        if features.has("organizations:metric-alert-ignore-archived", projects[0].organization):
-            entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
 
         time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(

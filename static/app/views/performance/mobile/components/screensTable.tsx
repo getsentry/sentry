@@ -17,8 +17,8 @@ import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {PercentChangeCell} from 'sentry/views/starfish/components/tableCells/percentChangeCell';
-import type {ModuleName} from 'sentry/views/starfish/types';
+import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCells/percentChangeCell';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   columnNameMap: Record<string, string>;

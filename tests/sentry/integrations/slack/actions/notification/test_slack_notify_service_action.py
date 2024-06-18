@@ -1,9 +1,7 @@
 from unittest.mock import patch
-from urllib.parse import parse_qs
 from uuid import uuid4
 
 import orjson
-import responses
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
@@ -76,34 +74,9 @@ class TestInit(RuleTestCase):
         )
         assert instance.rule_fire_history is None
 
-    @responses.activate
-    def test_after(self):
-        rule = self.get_rule(data=self.action_data)
-        results = list(rule.after(event=self.event))
-        assert len(results) == 1
-
-        responses.add(
-            responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            json={},
-            status=200,
-        )
-
-        results[0].callback(self.event, futures=[])
-        data = parse_qs(responses.calls[0].request.body)
-        blocks = orjson.loads(data["blocks"][0])
-
-        assert (
-            blocks[0]["text"]["text"]
-            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
-        )
-
-        assert NotificationMessage.objects.all().count() == 0
-
-    @with_feature("organizations:slack-sdk-issue-alert-action")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    @patch("sentry.integrations.slack.sdk_client.metrics")
-    def test_after_using_sdk(self, mock_metrics, mock_api_call):
+    def test_after(self, mock_api_call, mock_post):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},
@@ -115,16 +88,18 @@ class TestInit(RuleTestCase):
         assert len(results) == 1
 
         results[0].callback(self.event, futures=[])
+        blocks = mock_post.call_args.kwargs["blocks"]
+        blocks = orjson.loads(blocks)
 
-        mock_metrics.incr.assert_called_with(
-            SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": True, "status": 200}
+        assert (
+            blocks[0]["text"]["text"]
+            == f":large_yellow_circle: <http://testserver/organizations/{self.organization.slug}/issues/{self.event.group.id}/?referrer=slack|*Hello world*>"
         )
 
         assert NotificationMessage.objects.all().count() == 0
 
-    @with_feature("organizations:slack-sdk-issue-alert-action")
     @patch("sentry.integrations.slack.sdk_client.metrics")
-    def test_after_using_sdk_error(self, mock_metrics):
+    def test_after_error(self, mock_metrics):
         # tests error flow because we're actually trying to POST
 
         rule = self.get_rule(data=self.action_data)
@@ -140,22 +115,22 @@ class TestInit(RuleTestCase):
         assert NotificationMessage.objects.all().count() == 0
 
     @with_feature("organizations:slack-thread-issue-alert")
-    @responses.activate
-    def test_after_with_threads(self):
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_after_with_threads(self, mock_api_call, mock_post):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
         rule = self.get_rule(data=self.action_data, rule_fire_history=self.rule_fire_history)
         results = list(rule.after(event=self.event))
         assert len(results) == 1
 
-        responses.add(
-            responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            json={},
-            status=200,
-        )
-
         results[0].callback(self.event, futures=[RuleFuture(rule=self.rule, kwargs={})])
-        data = parse_qs(responses.calls[0].request.body)
-        blocks = orjson.loads(data["blocks"][0])
+        blocks = mock_post.call_args.kwargs["blocks"]
+        blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
@@ -165,8 +140,15 @@ class TestInit(RuleTestCase):
         assert NotificationMessage.objects.all().count() == 1
 
     @with_feature("organizations:slack-thread-issue-alert")
-    @responses.activate
-    def test_after_reply_in_thread(self):
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_after_reply_in_thread(self, mock_api_call, mock_post):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
         with assume_test_silo_mode(SiloMode.REGION):
             msg = NotificationMessage.objects.create(
                 rule_fire_history_id=self.rule_fire_history.id,
@@ -194,16 +176,9 @@ class TestInit(RuleTestCase):
         results = list(rule.after(event=event))
         assert len(results) == 1
 
-        responses.add(
-            responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            json={},
-            status=200,
-        )
-
         results[0].callback(self.event, futures=[RuleFuture(rule=self.rule, kwargs={})])
-        data = parse_qs(responses.calls[0].request.body)
-        blocks = orjson.loads(data["blocks"][0])
+        blocks = mock_post.call_args.kwargs["blocks"]
+        blocks = orjson.loads(blocks)
 
         assert (
             blocks[0]["text"]["text"]
@@ -215,7 +190,6 @@ class TestInit(RuleTestCase):
             NotificationMessage.objects.filter(parent_notification_message_id=msg.id).count() == 1
         )
 
-    @with_feature("organizations:slack-sdk-issue-alert-action")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @patch("sentry.integrations.slack.sdk_client.metrics")
     def test_send_confirmation_using_sdk(self, mock_metrics, mock_api_call):
@@ -231,7 +205,6 @@ class TestInit(RuleTestCase):
             SLACK_DATADOG_METRIC, sample_rate=1.0, tags={"ok": True, "status": 200}
         )
 
-    @with_feature("organizations:slack-sdk-issue-alert-action")
     @patch("sentry.integrations.slack.sdk_client.metrics")
     def test_send_confirmation_using_sdk_error(self, mock_metrics):
         # tests error flow because we're actually trying to POST

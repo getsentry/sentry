@@ -20,8 +20,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
-import {LoadingScreen} from 'sentry/views/starfish/components/chart';
-import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
+import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
+import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
 
 export type ChartSelectOptions = {
   title: string;

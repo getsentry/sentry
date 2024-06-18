@@ -13,7 +13,8 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {space} from 'sentry/styles/space';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
-import useOrganization from 'sentry/utils/useOrganization';
+import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
+import {ModuleName} from 'sentry/views/insights/types';
 import ResourceView, {
   DEFAULT_RESOURCE_TYPES,
   FilterOptionsContainer,
@@ -21,7 +22,6 @@ import ResourceView, {
 import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
-  PERFORMANCE_MODULE_DESCRIPTION,
 } from 'sentry/views/performance/browser/resources/settings';
 import {
   BrowserStarfishFields,
@@ -31,8 +31,6 @@ import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/performance/browser/resourc
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {DomainSelector} from 'sentry/views/starfish/views/spans/selectors/domainSelector';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
@@ -40,11 +38,9 @@ export const RESOURCE_THROUGHPUT_UNIT = RateUnit.PER_MINUTE;
 
 function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
-  const organization = useOrganization();
   const moduleTitle = useModuleTitle(ModuleName.RESOURCE);
 
   const crumbs = useModuleBreadcrumbs('resource');
-  const isInsightsEnabled = organization.features.includes('performance-insights');
 
   return (
     <React.Fragment>
@@ -57,9 +53,7 @@ function ResourcesLandingPage() {
               {moduleTitle}
               <PageHeadingQuestionTooltip
                 docsUrl={MODULE_DOC_LINK}
-                title={
-                  isInsightsEnabled ? MODULE_DESCRIPTION : PERFORMANCE_MODULE_DESCRIPTION
-                }
+                title={MODULE_DESCRIPTION}
               />
             </Layout.Title>
           </Layout.HeaderContent>

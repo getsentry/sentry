@@ -15,11 +15,20 @@ import {DismissId, usePageAlert} from 'sentry/utils/performance/contexts/pageAle
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import ResourceSizeCell from 'sentry/views/insights/common/components/tableCells/resourceSizeCell';
+import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
+import {ThroughputCell} from 'sentry/views/insights/common/components/tableCells/throughputCell';
+import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
-  DATA_TYPE,
-  PERFORMANCE_DATA_TYPE,
-} from 'sentry/views/performance/browser/resources/settings';
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
+import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
@@ -27,15 +36,6 @@ import {
 import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
 import type {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {useResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
-import {DurationCell} from 'sentry/views/starfish/components/tableCells/durationCell';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import ResourceSizeCell from 'sentry/views/starfish/components/tableCells/resourceSizeCell';
-import {SpanDescriptionCell} from 'sentry/views/starfish/components/tableCells/spanDescriptionCell';
-import {ThroughputCell} from 'sentry/views/starfish/components/tableCells/throughputCell';
-import {TimeSpentCell} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 const {
   SPAN_DESCRIPTION,
@@ -79,9 +79,6 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
   const cursor = decodeScalar(location.query?.[QueryParameterNames.SPANS_CURSOR]);
   const {setPageInfo, pageAlert} = usePageAlert();
 
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-  const resourceDataType = isInsightsEnabled ? DATA_TYPE : PERFORMANCE_DATA_TYPE;
-
   const {data, isLoading, pageLinks} = useResourcesQuery({
     sort,
     defaultResourceTypes,
@@ -93,7 +90,7 @@ function ResourceTable({sort, defaultResourceTypes}: Props) {
     {
       key: SPAN_DESCRIPTION,
       width: COL_WIDTH_UNDEFINED,
-      name: `${resourceDataType} ${t('Description')}`,
+      name: `${DATA_TYPE} ${t('Description')}`,
     },
     {
       key: `${SPM}()`,

@@ -5,9 +5,13 @@ import SearchBar from 'sentry/components/events/searchBar';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {SavedSearchType} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+
+import {ALL_PROJECTS} from './utils';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
@@ -24,10 +28,6 @@ const getSpanName = (index: number) => {
   return spanNames[index];
 };
 
-// Since trace explorer permits cross project searches,
-// autocompletion should also be cross projects.
-const ALL_PROJECTS = [-1];
-
 export function TracesSearchBar({
   queries,
   handleSearch,
@@ -37,6 +37,9 @@ export function TracesSearchBar({
   const organization = useOrganization();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
+
+  // Since trace explorer permits cross project searches,
+  // autocompletion should also be cross projects.
   const supportedTags = useSpanFieldSupportedTags({
     projects: ALL_PROJECTS,
   });
@@ -56,24 +59,37 @@ export function TracesSearchBar({
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
             projectIds={ALL_PROJECTS}
+            savedSearchType={SavedSearchType.SPAN}
           />
           <StyledButton
-            aria-label={t('Remove span')}
+            aria-label={t('Remove Span')}
             icon={<IconClose size="sm" />}
             size="sm"
-            onClick={() => (queries.length === 0 ? false : handleClearSearch(index))}
+            onClick={() => {
+              trackAnalytics('trace_explorer.remove_span_condition', {
+                organization,
+              });
+              if (queries.length >= 0) {
+                handleClearSearch(index);
+              }
+            }}
           />
         </TraceBar>
       ))}
 
       {canAddMoreQueries ? (
         <Button
-          aria-label={t('Add query')}
+          aria-label={t('Add Query')}
           icon={<IconAdd size="xs" isCircled />}
           size="sm"
-          onClick={() => handleSearch(localQueries.length, '')}
+          onClick={() => {
+            trackAnalytics('trace_explorer.add_span_condition', {
+              organization,
+            });
+            handleSearch(localQueries.length, '');
+          }}
         >
-          {t('Add Span Condition')}
+          {t('Add Another Span')}
         </Button>
       ) : null}
     </TraceSearchBarsContainer>
@@ -91,8 +107,6 @@ const TraceSearchBarsContainer = styled('div')`
 const TraceBar = styled('div')`
   display: flex;
   flex-direction: row;
-  align-items: center;
-  justify-content: flex-start;
   width: 100%;
   gap: ${space(1)};
 `;
@@ -100,12 +114,12 @@ const TraceBar = styled('div')`
 const SpanLetter = styled('div')`
   background-color: ${p => p.theme.purple100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(2)};
   text-align: center;
   min-width: 220px;
   color: ${p => p.theme.purple400};
   white-space: nowrap;
   font-weight: ${p => p.theme.fontWeightBold};
+  align-content: center;
 `;
 
 const StyledSearchBar = styled(SearchBar)`

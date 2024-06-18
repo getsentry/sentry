@@ -33,7 +33,7 @@ const mockRefObject = {
 
 describe('InviteMissingMembersModal', function () {
   const team = TeamFixture();
-  const org = OrganizationFixture({access: ['member:write'], teams: [team]});
+  const org = OrganizationFixture({access: ['member:write']});
   TeamStore.loadInitialData([team]);
   const missingMembers = MissingMembersFixture();
 
@@ -166,7 +166,7 @@ describe('InviteMissingMembersModal', function () {
     render(
       <InviteMissingMembersModal
         {...modalProps}
-        organization={OrganizationFixture({defaultRole: 'member', teams: [team]})}
+        organization={OrganizationFixture({defaultRole: 'member'})}
         missingMembers={missingMembers}
         allowedRoles={roles}
       />

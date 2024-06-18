@@ -11,7 +11,7 @@ import useProjects from 'sentry/utils/useProjects';
 jest.mock('sentry/utils/useProjects');
 
 const replayRecord = ReplayRecordFixture();
-const organization = OrganizationFixture({});
+const organization = OrganizationFixture();
 
 const baseErrorProps = {id: '1', issue: '', timestamp: new Date().toISOString()};
 

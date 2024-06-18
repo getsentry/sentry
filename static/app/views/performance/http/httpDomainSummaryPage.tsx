@@ -23,6 +23,17 @@ import {
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {
+  DataTitles,
+  getThroughputTitle,
+} from 'sentry/views/insights/common/views/spans/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
 import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
 import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
@@ -42,14 +53,6 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useSynchronizeCharts} from 'sentry/views/starfish/components/chart';
-import {getTimeSpentExplanation} from 'sentry/views/starfish/components/tableCells/timeSpentCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {DataTitles, getThroughputTitle} from 'sentry/views/starfish/views/spans/types';
 
 type Query = {
   aggregate?: string;

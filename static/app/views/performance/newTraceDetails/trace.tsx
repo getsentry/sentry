@@ -20,6 +20,7 @@ import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {
   TraceError,
@@ -606,10 +607,13 @@ function RenderRow(props: {
 
   const onSpanRowDoubleClick = useCallback(
     e => {
+      trackAnalytics('trace.trace_layout.zoom_to_fill', {
+        organization: props.organization,
+      });
       e.stopPropagation();
       props.manager.onZoomIntoSpace(props.node.space!);
     },
-    [props.node, props.manager]
+    [props.node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
@@ -1429,17 +1433,16 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
             );
 
             return (
-              <Fragment key={i}>
-                <div
-                  className="TracePatternContainer"
-                  style={{
-                    left: left * 100 + '%',
-                    width: (1 - left) * 100 + '%',
-                  }}
-                >
-                  <div className="TracePattern performance_issue" />
-                </div>
-              </Fragment>
+              <div
+                key={i}
+                className="TracePatternContainer"
+                style={{
+                  left: left * 100 + '%',
+                  width: (1 - left) * 100 + '%',
+                }}
+              >
+                <div className="TracePattern performance_issue" />
+              </div>
             );
           })}
         </Fragment>
@@ -2241,6 +2244,17 @@ const TraceStylingWrapper = styled('div')`
         }
         svg {
           fill: ${p => p.theme.white};
+        }
+      }
+
+      &.error {
+        color: ${p => p.theme.red300};
+
+        .TraceChildrenCountWrapper {
+          button {
+            color: ${p => p.theme.white};
+            background-color: ${p => p.theme.red300};
+          }
         }
       }
     }

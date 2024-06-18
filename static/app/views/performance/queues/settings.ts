@@ -44,10 +44,14 @@ export const MODULE_DESCRIPTION = t(
   'Understand the health and performance impact that queues have on your application and diagnose errors tied to jobs.'
 );
 export const MODULE_DOC_LINK =
-  'https://docs.sentry.io/product/performance/queue-monitoring/';
+  'https://docs.sentry.io/product/insights/queue-monitoring/';
 
 export const ONBOARDING_CONTENT = {
-  title: t('Start collecting Insights about your Queues!'),
-  description: t('Our robot is waiting for your first background job to complete.'),
+  title: t('Make sure your jobs complete without errors'),
+  description: t(
+    'Track the behavior of background jobs at each step in their processing, allowing you to see whether jobs are completing on time and making it easy to debug when they are failing.'
+  ),
   link: MODULE_DOC_LINK,
 };
+
+export const TABLE_ROWS_LIMIT = 25;
