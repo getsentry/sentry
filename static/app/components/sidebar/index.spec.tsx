@@ -346,52 +346,8 @@ describe('Sidebar', function () {
     });
 
     it('in regular mode, also shows links to Performance and Crons', async function () {
-      renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
-
-      await waitFor(function () {
-        expect(apiMocks.broadcasts).toHaveBeenCalled();
-      });
-
-      const links = screen.getAllByRole('link');
-      expect(links).toHaveLength(29);
-
-      [
-        'Issues',
-        'Projects',
-        /Performance/,
-        'Queries',
-        'Requests',
-        /Caches/,
-        'Web Vitals',
-        /Queues/,
-        'Screen Loads',
-        'App Starts',
-        'Assets',
-        /Mobile UI/,
-        /Traces/,
-        'Profiling',
-        /Metrics/,
-        'Replays',
-        /LLM Monitoring/,
-        'User Feedback',
-        'Crons',
-        'Alerts',
-        'Discover',
-        'Dashboards',
-        'Releases',
-        'Stats',
-        'Settings',
-        'Help',
-        /What's new/,
-        'Service status',
-      ].forEach((title, index) => {
-        expect(links[index]).toHaveAccessibleName(title);
-      });
-    });
-
-    it('if Insights are on, shows links to Explore and Insights', async function () {
       localStorage.setItem('sidebar-accordion-insights:expanded', 'true');
-      renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES, 'performance-insights']);
+      renderSidebarWithFeatures([...ALL_AVAILABLE_FEATURES]);
 
       await waitFor(function () {
         expect(apiMocks.broadcasts).toHaveBeenCalled();
@@ -438,14 +394,14 @@ describe('Sidebar', function () {
 
     it('should not render floating accordion when expanded', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
-      await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
+      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
       expect(screen.queryByTestId('floating-accordion')).not.toBeInTheDocument();
     });
 
     it('should render floating accordion when collapsed', async () => {
       renderSidebarWithFeatures(ALL_AVAILABLE_FEATURES);
       await userEvent.click(screen.getByTestId('sidebar-collapse'));
-      await userEvent.click(screen.getByTestId('sidebar-accordion-performance-item'));
+      await userEvent.click(screen.getByTestId('sidebar-accordion-insights-item'));
       expect(await screen.findByTestId('floating-accordion')).toBeInTheDocument();
     });
   });
