@@ -11,11 +11,9 @@ import theme from 'sentry/utils/theme';
 
 export default storyBook('KeyValueData', story => {
   story('Usage', () => (
-    <Fragment>
-      <CodeSnippet language="js">
-        import KeyValueData from 'sentry/components/keyValueData';
-      </CodeSnippet>
-    </Fragment>
+    <CodeSnippet language="js">
+      import KeyValueData from 'sentry/components/keyValueData';
+    </CodeSnippet>
   ));
   story('<KeyValueData.Content />', () => (
     <Fragment>
@@ -59,7 +57,7 @@ export default storyBook('KeyValueData', story => {
         Display a set of key-value data as a card. Creates structured data for lists/dicts
         and changes format based on value type. Any of the customization from{' '}
         <code>KeyValueData.Content</code> is available here, and display many of these
-        cards using <code>KeyValueData.Group</code>.
+        cards using <code>KeyValueData.Container</code>.
       </p>
       <h4>Props</h4>
       <ul>
@@ -105,23 +103,25 @@ export default storyBook('KeyValueData', story => {
     </Fragment>
   ));
 
-  story('<KeyValueData.Group />', () => (
+  story('<KeyValueData.Container />', () => (
     <Fragment>
       <p>
-        <code>{'<KeyValueData.Group/>'}</code> can be used in combination with{' '}
+        <code>{'<KeyValueData.Container/>'}</code> can be used in combination with{' '}
         <code>{'<KeyValueData.Card/>'}</code> components to create a 'masonry' style
         layout for space efficiency. They leverage the{' '}
         <code>useIssueDetailsColumnCount</code> hook to distribute cards into the
         available space evenly. They don't accept any props, and just require{' '}
         <code>children</code>.
       </p>
-      <CodeSnippet language="jsx">
-        {`<KeyValueData.Group>
+      <p>
+        <CodeSnippet language="jsx">
+          {`<KeyValueData.Container>
   <KeyValueData.Card ... />
   <KeyValueData.Card ... />
   <KeyValueData.Card ... />
-</KeyValueData.Group>`}
-      </CodeSnippet>
+</KeyValueData.Container>`}
+        </CodeSnippet>
+      </p>
       <p>
         It should be noted that the number of items per card, or content size is not
         factored in, and can lead to some inconsistencies.
