@@ -36,18 +36,13 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(full_config, public_keys=None, version="2"):
+    def inner(public_keys=None, version="2"):
         path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
 
-        if full_config is None:
-            raw_json, signature = private_key.pack({"publicKeys": public_keys})
-        else:
-            raw_json, signature = private_key.pack(
-                {"publicKeys": public_keys, "fullConfig": full_config}
-            )
+        raw_json, signature = private_key.pack({"publicKeys": public_keys, "fullConfig": True})
 
         resp = client.post(
             path,
@@ -78,10 +73,10 @@ def no_internal_networks(monkeypatch):
 
 
 @django_db_all
-def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitly_ask_for_full_config(
-    call_endpoint, default_project, default_projectkey
+def test_internal_relays_should_receive_full_configs_if_they_do_not_explicitly_ask_for_full_config(
+    call_endpoint, default_projectkey
 ):
-    result, status_code = call_endpoint(full_config=False)
+    result, status_code = call_endpoint()
 
     assert status_code < 400
 
@@ -90,15 +85,15 @@ def test_internal_relays_should_receive_minimal_configs_if_they_do_not_explicitl
     assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
 
     cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
-    assert safe.get_path(cfg, "config", "filterSettings") is None
-    assert safe.get_path(cfg, "config", "groupingConfig") is None
+    assert safe.get_path(cfg, "config", "filterSettings") is not None
+    assert safe.get_path(cfg, "config", "groupingConfig") is not None
 
 
 @django_db_all
 def test_internal_relays_should_receive_full_configs(
     call_endpoint, default_project, default_projectkey
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
 
     assert status_code < 400
 
@@ -153,7 +148,7 @@ def test_relays_dyamic_sampling(
             "organizations:dynamic-sampling": True,
         }
     ):
-        result, status_code = call_endpoint(full_config=False)
+        result, status_code = call_endpoint()
         assert status_code < 400
         dynamic_sampling = safe.get_path(
             result,
@@ -169,57 +164,61 @@ def test_relays_dyamic_sampling(
 def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
     add_org_key, call_endpoint, no_internal_networks
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
     assert status_code == 403
 
 
 @django_db_all
-def test_when_not_sending_full_config_info_into_a_internal_relay_a_restricted_config_is_returned(
-    call_endpoint, default_project, default_projectkey
+def test_when_not_sending_full_config_info_into_a_internal_relay_the_full_config_is_returned(
+    call_endpoint, default_projectkey
 ):
-    result, status_code = call_endpoint(full_config=None)
+    result, status_code = call_endpoint()
 
     assert status_code < 400
 
     cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
-    assert safe.get_path(cfg, "config", "filterSettings") is None
-    assert safe.get_path(cfg, "config", "groupingConfig") is None
+    assert safe.get_path(cfg, "config", "filterSettings") is not None
+    assert safe.get_path(cfg, "config", "groupingConfig") is not None
 
 
 @django_db_all
-def test_when_not_sending_full_config_info_into_an_external_relay_a_restricted_config_is_returned(
-    call_endpoint, add_org_key, relay, default_project, default_projectkey
+def test_when_not_sending_full_config_info_into_an_external_relay_the_full_config_is_returned(
+    call_endpoint, add_org_key, relay, default_projectkey
 ):
     relay.is_internal = False
     relay.save()
 
-    result, status_code = call_endpoint(full_config=None)
+    result, status_code = call_endpoint()
 
     assert status_code < 400
 
     cfg = safe.get_path(result, "configs", str(default_projectkey.public_key))
-    assert safe.get_path(cfg, "config", "filterSettings") is None
-    assert safe.get_path(cfg, "config", "groupingConfig") is None
+    assert safe.get_path(cfg, "config", "filterSettings") is not None
+    assert safe.get_path(cfg, "config", "groupingConfig") is not None
 
 
 @django_db_all
-def test_trusted_external_relays_should_receive_minimal_configs(
+def test_trusted_external_relays_should_receive_full_configs(
     relay, add_org_key, call_endpoint, default_project, default_projectkey
 ):
     relay.is_internal = False
     relay.save()
 
-    result, status_code = call_endpoint(full_config=False)
+    result, status_code = call_endpoint()
 
     assert status_code < 400
 
+    # Sweeping assertion that we do not have any snake_case in that config.
+    # Might need refining.
+    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
+
     cfg = safe.get_path(result, "configs", default_projectkey.public_key)
     assert safe.get_path(cfg, "disabled") is False
+
     (public_key,) = cfg["publicKeys"]
     assert public_key["publicKey"] == default_projectkey.public_key
     assert public_key["numericId"] == default_projectkey.id
     assert public_key["isEnabled"]
-    assert "quotas" not in public_key
 
     assert safe.get_path(cfg, "slug") == default_project.slug
     last_change = safe.get_path(cfg, "lastChange")
@@ -230,27 +229,31 @@ def test_trusted_external_relays_should_receive_minimal_configs(
     assert safe.get_path(cfg, "projectId") == default_project.id
     assert safe.get_path(cfg, "slug") == default_project.slug
     assert safe.get_path(cfg, "rev") is not None
-    assert safe.get_path(cfg, "config", "trustedRelays") == [relay.public_key]
-    assert safe.get_path(cfg, "config", "filterSettings") is None
-    assert safe.get_path(cfg, "config", "groupingConfig") is None
-    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubData") is not None
-    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is not None
-    assert safe.get_path(cfg, "config", "piiConfig", "rules") is None
+
+    assert safe.get_path(cfg, "config", "trustedRelays") != []
+    assert safe.get_path(cfg, "config", "filterSettings") is not None
+    assert safe.get_path(cfg, "config", "groupingConfig", "enhancements") is not None
+    assert safe.get_path(cfg, "config", "groupingConfig", "id") is not None
     assert safe.get_path(cfg, "config", "piiConfig", "applications") is None
+    assert safe.get_path(cfg, "config", "piiConfig", "rules") is None
+    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubData") is True
+    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubDefaults") is True
+    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
+    assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
     assert safe.get_path(cfg, "config", "quotas") is None
+    # Event retention depends on settings, so assert the actual value.
+    assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
+        default_project.organization
+    )
 
 
 @django_db_all
 def test_untrusted_external_relays_should_not_receive_configs(
-    call_endpoint, default_project, default_projectkey, no_internal_networks
+    call_endpoint, default_projectkey, no_internal_networks
 ):
-    result, status_code = call_endpoint(full_config=False)
+    result, status_code = call_endpoint()
 
-    assert status_code < 400
-
-    cfg = result["configs"][default_projectkey.public_key]
-
-    assert cfg["disabled"]
+    assert status_code == 403
 
 
 @pytest.fixture
@@ -258,21 +261,6 @@ def projectconfig_cache_set(monkeypatch):
     calls: list[dict[str, Any]] = []
     monkeypatch.setattr("sentry.relay.projectconfig_cache.backend.set_many", calls.append)
     return calls
-
-
-@django_db_all
-def test_relay_projectconfig_cache_minimal_config(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner
-):
-    """
-    When a relay fetches a minimal config, that config should not end up in Redis.
-    """
-
-    with task_runner():
-        result, status_code = call_endpoint(full_config=False)
-        assert status_code < 400
-
-    assert not projectconfig_cache_set
 
 
 @django_db_all
@@ -284,7 +272,7 @@ def test_relay_projectconfig_cache_full_config(
     """
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=True)
+        result, status_code = call_endpoint()
         assert status_code < 400
 
     http_cfg = result["configs"][default_projectkey.public_key]
@@ -305,7 +293,7 @@ def test_relay_nonexistent_project(call_endpoint, projectconfig_cache_set, task_
     wrong_public_key = ProjectKey.generate_api_key()
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=True, public_keys=[wrong_public_key])
+        result, status_code = call_endpoint(public_keys=[wrong_public_key])
         assert status_code < 400
 
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
@@ -322,7 +310,7 @@ def test_relay_disabled_project(
     wrong_public_key = ProjectKey.generate_api_key()
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=True, public_keys=[wrong_public_key])
+        result, status_code = call_endpoint(public_keys=[wrong_public_key])
         assert status_code < 400
 
     assert result == {"configs": {wrong_public_key: {"disabled": True}}}
@@ -337,7 +325,7 @@ def test_relay_disabled_key(
     default_projectkey.update(status=ProjectKeyStatus.INACTIVE)
 
     with task_runner():
-        result, status_code = call_endpoint(full_config=True)
+        result, status_code = call_endpoint()
         assert status_code < 400
 
     (http_cfg,) = result["configs"].values()
@@ -349,7 +337,7 @@ def test_relay_disabled_key(
 @django_db_all
 def test_session_metrics_extraction(call_endpoint, task_runner):
     with task_runner():
-        result, status_code = call_endpoint(full_config=True)
+        result, status_code = call_endpoint()
         assert status_code < 400
 
     for config in result["configs"].values():
@@ -367,7 +355,7 @@ def test_session_metrics_abnormal_mechanism_tag_extraction(
         abnormal_mechanism_rollout,
     ):
         with task_runner():
-            result, status_code = call_endpoint(full_config=True)
+            result, status_code = call_endpoint()
             assert status_code < 400
 
         for config in result["configs"].values():
