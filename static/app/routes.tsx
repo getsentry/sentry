@@ -1501,7 +1501,7 @@ function buildRoutes() {
       <Route path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/cache/cacheLandingPage')
+            () => import('sentry/views/insights/cache/views/cacheLandingPage')
           )}
         />
       </Route>

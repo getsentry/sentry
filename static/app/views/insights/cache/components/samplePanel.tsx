@@ -24,6 +24,11 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
+import {TransactionDurationChart} from 'sentry/views/insights/cache/components/charts/transactionDurationChart';
+import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
+import {Referrer} from 'sentry/views/insights/cache/referrers';
+import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
@@ -50,11 +55,6 @@ import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
-import {Referrer} from 'sentry/views/performance/cache/referrers';
-import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
-import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
-import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSamplesTable';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';

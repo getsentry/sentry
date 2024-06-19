@@ -22,6 +22,21 @@ import {
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
+import {ThroughputChart} from 'sentry/views/insights/cache/components/charts/throughputChart';
+import {CacheSamplePanel} from 'sentry/views/insights/cache/components/samplePanel';
+import {
+  isAValidSort,
+  TransactionsTable,
+} from 'sentry/views/insights/cache/components/tables/transactionsTable';
+import {Referrer} from 'sentry/views/insights/cache/referrers';
+import {
+  BASE_FILTERS,
+  MODULE_DESCRIPTION,
+  MODULE_DOC_LINK,
+  MODULE_TITLE,
+  ONBOARDING_CONTENT,
+} from 'sentry/views/insights/cache/settings';
 import {
   useMetrics,
   useSpanMetrics,
@@ -31,21 +46,6 @@ import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParam
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import {CacheHitMissChart} from 'sentry/views/performance/cache/charts/hitMissChart';
-import {ThroughputChart} from 'sentry/views/performance/cache/charts/throughputChart';
-import {Referrer} from 'sentry/views/performance/cache/referrers';
-import {CacheSamplePanel} from 'sentry/views/performance/cache/samplePanel/samplePanel';
-import {
-  BASE_FILTERS,
-  MODULE_DESCRIPTION,
-  MODULE_DOC_LINK,
-  MODULE_TITLE,
-  ONBOARDING_CONTENT,
-} from 'sentry/views/performance/cache/settings';
-import {
-  isAValidSort,
-  TransactionsTable,
-} from 'sentry/views/performance/cache/tables/transactionsTable';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';

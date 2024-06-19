@@ -1,11 +1,11 @@
 import type {Series} from 'sentry/types/echarts';
 import {RateUnit} from 'sentry/utils/discover/fields';
 import {formatRate} from 'sentry/utils/formatters';
+import {CHART_HEIGHT} from 'sentry/views/insights/cache/settings';
 import {THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
-import {CHART_HEIGHT} from 'sentry/views/performance/cache/settings';
 
 interface Props {
   isLoading: boolean;

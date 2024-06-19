@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {CacheLandingPage} from 'sentry/views/performance/cache/cacheLandingPage';
+import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');

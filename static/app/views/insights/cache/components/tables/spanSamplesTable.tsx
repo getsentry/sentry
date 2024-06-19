@@ -12,13 +12,12 @@ import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {CacheHitMissCell} from 'sentry/views/insights/cache/components/tables/cacheHitMissCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
 import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
-import {CacheHitMissCell} from 'sentry/views/performance/cache/tables/cacheHitMissCell';
-
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT
