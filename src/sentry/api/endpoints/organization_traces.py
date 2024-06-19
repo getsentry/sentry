@@ -366,12 +366,7 @@ class TracesExecutor:
         selected_projects_snuba_params = self.snuba_params
 
         with handle_span_query_errors():
-            (
-                min_timestamp,
-                max_timestamp,
-                trace_ids,
-                span_keys,
-            ) = self.get_traces_matching_conditions(
+            min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_conditions(
                 selected_projects_params,
                 selected_projects_snuba_params,
             )
@@ -386,7 +381,6 @@ class TracesExecutor:
                 self.params,
                 self.snuba_params,
                 trace_ids,
-                span_keys,
             )
 
             all_raw_results = bulk_snuba_queries(
@@ -443,20 +437,20 @@ class TracesExecutor:
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
-    ) -> tuple[datetime, datetime, list[str], list[SpanKey] | None]:
+    ) -> tuple[datetime, datetime, list[str]]:
         if self.mri is not None:
             return self.get_traces_matching_metric_conditions(params, snuba_params)
 
         min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_span_conditions(
             params, snuba_params
         )
-        return min_timestamp, max_timestamp, trace_ids, None
+        return min_timestamp, max_timestamp, trace_ids
 
     def get_traces_matching_metric_conditions(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
-    ) -> tuple[datetime, datetime, list[str], list[SpanKey]]:
+    ) -> tuple[datetime, datetime, list[str]]:
         assert self.mri is not None
 
         executor_cls = get_sample_list_executor_cls(self.mri)
@@ -489,7 +483,7 @@ class TracesExecutor:
                 max_timestamp = timestamp
 
         if not trace_ids or min_timestamp > max_timestamp:
-            return min_timestamp, max_timestamp, [], []
+            return min_timestamp, max_timestamp, []
 
         self.refine_params(min_timestamp, max_timestamp)
 
@@ -504,7 +498,7 @@ class TracesExecutor:
             ) = self.get_traces_matching_span_conditions_in_traces(params, snuba_params, trace_ids)
 
             if not trace_ids:
-                return min_timestamp, max_timestamp, [], []
+                return min_timestamp, max_timestamp, []
         else:
             # No user queries so take the first N trace ids as our list
             min_timestamp = snuba_params.end
@@ -520,18 +514,7 @@ class TracesExecutor:
                 if timestamp > max_timestamp:
                     max_timestamp = timestamp
 
-        self.refine_params(min_timestamp, max_timestamp)
-
-        span_keys = executor.get_matching_spans_from_traces(
-            trace_ids,
-            self.max_spans_per_trace,
-        )
-
-        if not span_keys:
-            # TODO: log a message that we found traces but no span ids for metrics condition
-            return min_timestamp, max_timestamp, [], []
-
-        return min_timestamp, max_timestamp, trace_ids, span_keys
+        return min_timestamp, max_timestamp, trace_ids
 
     def get_traces_matching_span_conditions(
         self,
@@ -725,21 +708,6 @@ class TracesExecutor:
         return query, timestamp_column
 
     def get_all_queries(
-        self,
-        params: ParamsType,
-        snuba_params: SnubaParams,
-        trace_ids: list[str],
-        span_keys: list[SpanKey] | None,
-    ) -> list[QueryBuilder]:
-        meta_data_queries = self.get_all_meta_data_queries(
-            params,
-            snuba_params,
-            trace_ids,
-        )
-
-        return meta_data_queries
-
-    def get_all_meta_data_queries(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
