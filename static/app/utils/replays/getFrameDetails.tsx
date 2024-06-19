@@ -281,7 +281,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       case 'good':
         return {
           color: 'green300',
-          description: `Good ${Math.round(frame.data.value * 100) / 100}ms`,
+          description: `Good ${frame.data.value.toFixed(2)}ms`,
           tabKey: TabKey.NETWORK,
           title: frame.description.replaceAll('-', ' '),
           icon: <IconHappy size="xs" />,
@@ -289,7 +289,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       case 'needs-improvement':
         return {
           color: 'yellow300',
-          description: `Meh ${Math.round(frame.data.value * 100) / 100}ms`,
+          description: `Meh ${frame.data.value.toFixed(2)}ms`,
           tabKey: TabKey.NETWORK,
           title: frame.description.replaceAll('-', ' '),
           icon: <IconMeh size="xs" />,
@@ -297,7 +297,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
       default:
         return {
           color: 'red300',
-          description: `Poor ${Math.round(frame.data.value * 100) / 100}ms`,
+          description: `Poor ${frame.data.value.toFixed(2)}ms`,
           tabKey: TabKey.NETWORK,
           title: frame.description.replaceAll('-', ' '),
           icon: <IconSad size="xs" />,

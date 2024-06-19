@@ -41,7 +41,6 @@ import {
   isPaintFrame,
   isWebVitalFrame,
 } from 'sentry/utils/replays/types';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
 interface ReplayReaderParams {
@@ -60,6 +59,11 @@ interface ReplayReaderParams {
    * like performance-errors or replay-errors
    */
   errors: ReplayError[] | undefined;
+
+  /**
+   * The org's feature flags
+   */
+  featureFlags: string[] | undefined;
 
   /**
    * The root Replay event, created at the start of the browser session.
@@ -135,13 +139,25 @@ function removeDuplicateNavCrumbs(
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
-    if (!attachments || !replayRecord || !errors) {
+  static factory({
+    attachments,
+    errors,
+    replayRecord,
+    clipWindow,
+    featureFlags,
+  }: ReplayReaderParams) {
+    if (!attachments || !replayRecord || !errors || !featureFlags) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord, clipWindow});
+      return new ReplayReader({
+        attachments,
+        errors,
+        replayRecord,
+        featureFlags,
+        clipWindow,
+      });
     } catch (err) {
       Sentry.captureException(err);
 
@@ -152,6 +168,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
+        featureFlags: [],
         replayRecord,
         clipWindow,
       });
@@ -161,6 +178,7 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    featureFlags,
     replayRecord,
     clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
@@ -206,6 +224,7 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this._replayRecord = replayRecord;
+    this._featureFlags = featureFlags;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
@@ -245,6 +264,7 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
+  private _featureFlags: string[] = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -509,8 +529,7 @@ export default class ReplayReader {
   });
 
   getWebVitalFrames = memoize(() => {
-    const organization = useOrganization();
-    if (organization.features.includes('replay-web-vitals')) {
+    if (this._featureFlags.includes('replay-web-vitals')) {
       return this._sortedSpanFrames.filter(isWebVitalFrame);
     }
     return [];
