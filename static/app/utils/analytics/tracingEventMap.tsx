@@ -54,6 +54,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.search_success': {
     has_data: boolean;
+    num_missing_trace_root: number;
     num_traces: number;
     queries: string[];
   };
