@@ -35,7 +35,7 @@ class MetricsExtractionRule:
             raise ValueError("The span attribute must be of type string.")
         return span_attribute
 
-    def validate_type(self, type_value: str):
+    def validate_type(self, type_value: str) -> str:
         if not isinstance(type_value, str):
             raise ValueError("The type must be of type string.")
 
