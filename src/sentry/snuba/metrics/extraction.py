@@ -1601,7 +1601,6 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
 
 
 def _map_field_name(search_key: str) -> str:
-    # return f"span.data.{search_key}"
     """
     Maps the name of a field in a search query to the event protocol path.
 
