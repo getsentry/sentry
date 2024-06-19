@@ -3,7 +3,6 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import AlertLink from 'sentry/components/alertLink';
 import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -11,16 +10,13 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t, tct} from 'sentry/locale';
-import type {InternalAppApiToken, Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import type {InternalAppApiToken} from 'sentry/types';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-type Props = {
-  organization: Organization;
-} & DeprecatedAsyncView['props'];
+type Props = DeprecatedAsyncView['props'];
 
 type State = {
   tokenList: InternalAppApiToken[] | null;
@@ -69,7 +65,6 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
   };
 
   renderBody() {
-    const {organization} = this.props;
     const {tokenList} = this.state;
 
     const isEmpty = !Array.isArray(tokenList) || tokenList.length === 0;
@@ -125,4 +120,4 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
   }
 }
 
-export default withOrganization(ApiTokens);
+export default ApiTokens;
