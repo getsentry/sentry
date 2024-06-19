@@ -244,9 +244,9 @@ function MetricWidgetViewerModal({
 
   const handleClose = useCallback(() => {
     if (
-        userHasModified &&
-        // eslint-disable-next-line no-alert
-        !window.confirm(t('You have unsaved changes, are you sure you want to close?')
+      userHasModified &&
+      // eslint-disable-next-line no-alert
+      !window.confirm(t('You have unsaved changes, are you sure you want to close?'))
     ) {
       return;
     }
