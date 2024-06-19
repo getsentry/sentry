@@ -22,7 +22,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
+import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'

@@ -4,9 +4,9 @@ import {BASE_URL as VITALS_BASE_URL} from 'sentry/views/insights/browser/webVita
 import {BASE_URL as CACHE_BASE_URL} from 'sentry/views/insights/cache/settings';
 import {BASE_URL as DB_BASE_URL} from 'sentry/views/insights/database/settings';
 import {BASE_URL as HTTP_BASE_URL} from 'sentry/views/insights/http/settings';
+import {BASE_URL as AI_BASE_URL} from 'sentry/views/insights/llmMonitoring/settings';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {BASE_URL as AI_BASE_URL} from 'sentry/views/llmMonitoring/settings';
 import {BASE_URL as RESOURCES_BASE_URL} from 'sentry/views/performance/browser/resources/settings';
 import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/performance/mobile/appStarts/settings';
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/performance/mobile/screenload/settings';
