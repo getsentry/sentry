@@ -62,7 +62,6 @@ export default function useReplayReader({orgSlug, replaySlug, clipWindow, group}
     ...replayData,
     attachments,
     errors,
-    featureFlags,
     replay,
     replayId,
     replayRecord,

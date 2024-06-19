@@ -43,7 +43,6 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: [],
-  featureFlags: [],
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
@@ -53,7 +52,6 @@ mockUseReplayReader.mockImplementation(() => {
   return {
     attachments: [],
     errors: [],
-    featureFlags: [],
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),
@@ -99,7 +97,6 @@ describe('ReplayPreview', () => {
       return {
         attachments: [],
         errors: [],
-        featureFlags: [],
         fetchError: undefined,
         fetching: true,
         onRetry: jest.fn(),
@@ -121,7 +118,6 @@ describe('ReplayPreview', () => {
       return {
         attachments: [],
         errors: [],
-        featureFlags: [],
         fetchError: {status: 400} as RequestError,
         fetching: false,
         onRetry: jest.fn(),

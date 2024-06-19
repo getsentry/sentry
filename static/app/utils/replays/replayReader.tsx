@@ -61,11 +61,6 @@ interface ReplayReaderParams {
   errors: ReplayError[] | undefined;
 
   /**
-   * The org's feature flags
-   */
-  featureFlags: string[] | undefined;
-
-  /**
    * The root Replay event, created at the start of the browser session.
    */
   replayRecord: ReplayRecord | undefined;
@@ -74,6 +69,11 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
+
+  /**
+   * The org's feature flags
+   */
+  featureFlags?: string[];
 }
 
 type RequiredNotNull<T> = {
@@ -146,7 +146,7 @@ export default class ReplayReader {
     clipWindow,
     featureFlags,
   }: ReplayReaderParams) {
-    if (!attachments || !replayRecord || !errors || !featureFlags) {
+    if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
@@ -168,7 +168,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
-        featureFlags: [],
+        featureFlags,
         replayRecord,
         clipWindow,
       });
@@ -264,7 +264,7 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
-  private _featureFlags: string[] = [];
+  private _featureFlags: string[] | undefined = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -529,10 +529,10 @@ export default class ReplayReader {
   });
 
   getWebVitalFrames = memoize(() => {
-    if (this._featureFlags.includes('replay-web-vitals')) {
+    if (this._featureFlags?.includes('replay-web-vitals')) {
       return this._sortedSpanFrames.filter(isWebVitalFrame);
     }
-    return this._sortedSpanFrames.filter(isWebVitalFrame);
+    return [];
   });
 
   getVideoEvents = () => this._videoEvents;

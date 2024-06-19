@@ -31,7 +31,6 @@ describe('ReplayReader', () => {
     const missingAttachments = ReplayReader.factory({
       attachments: undefined,
       errors: [],
-      featureFlags: [],
       replayRecord,
     });
     expect(missingAttachments).toBeNull();
@@ -39,23 +38,13 @@ describe('ReplayReader', () => {
     const missingErrors = ReplayReader.factory({
       attachments: [],
       errors: undefined,
-      featureFlags: [],
       replayRecord,
     });
     expect(missingErrors).toBeNull();
 
-    const missingFeatureFlags = ReplayReader.factory({
-      attachments: [],
-      errors: [],
-      featureFlags: undefined,
-      replayRecord,
-    });
-    expect(missingFeatureFlags).toBeNull();
-
     const missingRecord = ReplayReader.factory({
       attachments: [],
       errors: [],
-      featureFlags: [],
       replayRecord: undefined,
     });
     expect(missingRecord).toBeNull();
@@ -71,7 +60,6 @@ describe('ReplayReader', () => {
         ReplayConsoleEventFixture({timestamp: minuteTen}),
       ],
       errors: [],
-      featureFlags: [],
       replayRecord: ReplayRecordFixture({
         started_at: new Date('2023-12-25T00:01:00'),
         finished_at: new Date('2023-12-25T00:09:00'),
@@ -90,7 +78,6 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments: [],
       errors: [],
-      featureFlags: [],
       replayRecord,
     });
 
@@ -226,7 +213,6 @@ describe('ReplayReader', () => {
       const replay = ReplayReader.factory({
         attachments,
         errors: [],
-        featureFlags: [],
         replayRecord,
       });
 
@@ -247,7 +233,6 @@ describe('ReplayReader', () => {
         }),
       ],
       errors: [],
-      featureFlags: [],
       replayRecord,
     });
 
@@ -270,7 +255,6 @@ describe('ReplayReader', () => {
           }),
         ],
         errors: [],
-        featureFlags: [],
         replayRecord,
       });
 
@@ -310,7 +294,6 @@ describe('ReplayReader', () => {
           }),
         ],
         errors: [],
-        featureFlags: [],
         replayRecord,
       });
 
@@ -339,7 +322,6 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments,
       errors: [],
-      featureFlags: [],
       replayRecord,
     });
 
@@ -374,7 +356,6 @@ describe('ReplayReader', () => {
     const replay = ReplayReader.factory({
       attachments,
       errors: [],
-      featureFlags: [],
       replayRecord,
     });
 
@@ -453,7 +434,6 @@ describe('ReplayReader', () => {
         started_at: replayStartedAt,
         finished_at: replayFinishedAt,
       }),
-      featureFlags: [],
       clipWindow: {
         startTimestampMs: clipStartTimestamp.getTime(),
         endTimestampMs: clipEndTimestamp.getTime(),
