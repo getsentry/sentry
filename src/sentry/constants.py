@@ -621,7 +621,8 @@ INSIGHT_MODULE_SPAN_FILTERS = {
     InsightModules.ASSETS: lambda span: span.get("op")
     in ["resource.script", "resource.css", "resource.font", "resource.img"],
     InsightModules.APP_START: lambda span: span.get("op").startswith("app.start."),
-    InsightModules.SCREEN_LOAD: lambda span: span["sentry_tags"].get("transaction.op") == "ui.load",
+    InsightModules.SCREEN_LOAD: lambda span: span.get("sentry_tags", {}).get("transaction.op")
+    == "ui.load",
     InsightModules.VITAL: lambda span: span.get("op")
     in [
         "ui.interaction.click",
