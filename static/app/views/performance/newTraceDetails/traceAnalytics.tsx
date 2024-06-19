@@ -1,19 +1,37 @@
 import * as Sentry from '@sentry/react';
 
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TraceType} from 'sentry/views/performance/newTraceDetails/traceType';
 
-const trackTraceMetadata = (tree: TraceTree, organization: Organization) => {
+const trackTraceMetadata = (
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization
+) => {
   Sentry.metrics.increment(`trace.trace_shape.${tree.shape}`);
+
   // space[1] represents the node duration (in milliseconds)
   const trace_duration_seconds = (tree.root.space?.[1] ?? 0) / 1000;
+  const projectSlugs = [
+    ...new Set(
+      tree.list.map(node => node.metadata.project_slug).filter(slug => slug !== undefined)
+    ),
+  ];
+
+  const projectPlatforms = projects
+    .filter(p => projectSlugs.includes(p.slug))
+    .map(project => project?.platform ?? '');
+
   trackAnalytics('trace.metadata', {
     shape: tree.shape,
     // round trace_duration_seconds to nearest two decimal places
     trace_duration_seconds: Math.round(trace_duration_seconds * 100) / 100,
     num_root_children: tree.root.children.length,
+    num_nodes: tree.list.length,
+    project_platforms: projectPlatforms,
     organization,
   });
 };
