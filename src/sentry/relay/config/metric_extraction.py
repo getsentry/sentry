@@ -820,10 +820,12 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
 
     specs = []
     for rule in extraction_rules_state.get_rules():
-        spec = cast(MetricSpec, convert_to_spec(rule))
-
-        validate_rule_condition(json.dumps(spec["condition"]))
-        specs.append((spec["mri"], spec, version))
+        try:
+            spec = cast(MetricSpec, convert_to_spec(rule))
+            validate_rule_condition(json.dumps(spec["condition"]))
+            specs.append((spec["mri"], spec, version))
+        except ValueError:
+            logger.exception("Invalid span attribute metric spec", extra={rule})
 
     return specs
 
