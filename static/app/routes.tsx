@@ -1509,13 +1509,13 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () =>
-              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+              import('sentry/views/insights/browser/webVitals/views/webVitalsLandingPage')
           )}
         />
         <Route
           path="overview/"
           component={make(
-            () => import('sentry/views/performance/browser/webVitals/pageOverview')
+            () => import('sentry/views/insights/browser/webVitals/views/pageOverview')
           )}
         />
       </Route>
@@ -1526,16 +1526,15 @@ function buildRoutes() {
       <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/browser/resources/index')
+            () =>
+              import('sentry/views/insights/browser/resources/views/resourcesLandingPage')
           )}
         />
         <Route
           path="spans/span/:groupId/"
           component={make(
             () =>
-              import(
-                'sentry/views/performance/browser/resources/resourceSummaryPage/index'
-              )
+              import('sentry/views/insights/browser/resources/views/resourceSummaryPage')
           )}
         />
       </Route>
@@ -1603,12 +1602,16 @@ function buildRoutes() {
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
-          component={make(() => import('sentry/views/llmMonitoring/landing'))}
+          component={make(
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage')
+          )}
         />
         <Route
           path="pipeline-type/:groupId/"
           component={make(
-            () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
           )}
         />
       </Route>

@@ -18,8 +18,8 @@ import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pa
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import type {ModuleName} from 'sentry/views/insights/types';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/components/platformSelector';
 import Onboarding from 'sentry/views/performance/onboarding';

@@ -1,5 +1,5 @@
 import {NumberContainer} from 'sentry/utils/discover/styles';
-import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
+import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
 
 type Props = {
   bytes?: number;

@@ -23,6 +23,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {DEFAULT_COLUMN_ORDER} from 'sentry/views/insights/common/components/samplesTable/spanSamplesTable';
 import DurationChart from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart';
@@ -33,7 +34,6 @@ import {
   SpanIndexedField,
   SpanMetricsField,
 } from 'sentry/views/insights/types';
-import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 const {HTTP_RESPONSE_CONTENT_LENGTH, SPAN_DESCRIPTION} = SpanMetricsField;
