@@ -40,9 +40,9 @@ import useCrossPlatformProject from 'sentry/views/performance/mobile/common/quer
 import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
-} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
-import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+} from 'sentry/views/performance/mobile/screenload/components/spanOpSelector';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
+import {MobileCursors} from 'sentry/views/performance/mobile/screenload/constants';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/mobile/screenload/settings';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 

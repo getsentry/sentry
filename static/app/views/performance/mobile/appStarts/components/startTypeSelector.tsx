@@ -6,7 +6,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
+import {MobileCursors} from 'sentry/views/performance/mobile/screenload/constants';
 
 export const COLD_START_TYPE = 'cold';
 export const WARM_START_TYPE = 'warm';

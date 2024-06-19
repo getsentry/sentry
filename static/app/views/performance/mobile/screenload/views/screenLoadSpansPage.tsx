@@ -29,15 +29,15 @@ import useCrossPlatformProject from 'sentry/views/performance/mobile/common/quer
 import {
   ScreenCharts,
   YAxis,
-} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/charts';
-import {ScreenLoadEventSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamples';
-import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
-import {ScreenLoadSpansTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/table';
+} from 'sentry/views/performance/mobile/screenload/components/charts/screenCharts';
+import {ScreenLoadEventSamples} from 'sentry/views/performance/mobile/screenload/components/eventSamples';
+import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/components/metricsRibbon';
+import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/components/platformSelector';
+import {ScreenLoadSpansTable} from 'sentry/views/performance/mobile/screenload/components/tables/screenLoadSpansTable';
 import {
   MobileCursors,
   MobileSortKeys,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
+} from 'sentry/views/performance/mobile/screenload/constants';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 

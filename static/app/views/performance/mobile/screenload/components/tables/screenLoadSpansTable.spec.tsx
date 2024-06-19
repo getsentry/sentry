@@ -6,7 +6,7 @@ import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {ScreenLoadSpansTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/table';
+import {ScreenLoadSpansTable} from 'sentry/views/performance/mobile/screenload/components/tables/screenLoadSpansTable';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');

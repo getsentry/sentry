@@ -20,13 +20,10 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {getFreeTextFromQuery} from 'sentry/views/performance/mobile/screenload/screens';
-import {
-  YAxis,
-  YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {getFreeTextFromQuery} from 'sentry/views/performance/mobile/screenload/components/screensView';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
+import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/constants';
+import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/utils';
 import {TopScreensChart} from 'sentry/views/performance/mobile/ui/components/charts/topScreensChart';
 import {UIScreensTable} from 'sentry/views/performance/mobile/ui/components/tables/uiScreensTable';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';

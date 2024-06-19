@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
-import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
+import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/components/platformSelector';
 
 jest.mock('sentry/utils/localStorage');
 

@@ -27,14 +27,11 @@ import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/compone
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {getFreeTextFromQuery} from 'sentry/views/performance/mobile/screenload/screens';
-import {
-  YAxis,
-  YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/components/charts/screenBarChart';
+import {getFreeTextFromQuery} from 'sentry/views/performance/mobile/screenload/components/screensView';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
+import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/constants';
+import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/utils';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 

@@ -2,7 +2,7 @@ import {t} from 'sentry/locale';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
+import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/components/charts/screenBarChart';
 
 function getChartTitle(yAxis: string, countTopScreens: number) {
   const TITLES = {

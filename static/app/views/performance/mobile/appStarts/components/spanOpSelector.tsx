@@ -14,9 +14,9 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
-import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/spanOpSelector';
-import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {TTID_CONTRIBUTING_SPAN_OPS} from 'sentry/views/performance/mobile/screenload/components/spanOpSelector';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
+import {MobileCursors} from 'sentry/views/performance/mobile/screenload/constants';
 
 export const APP_START_SPANS = [
   ...TTID_CONTRIBUTING_SPAN_OPS,

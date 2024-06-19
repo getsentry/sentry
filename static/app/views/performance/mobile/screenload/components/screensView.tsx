@@ -30,20 +30,20 @@ import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/components/charts/screenBarChart';
+import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/components/tabbedCodeSnippets';
+import {
+  ScreensTable,
+  useTableQuery,
+} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
 import {
   CHART_TITLES,
   MobileCursors,
   YAxis,
   YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
-import {
-  ScreensTable,
-  useTableQuery,
-} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {SETUP_CONTENT} from 'sentry/views/performance/mobile/screenload/screens/setupContent';
-import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/screens/tabbedCodeSnippets';
-import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+} from 'sentry/views/performance/mobile/screenload/constants';
+import {SETUP_CONTENT} from 'sentry/views/performance/mobile/screenload/data/setupContent';
+import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/utils';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 

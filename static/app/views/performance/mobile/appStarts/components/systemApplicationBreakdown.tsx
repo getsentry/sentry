@@ -22,7 +22,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/uti
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import Breakdown from 'sentry/views/performance/mobile/appStarts/components/breakdown';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
 
 const SYSTEM_COLOR = '#D6567F';
 const APPLICATION_COLOR = '#444674';

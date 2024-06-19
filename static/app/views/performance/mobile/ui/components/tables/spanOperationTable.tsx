@@ -23,8 +23,8 @@ import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/components/spanOpSelector';
 import type {SpanOperationTableProps} from 'sentry/views/performance/mobile/common/components/tables/samplesTables';
 import {ScreensTable} from 'sentry/views/performance/mobile/common/components/tables/screensTable';
-import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
+import {MobileCursors} from 'sentry/views/performance/mobile/screenload/constants';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 

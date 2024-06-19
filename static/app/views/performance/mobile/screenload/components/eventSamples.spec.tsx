@@ -5,11 +5,11 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {ScreenLoadEventSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamples';
+import {ScreenLoadEventSamples} from 'sentry/views/performance/mobile/screenload/components/eventSamples';
 import {
   MobileCursors,
   MobileSortKeys,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
+} from 'sentry/views/performance/mobile/screenload/constants';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/views/insights/common/queries/useReleases');

@@ -18,12 +18,9 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
-import {
-  YAxis,
-  YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/components/charts/screenBarChart';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
+import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/constants';
 
 interface Props {
   chartHeight?: number;

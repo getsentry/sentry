@@ -14,8 +14,8 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
-import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/components/tables/eventSamplesTable';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
 
 const DEFAULT_SORT = {
   kind: 'desc',

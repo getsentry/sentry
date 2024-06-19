@@ -16,7 +16,7 @@ import {DeviceClassSelector} from 'sentry/views/performance/mobile/common/compon
 import {
   MobileCursors,
   MobileSortKeys,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
+} from 'sentry/views/performance/mobile/screenload/constants';
 
 const EVENT = 'event';
 const SPANS = 'spans';

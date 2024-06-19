@@ -28,7 +28,7 @@ import {
   StartTypeSelector,
 } from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/common/components/spanSamplesPanel';
-import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
+import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/components/metricsRibbon';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 

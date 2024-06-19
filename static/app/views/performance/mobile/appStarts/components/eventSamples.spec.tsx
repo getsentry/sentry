@@ -9,7 +9,7 @@ import {EventSamples} from 'sentry/views/performance/mobile/appStarts/components
 import {
   MobileCursors,
   MobileSortKeys,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
+} from 'sentry/views/performance/mobile/screenload/constants';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/views/insights/common/queries/useReleases');

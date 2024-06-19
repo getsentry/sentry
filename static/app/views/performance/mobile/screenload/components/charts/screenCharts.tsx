@@ -26,14 +26,14 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/uti
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
+import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/components/charts/screenBarChart';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
 import {
   CHART_TITLES,
   OUTPUT_TYPE,
   YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+} from 'sentry/views/performance/mobile/screenload/constants';
+import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/utils';
 
 export enum YAxis {
   WARM_START = 0,

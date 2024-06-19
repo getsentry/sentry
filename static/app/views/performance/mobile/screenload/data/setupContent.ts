@@ -1,4 +1,4 @@
-import type {CodeSnippetTab} from 'sentry/views/performance/mobile/screenload/screens/tabbedCodeSnippets';
+import type {CodeSnippetTab} from 'sentry/views/performance/mobile/screenload/components/tabbedCodeSnippets';
 
 const swiftSetupSnippet = `// Step 1 - Enable Time to Full Display
 import Sentry

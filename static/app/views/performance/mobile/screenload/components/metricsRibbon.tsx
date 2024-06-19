@@ -15,7 +15,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
 
 interface BlockProps {
   dataKey: string | ((data?: TableDataRow[]) => number | undefined);

@@ -32,12 +32,9 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
-import {
-  YAxis,
-  YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {useTableQuery} from 'sentry/views/performance/mobile/screenload/components/tables/screensTable';
+import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/constants';
+import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/utils';
 
 const YAXES = [YAxis.COLD_START, YAxis.WARM_START];
 const XAXIS_CATEGORIES = ['high', 'medium', 'low', 'Unknown'];

@@ -4,7 +4,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {isCrossPlatform} from 'sentry/views/performance/mobile/screenload/utils';
 
 export const PLATFORM_LOCAL_STORAGE_KEY = 'mobile-performance-platform';
 export const PLATFORM_QUERY_PARAM = 'platform';
