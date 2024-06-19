@@ -1601,6 +1601,7 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
 
 
 def _map_field_name(search_key: str) -> str:
+    # return f"span.data.{search_key}"
     """
     Maps the name of a field in a search query to the event protocol path.
 
@@ -1690,9 +1691,11 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken]):
+    def __init__(self, tokens: Sequence[QueryToken], field_mapper=_map_field_name):
         self._tokens = tokens
         self._position = 0
+        # The field mapper is used to map the field names in the search query to the event protocol path.
+        self._field_mapper = field_mapper
 
     def convert(self) -> RuleCondition:
         """
@@ -1763,7 +1766,7 @@ class SearchQueryConverter:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
-            return SearchQueryConverter(paren.children).convert()
+            return SearchQueryConverter(paren.children, self._field_mapper).convert()
         elif token := self._peek():
             raise ValueError(f"Unexpected token {token}")
         else:
@@ -1780,7 +1783,7 @@ class SearchQueryConverter:
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": [_escape_wildcard(value)],
             }
         else:
@@ -1796,7 +1799,7 @@ class SearchQueryConverter:
 
             condition = {
                 "op": operator,
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": value,
             }
 
