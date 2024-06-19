@@ -18,26 +18,32 @@ HARD_CODED_UNITS = {"span.duration": "millisecond"}
 ALLOWED_TYPES = {"c", "d", "s"}
 
 
-@dataclass(frozen=True)
+@dataclass
 class MetricsExtractionRule:
-    span_attribute: str
-    type: str
-    unit: str
-    tags: set[str]
-    conditions: list[str]
+    def __init__(
+        self, span_attribute: str, type: str, unit: str, tags: set[str], conditions: list[str]
+    ):
+
+        self.span_attribute = span_attribute
+        self.type = self.validate_type(type)
+        self.unit = HARD_CODED_UNITS.get(span_attribute, "none")
+        self.tags = tags
+        self.conditions = conditions
+
+    def validate_type(self, type_value: str):
+        if type_value not in ALLOWED_TYPES:
+            raise ValueError(
+                "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set. "
+            )
+        return type_value
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
 
-        if dictionary["type"] not in ALLOWED_TYPES:
-            raise ValueError(
-                "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set. "
-            )
-
         return MetricsExtractionRule(
             span_attribute=dictionary["spanAttribute"],
             type=dictionary["type"],
-            unit=HARD_CODED_UNITS.get(dictionary["spanAttribute"], "none"),
+            unit=dictionary["unit"],
             tags=set(dictionary.get("tags") or set()),
             conditions=list(dictionary.get("conditions") or []),
         )
