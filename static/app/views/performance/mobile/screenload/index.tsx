@@ -14,7 +14,7 @@ import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {
