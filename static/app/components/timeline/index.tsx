@@ -34,9 +34,7 @@ export function Item({
   startTimeString,
   colorConfig = {primary: 'gray300', secondary: 'gray200'},
   isActive = false,
-  onClick,
-  onMouseEnter,
-  onMouseLeave,
+  ...props
 }: TimelineItemProps) {
   const theme = useTheme();
   const placeholderTime = useRef(new Date().toTimeString()).current;
@@ -54,12 +52,10 @@ export function Item({
     <Row
       color={secondary}
       hasLowerBorder={isActive}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
       style={{
         borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
       }}
+      {...props}
     >
       <IconWrapper
         style={{
@@ -130,6 +126,7 @@ const IconWrapper = styled('div')`
   border-radius: 100%;
   border: 1px solid;
   background: ${p => p.theme.background};
+  z-index: 10;
   svg {
     display: block;
     margin: ${space(0.5)};
@@ -159,7 +156,7 @@ const Spacer = styled('div')`
 const Content = styled('div')`
   grid-column: span 2;
   color: ${p => p.theme.subText};
-  margin: ${space(0.25)} 0 ${space(2)};
+  margin: ${space(0.25)} 0 0;
 `;
 
 export const Text = styled('div')`

@@ -13,6 +13,8 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import Timeline from 'sentry/components/timeline';
+import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -63,7 +65,84 @@ function BreadcrumbItem({
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
-  return (
+  function renderDescription() {
+    return typeof description === 'string' ||
+      (description !== undefined && isValidElement(description)) ? (
+      <Description title={description} showOnlyOnOverflow isHoverable>
+        {description}
+      </Description>
+    ) : (
+      <InspectorWrapper>
+        <ObjectInspector
+          data={description}
+          expandPaths={expandPaths}
+          onExpand={onInspectorExpanded}
+          theme={{
+            TREENODE_FONT_SIZE: '0.7rem',
+            ARROW_FONT_SIZE: '0.5rem',
+          }}
+        />
+      </InspectorWrapper>
+    );
+  }
+
+  function renderComparisonButton() {
+    return 'data' in frame && frame.data && 'mutations' in frame.data ? (
+      <div>
+        <OpenReplayComparisonButton
+          replay={replay}
+          leftTimestamp={frame.offsetMs}
+          rightTimestamp={
+            (frame.data.mutations.next?.timestamp ?? 0) -
+            (replay?.getReplay().started_at.getTime() ?? 0)
+          }
+          size="xs"
+        >
+          {t('Open Hydration Diff')}
+        </OpenReplayComparisonButton>
+      </div>
+    ) : null;
+  }
+
+  function renderCodeSnippet() {
+    return extraction?.html ? (
+      <CodeContainer>
+        <CodeSnippet language="html" hideCopyButton>
+          {beautify.html(extraction?.html, {indent_size: 2})}
+        </CodeSnippet>
+      </CodeContainer>
+    ) : null;
+  }
+
+  function renderIssueLink() {
+    return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+      <CrumbErrorIssue frame={frame} />
+    ) : null;
+  }
+
+  const hasNewTimelineUI = useHasNewTimelineUI();
+  const timeString = new Date(frame.timestampMs).toISOString();
+  const startTimeString = new Date(startTimestampMs).toISOString();
+  return hasNewTimelineUI ? (
+    <StyledTimelineItem
+      icon={icon}
+      title={title}
+      colorConfig={{primary: color, secondary: color}}
+      timeString={timeString}
+      startTimeString={startTimeString}
+      onClick={e => onClick?.(frame, e)}
+      onMouseEnter={e => onMouseEnter(frame, e)}
+      onMouseLeave={e => onMouseLeave(frame, e)}
+      data-is-error-frame={isErrorFrame(frame)}
+    >
+      <ErrorBoundary mini>
+        {renderDescription()}
+        {renderComparisonButton()}
+        {renderCodeSnippet()}
+        {renderIssueLink()}
+      </ErrorBoundary>
+    </StyledTimelineItem>
+  ) : (
     <CrumbItem
       data-is-error-frame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
@@ -89,54 +168,11 @@ function BreadcrumbItem({
                 />
               ) : null}
             </TitleContainer>
-
-            {typeof description === 'string' ||
-            (description !== undefined && isValidElement(description)) ? (
-              <Description title={description} showOnlyOnOverflow isHoverable>
-                {description}
-              </Description>
-            ) : (
-              <InspectorWrapper>
-                <ObjectInspector
-                  data={description}
-                  expandPaths={expandPaths}
-                  onExpand={onInspectorExpanded}
-                  theme={{
-                    TREENODE_FONT_SIZE: '0.7rem',
-                    ARROW_FONT_SIZE: '0.5rem',
-                  }}
-                />
-              </InspectorWrapper>
-            )}
+            {renderDescription()}
           </Flex>
-
-          {'data' in frame && frame.data && 'mutations' in frame.data ? (
-            <div>
-              <OpenReplayComparisonButton
-                replay={replay}
-                leftTimestamp={frame.offsetMs}
-                rightTimestamp={
-                  (frame.data.mutations.next?.timestamp ?? 0) -
-                  (replay?.getReplay().started_at.getTime() ?? 0)
-                }
-                size="xs"
-              >
-                {t('Open Hydration Diff')}
-              </OpenReplayComparisonButton>
-            </div>
-          ) : null}
-
-          {extraction?.html ? (
-            <CodeContainer>
-              <CodeSnippet language="html" hideCopyButton>
-                {beautify.html(extraction?.html, {indent_size: 2})}
-              </CodeSnippet>
-            </CodeContainer>
-          ) : null}
-
-          {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
-            <CrumbErrorIssue frame={frame} />
-          ) : null}
+          {renderComparisonButton()}
+          {renderCodeSnippet()}
+          {renderIssueLink()}
         </CrumbDetails>
       </ErrorBoundary>
     </CrumbItem>
@@ -219,6 +255,27 @@ const Description = styled(Tooltip)`
   font-variant-numeric: tabular-nums;
   line-height: ${p => p.theme.text.lineHeightBody};
   color: ${p => p.theme.subText};
+`;
+
+const StyledTimelineItem = styled(Timeline.Item)`
+  width: 100%;
+  position: relative;
+  padding: ${space(0.5)} ${space(0.75)};
+  &:hover {
+    background: ${p => p.theme.translucentSurface200};
+  }
+  cursor: pointer;
+  /* vertical line connecting items */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 16.5px;
+    width: 1px;
+    top: 0;
+    bottom: -9px;
+    background: ${p => p.theme.border};
+    z-index: 0;
+  }
 `;
 
 const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
