@@ -503,11 +503,19 @@ export class TokenConverter {
     args: [{separator: '', value: arg1}, ...args.map(listJoiner)],
   });
 
-  tokenValueIso8601Date = (value: string) => ({
+  tokenValueIso8601Date = (
+    value: string,
+    date: Array<string | string[]>,
+    time?: Array<string | string[]>,
+    tz?: Array<string | string[]>
+  ) => ({
     ...this.defaultTokenFields,
     type: Token.VALUE_ISO_8601_DATE as const,
     value: value,
     parsed: this.config.parse ? parseDate(value) : undefined,
+    date: date.flat().join(''),
+    time: time?.flat().join('').replace('T', ''),
+    tz: Array.isArray(tz) ? tz.flat().join('') : tz,
   });
 
   tokenValueRelativeDate = (

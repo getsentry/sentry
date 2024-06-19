@@ -5,6 +5,7 @@ import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
+import {DateTime} from 'sentry/components/dateTime';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {FilterOperator} from 'sentry/components/searchQueryBuilder/filterOperator';
@@ -52,6 +53,12 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           ))}
         </FilterValueList>
       );
+    case Token.VALUE_ISO_8601_DATE:
+      const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
+
+      return (
+        <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
+      );
     default:
       return formatFilterValue(token.value);
   }
@@ -87,6 +94,7 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
       <ValueEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <SearchQueryBuilderValueCombobox
           token={token}
+          wrapperRef={ref}
           onCommit={() => {
             setIsEditing(false);
             if (state.collection.getKeyAfter(item.key)) {
