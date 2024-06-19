@@ -6,7 +6,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanOperationTable} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOperationTable';
+import {SpanOperationTable} from 'sentry/views/performance/mobile/appStarts/components/tables/spanOperationTable';
 
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useLocation');

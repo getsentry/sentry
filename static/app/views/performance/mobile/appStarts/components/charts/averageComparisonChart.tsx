@@ -15,7 +15,7 @@ import {PRIMARY_RELEASE_COLOR} from 'sentry/views/insights/colors';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {

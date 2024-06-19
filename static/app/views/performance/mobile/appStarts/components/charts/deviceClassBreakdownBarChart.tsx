@@ -30,7 +30,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/uti
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
-import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {
   YAxis,

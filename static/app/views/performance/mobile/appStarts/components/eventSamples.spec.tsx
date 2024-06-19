@@ -5,7 +5,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {EventSamples} from 'sentry/views/performance/mobile/appStarts/screenSummary/eventSamples';
+import {EventSamples} from 'sentry/views/performance/mobile/appStarts/components/eventSamples';
 import {
   MobileCursors,
   MobileSortKeys,

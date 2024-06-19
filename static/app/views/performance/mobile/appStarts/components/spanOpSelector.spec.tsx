@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
+import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/components/spanOpSelector';
 
 jest.mock('sentry/utils/usePageFilters');
 

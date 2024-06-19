@@ -6,7 +6,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import SystemApplicationBreakdown from 'sentry/views/performance/mobile/appStarts/screenSummary/systemApplicationBreakdown';
+import SystemApplicationBreakdown from 'sentry/views/performance/mobile/appStarts/components/systemApplicationBreakdown';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');

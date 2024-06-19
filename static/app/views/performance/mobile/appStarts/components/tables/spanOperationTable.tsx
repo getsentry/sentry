@@ -33,11 +33,11 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/uti
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
+import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/components/spanOpSelector';
 import {
   COLD_START_TYPE,
   WARM_START_TYPE,
-} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+} from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';

@@ -9,9 +9,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {ModuleName} from 'sentry/views/insights/types';
-import {EventSamples} from 'sentry/views/performance/mobile/appStarts/screenSummary/eventSamples';
-import {SpanOperationTable} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOperationTable';
-import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
+import {EventSamples} from 'sentry/views/performance/mobile/appStarts/components/eventSamples';
+import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/components/spanOpSelector';
+import {SpanOperationTable} from 'sentry/views/performance/mobile/appStarts/components/tables/spanOperationTable';
 import {DeviceClassSelector} from 'sentry/views/performance/mobile/common/components/deviceClassSelector';
 import {
   MobileCursors,

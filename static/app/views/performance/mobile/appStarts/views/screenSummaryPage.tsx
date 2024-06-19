@@ -22,17 +22,17 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {SamplesTables} from 'sentry/views/performance/mobile/appStarts/screenSummary/samples';
+import {SamplesTables} from 'sentry/views/performance/mobile/appStarts/components/samples';
 import {
   COLD_START_TYPE,
   StartTypeSelector,
-} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+} from 'sentry/views/performance/mobile/appStarts/components/startTypeSelector';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/common/components/spanSamplesPanel';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
-import AppStartWidgets from '../screenSummary/widgets';
+import AppStartWidgets from '../components/widgets';
 
 type Query = {
   [SpanMetricsField.APP_START_TYPE]: string;
