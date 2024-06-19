@@ -81,8 +81,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         set_tag("relay_endpoint_version", version)
         no_cache = request.relay_request_data.get("noCache") or False
         set_tag("relay_no_cache", no_cache)
-        is_full_config = request.relay_request_data.get("fullConfig")
-        set_tag("relay_full_config", is_full_config)
 
         post_or_schedule = True
         reason = "version"
@@ -90,10 +88,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         if version != "3":
             post_or_schedule = False
             reason = "version"
-        elif not is_full_config:
-            post_or_schedule = False
-            reason = "fullConfig"
-            version = "2"  # Downgrade to 2 for reporting metrics
         elif no_cache:
             post_or_schedule = False
             reason = "noCache"
