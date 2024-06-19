@@ -36,8 +36,8 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(public_keys=None, version="2"):
-        path = reverse("sentry-api-0-relay-projectconfigs") + f"?version={version}"
+    def inner(public_keys=None):
+        path = reverse("sentry-api-0-relay-projectconfigs") + "?version=2"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
@@ -137,9 +137,7 @@ def test_internal_relays_should_receive_full_configs(
 
 
 @django_db_all
-def test_relays_dyamic_sampling(
-    client, call_endpoint, default_project, default_projectkey, dyn_sampling_data
-):
+def test_relays_dyamic_sampling(call_endpoint, default_projectkey):
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
@@ -248,9 +246,7 @@ def test_trusted_external_relays_should_receive_full_configs(
 
 
 @django_db_all
-def test_untrusted_external_relays_should_not_receive_configs(
-    call_endpoint, default_projectkey, no_internal_networks
-):
+def test_untrusted_external_relays_should_not_receive_configs(call_endpoint, no_internal_networks):
     result, status_code = call_endpoint()
 
     assert status_code == 403
@@ -320,7 +316,7 @@ def test_relay_disabled_project(
 
 @django_db_all
 def test_relay_disabled_key(
-    call_endpoint, default_project, projectconfig_cache_set, task_runner, default_projectkey
+    call_endpoint, projectconfig_cache_set, task_runner, default_projectkey
 ):
     default_projectkey.update(status=ProjectKeyStatus.INACTIVE)
 

@@ -2,7 +2,6 @@ import logging
 from collections.abc import MutableMapping
 from typing import Any
 
-import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import Hub, set_tag, start_span
@@ -43,16 +42,6 @@ class RelayProjectConfigsEndpoint(Endpoint):
         relay = request.relay
         assert relay is not None  # should be provided during Authentication
         response = {}
-
-        if not request.relay_request_data.get("fullConfig", True):
-            # We capture a message to make it apparent to self-hosted users that now it's only possible to query
-            # full project configs.
-            sentry_sdk.capture_message(
-                "Requesting the non-full configuration is not possible anymore"
-            )
-            return Response(
-                "Requesting the non-full configuration is not possible anymore", status=400
-            )
 
         if not relay.is_internal:
             return Response("Relay unauthorized for config information", status=403)
