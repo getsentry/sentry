@@ -68,7 +68,12 @@ class ProcessDelayedAlertConditionsTest(
         comparison_type=ComparisonType.COUNT,
     ):
         condition_id = f"sentry.rules.conditions.event_frequency.{id}"
-        return {"interval": interval, "id": condition_id, "value": value, "comparisonType": comparison_type}
+        return {
+            "interval": interval,
+            "id": condition_id,
+            "value": value,
+            "comparisonType": comparison_type,
+        }
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
@@ -329,7 +334,9 @@ class ProcessDelayedAlertConditionsTest(
         Test that two rules with the same condition and interval but a different value are both fired
         """
         project = self.create_project()
-        comparison_condition = self.create_event_frequency_condition(comparison_type=ComparisonType.PERCENT)
+        comparison_condition = self.create_event_frequency_condition(
+            comparison_type=ComparisonType.PERCENT
+        )
         rule6 = self.create_project_rule(
             project=project,
             condition_match=[comparison_condition],
@@ -349,7 +356,9 @@ class ProcessDelayedAlertConditionsTest(
         self.create_event(project, self.now, "group-5", self.environment.name)
         self.create_event(project, self.now, "group-5", self.environment.name)
         self.create_event(project, self.now, "group-5", self.environment.name)
-        event6 = self.create_event(project, self.now - timedelta(days=1, hours=1), "group-5", self.environment.name)
+        event6 = self.create_event(
+            project, self.now - timedelta(days=1, hours=1), "group-5", self.environment.name
+        )
         self.create_event(project, self.now, "group-6", self.environment.name)
         self.create_event(project, self.now, "group-6", self.environment.name)
         group5 = event5.group
