@@ -449,3 +449,24 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         )
 
         assert response.status_code == 400
+
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_stuff",
+                    "type": "c",
+                    "unit": None,
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": ["foo:bar", "baz:faz"],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+
+        assert response.status_code == 400
