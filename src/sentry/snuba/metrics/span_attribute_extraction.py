@@ -50,10 +50,6 @@ def _get_field(extraction_rule: MetricsExtractionRule) -> str | None:
     return _map_span_attribute_name(extraction_rule.span_attribute)
 
 
-def _get_mri(extraction_rule: MetricsExtractionRule) -> str:
-    return f"d:custom/{extraction_rule.span_attribute}@{extraction_rule.unit}"
-
-
 def _get_tags(
     explicitly_defined_tags: set[str], conditions: Sequence[QueryToken] | None
 ) -> list[TagSpec]:
