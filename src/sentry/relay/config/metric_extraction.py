@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -71,7 +71,7 @@ _MAX_ON_DEMAND_ALERTS = 50
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
 _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
 
-HashedMetricSpec = tuple[str, MetricSpec | SpanAttributeMetricSpec, SpecVersion]
+HashedMetricSpec = tuple[str, MetricSpec, SpecVersion]
 
 
 class HighCardinalityWidgetException(Exception):
@@ -820,7 +820,7 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
 
     specs = []
     for rule in extraction_rules_state.get_rules():
-        spec = convert_to_spec(rule)
+        spec = cast(MetricSpec, convert_to_spec(rule))
 
         validate_rule_condition(json.dumps(spec["condition"]))
         specs.append((spec["mri"], spec, version))

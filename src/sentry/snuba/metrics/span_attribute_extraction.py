@@ -69,8 +69,8 @@ def _get_tags(
     return [TagSpec(key=key, field=_map_span_attribute_name(key)) for key in sorted(tag_keys)]
 
 
-def _flatten_query_tokens(conditions: Sequence[QueryToken]) -> Sequence[QueryToken]:
-    query_tokens: list[QueryToken] = []
+def _flatten_query_tokens(conditions: Sequence[QueryToken]) -> list[SearchFilter]:
+    query_tokens: list[SearchFilter] = []
 
     for token in conditions:
         if isinstance(token, SearchFilter):

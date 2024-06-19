@@ -2137,7 +2137,7 @@ def test_get_current_widget_specs(
 
 
 @django_db_all
-def test_get_span_attribute_metrics(default_project: Project):
+def test_get_span_attribute_metrics(default_project: Project) -> None:
     rules = [
         {
             "spanAttribute": "span.duration",
