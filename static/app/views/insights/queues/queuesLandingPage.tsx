@@ -21,22 +21,22 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {ModuleName} from 'sentry/views/insights/types';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
-import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
-import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
-import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
-import {isAValidSort, QueuesTable} from 'sentry/views/performance/queues/queuesTable';
-import {Referrer} from 'sentry/views/performance/queues/referrers';
+import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
+import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
+import {isAValidSort, QueuesTable} from 'sentry/views/insights/queues/queuesTable';
+import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
   DEFAULT_QUERY_FILTER,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
   ONBOARDING_CONTENT,
-} from 'sentry/views/performance/queues/settings';
+} from 'sentry/views/insights/queues/settings';
+import {ModuleName} from 'sentry/views/insights/types';
+import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 

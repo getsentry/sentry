@@ -16,18 +16,18 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
+import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
+import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/destinationSummary/messageSpanSamplesPanel';
+import {TransactionsTable} from 'sentry/views/insights/queues/destinationSummary/transactionsTable';
+import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
+import {Referrer} from 'sentry/views/insights/queues/referrers';
+import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
-import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
-import {ThroughputChart} from 'sentry/views/performance/queues/charts/throughputChart';
-import {MessageSpanSamplesPanel} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesPanel';
-import {TransactionsTable} from 'sentry/views/performance/queues/destinationSummary/transactionsTable';
-import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
-import {Referrer} from 'sentry/views/performance/queues/referrers';
-import {DESTINATION_TITLE} from 'sentry/views/performance/queues/settings';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 function DestinationSummaryPage() {

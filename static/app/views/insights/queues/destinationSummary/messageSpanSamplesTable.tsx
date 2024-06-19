@@ -14,11 +14,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {SpanIdCell} from 'sentry/views/insights/common/components/tableCells/spanIdCell';
+import {MessageActorType} from 'sentry/views/insights/queues/settings';
 import type {SpanIndexedResponse} from 'sentry/views/insights/types';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
-import {MessageActorType} from 'sentry/views/performance/queues/settings';
-
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type DataRowKeys =
   | SpanIndexedField.PROJECT

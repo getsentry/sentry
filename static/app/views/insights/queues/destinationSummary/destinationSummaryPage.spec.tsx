@@ -5,7 +5,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import PageWithProviders from 'sentry/views/performance/queues/destinationSummary/destinationSummaryPage';
+import PageWithProviders from 'sentry/views/insights/queues/destinationSummary/destinationSummaryPage';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');

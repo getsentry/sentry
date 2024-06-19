@@ -1,5 +1,5 @@
 import {decodeScalar} from 'sentry/utils/queryString';
-import {TRACE_STATUS_OPTIONS} from 'sentry/views/performance/queues/settings';
+import {TRACE_STATUS_OPTIONS} from 'sentry/views/insights/queues/settings';
 
 // Include default value of '' that represents all options
 const OPTIONS = ['', ...TRACE_STATUS_OPTIONS] as const;

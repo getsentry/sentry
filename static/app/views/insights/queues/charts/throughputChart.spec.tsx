@@ -2,10 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {LatencyChart} from 'sentry/views/performance/queues/charts/latencyChart';
-import {Referrer} from 'sentry/views/performance/queues/referrers';
+import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
+import {Referrer} from 'sentry/views/insights/queues/referrers';
 
-describe('latencyChart', () => {
+describe('throughputChart', () => {
   const organization = OrganizationFixture();
 
   let eventsStatsMock;
@@ -20,11 +20,8 @@ describe('latencyChart', () => {
     });
   });
   it('renders', async () => {
-    render(
-      <LatencyChart destination="events" referrer={Referrer.QUEUES_SUMMARY_CHARTS} />,
-      {organization}
-    );
-    screen.getByText('Avg Latency');
+    render(<ThroughputChart referrer={Referrer.QUEUES_SUMMARY_CHARTS} />, {organization});
+    screen.getByText('Published vs Processed');
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
@@ -34,7 +31,16 @@ describe('latencyChart', () => {
             'avg(messaging.message.receive.latency)',
             'spm()',
           ],
-          query: 'span.op:queue.process messaging.destination.name:events',
+          query: 'span.op:queue.process',
+        }),
+      })
+    );
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: ['avg(span.duration)', 'spm()'],
+          query: 'span.op:queue.publish',
         }),
       })
     );

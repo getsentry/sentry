@@ -1,40 +1,32 @@
-import type {Sort} from 'sentry/utils/discover/fields';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import type {Referrer} from 'sentry/views/performance/queues/referrers';
-import {
-  DEFAULT_QUERY_FILTER,
-  TABLE_ROWS_LIMIT,
-} from 'sentry/views/performance/queues/settings';
+import type {Referrer} from 'sentry/views/insights/queues/referrers';
+import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/queues/settings';
 
 type Props = {
   referrer: Referrer;
   destination?: string;
   enabled?: boolean;
-  sort?: Sort;
+  transaction?: string;
 };
 
-export function useQueuesByDestinationQuery({
-  enabled,
+export function useQueuesMetricsQuery({
   destination,
-  sort,
+  transaction,
+  enabled,
   referrer,
 }: Props) {
-  const location = useLocation();
-  const cursor = decodeScalar(location.query?.[QueryParameterNames.DESTINATIONS_CURSOR]);
-
   const mutableSearch = new MutableSearch(DEFAULT_QUERY_FILTER);
   if (destination) {
-    mutableSearch.addFilterValue('messaging.destination.name', destination, false);
+    mutableSearch.addFilterValue('messaging.destination.name', destination);
+  }
+  if (transaction) {
+    mutableSearch.addFilterValue('transaction', transaction);
   }
   const response = useSpanMetrics(
     {
       search: mutableSearch,
       fields: [
-        'messaging.destination.name',
         'count()',
         'count_op(queue.publish)',
         'count_op(queue.process)',
@@ -47,9 +39,8 @@ export function useQueuesByDestinationQuery({
         'time_spent_percentage(app,span.duration)',
       ],
       enabled,
-      sorts: sort ? [sort] : [],
-      limit: TABLE_ROWS_LIMIT,
-      cursor,
+      sorts: [],
+      limit: 10,
     },
     referrer
   );

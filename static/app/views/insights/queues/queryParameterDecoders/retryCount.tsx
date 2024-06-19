@@ -1,5 +1,5 @@
 import {decodeScalar} from 'sentry/utils/queryString';
-import {RETRY_COUNT_OPTIONS} from 'sentry/views/performance/queues/settings';
+import {RETRY_COUNT_OPTIONS} from 'sentry/views/insights/queues/settings';
 
 // Include default value of '' that represents all options
 const OPTIONS = ['', ...RETRY_COUNT_OPTIONS] as const;

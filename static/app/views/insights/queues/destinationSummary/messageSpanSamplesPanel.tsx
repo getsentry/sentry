@@ -30,6 +30,18 @@ import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spa
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
+import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/destinationSummary/messageSpanSamplesTable';
+import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
+import decodeRetryCount from 'sentry/views/insights/queues/queryParameterDecoders/retryCount';
+import decodeTraceStatus from 'sentry/views/insights/queues/queryParameterDecoders/traceStatus';
+import {Referrer} from 'sentry/views/insights/queues/referrers';
+import {
+  CONSUMER_QUERY_FILTER,
+  MessageActorType,
+  PRODUCER_QUERY_FILTER,
+  RETRY_COUNT_OPTIONS,
+  TRACE_STATUS_OPTIONS,
+} from 'sentry/views/insights/queues/settings';
 import {
   ModuleName,
   SpanIndexedField,
@@ -38,18 +50,6 @@ import {
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
-import {useQueuesMetricsQuery} from 'sentry/views/performance/queues/queries/useQueuesMetricsQuery';
-import decodeRetryCount from 'sentry/views/performance/queues/queryParameterDecoders/retryCount';
-import decodeTraceStatus from 'sentry/views/performance/queues/queryParameterDecoders/traceStatus';
-import {Referrer} from 'sentry/views/performance/queues/referrers';
-import {
-  CONSUMER_QUERY_FILTER,
-  MessageActorType,
-  PRODUCER_QUERY_FILTER,
-  RETRY_COUNT_OPTIONS,
-  TRACE_STATUS_OPTIONS,
-} from 'sentry/views/performance/queues/settings';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 

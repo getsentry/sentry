@@ -2,9 +2,9 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
-import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/performance/queues/queries/useProcessQueuesTimeSeriesQuery';
-import type {Referrer} from 'sentry/views/performance/queues/referrers';
-import {CHART_HEIGHT} from 'sentry/views/performance/queues/settings';
+import {useProcessQueuesTimeSeriesQuery} from 'sentry/views/insights/queues/queries/useProcessQueuesTimeSeriesQuery';
+import type {Referrer} from 'sentry/views/insights/queues/referrers';
+import {CHART_HEIGHT} from 'sentry/views/insights/queues/settings';
 
 interface Props {
   referrer: Referrer;

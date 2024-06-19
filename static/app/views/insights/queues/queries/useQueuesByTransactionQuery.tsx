@@ -4,11 +4,11 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import type {Referrer} from 'sentry/views/performance/queues/referrers';
+import type {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
   DEFAULT_QUERY_FILTER,
   TABLE_ROWS_LIMIT,
-} from 'sentry/views/performance/queues/settings';
+} from 'sentry/views/insights/queues/settings';
 
 type Props = {
   referrer: Referrer;

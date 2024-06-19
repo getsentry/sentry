@@ -12,31 +12,25 @@ import type {CursorHandler} from 'sentry/components/pagination';
 import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {FIELD_FORMATTERS, getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {
-  ModuleName,
-  SpanFunction,
-  SpanIndexedField,
-  type SpanMetricsResponse,
-} from 'sentry/views/insights/types';
-import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
-import {Referrer} from 'sentry/views/performance/queues/referrers';
+import {useQueuesByTransactionQuery} from 'sentry/views/insights/queues/queries/useQueuesByTransactionQuery';
+import {Referrer} from 'sentry/views/insights/queues/referrers';
+import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/insights/types';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Row = Pick<
   SpanMetricsResponse,
   | 'sum(span.duration)'
-  | 'messaging.destination.name'
-  | 'avg(messaging.message.receive.latency)'
+  | 'transaction'
   | `avg_if(${string},${string},${string})`
   | `count_op(${string})`
 >;
@@ -45,8 +39,13 @@ type Column = GridColumnHeader<string>;
 
 const COLUMN_ORDER: Column[] = [
   {
-    key: 'messaging.destination.name',
-    name: t('Destination'),
+    key: 'transaction',
+    name: t('Transactions'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  {
+    key: 'span.op',
+    name: t('Type'),
     width: COL_WIDTH_UNDEFINED,
   },
   {
@@ -82,7 +81,7 @@ const COLUMN_ORDER: Column[] = [
 ];
 
 const SORTABLE_FIELDS = [
-  SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME,
+  'transaction',
   'count_op(queue.publish)',
   'count_op(queue.process)',
   'avg_if(span.duration,span.op,queue.process)',
@@ -95,37 +94,46 @@ type ValidSort = Sort & {
 };
 
 export function isAValidSort(sort: Sort): sort is ValidSort {
-  return (SORTABLE_FIELDS as ReadonlyArray<string>).includes(sort.field);
+  return (SORTABLE_FIELDS as unknown as string[]).includes(sort.field);
 }
 
-interface Props {
-  sort: ValidSort;
-  destination?: string;
-  error?: Error | null;
-  meta?: EventsMetaType;
-}
+const DEFAULT_SORT = {
+  field: 'time_spent_percentage(app,span.duration)' as const,
+  kind: 'desc' as const,
+};
 
-export function QueuesTable({error, destination, sort}: Props) {
-  const location = useLocation();
+export function TransactionsTable() {
   const organization = useOrganization();
+  const location = useLocation();
 
-  const {data, isLoading, meta, pageLinks} = useQueuesByDestinationQuery({
-    destination,
+  const locationQuery = useLocationQuery({
+    fields: {
+      destination: decodeScalar,
+      [QueryParameterNames.DESTINATIONS_SORT]: decodeScalar,
+    },
+  });
+  const sort =
+    decodeSorts(locationQuery[QueryParameterNames.DESTINATIONS_SORT])
+      .filter(isAValidSort)
+      .at(0) ?? DEFAULT_SORT;
+
+  const {data, isLoading, meta, pageLinks, error} = useQueuesByTransactionQuery({
+    destination: locationQuery.destination,
     sort,
-    referrer: Referrer.QUEUES_LANDING_DESTINATIONS_TABLE,
+    referrer: Referrer.QUEUES_SUMMARY_TRANSACTIONS_TABLE,
   });
 
   const handleCursor: CursorHandler = (newCursor, pathname, query) => {
     browserHistory.push({
       pathname,
-      query: {...query, [QueryParameterNames.DESTINATIONS_CURSOR]: newCursor},
+      query: {...query, [QueryParameterNames.TRANSACTIONS_CURSOR]: newCursor},
     });
   };
 
   return (
     <Fragment>
       <GridEditable
-        aria-label={t('Queues')}
+        aria-label={t('Transactions')}
         isLoading={isLoading}
         error={error}
         data={data}
@@ -149,17 +157,7 @@ export function QueuesTable({error, destination, sort}: Props) {
         }}
       />
 
-      <Pagination
-        pageLinks={pageLinks}
-        onCursor={handleCursor}
-        paginationAnalyticsEvent={(direction: string) => {
-          trackAnalytics('insight.general.table_paginate', {
-            organization,
-            source: ModuleName.QUEUE,
-            direction,
-          });
-        }}
-      />
+      <Pagination pageLinks={pageLinks} onCursor={handleCursor} />
     </Fragment>
   );
 }
@@ -171,8 +169,20 @@ function renderBodyCell(
   location: Location,
   organization: Organization
 ) {
+  const op = row['span.op'];
+  const isProducer = op === 'queue.publish';
+  const isConsumer = op === 'queue.process';
   const key = column.key;
-  if (row[key] === undefined) {
+  if (
+    row[key] === undefined ||
+    (isConsumer && ['count_op(queue.publish)'].includes(key)) ||
+    (isProducer &&
+      [
+        'count_op(queue.process)',
+        'avg(messaging.message.receive.latency)',
+        'avg_if(span.duration,span.op,queue.process)',
+      ].includes(key))
+  ) {
     return (
       <AlignRight>
         <NoValue>{' \u2014 '}</NoValue>
@@ -180,17 +190,8 @@ function renderBodyCell(
     );
   }
 
-  if (key === 'messaging.destination.name' && row[key]) {
-    return <DestinationCell destination={row[key]} />;
-  }
-
-  if (key.startsWith('count')) {
-    return <AlignRight>{formatAbbreviatedNumber(row[key])}</AlignRight>;
-  }
-
-  if (key.startsWith('avg')) {
-    const renderer = FIELD_FORMATTERS.duration.renderFunc;
-    return renderer(key, row);
+  if (key === 'transaction') {
+    return <TransactionCell transaction={row[key]} op={op} />;
   }
 
   // Need to invert trace_status_rate(ok) to show error rate
@@ -207,6 +208,22 @@ function renderBodyCell(
     return row[column.key];
   }
 
+  if (key.startsWith('avg')) {
+    const renderer = FIELD_FORMATTERS.duration.renderFunc;
+    return renderer(key, row);
+  }
+
+  if (key === 'span.op') {
+    switch (row[key]) {
+      case 'queue.publish':
+        return t('Producer');
+      case 'queue.process':
+        return t('Consumer');
+      default:
+        return row[key];
+    }
+  }
+
   const renderer = getFieldRenderer(column.key, meta.fields, false);
   return renderer(row, {
     location,
@@ -215,17 +232,18 @@ function renderBodyCell(
   });
 }
 
-function DestinationCell({destination}: {destination: string}) {
+function TransactionCell({transaction, op}: {op: string; transaction: string}) {
   const moduleURL = useModuleURL('queue');
   const {query} = useLocation();
   const queryString = {
     ...query,
-    destination,
+    transaction,
+    'span.op': op,
   };
   return (
     <NoOverflow>
       <Link to={`${moduleURL}/destination/?${qs.stringify(queryString)}`}>
-        {destination}
+        {transaction}
       </Link>
     </NoOverflow>
   );
