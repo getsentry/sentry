@@ -24,6 +24,8 @@ import {AverageComparisonChart} from 'sentry/views/performance/mobile/appStarts/
 import {CountChart} from 'sentry/views/performance/mobile/appStarts/screens/countChart';
 import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
+import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {
   getFreeTextFromQuery,
@@ -33,8 +35,6 @@ import {
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 

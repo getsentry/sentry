@@ -28,6 +28,8 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
+import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
@@ -38,8 +40,6 @@ import {
 import {SETUP_CONTENT} from 'sentry/views/performance/mobile/screenload/screens/setupContent';
 import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/screens/tabbedCodeSnippets';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 

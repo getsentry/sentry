@@ -25,7 +25,7 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 
 const COLD_START_CONDITIONS = ['span.op:app.start.cold', 'span.description:"Cold Start"'];
 const WARM_START_CONDITIONS = ['span.op:app.start.warm', 'span.description:"Warm Start"'];

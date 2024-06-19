@@ -25,6 +25,7 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {
   CHART_TITLES,
   OUTPUT_TYPE,
@@ -33,7 +34,6 @@ import {
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 export enum YAxis {
   WARM_START = 0,

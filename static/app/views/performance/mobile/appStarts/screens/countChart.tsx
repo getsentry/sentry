@@ -24,9 +24,9 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
+import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {OUTPUT_TYPE, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 
 function transformData(data?: MultiSeriesEventsStats, primaryRelease?: string) {
   const transformedSeries: {[release: string]: Series} = {};

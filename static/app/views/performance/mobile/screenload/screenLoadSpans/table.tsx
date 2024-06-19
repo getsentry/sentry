@@ -36,6 +36,7 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/uti
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanMetricsField} from 'sentry/views/insights/types';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {
   SpanOpSelector,
   TTID_CONTRIBUTING_SPAN_OPS,
@@ -43,7 +44,6 @@ import {
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {MODULE_DOC_LINK} from 'sentry/views/performance/mobile/screenload/settings';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =

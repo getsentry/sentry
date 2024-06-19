@@ -15,9 +15,9 @@ import {
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {EventSamplesTable} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamplesTable';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 const DEFAULT_SORT: Sort = {
   kind: 'desc',

@@ -14,8 +14,8 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 
 interface BlockProps {
   dataKey: string | ((data?: TableDataRow[]) => number | undefined);

@@ -7,12 +7,12 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import localStorage from 'sentry/utils/localStorage';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
-import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {
   DEFAULT_PLATFORM,
   PLATFORM_LOCAL_STORAGE_KEY,
   PLATFORM_QUERY_PARAM,
-} from 'sentry/views/performance/mobile/useCrossPlatformProject';
+} from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
+import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 
 export function PlatformSelector() {
   const {query, pathname} = useLocation();

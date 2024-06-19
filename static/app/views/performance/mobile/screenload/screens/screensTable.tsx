@@ -30,8 +30,8 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Props = {

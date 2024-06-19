@@ -30,7 +30,7 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
+import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
