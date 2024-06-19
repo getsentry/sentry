@@ -1,5 +1,4 @@
 import {ApiTokenFixture} from 'sentry-fixture/apiToken';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -9,8 +8,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {ApiTokens} from 'sentry/views/settings/account/apiTokens';
-
-const organization = OrganizationFixture();
 
 describe('ApiTokens', function () {
   beforeEach(function () {
@@ -23,7 +20,7 @@ describe('ApiTokens', function () {
       body: null,
     });
 
-    render(<ApiTokens organization={organization} />);
+    render(<ApiTokens />);
   });
 
   it('renders with result', function () {
@@ -32,7 +29,7 @@ describe('ApiTokens', function () {
       body: [ApiTokenFixture()],
     });
 
-    render(<ApiTokens organization={organization} />);
+    render(<ApiTokens />);
   });
 
   it('can delete token', async function () {
@@ -47,7 +44,7 @@ describe('ApiTokens', function () {
     });
     expect(mock).not.toHaveBeenCalled();
 
-    render(<ApiTokens organization={organization} />);
+    render(<ApiTokens />);
     renderGlobalModal();
 
     await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
