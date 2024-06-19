@@ -1556,7 +1556,7 @@ function buildRoutes() {
           component={make(
             () =>
               import(
-                'sentry/views/performance/mobile/screenload/views/screenloadLandingPage'
+                'sentry/views/insights/mobile/screenload/views/screenloadLandingPage'
               )
           )}
         />
@@ -1564,9 +1564,7 @@ function buildRoutes() {
           path="spans/"
           component={make(
             () =>
-              import(
-                'sentry/views/performance/mobile/screenload/views/screenLoadSpansPage'
-              )
+              import('sentry/views/insights/mobile/screenload/views/screenLoadSpansPage')
           )}
         />
       </Route>
@@ -1574,29 +1572,26 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () =>
-              import(
-                'sentry/views/performance/mobile/appStarts/views/appStartsLandingPage'
-              )
+              import('sentry/views/insights/mobile/appStarts/views/appStartsLandingPage')
           )}
         />
         <Route
           path="spans/"
           component={make(
-            () =>
-              import('sentry/views/performance/mobile/appStarts/views/screenSummaryPage')
+            () => import('sentry/views/insights/mobile/appStarts/views/screenSummaryPage')
           )}
         />
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/mobile/ui/views/uiLandingPage')
+            () => import('sentry/views/insights/mobile/ui/views/uiLandingPage')
           )}
         />
         <Route
           path="spans/"
           component={make(
-            () => import('sentry/views/performance/mobile/ui/views/screenSummaryPage')
+            () => import('sentry/views/insights/mobile/ui/views/screenSummaryPage')
           )}
         />
       </Route>
