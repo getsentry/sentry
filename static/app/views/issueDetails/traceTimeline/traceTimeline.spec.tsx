@@ -205,6 +205,13 @@ describe('TraceTimeline', () => {
 
     // Test analytics
     await userEvent.click(await screen.findByText('Slow DB Query'));
+    expect(useRouteAnalyticsParams).toHaveBeenLastCalledWith({
+      has_related_trace_issue: true,
+      trace_timeline_status: 'empty',
+      // Even though the trace timeline has not been rendered, we still
+      // track that it would have been the two issues case that related issues is replacing
+      trace_timeline_two_issues: true,
+    });
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.related_trace_issue.trace_issue_clicked',
