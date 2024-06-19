@@ -246,8 +246,6 @@ def get_project_insight_flag(project: Project, module: InsightModules):
     elif module == InsightModules.LLM_MONITORING:
         return project.flags.has_insights_llm_monitoring
 
-    return None
-
 
 def has_pending_commit_resolution(group: Group) -> bool:
     """
