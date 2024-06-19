@@ -2141,7 +2141,7 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
     rules = [
         {
             "spanAttribute": "span.duration",
-            "mri": "d:custom/span.duration",
+            "mri": "d:custom/span.duration@none",
             "type": "d",
             "tags": ["foo"],
             "unit": "millisecond",
