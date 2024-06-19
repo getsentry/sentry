@@ -27,9 +27,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Row = Pick<
   SpanMetricsResponse,

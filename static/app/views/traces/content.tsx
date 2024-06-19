@@ -37,7 +37,7 @@ import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString'
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
 import {type Field, FIELDS, SORTS} from './data';
 import {

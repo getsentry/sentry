@@ -37,22 +37,22 @@ import {
   MODULE_TITLE,
   ONBOARDING_CONTENT,
 } from 'sentry/views/insights/cache/settings';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/insights/common/components/onboardingContent';
 import {
   useMetrics,
   useSpanMetrics,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useHasData} from 'sentry/views/insights/common/queries/useHasData';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
-import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
-import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;

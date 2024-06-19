@@ -4,7 +4,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useHasData} from 'sentry/views/performance/onboarding/useHasData';
+import {useHasData} from 'sentry/views/insights/common/queries/useHasData';
 
 export function useHasDataTrackAnalytics(
   mutableSearch: MutableSearch,

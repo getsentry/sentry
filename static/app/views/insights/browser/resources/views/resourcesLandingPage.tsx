@@ -25,11 +25,11 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {ModuleName} from 'sentry/views/insights/types';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 

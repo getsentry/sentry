@@ -4,7 +4,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
+import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {
   MetricsProperty,
   MetricsResponse,

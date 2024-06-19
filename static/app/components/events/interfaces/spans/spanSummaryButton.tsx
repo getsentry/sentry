@@ -6,12 +6,12 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 interface Props {
   event: Readonly<EventTransaction>;

@@ -10,8 +10,8 @@ import {BASE_URL as APP_STARTS_BASE_URL} from 'sentry/views/insights/mobile/appS
 import {BASE_URL as SCREEN_LOADS_BASE_URL} from 'sentry/views/insights/mobile/screenload/settings';
 import {BASE_URL as MOBILE_UI_BASE_URL} from 'sentry/views/insights/mobile/ui/settings';
 import {BASE_URL as QUEUE_BASE_URL} from 'sentry/views/insights/queues/settings';
+import {INSIGHTS_BASE_URL} from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {INSIGHTS_BASE_URL} from 'sentry/views/performance/settings';
 
 export const MODULE_BASE_URLS: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_BASE_URL,

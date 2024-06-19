@@ -20,6 +20,12 @@ import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/insights/common/components/onboardingContent';
+import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
@@ -36,12 +42,6 @@ import {
   ONBOARDING_CONTENT,
 } from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
-import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 const DEFAULT_SORT = {
   field: 'time_spent_percentage(app,span.duration)' as const,

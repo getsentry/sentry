@@ -6,7 +6,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
+import {useWrappedDiscoverQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {MetricsFilters} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 

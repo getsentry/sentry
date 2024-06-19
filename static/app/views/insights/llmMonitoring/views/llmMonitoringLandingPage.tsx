@@ -10,6 +10,12 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {t} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/insights/common/components/onboardingContent';
+import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
@@ -21,12 +27,6 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';
-import {OnboardingContent} from 'sentry/views/performance/onboarding/onboardingContent';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();

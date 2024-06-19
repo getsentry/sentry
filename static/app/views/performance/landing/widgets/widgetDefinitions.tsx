@@ -2,8 +2,8 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {ModuleName} from 'sentry/views/insights/types';
-import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
 
 import {getTermHelp, PerformanceTerm} from '../../data';
 

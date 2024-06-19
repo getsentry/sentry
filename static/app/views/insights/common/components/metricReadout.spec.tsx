@@ -1,7 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
-import {MetricReadout} from 'sentry/views/performance/metricReadout';
+import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 
 describe('MetricReadout', function () {
   it('shows a loading spinner if data is loading', () => {

@@ -19,6 +19,7 @@ import {
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {APP_START_SPANS} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import type {SpanOperationTableProps} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
@@ -26,7 +27,6 @@ import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {Referrer} from 'sentry/views/insights/mobile/ui/referrers';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 const {SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} = SpanMetricsField;
 

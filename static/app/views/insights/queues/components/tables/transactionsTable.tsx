@@ -21,11 +21,11 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {useQueuesByTransactionQuery} from 'sentry/views/insights/queues/queries/useQueuesByTransactionQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {SpanFunction, type SpanMetricsResponse} from 'sentry/views/insights/types';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Row = Pick<
   SpanMetricsResponse,

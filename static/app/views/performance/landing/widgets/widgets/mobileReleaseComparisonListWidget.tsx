@@ -30,7 +30,7 @@ import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
-import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
 

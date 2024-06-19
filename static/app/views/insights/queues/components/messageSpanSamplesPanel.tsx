@@ -25,7 +25,10 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
@@ -47,9 +50,6 @@ import {
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
-import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
-import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 

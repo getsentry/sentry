@@ -4,6 +4,7 @@ import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -12,7 +13,6 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {MetricReadout} from 'sentry/views/performance/metricReadout';
 
 type Props = {
   groupId: string;

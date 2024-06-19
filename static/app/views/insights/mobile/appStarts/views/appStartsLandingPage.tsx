@@ -1,3 +1,4 @@
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import AppStartup from 'sentry/views/insights/mobile/appStarts/components/appStartup';
 import {StartTypeSelector} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {
@@ -7,7 +8,6 @@ import {
 } from 'sentry/views/insights/mobile/appStarts/settings';
 import ScreensTemplate from 'sentry/views/insights/mobile/common/components/screensTemplate';
 import {ModuleName} from 'sentry/views/insights/types';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 export function InitializationModule() {
   return (

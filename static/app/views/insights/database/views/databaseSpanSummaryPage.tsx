@@ -16,10 +16,14 @@ import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
@@ -33,11 +37,7 @@ import {QueryTransactionsTable} from 'sentry/views/insights/database/components/
 import {DEFAULT_DURATION_AGGREGATE} from 'sentry/views/insights/database/settings';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 type Query = {
   transaction: string;

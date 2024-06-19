@@ -9,8 +9,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {DATE_FORMAT} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {getDateConditions} from 'sentry/views/insights/common/utils/getDateConditions';
-import {DATE_FORMAT} from 'sentry/views/insights/common/utils/useSpansQuery';
 import type {
   SpanIndexedFieldTypes,
   SpanMetricsQueryFilters,

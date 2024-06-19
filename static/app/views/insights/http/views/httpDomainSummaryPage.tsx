@@ -24,9 +24,13 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
@@ -49,10 +53,6 @@ import {
 } from 'sentry/views/insights/http/settings';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-import {MetricReadout} from 'sentry/views/performance/metricReadout';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 type Query = {
   aggregate?: string;

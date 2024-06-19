@@ -2,7 +2,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
+import {useWrappedDiscoverTimeseriesQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {SpanMetricsProperty} from 'sentry/views/insights/types';
 
 interface SpanMetricTimeseriesRow {

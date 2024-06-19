@@ -23,7 +23,7 @@ import {useTransactionWebVitalsQuery} from 'sentry/views/insights/browser/webVit
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
