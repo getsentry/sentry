@@ -88,11 +88,6 @@ export class ApiTokens extends DeprecatedAsyncView<Props, State> {
     return (
       <div>
         <SettingsPageHeader title={this.getTitle()} action={action} />
-        <AlertLink to={`/settings/${organization?.slug ?? ''}/auth-tokens/`}>
-          {t(
-            "User Auth Tokens are tied to the logged in user, meaning they'll stop working if the user leaves the organization! We suggest using Organization Auth Tokens to create/manage tokens tied to the organization instead."
-          )}
-        </AlertLink>
         <TextBlock>
           {t(
             "Authentication tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
