@@ -6,7 +6,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 
 
 class ProjectMetricsExtractionEndpointTestCase(APITestCase):
@@ -36,21 +35,23 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule(self):
-        new_rule_json_1 = [
-            {
-                "spanAttribute": "count_clicks",
-                "type": "c",
-                "unit": "none",
-                "tags": ["tag1", "tag2", "tag3"],
-                "conditions": ["foo:bar", "baz:faz"],
-            }
-        ]
+        new_rule_1 = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "type": "c",
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": ["foo:bar", "baz:faz"],
+                }
+            ]
+        }
 
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=json.dumps(new_rule_json_1),
+            **new_rule_1,
         )
 
         assert response.status_code == 200
@@ -61,21 +62,23 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert data[0]["unit"] == "none"
         assert set(data[0]["tags"]) == {"tag1", "tag2", "tag3"}
 
-        new_rule_json_2 = [
-            {
-                "spanAttribute": "process_latency",
-                "type": "d",
-                "unit": "ms",
-                "tags": ["tag3"],
-                "conditions": ["hello:world", "baz:faz"],
-            }
-        ]
+        new_rule_2 = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "process_latency",
+                    "type": "d",
+                    "unit": "ms",
+                    "tags": ["tag3"],
+                    "conditions": ["hello:world", "baz:faz"],
+                }
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=json.dumps(new_rule_json_2),
+            **new_rule_2,
         )
         assert response.status_code == 200
         data = response.data
@@ -95,21 +98,23 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule_hardcoded_units(self):
-        new_rule_json_1 = [
-            {
-                "spanAttribute": "span.duration",
-                "type": "d",
-                "unit": "none",
-                "tags": ["tag1", "tag2", "tag3"],
-                "conditions": ["foo:bar", "baz:faz"],
-            }
-        ]
+        new_rule_json_1 = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "span.duration",
+                    "type": "d",
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": ["foo:bar", "baz:faz"],
+                }
+            ]
+        }
 
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=json.dumps(new_rule_json_1),
+            **new_rule_json_1,
         )
 
         assert response.status_code == 200
@@ -122,25 +127,36 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_update_existing_extraction_rule(self):
-        original_rule_json = [
-            {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
-        ]
+        original_rule = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="put",
-            metricsExtractionRules=json.dumps(original_rule_json),
+            **original_rule,
         )
         assert response.status_code == 200
 
-        updated_rule_json = """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3", "new_tag"]}]"""
+        updated_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "process_latency",
+                    "type": "d",
+                    "unit": "ms",
+                    "tags": ["tag3", "new_tag"],
+                }
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="put",
-            metricsExtractionRules=updated_rule_json,
+            **updated_rule,
         )
         assert response.status_code == 200
         data = response.data
@@ -157,13 +173,22 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_delete_existing_extraction_rule(self):
-        new_rule_json_1 = """[{"spanAttribute": "count_clicks", "type": "c","unit": "none","tags": ["tag1", "tag2", "tag3"]}]"""
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "type": "c",
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                }
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=new_rule_json_1,
+            **new_rule,
         )
 
         assert response.status_code == 200
@@ -174,15 +199,17 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert data[0]["unit"] == "none"
         assert set(data[0]["tags"]) == {"tag1", "tag2", "tag3"}
 
-        new_rule_json_2 = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
-        )
+        new_rule_2 = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=new_rule_json_2,
+            **new_rule_2,
         )
         assert response.status_code == 200
         data = response.data
@@ -203,7 +230,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             self.organization.slug,
             self.project.slug,
             method="delete",
-            metricsExtractionRules=new_rule_json_2,
+            **new_rule_2,
         )
         assert response.status_code == 204
 
@@ -214,15 +241,17 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_idempotent_update(self):
-        rule_json = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
-        )
+        rule = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=rule_json,
+            **rule,
         )
         assert response.status_code == 200
 
@@ -230,7 +259,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             self.organization.slug,
             self.project.slug,
             method="put",
-            metricsExtractionRules=rule_json,
+            **rule,
         )
         assert response.status_code == 200
         data = response.data
@@ -247,40 +276,32 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_delete_non_existing_extraction_rule(self):
-        non_existing_rule = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
-        )
+        non_existing_rule = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
+
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
             method="delete",
-            metricsExtractionRules=non_existing_rule,
+            **non_existing_rule,
         )
         assert response.status_code == 204
 
-    @with_feature("organizations:custom-metrics-extraction-rule")
-    def test_malformed_json(self):
-        malformed_json = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"],}]"""
-        )
-        response = self.get_response(
-            self.organization.slug,
-            self.project.slug,
-            method="delete",
-            metricsExtractionRules=malformed_json,
-        )
-        assert response.status_code == 500
-
     def test_option_hides_endpoints(self):
-        rule_json = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
-        )
+        rule = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
 
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
             method="put",
-            metricsExtractionRules=rule_json,
+            **rule,
         )
         assert response.status_code == 404
 
@@ -288,7 +309,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             self.organization.slug,
             self.project.slug,
             method="delete",
-            metricsExtractionRules=rule_json,
+            **rule,
         )
         assert response.status_code == 404
 
@@ -296,7 +317,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=rule_json,
+            **rule,
         )
         assert response.status_code == 404
 
@@ -309,26 +330,38 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_get_extraction_rules(self):
-        new_rule_json_1 = """[{"spanAttribute": "count_clicks", "type": "c","unit": "none","tags": ["tag1", "tag2", "tag3"]}]"""
+
+        new_rule_1 = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "type": "c",
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                }
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=new_rule_json_1,
+            **new_rule_1,
         )
 
         assert response.status_code == 200
 
-        new_rule_json_2 = (
-            """[{"spanAttribute": "process_latency", "type": "d","unit": "ms","tags": ["tag3"]}]"""
-        )
+        new_rule_2 = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
 
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
             method="post",
-            metricsExtractionRules=new_rule_json_2,
+            **new_rule_2,
         )
 
         response = self.get_response(
@@ -344,16 +377,25 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_get_pagination(self):
-        for i in range(0, 60):
-            new_rule = f"""[{{"spanAttribute": "count_clicks_{i:02d}", "type": "c","unit": "none","tags": ["tag1", "tag2", "tag3"]}}]"""
+        json_payload = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": f"count_clicks_{i:02d}",
+                    "type": "c",
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                }
+                for i in range(0, 60)
+            ]
+        }
 
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                method="post",
-                metricsExtractionRules=new_rule,
-            )
-            assert response.status_code == 200
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **json_payload,
+        )
+        assert response.status_code == 200
 
         response = self.get_success_response(
             self.organization.slug, self.project.slug, method="get"
