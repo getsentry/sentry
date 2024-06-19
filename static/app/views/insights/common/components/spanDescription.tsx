@@ -6,12 +6,12 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {space} from 'sentry/styles/space';
 import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
 import {
   MissingFrame,
   StackTraceMiniFrame,
-} from 'sentry/views/insights/common/components/stackTraceMiniFrame';
-import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {useFullSpanFromTrace} from 'sentry/views/insights/common/queries/useFullSpanFromTrace';
+} from 'sentry/views/insights/database/components/stackTraceMiniFrame';
 import type {SpanIndexedFieldTypes} from 'sentry/views/insights/types';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 

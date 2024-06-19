@@ -34,8 +34,8 @@ import {
   Frame,
   SpanDescription,
 } from 'sentry/views/insights/common/components/spanDescription';
-import {FrameContainer} from 'sentry/views/insights/common/components/stackTraceMiniFrame';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {FrameContainer} from 'sentry/views/insights/database/components/stackTraceMiniFrame';
 import {ModuleName} from 'sentry/views/insights/types';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';

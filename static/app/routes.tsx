@@ -1475,13 +1475,13 @@ function buildRoutes() {
       <Route path={`${MODULE_BASE_URLS[ModuleName.DB]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/database/databaseLandingPage')
+            () => import('sentry/views/insights/database/views/databaseLandingPage')
           )}
         />
         <Route
           path="spans/span/:groupId/"
           component={make(
-            () => import('sentry/views/performance/database/databaseSpanSummaryPage')
+            () => import('sentry/views/insights/database/views/databaseSpanSummaryPage')
           )}
         />
       </Route>

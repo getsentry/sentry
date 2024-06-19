@@ -8,9 +8,9 @@ import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {MODULE_DOC_LINK} from 'sentry/views/performance/database/settings';
-import {useDenylistedProjects} from 'sentry/views/performance/database/useDenylistedProjects';
-import {useOutdatedSDKProjects} from 'sentry/views/performance/database/useOutdatedSDKProjects';
+import {useDenylistedProjects} from 'sentry/views/insights/database/queries/useDenylistedProjects';
+import {useOutdatedSDKProjects} from 'sentry/views/insights/database/queries/useOutdatedSDKProjects';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {
   Wrapper?: React.ComponentType<any>;

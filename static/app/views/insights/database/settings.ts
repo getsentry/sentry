@@ -31,8 +31,6 @@ export const MIN_SDK_VERSION_BY_PLATFORM: {[platform: string]: string} = {
   'sentry.android': '6.30.0',
 };
 
-export const DEFAULT_INTERVAL = '10m';
-
 export const DEFAULT_DURATION_AGGREGATE: Aggregate = 'avg';
 
 export const CHART_HEIGHT = 160;

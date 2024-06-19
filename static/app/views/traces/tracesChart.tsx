@@ -14,7 +14,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
+import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
 
