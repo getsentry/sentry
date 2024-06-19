@@ -6,7 +6,7 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/performance/mobile/appStarts/settings';
-import ScreensTemplate from 'sentry/views/performance/mobile/components/screensTemplate';
+import ScreensTemplate from 'sentry/views/performance/mobile/common/components/screensTemplate';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 
 export function InitializationModule() {

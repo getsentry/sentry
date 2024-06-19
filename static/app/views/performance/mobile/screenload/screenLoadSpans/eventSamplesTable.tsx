@@ -27,7 +27,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {ModuleName} from 'sentry/views/insights/types';
-import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/mobile/common/components/deviceClassSelector';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 
 type Props = {

@@ -24,8 +24,8 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ModuleName} from 'sentry/views/insights/types';
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/common/components/spanSamplesPanel';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
-import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
 import {
   ScreenCharts,
   YAxis,

@@ -12,7 +12,7 @@ import {ModuleName} from 'sentry/views/insights/types';
 import {EventSamples} from 'sentry/views/performance/mobile/appStarts/screenSummary/eventSamples';
 import {SpanOperationTable} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOperationTable';
 import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
-import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/mobile/common/components/deviceClassSelector';
 import {
   MobileCursors,
   MobileSortKeys,

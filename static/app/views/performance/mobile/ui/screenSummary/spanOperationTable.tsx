@@ -21,8 +21,8 @@ import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/uti
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {APP_START_SPANS} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
-import type {SpanOperationTableProps} from 'sentry/views/performance/mobile/components/samplesTables';
-import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
+import type {SpanOperationTableProps} from 'sentry/views/performance/mobile/common/components/tables/samplesTables';
+import {ScreensTable} from 'sentry/views/performance/mobile/common/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';

@@ -15,7 +15,7 @@ import {
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {ModuleName} from 'sentry/views/insights/types';
-import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
+import {ScreensTable} from 'sentry/views/performance/mobile/common/components/tables/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 

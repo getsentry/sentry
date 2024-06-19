@@ -27,7 +27,7 @@ import {
   COLD_START_TYPE,
   StartTypeSelector,
 } from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
-import {SpanSamplesPanel} from 'sentry/views/performance/mobile/components/spanSamplesPanel';
+import {SpanSamplesPanel} from 'sentry/views/performance/mobile/common/components/spanSamplesPanel';
 import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/metricsRibbon';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';

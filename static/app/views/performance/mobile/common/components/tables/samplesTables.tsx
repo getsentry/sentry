@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {SpanOpSelector} from 'sentry/views/performance/mobile/appStarts/screenSummary/spanOpSelector';
-import {DeviceClassSelector} from 'sentry/views/performance/mobile/components/deviceClassSelector';
+import {DeviceClassSelector} from 'sentry/views/performance/mobile/common/components/deviceClassSelector';
 import {
   MobileCursors,
   MobileSortKeys,

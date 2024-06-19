@@ -17,7 +17,7 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import Breakdown from 'sentry/views/performance/mobile/appStarts/screens/breakdown';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
-import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
+import {ScreensTable} from 'sentry/views/performance/mobile/common/components/tables/screensTable';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 

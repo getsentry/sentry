@@ -2,7 +2,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {ScreensTable} from 'sentry/views/performance/mobile/components/screensTable';
+import {ScreensTable} from 'sentry/views/performance/mobile/common/components/tables/screensTable';
 
 function getMockEventView({fields}) {
   return new EventView({

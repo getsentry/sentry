@@ -33,7 +33,7 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
-import {TraceViewSources} from '../../newTraceDetails/traceMetadataHeader';
+import {TraceViewSources} from '../../../newTraceDetails/traceMetadataHeader';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 

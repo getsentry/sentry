@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {SamplesTables} from 'sentry/views/performance/mobile/components/samplesTables';
+import {SamplesTables} from 'sentry/views/performance/mobile/common/components/tables/samplesTables';
 
 jest.mock('sentry/views/insights/common/queries/useReleases');
 

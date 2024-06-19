@@ -1,5 +1,5 @@
 import {ModuleName} from 'sentry/views/insights/types';
-import ScreensTemplate from 'sentry/views/performance/mobile/components/screensTemplate';
+import ScreensTemplate from 'sentry/views/performance/mobile/common/components/screensTemplate';
 import {UIScreens} from 'sentry/views/performance/mobile/ui/screens';
 import {
   MODULE_DESCRIPTION,
