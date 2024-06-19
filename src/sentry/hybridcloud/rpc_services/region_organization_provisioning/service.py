@@ -1,9 +1,9 @@
 from abc import abstractmethod
 
+from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.services.hybrid_cloud.region import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
