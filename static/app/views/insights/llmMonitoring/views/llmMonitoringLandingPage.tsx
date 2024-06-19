@@ -14,13 +14,13 @@ import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
-} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
-import {PipelinesTable} from 'sentry/views/llmMonitoring/pipelinesTable';
+} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
+import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
 import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
   RELEASE_LEVEL,
-} from 'sentry/views/llmMonitoring/settings';
+} from 'sentry/views/insights/llmMonitoring/settings';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/performance/onboarding/modulesOnboarding';

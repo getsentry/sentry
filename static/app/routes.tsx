@@ -1587,12 +1587,16 @@ function buildRoutes() {
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.AI]}/`}>
         <IndexRoute
-          component={make(() => import('sentry/views/llmMonitoring/landing'))}
+          component={make(
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringLandingPage')
+          )}
         />
         <Route
           path="pipeline-type/:groupId/"
           component={make(
-            () => import('sentry/views/llmMonitoring/llmMonitoringDetailsPage')
+            () =>
+              import('sentry/views/insights/llmMonitoring/views/llmMonitoringDetailsPage')
           )}
         />
       </Route>
