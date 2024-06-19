@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,13 +20,6 @@ from sentry.sentry_metrics.extraction_rules import (
     get_metrics_extraction_rules,
     update_metrics_extraction_rules,
 )
-from sentry.utils import json
-
-"""
-Open Questions
-1. Do we need to register the key metricsExtractionRules in the project config somehow?
-2. Do we need to prevent breaking something in the project config somehow?
-"""
 
 
 @region_silo_endpoint
@@ -53,7 +47,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             return Response(status=204)
 
         try:
-            state_update = self._deserialize_deleted_rules_update(rules_update)
+            state_update = self._generated_deleted_rule_objects(rules_update)
             delete_metrics_extraction_rules(project, state_update)
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
@@ -94,7 +88,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             )
 
         try:
-            state_update = self._deserialize_rules_update(rules_update)
+            state_update = self._generate_updated_rule_objects(rules_update)
             persisted_rules = create_metrics_extraction_rules(project, state_update)
             updated_rules = serialize(
                 persisted_rules, request.user, MetricsExtractionRuleSerializer()
@@ -115,7 +109,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             return Response(status=200)
 
         try:
-            state_update = self._deserialize_rules_update(rules_update)
+            state_update = self._generate_updated_rule_objects(rules_update)
             persisted_rules = update_metrics_extraction_rules(project, state_update)
             updated_rules = serialize(
                 persisted_rules, request.user, MetricsExtractionRuleSerializer()
@@ -125,23 +119,22 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
         return Response(status=200, data=updated_rules)
 
-    def _deserialize_rules_update(self, json_payload: str):
+    def _generate_updated_rule_objects(
+        self, updated_rules: list[dict[str, Any]]
+    ) -> dict[str, MetricsExtractionRule]:
         state_update = {}
-        deserialized_rules_update = json.loads(json_payload)
-
-        for deserialized_rule_update in deserialized_rules_update:
-            rule = MetricsExtractionRule.from_dict(deserialized_rule_update)
+        for updated_rule in updated_rules:
+            rule = MetricsExtractionRule.from_dict(updated_rule)
             mri = rule.generate_mri()
             state_update[mri] = rule
 
         return state_update
 
-    def _deserialize_deleted_rules_update(
-        self, json_payload: str
+    def _generated_deleted_rule_objects(
+        self, updated_rules: list[dict[str, Any]]
     ) -> Sequence[MetricsExtractionRule]:
-        deserialized_rules = json.loads(json_payload)
         state_update = []
-        for updated_rule in deserialized_rules:
+        for updated_rule in updated_rules:
             state_update.append(MetricsExtractionRule.from_dict(updated_rule))
 
         return state_update
