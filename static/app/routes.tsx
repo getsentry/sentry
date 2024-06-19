@@ -1541,15 +1541,14 @@ function buildRoutes() {
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
         <IndexRoute
-          component={make(() => import('sentry/views/insights/queues/queuesLandingPage'))}
+          component={make(
+            () => import('sentry/views/insights/queues/views/queuesLandingPage')
+          )}
         />
         <Route
           path="destination/"
           component={make(
-            () =>
-              import(
-                'sentry/views/insights/queues/destinationSummary/destinationSummaryPage'
-              )
+            () => import('sentry/views/insights/queues/views/destinationSummaryPage')
           )}
         />
       </Route>

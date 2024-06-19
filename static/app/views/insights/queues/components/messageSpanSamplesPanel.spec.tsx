@@ -4,7 +4,7 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/destinationSummary/messageSpanSamplesPanel';
+import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');

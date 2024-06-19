@@ -2,13 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useLocation} from 'sentry/utils/useLocation';
-import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {TransactionsTable} from 'sentry/views/insights/queues/destinationSummary/transactionsTable';
+import {QueuesTable} from 'sentry/views/insights/queues/components/tables/queuesTable';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/useLocation');
-
-describe('transactionsTable', () => {
+describe('queuesTable', () => {
   const organization = OrganizationFixture();
 
   let eventsMock;
@@ -18,16 +15,6 @@ describe('transactionsTable', () => {
     '<https://sentry.io/fake/next>; rel="next"; results="true"; cursor="0:20:0"';
 
   beforeEach(() => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {statsPeriod: '10d', project: '1'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       headers: {Link: pageLinks},
@@ -35,8 +22,7 @@ describe('transactionsTable', () => {
       body: {
         data: [
           {
-            transaction: 'celery.backend_cleanup',
-            'span.op': 'queue.process',
+            'messaging.destination.name': 'celery.backend_cleanup',
             'count()': 2,
             'count_op(queue.publish)': 0,
             'count_op(queue.process)': 2,
@@ -67,11 +53,14 @@ describe('transactionsTable', () => {
     });
   });
   it('renders', async () => {
-    render(<TransactionsTable />, {organization});
-    expect(screen.getByRole('table', {name: 'Transactions'})).toBeInTheDocument();
-
-    expect(screen.getByRole('columnheader', {name: 'Transactions'})).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', {name: 'Type'})).toBeInTheDocument();
+    render(
+      <QueuesTable
+        sort={{field: 'time_spent_percentage(app,span.duration)', kind: 'desc'}}
+      />,
+      {organization}
+    );
+    expect(screen.getByRole('table', {name: 'Queues'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Destination'})).toBeInTheDocument();
     expect(
       screen.getByRole('columnheader', {name: 'Avg Time in Queue'})
     ).toBeInTheDocument();
@@ -82,14 +71,12 @@ describe('transactionsTable', () => {
     expect(screen.getByRole('columnheader', {name: 'Published'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Processed'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Time Spent'})).toBeInTheDocument();
-
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           field: [
-            'transaction',
-            'span.op',
+            'messaging.destination.name',
             'count()',
             'count_op(queue.publish)',
             'count_op(queue.process)',
@@ -110,35 +97,23 @@ describe('transactionsTable', () => {
     expect(screen.getByRole('cell', {name: '2'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '6.00ms'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '20.00ms'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Consumer'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '20%'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
   });
-
-  it('sorts by processing time', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {
-        statsPeriod: '10d',
-        project: '1',
-        [QueryParameterNames.DESTINATIONS_SORT]:
-          '-avg_if(span.duration,span.op,queue.process)',
-      },
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-
-    render(<TransactionsTable />, {organization});
-
+  it('searches for a destination and sorts', async () => {
+    render(
+      <QueuesTable
+        destination="*events*"
+        sort={{field: SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME, kind: 'desc'}}
+      />,
+      {organization}
+    );
     expect(eventsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
         query: expect.objectContaining({
           field: [
-            'transaction',
-            'span.op',
+            'messaging.destination.name',
             'count()',
             'count_op(queue.publish)',
             'count_op(queue.process)',
@@ -151,7 +126,9 @@ describe('transactionsTable', () => {
             'time_spent_percentage(app,span.duration)',
           ],
           dataset: 'spansMetrics',
-          sort: '-avg_if(span.duration,span.op,queue.process)',
+          sort: '-messaging.destination.name',
+          query:
+            'span.op:[queue.process,queue.publish] messaging.destination.name:*events*',
         }),
       })
     );

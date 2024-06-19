@@ -30,10 +30,8 @@ import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spa
 import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
 import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
-import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/destinationSummary/messageSpanSamplesTable';
+import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
-import decodeRetryCount from 'sentry/views/insights/queues/queryParameterDecoders/retryCount';
-import decodeTraceStatus from 'sentry/views/insights/queues/queryParameterDecoders/traceStatus';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
   CONSUMER_QUERY_FILTER,
@@ -42,6 +40,8 @@ import {
   RETRY_COUNT_OPTIONS,
   TRACE_STATUS_OPTIONS,
 } from 'sentry/views/insights/queues/settings';
+import decodeRetryCount from 'sentry/views/insights/queues/utils/queryParameterDecoders/retryCount';
+import decodeTraceStatus from 'sentry/views/insights/queues/utils/queryParameterDecoders/traceStatus';
 import {
   ModuleName,
   SpanIndexedField,

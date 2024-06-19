@@ -23,7 +23,10 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
-import {isAValidSort, QueuesTable} from 'sentry/views/insights/queues/queuesTable';
+import {
+  isAValidSort,
+  QueuesTable,
+} from 'sentry/views/insights/queues/components/tables/queuesTable';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
   DEFAULT_QUERY_FILTER,

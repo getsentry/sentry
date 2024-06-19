@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/destinationSummary/messageSpanSamplesTable';
+import {MessageSpanSamplesTable} from 'sentry/views/insights/queues/components/tables/messageSpanSamplesTable';
 import {MessageActorType} from 'sentry/views/insights/queues/settings';
 
 describe('messageSpanSamplesTable', () => {
