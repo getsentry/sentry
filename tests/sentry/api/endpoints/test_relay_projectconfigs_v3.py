@@ -26,7 +26,7 @@ def call_endpoint(client, relay, private_key, default_projectkey):
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
 
-        body = {"publicKeys": public_keys, "no_cache": False, "fullConfig": True}
+        body = {"publicKeys": public_keys, "no_cache": False}
         if global_ is not None:
             body.update({"global": global_})
         raw_json, signature = private_key.pack(body)

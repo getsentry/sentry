@@ -32,6 +32,10 @@ def _get_all_keys(config):
                 yield key
 
 
+def assert_no_snakecase_key(config):
+    assert not {x for x in _get_all_keys(config) if "-" in x or "_" in x}
+
+
 @pytest.fixture
 def key_pair():
     return generate_key_pair()
@@ -64,13 +68,15 @@ def setup_relay(default_project):
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_project):
-    def inner(projects=None):
+    def inner(
+        projects=None,
+    ):
         path = reverse("sentry-api-0-relay-projectconfigs")
 
         if projects is None:
             projects = [str(default_project.id)]
 
-        raw_json, signature = private_key.pack({"projects": projects, "fullConfig": True})
+        raw_json, signature = private_key.pack({"projects": projects})
 
         resp = client.post(
             path,
@@ -101,23 +107,6 @@ def no_internal_networks(monkeypatch):
 
 
 @django_db_all
-def test_internal_relays_should_receive_full_configs_if_they_do_not_explicitly_ask_for_full_config(
-    call_endpoint, default_project
-):
-    result, status_code = call_endpoint()
-
-    assert status_code < 400
-
-    # Sweeping assertion that we do not have any snake_case in that config.
-    # Might need refining.
-    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
-
-    cfg = safe.get_path(result, "configs", str(default_project.id))
-    assert safe.get_path(cfg, "config", "filterSettings") is not None
-    assert safe.get_path(cfg, "config", "groupingConfig") is not None
-
-
-@django_db_all
 def test_internal_relays_should_receive_full_configs(
     call_endpoint, default_project, default_projectkey
 ):
@@ -125,9 +114,7 @@ def test_internal_relays_should_receive_full_configs(
 
     assert status_code < 400
 
-    # Sweeping assertion that we do not have any snake_case in that config.
-    # Might need refining.
-    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
+    assert_no_snakecase_key(result)
 
     cfg = safe.get_path(result, "configs", str(default_project.id))
     assert safe.get_path(cfg, "disabled") is False
@@ -190,81 +177,14 @@ def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
 
 
 @django_db_all
-def test_when_not_sending_full_config_info_into_a_internal_relay_the_full_config_is_returned(
-    call_endpoint, default_project
-):
-    result, status_code = call_endpoint()
-
-    assert status_code < 400
-
-    cfg = safe.get_path(result, "configs", str(default_project.id))
-    assert safe.get_path(cfg, "config", "filterSettings") is not None
-    assert safe.get_path(cfg, "config", "groupingConfig") is not None
-
-
-@django_db_all
 def test_when_not_sending_full_config_info_into_an_external_relay_the_full_config_is_returned(
-    call_endpoint, add_org_key, relay, default_project
+    call_endpoint, add_org_key, relay
 ):
     relay.is_internal = False
     relay.save()
 
     result, status_code = call_endpoint()
-
-    assert status_code < 400
-
-    cfg = safe.get_path(result, "configs", str(default_project.id))
-    assert safe.get_path(cfg, "config", "filterSettings") is not None
-    assert safe.get_path(cfg, "config", "groupingConfig") is not None
-
-
-@django_db_all
-def test_trusted_external_relays_should_receive_full_configs(
-    relay, add_org_key, call_endpoint, default_project, default_projectkey
-):
-    relay.is_internal = False
-    relay.save()
-
-    result, status_code = call_endpoint()
-
-    assert status_code < 400
-
-    # Sweeping assertion that we do not have any snake_case in that config.
-    # Might need refining.
-    assert not {x for x in _get_all_keys(result) if "-" in x or "_" in x}
-
-    cfg = safe.get_path(result, "configs", str(default_project.id))
-    assert safe.get_path(cfg, "disabled") is False
-
-    (public_key,) = cfg["publicKeys"]
-    assert public_key["publicKey"] == default_projectkey.public_key
-    assert public_key["isEnabled"]
-
-    assert safe.get_path(cfg, "slug") == default_project.slug
-    last_change = safe.get_path(cfg, "lastChange")
-    assert _date_regex.match(last_change) is not None
-    last_fetch = safe.get_path(cfg, "lastFetch")
-    assert _date_regex.match(last_fetch) is not None
-    assert safe.get_path(cfg, "organizationId") == default_project.organization.id
-    assert safe.get_path(cfg, "projectId") == default_project.id
-    assert safe.get_path(cfg, "slug") == default_project.slug
-    assert safe.get_path(cfg, "rev") is not None
-
-    assert safe.get_path(cfg, "config", "trustedRelays") != []
-    assert safe.get_path(cfg, "config", "filterSettings") is not None
-    assert safe.get_path(cfg, "config", "groupingConfig", "enhancements") is not None
-    assert safe.get_path(cfg, "config", "groupingConfig", "id") is not None
-    assert safe.get_path(cfg, "config", "piiConfig", "applications") is None
-    assert safe.get_path(cfg, "config", "piiConfig", "rules") is None
-    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubData") is True
-    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubDefaults") is True
-    assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
-    assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
-    assert safe.get_path(cfg, "config", "quotas") is None
-    # Event retention depends on settings, so assert the actual value.
-    assert safe.get_path(cfg, "config", "eventRetention") == quotas.backend.get_event_retention(
-        default_project.organization
-    )
+    assert status_code == 403
 
 
 @django_db_all
