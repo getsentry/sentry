@@ -27,6 +27,11 @@ class MetricsExtractionRule:
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
+        if len(dictionary["type"]) > 1:
+            raise ValueError(
+                "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set. "
+            )
+
         return MetricsExtractionRule(
             span_attribute=dictionary["spanAttribute"],
             type=dictionary["type"],
