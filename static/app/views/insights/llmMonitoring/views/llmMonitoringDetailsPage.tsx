@@ -20,8 +20,8 @@ import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
-} from 'sentry/views/insights/llmMonitoring/llmMonitoringCharts';
-import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/pipelineSpansTable';
+} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
+import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
 import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {
   SpanFunction,

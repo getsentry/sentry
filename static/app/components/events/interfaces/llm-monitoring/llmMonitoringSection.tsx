@@ -11,7 +11,7 @@ import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover'
 import {
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
-} from 'sentry/views/insights/llmMonitoring/llmMonitoringCharts';
+} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
 import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';

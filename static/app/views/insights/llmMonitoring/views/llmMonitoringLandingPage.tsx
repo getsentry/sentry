@@ -14,8 +14,8 @@ import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
   TotalTokensUsedChart,
-} from 'sentry/views/insights/llmMonitoring/llmMonitoringCharts';
-import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/pipelinesTable';
+} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
+import {PipelinesTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelinesTable';
 import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
