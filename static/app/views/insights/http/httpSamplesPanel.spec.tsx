@@ -9,7 +9,7 @@ import {
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
+import {HTTPSamplesPanel} from 'sentry/views/insights/http/httpSamplesPanel';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');

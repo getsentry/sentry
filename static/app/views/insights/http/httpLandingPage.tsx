@@ -22,22 +22,19 @@ import {useSynchronizeCharts} from 'sentry/views/insights/common/components/char
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-import {ModuleName} from 'sentry/views/insights/types';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
-import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
-import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
-import {Referrer} from 'sentry/views/performance/http/referrers';
+import {DurationChart} from 'sentry/views/insights/http/charts/durationChart';
+import {ResponseRateChart} from 'sentry/views/insights/http/charts/responseRateChart';
+import {ThroughputChart} from 'sentry/views/insights/http/charts/throughputChart';
+import {Referrer} from 'sentry/views/insights/http/referrers';
 import {
   BASE_FILTERS,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
-} from 'sentry/views/performance/http/settings';
-import {
-  DomainsTable,
-  isAValidSort,
-} from 'sentry/views/performance/http/tables/domainsTable';
+} from 'sentry/views/insights/http/settings';
+import {DomainsTable, isAValidSort} from 'sentry/views/insights/http/tables/domainsTable';
+import {ModuleName} from 'sentry/views/insights/types';
+import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';

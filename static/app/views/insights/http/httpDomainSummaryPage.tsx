@@ -32,23 +32,23 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
-import {ResponseRateChart} from 'sentry/views/performance/http/charts/responseRateChart';
-import {ThroughputChart} from 'sentry/views/performance/http/charts/throughputChart';
-import {DomainStatusLink} from 'sentry/views/performance/http/components/domainStatusLink';
-import {HTTPSamplesPanel} from 'sentry/views/performance/http/httpSamplesPanel';
-import {Referrer} from 'sentry/views/performance/http/referrers';
+import {DurationChart} from 'sentry/views/insights/http/charts/durationChart';
+import {ResponseRateChart} from 'sentry/views/insights/http/charts/responseRateChart';
+import {ThroughputChart} from 'sentry/views/insights/http/charts/throughputChart';
+import {DomainStatusLink} from 'sentry/views/insights/http/components/domainStatusLink';
+import {HTTPSamplesPanel} from 'sentry/views/insights/http/httpSamplesPanel';
+import {Referrer} from 'sentry/views/insights/http/referrers';
 import {
   BASE_FILTERS,
   MODULE_DOC_LINK,
   NULL_DOMAIN_DESCRIPTION,
-} from 'sentry/views/performance/http/settings';
+} from 'sentry/views/insights/http/settings';
 import {
   DomainTransactionsTable,
   isAValidSort,
-} from 'sentry/views/performance/http/tables/domainTransactionsTable';
+} from 'sentry/views/insights/http/tables/domainTransactionsTable';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';

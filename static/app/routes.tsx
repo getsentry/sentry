@@ -1487,12 +1487,12 @@ function buildRoutes() {
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
         <IndexRoute
-          component={make(() => import('sentry/views/performance/http/httpLandingPage'))}
+          component={make(() => import('sentry/views/insights/http/httpLandingPage'))}
         />
         <Route
           path="domains/"
           component={make(
-            () => import('sentry/views/performance/http/httpDomainSummaryPage')
+            () => import('sentry/views/insights/http/httpDomainSummaryPage')
           )}
         />
       </Route>

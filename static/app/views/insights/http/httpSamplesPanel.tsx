@@ -43,6 +43,16 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+import {DurationChart} from 'sentry/views/insights/http/charts/durationChart';
+import {ResponseCodeCountChart} from 'sentry/views/insights/http/charts/responseCodeCountChart';
+import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
+import {useSpanSamples} from 'sentry/views/insights/http/data/useSpanSamples';
+import decodePanel from 'sentry/views/insights/http/queryParameterDecoders/panel';
+import decodeResponseCodeClass from 'sentry/views/insights/http/queryParameterDecoders/responseCodeClass';
+import {Referrer} from 'sentry/views/insights/http/referrers';
+import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
+import {SpanSamplesTable} from 'sentry/views/insights/http/tables/spanSamplesTable';
+import {useDebouncedState} from 'sentry/views/insights/http/useDebouncedState';
 import {
   ModuleName,
   SpanFunction,
@@ -51,21 +61,10 @@ import {
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
-import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
-import {ResponseCodeCountChart} from 'sentry/views/performance/http/charts/responseCodeCountChart';
-import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/performance/http/data/definitions';
-import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
-import decodePanel from 'sentry/views/performance/http/queryParameterDecoders/panel';
-import decodeResponseCodeClass from 'sentry/views/performance/http/queryParameterDecoders/responseCodeClass';
-import {Referrer} from 'sentry/views/performance/http/referrers';
-import {BASE_FILTERS} from 'sentry/views/performance/http/settings';
-import {SpanSamplesTable} from 'sentry/views/performance/http/tables/spanSamplesTable';
-import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
 
 export function HTTPSamplesPanel() {
   const router = useRouter();

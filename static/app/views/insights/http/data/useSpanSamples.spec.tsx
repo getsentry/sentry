@@ -7,9 +7,9 @@ import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSpanSamples} from 'sentry/views/insights/http/data/useSpanSamples';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {OrganizationContext} from 'sentry/views/organizationContext';
-import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
 
 jest.mock('sentry/utils/usePageFilters');
 

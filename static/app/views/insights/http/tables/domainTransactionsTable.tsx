@@ -18,8 +18,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {TransactionCell} from 'sentry/views/insights/http/tables/transactionCell';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
-import {TransactionCell} from 'sentry/views/performance/http/tables/transactionCell';
 
 type Row = Pick<
   SpanMetricsResponse,

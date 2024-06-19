@@ -38,6 +38,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
+import {useDebouncedState} from 'sentry/views/insights/http/useDebouncedState';
 import {
   MetricsFields,
   type MetricsQueryFilters,
@@ -54,7 +55,6 @@ import {Referrer} from 'sentry/views/performance/cache/referrers';
 import {TransactionDurationChart} from 'sentry/views/performance/cache/samplePanel/charts/transactionDurationChart';
 import {BASE_FILTERS} from 'sentry/views/performance/cache/settings';
 import {SpanSamplesTable} from 'sentry/views/performance/cache/tables/spanSamplesTable';
-import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';

@@ -27,15 +27,15 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
+import {DurationChart} from 'sentry/views/insights/http/charts/durationChart';
+import {useSpanSamples} from 'sentry/views/insights/http/data/useSpanSamples';
+import {useDebouncedState} from 'sentry/views/insights/http/useDebouncedState';
 import {
   ModuleName,
   SpanIndexedField,
   type SpanMetricsResponse,
 } from 'sentry/views/insights/types';
 import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
-import {DurationChart} from 'sentry/views/performance/http/charts/durationChart';
-import {useSpanSamples} from 'sentry/views/performance/http/data/useSpanSamples';
-import {useDebouncedState} from 'sentry/views/performance/http/useDebouncedState';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {MessageSpanSamplesTable} from 'sentry/views/performance/queues/destinationSummary/messageSpanSamplesTable';
