@@ -1691,7 +1691,9 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken], field_mapper: Any = _map_field_name):
+    def __init__(
+        self, tokens: Sequence[QueryToken], field_mapper: Callable[[str], str] = _map_field_name
+    ):
         self._tokens = tokens
         self._position = 0
         # The field mapper is used to map the field names in the search query to the event protocol path.
