@@ -1,5 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
-import {getAxisMaxForPercentageSeries} from 'sentry/views/insights/http/charts/responseRateChart';
+import {getAxisMaxForPercentageSeries} from 'sentry/views/insights/http/components/charts/responseRateChart';
 
 describe('ResponseRateChart', function () {
   describe('getAxisMaxForPercentageSeries', function () {

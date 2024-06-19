@@ -18,7 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {DomainCell} from 'sentry/views/insights/http/tables/domainCell';
+import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {ModuleName, type SpanMetricsResponse} from 'sentry/views/insights/types';
 
 type Row = Pick<

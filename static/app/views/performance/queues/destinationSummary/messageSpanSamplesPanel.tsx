@@ -27,9 +27,9 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChart} from 'sentry/views/insights/http/charts/durationChart';
-import {useSpanSamples} from 'sentry/views/insights/http/data/useSpanSamples';
-import {useDebouncedState} from 'sentry/views/insights/http/useDebouncedState';
+import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
+import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
+import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   ModuleName,
   SpanIndexedField,

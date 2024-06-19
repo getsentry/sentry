@@ -38,7 +38,7 @@ import {
   DataTitles,
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
-import {useDebouncedState} from 'sentry/views/insights/http/useDebouncedState';
+import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   MetricsFields,
   type MetricsQueryFilters,

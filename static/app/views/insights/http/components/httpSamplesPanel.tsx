@@ -43,16 +43,16 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
-import {DurationChart} from 'sentry/views/insights/http/charts/durationChart';
-import {ResponseCodeCountChart} from 'sentry/views/insights/http/charts/responseCodeCountChart';
+import {DurationChart} from 'sentry/views/insights/http/components/charts/durationChart';
+import {ResponseCodeCountChart} from 'sentry/views/insights/http/components/charts/responseCodeCountChart';
+import {SpanSamplesTable} from 'sentry/views/insights/http/components/tables/spanSamplesTable';
 import {HTTP_RESPONSE_STATUS_CODES} from 'sentry/views/insights/http/data/definitions';
-import {useSpanSamples} from 'sentry/views/insights/http/data/useSpanSamples';
-import decodePanel from 'sentry/views/insights/http/queryParameterDecoders/panel';
-import decodeResponseCodeClass from 'sentry/views/insights/http/queryParameterDecoders/responseCodeClass';
+import {useSpanSamples} from 'sentry/views/insights/http/queries/useSpanSamples';
 import {Referrer} from 'sentry/views/insights/http/referrers';
 import {BASE_FILTERS} from 'sentry/views/insights/http/settings';
-import {SpanSamplesTable} from 'sentry/views/insights/http/tables/spanSamplesTable';
-import {useDebouncedState} from 'sentry/views/insights/http/useDebouncedState';
+import decodePanel from 'sentry/views/insights/http/utils/queryParameterDecoders/panel';
+import decodeResponseCodeClass from 'sentry/views/insights/http/utils/queryParameterDecoders/responseCodeClass';
+import {useDebouncedState} from 'sentry/views/insights/http/utils/useDebouncedState';
 import {
   ModuleName,
   SpanFunction,
