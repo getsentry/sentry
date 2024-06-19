@@ -27,13 +27,13 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
   const webVital = webVitalSeries.seriesName;
   const allSeries = [webVitalSeries];
 
-  const showPoorMarkLine = webVitalSeries.data?.some(
+  const seriesIsPoor = webVitalSeries.data?.some(
     ({value}) => value > PERFORMANCE_SCORE_MEDIANS[webVital ?? '']
   );
-  const showMehMarkLine = webVitalSeries.data?.some(
+  const seriesIsMeh = webVitalSeries.data?.some(
     ({value}) => value >= PERFORMANCE_SCORE_P90S[webVital ?? '']
   );
-  const showGoodMarkLine = webVitalSeries.data?.every(
+  const seriesIsGood = webVitalSeries.data?.every(
     ({value}) => value < PERFORMANCE_SCORE_P90S[webVital ?? '']
   );
   const goodMarkArea = MarkArea({
@@ -97,18 +97,11 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
       position: 'insideEndBottom',
       color: theme.green300,
     },
-    data: showGoodMarkLine
-      ? [
-          [
-            {xAxis: 'min', y: 10},
-            {xAxis: 'max', y: 10},
-          ],
-        ]
-      : [
-          {
-            yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
-          },
-        ],
+    data: [
+      {
+        yAxis: PERFORMANCE_SCORE_P90S[webVital ?? ''],
+      },
+    ],
   });
   const mehMarkLine = MarkLine({
     silent: true,
@@ -120,19 +113,11 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
       position: 'insideEndBottom',
       color: theme.yellow300,
     },
-    data:
-      showMehMarkLine && !showPoorMarkLine
-        ? [
-            [
-              {xAxis: 'min', y: 10},
-              {xAxis: 'max', y: 10},
-            ],
-          ]
-        : [
-            {
-              yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
-            },
-          ],
+    data: [
+      {
+        yAxis: PERFORMANCE_SCORE_MEDIANS[webVital ?? ''],
+      },
+    ],
   });
   const poorMarkLine = MarkLine({
     silent: true,
@@ -187,7 +172,7 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
     data: [],
   });
 
-  if (showPoorMarkLine) {
+  if (seriesIsPoor) {
     allSeries.push({
       seriesName: '',
       type: 'line',
@@ -202,6 +187,21 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
     }
     return getDuration(value / 1000, 2, true);
   };
+
+  const getMaxYAxis = () => {
+    if (seriesIsPoor) {
+      return undefined;
+    }
+    if (seriesIsMeh) {
+      return PERFORMANCE_SCORE_MEDIANS[webVital ?? ''];
+    }
+    if (seriesIsGood) {
+      return PERFORMANCE_SCORE_P90S[webVital ?? ''];
+    }
+    return undefined;
+  };
+
+  const yAxisMax = getMaxYAxis();
 
   return (
     <ChartContainer>
@@ -219,9 +219,12 @@ export function WebVitalStatusLineChart({webVitalSeries}: Props) {
                 top: 10,
                 bottom: 0,
               }}
-              yAxis={
-                webVital === 'cls' ? {} : {axisLabel: {formatter: getFormattedDuration}}
-              }
+              yAxis={{
+                ...(webVital === 'cls'
+                  ? {}
+                  : {axisLabel: {formatter: getFormattedDuration}}),
+                max: yAxisMax,
+              }}
               tooltip={webVital === 'cls' ? {} : {valueFormatter: getFormattedDuration}}
             />
           )}
