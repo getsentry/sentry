@@ -5,8 +5,8 @@ import type {Series} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {AVG_COLOR} from 'sentry/views/insights/colors';
 import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
+import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/insights/http/settings';
 import type {SpanIndexedResponse} from 'sentry/views/insights/types';
-import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/performance/http/settings';
 
 /** Given an array of indexed spans, create a `Series` for each one, and set the correct styling based on how it compares to the average value. This is a hack, in which our `Chart` component doesn't work otherwise. The right solution would be to create a single series of `type: "scatter"` but that doesn' work with the current implementation */
 export function useSampleScatterPlotSeries(

@@ -1487,19 +1487,21 @@ function buildRoutes() {
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.HTTP]}/`}>
         <IndexRoute
-          component={make(() => import('sentry/views/performance/http/httpLandingPage'))}
+          component={make(
+            () => import('sentry/views/insights/http/views/httpLandingPage')
+          )}
         />
         <Route
           path="domains/"
           component={make(
-            () => import('sentry/views/performance/http/httpDomainSummaryPage')
+            () => import('sentry/views/insights/http/views/httpDomainSummaryPage')
           )}
         />
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.CACHE]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/cache/cacheLandingPage')
+            () => import('sentry/views/insights/cache/views/cacheLandingPage')
           )}
         />
       </Route>
@@ -1540,16 +1542,13 @@ function buildRoutes() {
       <Route path={`${MODULE_BASE_URLS[ModuleName.QUEUE]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/queues/queuesLandingPage')
+            () => import('sentry/views/insights/queues/views/queuesLandingPage')
           )}
         />
         <Route
           path="destination/"
           component={make(
-            () =>
-              import(
-                'sentry/views/performance/queues/destinationSummary/destinationSummaryPage'
-              )
+            () => import('sentry/views/insights/queues/views/destinationSummaryPage')
           )}
         />
       </Route>
