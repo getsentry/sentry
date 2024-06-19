@@ -16,6 +16,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {LatencyChart} from 'sentry/views/insights/queues/charts/latencyChart';
 import {ThroughputChart} from 'sentry/views/insights/queues/charts/throughputChart';
 import {MessageSpanSamplesPanel} from 'sentry/views/insights/queues/components/messageSpanSamplesPanel';
@@ -23,7 +24,6 @@ import {TransactionsTable} from 'sentry/views/insights/queues/components/tables/
 import {useQueuesMetricsQuery} from 'sentry/views/insights/queues/queries/useQueuesMetricsQuery';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {DESTINATION_TITLE} from 'sentry/views/insights/queues/settings';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';

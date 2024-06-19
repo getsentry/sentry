@@ -11,18 +11,18 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
-import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
+import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
   Badge,
   PerformanceBadge,
-} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
-import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
+} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/useProjectWebVitalsTimeseriesQuery';
+import {useTransactionWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionWebVitalsQuery';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 import {Accordion} from '../components/accordion';

@@ -9,10 +9,10 @@ import localStorage from 'sentry/utils/localStorage';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import ScreenLoadSpans from 'sentry/views/performance/mobile/screenload/screenLoadSpans';
 
-jest.mock('sentry/views/performance/browser/webVitals/utils/useOnboardingProject');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
