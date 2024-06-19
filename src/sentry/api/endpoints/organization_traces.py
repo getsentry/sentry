@@ -85,13 +85,10 @@ class OrganizationTracesSerializer(serializers.Serializer):
     mri = serializers.CharField(required=False)
 
     breakdownSlices = serializers.IntegerField(default=40, min_value=1, max_value=100)
-    field = serializers.ListField(required=True, allow_empty=False, child=serializers.CharField())
-    sort = serializers.ListField(required=False, allow_empty=True, child=serializers.CharField())
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     suggestedQuery = serializers.CharField(required=False)
-    maxSpansPerTrace = serializers.IntegerField(default=1, min_value=1, max_value=100)
 
 
 @contextmanager
@@ -160,17 +157,14 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
         executor = TracesExecutor(
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
-            fields=serialized["field"],
             user_queries=serialized.get("query", []),
             suggested_query=serialized.get("suggestedQuery", ""),
-            sort=serialized.get("sort"),
             metrics_max=serialized.get("metricsMax"),
             metrics_min=serialized.get("metricsMin"),
             metrics_operation=serialized.get("metricsOp"),
             metrics_query=serialized.get("metricsQuery"),
             mri=serialized.get("mri"),
             limit=self.get_per_page(request),
-            max_spans_per_trace=serialized["maxSpansPerTrace"],
             breakdown_slices=serialized["breakdownSlices"],
         )
 
@@ -325,7 +319,6 @@ class TracesExecutor:
         *,
         params: ParamsType,
         snuba_params: SnubaParams,
-        fields: list[str],
         user_queries: list[str],
         suggested_query: str,
         metrics_max: float | None,
@@ -333,14 +326,11 @@ class TracesExecutor:
         metrics_operation: str | None,
         metrics_query: str | None,
         mri: str | None,
-        sort: str | None,
         limit: int,
-        max_spans_per_trace: int,
         breakdown_slices: int,
     ):
         self.params = params
         self.snuba_params = snuba_params
-        self.fields = fields
         # Filter out empty queries as they do not do anything to change the results.
         self.user_queries = {
             query.strip(): i + 1  # ensure no zero ids
@@ -353,9 +343,7 @@ class TracesExecutor:
         self.metrics_operation = metrics_operation
         self.metrics_query = metrics_query
         self.mri = mri
-        self.sort = sort
         self.limit = limit
-        self.max_spans_per_trace = max_spans_per_trace
         self.breakdown_slices = breakdown_slices
 
     def execute(self, offset: int, limit: int):
@@ -830,11 +818,7 @@ class TracesExecutor:
         ]
 
     def process_meta_results(self, results):
-        fields = results["meta"].get("fields", {})
-        return {
-            **results["meta"],
-            "fields": {field: fields[field] for field in self.fields},
-        }
+        return results["meta"]
 
     def get_traces_breakdown_projects_query(
         self,

@@ -282,60 +282,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         response = self.do_request({})
         assert response.status_code == 404, response.data
 
-    def test_bad_params_missing_fields(self):
-        query = {
-            "project": [self.project.id],
-            "field": [],
-            "maxSpansPerTrace": 0,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "field": [
-                ErrorDetail(string="This field is required.", code="required"),
-            ],
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is greater than or equal to 1.", code="min_value"
-                ),
-            ],
-        }
-
-    def test_bad_params_too_few_spans_per_trace(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 0,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is greater than or equal to 1.", code="min_value"
-                ),
-            ],
-        }
-
-    def test_bad_params_too_many_spans_per_trace(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 1000,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is less than or equal to 100.", code="max_value"
-                ),
-            ],
-        }
-
     def test_bad_params_too_many_per_page(self):
         query = {
             "project": [self.project.id],
@@ -898,7 +844,10 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             )
 
     def test_no_feature(self):
-        response = self.do_request(uuid4().hex, {}, features=[])
+        query = {
+            "project": [self.project.id],
+        }
+        response = self.do_request(uuid4().hex, query, features=[])
         assert response.status_code == 404, response.data
 
     def test_no_project(self):
@@ -906,21 +855,10 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 404, response.data
 
     def test_bad_params_missing_field(self):
-        (
-            _,
-            _,
-            trace_id,
-            _,
-            _,
-            _,
-            _,
-        ) = self.create_mock_traces()
-
         query = {
             "project": [self.project.id],
         }
-
-        response = self.do_request(trace_id, query)
+        response = self.do_request(uuid4().hex, query)
         assert response.status_code == 400, response.data
         assert response.data == {
             "field": [
