@@ -21,7 +21,7 @@ import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
-import Breakdown from 'sentry/views/performance/mobile/appStarts/screens/breakdown';
+import Breakdown from 'sentry/views/performance/mobile/appStarts/components/breakdown';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 
 const SYSTEM_COLOR = '#D6567F';

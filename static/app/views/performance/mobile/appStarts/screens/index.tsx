@@ -20,9 +20,9 @@ import {useReleaseSelection} from 'sentry/views/insights/common/queries/useRelea
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
-import {AverageComparisonChart} from 'sentry/views/performance/mobile/appStarts/screens/averageComparisonChart';
-import {CountChart} from 'sentry/views/performance/mobile/appStarts/screens/countChart';
-import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
+import {AverageComparisonChart} from 'sentry/views/performance/mobile/appStarts/components/charts/averageComparisonChart';
+import {CountChart} from 'sentry/views/performance/mobile/appStarts/components/charts/countChart';
+import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/components/tables/screensTable';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';

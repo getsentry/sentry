@@ -3,7 +3,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
-import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
+import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/components/tables/screensTable';
 
 jest.mock('sentry/views/insights/common/queries/useReleases');
 
