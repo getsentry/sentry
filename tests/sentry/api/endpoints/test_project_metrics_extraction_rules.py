@@ -426,3 +426,26 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert min(span_attributes) == "count_clicks_50"
         assert max(span_attributes) == "count_clicks_59"
         assert len(set(span_attributes)) == len(span_attributes)
+
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_null_validation(self):
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": None,
+                    "type": "c",
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": ["foo:bar", "baz:faz"],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+
+        assert response.status_code == 400
