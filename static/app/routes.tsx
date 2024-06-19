@@ -1509,13 +1509,13 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () =>
-              import('sentry/views/performance/browser/webVitals/webVitalsLandingPage')
+              import('sentry/views/insights/browser/webVitals/views/webVitalsLandingPage')
           )}
         />
         <Route
           path="overview/"
           component={make(
-            () => import('sentry/views/performance/browser/webVitals/pageOverview')
+            () => import('sentry/views/insights/browser/webVitals/views/pageOverview')
           )}
         />
       </Route>
