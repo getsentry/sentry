@@ -40,7 +40,6 @@ class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
-        initial_priority = None
 
         # Check if 'initial_priority' is available
         initial_priority_value = group.get_event_metadata().get(
