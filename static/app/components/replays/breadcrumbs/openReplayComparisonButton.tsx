@@ -14,17 +14,17 @@ const LazyComparisonModal = lazy(
 
 interface Props {
   children: ReactNode;
-  leftOffsetMs: number;
+  leftTimestamp: number;
   replay: null | ReplayReader;
-  rightOffsetMs: number;
+  rightTimestamp: number;
   size?: ButtonProps['size'];
 }
 
 export function OpenReplayComparisonButton({
   children,
-  leftOffsetMs,
+  leftTimestamp,
   replay,
-  rightOffsetMs,
+  rightTimestamp,
   size,
 }: Props) {
   const organization = useOrganization();
@@ -59,8 +59,8 @@ export function OpenReplayComparisonButton({
               <LazyComparisonModal
                 replay={replay}
                 organization={organization}
-                leftOffsetMs={leftOffsetMs}
-                rightOffsetMs={rightOffsetMs}
+                leftTimestamp={leftTimestamp}
+                rightTimestamp={rightTimestamp}
                 {...deps}
               />
             </Suspense>

@@ -11,19 +11,19 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps {
-  leftOffsetMs: number;
+  leftTimestamp: number;
   organization: Organization;
   replay: null | ReplayReader;
-  rightOffsetMs: number;
+  rightTimestamp: number;
 }
 
 export default function ReplayComparisonModal({
   Body,
   Header,
-  leftOffsetMs,
+  leftTimestamp,
   organization,
   replay,
-  rightOffsetMs,
+  rightTimestamp,
 }: Props) {
   return (
     <OrganizationContext.Provider value={organization}>
@@ -55,8 +55,8 @@ export default function ReplayComparisonModal({
         </StyledParagraph>
         <ReplayDiff
           replay={replay}
-          leftOffsetMs={leftOffsetMs}
-          rightOffsetMs={rightOffsetMs}
+          leftTimestamp={leftTimestamp}
+          rightTimestamp={rightTimestamp}
         />
       </Body>
     </OrganizationContext.Provider>

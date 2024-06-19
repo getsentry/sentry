@@ -1,3 +1,4 @@
+import {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 import {
   ReplayClickEventFixture,
   ReplayConsoleEventFixture,
@@ -16,14 +17,12 @@ import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameDa
 import {
   RRWebDOMFrameFixture,
   RRWebFullSnapshotFrameEventFixture,
-  RRWebIncrementalSnapshotFrameEventFixture,
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
-import {EventType, IncrementalSource} from 'sentry/utils/replays/types';
 
 describe('ReplayReader', () => {
   const replayRecord = ReplayRecordFixture();
@@ -333,27 +332,29 @@ describe('ReplayReader', () => {
     const timestamp = new Date('2023-12-25T00:02:00');
 
     const snapshot = RRWebFullSnapshotFrameEventFixture({timestamp});
-    const increment = RRWebIncrementalSnapshotFrameEventFixture({
-      timestamp,
-      data: {
-        source: IncrementalSource.Mutation,
-        adds: [
-          {
-            node: RRWebDOMFrameFixture({
-              tagName: 'canvas',
-            }),
-            parentId: 0,
-            nextId: null,
-          },
-        ],
-        removes: [],
-        texts: [],
-        attributes: [],
+    const attachments = [
+      snapshot,
+      {
+        type: EventType.IncrementalSnapshot,
+        timestamp,
+        data: {
+          source: IncrementalSource.Mutation,
+          adds: [
+            {
+              node: RRWebDOMFrameFixture({
+                tagName: 'canvas',
+              }),
+            },
+          ],
+          removes: [],
+          texts: [],
+          attributes: [],
+        },
       },
-    });
+    ];
 
     const replay = ReplayReader.factory({
-      attachments: [snapshot, increment],
+      attachments,
       errors: [],
       replayRecord,
     });
