@@ -2,10 +2,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {AppStartScreens} from 'sentry/views/performance/mobile/appStarts/screens/screensTable';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
-jest.mock('sentry/views/starfish/queries/useReleases');
+jest.mock('sentry/views/insights/common/queries/useReleases');
 
 jest.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5',

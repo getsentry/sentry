@@ -181,6 +181,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:noisy-alert-warning", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Drop obsoleted status changes in occurence consumer
+    manager.add("organizations:occurence-consumer-prune-status-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable User Feedback v1
     manager.add("organizations:old-user-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Extract on demand metrics
@@ -221,8 +223,6 @@ def register_temporary_features(manager: FeatureManager):
     # Enable UI sending a discover split for widget
     manager.add("organizations:performance-discover-widget-split-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-file-io-main-thread-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Rename current Performance modules to "Insights"
-    manager.add("organizations:performance-insights", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables updated all events tab in a performance issue
     manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.

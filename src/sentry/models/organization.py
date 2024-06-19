@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -22,7 +22,6 @@ from sentry.constants import (
 )
 from sentry.db.models import BaseManager, BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
-from sentry.db.models.manager import ValidateFunction
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
@@ -475,7 +474,7 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
         return frozenset(scopes)
 
     def get_option(
-        self, key: str, default: Any | None = None, validate: ValidateFunction | None = None
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
         return self.option_manager.get_value(self, key, default, validate)
 

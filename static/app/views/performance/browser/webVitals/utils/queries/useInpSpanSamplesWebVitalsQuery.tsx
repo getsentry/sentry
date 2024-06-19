@@ -1,12 +1,12 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {
   DEFAULT_INDEXED_INTERACTION_SORT,
   type InteractionSpanSampleRowWithScore,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
 } from 'sentry/views/performance/browser/webVitals/utils/types';
 import {useWebVitalsSort} from 'sentry/views/performance/browser/webVitals/utils/useWebVitalsSort';
-import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
 
 export function useInpSpanSamplesWebVitalsQuery({
   transaction,

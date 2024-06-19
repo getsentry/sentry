@@ -16,6 +16,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {AverageComparisonChart} from 'sentry/views/performance/mobile/appStarts/screens/averageComparisonChart';
 import {CountChart} from 'sentry/views/performance/mobile/appStarts/screens/countChart';
@@ -34,9 +37,6 @@ import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPla
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
 const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];

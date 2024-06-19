@@ -15,22 +15,35 @@ class MetricsExtractionRuleValidationError(ValueError):
 
 
 HARD_CODED_UNITS = {"span.duration": "millisecond"}
+ALLOWED_TYPES = {"c", "d", "s"}
 
 
-@dataclass(frozen=True)
+@dataclass
 class MetricsExtractionRule:
-    span_attribute: str
-    type: str
-    unit: str
-    tags: set[str]
-    conditions: list[str]
+    def __init__(
+        self, span_attribute: str, type: str, unit: str, tags: set[str], conditions: list[str]
+    ):
+
+        self.span_attribute = span_attribute
+        self.type = self.validate_type(type)
+        self.unit = HARD_CODED_UNITS.get(span_attribute, "none")
+        self.tags = tags
+        self.conditions = conditions
+
+    def validate_type(self, type_value: str):
+        if type_value not in ALLOWED_TYPES:
+            raise ValueError(
+                "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set. "
+            )
+        return type_value
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
+
         return MetricsExtractionRule(
             span_attribute=dictionary["spanAttribute"],
             type=dictionary["type"],
-            unit=HARD_CODED_UNITS.get(dictionary["spanAttribute"], "none"),
+            unit=dictionary["unit"],
             tags=set(dictionary.get("tags") or set()),
             conditions=list(dictionary.get("conditions") or []),
         )
@@ -47,7 +60,7 @@ class MetricsExtractionRule:
     def generate_mri(self, use_case: str = "custom"):
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
         use_case_id = string_to_use_case_id(use_case)
-        return f"{self.type}:{use_case_id}/{self.span_attribute}@{self.unit}"
+        return f"{self.type}:{use_case_id.value}/{self.span_attribute}@{self.unit}"
 
     def __hash__(self):
         return hash(self.generate_mri())

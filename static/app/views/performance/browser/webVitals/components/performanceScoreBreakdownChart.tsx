@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {
   ORDER,
   ORDER_WITH_INP,
@@ -21,7 +22,6 @@ import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/perf
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {UnweightedWebVitalsScoreBreakdown} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
 
 export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
 export const FID_DEPRECATION_DATE = 1710259200000;

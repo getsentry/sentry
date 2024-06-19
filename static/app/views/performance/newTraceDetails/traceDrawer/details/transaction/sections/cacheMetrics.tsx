@@ -1,8 +1,8 @@
 import {t} from 'sentry/locale';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import type {SpanMetricsResponse} from 'sentry/views/starfish/types';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import type {SpanMetricsResponse} from 'sentry/views/insights/types';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
