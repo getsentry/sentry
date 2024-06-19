@@ -4,11 +4,11 @@ import {MODULE_TITLE as CACHE_MODULE_TITLE} from 'sentry/views/insights/cache/se
 import {MODULE_TITLE as DB_MODULE_TITLE} from 'sentry/views/insights/database/settings';
 import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/insights/http/settings';
 import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
+import {MODULE_TITLE as APP_STARTS_MODULE_TITLE} from 'sentry/views/insights/mobile/appStarts/settings';
+import {MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE} from 'sentry/views/insights/mobile/screenload/settings';
+import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/insights/mobile/ui/settings';
 import {MODULE_TITLE as QUEUE_MODULE_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
-import {MODULE_TITLE as APP_STARTS_MODULE_TITLE} from 'sentry/views/performance/mobile/appStarts/settings';
-import {MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE} from 'sentry/views/performance/mobile/screenload/settings';
-import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/performance/mobile/ui/settings';
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,
