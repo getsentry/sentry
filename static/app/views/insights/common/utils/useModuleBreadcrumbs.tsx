@@ -1,8 +1,8 @@
 import type {Crumb} from 'sentry/components/breadcrumbs';
+import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {INSIGHTS_TITLE} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
-import {INSIGHTS_TITLE} from 'sentry/views/performance/settings';
-import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type ModuleNameStrings = `${ModuleName}`;
 type RoutableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;

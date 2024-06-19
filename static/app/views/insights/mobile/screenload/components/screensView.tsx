@@ -25,6 +25,7 @@ import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useTTFDConfigured} from 'sentry/views/insights/common/queries/useHasTtfdConfigured';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/insights/mobile/common/queries/useTruncatedRelease';
 import {TOP_SCREENS} from 'sentry/views/insights/mobile/constants';
@@ -45,7 +46,6 @@ import {transformReleaseEvents} from 'sentry/views/insights/mobile/screenload/ut
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 
 type Props = {
   yAxes: YAxis[];

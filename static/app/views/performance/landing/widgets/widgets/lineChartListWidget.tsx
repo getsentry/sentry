@@ -30,6 +30,7 @@ import {BASE_FILTERS, CACHE_BASE_URL} from 'sentry/views/insights/cache/settings
 import {SpanDescriptionCell} from 'sentry/views/insights/common/components/tableCells/spanDescriptionCell';
 import {TimeSpentCell} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {DomainCell} from 'sentry/views/insights/http/components/tables/domainCell';
 import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import DurationChart from 'sentry/views/performance/charts/chart';
@@ -39,7 +40,6 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from 'sentry/views/performance/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
 
 import {excludeTransaction} from '../../utils';
 import {Accordion} from '../components/accordion';

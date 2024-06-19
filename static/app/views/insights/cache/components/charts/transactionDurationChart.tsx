@@ -10,10 +10,10 @@ import {AVG_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import type {MetricsQueryFilters} from 'sentry/views/insights/types';
-import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 
 type Props = {
   averageTransactionDuration: number;

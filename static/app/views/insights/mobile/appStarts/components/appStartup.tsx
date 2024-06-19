@@ -18,6 +18,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {AverageComparisonChart} from 'sentry/views/insights/mobile/appStarts/components/charts/averageComparisonChart';
 import {CountChart} from 'sentry/views/insights/mobile/appStarts/components/charts/countChart';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
@@ -33,7 +34,6 @@ import {transformReleaseEvents} from 'sentry/views/insights/mobile/screenload/ut
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 
 const Y_AXES = [YAxis.COLD_START, YAxis.WARM_START];
 const Y_AXIS_COLS = [YAXIS_COLUMNS[YAxis.COLD_START], YAXIS_COLUMNS[YAxis.WARM_START]];

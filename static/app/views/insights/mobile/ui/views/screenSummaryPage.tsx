@@ -11,13 +11,13 @@ import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/insights/mobile/common/components/tables/samplesTables';
 import {SpanOperationTable} from 'sentry/views/insights/mobile/ui/components/tables/spanOperationTable';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 type Query = {
   'device.class': string;

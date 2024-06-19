@@ -21,9 +21,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {ActionSelector} from 'sentry/views/insights/common/views/spans/selectors/actionSelector';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
@@ -42,11 +46,7 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import Onboarding from 'sentry/views/performance/onboarding';
-import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
