@@ -18,7 +18,10 @@ import {SpanMetricsField} from 'sentry/views/insights/types';
 import {COLD_START_TYPE} from 'sentry/views/performance/mobile/appStarts/screenSummary/startTypeSelector';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
-import {YAxis, YAXIS_COLUMNS} from 'sentry/views/performance/mobile/screenload/screens';
+import {
+  YAxis,
+  YAXIS_COLUMNS,
+} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 

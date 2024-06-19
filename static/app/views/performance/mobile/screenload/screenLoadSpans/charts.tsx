@@ -30,7 +30,7 @@ import {
   CHART_TITLES,
   OUTPUT_TYPE,
   YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens';
+} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';

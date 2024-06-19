@@ -16,7 +16,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
-import {ScreensView, YAxis} from 'sentry/views/performance/mobile/screenload/screens';
+import {ScreensView} from 'sentry/views/performance/mobile/screenload/screens';
+import {YAxis} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {PlatformSelector} from 'sentry/views/performance/mobile/screenload/screens/platformSelector';
 import {
   MODULE_DESCRIPTION,

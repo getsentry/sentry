@@ -20,11 +20,11 @@ import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseCo
 import {SpanMetricsField} from 'sentry/views/insights/types';
 import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
+import {getFreeTextFromQuery} from 'sentry/views/performance/mobile/screenload/screens';
 import {
-  getFreeTextFromQuery,
   YAxis,
   YAXIS_COLUMNS,
-} from 'sentry/views/performance/mobile/screenload/screens';
+} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {TopScreensChart} from 'sentry/views/performance/mobile/ui/components/charts/topScreensChart';

@@ -14,7 +14,6 @@ import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
-import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -31,7 +30,12 @@ import {prepareQueryForLandingPage} from 'sentry/views/performance/data';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/common/queries/useCrossPlatformProject';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/common/queries/useTruncatedRelease';
 import {TOP_SCREENS} from 'sentry/views/performance/mobile/constants';
-import {MobileCursors} from 'sentry/views/performance/mobile/screenload/screens/constants';
+import {
+  CHART_TITLES,
+  MobileCursors,
+  YAxis,
+  YAXIS_COLUMNS,
+} from 'sentry/views/performance/mobile/screenload/screens/constants';
 import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screens/screenBarChart';
 import {
   ScreensTable,
@@ -42,78 +46,6 @@ import {TabbedCodeSnippet} from 'sentry/views/performance/mobile/screenload/scre
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
-
-export enum YAxis {
-  WARM_START = 0,
-  COLD_START = 1,
-  TTID = 2,
-  TTFD = 3,
-  SLOW_FRAME_RATE = 4,
-  FROZEN_FRAME_RATE = 5,
-  THROUGHPUT = 6,
-  COUNT = 7,
-  SLOW_FRAMES = 8,
-  FROZEN_FRAMES = 9,
-  FRAMES_DELAY = 10,
-}
-
-export const YAXIS_COLUMNS: Readonly<Record<YAxis, string>> = {
-  [YAxis.WARM_START]: 'avg(measurements.app_start_warm)',
-  [YAxis.COLD_START]: 'avg(measurements.app_start_cold)',
-  [YAxis.TTID]: 'avg(measurements.time_to_initial_display)',
-  [YAxis.TTFD]: 'avg(measurements.time_to_full_display)',
-  [YAxis.SLOW_FRAME_RATE]: 'avg(measurements.frames_slow_rate)',
-  [YAxis.FROZEN_FRAME_RATE]: 'avg(measurements.frames_frozen_rate)',
-  [YAxis.THROUGHPUT]: 'tpm()',
-  [YAxis.COUNT]: 'count()',
-
-  // Using span metrics
-  [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
-  [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
-  [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
-};
-
-export const READABLE_YAXIS_LABELS: Readonly<Record<YAxis, string>> = {
-  [YAxis.WARM_START]: 'avg(app_start_warm)',
-  [YAxis.COLD_START]: 'avg(app_start_cold)',
-  [YAxis.TTID]: 'avg(time_to_initial_display)',
-  [YAxis.TTFD]: 'avg(time_to_full_display)',
-  [YAxis.SLOW_FRAME_RATE]: 'avg(frames_slow_rate)',
-  [YAxis.FROZEN_FRAME_RATE]: 'avg(frames_frozen_rate)',
-  [YAxis.THROUGHPUT]: 'tpm()',
-  [YAxis.COUNT]: 'count()',
-  [YAxis.SLOW_FRAMES]: 'avg(mobile.slow_frames)',
-  [YAxis.FROZEN_FRAMES]: 'avg(mobile.frozen_frames)',
-  [YAxis.FRAMES_DELAY]: 'avg(mobile.frames_delay)',
-};
-
-export const CHART_TITLES: Readonly<Record<YAxis, string>> = {
-  [YAxis.WARM_START]: t('Warm Start'),
-  [YAxis.COLD_START]: t('Cold Start'),
-  [YAxis.TTID]: t('Time To Initial Display'),
-  [YAxis.TTFD]: t('Time To Full Display'),
-  [YAxis.SLOW_FRAME_RATE]: t('Slow Frame Rate'),
-  [YAxis.FROZEN_FRAME_RATE]: t('Frozen Frame Rate'),
-  [YAxis.THROUGHPUT]: t('Throughput'),
-  [YAxis.COUNT]: t('Total Count'),
-  [YAxis.SLOW_FRAMES]: t('Slow Frames'),
-  [YAxis.FROZEN_FRAMES]: t('Frozen Frames'),
-  [YAxis.FRAMES_DELAY]: t('Frames Delay'),
-};
-
-export const OUTPUT_TYPE: Readonly<Record<YAxis, AggregationOutputType>> = {
-  [YAxis.WARM_START]: 'duration',
-  [YAxis.COLD_START]: 'duration',
-  [YAxis.TTID]: 'duration',
-  [YAxis.TTFD]: 'duration',
-  [YAxis.SLOW_FRAME_RATE]: 'percentage',
-  [YAxis.FROZEN_FRAME_RATE]: 'percentage',
-  [YAxis.THROUGHPUT]: 'number',
-  [YAxis.COUNT]: 'number',
-  [YAxis.SLOW_FRAMES]: 'number',
-  [YAxis.FROZEN_FRAMES]: 'number',
-  [YAxis.FRAMES_DELAY]: 'duration',
-};
 
 type Props = {
   yAxes: YAxis[];
