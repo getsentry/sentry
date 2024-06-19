@@ -15,6 +15,7 @@ class MetricsExtractionRuleValidationError(ValueError):
 
 
 HARD_CODED_UNITS = {"span.duration": "millisecond"}
+ALLOWED_TYPES = {"c", "d", "s"}
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,8 @@ class MetricsExtractionRule:
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
-        if len(dictionary["type"]) > 1:
+
+        if dictionary["type"] not in ALLOWED_TYPES:
             raise ValueError(
                 "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set. "
             )
