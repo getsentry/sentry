@@ -60,6 +60,7 @@ const mockReplay = ReplayReader.factory({
     },
   }),
   errors: mockErrors,
+  featureFlags: [],
   attachments: RRWebInitFrameEventsFixture({
     timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
   }),
@@ -69,6 +70,7 @@ jest.mocked(useReplayReader).mockImplementation(() => {
   return {
     attachments: [],
     errors: mockErrors,
+    featureFlags: [],
     fetchError: undefined,
     fetching: false,
     onRetry: jest.fn(),

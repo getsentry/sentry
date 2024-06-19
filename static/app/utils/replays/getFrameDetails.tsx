@@ -22,6 +22,7 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
@@ -44,6 +45,7 @@ import {
   isDeadRageClick,
   isRageClick,
 } from 'sentry/utils/replays/types';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 
@@ -283,7 +285,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           color: 'green300',
           description: `Good ${frame.data.value.toFixed(2)}ms`,
           tabKey: TabKey.NETWORK,
-          title: frame.description.replaceAll('-', ' '),
+          title: toTitleCase(explodeSlug(frame.description)),
           icon: <IconHappy size="xs" />,
         };
       case 'needs-improvement':
@@ -291,7 +293,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           color: 'yellow300',
           description: `Meh ${frame.data.value.toFixed(2)}ms`,
           tabKey: TabKey.NETWORK,
-          title: frame.description.replaceAll('-', ' '),
+          title: toTitleCase(explodeSlug(frame.description)),
           icon: <IconMeh size="xs" />,
         };
       default:
@@ -299,7 +301,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
           color: 'red300',
           description: `Poor ${frame.data.value.toFixed(2)}ms`,
           tabKey: TabKey.NETWORK,
-          title: frame.description.replaceAll('-', ' '),
+          title: toTitleCase(explodeSlug(frame.description)),
           icon: <IconSad size="xs" />,
         };
     }

@@ -532,7 +532,7 @@ export default class ReplayReader {
     if (this._featureFlags.includes('replay-web-vitals')) {
       return this._sortedSpanFrames.filter(isWebVitalFrame);
     }
-    return [];
+    return this._sortedSpanFrames.filter(isWebVitalFrame);
   });
 
   getVideoEvents = () => this._videoEvents;
