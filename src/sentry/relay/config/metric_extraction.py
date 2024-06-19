@@ -48,7 +48,7 @@ from sentry.snuba.metrics.extraction import (
     are_specs_equal,
     should_use_on_demand_metrics,
 )
-from sentry.snuba.metrics.span_attribute_extraction import SpanAttributeMetricSpec, convert_to_spec
+from sentry.snuba.metrics.span_attribute_extraction import convert_to_spec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
