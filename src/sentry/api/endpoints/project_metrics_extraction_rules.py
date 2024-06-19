@@ -47,7 +47,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             return Response(status=204)
 
         try:
-            state_update = self._generated_deleted_rule_objects(rules_update)
+            state_update = self._generate_deleted_rule_objects(rules_update)
             delete_metrics_extraction_rules(project, state_update)
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
@@ -130,7 +130,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
         return state_update
 
-    def _generated_deleted_rule_objects(
+    def _generate_deleted_rule_objects(
         self, updated_rules: list[dict[str, Any]]
     ) -> Sequence[MetricsExtractionRule]:
         state_update = []
