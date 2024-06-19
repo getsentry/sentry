@@ -105,6 +105,7 @@ def get_condition_groups(
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
+            print("condition data before copy", rule, condition_data)
             if condition_data:
                 unique_condition = UniqueCondition(
                     condition_data["id"], condition_data["interval"], rule.environment_id
@@ -167,6 +168,8 @@ def get_rules_to_fire(
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rules_to_slow_conditions.items():
+        print("condition data at end", alert_rule, slow_conditions)
+        print("rules to groups", rules_to_groups)
         action_match = alert_rule.data.get("action_match", "any")
         for group_id in rules_to_groups[alert_rule.id]:
             conditions_matched = 0
@@ -347,7 +350,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
     # STEP 3: Fetch the Rule models we need to check
-    alert_rules_qs = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
+    alert_rules_qs = Rule.objects.filter(id__in=list(rules_to_groups.keys())).order_by("id")
     snoozed_rules = set(
         RuleSnooze.objects.filter(rule__in=alert_rules_qs, user_id=None).values_list(
             "rule", flat=True
@@ -360,6 +363,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     # must be checked for that condition. We don't query per rule condition because
     # condition of the same class, interval, and environment can share a single scan.
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
+    print("condition_groups", condition_groups)
     logger.info(
         "delayed_processing.condition_groups",
         extra={"condition_groups": condition_groups, "project_id": project_id},
@@ -369,7 +373,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     # group_ids that apply for that condition
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
-
+    print("condition_group_results", condition_group_results)
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
     rules_to_slow_conditions = get_rules_to_slow_conditions(alert_rules)

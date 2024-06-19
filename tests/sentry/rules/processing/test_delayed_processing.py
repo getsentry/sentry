@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -9,6 +9,7 @@ from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     get_condition_groups,
@@ -64,9 +65,10 @@ class ProcessDelayedAlertConditionsTest(
         interval="1d",
         id="EventFrequencyCondition",
         value=1,
+        comparison_type=ComparisonType.COUNT,
     ):
         condition_id = f"sentry.rules.conditions.event_frequency.{id}"
-        return {"interval": interval, "id": condition_id, "value": value}
+        return {"interval": interval, "id": condition_id, "value": value, "comparisonType": comparison_type}
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
@@ -168,10 +170,10 @@ class ProcessDelayedAlertConditionsTest(
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
 
-        self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
-        self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
-        self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
-        self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
+        # self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
+        # self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
+        # self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
+        # self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
 
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
@@ -326,33 +328,53 @@ class ProcessDelayedAlertConditionsTest(
         """
         Test that two rules with the same condition and interval but a different value are both fired
         """
+        project = self.create_project()
+        comparison_condition = self.create_event_frequency_condition(comparison_type=ComparisonType.PERCENT)
+        rule6 = self.create_project_rule(
+            project=project,
+            condition_match=[comparison_condition],
+            environment_id=self.environment.id,
+        )
         rule5 = self.create_project_rule(
-            project=self.project,
+            project=project,
             condition_match=[self.event_frequency_condition2],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-5", self.environment.name)
+        event6 = self.create_event(project, self.now - timedelta(days=1, hours=1), "group-5", self.environment.name)
+        self.create_event(project, self.now, "group-6", self.environment.name)
+        self.create_event(project, self.now, "group-6", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
-        self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
+        self.push_to_hash(project.id, rule5.id, group5.id, event5.event_id)
+        self.push_to_hash(project.id, rule6.id, group5.id, event5.event_id)
+        self.push_to_hash(project.id, rule5.id, event6.group.id, event6.event_id)
+        self.push_to_hash(project.id, rule6.id, event6.group.id, event6.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        apply_delayed(project_ids[0][0])
+        apply_delayed(project.id)
         rule_fire_histories = RuleFireHistory.objects.filter(
-            rule__in=[self.rule1, rule5],
-            group__in=[self.group1, group5],
-            event_id__in=[self.event1.event_id, event5.event_id],
-            project=self.project,
+            rule__in=[rule6, rule5],
+            group__in=[event6.group, group5],
+            event_id__in=[event5.event_id, event6.event_id],
+            project=project,
         ).values_list("rule", "group")
         assert len(rule_fire_histories) == 2
         assert (self.rule1.id, self.group1.id) in rule_fire_histories
         assert (rule5.id, group5.id) in rule_fire_histories
-        self.assert_buffer_cleared(project_id=self.project.id)
+        self.assert_buffer_cleared(project_id=project.id)
+        assert False
 
     def test_apply_delayed_same_condition_diff_interval(self):
         """

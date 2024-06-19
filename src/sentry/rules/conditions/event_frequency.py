@@ -313,10 +313,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 end=comparison_end,
                 environment_id=environment_id,
             )
+            print("results", result)
+            print("comparison_results", comparison_result)
             result = {
                 group_id: percent_increase(result[group_id], comparison_result[group_id])
                 for group_id in group_ids
             }
+            print("percent results", result)
         return result
 
     def get_snuba_query_result(
