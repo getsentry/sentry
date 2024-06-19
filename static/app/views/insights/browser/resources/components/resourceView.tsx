@@ -9,27 +9,30 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
+import RenderBlockingSelector from 'sentry/views/insights/browser/resources/components/renderBlockingSelector';
+import SelectControlWithProps from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
+import ResourceTable from 'sentry/views/insights/browser/resources/components/tables/resourceTable';
+import {
+  FONT_FILE_EXTENSIONS,
+  IMAGE_FILE_EXTENSIONS,
+} from 'sentry/views/insights/browser/resources/constants';
+import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
+import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
+import {
+  DEFAULT_RESOURCE_TYPES,
+  RESOURCE_THROUGHPUT_UNIT,
+} from 'sentry/views/insights/browser/resources/settings';
+import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
+import {
+  BrowserStarfishFields,
+  useResourceModuleFilters,
+} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
 import {ModuleName} from 'sentry/views/insights/types';
-import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
-import ResourceTable from 'sentry/views/performance/browser/resources/resourceView/resourceTable';
-import {
-  FONT_FILE_EXTENSIONS,
-  IMAGE_FILE_EXTENSIONS,
-} from 'sentry/views/performance/browser/resources/shared/constants';
-import RenderBlockingSelector from 'sentry/views/performance/browser/resources/shared/renderBlockingSelector';
-import SelectControlWithProps from 'sentry/views/performance/browser/resources/shared/selectControlWithProps';
-import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
-import {
-  BrowserStarfishFields,
-  useResourceModuleFilters,
-} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePagesQuery';
-import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
-import {getResourceTypeFilter} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
 
 const {
@@ -38,13 +41,6 @@ const {
   TRANSACTION,
   RESOURCE_RENDER_BLOCKING_STATUS,
 } = BrowserStarfishFields;
-
-export const DEFAULT_RESOURCE_TYPES = [
-  ResourceSpanOps.SCRIPT,
-  ResourceSpanOps.CSS,
-  ResourceSpanOps.FONT,
-  ResourceSpanOps.IMAGE,
-];
 
 type Option = {
   label: string | React.ReactElement;

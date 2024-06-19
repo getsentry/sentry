@@ -3,6 +3,12 @@ import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatRate} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
+import {
+  DATA_TYPE,
+  RESOURCE_THROUGHPUT_UNIT,
+} from 'sentry/views/insights/browser/resources/settings';
+import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {AVG_COLOR, THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
@@ -17,10 +23,6 @@ import {
   BlockContainer,
 } from 'sentry/views/insights/common/views/spanSummaryPage/block';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
-import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 
 const {
   SPAN_SELF_TIME,
