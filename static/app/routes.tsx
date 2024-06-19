@@ -1526,16 +1526,15 @@ function buildRoutes() {
       <Route path={`${MODULE_BASE_URLS[ModuleName.RESOURCE]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/browser/resources/index')
+            () =>
+              import('sentry/views/insights/browser/resources/views/resourcesLandingPage')
           )}
         />
         <Route
           path="spans/span/:groupId/"
           component={make(
             () =>
-              import(
-                'sentry/views/performance/browser/resources/resourceSummaryPage/index'
-              )
+              import('sentry/views/insights/browser/resources/views/resourceSummaryPage')
           )}
         />
       </Route>
