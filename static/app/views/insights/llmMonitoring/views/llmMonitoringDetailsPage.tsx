@@ -17,17 +17,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {
+  NumberOfPipelinesChart,
+  PipelineDurationChart,
+  TotalTokensUsedChart,
+} from 'sentry/views/insights/llmMonitoring/llmMonitoringCharts';
+import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/pipelineSpansTable';
+import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
+import {
   SpanFunction,
   SpanMetricsField,
   type SpanMetricsQueryFilters,
 } from 'sentry/views/insights/types';
-import {
-  NumberOfPipelinesChart,
-  PipelineDurationChart,
-  TotalTokensUsedChart,
-} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
-import {PipelineSpansTable} from 'sentry/views/llmMonitoring/pipelineSpansTable';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/llmMonitoring/settings';
 import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';

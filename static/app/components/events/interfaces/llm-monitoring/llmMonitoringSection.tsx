@@ -8,11 +8,11 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
-import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 import {
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
-} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
+} from 'sentry/views/insights/llmMonitoring/llmMonitoringCharts';
+import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
