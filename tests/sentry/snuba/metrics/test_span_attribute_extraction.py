@@ -36,13 +36,13 @@ _input = MetricsExtractionRule(
 
 
 def test_convert_to_spec():
-    converted = convert_to_spec(_input)
+    metric_spec = convert_to_spec(_input)
 
-    assert converted["category"] == expected_spec["category"]
-    assert converted["mri"] == expected_spec["mri"]
-    assert converted["field"] == expected_spec["field"]
-    assert len(converted["tags"]) == len(expected_spec["tags"])
-    assert converted["condition"] == expected_spec["condition"]
+    assert metric_spec["category"] == expected_spec["category"]
+    assert metric_spec["mri"] == expected_spec["mri"]
+    assert metric_spec["field"] == expected_spec["field"]
+    assert len(metric_spec["tags"]) == len(expected_spec["tags"])
+    assert metric_spec["condition"] == expected_spec["condition"]
 
 
 def test_span_data_attribute():
@@ -50,11 +50,11 @@ def test_span_data_attribute():
         span_attribute="foobar", type="d", unit="none", tags=set(), conditions=[]
     )
 
-    converted = convert_to_spec(rule)
+    metric_spec = convert_to_spec(rule)
 
-    assert converted["field"] == "span.data.foobar"
-    assert converted["mri"] == "d:custom/foobar@none"
-    assert converted["tags"] == []
+    assert metric_spec["field"] == "span.data.foobar"
+    assert metric_spec["mri"] == "d:custom/foobar@none"
+    assert metric_spec["tags"] == []
 
 
 def test_span_data_attribute_with_condition():
@@ -62,12 +62,12 @@ def test_span_data_attribute_with_condition():
         span_attribute="foobar", type="d", unit="none", tags=set(), conditions=["foobar:baz"]
     )
 
-    converted = convert_to_spec(rule)
+    metric_spec = convert_to_spec(rule)
 
-    assert converted["field"] == "span.data.foobar"
-    assert converted["mri"] == "d:custom/foobar@none"
-    assert converted["tags"] == [{"key": "foobar", "field": "span.data.foobar"}]
-    assert converted["condition"] == {"op": "eq", "name": "span.data.foobar", "value": "baz"}
+    assert metric_spec["field"] == "span.data.foobar"
+    assert metric_spec["mri"] == "d:custom/foobar@none"
+    assert metric_spec["tags"] == [{"key": "foobar", "field": "span.data.foobar"}]
+    assert metric_spec["condition"] == {"op": "eq", "name": "span.data.foobar", "value": "baz"}
 
 
 def test_counter():
@@ -75,8 +75,8 @@ def test_counter():
         span_attribute="foobar", type="c", unit="none", tags=set(), conditions=[]
     )
 
-    converted = convert_to_spec(rule)
+    metric_spec = convert_to_spec(rule)
 
-    assert converted["field"] == "span.data.foobar"
-    assert converted["mri"] == "c:custom/foobar@none"
-    assert converted["tags"] == []
+    assert not metric_spec["field"]
+    assert metric_spec["mri"] == "c:custom/foobar@none"
+    assert metric_spec["tags"] == []

@@ -31,8 +31,7 @@ class SpanAttributeMetricSpec(TypedDict):
 
 def convert_to_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
 
-    field = _map_span_attribute_name(extraction_rule.span_attribute)
-
+    field = _get_field(extraction_rule)
     parsed_conditions = _parse_conditions(extraction_rule.conditions)
 
     return {
@@ -45,7 +44,7 @@ def convert_to_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetr
 
 
 def _get_field(extraction_rule: MetricsExtractionRule) -> str | None:
-    if extraction_rule.type == "counter":
+    if extraction_rule.type == "c":
         return None
 
     return _map_span_attribute_name(extraction_rule.span_attribute)
