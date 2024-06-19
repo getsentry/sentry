@@ -612,6 +612,31 @@ class InsightModules(Enum):
     LLM_MONITORING = "llm_monitoring"
 
 
+# each span filter takes in a span object and returns whether
+# the span belongs in the corresponding insight module
+INSIGHT_MODULE_SPAN_FILTERS = {
+    InsightModules.HTTP: lambda span: span.get("op") == "http.client"
+    and span.get("module") == "http",
+    InsightModules.DB: lambda span: span.get("module") == "db" and "description" in span.keys(),
+    InsightModules.ASSETS: lambda span: span.get("op")
+    in ["resource.script", "resource.css", "resource.font", "resource.img"],
+    InsightModules.APP_START: lambda span: span.get("op").startswith("app.start."),
+    InsightModules.SCREEN_LOAD: lambda span: span.get("sentry_tags", {}).get("transaction.op")
+    == "ui.load",
+    InsightModules.VITAL: lambda span: span.get("op")
+    in [
+        "ui.interaction.click",
+        "ui.interaction.hover",
+        "ui.interaction.drag",
+        "ui.interaction.press",
+    ],
+    InsightModules.CACHE: lambda span: span.get("op")
+    in ["cache.get_item", "cache.get", "cache.put"],
+    InsightModules.QUEUE: lambda span: span.get("op") in ["queue.process", "queue.publish"],
+    InsightModules.LLM_MONITORING: lambda span: span.get("op").startswith("ai.pipeline"),
+}
+
+
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
