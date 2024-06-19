@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
@@ -189,7 +190,17 @@ function ProjectMetrics({project, location}: Props) {
             onDelete={rule =>
               openConfirmModal({
                 onConfirm: () =>
-                  deleteExtractionRulesMutation.mutate({metricsExtractionRules: [rule]}),
+                  deleteExtractionRulesMutation.mutate(
+                    {metricsExtractionRules: [rule]},
+                    {
+                      onSuccess: () => {
+                        addSuccessMessage(t('Metric extraction rule deleted'));
+                      },
+                      onError: () => {
+                        addErrorMessage(t('Failed to delete metric extraction rule'));
+                      },
+                    }
+                  ),
                 message: t('Are you sure you want to delete this extraction rule?'),
                 confirmText: t('Delete Extraction Rule'),
               })

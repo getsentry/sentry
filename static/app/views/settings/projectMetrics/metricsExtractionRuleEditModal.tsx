@@ -1,7 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -35,39 +36,54 @@ export function MetricsExtractionRuleEditModal({
     project.slug
   );
 
-  function handleSubmit(
-    data: FormData,
-    onSubmitSuccess: (data: FormData) => void,
-    onSubmitError: (error: any) => void
-  ) {
-    const extractionRule: MetricsExtractionRule = {
-      spanAttribute: data.spanAttribute!,
-      tags: data.tags,
-      type: data.type!,
-      unit: 'none',
-      conditions: data.conditions.filter(Boolean),
+  const initialData: FormData = useMemo(() => {
+    return {
+      spanAttribute: metricExtractionRule.spanAttribute,
+      type: metricExtractionRule.type,
+      tags: metricExtractionRule.tags,
+      conditions: metricExtractionRule.conditions.length
+        ? metricExtractionRule.conditions
+        : [''],
     };
+  }, [metricExtractionRule]);
 
-    updateExtractionRuleMutation.mutate(
-      {
-        metricsExtractionRules: [extractionRule],
-      },
-      {
-        onSuccess: () => {
-          onSubmitSuccess(data);
-          closeModal();
+  const handleSubmit = useCallback(
+    (
+      data: FormData,
+      onSubmitSuccess: (data: FormData) => void,
+      onSubmitError: (error: any) => void
+    ) => {
+      const extractionRule: MetricsExtractionRule = {
+        spanAttribute: data.spanAttribute!,
+        tags: data.tags,
+        type: data.type!,
+        unit: 'none',
+        conditions: data.conditions.filter(Boolean),
+      };
+
+      updateExtractionRuleMutation.mutate(
+        {
+          metricsExtractionRules: [extractionRule],
         },
-        onError: error => {
-          onSubmitError(
-            error?.responseJSON?.detail
-              ? error.responseJSON.detail
-              : t('Unable to save your changes.')
-          );
-        },
-      }
-    );
-    onSubmitSuccess(data);
-  }
+        {
+          onSuccess: () => {
+            onSubmitSuccess(data);
+            addSuccessMessage(t('Metric extraction rule updated'));
+            closeModal();
+          },
+          onError: error => {
+            onSubmitError(
+              error?.responseJSON?.detail
+                ? error.responseJSON.detail
+                : t('Unable to save your changes.')
+            );
+          },
+        }
+      );
+      onSubmitSuccess(data);
+    },
+    [closeModal, updateExtractionRuleMutation]
+  );
 
   return (
     <Fragment>
@@ -81,13 +97,14 @@ export function MetricsExtractionRuleEditModal({
       <CloseButton />
       <Body>
         <MetricsExtractionRuleForm
-          initialData={metricExtractionRule}
+          initialData={initialData}
           project={project}
           submitLabel={t('Update')}
           cancelLabel={t('Cancel')}
           onCancel={closeModal}
           onSubmit={handleSubmit}
           isEdit
+          requireChanges
         />
       </Body>
     </Fragment>

@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -39,44 +40,48 @@ function ExtractMetric({project}: {project: Project}) {
     project.slug
   );
 
+  const handleSubmit = useCallback(
+    (
+      formData: FormData,
+      onSubmitSuccess: (data: FormData) => void,
+      onSubmitError: (error: any) => void
+    ) => {
+      const data = formData as FormData;
+
+      const extractionRule: MetricsExtractionRule = {
+        spanAttribute: data.spanAttribute!,
+        tags: data.tags,
+        type: data.type!,
+        unit: 'none',
+        conditions: data.conditions.filter(Boolean),
+      };
+
+      createExtractionRuleMutation.mutate(
+        {
+          metricsExtractionRules: [extractionRule],
+        },
+        {
+          onSuccess: () => {
+            onSubmitSuccess(data);
+            addSuccessMessage(t('Metric extraction rule created'));
+            navigate(-1);
+          },
+          onError: error => {
+            onSubmitError(
+              error?.responseJSON?.detail
+                ? error.responseJSON.detail
+                : t('Unable to save your changes.')
+            );
+          },
+        }
+      );
+      onSubmitSuccess(data);
+    },
+    [createExtractionRuleMutation, navigate]
+  );
+
   if (!hasCustomMetricsExtractionRules(organization)) {
     return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
-  }
-
-  function handleSubmit(
-    formData: FormData,
-    onSubmitSuccess: (data: FormData) => void,
-    onSubmitError: (error: any) => void
-  ) {
-    const data = formData as FormData;
-
-    const extractionRule: MetricsExtractionRule = {
-      spanAttribute: data.spanAttribute!,
-      tags: data.tags,
-      type: data.type!,
-      unit: 'none',
-      conditions: data.conditions.filter(Boolean),
-    };
-
-    createExtractionRuleMutation.mutate(
-      {
-        metricsExtractionRules: [extractionRule],
-      },
-      {
-        onSuccess: () => {
-          onSubmitSuccess(data);
-          navigate(-1);
-        },
-        onError: error => {
-          onSubmitError(
-            error?.responseJSON?.detail
-              ? error.responseJSON.detail
-              : t('Unable to save your changes.')
-          );
-        },
-      }
-    );
-    onSubmitSuccess(data);
   }
 
   return (
