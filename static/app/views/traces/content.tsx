@@ -670,6 +670,8 @@ function useTraces<F extends string>({
         queries,
         has_data: result.data.data.length > 0,
         num_traces: result.data.data.length,
+        num_missing_trace_root: result.data.data.filter(trace => trace.name === null)
+          .length,
       });
     } else if (result.status === 'error') {
       const response = result.error.responseJSON;
