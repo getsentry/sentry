@@ -1,8 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/components/tables/spanOperationTable';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
-import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
 
 jest.mock('sentry/utils/usePageFilters');
 

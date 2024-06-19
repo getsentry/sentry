@@ -15,7 +15,7 @@ import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {SpanSamplesPanel} from 'sentry/views/performance/mobile/common/components/spanSamplesPanel';
 import {SamplesTables} from 'sentry/views/performance/mobile/common/components/tables/samplesTables';
-import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/screenSummary/spanOperationTable';
+import {SpanOperationTable} from 'sentry/views/performance/mobile/ui/components/tables/spanOperationTable';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 

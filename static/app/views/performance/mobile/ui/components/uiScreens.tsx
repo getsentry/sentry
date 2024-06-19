@@ -27,9 +27,9 @@ import {
 } from 'sentry/views/performance/mobile/screenload/screens';
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformReleaseEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
+import {TopScreensChart} from 'sentry/views/performance/mobile/ui/components/charts/topScreensChart';
+import {UIScreensTable} from 'sentry/views/performance/mobile/ui/components/tables/uiScreensTable';
 import {Referrer} from 'sentry/views/performance/mobile/ui/referrers';
-import {UIScreensTable} from 'sentry/views/performance/mobile/ui/screens/table';
-import {TopScreensChart} from 'sentry/views/performance/mobile/ui/screens/topScreensChart';
 import {getTransactionSearchQuery} from 'sentry/views/performance/utils';
 
 const Y_AXES = [YAxis.SLOW_FRAMES, YAxis.FROZEN_FRAMES, YAxis.FRAMES_DELAY];
