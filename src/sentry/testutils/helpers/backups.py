@@ -101,6 +101,7 @@ from sentry.models.userip import UserIP
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
+from sentry.remote_subscriptions.models import RemoteSubscription
 from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -109,6 +110,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.utils import json
 
 __all__ = [
@@ -411,7 +413,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # TODO (@saponifi3d): Add project template to project
-        project = self.create_project(name=f"project-{slug}", teams=[team])
+        project = self.create_project(name=f"project-{slug}", teams=[team], organization=org)
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
         ProjectOwnership.objects.create(
@@ -599,6 +601,18 @@ class ExhaustiveFixtures(Fixtures):
                 group=group,
                 user_id=owner_id,
             )
+        remote_subscription = RemoteSubscription.objects.create(
+            type="test", subscription_id="some_id"
+        )
+        uptime_subscription = UptimeSubscription.objects.create(
+            remote_subscription_id=remote_subscription.id,
+            url="http://sentry.io",
+            interval_seconds=300,
+            timeout_ms=500,
+        )
+        ProjectUptimeSubscription.objects.create(
+            project_id=project.id, uptime_subscription=uptime_subscription
+        )
 
         return org
 
