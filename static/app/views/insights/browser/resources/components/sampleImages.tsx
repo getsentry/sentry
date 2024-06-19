@@ -15,11 +15,11 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import ResourceSize from 'sentry/views/insights/browser/resources/components/resourceSize';
+import {useIndexedResourcesQuery} from 'sentry/views/insights/browser/resources/queries/useIndexedResourceQuery';
+import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {SpanIndexedField} from 'sentry/views/insights/types';
-import ResourceSize from 'sentry/views/performance/browser/resources/shared/resourceSize';
-import {useIndexedResourcesQuery} from 'sentry/views/performance/browser/resources/utils/useIndexedResourceQuery';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
 import {usePerformanceGeneralProjectSettings} from 'sentry/views/performance/utils';
 
 type Props = {groupId: string; projectId?: number};

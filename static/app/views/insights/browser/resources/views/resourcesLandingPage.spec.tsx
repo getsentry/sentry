@@ -5,8 +5,8 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
-import ResourcesLandingPage from 'sentry/views/performance/browser/resources';
 
 const {
   SPAN_SELF_TIME,

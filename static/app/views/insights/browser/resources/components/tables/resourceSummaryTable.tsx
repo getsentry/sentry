@@ -12,6 +12,10 @@ import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePageQuery';
+import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
+import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {useResourceSummarySort} from 'sentry/views/insights/browser/resources/utils/useResourceSummarySort';
 import {FullSpanDescription} from 'sentry/views/insights/common/components/fullSpanDescription';
 import {DurationCell} from 'sentry/views/insights/common/components/tableCells/durationCell';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
@@ -24,10 +28,6 @@ import {
   getThroughputTitle,
 } from 'sentry/views/insights/common/views/spans/types';
 import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
-import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/utils/useResourcePageQuery';
-import {useResourceSummarySort} from 'sentry/views/performance/browser/resources/utils/useResourceSummarySort';
 
 const {
   RESOURCE_RENDER_BLOCKING_STATUS,

@@ -5,15 +5,15 @@ import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
-} from 'sentry/views/performance/browser/resources/shared/constants';
-import {ResourceSpanOps} from 'sentry/views/performance/browser/resources/shared/types';
-import type {ModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import {useResourceModuleFilters} from 'sentry/views/performance/browser/resources/utils/useResourceFilters';
-import type {ValidSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
+} from 'sentry/views/insights/browser/resources/constants';
+import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
+import type {ModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import type {ValidSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
+import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
   SPAN_DOMAIN,

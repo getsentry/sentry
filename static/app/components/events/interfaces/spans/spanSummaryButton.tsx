@@ -4,9 +4,9 @@ import {t, tct} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
+import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
 import {ModuleName} from 'sentry/views/insights/types';
-import {DATA_TYPE} from 'sentry/views/performance/browser/resources/settings';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
