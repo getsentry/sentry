@@ -1556,7 +1556,9 @@ function buildRoutes() {
         <IndexRoute
           component={make(
             () =>
-              import('sentry/views/performance/mobile/screenload/screenloadLandingPage')
+              import(
+                'sentry/views/performance/mobile/screenload/views/screenloadLandingPage'
+              )
           )}
         />
         <Route
@@ -1564,7 +1566,7 @@ function buildRoutes() {
           component={make(
             () =>
               import(
-                'sentry/views/performance/mobile/screenload/screenLoadSpans/screenLoadSpansView'
+                'sentry/views/performance/mobile/screenload/views/screenLoadSpansPage'
               )
           )}
         />
@@ -1572,30 +1574,30 @@ function buildRoutes() {
       <Route path={`${MODULE_BASE_URLS[ModuleName.APP_START]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/mobile/appStarts/appStartsLandingPage')
+            () =>
+              import(
+                'sentry/views/performance/mobile/appStarts/views/appStartsLandingPage'
+              )
           )}
         />
         <Route
           path="spans/"
           component={make(
             () =>
-              import(
-                'sentry/views/performance/mobile/appStarts/screenSummary/screenSummaryPage'
-              )
+              import('sentry/views/performance/mobile/appStarts/views/screenSummaryPage')
           )}
         />
       </Route>
       <Route path={`${MODULE_BASE_URLS[ModuleName.MOBILE_UI]}/`}>
         <IndexRoute
           component={make(
-            () => import('sentry/views/performance/mobile/ui/uiLandingPage')
+            () => import('sentry/views/performance/mobile/ui/views/uiLandingPage')
           )}
         />
         <Route
           path="spans/"
           component={make(
-            () =>
-              import('sentry/views/performance/mobile/ui/screenSummary/screenSummaryPage')
+            () => import('sentry/views/performance/mobile/ui/views/screenSummaryPage')
           )}
         />
       </Route>

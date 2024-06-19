@@ -10,7 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useOnboardingProject} from 'sentry/views/performance/browser/webVitals/utils/useOnboardingProject';
-import ScreenLoadSpans from 'sentry/views/performance/mobile/screenload/screenLoadSpans';
+import ScreenLoadSpans from 'sentry/views/performance/mobile/screenload/views/screenLoadSpansPage';
 
 jest.mock('sentry/views/performance/browser/webVitals/utils/useOnboardingProject');
 jest.mock('sentry/utils/useLocation');

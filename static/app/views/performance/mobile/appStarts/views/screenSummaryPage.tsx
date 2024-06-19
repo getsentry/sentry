@@ -32,7 +32,7 @@ import {MetricsRibbon} from 'sentry/views/performance/mobile/screenload/screenLo
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 
-import AppStartWidgets from './widgets';
+import AppStartWidgets from '../screenSummary/widgets';
 
 type Query = {
   [SpanMetricsField.APP_START_TYPE]: string;
