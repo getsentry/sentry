@@ -211,7 +211,7 @@ class AuthIdentityHandler:
         subdomain = None
         if data:
             subdomain = data.get("subdomain") or None
-        if features.has("organizations:customer-domains", self.organization, actor=user):
+        if features.has("system:multi-region"):
             subdomain = self.organization.slug
 
         try:

@@ -50,7 +50,7 @@ class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
             }
 
     def test_with_auth_provider_and_customer_domain(self):
-        with self.feature(["organizations:sso-basic", "organizations:customer-domains"]):
+        with self.feature(["organizations:sso-basic", "system:multi-region"]):
             response = self.client.get(self.path)
             assert response.status_code == 200
             assert response.data == {

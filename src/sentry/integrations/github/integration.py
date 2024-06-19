@@ -147,7 +147,7 @@ def error(
 
 
 def get_document_origin(org) -> str:
-    if org and features.has("organizations:customer-domains", org.organization):
+    if org and features.has("system:multi-region"):
         return f'"{generate_organization_url(org.organization.slug)}"'
     return "document.origin"
 

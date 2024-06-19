@@ -4,7 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import ConfigStore from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
+import type {Config} from 'sentry/types/system';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import EventView, {
   isAPIPayloadSimilar,
@@ -2949,22 +2951,22 @@ describe('EventView.isEqualTo()', function () {
 });
 
 describe('EventView.getResultsViewUrlTarget()', function () {
+  let configState: Config;
+
   beforeEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
+    });
   });
 
   afterEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    ConfigStore.loadInitialData(configState);
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
@@ -2985,7 +2987,7 @@ describe('EventView.getResultsViewUrlTarget()', function () {
   const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -3005,22 +3007,22 @@ describe('EventView.getResultsViewUrlTarget()', function () {
 });
 
 describe('EventView.getResultsViewShortUrlTarget()', function () {
+  let configState: Config;
+
   beforeEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
+    });
   });
 
   afterEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    ConfigStore.loadInitialData(configState);
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
@@ -3041,7 +3043,8 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
   const organization = OrganizationFixture();
 
   it('generates a URL with non-customer domain context', function () {
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
+
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -3069,22 +3072,22 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
 });
 
 describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  let configState: Config;
+
   beforeEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    };
+    });
   });
 
   afterEach(function () {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: null,
-    };
+    ConfigStore.loadInitialData(configState);
   });
 
   const state: ConstructorParameters<typeof EventView>[0] = {
@@ -3108,7 +3111,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
   const webVital = WebVital.LCP;
 
   it('generates a URL with non-customer domain context', function () {
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     const view = new EventView(state);
     const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
       showTransactions,

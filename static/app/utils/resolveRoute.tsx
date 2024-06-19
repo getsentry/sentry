@@ -31,7 +31,8 @@ function localizeDomain(domain?: string) {
  */
 function shouldUseSlugPath(organization: OrganizationSummary): boolean {
   const {organizationUrl} = organization.links;
-  return !organizationUrl || !organization.features.includes('customer-domains');
+
+  return !organizationUrl || !ConfigStore.get('features').has('system:multi-region');
 }
 
 /**
@@ -43,10 +44,10 @@ function shouldUseSlugPath(organization: OrganizationSummary): boolean {
  */
 function resolveRoute(
   route: string,
-  currentOrganization: OrganizationSummary | null,
+  _currentOrganization: OrganizationSummary | null,
   organization?: OrganizationSummary
 ) {
-  const hasCustomerDomain = currentOrganization?.features.includes('customer-domains');
+  const hasCustomerDomain = ConfigStore.get('features').has('system:multi-region');
   const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
 
   // If only one organization was provided we're not switching orgs,

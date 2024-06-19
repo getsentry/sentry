@@ -39,7 +39,7 @@ def resolve_redirect_url(request: HttpRequest | Request, org_slug: str, user_id=
         include_projects=False,
         include_teams=False,
     )
-    if org_context and features.has("organizations:customer-domains", org_context.organization):
+    if org_context and features.has("system:multi-region"):
         url_base = generate_organization_url(org_context.organization.slug)
         path = customer_domain_path(request.path)
         qs = query_string(request)

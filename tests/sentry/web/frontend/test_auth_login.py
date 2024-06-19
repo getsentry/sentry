@@ -159,7 +159,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
                 ("/organizations/baz/issues/", 302),
             ]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_login_valid_credentials_with_org_and_customer_domains(self):
         org = self.create_organization(owner=self.user)
         # load it once for test cookie

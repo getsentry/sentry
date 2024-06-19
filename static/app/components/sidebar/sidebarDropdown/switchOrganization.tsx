@@ -43,15 +43,15 @@ function OrganizationMenuItem({organization}: {organization: OrganizationSummary
 }
 
 function CreateOrganization({canCreateOrganization}: {canCreateOrganization: boolean}) {
-  const currentOrganization = useOrganization({allowNull: true});
   if (!canCreateOrganization) {
     return null;
   }
+  const configFeatures = ConfigStore.get('features');
   const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
   const route = '/organizations/new/';
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
-  if (currentOrganization?.features.includes('customer-domains')) {
+  if (configFeatures.has('system:multi-region')) {
     menuItemProps.href = sentryUrl + route;
     menuItemProps.openInNewTab = false;
   } else {

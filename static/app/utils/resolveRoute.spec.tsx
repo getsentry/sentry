@@ -1,5 +1,8 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
+
 import {resolveRoute} from './resolveRoute';
 
 const mockDeployPreviewConfig = jest.fn();
@@ -15,23 +18,24 @@ jest.mock('sentry/constants', () => {
 });
 
 describe('resolveRoute', () => {
-  let devUi, host, initialData;
+  let devUi, host;
+  let configState: Config;
 
   const organization = OrganizationFixture();
   const otherOrg = OrganizationFixture({
-    features: ['customer-domains'],
     slug: 'other-org',
   });
 
   beforeEach(() => {
     devUi = window.__SENTRY_DEV_UI;
     host = window.location.host;
-    initialData = window.__initialData;
+    configState = ConfigStore.getState();
+    ConfigStore.set('features', new Set(['system:multi-region']));
   });
   afterEach(() => {
     window.__SENTRY_DEV_UI = devUi;
     window.location.host = host;
-    window.__initialData = initialData;
+    ConfigStore.loadInitialData(configState);
 
     mockDeployPreviewConfig.mockReset();
   });
@@ -82,7 +86,7 @@ describe('resolveRoute', () => {
     expect(result).toBe('https://other-org.sentry.io/issues/');
   });
 
-  it('should add domain when switching to customer-domain org', () => {
+  it('should add domain when switching orgs with multi-region flag', () => {
     let result = resolveRoute('/issues/', organization, otherOrg);
     expect(result).toBe('https://other-org.sentry.io/issues/');
 
@@ -91,7 +95,10 @@ describe('resolveRoute', () => {
     expect(result).toBe('https://other-org.sentry.io/issues/');
   });
 
-  it('should use path slugs when org does not have customer-domains', () => {
+  it('should use path slugs when switching orgs without multi-region', () => {
+    ConfigStore.set('features', new Set([]));
+    ConfigStore.set('customerDomain', null);
+
     const result = resolveRoute(
       `/organizations/${organization.slug}/issues/`,
       organization
@@ -100,25 +107,13 @@ describe('resolveRoute', () => {
   });
 
   it('should use slugless URL when org has customer domains', () => {
-    window.__initialData = {
-      ...window.__initialData,
-      customerDomain: {
-        subdomain: otherOrg.slug,
-        organizationUrl: `https://${otherOrg.slug}.sentry.io`,
-        sentryUrl: `https://sentry.io`,
-      },
-    };
+    ConfigStore.set('customerDomain', {
+      subdomain: otherOrg.slug,
+      organizationUrl: `https://${otherOrg.slug}.sentry.io`,
+      sentryUrl: `https://sentry.io`,
+    });
 
     const result = resolveRoute(`/organizations/${otherOrg.slug}/issues/`, otherOrg);
     expect(result).toBe(`/issues/`);
-  });
-
-  it('should use sentryUrl when going from customer-domain to not', () => {
-    const result = resolveRoute(
-      `/organizations/${organization.slug}/issues/`,
-      otherOrg,
-      organization
-    );
-    expect(result).toBe(`https://sentry.io/organizations/${organization.slug}/issues/`);
   });
 });

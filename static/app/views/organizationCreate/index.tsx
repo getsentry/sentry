@@ -86,7 +86,8 @@ function OrganizationCreate() {
           apiMethod="POST"
           onSubmit={submitOrganizationCreate}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
-            const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
+            const hasCustomerDomain =
+              ConfigStore.get('features').has('system:multi-region');
             let nextUrl = normalizeUrl(
               `/organizations/${createdOrg.slug}/projects/new/`,
               {forceCustomerDomain: hasCustomerDomain}

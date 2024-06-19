@@ -230,7 +230,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         ).exists()
         assert not logger.info.called
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     @patch("sentry.auth.helper.logger")
     def test_basic_flow_customer_domain(self, logger):
         organization, auth_provider = self.create_org_and_auth_provider()

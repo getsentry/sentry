@@ -67,8 +67,7 @@ export default function OrganizationGeneralSettings({}: RouteComponentProps<{}, 
     if (updated.slug && updated.slug !== prevData.slug) {
       changeOrganizationSlug(prevData, updated);
 
-      // TODO(mark) Soon to be replaced with multi-region feature flag
-      if (ConfigStore.get('features').has('organizations:customer-domains')) {
+      if (ConfigStore.get('features').has('system:multi-region')) {
         const {organizationUrl} = updated.links;
         window.location.replace(`${organizationUrl}/settings/organization/`);
       } else {

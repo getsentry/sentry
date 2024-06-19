@@ -108,14 +108,14 @@ class ReactPageViewTest(TestCase):
 
         self.login_as(user)
 
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             assert "activeorg" not in self.client.session
 
             response = self.client.get(reverse("sentry-organization-issue-list", args=[org.slug]))
             assert response.status_code == 200
             assert self.client.session["activeorg"]
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             # Redirect to customer domain
             response = self.client.get(
                 reverse("sentry-organization-issue-list", args=[org.slug]), follow=True
@@ -169,7 +169,7 @@ class ReactPageViewTest(TestCase):
         self.client.session["activeorg"] = org.slug
         self.client.session.save()
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
                 HTTP_HOST="us.testserver",
@@ -182,7 +182,7 @@ class ReactPageViewTest(TestCase):
         org = self.create_organization(owner=user)
         self.login_as(user)
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             url_name = "sentry-organization-create"
             url_name_is_non_customer_domain = any(
                 fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES
@@ -268,7 +268,7 @@ class ReactPageViewTest(TestCase):
         self.login_as(self.user)
         with (
             override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
-            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            self.feature({"system:multi-region": True}),
         ):
             # Should not be able to induce activeorg
             assert "activeorg" not in self.client.session
@@ -289,7 +289,7 @@ class ReactPageViewTest(TestCase):
         self.login_as(user, superuser=is_superuser, staff=is_staff)
         with (
             override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
-            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            self.feature({"system:multi-region": True}),
         ):
             # Induce activeorg
             assert "activeorg" not in self.client.session
@@ -310,13 +310,13 @@ class ReactPageViewTest(TestCase):
                 ]
                 assert "activeorg" not in self.client.session
 
-            # Accessing org on non-customer domain with superuser and/or staff.
-            response = self.client.get(
-                reverse("sentry-organization-issue-list", args=[org.slug]),
-                follow=True,
-            )
-            assert response.status_code == 200
-            assert response.redirect_chain == []
+        # Accessing org without customer domain as superuser and/or staff.
+        response = self.client.get(
+            reverse("sentry-organization-issue-list", args=[org.slug]),
+            follow=True,
+        )
+        assert response.status_code == 200
+        assert response.redirect_chain == []
 
     def test_customer_domain_non_member_org_superuser(self):
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)
@@ -335,7 +335,7 @@ class ReactPageViewTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             # Induce activeorg
             response = self.client.get(
                 "/",
@@ -358,7 +358,7 @@ class ReactPageViewTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
                 SERVER_NAME=f"{org.slug}.testserver",
@@ -373,7 +373,7 @@ class ReactPageViewTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
                 SERVER_NAME=f"{org.slug}.testserver",
@@ -392,7 +392,7 @@ class ReactPageViewTest(TestCase):
 
         self.login_as(self.user)
 
-        with self.feature({"organizations:customer-domains": [org.slug]}):
+        with self.feature({"system:multi-region": True}):
             response = self.client.get(
                 "/issues/",
                 SERVER_NAME=f"{org.slug}.testserver",
