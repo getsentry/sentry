@@ -124,7 +124,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                         len(params.projects) <= 1,
                         fetching_replay_data,
                         # If a developer can view issues of a project they do not belong to
-                        # via opem membership, we will also allow the endpoint to return events for it
+                        # via open membership, we will also allow the endpoint to return events for it
                         organization.flags.allow_joinleave,
                     ]
                 ):
