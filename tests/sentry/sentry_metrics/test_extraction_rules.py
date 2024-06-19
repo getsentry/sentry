@@ -30,3 +30,9 @@ def test_serialization():
 
     serde_state = MetricsExtractionRuleState.from_json(json_payload)
     assert state == serde_state
+
+
+def test_generate_mri():
+    rule = MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}, [])
+    mri = rule.generate_mri()
+    assert mri == "c:custom/count_clicks@none"
