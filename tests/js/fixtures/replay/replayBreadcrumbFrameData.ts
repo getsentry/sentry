@@ -108,18 +108,6 @@ export function ReplaySlowClickFrameFixture(
   };
 }
 
-export function ReplayHydrationErrorFrameFixture(
-  fields: TestableFrame<'replay.hydrate-error'>
-): MockFrame<'replay.hydrate-error'> {
-  return {
-    category: 'replay.hydrate-error',
-    message: '',
-    timestamp: fields.timestamp.getTime() / 1000,
-    data: fields.data ?? undefined,
-    type: BreadcrumbType.DEFAULT,
-  };
-}
-
 export function ReplayMutationFrameFixture(
   fields: TestableFrame<'replay.mutations'>
 ): MockFrame<'replay.mutations'> {
