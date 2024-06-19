@@ -509,9 +509,11 @@ class TracesExecutor:
             # If there are user queries, further refine the trace ids by applying them
             # leaving us with only traces where the metric exists and matches the user
             # queries.
-            min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_span_conditions(
-                params, snuba_params, trace_ids
-            )
+            (
+                min_timestamp,
+                max_timestamp,
+                trace_ids,
+            ) = self.get_traces_matching_span_conditions_in_traces(params, snuba_params, trace_ids)
 
             if not trace_ids:
                 return min_timestamp, max_timestamp, [], []
@@ -552,39 +554,82 @@ class TracesExecutor:
         all_queries: list[QueryBuilder] = []
         timestamp_column: str | None = None
 
-        if trace_ids:
-            # Putting all the trace ids into a single query will likely encounter the
-            # max query size limit in ClickHouse. This tries to spread the trace ids
-            # out evenly across N queries up to some limit per query.
-            max_trace_ids_per_chunk = options.get(
-                "performance.traces.trace-explorer-max-trace-ids-per-chunk"
-            )
-            num_chunks = math.ceil(len(trace_ids) / max_trace_ids_per_chunk)
-            chunk_size = math.ceil(len(trace_ids) / num_chunks)
+        query, timestamp_column = self.get_traces_matching_span_conditions_query(
+            params,
+            snuba_params,
+        )
+        all_queries.append(query)
 
-            for chunk in chunked(trace_ids, chunk_size):
-                query, timestamp_column = self.get_traces_matching_span_conditions_query(
-                    params,
-                    snuba_params,
-                )
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            for query in all_queries:
+                query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
 
-                # restrict the query to just this subset of trace ids
-                query.add_conditions(
-                    [
-                        Condition(
-                            Column("trace_id"),
-                            Op.IN,
-                            Function("splitByChar", [",", ",".join(chunk)]),
-                        )
-                    ]
-                )
+        assert timestamp_column is not None
 
-                all_queries.append(query)
-        else:
+        all_raw_results = bulk_snuba_queries(
+            [query.get_snql_query() for query in all_queries],
+            Referrer.API_TRACE_EXPLORER_SPANS_LIST.value,
+        )
+        all_results = [
+            query.process_results(result) for query, result in zip(all_queries, all_raw_results)
+        ]
+
+        matching_trace_ids: list[str] = []
+        min_timestamp = self.snuba_params.end
+        max_timestamp = self.snuba_params.start
+        assert min_timestamp is not None
+        assert max_timestamp is not None
+
+        for trace_results in all_results:
+            for row in trace_results["data"]:
+                matching_trace_ids.append(row["trace"])
+                timestamp = datetime.fromisoformat(row[timestamp_column])
+                if timestamp < min_timestamp:
+                    min_timestamp = timestamp
+                if timestamp > max_timestamp:
+                    max_timestamp = timestamp
+
+                # early escape once we have enough results
+                if len(matching_trace_ids) >= self.limit:
+                    return min_timestamp, max_timestamp, matching_trace_ids
+
+        return min_timestamp, max_timestamp, matching_trace_ids
+
+    def get_traces_matching_span_conditions_in_traces(
+        self,
+        params: ParamsType,
+        snuba_params: SnubaParams,
+        trace_ids: list[str],
+    ) -> tuple[datetime, datetime, list[str]]:
+        all_queries: list[QueryBuilder] = []
+        timestamp_column: str | None = None
+
+        # Putting all the trace ids into a single query will likely encounter the
+        # max query size limit in ClickHouse. This tries to spread the trace ids
+        # out evenly across N queries up to some limit per query.
+        max_trace_ids_per_chunk = options.get(
+            "performance.traces.trace-explorer-max-trace-ids-per-chunk"
+        )
+        num_chunks = math.ceil(len(trace_ids) / max_trace_ids_per_chunk)
+        chunk_size = math.ceil(len(trace_ids) / num_chunks)
+
+        for chunk in chunked(trace_ids, chunk_size):
             query, timestamp_column = self.get_traces_matching_span_conditions_query(
                 params,
                 snuba_params,
             )
+
+            # restrict the query to just this subset of trace ids
+            query.add_conditions(
+                [
+                    Condition(
+                        Column("trace_id"),
+                        Op.IN,
+                        Function("splitByChar", [",", ",".join(chunk)]),
+                    )
+                ]
+            )
+
             all_queries.append(query)
 
         if options.get("performance.traces.trace-explorer-skip-floating-spans"):
@@ -1108,7 +1153,15 @@ class TracesExecutor:
         )
 
         # First make sure that we only return spans from one of the traces identified
-        user_spans_query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
+        user_spans_query.add_conditions(
+            [
+                Condition(
+                    Column("trace_id"),
+                    Op.IN,
+                    Function("splitByChar", [",", ",".join(trace_ids)]),
+                )
+            ]
+        )
 
         conditions = []
         if span_keys is not None:
