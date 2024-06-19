@@ -11,7 +11,7 @@ import {getIntegrationIcon, getIntegrationSourceUrl} from 'sentry/utils/integrat
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useEventDetails} from 'sentry/views/insights/common/queries/useEventDetails';
-import {MODULE_DOC_LINK} from 'sentry/views/performance/database/settings';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/database/settings';
 
 interface Props {
   frame: Parameters<typeof useStacktraceLink>[0]['frame'];

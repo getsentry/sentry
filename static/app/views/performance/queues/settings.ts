@@ -3,6 +3,8 @@ import {t} from 'sentry/locale';
 export const MODULE_TITLE = t('Queues');
 export const BASE_URL = 'queues';
 
+export const CHART_HEIGHT = 160;
+
 export const DESTINATION_TITLE = t('Destination Summary');
 
 export const releaseLevelAsBadgeProps = {
