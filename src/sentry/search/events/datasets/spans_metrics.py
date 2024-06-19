@@ -174,6 +174,29 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="integer",
                 ),
                 fields.MetricsFunction(
+                    "division_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "dividend",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "divisor",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_gauge=self._resolve_division_if,
+                    snql_distribution=self._resolve_division_if,
+                    default_result_type="percentage",
+                ),
+                fields.MetricsFunction(
                     "sum",
                     optional_args=[
                         fields.with_default(
@@ -1221,6 +1244,41 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
             ],
+            alias,
+        )
+
+    def _resolve_sum_if(self, metric_name: str, if_col_name: str, if_val: SelectType) -> SelectType:
+        return Function(
+            "sumIf",
+            [
+                Column("value"),
+                Function(
+                    "and",
+                    [
+                        Function(
+                            "equals",
+                            [
+                                Column("metric_id"),
+                                self.resolve_metric(metric_name),
+                            ],
+                        ),
+                        Function(
+                            "equals",
+                            [self.builder.column(if_col_name), if_val],
+                        ),
+                    ],
+                ),
+            ],
+        )
+
+    def _resolve_division_if(
+        self,
+        args: Mapping[str, str | Column | SelectType],
+        alias: str | None = None,
+    ) -> SelectType:
+        return function_aliases.resolve_division(
+            self._resolve_sum_if(args["dividend"], args["if_col"], args["if_val"]),
+            self._resolve_sum_if(args["divisor"], args["if_col"], args["if_val"]),
             alias,
         )
 

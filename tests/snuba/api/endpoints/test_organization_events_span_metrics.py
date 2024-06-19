@@ -120,6 +120,53 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0][fieldRelease2] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_division_if(self):
+        self.store_span_metric(
+            1,
+            internal_metric=constants.SPAN_METRICS_MAP["mobile.slow_frames"],
+            timestamp=self.three_days_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_span_metric(
+            15,
+            internal_metric=constants.SPAN_METRICS_MAP["mobile.total_frames"],
+            timestamp=self.three_days_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_span_metric(
+            2,
+            internal_metric=constants.SPAN_METRICS_MAP["mobile.frozen_frames"],
+            timestamp=self.three_days_ago,
+            tags={"release": "2.0.0"},
+        )
+        self.store_span_metric(
+            10,
+            internal_metric=constants.SPAN_METRICS_MAP["mobile.total_frames"],
+            timestamp=self.three_days_ago,
+            tags={"release": "2.0.0"},
+        )
+
+        fieldRelease1 = "division_if(mobile.slow_frames,mobile.total_frames,release,1.0.0)"
+        fieldRelease2 = "division_if(mobile.frozen_frames,mobile.total_frames,release,2.0.0)"
+
+        response = self.do_request(
+            {
+                "field": [fieldRelease1, fieldRelease2],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "7d",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0][fieldRelease1] == 1 / 15
+        assert data[0][fieldRelease2] == 2 / 10
+
+        assert meta["dataset"] == "spansMetrics"
+
     def test_count_unique(self):
         self.store_span_metric(
             1,
