@@ -1274,7 +1274,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     def _resolve_division_if(
         self,
         args: Mapping[str, str | Column | SelectType],
-        alias: str | None = None,
+        alias: str,
     ) -> SelectType:
         return function_aliases.resolve_division(
             self._resolve_sum_if(args["dividend"], args["if_col"], args["if_val"]),
