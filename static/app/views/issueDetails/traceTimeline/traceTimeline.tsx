@@ -45,13 +45,10 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     organization.features.includes('related-issues-issue-details-page') &&
     oneOtherIssueEvent !== undefined;
 
-  // Once we GA trace related issues this will drop to 0 and we can remove this
-  const traceTimelineTwoIssues =
-    timelineStatus === 'shown' && oneOtherIssueEvent !== undefined;
-
   useRouteAnalyticsParams({
     trace_timeline_status: timelineStatus,
-    trace_timeline_two_issues: traceTimelineTwoIssues,
+    // Once we GA trace related issues we will have no need for this
+    trace_timeline_two_issues: oneOtherIssueEvent !== undefined,
     has_related_trace_issue: showTraceRelatedIssue,
   });
 
