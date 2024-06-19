@@ -5,7 +5,7 @@ import {THROUGHPUT_COLOR} from 'sentry/views/insights/colors';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {getThroughputChartTitle} from 'sentry/views/insights/common/views/spans/types';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
+import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 interface Props {
   isLoading: boolean;

@@ -12,7 +12,7 @@ jest.mock('sentry/utils/usePageFilters');
 
 const usePageFilters = jest.mocked(importedUsePageFilters);
 
-import {NoDataMessage} from 'sentry/views/performance/database/noDataMessage';
+import {NoDataMessage} from 'sentry/views/insights/database/components/noDataMessage';
 
 describe('NoDataMessage', () => {
   beforeEach(() => {
