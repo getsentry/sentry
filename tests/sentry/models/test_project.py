@@ -362,7 +362,7 @@ class ProjectTest(APITestCase, TestCase):
             == f"http://testserver/organizations/{self.organization.slug}/issues/?q=all&project={self.project.id}"
         )
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_get_absolute_url_customer_domains(self):
         url = self.project.get_absolute_url()
         assert (
