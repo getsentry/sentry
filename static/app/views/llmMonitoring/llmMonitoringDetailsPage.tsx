@@ -15,6 +15,12 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {
+  SpanFunction,
+  SpanMetricsField,
+  type SpanMetricsQueryFilters,
+} from 'sentry/views/insights/types';
 import {
   NumberOfPipelinesChart,
   PipelineDurationChart,
@@ -26,12 +32,6 @@ import {MetricReadout} from 'sentry/views/performance/metricReadout';
 import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {
-  SpanFunction,
-  SpanMetricsField,
-  type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
 
 interface Props {
   params: {

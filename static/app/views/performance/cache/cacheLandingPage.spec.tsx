@@ -24,7 +24,7 @@ const requestMocks = {
 };
 
 describe('CacheLandingPage', function () {
-  const organization = OrganizationFixture({features: ['performance-insights']});
+  const organization = OrganizationFixture();
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -239,7 +239,7 @@ describe('CacheLandingPage', function () {
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
     expect(
-      screen.getByText('Start collecting Insights about your Caches!')
+      screen.getByText('Make sure your application’s caching is behaving properly')
     ).toBeInTheDocument();
   });
 });

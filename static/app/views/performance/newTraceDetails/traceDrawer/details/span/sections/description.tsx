@@ -9,18 +9,18 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/insights/common/components/stackTraceMiniFrame';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {ModuleName} from 'sentry/views/insights/types';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {
-  MissingFrame,
-  StackTraceMiniFrame,
-} from 'sentry/views/starfish/components/stackTraceMiniFrame';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import {TraceDrawerComponents} from '../../styles';
 

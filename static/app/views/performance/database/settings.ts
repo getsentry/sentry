@@ -9,7 +9,7 @@ import {
   TWO_WEEKS,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {type Aggregate, ModuleName} from 'sentry/views/starfish/types';
+import {type Aggregate, ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const BASE_URL = 'database';

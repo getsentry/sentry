@@ -6,10 +6,10 @@ import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useOrganization from 'sentry/utils/useOrganization';
+import type {ModuleName} from 'sentry/views/insights/types';
 import {NoAccess} from 'sentry/views/performance/database/noAccess';
-import {useInsightsTitle} from 'sentry/views/performance/utils/useInsightsTitle';
+import {INSIGHTS_TITLE} from 'sentry/views/performance/settings';
 import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
-import type {ModuleName} from 'sentry/views/starfish/types';
 
 type ModuleNameStrings = `${ModuleName}`;
 type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
@@ -24,10 +24,9 @@ interface Props {
 export function ModulePageProviders({moduleName, pageTitle, children, features}: Props) {
   const organization = useOrganization();
 
-  const insightsTitle = useInsightsTitle();
   const moduleTitle = useModuleTitle(moduleName);
 
-  const fullPageTitle = [pageTitle, moduleTitle, insightsTitle]
+  const fullPageTitle = [pageTitle, moduleTitle, INSIGHTS_TITLE]
     .filter(Boolean)
     .join(' — ');
 

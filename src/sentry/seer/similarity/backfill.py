@@ -6,6 +6,7 @@ from urllib3.exceptions import ReadTimeoutError
 
 from sentry.conf.server import SEER_GROUPING_RECORDS_DELETE_URL, SEER_GROUPING_RECORDS_URL
 from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.utils import json
 
@@ -55,11 +56,10 @@ def post_bulk_grouping_records(
     }
 
     try:
-        response = seer_grouping_connection_pool.urlopen(
-            "POST",
+        response = make_signed_seer_api_request(
+            seer_grouping_connection_pool,
             SEER_GROUPING_RECORDS_URL,
-            body=json.dumps(grouping_records_request),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            body=json.dumps(grouping_records_request).encode("utf-8"),
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
     except ReadTimeoutError:
@@ -80,6 +80,7 @@ def delete_grouping_records(
     project_id: int,
 ) -> bool:
     try:
+        # TODO: Move this over to POST json_api implementation
         response = seer_grouping_connection_pool.urlopen(
             "GET",
             f"{SEER_GROUPING_RECORDS_DELETE_URL}/{project_id}",

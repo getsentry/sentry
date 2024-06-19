@@ -18,6 +18,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import MiniChartPanel from 'sentry/views/insights/common/components/miniChartPanel';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useEventsStatsQuery} from 'sentry/views/insights/common/utils/useEventsStatsQuery';
 import {
   CHART_TITLES,
   OUTPUT_TYPE,
@@ -27,13 +34,6 @@ import {ScreensBarChart} from 'sentry/views/performance/mobile/screenload/screen
 import {useTableQuery} from 'sentry/views/performance/mobile/screenload/screens/screensTable';
 import {transformDeviceClassEvents} from 'sentry/views/performance/mobile/screenload/screens/utils';
 import useCrossPlatformProject from 'sentry/views/performance/mobile/useCrossPlatformProject';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import MiniChartPanel from 'sentry/views/starfish/components/miniChartPanel';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {formatVersionAndCenterTruncate} from 'sentry/views/starfish/utils/centerTruncate';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
-import {useEventsStatsQuery} from 'sentry/views/starfish/utils/useEventsStatsQuery';
 
 export enum YAxis {
   WARM_START = 0,

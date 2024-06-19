@@ -296,7 +296,6 @@ class GetIncidentAggregatesTest(TestCase, BaseIncidentAggregatesTest):
         assert get_incident_aggregates(self.project_incident) == {"count": 4}
 
     @override_options({"issues.group_attributes.send_kafka": True})
-    @with_feature("organizations:metric-alert-ignore-archived")
     def test_is_unresolved_query(self):
         incident = self.create_incident(
             date_started=self.now - timedelta(minutes=5),
@@ -546,19 +545,18 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         resolve_threshold = 10
         threshold_period = 1
         event_types = [SnubaQueryEventType.EventType.ERROR]
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            alert_rule = create_alert_rule(
-                self.organization,
-                [self.project],
-                name,
-                query,
-                aggregate,
-                time_window,
-                threshold_type,
-                threshold_period,
-                resolve_threshold=resolve_threshold,
-                event_types=event_types,
-            )
+        alert_rule = create_alert_rule(
+            self.organization,
+            [self.project],
+            name,
+            query,
+            aggregate,
+            time_window,
+            threshold_type,
+            threshold_period,
+            resolve_threshold=resolve_threshold,
+            event_types=event_types,
+        )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.name == name
         assert alert_rule.user_id is None

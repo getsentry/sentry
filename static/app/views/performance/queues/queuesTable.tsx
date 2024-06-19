@@ -20,17 +20,17 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
-import {Referrer} from 'sentry/views/performance/queues/referrers';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   ModuleName,
   SpanFunction,
   SpanIndexedField,
   type SpanMetricsResponse,
-} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+} from 'sentry/views/insights/types';
+import {useQueuesByDestinationQuery} from 'sentry/views/performance/queues/queries/useQueuesByDestinationQuery';
+import {Referrer} from 'sentry/views/performance/queues/referrers';
+import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Row = Pick<
   SpanMetricsResponse,

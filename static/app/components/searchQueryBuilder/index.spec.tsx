@@ -55,6 +55,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
         name: 'is',
         alias: 'issue.status',
         predefined: true,
+        values: ['resolved', 'unresolved', 'ignored'],
       },
       {
         key: FieldKey.TIMES_SEEN,
@@ -70,7 +71,6 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
       {
         key: 'custom_tag_name',
         name: 'Custom_Tag_Name',
-        values: ['tag value one', 'tag value two', 'tag value three'],
       },
     ],
   },
@@ -308,32 +308,32 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('can modify the value by clicking into it (single-select)', async function () {
-      // `age` is a duration filter which only accepts single values
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-1d" />);
+      // `is` only accepts single values
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="is:unresolved" />);
 
-      // Should display as "-1d" to start
+      // Should display as "unresolved" to start
       expect(
-        within(
-          screen.getByRole('button', {name: 'Edit value for filter: age'})
-        ).getByText('-1d')
+        within(screen.getByRole('button', {name: 'Edit value for filter: is'})).getByText(
+          'unresolved'
+        )
       ).toBeInTheDocument();
 
       await userEvent.click(
-        screen.getByRole('button', {name: 'Edit value for filter: age'})
+        screen.getByRole('button', {name: 'Edit value for filter: is'})
       );
       // Should have placeholder text of previous value
       expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveAttribute(
         'placeholder',
-        '-1d'
+        'unresolved'
       );
 
-      // Clicking the "-14d" option should update the value
-      await userEvent.click(await screen.findByRole('option', {name: '-14d'}));
-      expect(screen.getByRole('row', {name: 'age:-14d'})).toBeInTheDocument();
+      // Clicking the "resolved" option should update the value
+      await userEvent.click(await screen.findByRole('option', {name: 'resolved'}));
+      expect(screen.getByRole('row', {name: 'is:resolved'})).toBeInTheDocument();
       expect(
-        within(
-          screen.getByRole('button', {name: 'Edit value for filter: age'})
-        ).getByText('-14d')
+        within(screen.getByRole('button', {name: 'Edit value for filter: is'})).getByText(
+          'resolved'
+        )
       ).toBeInTheDocument();
     });
 
@@ -919,6 +919,27 @@ describe('SearchQueryBuilder', function () {
         within(groups[2]).getByRole('option', {name: 'person2@sentry.io'})
       ).toBeInTheDocument();
     });
+
+    it('fetches tag values', async function () {
+      const mockGetTagValues = jest.fn().mockResolvedValue(['tag_value_one']);
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="custom_tag_name:"
+          getTagValues={mockGetTagValues}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
+      );
+      await screen.findByRole('option', {name: 'tag_value_one'});
+      await userEvent.click(screen.getByRole('option', {name: 'tag_value_one'}));
+
+      expect(
+        await screen.findByRole('row', {name: 'custom_tag_name:tag_value_one'})
+      ).toBeInTheDocument();
+    });
   });
 
   describe('filter types', function () {
@@ -962,6 +983,96 @@ describe('SearchQueryBuilder', function () {
         expect(
           await screen.findByRole('row', {name: 'timesSeen:<=100k'})
         ).toBeInTheDocument();
+      });
+    });
+
+    describe('date', function () {
+      it('new date filters start with a value', async function () {
+        render(<SearchQueryBuilder {...defaultProps} />);
+        await userEvent.click(screen.getByRole('grid'));
+        await userEvent.keyboard('age{ArrowDown}{Enter}');
+
+        // Should start with a relative date value
+        expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+      });
+
+      it('does not allow invalid values', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a date value
+        expect(screen.getByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+      });
+
+      it('shows default date suggestions', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: '1 hour ago'}));
+        expect(screen.getByRole('row', {name: 'age:-1h'})).toBeInTheDocument();
+      });
+
+      it('shows date suggestions when typing', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+
+        // Typing "7" should show suggestions for 7 minutes, hours, days, and weeks
+        await userEvent.keyboard('7');
+        await screen.findByRole('option', {name: '7 minutes ago'});
+        expect(screen.getByRole('option', {name: '7 hours ago'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7 days ago'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7 weeks ago'})).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('option', {name: '7 weeks ago'}));
+        expect(screen.getByRole('row', {name: 'age:-7w'})).toBeInTheDocument();
+      });
+
+      it('can search before a relative date', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: age'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: 'is before'}));
+
+        // Should flip from "-" to "+"
+        expect(await screen.findByRole('row', {name: 'age:+24h'})).toBeInTheDocument();
+      });
+
+      it('switches to an absolute date when choosing operator with equality', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:-24h" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: age'})
+        );
+        await userEvent.click(
+          await screen.findByRole('option', {name: 'is on or after'})
+        );
+
+        // Changes operator and fills in the current date (ISO format)
+        expect(
+          await screen.findByRole('row', {name: 'age:>=2017-10-17T02:41:20.000Z'})
+        ).toBeInTheDocument();
+      });
+
+      it('changes operator when selecting a relative date', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:>=2017-10-17" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: '1 hour ago'}));
+
+        // Because relative dates only work with ":", should change the operator to "is after"
+        expect(
+          within(
+            screen.getByRole('button', {name: 'Edit operator for filter: age'})
+          ).getByText('is after')
+        ).toBeInTheDocument();
+        expect(await screen.findByRole('row', {name: 'age:-1h'})).toBeInTheDocument();
       });
     });
   });

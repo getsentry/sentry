@@ -1,11 +1,14 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {
+  isDateToken,
   makeTokenKey,
   parseQueryBuilderValue,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
+  FilterType,
   type ParseResultToken,
   TermOperator,
   Token,
@@ -53,7 +56,7 @@ type UpdateFilterOpAction = {
 };
 
 type UpdateTokenValueAction = {
-  token: TokenResult<Token>;
+  token: TokenResult<Token.FILTER>;
   type: 'UPDATE_TOKEN_VALUE';
   value: string;
 };
@@ -93,6 +96,10 @@ function modifyFilterOperator(
   token: TokenResult<Token.FILTER>,
   newOperator: TermOperator
 ): string {
+  if (isDateToken(token)) {
+    return modifyFilterOperatorDate(query, token, newOperator);
+  }
+
   const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
 
   const newToken: TokenResult<Token.FILTER> = {...token};
@@ -100,6 +107,62 @@ function modifyFilterOperator(
   newToken.negated = isNotEqual;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
+}
+
+function modifyFilterOperatorDate(
+  query: string,
+  token: TokenResult<Token.FILTER>,
+  newOperator: TermOperator
+): string {
+  switch (newOperator) {
+    case TermOperator.GREATER_THAN:
+    case TermOperator.LESS_THAN: {
+      if (token.filter === FilterType.RELATIVE_DATE) {
+        token.value.sign = newOperator === TermOperator.GREATER_THAN ? '-' : '+';
+      } else if (
+        token.filter === FilterType.SPECIFIC_DATE ||
+        token.filter === FilterType.DATE
+      ) {
+        token.operator = newOperator;
+      }
+      return replaceQueryToken(query, token, stringifyToken(token));
+    }
+
+    // The "equal" and "or equal to" operators require a specific date
+    case TermOperator.EQUAL:
+    case TermOperator.GREATER_THAN_EQUAL:
+    case TermOperator.LESS_THAN_EQUAL:
+      // If it's a relative date, modify the operator and generate an ISO timestamp
+      if (token.filter === FilterType.RELATIVE_DATE) {
+        const generatedIsoDateStr = new Date().toISOString();
+        const newTokenStr = `${token.key.text}:${newOperator}${generatedIsoDateStr}`;
+        return replaceQueryToken(query, token, newTokenStr);
+      }
+      return modifyFilterOperator(query, token, newOperator);
+    default:
+      return replaceQueryToken(query, token, newOperator);
+  }
+}
+
+function modifyFilterValueDate(
+  query: string,
+  token: TokenResult<Token.FILTER>,
+  newValue: string
+): string {
+  const parsedValue = parseFilterValueDate(newValue);
+
+  if (!parsedValue) {
+    return query;
+  }
+
+  if (token.value.type === parsedValue?.type) {
+    return replaceQueryToken(query, token.value, newValue);
+  }
+
+  if (parsedValue.type === Token.VALUE_ISO_8601_DATE) {
+    return replaceQueryToken(query, token.value, newValue);
+  }
+  return `${token.key.text}:${newValue}`;
 }
 
 function replaceQueryToken(
@@ -166,6 +229,18 @@ function pasteFreeText(
     query: newQuery,
     focusOverride: focusedItemKey ? {itemKey: focusedItemKey} : null,
   };
+}
+
+function modifyFilterValue(
+  query: string,
+  token: TokenResult<Token.FILTER>,
+  newValue: string
+): string {
+  if (isDateToken(token)) {
+    return modifyFilterValueDate(query, token, newValue);
+  }
+
+  return replaceQueryToken(query, token.value, newValue);
 }
 
 function updateFilterMultipleValues(
@@ -274,7 +349,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
-            query: replaceQueryToken(state.query, action.token, action.value),
+            query: modifyFilterValue(state.query, action.token, action.value),
           };
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);
