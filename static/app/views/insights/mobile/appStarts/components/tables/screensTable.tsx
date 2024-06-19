@@ -14,12 +14,12 @@ import {
   SECONDARY_RELEASE_ALIAS,
 } from 'sentry/views/insights/common/components/releaseSelector';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import Breakdown from 'sentry/views/insights/mobile/appStarts/components/breakdown';
 import {COLD_START_TYPE} from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {ScreensTable} from 'sentry/views/insights/mobile/common/components/tables/screensTable';
 import {TOP_SCREENS} from 'sentry/views/insights/mobile/constants';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Props = {
   data: TableData | undefined;

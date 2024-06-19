@@ -24,13 +24,13 @@ import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
 import {ResourceSpanOps} from 'sentry/views/insights/browser/resources/types';
 import {useResourceModuleFilters} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders';
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
-import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 const {
   SPAN_SELF_TIME,

@@ -31,6 +31,7 @@ import {PercentChangeCell} from 'sentry/views/insights/common/components/tableCe
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {APP_START_SPANS} from 'sentry/views/insights/mobile/appStarts/components/spanOpSelector';
 import {
@@ -41,7 +42,6 @@ import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries
 import {useTableQuery} from 'sentry/views/insights/mobile/screenload/components/tables/screensTable';
 import {MobileCursors} from 'sentry/views/insights/mobile/screenload/constants';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 const {SPAN_SELF_TIME, SPAN_DESCRIPTION, SPAN_GROUP, SPAN_OP, PROJECT_ID} =
   SpanMetricsField;
