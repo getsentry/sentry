@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import type {SpanMetricsQueryFilters} from 'sentry/views/starfish/types';
+import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Caches');
 export const BASE_URL = 'caches';
@@ -23,7 +23,9 @@ export const MODULE_DESCRIPTION = t(
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/caches/';
 
 export const ONBOARDING_CONTENT = {
-  title: t('Start collecting Insights about your Caches!'),
-  description: t('Our robot is waiting to collect your first cache hit.'),
+  title: t('Make sure your application’s caching is behaving properly'),
+  description: t(
+    'We tell you if your application is hitting cache as often as expected and whether it’s delivering the anticipated performance improvements.'
+  ),
   link: MODULE_DOC_LINK,
 };

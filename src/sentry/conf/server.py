@@ -673,8 +673,11 @@ RPC_SHARED_SECRET: list[str] | None = None
 # Timeout for RPC requests between regions
 RPC_TIMEOUT = 5.0
 
-# Shared secret used to sign cross-region RPC requests with the seer microservice.
+# TODO: Replace both of these secrets with mutual TLS and simplify our rpc channels.
+# Shared secret used to sign cross-region RPC requests from the seer microservice.
 SEER_RPC_SHARED_SECRET: list[str] | None = None
+# Shared secret used to sign cross-region RPC requests to the seer microservice.
+SEER_API_SHARED_SECRET: str = ""
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -2472,7 +2475,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.5.1"
+SELF_HOSTED_STABLE_VERSION = "24.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -3432,7 +3435,7 @@ if ngrok_host:
     SENTRY_OPTIONS["system.url-prefix"] = f"https://{ngrok_host}"
     SENTRY_OPTIONS["system.base-hostname"] = ngrok_host
     SENTRY_OPTIONS["system.region-api-url-template"] = f"https://{{region}}.{ngrok_host}"
-    SENTRY_FEATURES["organizations:frontend-domainsplit"] = True
+    SENTRY_FEATURES["system:multi-region"] = True
 
     CSRF_TRUSTED_ORIGINS = [f"https://*.{ngrok_host}", f"https://{ngrok_host}"]
     ALLOWED_HOSTS = [f".{ngrok_host}", "localhost", "127.0.0.1", ".docker.internal"]

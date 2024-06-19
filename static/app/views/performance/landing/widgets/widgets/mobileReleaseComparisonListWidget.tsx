@@ -26,13 +26,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
+import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
 import {Subtitle} from 'sentry/views/profiling/landing/styles';
 import {RightAlignedCell} from 'sentry/views/replays/deadRageClick/deadRageSelectorCards';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/starfish/utils/constants';
-import {appendReleaseFilters} from 'sentry/views/starfish/utils/releaseComparison';
 
 import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';

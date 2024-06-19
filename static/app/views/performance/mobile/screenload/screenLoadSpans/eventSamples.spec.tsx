@@ -4,15 +4,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {ScreenLoadEventSamples} from 'sentry/views/performance/mobile/screenload/screenLoadSpans/eventSamples';
 import {
   MobileCursors,
   MobileSortKeys,
 } from 'sentry/views/performance/mobile/screenload/screens/constants';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
 
 jest.mock('sentry/utils/usePageFilters');
-jest.mock('sentry/views/starfish/queries/useReleases');
+jest.mock('sentry/views/insights/common/queries/useReleases');
 
 describe('ScreenLoadEventSamples', function () {
   const organization = OrganizationFixture();

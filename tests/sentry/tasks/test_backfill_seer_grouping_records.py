@@ -477,30 +477,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    @patch("sentry.tasks.embeddings_grouping.utils.delete_grouping_records")
-    def test_backfill_seer_grouping_records_dry_run(
-        self, mock_delete_grouping_records, mock_post_bulk_grouping_records
-    ):
-        """
-        Test that the metadata is set for all groups showing that the record has been created.
-        """
-        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": []}
-        mock_delete_grouping_records.return_value = True
-        with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, 0, dry_run=True)
-
-        groups = Group.objects.filter(project_id=self.project.id)
-        for group in groups:
-            assert not group.data["metadata"].get("seer_similarity") == {
-                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-                "request_hash": self.group_hashes[group.id],
-            }
-        redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
-        last_processed_index = int(redis_client.get(make_backfill_redis_key(self.project.id)) or 0)
-        assert last_processed_index == len(groups)
-
-    @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
     def test_backfill_seer_grouping_records_groups_1_times_seen(
         self, mock_post_bulk_grouping_records
     ):
@@ -953,7 +929,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
         mock_call_next_backfill.assert_called_with(
-            groups_len, self.project.id, ANY, groups_len, groups[groups_len - 1].id, False
+            groups_len, self.project.id, ANY, groups_len, groups[groups_len - 1].id
         )
 
     @with_feature("projects:similarity-embeddings-backfill")

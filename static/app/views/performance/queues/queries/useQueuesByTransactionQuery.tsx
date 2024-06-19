@@ -2,10 +2,13 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import type {Referrer} from 'sentry/views/performance/queues/referrers';
-import {DEFAULT_QUERY_FILTER} from 'sentry/views/performance/queues/settings';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+import {
+  DEFAULT_QUERY_FILTER,
+  TABLE_ROWS_LIMIT,
+} from 'sentry/views/performance/queues/settings';
 
 type Props = {
   referrer: Referrer;
@@ -46,7 +49,7 @@ export function useQueuesByTransactionQuery({
       ],
       enabled,
       sorts: sort ? [sort] : [],
-      limit: 10,
+      limit: TABLE_ROWS_LIMIT,
       cursor,
     },
     referrer

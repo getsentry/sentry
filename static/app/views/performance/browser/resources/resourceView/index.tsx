@@ -9,6 +9,10 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
+import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
+import {ModuleName} from 'sentry/views/insights/types';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/performance/browser/resources';
 import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceTable from 'sentry/views/performance/browser/resources/resourceView/resourceTable';
@@ -27,10 +31,6 @@ import {useResourcePagesQuery} from 'sentry/views/performance/browser/resources/
 import {useResourceSort} from 'sentry/views/performance/browser/resources/utils/useResourceSort';
 import {getResourceTypeFilter} from 'sentry/views/performance/browser/resources/utils/useResourcesQuery';
 import {useHasDataTrackAnalytics} from 'sentry/views/performance/utils/analytics/useHasDataTrackAnalytics';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
-import {SpanTimeCharts} from 'sentry/views/starfish/views/spans/spanTimeCharts';
-import type {ModuleFilters} from 'sentry/views/starfish/views/spans/useModuleFilters';
 
 const {
   SPAN_OP: RESOURCE_TYPE,

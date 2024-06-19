@@ -13,6 +13,9 @@ import {t, tct} from 'sentry/locale';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {SampleList} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList';
+import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 import {Referrer} from 'sentry/views/performance/browser/resources/referrer';
 import ResourceInfo from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceInfo';
 import ResourceSummaryCharts from 'sentry/views/performance/browser/resources/resourceSummaryPage/resourceSummaryCharts';
@@ -28,9 +31,6 @@ import {ModulePageProviders} from 'sentry/views/performance/modulePageProviders'
 import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {useModuleBreadcrumbs} from 'sentry/views/performance/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import {ModuleName, SpanMetricsField} from 'sentry/views/starfish/types';
-import {SampleList} from 'sentry/views/starfish/views/spanSummaryPage/sampleList';
 
 const {
   SPAN_SELF_TIME,

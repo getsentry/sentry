@@ -88,6 +88,7 @@ import {
   AlertRuleThresholdType,
   AlertRuleTriggerType,
   Dataset,
+  TimeWindow,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -506,11 +507,16 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    const {timeWindow} = this.state;
 
     if (name === 'alertType') {
       this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
         dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
+        timeWindow:
+          value === 'custom_metrics' && timeWindow === TimeWindow.ONE_MINUTE
+            ? TimeWindow.FIVE_MINUTES
+            : timeWindow,
       }));
       return;
     }

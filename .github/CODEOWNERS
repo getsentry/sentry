@@ -223,6 +223,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/utils/performance_issues/                                     @getsentry/performance
 /src/sentry/spans/                                                        @getsentry/performance
 
+/static/app/views/traces/                                                 @getsentry/performance
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
@@ -272,7 +273,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/performance
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/performance
 
-/static/app/views/starfish/                                                         @getsentry/performance
+/static/app/views/insights/                                                         @getsentry/performance
 ## Endof Performance
 
 

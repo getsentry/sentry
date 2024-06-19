@@ -1,10 +1,10 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
+import {ELLIPSIS} from 'sentry/views/insights/common/utils/centerTruncate';
 import useTruncatedReleaseNames from 'sentry/views/performance/mobile/useTruncatedRelease';
-import {useReleaseSelection} from 'sentry/views/starfish/queries/useReleases';
-import {ELLIPSIS} from 'sentry/views/starfish/utils/centerTruncate';
 
-jest.mock('sentry/views/starfish/queries/useReleases');
+jest.mock('sentry/views/insights/common/queries/useReleases');
 
 jest.mocked(useReleaseSelection).mockReturnValue({
   primaryRelease: 'com.example.vu.android@2.10.5-alpha.1+42',
