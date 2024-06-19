@@ -1,6 +1,8 @@
 export type TracingEventParameters = {
   'trace.metadata': {
+    num_nodes: number;
     num_root_children: number;
+    project_platforms: string[];
     shape: string;
     trace_duration_seconds: number;
   };
