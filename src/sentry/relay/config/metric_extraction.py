@@ -825,7 +825,7 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
             validate_rule_condition(json.dumps(spec["condition"]))
             specs.append((spec["mri"], spec, version))
         except ValueError:
-            logger.exception("Invalid span attribute metric spec", extra={rule})
+            logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
 
     return specs
 
