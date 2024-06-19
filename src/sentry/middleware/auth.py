@@ -16,7 +16,6 @@ from sentry.api.authentication import (
 )
 from sentry.models.userip import UserIP
 from sentry.utils.auth import AuthUserPasswordExpired, logger
-from sentry.utils.linksign import process_signature
 
 
 def get_user(request):
@@ -85,23 +84,45 @@ class SessionAuthenticationMiddleware(MiddlewareMixin):
             return None
 
 
-class AuthenticationMiddleware(SessionAuthenticationMiddleware):
+class AuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: HttpRequest) -> None:
-        request.user_from_signed_request = False
-
         if request.path.startswith("/api/0/internal/rpc/"):
             # Avoid doing RPC authentication when we're already
             # in an RPC request.
             request.user = AnonymousUser()
             return
 
-        # If there is a valid signature on the request we override the
-        # user with the user contained within the signature.
-        user = process_signature(request)
+        auth = get_authorization_header(request).split()
 
-        if user is not None:
-            request.user = user
-            request.user_from_signed_request = True
-            return
+        if auth:
+            for authenticator_class in [
+                UserAuthTokenAuthentication,
+                OrgAuthTokenAuthentication,
+                ApiKeyAuthentication,
+            ]:
+                authenticator = authenticator_class()
+                if not authenticator.accepts_auth(auth):
+                    continue
+                try:
+                    result = authenticator.authenticate(request)
+                except AuthenticationFailed:
+                    result = None
+                if result:
+                    request.user, request.auth = result
+                else:
+                    # default to anonymous user and use IP ratelimit
+                    request.user = SimpleLazyObject(lambda: get_user(request))
+                return
 
-        return super().process_request(request)
+        # default to anonymous user and use IP ratelimit
+        request.user = SimpleLazyObject(lambda: get_user(request))
+
+    def process_exception(
+        self, request: HttpRequest, exception: Exception
+    ) -> HttpResponseBase | None:
+        if isinstance(exception, AuthUserPasswordExpired):
+            from sentry.web.frontend.accounts import expired
+
+            return expired(request, exception.user)
+        else:
+            return None
