@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Any
+from unittest.mock import patch
 from uuid import uuid4
 
 import orjson
@@ -177,11 +178,11 @@ def test_trusted_external_relays_should_not_be_able_to_request_full_configs(
 
 
 @django_db_all
+@patch("sentry.api.authentication.is_internal_relay")
 def test_when_not_sending_full_config_info_into_an_external_relay_the_full_config_is_returned(
-    call_endpoint, add_org_key, relay
+    is_internal_relay, call_endpoint, add_org_key, relay
 ):
-    relay.is_internal = False
-    relay.save()
+    is_internal_relay.return_value = False
 
     result, status_code = call_endpoint()
     assert status_code == 403
