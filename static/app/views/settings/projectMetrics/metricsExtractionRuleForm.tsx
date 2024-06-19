@@ -121,7 +121,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             name="spanAttribute"
             options={attributeOptions}
             disabled={isEdit}
-            label="Span Attribute"
+            label={t('Span Attribute')}
             help={t('The span attribute to extract the metric from.')}
             placeholder={t('Select an attribute')}
             creatable
@@ -136,7 +136,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             name="type"
             disabled={isEdit}
             options={TYPE_OPTIONS}
-            label="Type"
+            label={t('Type')}
             help={t(
               'The type of the metric determines which aggregation functions are available and what types of values it can store. For more information, read our docs'
             )}
@@ -144,7 +144,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
           <SelectField
             name="tags"
             options={attributeOptions}
-            label="Tags"
+            label={t('Tags')}
             multiple
             placeholder={t('Select tags')}
             help={t(
