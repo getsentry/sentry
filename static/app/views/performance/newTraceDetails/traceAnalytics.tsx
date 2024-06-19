@@ -21,9 +21,8 @@ const trackTraceMetadata = (
     ),
   ];
 
-  const projectPlatforms = projectSlugs
-    .map(slug => projects.find(p => p.slug === slug))
-    .filter(project => project !== undefined)
+  const projectPlatforms = projects
+    .filter(p => projectSlugs.includes(p.slug))
     .map(project => project?.platform ?? '');
 
   trackAnalytics('trace.metadata', {
