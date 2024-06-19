@@ -4,8 +4,11 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
+import {openConfirmModal} from 'sentry/components/confirm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -14,7 +17,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {IconArrow, IconWarning} from 'sentry/icons';
+import {IconArrow, IconDelete, IconEdit, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
@@ -42,6 +45,15 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {CardinalityLimit} from 'sentry/views/settings/projectMetrics/cardinalityLimit';
+import {
+  MetricsExtractionRuleEditModal,
+  modalCss,
+} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
+import {
+  type MetricsExtractionRule,
+  useDeleteMetricsExtractionRules,
+  useMetricsExtractionRules,
+} from 'sentry/views/settings/projectMetrics/utils/api';
 
 type Props = {
   organization: Organization;
@@ -119,6 +131,12 @@ function ProjectMetrics({project, location}: Props) {
 
   const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
 
+  const extractionRulesQuery = useMetricsExtractionRules(organization.slug, project.slug);
+  const deleteExtractionRulesMutation = useDeleteMetricsExtractionRules(
+    organization.slug,
+    project.slug
+  );
+
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Metrics'), project.slug, false)} />
@@ -167,7 +185,40 @@ function ProjectMetrics({project, location}: Props) {
               {t('Add Extraction Rule')}
             </LinkButton>
           </ExtractionRulesSearchWrapper>
-          <MetricsExtractionTable isLoading={false} extractionRules={[]} />
+          <MetricsExtractionTable
+            isLoading={extractionRulesQuery.isLoading}
+            onDelete={rule =>
+              openConfirmModal({
+                onConfirm: () =>
+                  deleteExtractionRulesMutation.mutate(
+                    {metricsExtractionRules: [rule]},
+                    {
+                      onSuccess: () => {
+                        addSuccessMessage(t('Metric extraction rule deleted'));
+                      },
+                      onError: () => {
+                        addErrorMessage(t('Failed to delete metric extraction rule'));
+                      },
+                    }
+                  ),
+                message: t('Are you sure you want to delete this extraction rule?'),
+                confirmText: t('Delete Extraction Rule'),
+              })
+            }
+            onEdit={rule => {
+              openModal(
+                props => (
+                  <MetricsExtractionRuleEditModal
+                    project={project}
+                    metricExtractionRule={rule}
+                    {...props}
+                  />
+                ),
+                {modalCss}
+              );
+            }}
+            extractionRules={extractionRulesQuery.data ?? []}
+          />
         </Fragment>
       )}
 
@@ -212,23 +263,33 @@ function ProjectMetrics({project, location}: Props) {
 }
 
 interface MetricsExtractionTableProps {
-  extractionRules: never[];
+  extractionRules: MetricsExtractionRule[];
   isLoading: boolean;
+  onDelete: (rule: MetricsExtractionRule) => void;
+  onEdit: (rule: MetricsExtractionRule) => void;
 }
 
 function MetricsExtractionTable({
   extractionRules,
   isLoading,
+  onDelete,
+  onEdit,
 }: MetricsExtractionTableProps) {
   return (
-    <StyledPanelTable
+    <ExtractionRulesPanelTable
       headers={[
-        t('Span attribute'),
+        <Cell key="spanAttribute">
+          <IconArrow size="xs" direction="down" />
+          {t('Span attribute')}
+        </Cell>,
         <Cell right key="type">
           {t('Type')}
         </Cell>,
         <Cell right key="unit">
           {t('Unit')}
+        </Cell>,
+        <Cell right key="filters">
+          {t('Filters')}
         </Cell>,
         <Cell right key="tags">
           {t('Tags')}
@@ -240,7 +301,55 @@ function MetricsExtractionTable({
       emptyMessage={t('You have not created any extraction rules yet.')}
       isEmpty={extractionRules.length === 0}
       isLoading={isLoading}
-    />
+    >
+      {extractionRules
+        .toSorted((a, b) => a?.spanAttribute?.localeCompare(b?.spanAttribute))
+        .map(rule => (
+          <Fragment key={rule.spanAttribute + rule.type + rule.unit}>
+            <Cell>{rule.spanAttribute}</Cell>
+            <Cell right>
+              <Tag>{getReadableMetricType(rule.type)}</Tag>
+            </Cell>
+            <Cell right>
+              <Tag>{rule.unit}</Tag>
+            </Cell>
+            <Cell right>
+              {rule.conditions.length ? (
+                <Button priority="link" onClick={() => onEdit(rule)}>
+                  {rule.conditions.length}
+                </Button>
+              ) : (
+                <NoValue>{t('(none)')}</NoValue>
+              )}
+            </Cell>
+            <Cell right>
+              {rule.tags.length ? (
+                <Button priority="link" onClick={() => onEdit(rule)}>
+                  {rule.tags.length}
+                </Button>
+              ) : (
+                <NoValue>{t('(none)')}</NoValue>
+              )}
+            </Cell>
+            <Cell right>
+              <Button
+                aria-label={t('Delete rule')}
+                size="xs"
+                icon={<IconDelete />}
+                borderless
+                onClick={() => onDelete(rule)}
+              />
+              <Button
+                aria-label={t('Edit rule')}
+                size="xs"
+                icon={<IconEdit />}
+                borderless
+                onClick={() => onEdit(rule)}
+              />
+            </Cell>
+          </Fragment>
+        ))}
+    </ExtractionRulesPanelTable>
   );
 }
 
@@ -258,7 +367,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
     project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
 
   return (
-    <StyledPanelTable
+    <MetricsPanelTable
       headers={[
         t('Metric'),
         <Cell right key="cardinality">
@@ -335,7 +444,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
           </Fragment>
         );
       })}
-    </StyledPanelTable>
+    </MetricsPanelTable>
   );
 }
 
@@ -359,8 +468,12 @@ const ExtractionRulesSearchWrapper = styled(SearchWrapper)`
   margin-bottom: ${space(1)};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const MetricsPanelTable = styled(PanelTable)`
   grid-template-columns: 1fr repeat(4, min-content);
+`;
+
+const ExtractionRulesPanelTable = styled(PanelTable)`
+  grid-template-columns: 1fr repeat(5, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
@@ -376,6 +489,10 @@ const StyledIconWarning = styled(IconWarning)`
   &:hover {
     cursor: pointer;
   }
+`;
+
+const NoValue = styled('span')`
+  color: ${p => p.theme.subText};
 `;
 
 export default ProjectMetrics;
