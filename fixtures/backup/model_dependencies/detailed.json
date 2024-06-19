@@ -5275,8 +5275,7 @@
     "table_name": "sentry_remotesubscription",
     "uniques": [
       [
-        "subscription_id",
-        "type"
+        "subscription_id"
       ]
     ]
   },

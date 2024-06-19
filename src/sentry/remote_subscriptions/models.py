@@ -25,7 +25,7 @@ class RemoteSubscription(DefaultFieldsModel):
     # subscription.
     type = models.TextField()
     status = models.SmallIntegerField(default=Status.ACTIVE.value, db_index=True)
-    subscription_id = models.TextField(null=True)
+    subscription_id = models.TextField(unique=True, null=True)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk"], cache_ttl=int(timedelta(hours=1).total_seconds())
@@ -34,8 +34,3 @@ class RemoteSubscription(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_remotesubscription"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["subscription_id", "type"], name="unique_type_subscription_id"
-            )
-        ]
