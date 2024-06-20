@@ -221,7 +221,10 @@ def call_next_backfill(
             last_processed_group_index if last_processed_group_index is not None else 0,
             ex=REDIS_KEY_EXPIRY,
         )
-    if last_processed_group_index and last_processed_group_index < len_group_id_batch_unfiltered:
+    if (
+        last_processed_group_index is not None
+        and last_processed_group_index < len_group_id_batch_unfiltered
+    ):
         logger.info(
             "calling next backfill task",
             extra={

@@ -1035,7 +1035,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         # Create groups pending deletion and in the process of being deleted
-        old_group_id = []
         data = {
             "exception": self.create_exception_values("function name!", "type!", "value!"),
             "title": "title",

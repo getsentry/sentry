@@ -124,9 +124,7 @@ def initialize_backfill(
                 redis_client.get(make_backfill_project_index_redis_key(cohort, project_id)) or 0
             )
         else:
-            last_processed_project_index_ret = (
-                last_processed_project_index if last_processed_project_index else 0
-            )
+            last_processed_project_index_ret = 0
     else:
         last_processed_project_index_ret = last_processed_project_index
 
@@ -146,7 +144,7 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_index, 
         .values_list("id", "data")
         .order_by("-times_seen", "id")
     )
-    total_groups_to_backfill_length = len(groups_to_backfill_query)
+    total_groups_to_backfill_length = groups_to_backfill_query.count()
 
     batch_end_index = min(last_processed_group_index + batch_size, total_groups_to_backfill_length)
     groups_to_backfill_batch = groups_to_backfill_query[last_processed_group_index:batch_end_index]
