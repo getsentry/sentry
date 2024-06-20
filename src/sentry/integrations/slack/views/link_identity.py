@@ -111,6 +111,7 @@ class SlackLinkIdentityView(BaseView):
                 idp=kwargs["idp"],
                 slack_id=params_dict["slack_id"],
                 channel_id=params_dict["channel_id"],
+                response_url=params_dict.get("response_url"),
             )
         except KeyError as e:
             _logger.exception("slack.link.missing_params")
