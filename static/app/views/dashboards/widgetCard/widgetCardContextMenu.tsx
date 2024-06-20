@@ -9,7 +9,7 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/utils';
-import {IconEdit, IconEllipsis, IconExpand} from 'sentry/icons';
+import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters} from 'sentry/types';
@@ -17,7 +17,6 @@ import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
-import {hasMetricsExperimentalFeature} from 'sentry/utils/metrics/features';
 import {
   MEPConsumer,
   MEPState,
@@ -74,6 +73,7 @@ function WidgetCardContextMenu({
   seriesResultsType,
 }: Props) {
   const {isMetricsData} = useDashboardsMEPContext();
+
   if (!showContextMenu) {
     return null;
   }
@@ -91,14 +91,6 @@ function WidgetCardContextMenu({
       });
     }
   };
-
-  const openWidgetViewerIcon =
-    hasMetricsExperimentalFeature(organization) &&
-    widget.widgetType === WidgetType.METRICS ? (
-      <IconEdit />
-    ) : (
-      <IconExpand />
-    );
 
   if (isPreview) {
     return (
@@ -141,7 +133,7 @@ function WidgetCardContextMenu({
                   aria-label={t('Open Widget Viewer')}
                   borderless
                   size="xs"
-                  icon={openWidgetViewerIcon}
+                  icon={<IconExpand />}
                   onClick={() => {
                     (seriesData || tableData) &&
                       setData({
@@ -283,7 +275,7 @@ function WidgetCardContextMenu({
                 aria-label={t('Open Widget Viewer')}
                 borderless
                 size="xs"
-                icon={openWidgetViewerIcon}
+                icon={<IconExpand />}
                 onClick={() => {
                   setData({
                     seriesData,

@@ -49,6 +49,7 @@ function MetricWidgetViewerModal({
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
+  const [userHasModified, setUserHasModified] = useState(false);
   const [displayType, setDisplayType] = useState(widget.displayType);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters)
@@ -81,6 +82,7 @@ function MetricWidgetViewerModal({
   const handleTitleChange = useCallback(
     (patch: Partial<MetricWidgetTitleState>) => {
       setTitle(curr => ({...curr, ...patch}));
+      setUserHasModified(true);
     },
     [setTitle]
   );
@@ -92,6 +94,7 @@ function MetricWidgetViewerModal({
         updated[index] = {...updated[index], ...data} as DashboardMetricsQuery;
         return updated;
       });
+      setUserHasModified(true);
     },
     [setMetricQueries]
   );
@@ -103,12 +106,15 @@ function MetricWidgetViewerModal({
         updated[index] = {...updated[index], ...data} as DashboardMetricsEquation;
         return updated;
       });
+      setUserHasModified(true);
     },
     [setMetricEquations]
   );
 
   const handleOrderChange = useCallback(
     ({id, order}: {id: number; order: Order}) => {
+      setUserHasModified(true);
+
       const queryIdx = metricQueries.findIndex(query => query.id === id);
       if (queryIdx > -1) {
         setMetricQueries(curr => {
@@ -147,6 +153,7 @@ function MetricWidgetViewerModal({
           },
         ];
       });
+      setUserHasModified(true);
     },
     [displayType, generateQueryId, metricQueries]
   );
@@ -169,6 +176,8 @@ function MetricWidgetViewerModal({
     if (displayType === DisplayType.BIG_NUMBER) {
       setMetricQueries(curr => curr.map(q => ({...q, isHidden: true})));
     }
+
+    setUserHasModified(true);
   }, [displayType, generateEquationId]);
 
   const removeEquation = useCallback(
@@ -185,6 +194,8 @@ function MetricWidgetViewerModal({
           curr.map((q, idx) => (idx === curr.length - 1 ? {...q, isHidden: false} : q))
         );
       }
+
+      setUserHasModified(true);
     },
     [displayType]
   );
@@ -200,6 +211,8 @@ function MetricWidgetViewerModal({
         }
         return updated;
       });
+
+      setUserHasModified(true);
     },
     [displayType, filteredEquations.length]
   );
@@ -224,6 +237,22 @@ function MetricWidgetViewerModal({
     widget,
   ]);
 
+  const handleDisplayTypeChange = useCallback((type: DisplayType) => {
+    setDisplayType(type);
+    setUserHasModified(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (
+      userHasModified &&
+      // eslint-disable-next-line no-alert
+      !window.confirm(t('You have unsaved changes, are you sure you want to close?'))
+    ) {
+      return;
+    }
+    closeModal();
+  }, [userHasModified, closeModal]);
+
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
@@ -234,10 +263,7 @@ function MetricWidgetViewerModal({
             placeholder={widgetMQL}
             description={widget.description}
           />
-          {/* Added a div with onClick because CloseButton overrides passed onClick handler */}
-          <div onClick={handleSubmit}>
-            <CloseButton />
-          </div>
+          <CloseButton onClick={handleClose} />
         </Header>
         <Body>
           <Queries
@@ -254,7 +280,7 @@ function MetricWidgetViewerModal({
           <MetricVisualization
             expressions={expressions}
             displayType={displayType}
-            onDisplayTypeChange={setDisplayType}
+            onDisplayTypeChange={handleDisplayTypeChange}
             onOrderChange={handleOrderChange}
             interval={widget.interval}
           />
