@@ -22,7 +22,7 @@ class OrganizationAbsoluteUrlMixin:
         if request and is_using_customer_domain(request):
             return True
 
-        return features.has("organizations:customer-domains", self)
+        return features.has("system:multi-region")
 
     def _has_customer_domain(self) -> bool:
         # For getsentry compatibility

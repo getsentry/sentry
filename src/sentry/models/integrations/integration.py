@@ -11,7 +11,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField, DefaultFieldsModel, control_silo_model
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
