@@ -61,7 +61,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
             <TextCopyInput
-              style={urlIsLink ? {color: `${theme.blue400}`} : undefined}
+              style={urlIsLink ? {color: theme.blue400} : undefined}
               onClick={
                 urlIsLink
                   ? e => {
