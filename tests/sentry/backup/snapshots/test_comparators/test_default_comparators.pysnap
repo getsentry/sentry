@@ -1,5 +1,5 @@
 ---
-created: '2024-06-13T16:39:01.199833+00:00'
+created: '2024-06-20T18:29:25.377279+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -63,6 +63,10 @@ source: tests/sentry/backup/test_comparators.py
   - class: ForeignKeyComparator
     fields: []
   model_name: nodestore.node
+- comparators:
+  - class: ForeignKeyComparator
+    fields: []
+  model_name: remote_subscriptions.remotesubscription
 - comparators:
   - class: ForeignKeyComparator
     fields:
