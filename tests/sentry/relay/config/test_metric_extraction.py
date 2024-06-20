@@ -34,6 +34,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
@@ -2133,3 +2134,45 @@ def test_get_current_widget_specs(
     ):
         specs = get_current_widget_specs(default_project.organization)
     assert specs == expected
+
+
+@django_db_all
+def test_get_span_attribute_metrics(default_project: Project) -> None:
+    rules = [
+        {
+            "spanAttribute": "span.duration",
+            "mri": "d:custom/span.duration@none",
+            "type": "d",
+            "tags": ["foo"],
+            "unit": "millisecond",
+            "conditions": ["bar:baz", "abc:xyz"],
+        }
+    ]
+    default_project.update_option("sentry:metrics_extraction_rules", json.dumps(rules))
+
+    with Feature(ON_DEMAND_METRICS):
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+        assert not config
+
+    with Feature([ON_DEMAND_METRICS, "organizations:custom-metrics-extraction-rule"]):
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+        assert config
+        assert config["metrics"] == [
+            {
+                "category": "span",
+                "condition": {
+                    "inner": [
+                        {"name": "span.data.bar", "op": "eq", "value": "baz"},
+                        {"name": "span.data.abc", "op": "eq", "value": "xyz"},
+                    ],
+                    "op": "or",
+                },
+                "field": "span.duration",
+                "mri": "d:custom/span.duration@millisecond",
+                "tags": [
+                    {"field": "span.data.abc", "key": "abc"},
+                    {"field": "span.data.bar", "key": "bar"},
+                    {"field": "span.data.foo", "key": "foo"},
+                ],
+            }
+        ]
