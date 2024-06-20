@@ -169,7 +169,7 @@
     "typescript": "^5.4.5",
     "u2f-api": "1.0.10",
     "url-loader": "^4.1.1",
-    "webpack": "5.91.0",
+    "webpack": "5.92.1",
     "webpack-cli": "5.1.4",
     "webpack-remove-empty-scripts": "^1.0.4",
     "zxcvbn": "^4.4.2"
