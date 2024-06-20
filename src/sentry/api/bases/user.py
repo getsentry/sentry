@@ -102,7 +102,7 @@ class UserEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
 
     @override
-    def convert_args(self, request: Request, user_id: str | None = None, *args, **kwargs):
+    def convert_args(self, request: Request, user_id: int | str | None = None, *args, **kwargs):
         if user_id == "me":
             if not request.user.is_authenticated:
                 raise ResourceDoesNotExist
