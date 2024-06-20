@@ -5,12 +5,12 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
     region_silo_model,
 )
+from sentry.db.models.manager.base import BaseManager
 
 
 @region_silo_model
