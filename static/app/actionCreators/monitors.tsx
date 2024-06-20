@@ -171,3 +171,27 @@ export async function deleteMonitorProcessingErrorByType(
     }
   }
 }
+
+export async function deleteProjectProcessingErrorByType(
+  api: Client,
+  orgId: string,
+  projectId: string,
+  errortype: ProcessingErrorType
+) {
+  addLoadingMessage();
+
+  try {
+    await api.requestPromise(`/projects/${orgId}/${projectId}/processing-errors/`, {
+      method: 'DELETE',
+      query: {errortype},
+    });
+    clearIndicators();
+  } catch (err) {
+    logException(err);
+    if (err.status === 403) {
+      addErrorMessage(t('You do not have permission to dismiss these processing errors'));
+    } else {
+      addErrorMessage(t('Unable to dismiss the processing errors'));
+    }
+  }
+}

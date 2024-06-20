@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
+import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -25,6 +26,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,7 +41,7 @@ import {
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
 import {OwnerFilter} from './components/ownerFilter';
-import type {CheckinProcessingError, Monitor} from './types';
+import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
 const CronsListPageHeader = HookOrDefault({
@@ -47,6 +49,7 @@ const CronsListPageHeader = HookOrDefault({
 });
 
 export default function Monitors() {
+  const api = useApi();
   const organization = useOrganization();
   const navigate = useNavigate();
   const location = useLocation();
@@ -66,12 +69,11 @@ export default function Monitors() {
   });
 
   const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
-  const {data: processingErrors} = useApiQuery<CheckinProcessingError[]>(
-    processingErrorQueryKey,
-    {
-      staleTime: 0,
-    }
-  );
+  const {data: processingErrors, refetch: refetchErrors} = useApiQuery<
+    CheckinProcessingError[]
+  >(processingErrorQueryKey, {
+    staleTime: 0,
+  });
 
   useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
@@ -85,6 +87,11 @@ export default function Monitors() {
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
+
+  function handleDismissError(errortype: ProcessingErrorType, projectId: string) {
+    deleteProjectProcessingErrorByType(api, organization.slug, projectId, errortype);
+    refetchErrors();
+  }
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
@@ -155,7 +162,10 @@ export default function Monitors() {
               />
             </Filters>
             {!!processingErrors?.length && (
-              <MonitorProcessingErrors checkinErrors={processingErrors}>
+              <MonitorProcessingErrors
+                checkinErrors={processingErrors}
+                onDismiss={handleDismissError}
+              >
                 {t(
                   'Errors were encountered while ingesting check-ins for the selected projects'
                 )}
