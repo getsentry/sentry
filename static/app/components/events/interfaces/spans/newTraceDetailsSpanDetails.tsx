@@ -30,6 +30,13 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {
+  Frame,
+  SpanDescription,
+} from 'sentry/views/insights/common/components/spanDescription';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {FrameContainer} from 'sentry/views/insights/database/components/stackTraceMiniFrame';
+import {ModuleName} from 'sentry/views/insights/types';
 import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
 import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
 import type {
@@ -41,10 +48,6 @@ import {GeneralSpanDetailsValue} from 'sentry/views/performance/traceDetails/new
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import {Frame, SpanDescription} from 'sentry/views/starfish/components/spanDescription';
-import {FrameContainer} from 'sentry/views/starfish/components/stackTraceMiniFrame';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 import {OpsDot} from '../../opsBreakdown';
 

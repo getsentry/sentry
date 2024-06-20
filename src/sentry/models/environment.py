@@ -8,13 +8,13 @@ from django.utils import timezone
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ENVIRONMENT_NAME_MAX_LENGTH, ENVIRONMENT_NAME_PATTERN
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text

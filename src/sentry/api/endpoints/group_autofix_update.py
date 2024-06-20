@@ -41,8 +41,9 @@ class GroupAutofixUpdateEndpoint(GroupEndpoint):
                 data={"error": "You must be authenticated to use this endpoint"},
             )
 
+        path = "/v1/automation/autofix/update"
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/autofix/update",
+            f"{settings.SEER_AUTOFIX_URL}{path}",
             data=orjson.dumps(
                 {
                     **request.data,

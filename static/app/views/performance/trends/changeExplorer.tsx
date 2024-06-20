@@ -14,6 +14,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -30,7 +31,6 @@ import type {
 } from 'sentry/views/performance/trends/types';
 import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type PerformanceChangeExplorerProps = {
   collapsed: boolean;

@@ -119,10 +119,10 @@ class IPlugin2(local, PluginConfigMixin, PluginStatusMixin):
         """
         return self.slug in HIDDEN_PLUGINS
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         from sentry.plugins.helpers import reset_options
 
-        return reset_options(self.get_conf_key(), project, user)
+        return reset_options(self.get_conf_key(), project)
 
     def get_option(self, key, project=None, user=None):
         """

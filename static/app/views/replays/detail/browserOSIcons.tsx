@@ -1,14 +1,23 @@
 import {Fragment} from 'react';
 
+import Placeholder from 'sentry/components/placeholder';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 
-export default function BrowserOSIcons({showBrowser = true}: {showBrowser?: boolean}) {
+export default function BrowserOSIcons({
+  showBrowser = true,
+  isLoading,
+}: {
+  isLoading?: boolean;
+  showBrowser?: boolean;
+}) {
   const {replay} = useReplayContext();
   const replayRecord = replay?.getReplay();
 
-  return (
+  return isLoading ? (
+    <Placeholder width="50px" height="32px" />
+  ) : (
     <Fragment>
       <Tooltip title={`${replayRecord?.os.name ?? ''} ${replayRecord?.os.version ?? ''}`}>
         <ContextIcon

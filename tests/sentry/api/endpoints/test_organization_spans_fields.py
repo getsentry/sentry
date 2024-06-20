@@ -133,7 +133,7 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
 
     def test_tags_keys_autocomplete_default(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)
-        for tag in ["foo", "bar", "baz"]:
+        for tag in ["foo", "*bar", "*baz"]:
             self.store_segment(
                 self.project.id,
                 uuid4().hex,
@@ -154,16 +154,16 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 {
                     "count": 1,
                     "key": key,
-                    "value": "bar",
-                    "name": "bar",
+                    "value": "*bar",
+                    "name": "*bar",
                     "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                     "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                 },
                 {
                     "count": 1,
                     "key": key,
-                    "value": "baz",
-                    "name": "baz",
+                    "value": "*baz",
+                    "name": "*baz",
                     "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                     "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                 },
@@ -177,22 +177,28 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                 },
             ]
 
-            response = self.do_request(key, query={"query": "b"})
+        for key, query in [
+            ("tag", "b"),
+            ("transaction", "b"),
+            ("tag", r"\*b"),
+            ("transaction", r"\*b"),
+        ]:
+            response = self.do_request(key, query={"query": query})
             assert response.status_code == 200, response.data
             assert response.data == [
                 {
                     "count": 1,
                     "key": key,
-                    "value": "bar",
-                    "name": "bar",
+                    "value": "*bar",
+                    "name": "*bar",
                     "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                     "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                 },
                 {
                     "count": 1,
                     "key": key,
-                    "value": "baz",
-                    "name": "baz",
+                    "value": "*baz",
+                    "name": "*baz",
                     "firstSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                     "lastSeen": timestamp.strftime("%Y-%m-%dT%H:%M:%S+00:00"),
                 },
@@ -238,9 +244,10 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
             assert response.data == [], key
 
     def test_tags_keys_autocomplete_project(self):
-        self.create_project(name="foo")
-        self.create_project(name="bar")
-        self.create_project(name="baz")
+        base_id = 9223372036854775000
+        self.create_project(id=base_id + 100, name="foo")
+        self.create_project(id=base_id + 299, name="bar")
+        self.create_project(id=base_id + 399, name="baz")
 
         for key in ["project", "project.name"]:
             response = self.do_request(key)
@@ -292,6 +299,58 @@ class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):
                     "lastSeen": None,
                 },
             ]
+
+        key = "project.id"
+
+        response = self.do_request(key)
+        assert response.status_code == 200, response.data
+        assert sorted(response.data, key=lambda v: v["value"]) == [
+            {
+                "count": None,
+                "key": key,
+                "value": "9223372036854775100",
+                "name": "9223372036854775100",
+                "firstSeen": None,
+                "lastSeen": None,
+            },
+            {
+                "count": None,
+                "key": key,
+                "value": "9223372036854775299",
+                "name": "9223372036854775299",
+                "firstSeen": None,
+                "lastSeen": None,
+            },
+            {
+                "count": None,
+                "key": key,
+                "value": "9223372036854775399",
+                "name": "9223372036854775399",
+                "firstSeen": None,
+                "lastSeen": None,
+            },
+        ]
+
+        response = self.do_request(key, query={"query": "99"})
+        assert response.status_code == 200, response.data
+        assert sorted(response.data, key=lambda v: v["value"]) == [
+            {
+                "count": None,
+                "key": key,
+                "value": "9223372036854775299",
+                "name": "9223372036854775299",
+                "firstSeen": None,
+                "lastSeen": None,
+            },
+            {
+                "count": None,
+                "key": key,
+                "value": "9223372036854775399",
+                "name": "9223372036854775399",
+                "firstSeen": None,
+                "lastSeen": None,
+            },
+        ]
 
     def test_tags_keys_autocomplete_span_status(self):
         timestamp = before_now(days=0, minutes=10).replace(microsecond=0)

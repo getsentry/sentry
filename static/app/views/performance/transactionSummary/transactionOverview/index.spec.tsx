@@ -47,10 +47,10 @@ function initializeData({
   const project = prj ?? ProjectFixture({teams});
   const organization = OrganizationFixture({
     features,
-    projects: projects ? projects : [project],
   });
   const initialData = initializeOrg({
     organization,
+    projects: projects ? projects : [project],
     router: {
       location: {
         query: {
@@ -63,7 +63,7 @@ function initializeData({
     },
   });
 
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  ProjectsStore.loadInitialData(initialData.projects);
   TeamStore.loadInitialData(teams, false, null);
 
   return initialData;

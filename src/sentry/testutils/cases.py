@@ -7,6 +7,7 @@ import os.path
 import random
 import re
 import time
+import uuid
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
@@ -41,7 +42,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
+    REQUESTTYPE_HEAD,
+    CheckResult,
+)
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -2881,6 +2889,22 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with responses.mock:
             yield
 
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with mock.patch(
+            "slack_sdk.web.client.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield
+
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -3193,6 +3217,21 @@ class MonitorIngestTestCase(MonitorTestCase):
             slug=sentry_app.slug, organization=self.organization
         )
         self.token = self.create_internal_integration_token(install=app, user=self.user)
+
+
+class UptimeTestCase(TestCase):
+    def create_uptime_result(self) -> CheckResult:
+        return {
+            "guid": uuid.uuid4().hex,
+            "subscription_id": uuid.uuid4().hex,
+            "status": CHECKSTATUS_FAILURE,
+            "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "trace_id": uuid.uuid4().hex,
+            "scheduled_check_time": datetime.now().timestamp(),
+            "actual_check_time": datetime.now().timestamp(),
+            "duration_ms": 100,
+            "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+        }
 
 
 class IntegratedApiTestCase(BaseTestCase):
