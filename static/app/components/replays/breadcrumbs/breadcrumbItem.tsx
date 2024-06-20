@@ -33,7 +33,6 @@ type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => v
 const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
-  extraction: Extraction | undefined;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
   onInspectorExpanded: (
@@ -46,6 +45,7 @@ interface Props {
   startTimestampMs: number;
   className?: string;
   expandPaths?: string[];
+  extraction?: Extraction;
   style?: CSSProperties;
 }
 
@@ -124,31 +124,34 @@ function BreadcrumbItem({
   const hasNewTimelineUI = useHasNewTimelineUI();
   const timeString = new Date(frame.timestampMs).toISOString();
   const startTimeString = new Date(startTimestampMs).toISOString();
-  return hasNewTimelineUI ? (
-    <StyledTimelineItem
-      icon={icon}
-      title={title}
-      colorConfig={{primary: color, secondary: color}}
-      timeString={timeString}
-      renderTimestamp={(_ts, _sts) =>
-        showPlayerTime(frame.timestampMs, startTimestampMs, false)
-      }
-      startTimeString={startTimeString}
-      data-is-error-frame={isErrorFrame(frame)}
-      style={style}
-      className={className}
-      onClick={e => onClick?.(frame, e)}
-      onMouseEnter={e => onMouseEnter(frame, e)}
-      onMouseLeave={e => onMouseLeave(frame, e)}
-    >
-      <ErrorBoundary mini>
-        {renderDescription()}
-        {renderComparisonButton()}
-        {renderCodeSnippet()}
-        {renderIssueLink()}
-      </ErrorBoundary>
-    </StyledTimelineItem>
-  ) : (
+  if (hasNewTimelineUI) {
+    return (
+      <StyledTimelineItem
+        icon={icon}
+        title={title}
+        colorConfig={{primary: color, secondary: color}}
+        timeString={timeString}
+        renderTimestamp={(_ts, _sts) =>
+          showPlayerTime(frame.timestampMs, startTimestampMs, false)
+        }
+        startTimeString={startTimeString}
+        data-is-error-frame={isErrorFrame(frame)}
+        style={style}
+        className={className}
+        onClick={e => onClick?.(frame, e)}
+        onMouseEnter={e => onMouseEnter(frame, e)}
+        onMouseLeave={e => onMouseLeave(frame, e)}
+      >
+        <ErrorBoundary mini>
+          {renderDescription()}
+          {renderComparisonButton()}
+          {renderCodeSnippet()}
+          {renderIssueLink()}
+        </ErrorBoundary>
+      </StyledTimelineItem>
+    );
+  }
+  return (
     <CrumbItem
       data-is-error-frame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
@@ -161,7 +164,6 @@ function BreadcrumbItem({
       <IconWrapper color={color} hasOccurred>
         {icon}
       </IconWrapper>
-
       <ErrorBoundary mini>
         <CrumbDetails>
           <Flex column>
