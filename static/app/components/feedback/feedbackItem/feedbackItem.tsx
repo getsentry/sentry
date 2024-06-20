@@ -45,6 +45,11 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     }, 100);
   }, [feedbackItem.id, overflowRef]);
 
+  const URL_NOT_FOUND = t('URL not found');
+  const displayUrl =
+    eventData?.contexts.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
+  const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
+
   return (
     <Fragment>
       <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
@@ -56,15 +61,17 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
             <TextCopyInput
-              style={{color: `${theme.blue400}`}}
-              onClick={e => {
-                e.preventDefault();
-                openNavigateToExternalLinkModal({linkText: url});
-              }}
+              style={urlIsLink ? {color: `${theme.blue400}`} : undefined}
+              onClick={
+                urlIsLink
+                  ? e => {
+                      e.preventDefault();
+                      openNavigateToExternalLinkModal({linkText: displayUrl});
+                    }
+                  : () => {}
+              }
             >
-              {eventData?.contexts.feedback || eventData?.tags
-                ? url ?? t('URL not found')
-                : ''}
+              {displayUrl}
             </TextCopyInput>
           </Section>
         ) : null}
