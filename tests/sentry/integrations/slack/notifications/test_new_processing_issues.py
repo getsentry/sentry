@@ -49,7 +49,7 @@ class SlackNewProcessingIssuesNotificationTest(SlackActivityNotificationTest):
             == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=new_processing_issues_activity-slack-user&notification_uuid={notification_uuid}&organizationId={self.organization.id}|Notification Settings>"
         )
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_new_processing_issue_customer_domains_block(self):
         notification = NewProcessingIssuesActivityNotification(
             Activity(
