@@ -6,16 +6,22 @@ import Alert from 'sentry/components/alert';
 import Tag from 'sentry/components/badge/tag';
 import {Button} from 'sentry/components/button';
 import {Chevron} from 'sentry/components/chevron';
+import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import StructuredEventData from 'sentry/components/structuredEventData';
-import {t, tct} from 'sentry/locale';
+import {IconClose} from 'sentry/icons';
+import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useProjects from 'sentry/utils/useProjects';
-import type {CheckInPayload, CheckinProcessingError} from 'sentry/views/monitors/types';
+import type {
+  CheckInPayload,
+  CheckinProcessingError,
+  ProcessingErrorType,
+} from 'sentry/views/monitors/types';
 
 import {ProcessingErrorItem} from './processingErrorItem';
 import {ProcessingErrorTitle} from './processingErrorTitle';
@@ -23,9 +29,11 @@ import {ProcessingErrorTitle} from './processingErrorTitle';
 export default function MonitorProcessingErrors({
   checkinErrors,
   children,
+  onDismiss,
 }: {
   checkinErrors: CheckinProcessingError[];
   children: React.ReactNode;
+  onDismiss?: (errortype: ProcessingErrorType, projectId: string) => void;
 }) {
   const {projects} = useProjects();
 
@@ -72,20 +80,42 @@ export default function MonitorProcessingErrors({
       const project = projects.find(({id}) => id === projectId);
       const projectEntries = Object.values(errorsByType).map((errors, index) => {
         const isExpanded = expanded === `${projectId}:${index}`;
+        const errortype = errors[0].error.type;
         return (
           <ErrorGroup key={index}>
             <ErrorHeader>
               <Tag type="error">{errors.length}x</Tag>
-              <ProcessingErrorTitle type={errors[0].error.type} />
-
-              <Button
-                icon={<Chevron size="small" direction={isExpanded ? 'up' : 'down'} />}
-                aria-label={isExpanded ? t('Collapse') : t('Expand')}
-                aria-expanded={isExpanded}
-                size="zero"
-                borderless
-                onClick={() => setExpanded(isExpanded ? '' : `${projectId}:${index}`)}
-              />
+              <ProcessingErrorTitle type={errortype} />
+              <ErrorHeaderActions>
+                <Button
+                  icon={<Chevron size="small" direction={isExpanded ? 'up' : 'down'} />}
+                  aria-label={isExpanded ? t('Collapse') : t('Expand')}
+                  aria-expanded={isExpanded}
+                  size="zero"
+                  borderless
+                  onClick={() => setExpanded(isExpanded ? '' : `${projectId}:${index}`)}
+                />
+                {onDismiss && (
+                  <DismissButton
+                    icon={<IconClose size="xs" />}
+                    aria-label={t('Dismiss Errors')}
+                    size="zero"
+                    title={t('Dismiss Errors')}
+                    borderless
+                    onClick={() =>
+                      openConfirmModal({
+                        header: t('Dismiss'),
+                        message: tn(
+                          'Are you sure you want to dismiss this error?',
+                          'Are you sure you want to dismiss these %s errors?',
+                          errors.length
+                        ),
+                        onConfirm: () => onDismiss(errortype, projectId),
+                      })
+                    }
+                  />
+                )}
+              </ErrorHeaderActions>
             </ErrorHeader>
             {isExpanded && (
               <List symbol="bullet">
@@ -154,6 +184,19 @@ const ErrorGroup = styled('div')`
 const ErrorHeader = styled('div')`
   display: flex;
   gap: ${space(1)};
+`;
+
+const ErrorHeaderActions = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
+
+const DismissButton = styled(Button)`
+  opacity: 0;
+
+  ${ErrorGroup}:hover & {
+    opacity: 1;
+  }
 `;
 
 const ScrollableAlert = styled(Alert)`
