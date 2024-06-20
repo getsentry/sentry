@@ -118,10 +118,13 @@ def initialize_backfill(
     else:
         last_processed_group_index_ret = last_processed_group_index
 
-    if last_processed_project_index is None and cohort:
+    if last_processed_project_index is None and cohort and isinstance(cohort, str):
         last_processed_project_index_ret = int(
             redis_client.get(make_backfill_project_index_redis_key(cohort, project_id)) or 0
         )
+    else:
+        last_processed_project_index_ret = last_processed_project_index
+
     if last_processed_project_index is None:
         last_processed_project_index_ret = 0
 

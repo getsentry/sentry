@@ -112,7 +112,7 @@ def backfill_seer_grouping_records_for_project(
 
     if len(groups_to_backfill_with_no_embedding) == 0:
         call_next_backfill(
-            last_processed_index=batch_end_index,
+            last_processed_group_index=batch_end_index,
             project_id=current_project_id,
             redis_client=redis_client,
             len_group_id_batch_unfiltered=total_groups_to_backfill_length,
@@ -267,7 +267,7 @@ def call_next_backfill(
 
         if isinstance(cohort, str):
             redis_client.set(
-                make_backfill_project_index_redis_key(cohort, last_processed_project_index),
+                make_backfill_project_index_redis_key(str(cohort), last_processed_project_index),
                 last_processed_project_index,
                 ex=REDIS_KEY_EXPIRY,
             )

@@ -474,9 +474,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_index=None,
+                last_processed_group_index_input=None,
                 cohort=[self.project.id, project2.id],
-                last_processed_project_index=0,
+                last_processed_project_index_input=0,
             )
 
         groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
@@ -903,9 +903,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         with TaskRunner():
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
-                last_processed_group_index=None,
+                last_processed_group_index_input=None,
                 cohort=[self.project.id, project2.id],
-                last_processed_project_index=0,
+                last_processed_project_index_input=0,
                 only_delete=True,
             )
         assert mock_logger.info.call_args_list == [
@@ -1147,7 +1147,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             },
         )
         mock_call_next_backfill.assert_called_with(
-            last_processed_index=groups_len,
+            last_processed_group_index=groups_len,
             project_id=self.project.id,
             redis_client=ANY,
             len_group_id_batch_unfiltered=groups_len,
