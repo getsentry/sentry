@@ -43,16 +43,20 @@ function createOptimisticUpdate(
   queryKey: ApiQueryKey,
   updater: (
     variables: {metricsExtractionRules: MetricsExtractionRule[]},
-    old: MetricsExtractionRule[]
-  ) => MetricsExtractionRule[]
+    old: MetricsExtractionRule[] | undefined
+  ) => MetricsExtractionRule[] | undefined
 ) {
   return function (variables: {metricsExtractionRules: MetricsExtractionRule[]}) {
     queryClient.cancelQueries(queryKey);
     const previous = getApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey);
 
-    setApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey, oldRules => {
-      return updater(variables, oldRules);
-    });
+    setApiQueryData<MetricsExtractionRule[] | undefined>(
+      queryClient,
+      queryKey,
+      oldRules => {
+        return updater(variables, oldRules);
+      }
+    );
 
     return {previous};
   };
@@ -122,7 +126,7 @@ export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: st
       onMutate: createOptimisticUpdate(queryClient, queryKey, (variables, old) => {
         const newRules = variables.metricsExtractionRules;
         const existingKeys = new Set((old ?? []).map(getRuleIdentifier));
-        const copy = [...old];
+        const copy = old ? [...old] : [];
         newRules.forEach(rule => {
           if (!existingKeys.has(getRuleIdentifier(rule))) {
             copy.push(rule);
