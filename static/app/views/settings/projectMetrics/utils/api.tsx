@@ -1,7 +1,9 @@
 import type {MetricType} from 'sentry/types/metrics';
 import type {FormattingSupportedMetricUnit} from 'sentry/utils/metrics/formatters';
 import {
+  type ApiQueryKey,
   getApiQueryData,
+  type QueryClient,
   setApiQueryData,
   useApiQuery,
   useMutation,
@@ -36,6 +38,38 @@ function getRuleIdentifier(rule: MetricsExtractionRule) {
   return rule.spanAttribute + rule.type + rule.unit;
 }
 
+function createOptimisticUpdate(
+  queryClient: QueryClient,
+  queryKey: ApiQueryKey,
+  updater: (
+    variables: {metricsExtractionRules: MetricsExtractionRule[]},
+    old: MetricsExtractionRule[]
+  ) => MetricsExtractionRule[]
+) {
+  return function (variables: {metricsExtractionRules: MetricsExtractionRule[]}) {
+    queryClient.cancelQueries(queryKey);
+    const previous = getApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey);
+
+    setApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey, oldRules => {
+      return updater(variables, oldRules);
+    });
+
+    return {previous};
+  };
+}
+
+function createRollback(queryClient: QueryClient, queryKey: ApiQueryKey) {
+  return function (
+    _error: RequestError,
+    _variables: {metricsExtractionRules: MetricsExtractionRule[]},
+    context?: {previous?: MetricsExtractionRule[]}
+  ) {
+    if (context?.previous) {
+      setApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey, context.previous);
+    }
+  };
+}
+
 export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -54,29 +88,12 @@ export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: st
       });
     },
     {
-      onMutate: data => {
-        queryClient.cancelQueries(queryKey);
-
-        const previous = getApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey);
-
-        const deletedRules = data.metricsExtractionRules;
+      onMutate: createOptimisticUpdate(queryClient, queryKey, (variables, old) => {
+        const deletedRules = variables.metricsExtractionRules;
         const deletedKeys = new Set(deletedRules.map(getRuleIdentifier));
-
-        setApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey, oldRules => {
-          return oldRules?.filter(rule => !deletedKeys.has(getRuleIdentifier(rule)));
-        });
-
-        return {previous};
-      },
-      onError: (_error, _variables, context) => {
-        if (context?.previous) {
-          setApiQueryData<MetricsExtractionRule[]>(
-            queryClient,
-            queryKey,
-            context.previous
-          );
-        }
-      },
+        return old?.filter(rule => !deletedKeys.has(getRuleIdentifier(rule)));
+      }),
+      onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
       },
@@ -102,7 +119,18 @@ export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: st
       });
     },
     {
-      // TODO: Implement optimistic updates
+      onMutate: createOptimisticUpdate(queryClient, queryKey, (variables, old) => {
+        const newRules = variables.metricsExtractionRules;
+        const existingKeys = new Set((old ?? []).map(getRuleIdentifier));
+        const copy = [...old];
+        newRules.forEach(rule => {
+          if (!existingKeys.has(getRuleIdentifier(rule))) {
+            copy.push(rule);
+          }
+        });
+        return copy;
+      }),
+      onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
       },
@@ -128,34 +156,17 @@ export function useUpdateMetricsExtractionRules(orgSlug: string, projectSlug: st
       });
     },
     {
-      onMutate: data => {
-        queryClient.cancelQueries(queryKey);
-
-        const previous = getApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey);
-
-        const updatedRules = data.metricsExtractionRules;
+      onMutate: createOptimisticUpdate(queryClient, queryKey, (variables, old) => {
+        const updatedRules = variables.metricsExtractionRules;
         const updatedRulesMap = new Map(
           updatedRules.map(rule => [getRuleIdentifier(rule), rule])
         );
-
-        setApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey, oldRules => {
-          return oldRules?.map(rule => {
-            const updatedRule = updatedRulesMap.get(getRuleIdentifier(rule));
-            return updatedRule ?? rule;
-          });
+        return old?.map(rule => {
+          const updatedRule = updatedRulesMap.get(getRuleIdentifier(rule));
+          return updatedRule ?? rule;
         });
-
-        return {previous};
-      },
-      onError: (_error, _variables, context) => {
-        if (context?.previous) {
-          setApiQueryData<MetricsExtractionRule[]>(
-            queryClient,
-            queryKey,
-            context.previous
-          );
-        }
-      },
+      }),
+      onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
       },

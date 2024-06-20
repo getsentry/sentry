@@ -275,6 +275,35 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert ["process_latency"] == sorted(r.span_attribute for r in project_rules)
 
     @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_idempotent_create(self):
+        rule = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **rule,
+        )
+        assert response.status_code == 200
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **rule,
+        )
+        assert response.status_code == 400
+
+        project_state = MetricsExtractionRuleState.load_from_project(self.project)
+        project_rules = project_state.get_rules()
+        assert len(project_rules) == 1
+        assert ["process_latency"] == sorted(r.span_attribute for r in project_rules)
+
+    @with_feature("organizations:custom-metrics-extraction-rule")
     def test_delete_non_existing_extraction_rule(self):
         non_existing_rule = {
             "metricsExtractionRules": [

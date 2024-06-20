@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   DataTitles,
@@ -24,7 +25,6 @@ import {
 } from 'sentry/views/insights/common/views/spans/types';
 import type {SpanMetricsResponse} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
 
 type Row = Pick<
   SpanMetricsResponse,

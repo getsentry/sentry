@@ -120,6 +120,12 @@ def create_metrics_extraction_rules(
     project: Project, state_update: dict[str, MetricsExtractionRule]
 ) -> Sequence[MetricsExtractionRule]:
     state = MetricsExtractionRuleState.load_from_project(project)
+    mris = [rule.generate_mri() for rule in state.get_rules()]
+
+    for key in state_update:
+        if key in mris:
+            raise ValueError(f"Resource already exists: {key}.")
+
     state.rules.update(state_update)
     state.save_to_project(project)
     return state.get_rules()
