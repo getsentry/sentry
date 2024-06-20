@@ -1,7 +1,6 @@
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -21,7 +20,6 @@ describe('Dashboards - DashboardList', function () {
   let dashboards, deleteMock, dashboardUpdateMock, createMock;
   const organization = OrganizationFixture({
     features: ['global-views', 'dashboards-basic', 'dashboards-edit', 'discover-query'],
-    projects: [ProjectFixture()],
   });
 
   const {router} = initializeOrg();

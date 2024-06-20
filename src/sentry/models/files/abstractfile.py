@@ -318,10 +318,10 @@ class AbstractFile(Model):
             )
         ):
             try:
-                file_blobs = self.FILE_BLOB_MODEL.objects.filter(id__in=file_blob_ids).all()
+                file_blobs_qs = self.FILE_BLOB_MODEL.objects.filter(id__in=file_blob_ids).all()
 
                 # Ensure blobs are in the order and duplication as provided
-                blobs_by_id = {blob.id: blob for blob in file_blobs}
+                blobs_by_id = {blob.id: blob for blob in file_blobs_qs}
                 file_blobs = [blobs_by_id[blob_id] for blob_id in file_blob_ids]
             except Exception:
                 # Most likely a `KeyError` like `SENTRY-11QP` because an `id` in

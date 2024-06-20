@@ -2,6 +2,7 @@ import copy
 from unittest import mock
 from unittest.mock import MagicMock
 
+import pytest
 from django.conf import settings
 from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
@@ -20,13 +21,26 @@ DUMMY_POOL = ConnectionPool("dummy")
 CREATE_GROUPING_RECORDS_REQUEST_PARAMS: CreateGroupingRecordsRequest = {
     "group_id_list": [1, 2],
     "data": [
-        {"group_id": 1, "hash": "hash-1", "project_id": 1, "message": "message"},
-        {"group_id": 2, "hash": "hash-2", "project_id": 1, "message": "message 2"},
+        {
+            "group_id": 1,
+            "hash": "hash-1",
+            "project_id": 1,
+            "message": "message",
+            "exception_type": "Error",
+        },
+        {
+            "group_id": 2,
+            "hash": "hash-2",
+            "project_id": 1,
+            "message": "message 2",
+            "exception_type": "Error",
+        },
     ],
     "stacktrace_list": ["stacktrace 1", "stacktrace 2"],
 }
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_logger: MagicMock):
@@ -50,6 +64,7 @@ def test_post_bulk_grouping_records_success(mock_seer_request: MagicMock, mock_l
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_logger: MagicMock):
@@ -72,6 +87,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_logger: MagicMock):
@@ -95,6 +111,7 @@ def test_post_bulk_grouping_records_failure(mock_seer_request: MagicMock, mock_l
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
     """Test that function handles empty data. This should not happen, but we do not want to error if it does."""
@@ -123,7 +140,7 @@ def test_delete_grouping_records_by_hash_success(
     mock_logger.info.assert_called_with(
         "seer.delete_grouping_records.hashes.success",
         extra={
-            "hashes": json.dumps(hashes),
+            "hashes": hashes,
             "project_id": project_id,
         },
     )
@@ -143,7 +160,7 @@ def test_delete_grouping_records_by_hash_timeout(
     mock_logger.exception.assert_called_with(
         "seer.delete_grouping_records.hashes.timeout",
         extra={
-            "hashes": json.dumps(hashes),
+            "hashes": hashes,
             "project_id": project_id,
             "reason": "ReadTimeoutError",
             "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
@@ -167,7 +184,7 @@ def test_delete_grouping_records_by_hash_failure(
     mock_logger.error.assert_called_with(
         "seer.delete_grouping_records.hashes.failure",
         extra={
-            "hashes": json.dumps(hashes),
+            "hashes": hashes,
             "project_id": project_id,
         },
     )

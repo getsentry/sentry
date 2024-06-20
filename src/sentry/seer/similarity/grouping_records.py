@@ -10,6 +10,7 @@ from sentry.conf.server import (
     SEER_PROJECT_GROUPING_RECORDS_DELETE_URL,
 )
 from sentry.net.http import connection_from_url
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.utils import json
 
@@ -23,6 +24,7 @@ class CreateGroupingRecordData(TypedDict):
     hash: str
     project_id: int
     message: str
+    exception_type: str | None
 
 
 class CreateGroupingRecordsRequest(TypedDict):
@@ -58,11 +60,10 @@ def post_bulk_grouping_records(
     }
 
     try:
-        response = seer_grouping_connection_pool.urlopen(
-            "POST",
+        response = make_signed_seer_api_request(
+            seer_grouping_connection_pool,
             SEER_GROUPING_RECORDS_URL,
-            body=json.dumps(grouping_records_request),
-            headers={"Content-Type": "application/json;charset=utf-8"},
+            body=json.dumps(grouping_records_request).encode("utf-8"),
             timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
         )
     except ReadTimeoutError:
@@ -83,6 +84,7 @@ def delete_project_grouping_records(
     project_id: int,
 ) -> bool:
     try:
+        # TODO: Move this over to POST json_api implementation
         response = seer_grouping_connection_pool.urlopen(
             "GET",
             f"{SEER_PROJECT_GROUPING_RECORDS_DELETE_URL}/{project_id}",
@@ -110,7 +112,7 @@ def delete_project_grouping_records(
 
 
 def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
-    extra = {"project_id": project_id, "hashes": json.dumps(hashes)}
+    extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
         response = seer_grouping_connection_pool.urlopen(

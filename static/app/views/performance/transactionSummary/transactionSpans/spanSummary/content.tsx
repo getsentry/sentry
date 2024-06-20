@@ -11,16 +11,16 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import type {
+  SpanMetricsQueryFilters,
+  SpanMetricsResponse,
+} from 'sentry/views/insights/types';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import SpanSummaryCharts from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryCharts';
 import SpanSummaryTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/spanSummaryTable';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
-import type {
-  SpanMetricsQueryFilters,
-  SpanMetricsResponse,
-} from 'sentry/views/starfish/types';
 
 import Tab from '../../tabs';
 
@@ -110,8 +110,8 @@ function SpanSummaryContent(props: ContentProps) {
   const {data: spanHeaderData} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject(filters),
-      fields: ['span.description', 'sum(span.self_time)', 'count()'],
-      sorts: [{field: 'sum(span.self_time)', kind: 'desc'}],
+      fields: ['span.description', 'sum(span.duration)', 'count()'],
+      sorts: [{field: 'sum(span.duration)', kind: 'desc'}],
     },
     SpanSummaryReferrer.SPAN_SUMMARY_HEADER_DATA
   );
@@ -151,7 +151,7 @@ function parseSpanHeaderData(data: Partial<SpanMetricsResponse>[]) {
   if (data.length === 1) {
     return {
       description: data[0]?.['span.description'],
-      timeSpent: data[0]?.['sum(span.self_time)'],
+      timeSpent: data[0]?.['sum(span.duration)'],
       spanCount: data[0]?.['count()'],
     };
   }

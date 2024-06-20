@@ -15,7 +15,6 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString} from 'sentry/types/core';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import Projects from 'sentry/utils/projects';
@@ -24,9 +23,9 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/insights/types';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
-import type {SpanIndexedField, SpanIndexedResponse} from 'sentry/views/starfish/types';
 
 import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
 
@@ -111,7 +110,7 @@ export function TraceBreakdownRenderer({
 }: {
   setHighlightedSliceName: (sliceName: string) => void;
 
-  trace: TraceResult<Field>;
+  trace: TraceResult;
 }) {
   const theme = useTheme();
   const [hoveredIndex, setHoveredIndex] = useState(-1);
@@ -178,7 +177,7 @@ export function SpanBreakdownSliceRenderer({
   sliceSecondaryName: string | null;
   sliceStart: number;
   theme: Theme;
-  trace: TraceResult<Field>;
+  trace: TraceResult;
   offset?: number;
   sliceDurationReal?: number;
   sliceNumberStart?: number;
@@ -301,9 +300,9 @@ export function SpanIdRenderer({
 
 interface TraceIdRendererProps {
   location: Location;
+  timestamp: number; // in milliseconds
   traceId: string;
   onClick?: () => void;
-  timestamp?: DateString;
   transactionId?: string;
 }
 
@@ -316,8 +315,6 @@ export function TraceIdRenderer({
 }: TraceIdRendererProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const stringOrNumberTimestamp =
-    timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
 
   const target = getTraceDetailsUrl({
     organization,
@@ -327,7 +324,7 @@ export function TraceIdRenderer({
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    timestamp: stringOrNumberTimestamp,
+    timestamp: timestamp / 1000,
     eventId: transactionId,
     location,
     source: TraceViewSources.TRACES,
@@ -370,7 +367,7 @@ export function TraceIssuesRenderer({
   trace,
   onClick,
 }: {
-  trace: TraceResult<Field>;
+  trace: TraceResult;
   onClick?: () => void;
 }) {
   const organization = useOrganization();

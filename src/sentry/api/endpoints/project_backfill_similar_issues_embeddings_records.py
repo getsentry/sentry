@@ -8,7 +8,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.auth.superuser import is_active_superuser
-from sentry.tasks.backfill_seer_grouping_records import backfill_seer_grouping_records
+from sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project import (
+    backfill_seer_grouping_records_for_project,
+)
 
 
 @region_silo_endpoint
@@ -30,16 +32,14 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         # needs to either be a superuser or be in single org mode
 
         last_processed_index = None
-        dry_run = False
         only_delete = False
         if request.data.get("last_processed_index"):
             last_processed_index = int(request.data["last_processed_index"])
 
-        if request.data.get("dry_run"):
-            dry_run = True
-
         if request.data.get("only_delete"):
             only_delete = True
 
-        backfill_seer_grouping_records.delay(project.id, last_processed_index, dry_run, only_delete)
+        backfill_seer_grouping_records_for_project.delay(
+            project.id, last_processed_index, only_delete
+        )
         return Response(status=204)

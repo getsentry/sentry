@@ -1,8 +1,10 @@
 from unittest.mock import patch
 
 from sentry.tasks.delete_seer_grouping_records_by_hash import delete_seer_grouping_records_by_hash
+from sentry.testutils.pytest.fixtures import django_db_all
 
 
+@django_db_all
 @patch("sentry.tasks.delete_seer_grouping_records_by_hash.delete_grouping_records_by_hash")
 @patch(
     "sentry.tasks.delete_seer_grouping_records_by_hash.delete_seer_grouping_records_by_hash.apply_async"

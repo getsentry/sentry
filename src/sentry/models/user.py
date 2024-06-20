@@ -31,13 +31,8 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    BaseModel,
-    BoundedBigAutoField,
-    control_silo_model,
-    sane_repr,
-)
+from sentry.db.models import Model, control_silo_model, sane_repr
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
@@ -62,10 +57,10 @@ RANDOM_PASSWORD_ALPHABET = ascii_letters + digits
 RANDOM_PASSWORD_LENGTH = 32
 
 
-class UserManager(BaseManager["User"], DjangoUserManager):
+class UserManager(BaseManager["User"], DjangoUserManager["User"]):
     def get_users_with_only_one_integration_for_provider(
         self, provider: ExternalProviders, organization_id: int
-    ) -> QuerySet:
+    ) -> QuerySet[User]:
         """
         For a given organization, get the list of members that are only
         connected to a single integration.
@@ -94,13 +89,12 @@ class UserManager(BaseManager["User"], DjangoUserManager):
 
 
 @control_silo_model
-class User(BaseModel, AbstractBaseUser):
+class User(Model, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
     __relocation_custom_ordinal__ = ["username"]
 
     replication_version: int = 2
 
-    id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
@@ -353,7 +347,6 @@ class User(BaseModel, AbstractBaseUser):
             "user.merge", extra={"from_user_id": from_user_id, "to_user_id": to_user_id}
         )
 
-        organization_ids: list[int]
         organization_ids = OrganizationMemberMapping.objects.filter(
             user_id=from_user_id
         ).values_list("organization_id", flat=True)
@@ -369,7 +362,7 @@ class User(BaseModel, AbstractBaseUser):
             with enforce_constraints(
                 transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
             ):
-                control_side_org_models: tuple[type[BaseModel], ...] = (
+                control_side_org_models: tuple[type[Model], ...] = (
                     OrgAuthToken,
                     OrganizationMemberMapping,
                 )
@@ -384,7 +377,7 @@ class User(BaseModel, AbstractBaseUser):
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
         # the `IntegrityError`s.
-        user_related_models: tuple[type[BaseModel], ...] = (
+        user_related_models: tuple[type[Model], ...] = (
             Authenticator,
             Identity,
             UserAvatar,

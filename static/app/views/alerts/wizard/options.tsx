@@ -22,7 +22,7 @@ import {
   EventTypes,
   SessionsAggregate,
 } from 'sentry/views/alerts/rules/metric/types';
-import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/llmMonitoring/settings';
+import {MODULE_TITLE as LLM_MONITORING_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
 
 export type AlertType =
   | 'issues'
@@ -281,9 +281,7 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: org.features.includes('metric-alert-ignore-archived')
-        ? [FieldKey.IS]
-        : undefined,
+      [Dataset.ERRORS]: [FieldKey.IS],
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),

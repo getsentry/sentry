@@ -47,6 +47,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   useRouteAnalyticsParams({
     trace_timeline_status: timelineStatus,
+    // Once we GA trace related issues we will have no need for this
+    trace_timeline_two_issues: oneOtherIssueEvent !== undefined,
     has_related_trace_issue: showTraceRelatedIssue,
   });
 
