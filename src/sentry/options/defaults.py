@@ -931,7 +931,7 @@ register(
 
 register(
     "embeddings-grouping.seer.delete-record-batch-size",
-    default=20,
+    default=100,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
