@@ -43,6 +43,80 @@ class TestParseFeatureConfig:
 
         assert not feature.match(EvaluationContext(dict()))
 
+    def test_feature_with_rollout_zero(self):
+        feature = Feature.from_feature_config_json(
+            "foobar",
+            """
+            {
+                "created_at": "2023-10-12T00:00:00.000Z",
+                "owner": "test-owner",
+                "segments": [
+                    {
+                        "name": "exclude",
+                        "rollout": 0,
+                        "conditions": [
+                            {
+                                "property": "user_email",
+                                "operator": "equals",
+                                "value": "nope@example.com"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "friends",
+                        "rollout": 100,
+                        "conditions": [
+                            {
+                                "property": "organization_slug",
+                                "operator": "in",
+                                "value": ["acme", "sentry"]
+                            }
+                        ]
+                    }
+                ]
+            }
+            """,
+        )
+        exclude_user = {"user_email": "nope@example.com", "organization_slug": "acme"}
+        assert not feature.match(EvaluationContext(exclude_user))
+
+        match_user = {"user_email": "yes@example.com", "organization_slug": "acme"}
+        assert feature.match(EvaluationContext(match_user))
+
+    def test_all_conditions_in_segment(self):
+        feature = Feature.from_feature_config_json(
+            "foobar",
+            """
+            {
+                "created_at": "2023-10-12T00:00:00.000Z",
+                "owner": "test-owner",
+                "segments": [
+                    {
+                        "name": "multiple conditions",
+                        "rollout": 100,
+                        "conditions": [
+                            {
+                                "property": "user_email",
+                                "operator": "equals",
+                                "value": "yes@example.com"
+                            },
+                            {
+                                "property": "organization_slug",
+                                "operator": "in",
+                                "value": ["acme", "sentry"]
+                            }
+                        ]
+                    }
+                ]
+            }
+            """,
+        )
+        exclude_user = {"user_email": "yes@example.com"}
+        assert not feature.match(EvaluationContext(exclude_user))
+
+        match_user = {"user_email": "yes@example.com", "organization_slug": "acme"}
+        assert feature.match(EvaluationContext(match_user))
+
     def test_valid_with_all_nesting(self):
         feature = Feature.from_feature_config_json(
             "foobar",

@@ -87,10 +87,13 @@ class Feature(BaseModel):
     """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
 
     def match(self, context: EvaluationContext) -> bool:
-        if self.enabled:
-            for segment in self.segments:
-                if segment.match(context):
-                    return True
+        if not self.enabled:
+            return False
+
+        for segment in self.segments:
+            match = segment.match(context)
+            if match:
+                return segment.in_rollout(context)
 
         return False
 
