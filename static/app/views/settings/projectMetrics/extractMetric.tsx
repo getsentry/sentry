@@ -25,7 +25,7 @@ import {
 
 const INITIAL_DATA: FormData = {
   spanAttribute: null,
-  type: 'c',
+  aggregates: ['count'],
   tags: ['release', 'environment'],
   conditions: [''],
 };
@@ -51,7 +51,7 @@ function ExtractMetric({project}: {project: Project}) {
       const extractionRule: MetricsExtractionRule = {
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
-        type: data.type!,
+        aggregates: data.aggregates!,
         unit: 'none',
         conditions: data.conditions.filter(Boolean),
       };

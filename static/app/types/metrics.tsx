@@ -6,6 +6,7 @@ export type MetricsAggregate =
   | 'avg'
   | 'count'
   | 'max'
+  | 'min'
   | 'p50'
   | 'p75'
   | 'p95'

@@ -1,4 +1,4 @@
-import type {MetricType} from 'sentry/types/metrics';
+import type {MetricsAggregate} from 'sentry/types/metrics';
 import type {FormattingSupportedMetricUnit} from 'sentry/utils/metrics/formatters';
 import {
   type ApiQueryKey,
@@ -16,10 +16,10 @@ const getMetricsExtractionRulesEndpoint = (orgSlug: string, projectSlug: string)
   [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
 
 export interface MetricsExtractionRule {
+  aggregates: MetricsAggregate[];
   conditions: string[];
   spanAttribute: string;
   tags: string[];
-  type: MetricType;
   unit: FormattingSupportedMetricUnit;
 }
 
@@ -35,7 +35,7 @@ export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) 
 
 // Rules are identified by the combination of span_attribute, type and unit
 function getRuleIdentifier(rule: MetricsExtractionRule) {
-  return rule.spanAttribute + rule.type + rule.unit;
+  return rule.spanAttribute + rule.unit;
 }
 
 function createOptimisticUpdate(

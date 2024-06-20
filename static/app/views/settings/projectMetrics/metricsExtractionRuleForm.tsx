@@ -11,17 +11,17 @@ import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricType} from 'sentry/types/metrics';
+import type {MetricsAggregate} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export interface FormData {
+  aggregates: MetricsAggregate[];
   conditions: string[];
   spanAttribute: string | null;
   tags: string[];
-  type: MetricType | null;
 }
 
 interface Props extends Omit<FormProps, 'onSubmit'> {
@@ -37,34 +37,30 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
   ) => void;
 }
 
-const ListItemDetails = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-align: right;
-  line-height: 1.2;
-`;
-
-const TYPE_OPTIONS = [
+const AGGREGATE_OPTIONS = [
   {
-    label: t('Counter'),
-    value: 'c',
-    trailingItems: [<ListItemDetails key="aggregates">{t('count')}</ListItemDetails>],
+    label: 'avg',
+    value: 'avg',
   },
   {
-    label: t('Set'),
-    value: 's',
-    trailingItems: [
-      <ListItemDetails key="aggregates">{t('count_unique')}</ListItemDetails>,
-    ],
+    label: 'count',
+    value: 'count',
   },
   {
-    label: t('Distribution'),
-    value: 'd',
-    trailingItems: [
-      <ListItemDetails key="aggregates">
-        {t('count, avg, sum, min, max, percentiles')}
-      </ListItemDetails>,
-    ],
+    label: 'count_unique',
+    value: 'count_unique',
+  },
+  {
+    label: 'sum',
+    value: 'sum',
+  },
+  {
+    label: 'min',
+    value: 'min',
+  },
+  {
+    label: 'max',
+    value: 'max',
   },
 ];
 
@@ -133,13 +129,12 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             required
           />
           <SelectField
-            name="type"
-            disabled={isEdit}
-            options={TYPE_OPTIONS}
-            label={t('Type')}
-            help={t(
-              'The type of the metric determines which aggregation functions are available and what types of values it can store. For more information, read our docs'
-            )}
+            name="aggregates"
+            required
+            options={AGGREGATE_OPTIONS}
+            label={t('Aggregation Functions')}
+            multiple
+            help={t('The aggregation functions you want to apply to the metric.')}
           />
           <SelectField
             name="tags"

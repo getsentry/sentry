@@ -282,11 +282,8 @@ function MetricsExtractionTable({
           <IconArrow size="xs" direction="down" />
           {t('Span attribute')}
         </Cell>,
-        <Cell right key="type">
-          {t('Type')}
-        </Cell>,
-        <Cell right key="unit">
-          {t('Unit')}
+        <Cell right key="aggregates">
+          {t('Aggregates')}
         </Cell>,
         <Cell right key="filters">
           {t('Filters')}
@@ -305,13 +302,12 @@ function MetricsExtractionTable({
       {extractionRules
         .toSorted((a, b) => a?.spanAttribute?.localeCompare(b?.spanAttribute))
         .map(rule => (
-          <Fragment key={rule.spanAttribute + rule.type + rule.unit}>
+          <Fragment key={rule.spanAttribute + rule.unit}>
             <Cell>{rule.spanAttribute}</Cell>
             <Cell right>
-              <Tag>{getReadableMetricType(rule.type)}</Tag>
-            </Cell>
-            <Cell right>
-              <Tag>{rule.unit}</Tag>
+              {rule.aggregates.map(aggregate => (
+                <Tag key={aggregate}>{aggregate}</Tag>
+              ))}
             </Cell>
             <Cell right>
               {rule.conditions.length ? (
