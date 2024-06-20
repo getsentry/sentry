@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {type CSSProperties, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -14,12 +14,11 @@ export interface ColorConfig {
 }
 
 export interface TimelineItemProps {
-  className: any;
   icon: React.ReactNode;
-  style: any;
   timeString: string;
   title: React.ReactNode;
   children?: React.ReactNode;
+  className?: string;
   colorConfig?: ColorConfig;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
@@ -30,6 +29,7 @@ export interface TimelineItemProps {
     startTimeString: TimelineItemProps['startTimeString']
   ) => React.ReactNode;
   startTimeString?: string;
+  style?: CSSProperties;
 }
 
 export function Item({
