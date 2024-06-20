@@ -2914,6 +2914,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "social_auth",
     "feedback",
     "hybridcloud",
+    "remote_subscriptions",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
