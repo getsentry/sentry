@@ -282,60 +282,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         response = self.do_request({})
         assert response.status_code == 404, response.data
 
-    def test_bad_params_missing_fields(self):
-        query = {
-            "project": [self.project.id],
-            "field": [],
-            "maxSpansPerTrace": 0,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "field": [
-                ErrorDetail(string="This field is required.", code="required"),
-            ],
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is greater than or equal to 1.", code="min_value"
-                ),
-            ],
-        }
-
-    def test_bad_params_too_few_spans_per_trace(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 0,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is greater than or equal to 1.", code="min_value"
-                ),
-            ],
-        }
-
-    def test_bad_params_too_many_spans_per_trace(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 1000,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is less than or equal to 100.", code="max_value"
-                ),
-            ],
-        }
-
     def test_bad_params_too_many_per_page(self):
         query = {
             "project": [self.project.id],
@@ -432,19 +378,11 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.data["meta"] == {
             "dataset": "unknown",
             "datasetReason": "unchanged",
-            "fields": {
-                "id": "string",
-                "parent_span": "string",
-                "span.duration": "duration",
-            },
+            "fields": {},
             "isMetricsData": False,
             "isMetricsExtractedData": False,
             "tips": {},
-            "units": {
-                "id": None,
-                "parent_span": None,
-                "span.duration": "millisecond",
-            },
+            "units": {},
         }
 
         result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
@@ -462,30 +400,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
                 "breakdowns": [],
-                "spans": [
-                    {
-                        "id": span_ids[3],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_003.0,
-                    },
-                    {
-                        "id": span_ids[2],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_002.0,
-                    },
-                    {
-                        "id": span_ids[1],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_001.0,
-                    },
-                ],
-                "suggestedSpans": [
-                    {
-                        "id": span_ids[3],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_003.0,
-                    },
-                ],
             },
             {
                 "trace": trace_id_2,
@@ -499,25 +413,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
                 "breakdowns": [],
-                "spans": [
-                    {
-                        "id": span_ids[6],
-                        "parent_span": span_ids[4],
-                        "span.duration": 20_006.0,
-                    },
-                    {
-                        "id": span_ids[5],
-                        "parent_span": span_ids[4],
-                        "span.duration": 20_005.0,
-                    },
-                ],
-                "suggestedSpans": [
-                    {
-                        "id": span_ids[6],
-                        "parent_span": span_ids[4],
-                        "span.duration": 20_006.0,
-                    },
-                ],
             },
         ]
 
@@ -608,20 +503,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "numSpans": 2,
                 "matchingSpans": 2,
                 "project": project.slug,
-                "spans": [
-                    {
-                        "id": span_id_1,
-                        "parent_span": "00",
-                        "span.duration": 60000.0,
-                    },
-                    {
-                        "id": span_id_2,
-                        "parent_span": span_id_1,
-                        "span.duration": 15000.0,
-                    },
-                ],
                 "start": timestamp,
-                "suggestedSpans": [],
                 "trace": trace_id,
             },
         ]
@@ -685,15 +567,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "numSpans": 1,
                 "matchingSpans": 1,
                 "project": project.slug,
-                "spans": [
-                    {
-                        "id": span_id,
-                        "parent_span": parent_span_id,
-                        "span.duration": 60100.0,
-                    },
-                ],
                 "start": timestamp,
-                "suggestedSpans": [],
                 "trace": trace_id,
             },
         ]
@@ -732,19 +606,11 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             assert response.data["meta"] == {
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
-                "fields": {
-                    "id": "string",
-                    "parent_span": "string",
-                    "span.duration": "duration",
-                },
+                "fields": {},
                 "isMetricsData": False,
                 "isMetricsExtractedData": False,
                 "tips": {},
-                "units": {
-                    "id": None,
-                    "parent_span": None,
-                    "span.duration": "millisecond",
-                },
+                "units": {},
             }
 
             result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
@@ -787,30 +653,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             "duration": timestamps[3] - timestamps[1] + 30_003,
                         },
                     ],
-                    "spans": [
-                        {
-                            "id": span_ids[3],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_003.0,
-                        },
-                        {
-                            "id": span_ids[2],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_002.0,
-                        },
-                        {
-                            "id": span_ids[1],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_001.0,
-                        },
-                    ],
-                    "suggestedSpans": [
-                        {
-                            "id": span_ids[3],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_003.0,
-                        },
-                    ],
                 },
                 {
                     "trace": trace_id_2,
@@ -847,25 +689,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                             "sliceWidth": 10,
                             "kind": "project",
                             "duration": timestamps[6] - timestamps[5] + 20_006,
-                        },
-                    ],
-                    "spans": [
-                        {
-                            "id": span_ids[6],
-                            "parent_span": span_ids[4],
-                            "span.duration": 20_006.0,
-                        },
-                        {
-                            "id": span_ids[5],
-                            "parent_span": span_ids[4],
-                            "span.duration": 20_005.0,
-                        },
-                    ],
-                    "suggestedSpans": [
-                        {
-                            "id": span_ids[6],
-                            "parent_span": span_ids[4],
-                            "span.duration": 20_006.0,
                         },
                     ],
                 },
@@ -955,22 +778,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                                 "duration": 10_000,
                             },
                         ],
-                        "spans": [
-                            {
-                                "id": span_ids[10],
-                                "parent_span": "00",
-                                "span.duration": 40_000.0,
-                            },
-                        ],
-                        "suggestedSpans": []
-                        if user_query
-                        else [
-                            {
-                                "id": span_ids[10],
-                                "parent_span": "00",
-                                "span.duration": 40_000.0,
-                            },
-                        ],
                     },
                 ], (mri, user_query)
 
@@ -1015,39 +822,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     },
                 }
 
-    def test_limit_by_span_condition(self):
-        (
-            project_1,
-            project_2,
-            trace_id_1,
-            trace_id_2,
-            _,
-            timestamps,
-            span_ids,
-        ) = self.create_mock_traces()
-
-        query = {
-            "project": [project_2.id],
-            "field": ["id", "parent_span", "span.duration", "foo"],
-            "query": ["foo:bar", "foo:baz"],
-            "suggestedQuery": "foo:baz span.duration:>0s",
-            "maxSpansPerTrace": 3,
-            "sort": ["foo", "-span.duration"],
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 200, response.data
-
-        spans = {
-            result["trace"]: {span["id"] for span in result["spans"]}
-            for result in response.data["data"]
-        }
-
-        assert spans == {
-            trace_id_1: {span_ids[2], span_ids[3]},
-            trace_id_2: {span_ids[5], span_ids[6]},
-        }
-
 
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
@@ -1070,7 +844,10 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             )
 
     def test_no_feature(self):
-        response = self.do_request(uuid4().hex, {}, features=[])
+        query = {
+            "project": [self.project.id],
+        }
+        response = self.do_request(uuid4().hex, query, features=[])
         assert response.status_code == 404, response.data
 
     def test_no_project(self):
@@ -1078,21 +855,10 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 404, response.data
 
     def test_bad_params_missing_field(self):
-        (
-            _,
-            _,
-            trace_id,
-            _,
-            _,
-            _,
-            _,
-        ) = self.create_mock_traces()
-
         query = {
             "project": [self.project.id],
         }
-
-        response = self.do_request(trace_id, query)
+        response = self.do_request(uuid4().hex, query)
         assert response.status_code == 400, response.data
         assert response.data == {
             "field": [
