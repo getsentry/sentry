@@ -415,6 +415,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.issues.apps.Config",
     "sentry.feedback",
     "sentry.hybridcloud",
+    "sentry.remote_subscriptions.apps.Config",
 )
 
 # Silence internal hints from Django's system checks
@@ -2186,6 +2187,7 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # This flag activates code paths that are specific for customer domains
+# Deprecated: This setting will be replaced with feature checks for system:multi-region
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
 # This flag activates replay analyzer service in the development environment
@@ -2912,6 +2914,7 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "social_auth",
     "feedback",
     "hybridcloud",
+    "remote_subscriptions",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)

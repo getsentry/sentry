@@ -31,12 +31,12 @@ import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
+import {getSampleChartSymbol} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 import {getChartTimeseries} from 'sentry/views/metrics/widget';
 import {
   type SectionCardKeyValueList,
   TraceDrawerComponents,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {getSampleChartSymbol} from 'sentry/views/starfish/views/spanSummaryPage/sampleList/durationChart/getSampleChartSymbol';
 
 function flattenMetricsSummary(
   metricsSummary: MetricsSummary
