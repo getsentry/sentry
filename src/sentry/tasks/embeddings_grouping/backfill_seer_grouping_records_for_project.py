@@ -16,7 +16,8 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_data_from_snuba,
     get_events_from_nodestore,
     initialize_backfill,
-    make_backfill_redis_key,
+    make_backfill_grouping_index_redis_key,
+    make_backfill_project_index_redis_key,
     send_group_and_stacktrace_to_seer,
     update_groups,
 )
@@ -24,6 +25,7 @@ from sentry.tasks.embeddings_grouping.utils import (
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
 SNUBA_QUERY_RATELIMIT = 4
+REDIS_KEY_EXPIRY = 60 * 60 * 24  # 1 day
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +42,17 @@ def backfill_seer_grouping_records_for_project(
     current_project_id: int,
     last_processed_group_index: int | None,
     cohort: str | list[int] | None = None,
-    last_processed_project_index: int = 0,
+    last_processed_project_index: int | None = None,
     only_delete=False,
     *args: Any,
     **kwargs: Any,
 ) -> None:
+    """
+    Task to backfill seer grouping_records table.
+    Pass in last_processed_index = None if calling for the first time. This function will spawn
+    child tasks that will pass the last_processed_index
+    """
+
     logger.info(
         "backfill_seer_grouping_records",
         extra={
@@ -55,31 +63,22 @@ def backfill_seer_grouping_records_for_project(
             "only_delete": only_delete,
         },
     )
-    """
-    Task to backfill seer grouping_records table.
-    Pass in last_processed_index = None if calling for the first time. This function will spawn
-    child tasks that will pass the last_processed_index
-    """
 
     try:
-        project, redis_client, last_processed_group_index = initialize_backfill(
-            current_project_id, last_processed_group_index
+        (
+            project,
+            redis_client,
+            last_processed_group_index,
+            last_processed_project_index,
+        ) = initialize_backfill(
+            current_project_id, cohort, last_processed_group_index, last_processed_project_index
         )
     except FeatureError:
         logger.info(
             "backfill_seer_grouping_records.no_feature",
             extra={"current_project_id": current_project_id},
         )
-        # TODO:
-        # call_next_backfill(
-        #     last_processed_index=None,
-        #     project_id=current_project_id,
-        #     redis_client=redis_client,
-        #     len_group_id_batch_unfiltered=None,
-        #     last_group_id=None,
-        #     last_processed_project_index=last_processed_project_index,
-        #     cohort=cohort,
-        # )
+        # TODO: let's just delete this branch
         return
 
     if only_delete:
@@ -88,15 +87,16 @@ def backfill_seer_grouping_records_for_project(
             "backfill_seer_grouping_records.deleted_all_records",
             extra={"current_project_id": project.id},
         )
-        # call_next_backfill(
-        #     last_processed_index=None,
-        #     project_id=current_project_id,
-        #     redis_client=redis_client,
-        #     len_group_id_batch_unfiltered=0,
-        #     last_group_id=None,
-        #     last_processed_project_index=last_processed_project_index,
-        #     cohort=cohort,
-        # )
+        call_next_backfill(
+            last_processed_index=None,
+            project_id=current_project_id,
+            redis_client=redis_client,
+            len_group_id_batch_unfiltered=0,
+            last_group_id=None,
+            last_processed_project_index=last_processed_project_index,
+            cohort=cohort,
+            only_delete=only_delete,
+        )
         return
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
@@ -214,12 +214,11 @@ def call_next_backfill(
 
     if last_group_id is not None:
         redis_client.set(
-            f"{make_backfill_redis_key(project_id)}",
+            f"{make_backfill_grouping_index_redis_key(project_id)}",
             last_processed_index if last_processed_index is not None else 0,
-            ex=60 * 60 * 24 * 7,
+            ex=REDIS_KEY_EXPIRY,
         )
     if last_processed_index and last_processed_index < len_group_id_batch_unfiltered:
-
         logger.info(
             "calling next backfill task",
             extra={
@@ -238,6 +237,7 @@ def call_next_backfill(
             ],
         )
     else:
+        # TODO: delete project redis key here if needed?
         # call the backfill on next project
         if not cohort:
             return
@@ -261,7 +261,12 @@ def call_next_backfill(
             )
             # we're at the end of the project list
             return
-        # TODO: redis
+
+        redis_client.set(
+            make_backfill_project_index_redis_key(cohort, last_processed_project_index),
+            last_processed_project_index,
+            ex=REDIS_KEY_EXPIRY,
+        )
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
                 batch_project_id,
