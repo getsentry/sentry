@@ -15,30 +15,34 @@ from sentry.db.models import (
 
 @region_silo_model
 class ProjectUptimeSubscription(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
+    # TODO: This should be included in export/import, but right now it has no relation to
+    # any projects/orgs. Will fix this in a later pr
+    __relocation_scope__ = RelocationScope.Excluded
 
     project_id = BoundedBigIntegerField(db_index=True)
-    uptime_subscription = FlexibleForeignKey("sentry.UptimeSubscription")
+    uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription")
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk"], cache_ttl=int(timedelta(hours=1).total_seconds())
     )
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_projectuptimesubscription"
+        app_label = "uptime"
+        db_table = "uptime_projectuptimesubscription"
 
         constraints = [
             models.UniqueConstraint(
                 fields=["project_id", "uptime_subscription"],
-                name="sentry_projectuptimesubscription_unique_project_subscription",
+                name="uptime_projectuptimesubscription_unique_project_subscription",
             ),
         ]
 
 
 @region_silo_model
 class UptimeSubscription(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
+    # TODO: This should be included in export/import, but right now it has no relation to
+    # any projects/orgs. Will fix this in a later pr
+    __relocation_scope__ = RelocationScope.Excluded
 
     remote_subscription_id = BoundedBigIntegerField(unique=True)
     # The url to check
@@ -54,12 +58,12 @@ class UptimeSubscription(DefaultFieldsModel):
     )
 
     class Meta:
-        app_label = "sentry"
-        db_table = "sentry_uptimesubscription"
+        app_label = "uptime"
+        db_table = "uptime_uptimesubscription"
 
         constraints = [
             models.UniqueConstraint(
                 fields=["url", "interval_seconds"],
-                name="sentry_uptimesubscription_unique_url_check",
+                name="uptime_uptimesubscription_unique_url_check",
             ),
         ]

@@ -629,10 +629,6 @@
     "sentry.project",
     "sentry.user"
   ],
-  "sentry.projectuptimesubscription": [
-    "sentry.project",
-    "sentry.uptimesubscription"
-  ],
   "sentry.promptsactivity": [
     "sentry.organization",
     "sentry.project",
@@ -830,9 +826,6 @@
     "sentry.team"
   ],
   "sentry.timeseriessnapshot": [],
-  "sentry.uptimesubscription": [
-    "sentry.remotesubscription"
-  ],
   "sentry.user": [],
   "sentry.useravatar": [
     "sentry.controlfile",
@@ -864,5 +857,10 @@
   ],
   "social_auth.usersocialauth": [
     "sentry.user"
-  ]
+  ],
+  "uptime.projectuptimesubscription": [
+    "sentry.project",
+    "uptime.uptimesubscription"
+  ],
+  "uptime.uptimesubscription": []
 }

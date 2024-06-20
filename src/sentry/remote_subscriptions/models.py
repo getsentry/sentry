@@ -11,7 +11,9 @@ from sentry.db.models.manager.base import BaseManager
 
 @region_silo_model
 class RemoteSubscription(DefaultFieldsModel):
-    __relocation_scope__ = RelocationScope.Organization
+    # TODO: This should be included in export/import, but right now it has no relation to
+    # any projects/orgs. Will fix this in a later pr
+    __relocation_scope__ = RelocationScope.Excluded
 
     class Status(Enum):
         ACTIVE = 0
