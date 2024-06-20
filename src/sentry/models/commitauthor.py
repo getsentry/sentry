@@ -6,7 +6,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.user import RpcUser

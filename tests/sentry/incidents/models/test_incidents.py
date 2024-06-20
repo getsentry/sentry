@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.incidents.models.incident import (
     Incident,
     IncidentStatus,

@@ -10,13 +10,13 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     FlexibleForeignKey,
     GzippedDictField,
     Model,
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.rawevent import RawEvent
 from sentry.models.release import Release
 

@@ -14,7 +14,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -23,6 +22,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.services.hybrid_cloud.app import app_service
 
 SERVICE_HOOK_EVENTS = [

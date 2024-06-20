@@ -26,7 +26,6 @@ from sentry import eventstore, eventtypes, options, tagstore
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import DEFAULT_LOGGER_NAME, LOG_LEVELS, MAX_CULPRIT_LENGTH
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedIntegerField,
     BoundedPositiveIntegerField,
@@ -36,6 +35,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
 from sentry.issues.priority import (

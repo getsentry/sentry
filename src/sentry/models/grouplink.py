@@ -9,7 +9,6 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -18,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

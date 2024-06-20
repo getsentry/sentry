@@ -10,7 +10,6 @@ from django.utils import timezone
 from sentry import tsdb
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
@@ -18,6 +17,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.snuba.referrer import Referrer
 from sentry.utils import metrics

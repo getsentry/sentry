@@ -20,8 +20,9 @@ from sentry.constants import (
     EVENTS_MEMBER_ADMIN_DEFAULT,
     RESERVED_ORGANIZATION_SLUGS,
 )
-from sentry.db.models import BaseManager, BoundedPositiveIntegerField, region_silo_model, sane_repr
+from sentry.db.models import BoundedPositiveIntegerField, region_silo_model, sane_repr
 from sentry.db.models.fields.slug import SentryOrgSlugField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary

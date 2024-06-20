@@ -12,14 +12,9 @@ from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.conf.server import SENTRY_SCOPES
-from sentry.db.models import (
-    ArrayField,
-    BaseManager,
-    FlexibleForeignKey,
-    control_silo_model,
-    sane_repr,
-)
+from sentry.db.models import ArrayField, FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory

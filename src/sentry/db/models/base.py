@@ -19,11 +19,10 @@ from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models.fields.uuid import UUIDField
+from sentry.db.models.manager.base import BaseManager, create_silo_limited_copy
 from sentry.silo.base import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
-from .manager import BaseManager
-from .manager.base import create_silo_limited_copy
 from .query import update
 
 __all__ = (

@@ -8,7 +8,8 @@ from django.utils import timezone
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.team import Team
 from sentry.models.user import User
 

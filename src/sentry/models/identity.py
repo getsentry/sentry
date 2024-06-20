@@ -13,13 +13,13 @@ from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
     control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud.user import RpcUser
 

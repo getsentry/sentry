@@ -7,7 +7,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 
 ERR_CACHE_MISSING = "Cache not populated for instance id=%s"
 

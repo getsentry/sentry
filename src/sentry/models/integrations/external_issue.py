@@ -7,15 +7,9 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:

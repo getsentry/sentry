@@ -9,7 +9,8 @@ from django.db import connections, router, transaction
 from django.dispatch import receiver
 from sentry_sdk.api import capture_exception
 
-from sentry.db.models import BaseManager, Model
+from sentry.db.models import Model
+from sentry.db.models.manager.base import BaseManager
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
 from sentry.types.region import find_regions_for_orgs, find_regions_for_user

@@ -6,10 +6,11 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
