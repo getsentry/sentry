@@ -16,7 +16,7 @@ from django.utils.functional import SimpleLazyObject
 
 from sentry import features, quotas
 from sentry.api.event_search import SearchFilter
-from sentry.db.models import BaseQuerySet
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.models.environment import Environment

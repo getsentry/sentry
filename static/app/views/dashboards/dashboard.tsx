@@ -514,7 +514,8 @@ class Dashboard extends Component<Props, State> {
 
   render() {
     const {layouts, isMobile} = this.state;
-    const {isEditingDashboard, dashboard, widgetLimitReached, organization} = this.props;
+    const {isEditingDashboard, dashboard, widgetLimitReached, organization, isPreview} =
+      this.props;
     let {widgets} = dashboard;
     // Filter out any issue/release widgets if the user does not have the feature flag
     widgets = widgets.filter(({widgetType}) => {
@@ -564,14 +565,16 @@ class Dashboard extends Component<Props, State> {
         isBounded
       >
         {widgetsWithLayout.map((widget, index) => this.renderWidget(widget, index))}
-        {(isEditingDashboard || displayInlineAddWidget) && !widgetLimitReached && (
-          <AddWidgetWrapper
-            key={ADD_WIDGET_BUTTON_DRAG_ID}
-            data-grid={this.addWidgetLayout}
-          >
-            <AddWidget onAddWidget={this.handleStartAdd} />
-          </AddWidgetWrapper>
-        )}
+        {(isEditingDashboard || displayInlineAddWidget) &&
+          !widgetLimitReached &&
+          !isPreview && (
+            <AddWidgetWrapper
+              key={ADD_WIDGET_BUTTON_DRAG_ID}
+              data-grid={this.addWidgetLayout}
+            >
+              <AddWidget onAddWidget={this.handleStartAdd} />
+            </AddWidgetWrapper>
+          )}
       </GridLayout>
     );
   }

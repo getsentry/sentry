@@ -15,7 +15,7 @@ from sentry.db.models import (
     region_silo_model,
     sane_repr,
 )
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.utils import metrics
 from sentry.utils.cache import cache

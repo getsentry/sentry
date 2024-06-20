@@ -36,7 +36,7 @@ def update_code_owners_schema(
     if not features.has("organizations:integrations-codeowners", organization):
         return
     try:
-        code_owners = []
+        code_owners: Iterable[ProjectCodeOwners] = []
 
         if projects:
             projects = [load_model_from_db(Project, project) for project in projects]
