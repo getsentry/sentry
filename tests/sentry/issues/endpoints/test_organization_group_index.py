@@ -5027,7 +5027,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
-    @with_feature("projects:issue-priority")
     def test_update_priority(self) -> None:
         """
         Bulk-setting priority successfully changes the priority of the groups
@@ -5052,7 +5051,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group=group, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
             ).exists()
 
-    @with_feature("projects:issue-priority")
     def test_update_priority_no_change(self) -> None:
         """
         When the priority is the same as the current priority, no changes are made
