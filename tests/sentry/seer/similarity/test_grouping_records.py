@@ -140,7 +140,7 @@ def test_delete_grouping_records_by_hash_success(
     mock_logger.info.assert_called_with(
         "seer.delete_grouping_records.hashes.success",
         extra={
-            "hashes": json.dumps(hashes),
+            "hashes": hashes,
             "project_id": project_id,
         },
     )
@@ -160,7 +160,7 @@ def test_delete_grouping_records_by_hash_timeout(
     mock_logger.exception.assert_called_with(
         "seer.delete_grouping_records.hashes.timeout",
         extra={
-            "hashes": json.dumps(hashes),
+            "hashes": hashes,
             "project_id": project_id,
             "reason": "ReadTimeoutError",
             "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
@@ -184,7 +184,7 @@ def test_delete_grouping_records_by_hash_failure(
     mock_logger.error.assert_called_with(
         "seer.delete_grouping_records.hashes.failure",
         extra={
-            "hashes": json.dumps(hashes),
+            "hashes": hashes,
             "project_id": project_id,
         },
     )
