@@ -694,7 +694,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         assert last_processed_index == len(groups)
 
     @with_feature("projects:similarity-embeddings-backfill")
-    @patch("sentry.tasks.backfill_seer_grouping_records.delete_project_grouping_records")
+    @patch("sentry.tasks.embeddings_grouping.utils.delete_project_grouping_records")
     def test_backfill_seer_grouping_records_only_delete(self, mock_project_delete_grouping_records):
         """
         Test that when the only_delete flag is on, seer_similarity is deleted from the metadata
