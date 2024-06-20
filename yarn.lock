@@ -2697,6 +2697,16 @@
     "@react-types/shared" "^3.23.1"
     "@swc/helpers" "^0.5.0"
 
+"@react-spectrum/dnd@^3.3.10":
+  version "3.3.10"
+  resolved "https://registry.yarnpkg.com/@react-spectrum/dnd/-/dnd-3.3.10.tgz#f0a074b4130b3493a0485a9b153638348727d4c5"
+  integrity sha512-Qp+Fp6BnMgrp5G18IAcbEUetf2YWelRugYJr8TH8h236n8lariyUpri1Mj604DV/UqNoK6f6k6ocY8JBmvOd9Q==
+  dependencies:
+    "@react-aria/dnd" "^3.6.1"
+    "@react-stately/dnd" "^3.3.1"
+    "@react-types/shared" "^3.23.1"
+    "@swc/helpers" "^0.5.0"
+
 "@react-stately/collections@^3.10.4", "@react-stately/collections@^3.10.5", "@react-stately/collections@^3.10.7":
   version "3.10.7"
   resolved "https://registry.yarnpkg.com/@react-stately/collections/-/collections-3.10.7.tgz#b1add46cb8e2f2a0d33938ef1b232fb2d0fd11eb"
