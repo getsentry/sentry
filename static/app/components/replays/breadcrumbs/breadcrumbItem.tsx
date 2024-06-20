@@ -1,5 +1,5 @@
 import type {CSSProperties, MouseEvent} from 'react';
-import {isValidElement, memo} from 'react';
+import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -66,7 +66,7 @@ function BreadcrumbItem({
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
-  function renderDescription() {
+  const renderDescription = useCallback(() => {
     return typeof description === 'string' ||
       (description !== undefined && isValidElement(description)) ? (
       <Description title={description} showOnlyOnOverflow isHoverable>
@@ -85,10 +85,10 @@ function BreadcrumbItem({
         />
       </InspectorWrapper>
     );
-  }
+  }, [description, expandPaths, onInspectorExpanded]);
 
-  function renderComparisonButton() {
-    return 'data' in frame && frame.data && 'mutations' in frame.data ? (
+  const renderComparisonButton = useCallback(() => {
+    return frame?.data && 'mutations' in frame.data ? (
       <div>
         <OpenReplayComparisonButton
           replay={replay}
@@ -103,9 +103,9 @@ function BreadcrumbItem({
         </OpenReplayComparisonButton>
       </div>
     ) : null;
-  }
+  }, [frame?.data, frame.offsetMs, replay]);
 
-  function renderCodeSnippet() {
+  const renderCodeSnippet = useCallback(() => {
     return extraction?.html ? (
       <CodeContainer>
         <CodeSnippet language="html" hideCopyButton>
@@ -113,13 +113,13 @@ function BreadcrumbItem({
         </CodeSnippet>
       </CodeContainer>
     ) : null;
-  }
+  }, [extraction?.html]);
 
-  function renderIssueLink() {
+  const renderIssueLink = useCallback(() => {
     return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
       <CrumbErrorIssue frame={frame} />
     ) : null;
-  }
+  }, [frame]);
 
   const hasNewTimelineUI = useHasNewTimelineUI();
   const timeString = new Date(frame.timestampMs).toISOString();
