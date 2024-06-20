@@ -46,44 +46,6 @@ def get_user(request):
     return request._cached_user
 
 
-class SessionAuthenticationMiddleware(MiddlewareMixin):
-    def process_request(self, request: HttpRequest) -> None:
-        auth = get_authorization_header(request).split()
-
-        if auth:
-            for authenticator_class in [
-                UserAuthTokenAuthentication,
-                OrgAuthTokenAuthentication,
-                ApiKeyAuthentication,
-            ]:
-                authenticator = authenticator_class()
-                if not authenticator.accepts_auth(auth):
-                    continue
-                try:
-                    result = authenticator.authenticate(request)
-                except AuthenticationFailed:
-                    result = None
-                if result:
-                    request.user, request.auth = result
-                else:
-                    # default to anonymous user and use IP ratelimit
-                    request.user = SimpleLazyObject(lambda: get_user(request))
-                return
-
-        # default to anonymous user and use IP ratelimit
-        request.user = SimpleLazyObject(lambda: get_user(request))
-
-    def process_exception(
-        self, request: HttpRequest, exception: Exception
-    ) -> HttpResponseBase | None:
-        if isinstance(exception, AuthUserPasswordExpired):
-            from sentry.web.frontend.accounts import expired
-
-            return expired(request, exception.user)
-        else:
-            return None
-
-
 class AuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request: HttpRequest) -> None:
         if request.path.startswith("/api/0/internal/rpc/"):
