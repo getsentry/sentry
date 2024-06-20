@@ -175,7 +175,13 @@ class Fixtures:
         return Factories.create_project_key(project=project, *args, **kwargs)
 
     def create_project_rule(
-        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+        self,
+        project=None,
+        action_match=None,
+        condition_match=None,
+        comparison_interval=None,
+        *args,
+        **kwargs,
     ):
         if project is None:
             project = self.project
