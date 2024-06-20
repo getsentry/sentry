@@ -26,7 +26,7 @@ import {
   TotalTokensUsedChart,
 } from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
 import {PipelineSpansTable} from 'sentry/views/insights/llmMonitoring/components/tables/pipelineSpansTable';
-import {MODULE_TITLE, RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
+import {RELEASE_LEVEL} from 'sentry/views/insights/llmMonitoring/settings';
 import {
   SpanFunction,
   SpanMetricsField,
@@ -95,12 +95,12 @@ export function LLMMonitoringPage({params}: Props) {
               crumbs={[
                 ...crumbs,
                 {
-                  label: spanDescription ?? t('(no name)'),
+                  label: t('Pipeline Summary'),
                 },
               ]}
             />
             <Layout.Title>
-              {MODULE_TITLE}
+              {spanDescription}
               <FeatureBadge type={RELEASE_LEVEL} />
             </Layout.Title>
           </Layout.HeaderContent>
@@ -167,14 +167,10 @@ export function LLMMonitoringPage({params}: Props) {
 }
 
 function PageWithProviders({params}: Props) {
-  const location = useLocation<Query>();
-
-  const {'span.description': spanDescription} = location.query;
-
   return (
     <ModulePageProviders
       moduleName="ai"
-      pageTitle={spanDescription ?? t('(no name)')}
+      pageTitle={t('Pipeline Summary')}
       features="insights-addon-modules"
     >
       <LLMMonitoringPage params={params} />
