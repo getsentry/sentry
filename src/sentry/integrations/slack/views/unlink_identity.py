@@ -124,10 +124,7 @@ class SlackUnlinkIdentityView(BaseView):
             )
             raise Http404
 
-        # TODO: We should use use the dataclass to send the slack response
-        send_slack_response(
-            params.integration, SUCCESS_UNLINKED_MESSAGE, params.__dict__, command="unlink"
-        )
+        send_slack_response(params, SUCCESS_UNLINKED_MESSAGE, command="unlink")
 
         _logger.info("unlink_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.unlink_identity", sample_rate=1.0)

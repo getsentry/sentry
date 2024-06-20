@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 import orjson
@@ -22,9 +21,10 @@ from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMe
 from sentry.integrations.slack.metrics import (
     SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
+    SLACK_SEND_RESPONSE_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.slack.views.types import IdentityParams
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
@@ -162,32 +162,41 @@ def send_incident_alert_notification(
 
 
 def send_slack_response(
-    integration: Integration, text: str, params: Mapping[str, str], command: str
+    params: IdentityParams,
+    text: str,
+    command: str,
 ) -> None:
+    integration = params.integration
     payload = {
         "replace_original": False,
         "response_type": "ephemeral",
         "text": text,
     }
+    default_path = "/chat.postMessage"
 
     client = SlackClient(integration_id=integration.id)
+    metrics.incr(
+        SLACK_SEND_RESPONSE_DATADOG_METRIC,
+        sample_rate=1.0,
+        tags={"response_url": params.response_url if params.response_url else default_path},
+    )
     logger.info(
         "slack.send_slack_response",
         extra={
             "integration_id": integration.id,
-            "response_url": params.get("response_url", "None"),
+            "response_url": params.get("response_url", default_path),
             "payload": payload,
         },
     )
 
-    if params["response_url"]:
-        path = params["response_url"]
+    if params.response_url:
+        path = params.response_url
 
     else:
         # Command has been invoked in a DM, not as a slash command
         # we do not have a response URL in this case
-        payload["channel"] = params["slack_id"]
-        path = "/chat.postMessage"
+        payload["channel"] = params.slack_id
+        path = default_path
 
     try:
         client.post(path, data=payload, json=True)
