@@ -19,8 +19,19 @@ import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {
+  ErrorFrame,
+  FeedbackFrame,
+  HydrationErrorFrame,
+  ReplayFrame,
+} from 'sentry/utils/replays/types';
+import {
+  isBreadcrumbFrame,
+  isErrorFrame,
+  isFeedbackFrame,
+  isHydrationErrorFrame,
+} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -63,8 +74,6 @@ function BreadcrumbItem({
   const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
-
-  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
 
   return (
     <CrumbItem
@@ -113,17 +122,8 @@ function BreadcrumbItem({
             )}
           </Flex>
 
-          {'data' in frame && frame.data && 'mutations' in frame.data ? (
-            <div>
-              <OpenReplayComparisonButton
-                replay={replay}
-                leftOffsetMs={leftOffsetMs}
-                rightOffsetMs={rightOffsetMs}
-                size="xs"
-              >
-                {t('Open Hydration Diff')}
-              </OpenReplayComparisonButton>
-            </div>
+          {isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) ? (
+            <CrumbHydrationButton replay={replay} frame={frame} />
           ) : null}
 
           {extraction?.html ? (
@@ -140,6 +140,29 @@ function BreadcrumbItem({
         </CrumbDetails>
       </ErrorBoundary>
     </CrumbItem>
+  );
+}
+
+function CrumbHydrationButton({
+  replay,
+  frame,
+}: {
+  frame: HydrationErrorFrame;
+  replay: ReplayReader | null;
+}) {
+  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
+
+  return (
+    <div>
+      <OpenReplayComparisonButton
+        replay={replay}
+        leftOffsetMs={leftOffsetMs}
+        rightOffsetMs={rightOffsetMs}
+        size="xs"
+      >
+        {t('Open Hydration Diff')}
+      </OpenReplayComparisonButton>
+    </div>
   );
 }
 

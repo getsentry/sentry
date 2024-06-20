@@ -1,5 +1,5 @@
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
-import {RawBreadcrumbFrame} from 'sentry/utils/replays/types';
+import {RawBreadcrumbFrame, RawHydrationErrorFrame} from 'sentry/utils/replays/types';
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -110,7 +110,7 @@ export function ReplaySlowClickFrameFixture(
 
 export function ReplayHydrationErrorFrameFixture(
   fields: TestableFrame<'replay.hydrate-error'>
-): MockFrame<'replay.hydrate-error'> {
+): RawHydrationErrorFrame {
   return {
     category: 'replay.hydrate-error',
     message: '',

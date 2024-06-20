@@ -1,10 +1,13 @@
 import type {Event} from 'sentry/types/event';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {
+  type HydrationErrorFrame,
+  isHydrationErrorFrame,
+} from 'sentry/utils/replays/types';
 
 export function getReplayDiffOffsetsFromFrame(
   replay: ReplayReader | null,
-  frame: ReplayFrame
+  frame: HydrationErrorFrame
 ) {
   return {
     leftOffsetMs: frame.offsetMs,
@@ -29,13 +32,12 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
     .getBreadcrumbFrames()
     .find(
       breadcrumb =>
-        'category' in breadcrumb &&
-        breadcrumb.category === 'replay.hydrate-error' &&
+        isHydrationErrorFrame(breadcrumb) &&
         breadcrumb.timestampMs > eventTimestampMs &&
         breadcrumb.timestampMs < eventTimestampMs + 1000
     );
 
-  if (hydrationFrame) {
+  if (hydrationFrame && isHydrationErrorFrame(hydrationFrame)) {
     return getReplayDiffOffsetsFromFrame(replay, hydrationFrame);
   }
 
