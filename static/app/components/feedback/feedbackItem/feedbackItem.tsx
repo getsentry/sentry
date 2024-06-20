@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -10,9 +11,9 @@ import Section from 'sentry/components/feedback/feedbackItem/feedbackItemSection
 import FeedbackReplay from 'sentry/components/feedback/feedbackItem/feedbackReplay';
 import MessageSection from 'sentry/components/feedback/feedbackItem/messageSection';
 import TagsSection from 'sentry/components/feedback/feedbackItem/tagsSection';
-import ExternalLink from 'sentry/components/links/externalLink';
 import PanelItem from 'sentry/components/panels/panelItem';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -32,6 +33,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     eventData?.contexts.feedback?.url ??
     eventData?.tags.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
+  const theme = useTheme();
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -43,6 +45,11 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     }, 100);
   }, [feedbackItem.id, overflowRef]);
 
+  const URL_NOT_FOUND = t('URL not found');
+  const displayUrl =
+    eventData?.contexts.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
+  const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
+
   return (
     <Fragment>
       <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
@@ -53,24 +60,19 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
-            <UrlWrapper>
-              {eventData?.contexts.feedback || eventData?.tags ? (
-                url ? (
-                  <ExternalLink
-                    onClick={e => {
+            <TextCopyInput
+              style={urlIsLink ? {color: theme.blue400} : undefined}
+              onClick={
+                urlIsLink
+                  ? e => {
                       e.preventDefault();
-                      openNavigateToExternalLinkModal({linkText: url});
-                    }}
-                  >
-                    {url}
-                  </ExternalLink>
-                ) : (
-                  t('URL not found')
-                )
-              ) : (
-                ''
-              )}
-            </UrlWrapper>
+                      openNavigateToExternalLinkModal({linkText: displayUrl});
+                    }
+                  : () => {}
+              }
+            >
+              {displayUrl}
+            </TextCopyInput>
           </Section>
         ) : null}
 
@@ -125,11 +127,4 @@ const OverflowPanelItem = styled(PanelItem)`
   flex-grow: 1;
   gap: ${space(2)};
   padding: ${space(2)} ${space(2)} 0 ${space(2)};
-`;
-
-const UrlWrapper = styled('div')`
-  border-radius: ${p => p.theme.borderRadius};
-  border: 1px solid ${p => p.theme.border};
-  padding: ${space(0.75)} ${space(1.5)};
-  line-height: 1.3em;
 `;
