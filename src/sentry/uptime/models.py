@@ -4,12 +4,7 @@ from typing import ClassVar, Self
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    DefaultFieldsModel,
-    FlexibleForeignKey,
-    region_silo_model,
-)
+from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.db.models.manager.base import BaseManager
 
 
@@ -19,7 +14,7 @@ class UptimeSubscription(DefaultFieldsModel):
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded
 
-    remote_subscription_id = BoundedBigIntegerField(unique=True)
+    remote_subscription = FlexibleForeignKey("remote_subscriptions.RemoteSubscription", unique=True)
     # The url to check
     url = models.CharField(max_length=255)
     # How frequently to run the check in seconds
@@ -50,7 +45,7 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded
 
-    project_id = BoundedBigIntegerField(db_index=True)
+    project = FlexibleForeignKey("sentry.Project")
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription")
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
