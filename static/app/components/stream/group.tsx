@@ -532,8 +532,7 @@ function BaseGroupRow({
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
-          {organization.features.includes('issue-priority-ui') &&
-          withColumns.includes('priority') ? (
+          {withColumns.includes('priority') ? (
             <PriorityWrapper narrowGroups={narrowGroups}>
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />

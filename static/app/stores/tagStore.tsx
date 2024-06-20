@@ -23,7 +23,7 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 }, {});
 
 interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
-  getIssueAttributes(org: Organization): TagCollection;
+  getIssueAttributes(): TagCollection;
   getIssueTags(org: Organization): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
@@ -41,7 +41,7 @@ const storeConfig: TagStoreDefinition = {
   /**
    * Gets only predefined issue attributes
    */
-  getIssueAttributes(org: Organization) {
+  getIssueAttributes() {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
       'resolved',
@@ -162,16 +162,13 @@ const storeConfig: TagStoreDefinition = {
         values: [],
         predefined: true,
       },
-    };
-
-    if (org.features.includes('issue-priority-ui')) {
-      tagCollection[FieldKey.ISSUE_PRIORITY] = {
+      [FieldKey.ISSUE_PRIORITY]: {
         key: FieldKey.ISSUE_PRIORITY,
         name: 'Issue Priority',
         values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
         predefined: true,
-      };
-    }
+      },
+    };
 
     // Ony include fields that that are part of the ISSUE_FIELDS. This is
     // because we may sometimes have fields that are turned off by removing
@@ -193,7 +190,7 @@ const storeConfig: TagStoreDefinition = {
       // State tags should overwrite built ins.
       ...this.state,
       // We want issue attributes to overwrite any built in and state tags
-      ...this.getIssueAttributes(org),
+      ...this.getIssueAttributes(),
     };
     if (!org.features.includes('device-classification')) {
       delete issueTags[FieldKey.DEVICE_CLASS];
