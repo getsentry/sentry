@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationSerializer
-from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -74,7 +74,14 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             feature=IntegrationFeatures.ISSUE_BASIC
         ) or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
 
-    def create_issue_activity(self, request: Request, group, installation, external_issue, new):
+    def create_issue_activity(
+        self,
+        request: Request,
+        group: Group,
+        installation: IntegrationInstallation,
+        external_issue: ExternalIssue,
+        new: bool,
+    ):
         issue_information = {
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,
