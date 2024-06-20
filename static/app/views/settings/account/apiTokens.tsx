@@ -102,7 +102,6 @@ export function ApiTokens() {
       priority="primary"
       size="sm"
       to="/settings/account/api/auth-tokens/new-token/"
-      data-test-id="create-token"
     >
       {t('Create New Token')}
     </Button>

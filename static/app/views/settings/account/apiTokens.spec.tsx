@@ -39,7 +39,7 @@ describe('ApiTokens', function () {
     render(<ApiTokens />);
 
     expect(await screen.findByText('token1')).toBeInTheDocument();
-    expect(await screen.findByText('token2')).toBeInTheDocument();
+    expect(screen.getByText('token2')).toBeInTheDocument();
   });
 
   it('can delete token', async function () {
