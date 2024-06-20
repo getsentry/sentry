@@ -2489,13 +2489,6 @@
   dependencies:
     "@swc/helpers" "^0.5.0"
 
-"@react-aria/live-announcer@^3.3.4":
-  version "3.3.4"
-  resolved "https://registry.yarnpkg.com/@react-aria/live-announcer/-/live-announcer-3.3.4.tgz#97a5830ae7da8546b2d19311fe1606c5d5e0151c"
-  integrity sha512-w8lxs35QrRrn6pBNzVfyGOeqWdxeVKf9U6bXIVwhq7rrTqRULL8jqy8RJIMfIs1s8G5FpwWYjyBOjl2g5Cu1iA==
-  dependencies:
-    "@swc/helpers" "^0.5.0"
-
 "@react-aria/menu@^3.12.0", "@react-aria/menu@^3.13.1":
   version "3.13.1"
   resolved "https://registry.yarnpkg.com/@react-aria/menu/-/menu-3.13.1.tgz#1661bdfe8864151fdb1e1f38072f5fb0fe08e47e"
@@ -2533,6 +2526,7 @@
     "@swc/helpers" "^0.5.0"
 
 "@react-aria/overlays@^3.20.0", "@react-aria/overlays@^3.21.1", "@react-aria/overlays@^3.22.1":
+<<<<<<< HEAD
   version "3.22.1"
   resolved "https://registry.yarnpkg.com/@react-aria/overlays/-/overlays-3.22.1.tgz#7a01673317fa6517bb91b0b7504e303facdc9ccb"
   integrity sha512-GHiFMWO4EQ6+j6b5QCnNoOYiyx1Gk8ZiwLzzglCI4q1NY5AG2EAmfU4Z1+Gtrf2S5Y0zHbumC7rs9GnPoGLUYg==
@@ -2550,6 +2544,8 @@
     "@swc/helpers" "^0.5.0"
 
 "@react-aria/overlays@^3.22.1":
+=======
+>>>>>>> 9f04544069f (Clean up duplicate dependencies)
   version "3.22.1"
   resolved "https://registry.yarnpkg.com/@react-aria/overlays/-/overlays-3.22.1.tgz#7a01673317fa6517bb91b0b7504e303facdc9ccb"
   integrity sha512-GHiFMWO4EQ6+j6b5QCnNoOYiyx1Gk8ZiwLzzglCI4q1NY5AG2EAmfU4Z1+Gtrf2S5Y0zHbumC7rs9GnPoGLUYg==
@@ -2679,6 +2675,7 @@
     clsx "^2.0.0"
 
 "@react-aria/visually-hidden@^3.8.12", "@react-aria/visually-hidden@^3.8.8":
+<<<<<<< HEAD
   version "3.8.12"
   resolved "https://registry.yarnpkg.com/@react-aria/visually-hidden/-/visually-hidden-3.8.12.tgz#89388b4773b8fbea4b5f9682e807510c14218c93"
   integrity sha512-Bawm+2Cmw3Xrlr7ARzl2RLtKh0lNUdJ0eNqzWcyx4c0VHUAWtThmH5l+HRqFUGzzutFZVo89SAy40BAbd0gjVw==
@@ -2689,6 +2686,8 @@
     "@swc/helpers" "^0.5.0"
 
 "@react-aria/visually-hidden@^3.8.12":
+=======
+>>>>>>> 9f04544069f (Clean up duplicate dependencies)
   version "3.8.12"
   resolved "https://registry.yarnpkg.com/@react-aria/visually-hidden/-/visually-hidden-3.8.12.tgz#89388b4773b8fbea4b5f9682e807510c14218c93"
   integrity sha512-Bawm+2Cmw3Xrlr7ARzl2RLtKh0lNUdJ0eNqzWcyx4c0VHUAWtThmH5l+HRqFUGzzutFZVo89SAy40BAbd0gjVw==
@@ -2782,6 +2781,7 @@
     "@swc/helpers" "^0.5.0"
 
 "@react-stately/overlays@^3.6.5", "@react-stately/overlays@^3.6.7":
+<<<<<<< HEAD
   version "3.6.7"
   resolved "https://registry.yarnpkg.com/@react-stately/overlays/-/overlays-3.6.7.tgz#d4aa1b709e6e72306c33308bb031466730dd0480"
   integrity sha512-6zp8v/iNUm6YQap0loaFx6PlvN8C0DgWHNlrlzMtMmNuvjhjR0wYXVaTfNoUZBWj25tlDM81ukXOjpRXg9rLrw==
@@ -2791,6 +2791,8 @@
     "@swc/helpers" "^0.5.0"
 
 "@react-stately/overlays@^3.6.7":
+=======
+>>>>>>> 9f04544069f (Clean up duplicate dependencies)
   version "3.6.7"
   resolved "https://registry.yarnpkg.com/@react-stately/overlays/-/overlays-3.6.7.tgz#d4aa1b709e6e72306c33308bb031466730dd0480"
   integrity sha512-6zp8v/iNUm6YQap0loaFx6PlvN8C0DgWHNlrlzMtMmNuvjhjR0wYXVaTfNoUZBWj25tlDM81ukXOjpRXg9rLrw==
@@ -2889,6 +2891,7 @@
     "@swc/helpers" "^0.5.0"
 
 "@react-types/button@^3.9.1", "@react-types/button@^3.9.2", "@react-types/button@^3.9.4":
+<<<<<<< HEAD
   version "3.9.4"
   resolved "https://registry.yarnpkg.com/@react-types/button/-/button-3.9.4.tgz#ec10452e870660d31db1994f6fe4abfe0c800814"
   integrity sha512-raeQBJUxBp0axNF74TXB8/H50GY8Q3eV6cEKMbZFP1+Dzr09Ngv0tJBeW0ewAxAguNH5DRoMUAUGIXtSXskVdA==
@@ -2896,6 +2899,8 @@
     "@react-types/shared" "^3.23.1"
 
 "@react-types/button@^3.9.4":
+=======
+>>>>>>> 9f04544069f (Clean up duplicate dependencies)
   version "3.9.4"
   resolved "https://registry.yarnpkg.com/@react-types/button/-/button-3.9.4.tgz#ec10452e870660d31db1994f6fe4abfe0c800814"
   integrity sha512-raeQBJUxBp0axNF74TXB8/H50GY8Q3eV6cEKMbZFP1+Dzr09Ngv0tJBeW0ewAxAguNH5DRoMUAUGIXtSXskVdA==
@@ -2946,6 +2951,7 @@
     "@react-types/shared" "^3.22.0"
 
 "@react-types/overlays@^3.8.5", "@react-types/overlays@^3.8.7":
+<<<<<<< HEAD
   version "3.8.7"
   resolved "https://registry.yarnpkg.com/@react-types/overlays/-/overlays-3.8.7.tgz#a43faf524cb3fce74acceee43898b265e8dfee05"
   integrity sha512-zCOYvI4at2DkhVpviIClJ7bRrLXYhSg3Z3v9xymuPH3mkiuuP/dm8mUCtkyY4UhVeUTHmrQh1bzaOP00A+SSQA==
@@ -2953,6 +2959,8 @@
     "@react-types/shared" "^3.23.1"
 
 "@react-types/overlays@^3.8.7":
+=======
+>>>>>>> 9f04544069f (Clean up duplicate dependencies)
   version "3.8.7"
   resolved "https://registry.yarnpkg.com/@react-types/overlays/-/overlays-3.8.7.tgz#a43faf524cb3fce74acceee43898b265e8dfee05"
   integrity sha512-zCOYvI4at2DkhVpviIClJ7bRrLXYhSg3Z3v9xymuPH3mkiuuP/dm8mUCtkyY4UhVeUTHmrQh1bzaOP00A+SSQA==
