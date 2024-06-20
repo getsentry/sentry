@@ -9,6 +9,7 @@ import type {Config} from 'sentry/types/system';
 import {addExtraMeasurements, addUIElementTag} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getErrorDebugIds} from 'sentry/utils/getErrorDebugIds';
+import {TracingSessionIntegration} from 'sentry/views/performance/newTraceDetails/tracingSessionIntegration';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -63,6 +64,8 @@ function getSentryIntegrations(routes?: Function) {
       },
     }),
     Sentry.browserProfilingIntegration(),
+    // Experimental tracing session integration to connect traces together
+    TracingSessionIntegration,
   ];
 
   return integrations;
