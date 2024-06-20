@@ -23,6 +23,10 @@ export interface TimelineItemProps {
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  renderTimestamp?: (
+    timeString: TimelineItemProps['timeString'],
+    startTimeString: TimelineItemProps['startTimeString']
+  ) => React.ReactNode;
   startTimeString?: string;
 }
 
@@ -31,8 +35,9 @@ export function Item({
   children,
   icon,
   timeString,
-  startTimeString,
   colorConfig = {primary: 'gray300', secondary: 'gray200'},
+  startTimeString,
+  renderTimestamp,
   isActive = false,
   ...props
 }: TimelineItemProps) {
@@ -68,7 +73,7 @@ export function Item({
       <Title style={{color: theme[primary]}}>{title}</Title>
       <Timestamp>
         <Tooltip title={`${preciseTime} - ${date}`} skipWrapper>
-          {displayTime}
+          {renderTimestamp ? renderTimestamp(timeString, startTimeString) : displayTime}
         </Tooltip>
       </Timestamp>
       <Spacer

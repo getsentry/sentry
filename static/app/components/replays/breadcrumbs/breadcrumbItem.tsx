@@ -13,6 +13,7 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import {showPlayerTime} from 'sentry/components/replays/utils';
 import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -133,6 +134,9 @@ function BreadcrumbItem({
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
       onMouseLeave={e => onMouseLeave(frame, e)}
+      renderTimestamp={(_ts, _sts) =>
+        showPlayerTime(frame.timestampMs, startTimestampMs, false)
+      }
       data-is-error-frame={isErrorFrame(frame)}
     >
       <ErrorBoundary mini>
