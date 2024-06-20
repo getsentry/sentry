@@ -1,10 +1,11 @@
 from typing import Any
 
+from sentry import options
 from sentry.seer.similarity.grouping_records import delete_grouping_records_by_hash
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
-BATCH_SIZE = 20
+BATCH_SIZE = options.get("embeddings-grouping.seer.delete-record-batch-size")
 
 
 @instrumented_task(
