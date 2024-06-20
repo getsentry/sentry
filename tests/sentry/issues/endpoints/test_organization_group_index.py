@@ -2042,7 +2042,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    @with_feature("organizations:issue-priority-ui")
     def test_default_search_with_priority(self) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
