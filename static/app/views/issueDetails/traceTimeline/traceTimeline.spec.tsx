@@ -22,9 +22,12 @@ describe('TraceTimeline', () => {
   });
   // This creates the ApiException event
   const event = EventFixture({
+    // This is used to determine the presence of seconds
     dateCreated: '2024-01-24T09:09:03+00:00',
     contexts: {
       trace: {
+        // This is used to determine if we should attempt
+        // to render the trace timeline
         trace_id: '123',
       },
     },
@@ -54,13 +57,13 @@ describe('TraceTimeline', () => {
       {
         message: 'This is the subtitle of the issue',
         timestamp: '2024-01-23T22:11:42+00:00',
-        'issue.id': 4909507143,
+        'issue.id': event['issue.id'],
         project: project.slug,
         'project.name': project.name,
-        title: 'AttributeError: Something Failed',
+        title: event.title,
         id: event.id,
         transaction: 'important.task',
-        'event.type': 'error',
+        'event.type': event.type,
         'stack.function': ['important.task', 'task.run'],
       },
     ],
@@ -91,6 +94,7 @@ describe('TraceTimeline', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: false,
       trace_timeline_status: 'shown',
+      trace_timeline_two_issues: true,
     });
   });
 
@@ -110,6 +114,7 @@ describe('TraceTimeline', () => {
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
         has_related_trace_issue: false,
         trace_timeline_status: 'empty',
+        trace_timeline_two_issues: false,
       })
     );
     expect(container).toBeEmptyDOMElement();
@@ -131,6 +136,7 @@ describe('TraceTimeline', () => {
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
         has_related_trace_issue: false,
         trace_timeline_status: 'empty',
+        trace_timeline_two_issues: false,
       })
     );
     expect(container).toBeEmptyDOMElement();
@@ -199,6 +205,13 @@ describe('TraceTimeline', () => {
 
     // Test analytics
     await userEvent.click(await screen.findByText('Slow DB Query'));
+    expect(useRouteAnalyticsParams).toHaveBeenLastCalledWith({
+      has_related_trace_issue: true,
+      trace_timeline_status: 'empty',
+      // Even though the trace timeline has not been rendered, we still
+      // track that it would have been the two issues case that related issues is replacing
+      trace_timeline_two_issues: true,
+    });
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
       'issue_details.related_trace_issue.trace_issue_clicked',
@@ -246,6 +259,7 @@ describe('TraceTimeline', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: false,
       trace_timeline_status: 'empty',
+      trace_timeline_two_issues: false,
     });
   });
 
