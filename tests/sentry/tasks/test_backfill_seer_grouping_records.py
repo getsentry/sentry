@@ -8,6 +8,7 @@ from unittest.mock import ANY, call, patch
 
 import pytest
 from django.conf import settings
+from django.test import override_settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from snuba_sdk import Column, Condition, Entity, Limit, Op, Query, Request
 
@@ -513,6 +514,82 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "reached the end of the project list",
                 extra={
                     "cohort_name": [self.project.id, project2.id],
+                    "last_processed_project_index": None,
+                },
+            ),
+        ]
+        assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    def test_backfill_seer_grouping_records_success_cohorts_setting_defined(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        """
+        Test that the metadata is set for all groups showing that the record has been created.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        project2 = self.create_project(organization=self.organization)
+        event2 = self.store_event(
+            data={
+                "exception": EXCEPTION,
+                "title": "title",
+                "timestamp": iso_format(before_now(seconds=10)),
+            },
+            project_id=project2.id,
+            assert_no_errors=False,
+        )
+        event2.group.times_seen = 5
+        event2.group.save()
+        group_hashes = GroupHash.objects.all().distinct("group_id")
+        self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
+
+        with TaskRunner(), override_settings(
+            SIMILARITY_BACKFILL_COHORT_MAP={"test": [self.project.id, project2.id]}
+        ):
+            backfill_seer_grouping_records_for_project(
+                current_project_id=self.project.id,
+                last_processed_group_index_input=None,
+                cohort="test",
+                last_processed_project_index_input=0,
+            )
+
+        groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
+        for group in groups:
+            assert group.data["metadata"].get("seer_similarity") == {
+                "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
+                "request_hash": self.group_hashes[group.id],
+            }
+
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_index": None,
+                    "cohort": "test",
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call("about to call next backfill", extra={"project_id": self.project.id}),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": project2.id,
+                    "last_processed_group_index": None,
+                    "cohort": "test",
+                    "last_processed_project_index": 1,
+                    "only_delete": False,
+                },
+            ),
+            call("about to call next backfill", extra={"project_id": project2.id}),
+            call(
+                "reached the end of the project list",
+                extra={
+                    "cohort_name": "test",
                     "last_processed_project_index": None,
                 },
             ),
