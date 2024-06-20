@@ -49,6 +49,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -2886,6 +2887,22 @@ class SlackActivityNotificationTest(ActivityTestCase):
     @pytest.fixture(autouse=True)
     def responses_context(self):
         with responses.mock:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with mock.patch(
+            "slack_sdk.web.client.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
             yield
 
     def assert_performance_issue_attachments(
