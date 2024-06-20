@@ -95,12 +95,12 @@ repos:
       - id: eslint
         name: eslint
         entry: ./node_modules/.bin/eslint
-        language: node
+        language: system
         files: \.[jt]sx?$
       - id: stylelint
         name: stylelint
         entry: ./node_modules/.bin/stylelint
-        language: node
+        language: system
         files: \.[jt]sx?$
       - id: prevent-push
         name: prevent pushing master
