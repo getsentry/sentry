@@ -11,15 +11,10 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    ParanoidManager,
-    ParanoidModel,
-    control_silo_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.project import RpcProject
