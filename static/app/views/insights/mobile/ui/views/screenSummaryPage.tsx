@@ -114,14 +114,10 @@ function ScreenSummary() {
 }
 
 function PageWithProviders() {
-  const location = useLocation<Query>();
-
-  const {transaction} = location.query;
-
   return (
     <ModulePageProviders
       moduleName="mobile-ui"
-      pageTitle={transaction}
+      pageTitle={t('Screen Summary')}
       features={['insights-addon-modules', 'starfish-mobile-ui-module']}
     >
       <ScreenSummary />

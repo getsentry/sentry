@@ -139,7 +139,7 @@ export function PageOverview() {
         <Layout.Header>
           <Layout.HeaderContent>
             <Breadcrumbs
-              crumbs={[...crumbs, ...(transaction ? [{label: 'Page Overview'}] : [])]}
+              crumbs={[...crumbs, ...(transaction ? [{label: 'Page Summary'}] : [])]}
             />
             <Layout.Title>
               {transaction && project && <ProjectAvatar project={project} size={24} />}
