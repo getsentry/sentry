@@ -14,7 +14,7 @@ class MetricsExtractionRuleValidationError(ValueError):
     pass
 
 
-HARD_CODED_UNITS = {"span.duration": "millisecond"}
+HARD_CODED_UNITS = {"span.duration": {"d": "millisecond"}}
 ALLOWED_TYPES = {"c", "d", "s"}
 
 
@@ -23,10 +23,9 @@ class MetricsExtractionRule:
     def __init__(
         self, span_attribute: str, type: str, unit: str, tags: set[str], conditions: list[str]
     ):
-
         self.span_attribute = self.validate_span_attribute(span_attribute)
         self.type = self.validate_type(type)
-        self.unit = HARD_CODED_UNITS.get(span_attribute, "none")
+        self.unit = HARD_CODED_UNITS.get(span_attribute, {}).get(type, "none")
         self.tags = tags
         self.conditions = conditions
 
