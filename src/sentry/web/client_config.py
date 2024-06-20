@@ -223,10 +223,6 @@ class _ClientConfig:
             yield "relocation:enabled"
         if features.has("system:multi-region"):
             yield "system:multi-region"
-        if self.customer_domain or (
-            self.last_org and features.has("organizations:customer-domains", self.last_org)
-        ):
-            yield "organizations:customer-domains"
 
     @property
     def needs_upgrade(self) -> bool:

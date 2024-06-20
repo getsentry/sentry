@@ -27,7 +27,6 @@ from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
-from sentry.lang.native.symbolicator import SymbolicatorPlatform
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import EnvironmentProject
 from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
@@ -42,7 +41,6 @@ from sentry.models.userreport import UserReport
 from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.snuba import discover
-from sentry.tasks.symbolication import should_demote_symbolication
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -694,10 +692,9 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
             # check if the project is in LPQ for any platform
-            attrs[item]["symbolication_degraded"] = any(
-                should_demote_symbolication(platform, project_id=item.id)
-                for platform in SymbolicatorPlatform
-            )
+            # XXX(joshferge): determine if the frontend needs this flag at all
+            # removing redis call as was causing problematic latency issues
+            attrs[item]["symbolication_degraded"] = False
 
         return attrs
 
