@@ -152,16 +152,9 @@ export function Content() {
     [location, queries]
   );
 
-  const tracesQuery = useTraces<Field>({
-    fields: [
-      ...FIELDS,
-      ...SORTS.map(field =>
-        field.startsWith('-') ? (field.substring(1) as Field) : (field as Field)
-      ),
-    ],
+  const tracesQuery = useTraces({
     limit,
     query: queries,
-    sort: SORTS,
     mri: hasMetric ? mri : undefined,
     metricsMax: hasMetric ? metricsMax : undefined,
     metricsMin: hasMetric ? metricsMin : undefined,
@@ -585,8 +578,7 @@ interface TraceResults {
   meta: any;
 }
 
-interface UseTracesOptions<F extends string> {
-  fields: F[];
+interface UseTracesOptions {
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
@@ -600,8 +592,7 @@ interface UseTracesOptions<F extends string> {
   suggestedQuery?: string;
 }
 
-function useTraces<F extends string>({
-  fields,
+function useTraces({
   datetime,
   enabled,
   limit,
@@ -613,7 +604,7 @@ function useTraces<F extends string>({
   query,
   suggestedQuery,
   sort,
-}: UseTracesOptions<F>) {
+}: UseTracesOptions) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -624,7 +615,6 @@ function useTraces<F extends string>({
       project: selection.projects,
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
-      field: fields,
       query,
       suggestedQuery,
       sort,
