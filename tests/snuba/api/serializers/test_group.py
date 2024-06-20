@@ -19,7 +19,6 @@ from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
 from sentry.utils.samples import load_data
@@ -45,21 +44,18 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["permalink"] is None
 
-    @with_feature("projects:issue-priority")
     def test_priority_high(self):
         outside_user = self.create_user()
         group = self.create_group(priority=PriorityLevel.HIGH)
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] == "high"
 
-    @with_feature("projects:issue-priority")
     def test_priority_medium(self):
         outside_user = self.create_user()
         group = self.create_group(priority=PriorityLevel.MEDIUM)
         result = serialize(group, outside_user, serializer=GroupSerializerSnuba())
         assert result["priority"] == "medium"
 
-    @with_feature("projects:issue-priority")
     def test_priority_none(self):
         outside_user = self.create_user()
         group = self.create_group()

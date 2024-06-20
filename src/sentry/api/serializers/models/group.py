@@ -349,10 +349,9 @@ class GroupSerializerBase(Serializer, ABC):
             "issueCategory": obj.issue_category.name.lower(),
         }
 
-        if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-            group_dict["priority"] = priority_label
-            group_dict["priorityLockedAt"] = obj.priority_locked_at
+        priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
+        group_dict["priority"] = priority_label
+        group_dict["priorityLockedAt"] = obj.priority_locked_at
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:

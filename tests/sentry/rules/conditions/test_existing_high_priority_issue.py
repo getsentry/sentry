@@ -15,7 +15,6 @@ class ExistingHighPriorityIssueConditionTest(RuleTestCase):
         self.rule = Rule(environment_id=1, project=self.project, label="label")
 
     @with_feature("projects:high-priority-alerts")
-    @with_feature("projects:issue-priority")
     def test_applies_correctly(self):
         rule = self.get_rule(rule=self.rule)
 

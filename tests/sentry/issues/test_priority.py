@@ -10,12 +10,10 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 
 
-@apply_feature_flag_on_cls("projects:issue-priority")
 class TestUpdatesPriority(TestCase):
     def assert_activity_grouphistory_set(
         self, group: Group, priority: PriorityLevel, reason: PriorityChangeReason

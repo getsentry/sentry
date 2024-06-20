@@ -12,7 +12,6 @@ from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerTyp
 from sentry.models.release import Release
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 
@@ -206,7 +205,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["forecast"]["data"] is not None
         assert response.data["forecast"]["date_added"] is not None
 
-    @with_feature("projects:issue-priority")
     def test_group_get_priority(self):
         self.login_as(user=self.user)
         group = self.create_group(
@@ -221,7 +219,6 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert response.data["priority"] == "low"
         assert response.data["priorityLockedAt"] is None
 
-    @with_feature("projects:issue-priority")
     def test_group_post_priority(self):
         self.login_as(user=self.user)
         group = self.create_group(

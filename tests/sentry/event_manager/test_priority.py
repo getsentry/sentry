@@ -16,7 +16,6 @@ pytestmark = [requires_snuba]
 
 
 @region_silo_test
-@apply_feature_flag_on_cls("projects:issue-priority")
 @apply_feature_flag_on_cls("projects:first-event-severity-calculation")
 class TestEventManagerPriority(TestCase):
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
@@ -29,18 +28,6 @@ class TestEventManagerPriority(TestCase):
         assert event.group.get_event_metadata()["severity"] == 0.1121
         assert event.group.priority == PriorityLevel.HIGH
         assert event.group.get_event_metadata()["initial_priority"] == 75
-
-    @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
-    def test_flag_off(self, mock_get_severity_score: MagicMock):
-        with self.feature({"projects:issue-priority": False}):
-            manager = EventManager(make_event(level=logging.FATAL, platform="python"))
-            event = manager.save(self.project.id)
-
-            mock_get_severity_score.assert_called()
-            assert event.group
-            assert event.group.get_event_metadata()["severity"] == 0.1121
-            assert "initial_priority" not in event.group.get_event_metadata()
-            assert event.group.priority is None
 
     @patch("sentry.event_manager._get_severity_score", return_value=(0.1121, "ml"))
     @patch("sentry.event_manager._get_priority_for_group", return_value=PriorityLevel.HIGH)
