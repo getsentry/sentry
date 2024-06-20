@@ -205,7 +205,7 @@ def backfill_seer_grouping_records_for_project(
 
 def call_next_backfill(
     *,
-    last_processed_index: int,
+    last_processed_group_index: int | None,
     project_id: int,
     redis_client: RedisCluster | StrictRedis,
     len_group_id_batch_unfiltered: int,
@@ -218,22 +218,22 @@ def call_next_backfill(
     if last_group_id is not None:
         redis_client.set(
             f"{make_backfill_grouping_index_redis_key(project_id)}",
-            last_processed_index if last_processed_index is not None else 0,
+            last_processed_group_index if last_processed_group_index is not None else 0,
             ex=REDIS_KEY_EXPIRY,
         )
-    if last_processed_index and last_processed_index < len_group_id_batch_unfiltered:
+    if last_processed_group_index and last_processed_group_index < len_group_id_batch_unfiltered:
         logger.info(
             "calling next backfill task",
             extra={
                 "project_id": project_id,
-                "last_processed_index": last_processed_index,
+                "last_processed_index": last_processed_group_index,
                 "last_processed_group_id": last_group_id,
             },
         )
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
                 project_id,
-                last_processed_index,
+                last_processed_group_index,
                 cohort,
                 last_processed_project_index,
                 only_delete,

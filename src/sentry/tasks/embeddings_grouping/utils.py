@@ -94,7 +94,7 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 @sentry_sdk.tracing.trace
 def initialize_backfill(
     project_id: int,
-    cohort: str | None,
+    cohort: str | list[int] | None,
     last_processed_group_index: int | None,
     last_processed_project_index: int | None,
 ):
