@@ -26,6 +26,3 @@ SLACK_BOT_COMMAND_UNLINK_TEAM_SUCCESS_DATADOG_METRIC = (
 SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC = (
     "sentry.integrations.slack.unlink_team.failure"
 )
-
-# Temporary
-SLACK_SEND_RESPONSE_DATADOG_METRIC = "sentry.integrations.slack.send_response"

@@ -21,7 +21,6 @@ from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMe
 from sentry.integrations.slack.metrics import (
     SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
-    SLACK_SEND_RESPONSE_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.types import IdentityParams
@@ -175,11 +174,7 @@ def send_slack_response(
     default_path = "/chat.postMessage"
 
     client = SlackClient(integration_id=integration.id)
-    metrics.incr(
-        SLACK_SEND_RESPONSE_DATADOG_METRIC,
-        sample_rate=1.0,
-        tags={"response_url": params.response_url if params.response_url else default_path},
-    )
+
     logger.info(
         "slack.send_slack_response",
         extra={
