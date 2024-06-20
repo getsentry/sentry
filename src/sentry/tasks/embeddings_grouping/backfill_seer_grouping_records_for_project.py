@@ -247,11 +247,11 @@ def call_next_backfill(
         else:
             cohort_list = cohort
 
-        project_id, last_processed_project_index = get_project_for_batch(
+        batch_project_id, last_processed_project_index = get_project_for_batch(
             last_processed_project_index, cohort_list, cohort
         )
 
-        if project_id is None:
+        if batch_project_id is None:
             logger.info(
                 "reached the end of the project list",
                 extra={
@@ -264,7 +264,7 @@ def call_next_backfill(
         # TODO: redis
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
-                project_id,
+                batch_project_id,
                 None,
                 cohort,
                 last_processed_project_index,
