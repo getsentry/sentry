@@ -8,9 +8,8 @@ import {
   useState,
 } from 'react';
 import type {PopperProps} from 'react-popper';
-import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
-import {useFloating} from '@floating-ui/react';
+import {useHover} from '@floating-ui/react';
 
 import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -168,7 +167,7 @@ function useHoverOverlay(
     [arrowElement, offset]
   );
 
-  const {styles, state, update} = usePopper(triggerElement, overlayElement, {
+  const {refs, floatingStyles} = useHover(triggerElement, overlayElement, {
     modifiers,
     placement: position,
   });
