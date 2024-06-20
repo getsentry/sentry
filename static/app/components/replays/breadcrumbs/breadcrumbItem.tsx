@@ -17,6 +17,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
 import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
@@ -62,6 +63,8 @@ function BreadcrumbItem({
   const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
+
+  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
 
   return (
     <CrumbItem
@@ -114,11 +117,8 @@ function BreadcrumbItem({
             <div>
               <OpenReplayComparisonButton
                 replay={replay}
-                leftTimestamp={frame.offsetMs}
-                rightTimestamp={
-                  (frame.data.mutations.next?.timestamp ?? 0) -
-                  (replay?.getReplay().started_at.getTime() ?? 0)
-                }
+                leftOffsetMs={leftOffsetMs}
+                rightOffsetMs={rightOffsetMs}
                 size="xs"
               >
                 {t('Open Hydration Diff')}
