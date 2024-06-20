@@ -40,9 +40,9 @@ logger = logging.getLogger(__name__)
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int,
-    last_processed_group_index: int | None,
+    last_processed_group_index_input: int | None,
     cohort: str | list[int] | None = None,
-    last_processed_project_index: int | None = None,
+    last_processed_project_index_input: int | None = None,
     only_delete=False,
     *args: Any,
     **kwargs: Any,
@@ -57,9 +57,9 @@ def backfill_seer_grouping_records_for_project(
         "backfill_seer_grouping_records",
         extra={
             "current_project_id": current_project_id,
-            "last_processed_group_index": last_processed_group_index,
+            "last_processed_group_index": last_processed_group_index_input,
             "cohort": cohort,
-            "last_processed_project_index": last_processed_project_index,
+            "last_processed_project_index": last_processed_project_index_input,
             "only_delete": only_delete,
         },
     )
@@ -71,7 +71,10 @@ def backfill_seer_grouping_records_for_project(
             last_processed_group_index,
             last_processed_project_index,
         ) = initialize_backfill(
-            current_project_id, cohort, last_processed_group_index, last_processed_project_index
+            current_project_id,
+            cohort,
+            last_processed_group_index_input,
+            last_processed_project_index_input,
         )
     except FeatureError:
         logger.info(
@@ -263,7 +266,9 @@ def call_next_backfill(
             return
 
         redis_client.set(
-            make_backfill_project_index_redis_key(cohort, last_processed_project_index),
+            make_backfill_project_index_redis_key(
+                cohort if isinstance(cohort, str) else None, last_processed_project_index
+            ),
             last_processed_project_index,
             ex=REDIS_KEY_EXPIRY,
         )

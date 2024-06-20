@@ -93,7 +93,10 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 
 @sentry_sdk.tracing.trace
 def initialize_backfill(
-    project_id, cohort, last_processed_group_index, last_processed_project_index
+    project_id: int,
+    cohort: str | None,
+    last_processed_group_index: int | None,
+    last_processed_project_index: int | None,
 ):
     logger.info(
         "backfill_seer_grouping_records.start",
@@ -109,17 +112,20 @@ def initialize_backfill(
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     if last_processed_group_index is None:
-        last_processed_group_index = int(
+        last_processed_group_index_ret = int(
             redis_client.get(make_backfill_grouping_index_redis_key(project_id)) or 0
         )
+    else:
+        last_processed_group_index_ret = last_processed_group_index
+
     if last_processed_project_index is None and cohort:
-        last_processed_project_index = int(
+        last_processed_project_index_ret = int(
             redis_client.get(make_backfill_project_index_redis_key(cohort, project_id)) or 0
         )
     if last_processed_project_index is None:
-        last_processed_project_index = 0
+        last_processed_project_index_ret = 0
 
-    return project, redis_client, last_processed_group_index, last_processed_project_index
+    return project, redis_client, last_processed_group_index_ret, last_processed_project_index_ret
 
 
 @sentry_sdk.tracing.trace
