@@ -43,7 +43,12 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
+from sentry.snuba.metrics import (
+    DeperecatingMetricsQuery,
+    MetricField,
+    MetricGroupByField,
+    get_series,
+)
 from sentry.snuba.metrics.naming_layer.mri import ErrorsMRI
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -296,7 +301,7 @@ def _generate_generic_metrics_backend_query(
     end_date: datetime,
     offset: int,
     category: GroupCategory | None = None,
-) -> MetricsQuery:
+) -> DeperecatingMetricsQuery:
     """
     This function generates a query to fetch the hourly events
     for a group_id through the Generic Metrics Backend.
@@ -321,7 +326,7 @@ def _generate_generic_metrics_backend_query(
             rhs=[str(group_id) for group_id in group_ids],
         )
     ]
-    return MetricsQuery(
+    return DeperecatingMetricsQuery(
         org_id=organization_id,
         project_ids=project_ids,
         select=select,

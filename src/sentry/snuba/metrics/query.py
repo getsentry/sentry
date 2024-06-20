@@ -1,4 +1,5 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -141,7 +142,7 @@ class MetricsQueryValidationRunner:
 
 
 @dataclass(frozen=True)
-class MetricsQuery(MetricsQueryValidationRunner):
+class DeperecatingMetricsQuery(MetricsQueryValidationRunner):
     """Definition of a metrics query, inspired by snuba_sdk.Query"""
 
     org_id: int
