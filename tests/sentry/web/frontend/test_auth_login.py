@@ -508,9 +508,6 @@ class AuthLoginNewsletterTest(TestCase):
 
 
 @control_silo_test
-@override_settings(
-    SENTRY_USE_CUSTOMER_DOMAINS=True,
-)
 class AuthLoginCustomerDomainTest(TestCase):
     @cached_property
     def path(self):
@@ -594,7 +591,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             ]
 
     def test_login_valid_credentials_invalid_customer_domain(self):
-        with self.disable_registration():
+        with self.feature("system:multi-region"), self.disable_registration():
             self.create_organization(name="albertos-apples", owner=self.user)
 
             # load it once for test cookie
@@ -610,7 +607,6 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                ("http://invalid.testserver/auth/login/", 302),
                 ("http://albertos-apples.testserver/auth/login/", 302),
                 ("http://albertos-apples.testserver/issues/", 302),
             ]

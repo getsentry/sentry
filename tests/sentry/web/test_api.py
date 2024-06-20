@@ -172,10 +172,7 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == [
-                "organizations:create",
-                "organizations:customer-domains",
-            ]
+            assert data["features"] == ["organizations:create"]
 
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
@@ -239,7 +236,6 @@ class ClientConfigViewTest(TestCase):
 
         # Induce last active organization
         with (
-            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
             self.feature({"system:multi-region": [other_org.slug]}),
             assume_test_silo_mode(SiloMode.MONOLITH),
         ):
