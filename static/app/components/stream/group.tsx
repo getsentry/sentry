@@ -161,7 +161,7 @@ function BaseGroupRow({
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
   const sharedAnalytics = useMemo(() => {
-    const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
+    const tab = getTabs().find(([tabQuery]) => tabQuery === query)?.[1];
     const owners = group?.owners ?? [];
     return {
       organization,

@@ -515,12 +515,11 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
-    const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
 
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
@@ -817,13 +816,11 @@ class IssueListOverview extends Component<Props, State> {
     const {organization, location} = this.props;
     const page = location.query.page;
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
-    const tab = getTabs(organization).find(
-      ([tabQuery]) => currentTabQuery === tabQuery
-    )?.[1];
+    const tab = getTabs().find(([tabQuery]) => currentTabQuery === tabQuery)?.[1];
 
     const numPerfIssues = groups.filter(
       group => GroupStore.get(group)?.issueCategory === IssueCategory.PERFORMANCE
