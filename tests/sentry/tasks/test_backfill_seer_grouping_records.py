@@ -519,59 +519,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         ]
         assert mock_logger.info.call_args_list == expected_call_args_list
 
-    # @with_feature("projects:similarity-embeddings-backfill")
-    # @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
-    # @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
-    # def test_backfill_seer_grouping_records_success_cohorts_simple(
-    #     self, mock_post_bulk_grouping_records, mock_logger
-    # ):
-    #     """
-    #     Test that the metadata is set for all groups showing that the record has been created.
-    #     """
-    #     mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
-
-    #     project2 = self.create_project(organization=self.organization)
-    #     event2 = self.store_event(
-    #         data={
-    #             "exception": EXCEPTION,
-    #             "title": "title",
-    #             "timestamp": iso_format(before_now(seconds=10)),
-    #         },
-    #         project_id=project2.id,
-    #         assert_no_errors=False,
-    #     )
-    #     event2.group.times_seen = 5
-    #     event2.group.save()
-    #     group_hashes = GroupHash.objects.all().distinct("group_id")
-    #     self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
-
-    #     with TaskRunner():
-    #         backfill_seer_grouping_records_for_project(
-    #             current_project_id=self.project.id,
-    #             last_processed_group_index=None,
-    #             cohort=[self.project.id, project2.id],
-    #             last_processed_project_index=0,
-    #         )
-
-    #     groups = Group.objects.filter(project_id__in=[self.project.id, project2.id])
-    #     for group in groups:
-    #         assert group.data["metadata"].get("seer_similarity") == {
-    #             "similarity_model_version": SEER_SIMILARITY_MODEL_VERSION,
-    #             "request_hash": self.group_hashes[group.id],
-    #         }
-
-    #     assert mock_logger.info.call_args_list == [
-    #         call("about to call next backfill", extra={"project_id": self.project.id}),
-    #         call("about to call next backfill", extra={"project_id": project2.id}),
-    #         call(
-    #             "reached the end of the project list",
-    #             extra={
-    #                 "cohort_name": [self.project.id, project2.id],
-    #                 "last_processed_project_index": None,
-    #             },
-    #         ),
-    #     ]
-
     @patch("time.sleep", return_value=None)
     @patch("sentry.nodestore.backend.get_multi")
     @patch("sentry.tasks.embeddings_grouping.utils.lookup_event")

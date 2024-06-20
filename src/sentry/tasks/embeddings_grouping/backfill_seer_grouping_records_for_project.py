@@ -81,7 +81,7 @@ def backfill_seer_grouping_records_for_project(
             "backfill_seer_grouping_records.no_feature",
             extra={"current_project_id": current_project_id},
         )
-        # TODO: let's just delete this branch
+        # TODO: let's just delete this branch since feature is on
         return
 
     if only_delete:
