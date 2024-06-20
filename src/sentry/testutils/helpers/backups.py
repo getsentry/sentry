@@ -411,7 +411,7 @@ class ExhaustiveFixtures(Fixtures):
         )
 
         # TODO (@saponifi3d): Add project template to project
-        project = self.create_project(name=f"project-{slug}", teams=[team])
+        project = self.create_project(name=f"project-{slug}", teams=[team], organization=org)
         self.create_project_key(project)
         self.create_project_bookmark(project=project, user=owner)
         ProjectOwnership.objects.create(
