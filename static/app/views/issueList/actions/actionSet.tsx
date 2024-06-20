@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import ActionLink from 'sentry/components/actions/actionLink';
 import ArchiveActions from 'sentry/components/actions/archive';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {Button} from 'sentry/components/button';
@@ -14,8 +13,6 @@ import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import type {IssueTypeConfig} from 'sentry/utils/issueTypeConfig/types';
-import useMedia from 'sentry/utils/useMedia';
-import useOrganization from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
@@ -50,7 +47,6 @@ function ActionSet({
   onMerge,
   selectedProjectSlug,
 }: Props) {
-  const organization = useOrganization();
   const numIssues = issues.size;
   const confirm = getConfirm({
     numIssues,
@@ -89,8 +85,6 @@ function ActionSet({
       issue => issue.status === 'resolved' || issue.status === 'ignored'
     );
 
-  const hasIssuePriority = organization.features.includes('issue-priority-ui');
-
   const makeMergeTooltip = () => {
     if (mergeDisabledReason) {
       return mergeDisabledReason;
@@ -103,17 +97,12 @@ function ActionSet({
     return '';
   };
 
-  const nestMergeAndReviewViewport = useMedia(`(max-width: 1700px)`);
-  const nestReview = hasIssuePriority
-    ? !FOR_REVIEW_QUERIES.includes(query)
-    : nestMergeAndReviewViewport;
-  const nestMerge = hasIssuePriority ? true : nestMergeAndReviewViewport;
+  const nestReview = !FOR_REVIEW_QUERIES.includes(query);
 
   const menuItems: MenuItemProps[] = [
     {
       key: 'merge',
       label: t('Merge'),
-      hidden: !nestMerge,
       disabled: mergeDisabled,
       details: makeMergeTooltip(),
       onAction: () => {
@@ -227,41 +216,25 @@ function ActionSet({
         confirmLabel={label('archive')}
         disabled={ignoreDisabled}
       />
-      {hasIssuePriority && (
-        <DropdownMenu
-          triggerLabel={t('Set Priority')}
-          size="xs"
-          items={makeGroupPriorityDropdownOptions({
-            onChange: priority => {
-              openConfirmModal({
-                bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
-                onConfirm: () => onUpdate({priority}),
-                message: confirm({
-                  action: ConfirmAction.SET_PRIORITY,
-                  append: ` to ${priority}`,
-                  canBeUndone: true,
-                }),
-                confirmText: label('reprioritize'),
-              });
-            },
-          })}
-        />
-      )}
+      <DropdownMenu
+        triggerLabel={t('Set Priority')}
+        size="xs"
+        items={makeGroupPriorityDropdownOptions({
+          onChange: priority => {
+            openConfirmModal({
+              bypass: !onShouldConfirm(ConfirmAction.SET_PRIORITY),
+              onConfirm: () => onUpdate({priority}),
+              message: confirm({
+                action: ConfirmAction.SET_PRIORITY,
+                append: ` to ${priority}`,
+                canBeUndone: true,
+              }),
+              confirmText: label('reprioritize'),
+            });
+          },
+        })}
+      />
       {!nestReview && <ReviewAction disabled={!canMarkReviewed} onUpdate={onUpdate} />}
-      {!nestMerge && (
-        <ActionLink
-          aria-label={t('Merge Selected Issues')}
-          type="button"
-          disabled={mergeDisabled}
-          onAction={onMerge}
-          shouldConfirm={onShouldConfirm(ConfirmAction.MERGE)}
-          message={confirm({action: ConfirmAction.MERGE, canBeUndone: false})}
-          confirmLabel={label('merge')}
-          title={makeMergeTooltip()}
-        >
-          {t('Merge')}
-        </ActionLink>
-      )}
       <DropdownMenu
         size="sm"
         items={menuItems}

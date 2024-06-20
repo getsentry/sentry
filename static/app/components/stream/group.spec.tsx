@@ -1,5 +1,4 @@
 import {GroupFixture} from 'sentry-fixture/group';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -106,9 +105,7 @@ describe('StreamGroup', function () {
       body: {priority: PriorityLevel.HIGH},
     });
 
-    render(<StreamGroup id="1337" query="is:unresolved" />, {
-      organization: OrganizationFixture({features: ['issue-priority-ui']}),
-    });
+    render(<StreamGroup id="1337" query="is:unresolved" />);
 
     const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
     expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();

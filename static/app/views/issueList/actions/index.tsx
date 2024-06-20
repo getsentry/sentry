@@ -194,8 +194,6 @@ function IssueListActions({
     false
   );
 
-  const hasIssuePriority = organization.features.includes('issue-priority-ui');
-
   const disableActions = useMedia(
     `(max-width: ${
       isSavedSearchesOpen ? theme.breakpoints.xlarge : theme.breakpoints.medium
@@ -349,71 +347,27 @@ function IssueListActions({
 
   return (
     <StickyActions>
-      {hasIssuePriority ? (
-        <ActionsBarPriority
-          query={query}
-          queryCount={queryCount}
-          selection={selection}
-          statsPeriod={statsPeriod}
-          onSortChange={onSortChange}
-          allInQuerySelected={allInQuerySelected}
-          pageSelected={pageSelected}
-          selectedIdsSet={selectedIdsSet}
-          displayReprocessingActions={displayReprocessingActions}
-          handleDelete={handleDelete}
-          handleMerge={handleMerge}
-          handleUpdate={handleUpdate}
-          multiSelected={multiSelected}
-          narrowViewport={disableActions}
-          selectedProjectSlug={selectedProjectSlug}
-          isSavedSearchesOpen={isSavedSearchesOpen}
-          sort={sort}
-          anySelected={anySelected}
-          onSelectStatsPeriod={onSelectStatsPeriod}
-        />
-      ) : (
-        <ActionsBarContainer>
-          {!disableActions && (
-            <ActionsCheckbox isReprocessingQuery={displayReprocessingActions}>
-              <Checkbox
-                onChange={() => SelectedGroupStore.toggleSelectAll()}
-                checked={pageSelected || (anySelected ? 'indeterminate' : false)}
-                aria-label={pageSelected ? t('Deselect all') : t('Select all')}
-                disabled={displayReprocessingActions}
-              />
-            </ActionsCheckbox>
-          )}
-          {!displayReprocessingActions && (
-            <HeaderButtonsWrapper>
-              {!disableActions && (
-                <ActionSet
-                  queryCount={queryCount}
-                  query={query}
-                  issues={selectedIdsSet}
-                  allInQuerySelected={allInQuerySelected}
-                  anySelected={anySelected}
-                  multiSelected={multiSelected}
-                  selectedProjectSlug={selectedProjectSlug}
-                  onShouldConfirm={action =>
-                    shouldConfirm(action, {pageSelected, selectedIdsSet})
-                  }
-                  onDelete={handleDelete}
-                  onMerge={handleMerge}
-                  onUpdate={handleUpdate}
-                />
-              )}
-              <IssueListSortOptions sort={sort} query={query} onSelect={onSortChange} />
-            </HeaderButtonsWrapper>
-          )}
-          <Headers
-            onSelectStatsPeriod={onSelectStatsPeriod}
-            selection={selection}
-            statsPeriod={statsPeriod}
-            isReprocessingQuery={displayReprocessingActions}
-            isSavedSearchesOpen={isSavedSearchesOpen}
-          />
-        </ActionsBarContainer>
-      )}
+      <ActionsBarPriority
+        query={query}
+        queryCount={queryCount}
+        selection={selection}
+        statsPeriod={statsPeriod}
+        onSortChange={onSortChange}
+        allInQuerySelected={allInQuerySelected}
+        pageSelected={pageSelected}
+        selectedIdsSet={selectedIdsSet}
+        displayReprocessingActions={displayReprocessingActions}
+        handleDelete={handleDelete}
+        handleMerge={handleMerge}
+        handleUpdate={handleUpdate}
+        multiSelected={multiSelected}
+        narrowViewport={disableActions}
+        selectedProjectSlug={selectedProjectSlug}
+        isSavedSearchesOpen={isSavedSearchesOpen}
+        sort={sort}
+        anySelected={anySelected}
+        onSelectStatsPeriod={onSelectStatsPeriod}
+      />
       {!allResultsVisible && pageSelected && (
         <Alert type="warning" system>
           <SelectAllNotice data-test-id="issue-list-select-all-notice">

@@ -3,14 +3,13 @@ import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
-import ErrorLevel from 'sentry/components/events/errorLevel';
 import EventMessage from 'sentry/components/events/eventMessage';
 import EventTitleError from 'sentry/components/eventTitleError';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Level, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import {getLocation, getMessage, isTombstone} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -28,12 +27,10 @@ interface IssueTitleChildrenProps {
   organization: Organization;
 }
 function IssueTitleChildren(props: IssueTitleChildrenProps) {
-  const hasIssuePriority = props.organization.features.includes('issue-priority-ui');
-  const {level, isBookmarked, hasSeen} = props.data;
+  const {isBookmarked, hasSeen} = props.data;
 
   return (
     <Fragment>
-      {level && !hasIssuePriority && <GroupLevel level={level} />}
       {isBookmarked && (
         <IconWrapper>
           <IconStar isSolid color="yellow400" />
@@ -83,9 +80,6 @@ function IssueTitle(props: IssueTitleProps) {
 }
 
 export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
-  const organization = useOrganization();
-  const hasIssuePriority = organization.features.includes('issue-priority-ui');
-
   const eventLocation = getLocation(data);
 
   return (
@@ -95,7 +89,7 @@ export function IssueSummary({data, event_id}: EventOrGroupHeaderProps) {
       </Title>
       {eventLocation ? <Location>{eventLocation}</Location> : null}
       <StyledEventMessage
-        level={hasIssuePriority && 'level' in data ? data.level : undefined}
+        level={'level' in data ? data.level : undefined}
         message={getMessage(data)}
         type={data.type}
         levelIndicatorSize="9px"
@@ -148,14 +142,6 @@ const StyledEventMessage = styled(EventMessage)`
 const IconWrapper = styled('span')`
   position: relative;
   margin-right: 5px;
-`;
-
-const GroupLevel = styled(ErrorLevel)<{level: Level}>`
-  position: absolute;
-  left: -1px;
-  width: 9px;
-  height: 15px;
-  border-radius: 0 3px 3px 0;
 `;
 
 const TitleWithLink = styled(GlobalSelectionLink)`

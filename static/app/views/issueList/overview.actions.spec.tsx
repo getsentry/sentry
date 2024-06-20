@@ -38,7 +38,7 @@ describe('IssueListOverview (actions)', function () {
   const tags = TagsFixture();
   const groupStats = GroupStatsFixture();
   const api = new MockApiClient();
-  const organization = OrganizationFixture({features: ['issue-priority-ui']});
+  const organization = OrganizationFixture();
 
   beforeEach(function () {
     MockApiClient.clearMockResponses();

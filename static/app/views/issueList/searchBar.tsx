@@ -17,7 +17,6 @@ import {SavedSearchType} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   DEVICE_CLASS_TAG_VALUES,
-  FieldKey,
   FieldKind,
   getFieldDefinition,
   isDeviceClass,
@@ -27,28 +26,22 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
 
-const getSupportedTags = (supportedTags: TagCollection, org: Organization) => {
-  const include_priority = org.features.includes('issue-priority-ui');
+const getSupportedTags = (supportedTags: TagCollection) => {
   return Object.fromEntries(
-    Object.keys(supportedTags)
-      .map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind:
-            getFieldDefinition(key)?.kind ??
-            (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
-        },
-      ])
-      .filter(([key, _]) => (key === FieldKey.ISSUE_PRIORITY ? include_priority : true))
+    Object.keys(supportedTags).map(key => [
+      key,
+      {
+        ...supportedTags[key],
+        kind:
+          getFieldDefinition(key)?.kind ??
+          (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
+      },
+    ])
   );
 };
 
-const getFilterKeySections = (
-  tags: TagCollection,
-  org: Organization
-): FilterKeySection[] => {
-  const allTags: Tag[] = orderBy(Object.values(getSupportedTags(tags, org)), 'key');
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+  const allTags: Tag[] = orderBy(Object.values(getSupportedTags(tags)), 'key');
   const eventTags = allTags.filter(tag => tag.kind === FieldKind.TAG);
   const issueFields = allTags.filter(tag => tag.kind === FieldKind.FIELD);
 
@@ -177,7 +170,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         className={props.className}
         initialQuery={props.query ?? ''}
         getTagValues={getTagValues}
-        filterKeySections={getFilterKeySections(tags, organization)}
+        filterKeySections={getFilterKeySections(tags)}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
         onChange={value => {
@@ -195,7 +188,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       onGetTagValues={getTagValues}
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
-      supportedTags={getSupportedTags(tags, organization)}
+      supportedTags={getSupportedTags(tags)}
       defaultSearchGroup={recommendedGroup}
       organization={organization}
       {...props}

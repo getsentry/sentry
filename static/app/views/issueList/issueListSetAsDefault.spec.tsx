@@ -4,6 +4,7 @@ import {SearchFixture} from 'sentry-fixture/search';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {DEFAULT_QUERY} from 'sentry/constants';
 import {SavedSearchType, SavedSearchVisibility} from 'sentry/types';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -87,7 +88,7 @@ describe('IssueListSetAsDefault', () => {
       body: [SearchFixture({isPinned: false, query: 'browser:firefox'})],
     });
 
-    render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {
+    render(<IssueListSetAsDefault {...defaultProps} query={DEFAULT_QUERY} />, {
       organization,
     });
 
@@ -100,7 +101,7 @@ describe('IssueListSetAsDefault', () => {
       body: [SearchFixture({isPinned: true, query: 'browser:firefox'})],
     });
 
-    render(<IssueListSetAsDefault {...defaultProps} query="is:unresolved" />, {
+    render(<IssueListSetAsDefault {...defaultProps} query={DEFAULT_QUERY} />, {
       organization,
     });
 
