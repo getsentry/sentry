@@ -529,7 +529,7 @@ export default class ReplayReader {
   });
 
   getWebVitalFrames = memoize(() => {
-    if (this._featureFlags?.includes('replay-web-vitals')) {
+    if (this._featureFlags?.includes('session-replay-web-vitals')) {
       return this._sortedSpanFrames.filter(isWebVitalFrame);
     }
     return [];
