@@ -261,6 +261,22 @@
     "table_name": "nodestore_node",
     "uniques": []
   },
+  "remote_subscriptions.remotesubscription": {
+    "dangling": false,
+    "foreign_keys": {},
+    "model": "remote_subscriptions.remotesubscription",
+    "relocation_dependencies": [],
+    "relocation_scope": "Excluded",
+    "silos": [
+      "Region"
+    ],
+    "table_name": "sentry_remotesubscription",
+    "uniques": [
+      [
+        "subscription_id"
+      ]
+    ]
+  },
   "replays.replayrecordingsegment": {
     "dangling": false,
     "foreign_keys": {
