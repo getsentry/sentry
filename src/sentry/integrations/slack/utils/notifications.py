@@ -175,7 +175,7 @@ def send_slack_response(
         "slack.send_slack_response",
         extra={
             "integration_id": integration.id,
-            "response_url": params.get("response_url"),
+            "response_url": params.get("response_url", "None"),
             "payload": payload,
         },
     )

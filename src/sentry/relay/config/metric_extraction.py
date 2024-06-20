@@ -4,12 +4,12 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
-from sentry_relay.processing import validate_sampling_condition
+from sentry_relay.processing import validate_rule_condition, validate_sampling_condition
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -33,6 +33,7 @@ from sentry.relay.config.experimental import TimeChecker
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.sentry_metrics.extraction_rules import MetricsExtractionRuleState
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     WIDGET_QUERY_CACHE_MAX_CHUNKS,
@@ -47,6 +48,7 @@ from sentry.snuba.metrics.extraction import (
     are_specs_equal,
     should_use_on_demand_metrics,
 )
+from sentry.snuba.metrics.span_attribute_extraction import convert_to_spec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -119,9 +121,10 @@ def get_metric_extraction_config(
     with sentry_sdk.start_span(op="get_widget_metric_specs"):
         widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
     timeout.check()
-
+    with sentry_sdk.start_span(op="generate_span_attribute_specs"):
+        span_attr_specs = _generate_span_attribute_specs(project)
     with sentry_sdk.start_span(op="merge_metric_specs"):
-        metric_specs = _merge_metric_specs(alert_specs, widget_specs)
+        metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
     timeout.check()
 
     if not metric_specs:
@@ -401,12 +404,14 @@ def _update_state_with_spec_limit(
 
 @metrics.wraps("on_demand_metrics._merge_metric_specs")
 def _merge_metric_specs(
-    alert_specs: list[HashedMetricSpec], widget_specs: list[HashedMetricSpec]
+    alert_specs: list[HashedMetricSpec],
+    widget_specs: list[HashedMetricSpec],
+    span_attr_specs: list[HashedMetricSpec],
 ) -> list[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in widget_specs + alert_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs + span_attr_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -802,6 +807,27 @@ def _convert_aggregate_and_query_to_metrics(
                 logger.exception("Failed on-demand metric spec creation.", extra=extra)
 
     return metric_specs_and_hashes
+
+
+def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
+    if not features.has(
+        "organizations:custom-metrics-extraction-rule", organization=project.organization
+    ):
+        return []
+
+    extraction_rules_state = MetricsExtractionRuleState.load_from_project(project)
+    version = SpecVersion(version=_METRIC_EXTRACTION_VERSION)
+
+    specs = []
+    for rule in extraction_rules_state.get_rules():
+        try:
+            spec = cast(MetricSpec, convert_to_spec(rule))
+            validate_rule_condition(json.dumps(spec["condition"]))
+            specs.append((spec["mri"], spec, version))
+        except ValueError:
+            logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
+
+    return specs
 
 
 # CONDITIONAL TAGGING

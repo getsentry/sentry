@@ -283,7 +283,6 @@ DETAILED_PROJECT = {
             "performance-large-http-payload-ingest",
             "crons-issue-platform",
             "profile-file-io-main-thread-ingest",
-            "customer-domains",
             "performance-file-io-main-thread-post-process-group",
             "performance-render-blocking-asset-span-visible",
             "ds-sliding-window-org",

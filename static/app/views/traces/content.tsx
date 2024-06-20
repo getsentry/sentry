@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Count from 'sentry/components/count';
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EmptyStateWarning, {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -23,6 +23,7 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
+import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
@@ -36,8 +37,7 @@ import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString'
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
 import {type Field, FIELDS, SORTS} from './data';
 import {
@@ -66,16 +66,38 @@ const DEFAULT_PER_PAGE = 50;
 const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 
-export function Content() {
-  const location = useLocation();
-
+function usePageParams(location) {
   const queries = useMemo(() => {
     return decodeList(location.query.query);
   }, [location.query.query]);
 
+  const metricsMax = decodeScalar(location.query.metricsMax);
+  const metricsMin = decodeScalar(location.query.metricsMin);
+  const metricsOp = decodeScalar(location.query.metricsOp);
+  const metricsQuery = decodeScalar(location.query.metricsQuery);
+  const mri = decodeScalar(location.query.mri);
+
+  return {
+    queries,
+    metricsMax,
+    metricsMin,
+    metricsOp,
+    metricsQuery,
+    mri,
+  };
+}
+
+export function Content() {
+  const location = useLocation();
+
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
+
+  const {queries, metricsMax, metricsMin, metricsOp, metricsQuery, mri} =
+    usePageParams(location);
+
+  const hasMetric = metricsOp && mri;
 
   const removeMetric = useCallback(() => {
     browserHistory.push({
@@ -89,12 +111,6 @@ export function Content() {
       ]),
     });
   }, [location]);
-
-  const metricsMax = decodeScalar(location.query.metricsMax);
-  const metricsMin = decodeScalar(location.query.metricsMin);
-  const metricsOp = decodeScalar(location.query.metricsOp);
-  const metricsQuery = decodeScalar(location.query.metricsQuery);
-  const mri = decodeScalar(location.query.mri);
 
   const handleSearch = useCallback(
     (searchIndex: number, searchQuery: string) => {
@@ -136,9 +152,7 @@ export function Content() {
     [location, queries]
   );
 
-  const hasMetric = metricsOp && mri;
-
-  const traces = useTraces<Field>({
+  const tracesQuery = useTraces<Field>({
     fields: [
       ...FIELDS,
       ...SORTS.map(field =>
@@ -155,10 +169,12 @@ export function Content() {
     metricsQuery: hasMetric ? metricsQuery : undefined,
   });
 
-  const isLoading = traces.isFetching;
-  const isError = !isLoading && traces.isError;
-  const isEmpty = !isLoading && !isError && (traces?.data?.data?.length ?? 0) === 0;
-  const data = normalizeTraces(!isLoading && !isError ? traces?.data?.data : undefined);
+  const isLoading = tracesQuery.isFetching;
+  const isError = !isLoading && tracesQuery.isError;
+  const isEmpty = !isLoading && !isError && (tracesQuery?.data?.data?.length ?? 0) === 0;
+  const data = normalizeTraces(
+    !isLoading && !isError ? tracesQuery?.data?.data : undefined
+  );
 
   return (
     <LayoutMain fullWidth>
@@ -193,9 +209,9 @@ export function Content() {
           })}
         </StyledAlert>
       )}
-      {isError && typeof traces.error?.responseJSON?.detail === 'string' ? (
+      {isError && typeof tracesQuery.error?.responseJSON?.detail === 'string' ? (
         <StyledAlert type="error" showIcon>
-          {traces.error?.responseJSON?.detail}
+          {tracesQuery.error?.responseJSON?.detail}
         </StyledAlert>
       ) : null}
       <TracesSearchBar
@@ -237,7 +253,9 @@ export function Content() {
           )}
           {isError && ( // TODO: need an error state
             <StyledPanelItem span={7} overflow>
-              <EmptyStateWarning withIcon />
+              <EmptyStreamWrapper>
+                <IconWarning color="gray300" size="lg" />
+              </EmptyStreamWrapper>
             </StyledPanelItem>
           )}
           {isEmpty && (
@@ -267,13 +285,7 @@ export function Content() {
   );
 }
 
-function TraceRow({
-  defaultExpanded,
-  trace,
-}: {
-  defaultExpanded;
-  trace: TraceResult<Field>;
-}) {
+function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult}) {
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
   const location = useLocation();
@@ -310,7 +322,7 @@ function TraceRow({
         />
         <TraceIdRenderer
           traceId={trace.trace}
-          timestamp={trace.spans[0].timestamp}
+          timestamp={trace.end}
           onClick={() =>
             trackAnalytics('trace_explorer.open_trace', {
               organization,
@@ -369,30 +381,48 @@ function TraceRow({
         />
       </StyledPanelItem>
       {expanded && (
-        <SpanTable
-          spans={trace.spans}
-          trace={trace}
-          setHighlightedSliceName={setHighlightedSliceName}
-        />
+        <SpanTable trace={trace} setHighlightedSliceName={setHighlightedSliceName} />
       )}
     </Fragment>
   );
 }
 
 function SpanTable({
-  spans,
   trace,
   setHighlightedSliceName,
 }: {
   setHighlightedSliceName: (sliceName: string) => void;
-  spans: SpanResult<Field>[];
-  trace: TraceResult<Field>;
+  trace: TraceResult;
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const queries = useMemo(() => {
-    return decodeList(location.query.query);
-  }, [location.query.query]);
+
+  const {queries, metricsMax, metricsMin, metricsOp, metricsQuery, mri} =
+    usePageParams(location);
+  const hasMetric = metricsOp && mri;
+
+  const spansQuery = useTraceSpans({
+    trace,
+    fields: [
+      ...FIELDS,
+      ...SORTS.map(field =>
+        field.startsWith('-') ? (field.substring(1) as Field) : (field as Field)
+      ),
+    ],
+    limit: 10,
+    query: queries,
+    sort: SORTS,
+    mri: hasMetric ? mri : undefined,
+    metricsMax: hasMetric ? metricsMax : undefined,
+    metricsMin: hasMetric ? metricsMin : undefined,
+    metricsOp: hasMetric ? metricsOp : undefined,
+    metricsQuery: hasMetric ? metricsQuery : undefined,
+  });
+
+  const isLoading = spansQuery.isFetching;
+  const isError = !isLoading && spansQuery.isError;
+  const hasData = !isLoading && !isError && (spansQuery?.data?.data?.length ?? 0) > 0;
+  const spans = spansQuery.data?.data ?? [];
 
   return (
     <SpanTablePanelItem span={7} overflow>
@@ -411,6 +441,18 @@ function SpanTable({
           <StyledPanelHeader align="right" lightText>
             {t('Timestamp')}
           </StyledPanelHeader>
+          {isLoading && (
+            <StyledPanelItem span={5} overflow>
+              <LoadingIndicator />
+            </StyledPanelItem>
+          )}
+          {isError && ( // TODO: need an error state
+            <StyledPanelItem span={5} overflow>
+              <EmptyStreamWrapper>
+                <IconWarning color="gray300" size="lg" />
+              </EmptyStreamWrapper>
+            </StyledPanelItem>
+          )}
           {spans.map(span => (
             <SpanRow
               organization={organization}
@@ -420,7 +462,7 @@ function SpanTable({
               setHighlightedSliceName={setHighlightedSliceName}
             />
           ))}
-          {spans.length < trace.matchingSpans && (
+          {hasData && spans.length < trace.matchingSpans && (
             <MoreMatchingSpans span={5}>
               {tct('[more][space]more [matching]spans can be found in the trace.', {
                 more: <Count value={trace.matchingSpans - spans.length} />,
@@ -445,7 +487,7 @@ function SpanRow({
   setHighlightedSliceName: (sliceName: string) => void;
   span: SpanResult<Field>;
 
-  trace: TraceResult<Field>;
+  trace: TraceResult;
 }) {
   const theme = useTheme();
   return (
@@ -500,7 +542,7 @@ function SpanRow({
 
 export type SpanResult<F extends string> = Record<F, any>;
 
-export interface TraceResult<F extends string> {
+export interface TraceResult {
   breakdowns: TraceBreakdownResult[];
   duration: number;
   end: number;
@@ -511,7 +553,6 @@ export interface TraceResult<F extends string> {
   numSpans: number;
   project: string | null;
   slices: number;
-  spans: SpanResult<F>[];
   start: number;
   trace: string;
 }
@@ -539,8 +580,8 @@ type TraceBreakdownMissing = TraceBreakdownBase & {
 
 export type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
 
-interface TraceResults<F extends string> {
-  data: TraceResult<F>[];
+interface TraceResults {
+  data: TraceResult[];
   meta: any;
 }
 
@@ -574,7 +615,6 @@ function useTraces<F extends string>({
   sort,
 }: UseTracesOptions<F>) {
   const organization = useOrganization();
-  const {projects} = useProjects();
   const {selection} = usePageFilters();
 
   const path = `/organizations/${organization.slug}/traces/`;
@@ -616,7 +656,7 @@ function useTraces<F extends string>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serializedEndpointOptions, organization]);
 
-  const result = useApiQuery<TraceResults<F>>([path, endpointOptions], {
+  const result = useApiQuery<TraceResults>([path, endpointOptions], {
     staleTime: 0,
     refetchOnWindowFocus: false,
     retry: false,
@@ -625,21 +665,13 @@ function useTraces<F extends string>({
 
   useEffect(() => {
     if (result.status === 'success') {
-      const project_slugs = new Set(
-        result.data.data.flatMap(trace =>
-          trace.spans.map((span: SpanResult<string>) => span.project)
-        )
-      );
-      const project_platforms = [...project_slugs]
-        .map(slug => projects.find(p => p.slug === slug))
-        .map(project => project?.platform || 'other');
-
       trackAnalytics('trace_explorer.search_success', {
         organization,
         queries,
-        project_platforms,
         has_data: result.data.data.length > 0,
         num_traces: result.data.data.length,
+        num_missing_trace_root: result.data.data.filter(trace => trace.name === null)
+          .length,
       });
     } else if (result.status === 'error') {
       const response = result.error.responseJSON;
@@ -657,6 +689,74 @@ function useTraces<F extends string>({
     // include result.data as an additional dep.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [serializedEndpointOptions, result.status, organization]);
+
+  return result;
+}
+
+interface SpanResults<F extends string> {
+  data: SpanResult<F>[];
+  meta: any;
+}
+
+interface UseTraceSpansOptions<F extends string> {
+  fields: F[];
+  trace: TraceResult;
+  datetime?: PageFilters['datetime'];
+  enabled?: boolean;
+  limit?: number;
+  metricsMax?: string;
+  metricsMin?: string;
+  metricsOp?: string;
+  metricsQuery?: string;
+  mri?: string;
+  query?: string | string[];
+  sort?: string[];
+}
+
+function useTraceSpans<F extends string>({
+  fields,
+  trace,
+  datetime,
+  enabled,
+  limit,
+  mri,
+  metricsMax,
+  metricsMin,
+  metricsOp,
+  metricsQuery,
+  query,
+  sort,
+}: UseTraceSpansOptions<F>) {
+  const organization = useOrganization();
+  const {selection} = usePageFilters();
+
+  const path = `/organizations/${organization.slug}/trace/${trace.trace}/spans/`;
+
+  const endpointOptions = {
+    query: {
+      project: selection.projects,
+      environment: selection.environments,
+      ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
+      field: fields,
+      query,
+      sort,
+      per_page: limit,
+      breakdownSlices: BREAKDOWN_SLICES,
+      maxSpansPerTrace: 10,
+      mri,
+      metricsMax,
+      metricsMin,
+      metricsOp,
+      metricsQuery,
+    },
+  };
+
+  const result = useApiQuery<SpanResults<F>>([path, endpointOptions], {
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    retry: false,
+    enabled,
+  });
 
   return result;
 }

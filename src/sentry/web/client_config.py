@@ -221,7 +221,7 @@ class _ClientConfig:
             yield "auth:register"
         if features.has("relocation:enabled", actor=self.user):
             yield "relocation:enabled"
-        if features.has("system:multi-region", actor=self.user):
+        if features.has("system:multi-region"):
             yield "system:multi-region"
         if self.customer_domain or (
             self.last_org and features.has("organizations:customer-domains", self.last_org)

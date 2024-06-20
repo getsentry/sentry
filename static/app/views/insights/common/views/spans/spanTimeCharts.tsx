@@ -18,8 +18,8 @@ import Chart, {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
-import {useSpansQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
 import {useErrorRateQuery as useErrorCountQuery} from 'sentry/views/insights/common/views/spans/queries';
 import {
   DataTitles,

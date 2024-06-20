@@ -254,7 +254,7 @@ class GroupTest(TestCase, SnubaTestCase):
         url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_get_absolute_url_customer_domains(self):
         project = self.create_project()
         event = self.store_event(
