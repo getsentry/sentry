@@ -15,6 +15,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_current_batch_groups_from_postgres,
     get_data_from_snuba,
     get_events_from_nodestore,
+    get_project_for_batch,
     initialize_backfill,
     make_backfill_grouping_index_redis_key,
     make_backfill_project_index_redis_key,
@@ -270,7 +271,7 @@ def call_next_backfill(
 
         if isinstance(cohort, str):
             redis_client.set(
-                make_backfill_project_index_redis_key(str(cohort), last_processed_project_index),
+                make_backfill_project_index_redis_key(str(cohort)),
                 last_processed_project_index,
                 ex=REDIS_KEY_EXPIRY,
             )
@@ -283,12 +284,3 @@ def call_next_backfill(
                 only_delete,
             ],
         )
-
-
-def get_project_for_batch(last_processed_project_index, cohort_list, cohort_name):
-    next_cohort_index = last_processed_project_index + 1
-    if next_cohort_index >= len(cohort_list):
-        return None, None
-    project_id = cohort_list[next_cohort_index]
-    last_processed_project_index = next_cohort_index
-    return project_id, last_processed_project_index

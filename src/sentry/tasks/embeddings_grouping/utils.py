@@ -121,7 +121,7 @@ def initialize_backfill(
     if last_processed_project_index is None:
         if cohort and isinstance(cohort, str):
             last_processed_project_index_ret = int(
-                redis_client.get(make_backfill_project_index_redis_key(cohort, project_id)) or 0
+                redis_client.get(make_backfill_project_index_redis_key(cohort)) or 0
             )
         else:
             last_processed_project_index_ret = 0
@@ -477,9 +477,9 @@ def make_backfill_grouping_index_redis_key(project_id: int):
     return f"{redis_key}-{project_id}"
 
 
-def make_backfill_project_index_redis_key(cohort_name: str, project_index: int):
+def make_backfill_project_index_redis_key(cohort_name: str):
     redis_key = "grouping_record_backfill.last_processed_project_index"
-    return f"{redis_key}-{cohort_name}-{project_index}"
+    return f"{redis_key}-{cohort_name}"
 
 
 def delete_seer_grouping_records(
@@ -512,3 +512,12 @@ def delete_seer_grouping_records(
         for group in groups_with_seer_metadata:
             del group.data["metadata"]["seer_similarity"]
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
+
+
+def get_project_for_batch(last_processed_project_index, cohort_list, cohort_name):
+    next_cohort_index = last_processed_project_index + 1
+    if next_cohort_index >= len(cohort_list):
+        return None, None
+    project_id = cohort_list[next_cohort_index]
+    last_processed_project_index = next_cohort_index
+    return project_id, last_processed_project_index
