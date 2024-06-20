@@ -634,6 +634,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.fid",
                                 "measurements.cls",
                                 "measurements.ttfb",
+                                "measurements.inp",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -1402,6 +1403,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.fid",
             "measurements.cls",
             "measurements.ttfb",
+            "measurements.inp",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 
