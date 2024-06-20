@@ -396,7 +396,7 @@ class MonitorCheckInValidator(serializers.Serializer):
         return attrs
 
 
-class MonitorBulkEditValidator(MonitorValidator):
+class MonitorBulkEditValidatorLegacy(MonitorValidator):
     slugs = serializers.ListField(
         child=SentrySerializerSlugField(
             max_length=MAX_SLUG_LENGTH,
@@ -409,4 +409,18 @@ class MonitorBulkEditValidator(MonitorValidator):
             slug__in=value, organization_id=self.context["organization"].id
         ).count() != len(value):
             raise ValidationError("Not all slugs are valid for this organization.")
+        return value
+
+
+class MonitorBulkEditValidator(MonitorValidator):
+    ids = serializers.ListField(
+        child=serializers.UUIDField(format="hex"),
+        required=True,
+    )
+
+    def validate_ids(self, value):
+        if Monitor.objects.filter(
+            guid__in=value, organization_id=self.context["organization"].id
+        ).count() != len(value):
+            raise ValidationError("Not all ids are valid for this organization.")
         return value

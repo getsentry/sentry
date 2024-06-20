@@ -538,7 +538,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
             ]
         }
 
-    def test_bulk_mute_unmute(self):
+    def test_bulk_mute_unmute_legacy(self):
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
 
@@ -566,7 +566,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert not monitor_one.is_muted
         assert not monitor_two.is_muted
 
-    def test_bulk_disable_enable(self):
+    def test_bulk_disable_enable_legacy(self):
         monitor_one = self._create_monitor(slug="monitor_one")
         monitor_two = self._create_monitor(slug="monitor_two")
         data = {
@@ -595,7 +595,7 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
         assert monitor_two.status == ObjectStatus.ACTIVE
 
     @patch("sentry.quotas.backend.check_assign_monitor_seats")
-    def test_enable_no_quota(self, check_assign_monitor_seats):
+    def test_enable_no_quota_legacy(self, check_assign_monitor_seats):
         monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
         monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
         result = SeatAssignmentResult(
@@ -606,6 +606,86 @@ class BulkEditOrganizationMonitorTest(MonitorTestCase):
 
         data = {
             "slugs": ["monitor_one", "monitor_two"],
+            "status": "active",
+        }
+        response = self.get_error_response(self.organization.slug, **data)
+        assert response.status_code == 400
+        assert response.data == "Over quota"
+
+        # Verify monitors are still disabled
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.DISABLED
+        assert monitor_two.status == ObjectStatus.DISABLED
+
+    def test_bulk_mute_unmute(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
+        monitor_two = self._create_monitor(slug="monitor_two")
+
+        data = {
+            "ids": [monitor_one.guid, monitor_two.guid],
+            "isMuted": True,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.is_muted
+        assert monitor_two.is_muted
+
+        data = {
+            "ids": [monitor_one.guid, monitor_two.guid],
+            "isMuted": False,
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert not monitor_one.is_muted
+        assert not monitor_two.is_muted
+
+    def test_bulk_disable_enable(self):
+        monitor_one = self._create_monitor(slug="monitor_one")
+        monitor_two = self._create_monitor(slug="monitor_two")
+        data = {
+            "ids": [monitor_one.guid, monitor_two.guid],
+            "status": "disabled",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.DISABLED
+        assert monitor_two.status == ObjectStatus.DISABLED
+
+        data = {
+            "ids": [monitor_one.guid, monitor_two.guid],
+            "status": "active",
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        assert response.status_code == 200
+
+        monitor_one.refresh_from_db()
+        monitor_two.refresh_from_db()
+        assert monitor_one.status == ObjectStatus.ACTIVE
+        assert monitor_two.status == ObjectStatus.ACTIVE
+
+    @patch("sentry.quotas.backend.check_assign_monitor_seats")
+    def test_enable_no_quota(self, check_assign_monitor_seats):
+        monitor_one = self._create_monitor(slug="monitor_one", status=ObjectStatus.DISABLED)
+        monitor_two = self._create_monitor(slug="monitor_two", status=ObjectStatus.DISABLED)
+        result = SeatAssignmentResult(
+            assignable=False,
+            reason="Over quota",
+        )
+        check_assign_monitor_seats.return_value = result
+
+        data = {
+            "ids": [monitor_one.guid, monitor_two.guid],
             "status": "active",
         }
         response = self.get_error_response(self.organization.slug, **data)
