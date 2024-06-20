@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import itertools
+import operator
 from functools import reduce
 from typing import TYPE_CHECKING, Any, Literal
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import Model, Q
-from django.db.models.expressions import CombinedExpression
+from django.db.models import F, Model, Q
+from django.db.models.expressions import BaseExpression, CombinedExpression, Value
 from django.db.models.fields import Field
 from django.db.models.signals import post_save
-
-from .utils import resolve_combined_expression
 
 if TYPE_CHECKING:
     from sentry.db.models.base import BaseModel
@@ -20,6 +19,47 @@ __all__ = (
     "update",
     "update_or_create",
 )
+
+COMBINED_EXPRESSION_CALLBACKS = {
+    CombinedExpression.ADD: operator.add,
+    CombinedExpression.SUB: operator.sub,
+    CombinedExpression.MUL: operator.mul,
+    CombinedExpression.DIV: operator.floordiv,
+    CombinedExpression.MOD: operator.mod,
+    CombinedExpression.BITAND: operator.and_,
+    CombinedExpression.BITOR: operator.or_,
+}
+
+
+class CannotResolveExpression(Exception):
+    pass
+
+
+def resolve_combined_expression(instance: Model, node: CombinedExpression) -> BaseExpression:
+    def _resolve(instance: Model, node: BaseExpression | F) -> BaseExpression:
+        if isinstance(node, Value):
+            return node.value
+        if isinstance(node, F):
+            return getattr(instance, node.name)
+        if isinstance(node, CombinedExpression):
+            return resolve_combined_expression(instance, node)
+        return node
+
+    if isinstance(node, Value):
+        return node.value
+    if not isinstance(node, CombinedExpression):
+        raise CannotResolveExpression
+    op = COMBINED_EXPRESSION_CALLBACKS.get(node.connector, None)
+    if not op:
+        raise CannotResolveExpression
+    if hasattr(node, "children"):
+        children = node.children
+    else:
+        children = [node.lhs, node.rhs]
+    runner = _resolve(instance, children[0])
+    for n in children[1:]:
+        runner = op(runner, _resolve(instance, n))
+    return runner
 
 
 def _get_field(model: type[BaseModel], key: str) -> Field[object, object]:
