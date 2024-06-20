@@ -862,5 +862,7 @@
     "sentry.project",
     "uptime.uptimesubscription"
   ],
-  "uptime.uptimesubscription": []
+  "uptime.uptimesubscription": [
+    "remote_subscriptions.remotesubscription"
+  ]
 }
