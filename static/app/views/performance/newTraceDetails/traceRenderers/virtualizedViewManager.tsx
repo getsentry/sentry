@@ -1267,7 +1267,10 @@ export class VirtualizedViewManager {
         span_right > this.trace_space.right * 0.9 &&
         space_right / this.span_to_px[0] < text_width
       ) {
-        return [1, right_inside];
+        if (full_span_px_width > text_width) {
+          return [1, right_inside];
+        }
+        return [0, left_outside];
       }
       return [0, right_outside];
     }
