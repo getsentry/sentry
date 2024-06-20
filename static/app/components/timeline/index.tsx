@@ -14,7 +14,9 @@ export interface ColorConfig {
 }
 
 export interface TimelineItemProps {
+  className: any;
   icon: React.ReactNode;
+  style: any;
   timeString: string;
   title: React.ReactNode;
   children?: React.ReactNode;
@@ -39,6 +41,7 @@ export function Item({
   startTimeString,
   renderTimestamp,
   isActive = false,
+  style,
   ...props
 }: TimelineItemProps) {
   const theme = useTheme();
@@ -59,6 +62,7 @@ export function Item({
       hasLowerBorder={isActive}
       style={{
         borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
+        ...style,
       }}
       {...props}
     >

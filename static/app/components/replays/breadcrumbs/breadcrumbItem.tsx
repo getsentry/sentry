@@ -130,14 +130,16 @@ function BreadcrumbItem({
       title={title}
       colorConfig={{primary: color, secondary: color}}
       timeString={timeString}
-      startTimeString={startTimeString}
-      onClick={e => onClick?.(frame, e)}
-      onMouseEnter={e => onMouseEnter(frame, e)}
-      onMouseLeave={e => onMouseLeave(frame, e)}
       renderTimestamp={(_ts, _sts) =>
         showPlayerTime(frame.timestampMs, startTimestampMs, false)
       }
+      startTimeString={startTimeString}
       data-is-error-frame={isErrorFrame(frame)}
+      style={style}
+      className={className}
+      onClick={e => onClick?.(frame, e)}
+      onMouseEnter={e => onMouseEnter(frame, e)}
+      onMouseLeave={e => onMouseLeave(frame, e)}
     >
       <ErrorBoundary mini>
         {renderDescription()}
@@ -265,6 +267,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   width: 100%;
   position: relative;
   padding: ${space(0.5)} ${space(0.75)};
+  margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};
   }
@@ -275,7 +278,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
     position: absolute;
     left: 16.5px;
     width: 1px;
-    top: 0;
+    top: -2px;
     bottom: -9px;
     background: ${p => p.theme.border};
     z-index: 0;
