@@ -209,6 +209,13 @@ class EmailActionHandler(ActionHandler):
         display = self.status_display[status]
         alert_rule = self.incident.alert_rule
         activation = self.incident.activation
+        additional_context = {
+            "monitor_type": alert_rule.monitor_type,  # 0 = continuous, 1 = activated
+            "activator": (activation.activator if activation else ""),
+            "condition_type": (
+                activation.condition_type if activation else None
+            ),  # 0 = release creation, 1 = deploy creation
+        }
         return MessageBuilder(
             subject="[{}] {} - {}".format(
                 context["status"], context["incident_name"], self.project.slug
@@ -216,11 +223,11 @@ class EmailActionHandler(ActionHandler):
             template="sentry/emails/incidents/trigger.txt",
             html_template="sentry/emails/incidents/trigger.html",
             type=f"incident.alert_rule_{display.lower()}",
-            context=context,
+            context={
+                **context,
+                **additional_context,
+            },
             headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
-            monitor_type=alert_rule.monitor_type,  # 0 = continuous, 1 = activated
-            activator=activation.activator,
-            condition_type=activation.condition_type,  # 0 = release creation, 1 = deploy creation
         )
 
 
