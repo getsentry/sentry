@@ -76,7 +76,7 @@ class HomeTest(TestCase):
             assert response.redirect_chain == [
                 (f"http://{org.slug}.testserver/restore/", 302),
             ]
-            assert "activeorg" not in self.client.session
+            assert "activeorg" in self.client.session
 
     def test_customer_domain_org_deletion_in_progress(self):
         org = self.create_organization(
@@ -95,4 +95,4 @@ class HomeTest(TestCase):
             assert response.redirect_chain == [
                 ("http://testserver/organizations/new/", 302),
             ]
-            assert "activeorg" not in self.client.session
+            assert "activeorg" in self.client.session

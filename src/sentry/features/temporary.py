@@ -391,6 +391,8 @@ def register_temporary_features(manager: FeatureManager):
     # Enable improvements to Slack notifications
     manager.add("organizations:slack-improvements", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Feature flags for migrating to the Slack SDK WebClient
+    # Use new Slack SDK Client for getting users
+    manager.add("organizations:slack-sdk-get-users", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in _notify_recipient
     manager.add("organizations:slack-sdk-notify-recipient", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
@@ -495,8 +497,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("projects:first-event-severity-new-escalation", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable severity alerts for new issues based on severity and escalation
     manager.add("projects:high-priority-alerts", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable setting priority for issues
-    manager.add("projects:issue-priority", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable functionality for attaching  minidumps to events and displaying
     # then in the group UI.
     manager.add("projects:minidump", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True)

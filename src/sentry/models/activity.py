@@ -11,10 +11,9 @@ from django.db.models import F
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     GzippedDictField,
@@ -23,6 +22,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
 from sentry.types.group import PriorityLevel
@@ -40,19 +40,15 @@ class ActivityManager(BaseManager["Activity"]):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Activity]:
         activities = []
         activity_qs = self.filter(group=group).order_by("-datetime")
-        initial_priority = None
 
-        if not features.has("projects:issue-priority", group.project):
-            activity_qs = activity_qs.exclude(type=ActivityType.SET_PRIORITY.value)
-        else:
-            # Check if 'initial_priority' is available and the feature flag is on
-            initial_priority_value = group.get_event_metadata().get(
-                "initial_priority", None
-            ) or group.get_event_metadata().get("initial_priority", None)
+        # Check if 'initial_priority' is available
+        initial_priority_value = group.get_event_metadata().get(
+            "initial_priority", None
+        ) or group.get_event_metadata().get("initial_priority", None)
 
-            initial_priority = (
-                PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
-            )
+        initial_priority = (
+            PriorityLevel(initial_priority_value).to_str() if initial_priority_value else None
+        )
 
         prev_sig = None
         sig = None

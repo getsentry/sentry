@@ -50,7 +50,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      expect(TagStore.getIssueAttributes(OrganizationFixture()).has).toEqual({
+      expect(TagStore.getIssueAttributes().has).toEqual({
         key: 'has',
         name: 'Has Tag',
         values: ['mytag', 'otherkey'],
@@ -66,7 +66,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(OrganizationFixture());
+      const tags = TagStore.getIssueAttributes();
       expect(tags.is).toBeTruthy();
       expect(tags.is.key).toBe('is');
       expect(tags.assigned).toBeTruthy();
@@ -80,7 +80,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes(OrganizationFixture());
+      const tags = TagStore.getIssueAttributes();
       expect(tags.is.values).toContain('archived');
     });
   });

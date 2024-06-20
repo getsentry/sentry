@@ -25,7 +25,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -332,9 +332,7 @@ class IssueListOverview extends Component<Props, State> {
       return decodeScalar(query, '');
     }
 
-    return this.props.organization.features.includes('issue-priority-ui')
-      ? NEW_DEFAULT_QUERY
-      : DEFAULT_QUERY;
+    return DEFAULT_QUERY;
   }
 
   getSortFromSavedSearchOrLocation({
@@ -517,12 +515,11 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
-    const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
 
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
@@ -819,13 +816,11 @@ class IssueListOverview extends Component<Props, State> {
     const {organization, location} = this.props;
     const page = location.query.page;
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
-    const tab = getTabs(organization).find(
-      ([tabQuery]) => currentTabQuery === tabQuery
-    )?.[1];
+    const tab = getTabs().find(([tabQuery]) => currentTabQuery === tabQuery)?.[1];
 
     const numPerfIssues = groups.filter(
       group => GroupStore.get(group)?.issueCategory === IssueCategory.PERFORMANCE

@@ -275,6 +275,35 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert ["process_latency"] == sorted(r.span_attribute for r in project_rules)
 
     @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_idempotent_create(self):
+        rule = {
+            "metricsExtractionRules": [
+                {"spanAttribute": "process_latency", "type": "d", "unit": "ms", "tags": ["tag3"]}
+            ]
+        }
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **rule,
+        )
+        assert response.status_code == 200
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **rule,
+        )
+        assert response.status_code == 400
+
+        project_state = MetricsExtractionRuleState.load_from_project(self.project)
+        project_rules = project_state.get_rules()
+        assert len(project_rules) == 1
+        assert ["process_latency"] == sorted(r.span_attribute for r in project_rules)
+
+    @with_feature("organizations:custom-metrics-extraction-rule")
     def test_delete_non_existing_extraction_rule(self):
         non_existing_rule = {
             "metricsExtractionRules": [
@@ -426,3 +455,72 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert min(span_attributes) == "count_clicks_50"
         assert max(span_attributes) == "count_clicks_59"
         assert len(set(span_attributes)) == len(span_attributes)
+
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_null_validation(self):
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": None,
+                    "type": "c",
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": ["foo:bar", "baz:faz"],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+
+        assert response.status_code == 400
+
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_stuff",
+                    "type": None,
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": ["foo:bar", "baz:faz"],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+
+        assert response.status_code == 400
+
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_post_without_unit(self):
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "my_span_attribute",
+                    "type": "c",
+                    "unit": None,
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": ["foo:bar", "baz:faz"],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["unit"] == "none"
