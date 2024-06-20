@@ -24,16 +24,24 @@ class MetricsExtractionRule:
         self, span_attribute: str, type: str, unit: str, tags: set[str], conditions: list[str]
     ):
 
-        self.span_attribute = span_attribute
+        self.span_attribute = self.validate_span_attribute(span_attribute)
         self.type = self.validate_type(type)
         self.unit = HARD_CODED_UNITS.get(span_attribute, "none")
         self.tags = tags
         self.conditions = conditions
 
-    def validate_type(self, type_value: str):
+    def validate_span_attribute(self, span_attribute: str) -> str:
+        if not isinstance(span_attribute, str):
+            raise ValueError("The span attribute must be of type string.")
+        return span_attribute
+
+    def validate_type(self, type_value: str) -> str:
+        if not isinstance(type_value, str):
+            raise ValueError("The type must be of type string.")
+
         if type_value not in ALLOWED_TYPES:
             raise ValueError(
-                "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set. "
+                "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set."
             )
         return type_value
 
