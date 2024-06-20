@@ -5,8 +5,6 @@ from sentry.seer.similarity.grouping_records import delete_grouping_records_by_h
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
-BATCH_SIZE = options.get("embeddings-grouping.seer.delete-record-batch-size")
-
 
 @instrumented_task(
     name="sentry.tasks.delete_seer_grouping_records_by_hash",
@@ -25,8 +23,9 @@ def delete_seer_grouping_records_by_hash(
     Task to delete seer grouping records by hash list.
     Calls the seer delete by hash endpoint with batches of hashes of size `BATCH_SIZE`.
     """
+    batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
     len_hashes = len(hashes)
-    end_index = min(last_deleted_index + BATCH_SIZE, len_hashes)
+    end_index = min(last_deleted_index + batch_size, len_hashes)
     delete_grouping_records_by_hash(project_id, hashes[last_deleted_index:end_index])
     if end_index < len_hashes:
         delete_seer_grouping_records_by_hash.apply_async(args=[project_id, hashes, end_index])
