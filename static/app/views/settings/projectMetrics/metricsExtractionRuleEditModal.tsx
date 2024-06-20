@@ -2,7 +2,7 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -72,11 +72,11 @@ export function MetricsExtractionRuleEditModal({
             closeModal();
           },
           onError: error => {
-            onSubmitError(
-              error?.responseJSON?.detail
-                ? error.responseJSON.detail
-                : t('Unable to save your changes.')
-            );
+            const message = error?.responseJSON?.detail
+              ? (error.responseJSON.detail as string)
+              : t('Unable to save your changes.');
+            onSubmitError(message);
+            addErrorMessage(message);
           },
         }
       );
