@@ -76,6 +76,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-culprit-blocks": True})
     def test_regression_performance_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue regresses

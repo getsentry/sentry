@@ -7,6 +7,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
@@ -55,6 +56,7 @@ class SlackResolvedInReleaseNotificationTest(
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
+    @with_feature({"organizations:slack-culprit-blocks": True})
     def test_resolved_in_release_performance_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is resolved in a release
