@@ -32,5 +32,5 @@ class RemoteSubscription(DefaultFieldsModel):
     )
 
     class Meta:
-        app_label = "sentry"
+        app_label = "remote_subscriptions"
         db_table = "sentry_remotesubscription"
