@@ -68,7 +68,7 @@ class CheckinProcessErrorsManagerTest(TestCase):
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
             build_checkin_processing_error(
-                [{"type": ProcessingErrorType.CHECKIN_VALIDATION_FAILED}],
+                [{"type": ProcessingErrorType.MONITOR_DISABLED_NO_QUOTA}],
                 message_overrides={"project_id": self.project.id},
                 payload_overrides={"monitor_slug": monitor.slug},
             ),
