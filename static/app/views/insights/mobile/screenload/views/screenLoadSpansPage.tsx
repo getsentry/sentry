@@ -67,6 +67,9 @@ function ScreenLoadSpans() {
     spanDescription,
   } = location.query;
 
+  const countIfPrimaryRelease = `count_if(measurements.time_to_initial_display,release,${primaryRelease})`;
+  const countIfSecondaryRelease = `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`;
+
   return (
     <Layout.Page>
       <PageAlertProvider>
@@ -115,7 +118,8 @@ function ScreenLoadSpans() {
                   `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
                   `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
                   `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                  'count()',
+                  countIfPrimaryRelease,
+                  countIfSecondaryRelease,
                 ]}
                 blocks={[
                   {
@@ -140,8 +144,13 @@ function ScreenLoadSpans() {
                   },
                   {
                     unit: 'count',
-                    dataKey: 'count()',
-                    title: t('Total Count'),
+                    dataKey: countIfPrimaryRelease,
+                    title: t('Total Count (%s)', PRIMARY_RELEASE_ALIAS),
+                  },
+                  {
+                    unit: 'count',
+                    dataKey: countIfSecondaryRelease,
+                    title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                 ]}
                 referrer="api.starfish.mobile-screen-totals"
