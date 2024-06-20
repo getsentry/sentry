@@ -49,8 +49,8 @@ def backfill_seer_grouping_records_for_project(
 ) -> None:
     """
     Task to backfill seer grouping_records table.
-    Pass in last_processed_index = None if calling for the first time. This function will spawn
-    child tasks that will pass the last_processed_index
+    Pass in last_processed_group_index = None if calling for the first time. This function will spawn
+    child tasks that will pass the last_processed_group_index
     """
 
     logger.info(
@@ -91,7 +91,7 @@ def backfill_seer_grouping_records_for_project(
             extra={"current_project_id": project.id},
         )
         call_next_backfill(
-            last_processed_index=None,
+            last_processed_group_index=None,
             project_id=current_project_id,
             redis_client=redis_client,
             len_group_id_batch_unfiltered=0,
@@ -133,7 +133,7 @@ def backfill_seer_grouping_records_for_project(
 
     if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:
         call_next_backfill(
-            last_processed_index=batch_end_index,
+            last_processed_group_index=batch_end_index,
             project_id=current_project_id,
             redis_client=redis_client,
             len_group_id_batch_unfiltered=total_groups_to_backfill_length,
@@ -148,7 +148,7 @@ def backfill_seer_grouping_records_for_project(
     )
     if not group_hashes_dict:
         call_next_backfill(
-            last_processed_index=batch_end_index,
+            last_processed_group_index=batch_end_index,
             project_id=current_project_id,
             redis_client=redis_client,
             len_group_id_batch_unfiltered=total_groups_to_backfill_length,
@@ -193,7 +193,7 @@ def backfill_seer_grouping_records_for_project(
         },
     )
     call_next_backfill(
-        last_processed_index=batch_end_index,
+        last_processed_group_index=batch_end_index,
         project_id=current_project_id,
         redis_client=redis_client,
         len_group_id_batch_unfiltered=total_groups_to_backfill_length,
@@ -226,7 +226,7 @@ def call_next_backfill(
             "calling next backfill task",
             extra={
                 "project_id": project_id,
-                "last_processed_index": last_processed_group_index,
+                "last_processed_group_index": last_processed_group_index,
                 "last_processed_group_id": last_group_id,
             },
         )
@@ -265,13 +265,12 @@ def call_next_backfill(
             # we're at the end of the project list
             return
 
-        redis_client.set(
-            make_backfill_project_index_redis_key(
-                cohort if isinstance(cohort, str) else None, last_processed_project_index
-            ),
-            last_processed_project_index,
-            ex=REDIS_KEY_EXPIRY,
-        )
+        if isinstance(cohort, str):
+            redis_client.set(
+                make_backfill_project_index_redis_key(cohort, last_processed_project_index),
+                last_processed_project_index,
+                ex=REDIS_KEY_EXPIRY,
+            )
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
                 batch_project_id,
