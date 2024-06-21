@@ -851,7 +851,7 @@ class OrganizationCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, API
     @freeze_time()
     def test_last_triggered(self):
         self.login_as(user=self.user)
-        rule = Rule.objects.filter(project=self.project).first()
+        rule = Rule.objects.filter(project=self.project).get()
         resp = self.get_success_response(self.organization.slug, expand=["lastTriggered"])
         assert resp.data[0]["lastTriggered"] is None
         RuleFireHistory.objects.create(project=self.project, rule=rule, group=self.group)
