@@ -3,16 +3,18 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from django.conf import settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
+from sentry.uptime.models import ProjectUptimeSubscription
 
 
-def create_issue_platform_occurrence(result: CheckResult):
-    occurrence = build_occurrence_from_result(result)
+def create_issue_platform_occurrence(
+    result: CheckResult, project_subscription: ProjectUptimeSubscription
+):
+    occurrence = build_occurrence_from_result(result, project_subscription)
     produce_occurrence_to_kafka(
         payload_type=PayloadType.OCCURRENCE,
         occurrence=occurrence,
@@ -20,7 +22,9 @@ def create_issue_platform_occurrence(result: CheckResult):
     )
 
 
-def build_occurrence_from_result(result: CheckResult) -> IssueOccurrence:
+def build_occurrence_from_result(
+    result: CheckResult, project_subscription: ProjectUptimeSubscription
+) -> IssueOccurrence:
     status_reason = result["status_reason"]
     assert status_reason
     failure_reason = f'{status_reason["type"]} - {status_reason["description"]}'
@@ -56,13 +60,11 @@ def build_occurrence_from_result(result: CheckResult) -> IssueOccurrence:
     return IssueOccurrence(
         id=uuid.uuid4().hex,
         resource_id=None,
-        project_id=settings.UPTIME_POC_PROJECT_ID,  # TODO: Get this from the subscription or subscription like thing
+        project_id=project_subscription.project_id,
         event_id=uuid.uuid4().hex,
-        fingerprint=[
-            result["subscription_id"]
-        ],  # TODO: Should be the specific monitor id related to the subscription
+        fingerprint=[str(project_subscription.id)],
         type=UptimeDomainCheckFailure,
-        issue_title="Uptime Check Failed for https://sentry.io",  # TODO: Get this from the uptime check details
+        issue_title=f"Uptime Check Failed for {project_subscription.uptime_subscription.url}",
         subtitle="Your monitored domain is down",
         evidence_display=evidence_display,
         evidence_data={},

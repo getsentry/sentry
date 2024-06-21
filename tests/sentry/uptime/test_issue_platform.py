@@ -24,11 +24,12 @@ class CreateIssuePlatformOccurrenceTest(UptimeTestCase):
     def test(self, mock_uuid, mock_produce_occurrence_to_kafka):
         mock_uuid.uuid4.side_effect = cycle([uuid.uuid4(), uuid.uuid4()])
         result = self.create_uptime_result()
-        create_issue_platform_occurrence(result)
+        project_subscription = self.create_project_uptime_subscription()
+        create_issue_platform_occurrence(result, project_subscription)
         assert mock_produce_occurrence_to_kafka.call_count == 1
         assert mock_produce_occurrence_to_kafka.call_args_list[0][0] == ()
         call_kwargs = mock_produce_occurrence_to_kafka.call_args_list[0][1]
-        occurrence = build_occurrence_from_result(result)
+        occurrence = build_occurrence_from_result(result, project_subscription)
         assert call_kwargs == {
             "payload_type": PayloadType.OCCURRENCE,
             "occurrence": occurrence,
@@ -44,7 +45,8 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
         event_id = uuid.uuid4()
         mock_uuid.uuid4.side_effect = cycle([occurrence_id, event_id])
         result = self.create_uptime_result()
-        assert build_occurrence_from_result(result) == IssueOccurrence(
+        project_subscription = self.create_project_uptime_subscription()
+        assert build_occurrence_from_result(result, project_subscription) == IssueOccurrence(
             id=occurrence_id.hex,
             project_id=settings.UPTIME_POC_PROJECT_ID,
             event_id=event_id.hex,
