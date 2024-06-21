@@ -712,7 +712,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             [trace_id_2, trace_id_3],
         ]:
             query = {
-                "experiment": ["timestamp desc"],
                 "query": [f"trace:[{','.join(trace_ids)}]"],
                 "sort": "-timestamp",
             }

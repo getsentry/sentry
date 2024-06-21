@@ -91,9 +91,6 @@ class OrganizationTracesSerializer(serializers.Serializer):
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     sort = serializers.CharField(required=False)
-    experiment = serializers.ListField(
-        required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
-    )
 
 
 @contextmanager
@@ -159,8 +156,6 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
-        experiments = set(serialized.get("experiment", []))
-
         executor = TracesExecutor(
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
@@ -172,7 +167,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             mri=serialized.get("mri"),
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
-            sort=serialized.get("sort") if "timestamp desc" in experiments else None,
+            sort=serialized.get("sort"),
         )
 
         return self.paginate(
