@@ -530,7 +530,7 @@ class TracesExecutor:
         builder, timestamp_column = self.get_traces_matching_span_conditions_query(
             params,
             snuba_params,
-            orderby=[self.sort, "trace"],
+            orderby=[self.sort],
         )
 
         executor = OrderedTracesExecutor(
