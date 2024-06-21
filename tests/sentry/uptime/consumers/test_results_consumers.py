@@ -1,6 +1,7 @@
 import uuid
 from datetime import datetime
 from hashlib import md5
+from unittest import mock
 
 from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
@@ -12,10 +13,14 @@ from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.models.group import Group
 from sentry.remote_subscriptions.consumers.result_consumer import FAKE_SUBSCRIPTION_ID
 from sentry.testutils.cases import UptimeTestCase
-from sentry.uptime.consumers.results_consumer import UptimeResultProcessor
+from sentry.uptime.consumers.results_consumer import UptimeResultsStrategyFactory
 
 
 class ProcessResultTest(UptimeTestCase):
+    def setUp(self):
+        super().setUp()
+        self.partition = Partition(Topic("test"), 0)
+
     def test(self):
         subscription_id = uuid.uuid4().hex
         subscription = self.create_uptime_subscription(subscription_id=subscription_id)
@@ -38,7 +43,11 @@ class ProcessResultTest(UptimeTestCase):
         with override_settings(UPTIME_POC_PROJECT_ID=project.id), self.feature(
             UptimeDomainCheckFailure.build_ingest_feature_name()
         ):
-            UptimeResultProcessor(codec)(message)
+            factory = UptimeResultsStrategyFactory()
+            commit = mock.Mock()
+
+            consumer = factory.create_with_partitions(commit, {self.partition: 0})
+            consumer.submit(message)
 
         hashed_fingerprint = md5(str(project_subscription.id).encode("utf-8")).hexdigest()
 
@@ -63,7 +72,10 @@ class ProcessResultTest(UptimeTestCase):
         with override_settings(UPTIME_POC_PROJECT_ID=project.id), self.feature(
             UptimeDomainCheckFailure.build_ingest_feature_name()
         ):
-            UptimeResultProcessor(codec)(message)
+            factory = UptimeResultsStrategyFactory()
+            commit = mock.Mock()
+            consumer = factory.create_with_partitions(commit, {self.partition: 0})
+            consumer.submit(message)
 
         hashed_fingerprint = md5(str(FAKE_SUBSCRIPTION_ID).encode("utf-8")).hexdigest()
 

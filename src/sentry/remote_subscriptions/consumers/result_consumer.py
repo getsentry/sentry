@@ -10,7 +10,6 @@ from arroyo.processing.strategies.abstract import ProcessingStrategy, Processing
 from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
-from sentry_kafka_schemas.codecs import Codec
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
@@ -24,12 +23,17 @@ FAKE_SUBSCRIPTION_ID = 12345
 
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
-    def __init__(self, codec: Codec[T]):
-        self.codec = codec
+    def __init__(self):
+        self.codec = get_topic_codec(self.topic_for_codec)
 
     @property
     @abc.abstractmethod
     def subscription_model(self) -> type[U]:
+        pass
+
+    @property
+    @abc.abstractmethod
+    def topic_for_codec(self) -> Topic:
         pass
 
     def __call__(self, message: Message[KafkaPayload | FilteredPayload]):
@@ -77,8 +81,8 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
 
 
 class ResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload], Generic[T, U]):
-    def __init__(self, topic: Topic) -> None:
-        self.result_processor = self.result_processor_cls(get_topic_codec(topic))
+    def __init__(self) -> None:
+        self.result_processor = self.result_processor_cls()
 
     @property
     @abc.abstractmethod

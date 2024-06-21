@@ -5,6 +5,7 @@ import logging
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CHECKSTATUS_FAILURE, CheckResult
 
+from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     subscription_model = UptimeSubscription
+    topic_for_codec = Topic.UPTIME_RESULTS
 
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
