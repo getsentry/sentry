@@ -1,6 +1,6 @@
 from unittest import mock
 
-import sentry.hybridcloud.rpc.services.caching as caching_module
+import sentry.hybridcloud.rpc.caching as caching_module
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation

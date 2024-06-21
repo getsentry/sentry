@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 from django.db.models import Q
 
-import sentry.hybridcloud.rpc.services.caching as caching_module
+import sentry.hybridcloud.rpc.caching as caching_module
 from sentry.backup.dependencies import NormalizedModelName, dependencies, get_model_name
 from sentry.db.models.base import Model
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity

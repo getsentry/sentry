@@ -12,9 +12,9 @@ from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import control_silo_function
 
 from .client import PagerDutyClient
 

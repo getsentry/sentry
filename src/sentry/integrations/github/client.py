@@ -27,11 +27,11 @@ from sentry.integrations.utils.code_mapping import (
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
 from sentry.shared_integrations.response.mapping import MappingApiResponse
+from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 

@@ -25,8 +25,7 @@ def backfill_hash_values(apps: StateApps, schema_editor: BaseDatabaseSchemaEdito
 
         from django.conf import settings
 
-        from sentry.services.hybrid_cloud.util import control_silo_function
-        from sentry.silo.base import SiloMode
+        from sentry.silo.base import SiloMode, control_silo_function
         from sentry.silo.safety import unguarded_write
     except ImportError:
         logger.exception("Cannot execute migration. Required symbols could not be imported")

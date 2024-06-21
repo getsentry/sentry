@@ -1,14 +1,14 @@
 import pytest
 from django.test import override_settings
 
-from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.region import (
+from sentry.hybridcloud.rpc.resolvers import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByOrganizationObject,
     ByOrganizationSlug,
     RequireSingleOrganization,
 )
+from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.region import override_regions

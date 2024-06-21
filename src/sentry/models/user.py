@@ -547,7 +547,7 @@ class User(Model, AbstractBaseUser):
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import region_caching_service
         from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
@@ -556,7 +556,7 @@ class User(Model, AbstractBaseUser):
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import region_caching_service
         from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)

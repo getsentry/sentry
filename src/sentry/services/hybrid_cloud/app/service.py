@@ -7,7 +7,7 @@ import abc
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache
+from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
     RpcSentryApp,

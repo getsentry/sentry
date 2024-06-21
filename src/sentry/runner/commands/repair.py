@@ -5,8 +5,7 @@ import click
 from django.db import transaction
 
 from sentry.runner.decorators import configuration
-from sentry.services.hybrid_cloud.util import region_silo_function
-from sentry.silo.base import SiloLimit
+from sentry.silo.base import SiloLimit, region_silo_function
 from sentry.types.activity import ActivityType
 
 

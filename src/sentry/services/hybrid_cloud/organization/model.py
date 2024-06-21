@@ -17,10 +17,17 @@ from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.signals import sso_enabled
 from sentry.silo.base import SiloMode
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
+
+
+def flags_to_bits(*flag_values: bool) -> int:
+    bits = 0
+    for index, value in enumerate(flag_values):
+        if value:
+            bits |= 1 << index
+    return bits
 
 
 class _DefaultEnumHelpers:

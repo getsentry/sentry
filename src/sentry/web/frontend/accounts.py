@@ -19,8 +19,8 @@ from sentry.security.utils import capture_security_activity
 from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.signals import email_verified, terms_accepted
+from sentry.silo.base import control_silo_function
 from sentry.utils import auth
 from sentry.web.decorators import login_required, set_referrer_policy
 from sentry.web.forms.accounts import ChangePasswordRecoverForm, RecoverPasswordForm, RelocationForm

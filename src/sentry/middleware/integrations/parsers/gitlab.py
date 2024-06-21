@@ -14,7 +14,7 @@ from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.silo.base import control_silo_function
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

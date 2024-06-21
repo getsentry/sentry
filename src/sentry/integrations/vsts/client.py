@@ -12,9 +12,9 @@ from sentry.exceptions import InvalidIdentity
 from sentry.integrations.client import ApiClient
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
+from sentry.silo.base import control_silo_function
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:

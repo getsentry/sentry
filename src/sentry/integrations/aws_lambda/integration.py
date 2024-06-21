@@ -26,7 +26,7 @@ from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.silo.base import control_silo_function
 from sentry.utils.sdk import capture_exception
 
 from .client import ConfigurationError, gen_aws_client

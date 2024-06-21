@@ -10,6 +10,8 @@ from collections.abc import Callable, Generator, Iterable
 from enum import Enum
 from typing import Any
 
+from sentry.utils.env import in_test_environment
+
 if typing.TYPE_CHECKING:
     from sentry.types.region import Region
 
@@ -154,3 +156,32 @@ class SiloLimit(abc.ABC):
 
         functools.update_wrapper(override, original_method)
         return override
+
+
+class FunctionSiloLimit(SiloLimit):
+    """Decorator for functions that are scoped to a silo"""
+
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        if in_test_environment():
+            mode_str = ", ".join(str(m) for m in available_modes)
+            message = (
+                f"Called {original_method.__name__} in "
+                f"{current_mode} mode. This function is available only in: {mode_str}"
+            )
+            raise self.AvailabilityError(message)
+        return original_method
+
+    def __call__(self, decorated_obj: Any) -> Any:
+        if not callable(decorated_obj):
+            raise TypeError("`@FunctionSiloLimit` must decorate a function")
+        return self.create_override(decorated_obj)
+
+
+region_silo_function = FunctionSiloLimit(SiloMode.REGION)
+control_silo_function = FunctionSiloLimit(SiloMode.CONTROL)
+all_silo_function = FunctionSiloLimit(SiloMode.REGION, SiloMode.CONTROL)

@@ -7,8 +7,7 @@ from django.apps import apps
 
 from sentry.db.models import Model
 from sentry.notifications.class_manager import NotificationClassNotSetException, get
-from sentry.services.hybrid_cloud.util import region_silo_function
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloMode, region_silo_function
 from sentry.tasks.base import instrumented_task
 
 if TYPE_CHECKING:

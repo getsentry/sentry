@@ -22,8 +22,7 @@ from sentry.http import build_session
 from sentry.integrations.client import ApiClient
 from sentry.net.http import SafeSession
 from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.util import control_silo_function
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloMode, control_silo_function
 from sentry.silo.util import (
     DEFAULT_REQUEST_BODY,
     PROXY_BASE_PATH,

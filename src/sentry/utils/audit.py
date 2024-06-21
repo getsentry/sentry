@@ -21,7 +21,7 @@ from sentry.services.hybrid_cloud.log import log_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcAuditLogEntryActor
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.silo.base import region_silo_function
 
 
 def create_audit_entry(

@@ -6,8 +6,7 @@
 from abc import abstractmethod
 from typing import Any
 
-from sentry.hybridcloud.rpc.services.caching import back_with_silo_cache
-from sentry.hybridcloud.rpc.services.caching.service import back_with_silo_cache_many
+from sentry.hybridcloud.rpc.caching import back_with_silo_cache, back_with_silo_cache_many
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping

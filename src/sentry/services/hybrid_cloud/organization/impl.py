@@ -60,6 +60,7 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
     RpcOrganizationMemberSummary,
+    flags_to_bits,
 )
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
@@ -72,7 +73,6 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs

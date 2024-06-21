@@ -38,7 +38,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.silo.base import region_silo_function
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
