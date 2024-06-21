@@ -34,6 +34,7 @@ from sentry.tasks.embeddings_grouping.utils import (
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
@@ -1208,3 +1209,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
         assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @override_options({"seer.similarity-backfill-killswitch.enabled": True})
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    def test_backfill_seer_grouping_records_killswitch_enabled(self, mock_logger):
+        """
+        Test that the metadata is not set for groups when the backfill killswitch is true.
+        """
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
+            assert not group.data["metadata"].get("seer_similarity")
+        mock_logger.info.assert_called_with(
+            "backfill_seer_grouping_records.killswitch_enabled",
+        )
