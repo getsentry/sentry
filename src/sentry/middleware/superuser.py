@@ -51,8 +51,28 @@ class SuperuserMiddleware(MiddlewareMixin):
                         extra={
                             "superuser_token_id": su.token,
                             "user_id": request.user.id,
+                            "user_email": self._extract_email(request),
                             "su_org_accessed": org_slug,
                         },
                     )
             su.on_response(response)
         return response
+
+    def _extract_email(self, request: Request) -> str | None:
+        """Extract the email address of an authorized superuser for logging.
+
+        If the superuser is authorized with an email address that belongs to the host
+        organization, include that address in the log entry as a convenience.
+        Otherwise, the User object might be showing a personal email address,
+        in which case we want to omit the email address from the logs and rely on
+        "user_id" to identify them instead.
+
+        See https://github.com/getsentry/team-core-product-foundations/issues/315
+        """
+        staff_email_suffix = settings.SUPERUSER_STAFF_EMAIL_SUFFIX
+        if not staff_email_suffix:
+            return None
+        email = getattr(request.user, "email", None)
+        if email and email.endswith(staff_email_suffix):
+            return email
+        return None
