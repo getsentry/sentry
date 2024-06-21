@@ -256,7 +256,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return option_override_cm
 
     def get_comparison_start_end(
-        self, interval: timedelta, duration: timedelta
+        self, end: datetime, duration: timedelta, interval: timedelta = None
     ) -> tuple[datetime, datetime]:
         """
         Calculate the start and end times for the query. `interval` is only used for EventFrequencyPercentCondition
@@ -264,7 +264,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         `duration` is the time frame in which the condition is measuring counts, e.g. the '10 minutes' in
         "The issue is seen more than 100 times in 10 minutes"
         """
-        end = timezone.now() - interval
+        if interval:
+            end = end - interval
         start = end - duration
         return (start, end)
 
@@ -276,14 +277,17 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         environment_id: int,
         comparison_type: str,
     ) -> int:
-        start, end = self.get_comparison_start_end(timedelta(), duration)
+        current_time = timezone.now()
+        start, end = self.get_comparison_start_end(current_time, duration)
         with self.disable_consistent_snuba_mode(duration):
             result = self.query(event, start, end, environment_id=environment_id)
             if comparison_type == ComparisonType.PERCENT:
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
                 # automatically cached for 10s. We could consider trying to cache this and the main
                 # query for 20s to reduce the load.
-                start, end = self.get_comparison_start_end(comparison_interval, duration)
+                start, end = self.get_comparison_start_end(
+                    current_time, duration, comparison_interval
+                )
                 comparison_result = self.query(event, start, end, environment_id=environment_id)
                 result = percent_increase(result, comparison_result)
 
@@ -292,31 +296,31 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_rate_bulk(
         self,
         duration: timedelta,
-        comparison_interval: timedelta,
         group_ids: set[int],
         environment_id: int,
         comparison_type: str,
+        current_time: datetime,
+        comparison_interval: timedelta | None = None,
     ) -> dict[int, int]:
-        start, end = self.get_comparison_start_end(timedelta(), duration)
         with self.disable_consistent_snuba_mode(duration):
-            result = self.batch_query(
-                group_ids=group_ids,
-                start=start,
-                end=end,
-                environment_id=environment_id,
-            )
-        if comparison_type == ComparisonType.PERCENT:
-            start, comparison_end = self.get_comparison_start_end(comparison_interval, duration)
-            comparison_result = self.batch_query(
-                group_ids=group_ids,
-                start=start,
-                end=comparison_end,
-                environment_id=environment_id,
-            )
-            result = {
-                group_id: percent_increase(result[group_id], comparison_result[group_id])
-                for group_id in group_ids
-            }
+            if comparison_type == ComparisonType.COUNT:
+                start, end = self.get_comparison_start_end(current_time, duration)
+                result = self.batch_query(
+                    group_ids=group_ids,
+                    start=start,
+                    end=end,
+                    environment_id=environment_id,
+                )
+            elif comparison_type == ComparisonType.PERCENT:
+                start, comparison_end = self.get_comparison_start_end(
+                    current_time, duration, comparison_interval
+                )
+                result = self.batch_query(
+                    group_ids=group_ids,
+                    start=start,
+                    end=comparison_end,
+                    environment_id=environment_id,
+                )
         return result
 
     def get_snuba_query_result(

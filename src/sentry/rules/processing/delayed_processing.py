@@ -18,6 +18,7 @@ from sentry.rules.conditions.event_frequency import (
     BaseEventFrequencyCondition,
     ComparisonType,
     EventFrequencyConditionData,
+    percent_increase,
 )
 from sentry.rules.processing.processor import (
     PROJECT_ID_BUFFER_LIST_KEY,
@@ -38,10 +39,17 @@ logger = logging.getLogger("sentry.rules.delayed_processing")
 EVENT_LIMIT = 100
 
 
-class UniqueCondition(NamedTuple):
+class UniqueQuery(NamedTuple):
+    """
+    This class represents all the data that uniquely identifies a Snuba query
+    which can share the same scan for multiple conditions. Note that all
+    conditions must be of the same class however.
+    """
+
     cls_id: str
     interval: str
     environment_id: int
+    comparisonInterval: str | None = None
 
     def __repr__(self):
         return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id}"
@@ -91,42 +99,58 @@ def get_rules_to_slow_conditions(
     return rules_to_slow_conditions
 
 
+def _generate_unique_queries(
+    condition_data: EventFrequencyConditionData, environment_id: int
+) -> list[UniqueQuery]:
+    """
+    Returns a list of all unique queries that must be made for a condition.
+    Count comparison conditions will only have one unique query, while percent
+    comparison conditions will have two unique queries.
+    """
+    unique_queries = [UniqueQuery(condition_data["id"], condition_data["interval"], environment_id)]
+    if condition_data.get("comparisonType") == ComparisonType.PERCENT:
+        # We will later compare the first query results against the second query to calculate
+        # a percentage for percentage comparison conditions.
+        comparison_interval = condition_data.get("comparisonInterval", "5")
+        unique_queries.append(unique_queries[0]._replace(comparisonInterval=comparison_interval))
+    return unique_queries
+
+
 def get_condition_groups(
     alert_rules: list[Rule], rules_to_groups: DefaultDict[int, set[int]]
-) -> dict[UniqueCondition, DataAndGroups]:
+) -> dict[UniqueQuery, DataAndGroups]:
     """
-    Map unique conditions to the group IDs that need to checked for that
+    Map unique queries to the group IDs that need to checked for that
     condition. We also store a pointer to that condition's JSON so we can
     instantiate the class later
     """
-    condition_groups: dict[UniqueCondition, DataAndGroups] = {}
+    condition_groups: dict[UniqueQuery, DataAndGroups] = {}
     for rule in alert_rules:
         # We only want a rule's slow conditions because alert_rules are only added
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
             if condition_data:
-                unique_condition = UniqueCondition(
-                    condition_data["id"], condition_data["interval"], rule.environment_id
-                )
-                # Add to set of group_ids if there are already group_ids
-                # that apply to the unique condition
-                if data_and_groups := condition_groups.get(unique_condition):
-                    data_and_groups.group_ids.update(rules_to_groups[rule.id])
-                # Otherwise, create the tuple containing the condition data and the
-                # set of group_ids that apply to the unique condition
-                else:
-                    condition_groups[unique_condition] = DataAndGroups(
-                        condition_data, set(rules_to_groups[rule.id])
-                    )
+                for unique_cond in _generate_unique_queries(condition_data, rule.environment_id):
+                    # Add to set of group_ids if there are already group_ids
+                    # that apply to the unique query
+                    if data_and_groups := condition_groups.get(unique_cond):
+                        data_and_groups.group_ids.update(rules_to_groups[rule.id])
+                    # Otherwise, create the tuple containing the condition data and the
+                    # set of group_ids that apply to the unique query
+                    else:
+                        condition_groups[unique_cond] = DataAndGroups(
+                            condition_data, set(rules_to_groups[rule.id])
+                        )
     return condition_groups
 
 
 def get_condition_group_results(
-    condition_groups: dict[UniqueCondition, DataAndGroups],
+    condition_groups: dict[UniqueQuery, DataAndGroups],
     project: Project,
-) -> dict[UniqueCondition, dict[int, int]] | None:
-    condition_group_results: dict[UniqueCondition, dict[int, int]] = {}
+) -> dict[UniqueQuery, dict[int, int]] | None:
+    condition_group_results: dict[UniqueQuery, dict[int, int]] = {}
+    current_time = datetime.now(tz=timezone.utc)
     for unique_condition, (condition_data, group_ids) in condition_groups.items():
         condition_cls = rules.get(unique_condition.cls_id)
 
@@ -142,26 +166,60 @@ def get_condition_group_results(
             return None
 
         _, duration = condition_inst.intervals[unique_condition.interval]
-        comparison_interval = condition_inst.intervals[unique_condition.interval][1]
-        comparison_type = (
-            condition_data.get("comparisonType", ComparisonType.COUNT)
-            if condition_data
-            else ComparisonType.COUNT
-        )
+
+        comparison_type = condition_data.get("comparisonType", ComparisonType.COUNT)
+        if comparison_type == ComparisonType.PERCENT:
+            comparison_interval = condition_inst.intervals[
+                condition_data.get("comparisonInterval", "5")
+            ][1]
+        else:
+            comparison_interval = None
+
         result = safe_execute(
             condition_inst.get_rate_bulk,
-            duration,
-            comparison_interval,
-            group_ids,
-            unique_condition.environment_id,
-            comparison_type,
+            duration=duration,
+            group_ids=group_ids,
+            environment_id=unique_condition.environment_id,
+            comparison_type=comparison_type,
+            current_time=current_time,
+            comparison_interval=comparison_interval,
         )
         condition_group_results[unique_condition] = result or {}
     return condition_group_results
 
 
+def _passes_comparison(
+    condition_group_results: dict[UniqueQuery, dict[int, int]],
+    condition_data: EventFrequencyConditionData,
+    group_id: int,
+    environment_id: int,
+) -> bool:
+    """
+    Checks if a specific condition has passed.
+    """
+    unique_queries = _generate_unique_queries(condition_data, environment_id)
+    try:
+        query_values = [
+            condition_group_results[unique_query][group_id] for unique_query in unique_queries
+        ]
+    except KeyError as e:
+        logger.exception(
+            "delayed_processing.missing_query_results", extra={"exception": e, "group_id": group_id}
+        )
+        return False
+
+    # Return the result if we only have one query, which means we have a count comparison.
+    calculated_value = query_values[0]
+    if len(query_values) == 2:
+        calculated_value = percent_increase(calculated_value, query_values[1])
+
+    target_value = float(str(condition_data.get("value")))
+
+    return calculated_value > target_value
+
+
 def get_rules_to_fire(
-    condition_group_results: dict[UniqueCondition, dict[int, int]],
+    condition_group_results: dict[UniqueQuery, dict[int, int]],
     rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
@@ -171,23 +229,17 @@ def get_rules_to_fire(
         for group_id in rules_to_groups[alert_rule.id]:
             conditions_matched = 0
             for slow_condition in slow_conditions:
-                unique_condition = UniqueCondition(
-                    str(slow_condition.get("id")),
-                    str(slow_condition.get("interval")),
-                    alert_rule.environment_id,
-                )
-                results = condition_group_results.get(unique_condition, {})
-                if results:
-                    target_value = float(str(slow_condition.get("value")))
-                    if results[group_id] > target_value:
-                        if action_match == "any":
-                            rules_to_fire[alert_rule].add(group_id)
-                            break
-                        conditions_matched += 1
-                    else:
-                        if action_match == "all":
-                            # We failed to match all conditions for this group, skip
-                            break
+                if _passes_comparison(
+                    condition_group_results, slow_condition, group_id, alert_rule.environment_id
+                ):
+                    if action_match == "any":
+                        rules_to_fire[alert_rule].add(group_id)
+                        break
+                    conditions_matched += 1
+                else:
+                    if action_match == "all":
+                        # We failed to match all conditions for this group, skip
+                        break
             if action_match == "all" and conditions_matched == len(slow_conditions):
                 rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
@@ -355,7 +407,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     )
     alert_rules = [rule for rule in alert_rules_qs if rule.id not in snoozed_rules]
 
-    # STEP 4: Create a map of unique conditions to a tuple containing the JSON
+    # STEP 4: Create a map of unique queries to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
     # must be checked for that condition. We don't query per rule condition because
     # condition of the same class, interval, and environment can share a single scan.
@@ -365,8 +417,8 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         extra={"condition_groups": condition_groups, "project_id": project_id},
     )
 
-    # Step 5: Instantiate each unique condition, and evaluate the relevant
-    # group_ids that apply for that condition
+    # Step 5: Instantiate the generic condition that we can apply to each unique
+    # query, and evaluate the relevant group_ids that apply for that query.
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
 
