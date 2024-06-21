@@ -88,9 +88,7 @@ def build_test_message_blocks(
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
-    # if culprit := event and event.culprit or group.culprit:
-    #     culprit_section = {"elements": [{"text": culprit, "type": "mrkdwn"}], "type": "context"}
-    #     blocks.append(culprit_section)
+
     if text:
         new_text = text.lstrip(" ")
         if new_text:

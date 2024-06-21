@@ -521,8 +521,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
     def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
         if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
-        else:
-            return None
+        return None
 
     def get_text_block(self, text) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
