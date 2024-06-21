@@ -22,7 +22,6 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
-from sentry.remote_subscriptions.models import RemoteSubscription
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
@@ -606,24 +605,19 @@ class Fixtures:
     def create_webhook_payload(self, *args, **kwargs):
         return Factories.create_webhook_payload(*args, **kwargs)
 
-    def create_remote_subscription(
-        self, type: str = "test", subscription_id: str | None = None, **kwargs
-    ) -> RemoteSubscription:
-        return Factories.create_remote_subscription(
-            type=type, subscription_id=subscription_id, **kwargs
-        )
-
     def create_uptime_subscription(
         self,
-        remote_subscription: RemoteSubscription | None = None,
+        type: str = "test",
+        subscription_id: str | None = None,
+        status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
         url="http://sentry.io/",
         interval_seconds=60,
         timeout_ms=100,
     ) -> UptimeSubscription:
-        if remote_subscription is None:
-            remote_subscription = self.create_remote_subscription()
         return Factories.create_uptime_subscription(
-            remote_subscription=remote_subscription,
+            type=type,
+            subscription_id=subscription_id,
+            status=status,
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,

@@ -17,9 +17,7 @@ from sentry.uptime.consumers.results_consumer import UptimeResultProcessor
 class ProcessResultTest(UptimeTestCase):
     def test(self):
         subscription_id = uuid.uuid4().hex
-        subscription = self.create_uptime_subscription(
-            remote_subscription=self.create_remote_subscription(subscription_id=subscription_id),
-        )
+        subscription = self.create_uptime_subscription(subscription_id=subscription_id)
         project_subscription = self.create_project_uptime_subscription(
             uptime_subscription=subscription
         )

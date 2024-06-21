@@ -10,7 +10,6 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
 )
-from sentry.remote_subscriptions.models import RemoteSubscription
 from sentry.uptime.issue_platform import create_issue_platform_occurrence
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 
@@ -26,13 +25,11 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def handle_result(self, result: CheckResult):
         try:
             uptime_subscription = self.get_subscription(result)
-        except (UptimeSubscription.DoesNotExist, RemoteSubscription.DoesNotExist):
+        except UptimeSubscription.DoesNotExist:
             # XXX: Create fake rows for now
-            remote_subscription = RemoteSubscription(
-                type="test", subscription_id=result["subscription_id"]
-            )
             uptime_subscription = UptimeSubscription(
-                remote_subscription=remote_subscription,
+                subscription_id=result["subscription_id"],
+                type="test",
                 url="https://sentry.io/",
                 interval_seconds=300,
                 timeout_ms=500,

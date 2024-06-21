@@ -11,26 +11,14 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.db.models import FlexibleForeignKey, Model
-from sentry.remote_subscriptions.models import RemoteSubscription
+from sentry.remote_subscriptions.models import BaseRemoteSubscription
 
 logger = logging.getLogger(__name__)
 
-UPTIME_RESULTS_CODEC: Codec[CheckResult] = get_topic_codec(Topic.UPTIME_RESULTS)
-
-
-class WithRemoteSubscription(Model):
-    remote_subscription = FlexibleForeignKey("remote_subscriptions.RemoteSubscription", unique=True)
-
-    class Meta:
-        abstract = True
-
-
 T = TypeVar("T")
-U = TypeVar("U", bound=WithRemoteSubscription, covariant=True)
+U = TypeVar("U", bound=BaseRemoteSubscription, covariant=True)
 
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
@@ -59,14 +47,9 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
             logger.exception("Failed to process message result")
 
     def get_subscription(self, result: T) -> U:
-        remote_subscription = RemoteSubscription.objects.get(
+        return self.subscription_model.objects.get_from_cache(
             subscription_id=self.get_subscription_id(result)
         )
-        subscription = self.subscription_model.objects.get_from_cache(
-            remote_subscription_id=remote_subscription
-        )
-        subscription.remote_subscription = remote_subscription
-        return subscription
 
     @abc.abstractmethod
     def get_subscription_id(self, result: T) -> str:

@@ -2,8 +2,10 @@ from enum import Enum
 
 from django.db import models
 
+from sentry.db.models import Model
 
-class BaseRemoteSubscription(models.Model):
+
+class BaseRemoteSubscription(Model):
     class Status(Enum):
         ACTIVE = 0
         CREATING = 1

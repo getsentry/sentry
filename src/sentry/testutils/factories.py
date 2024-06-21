@@ -133,7 +133,6 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.models.userrole import UserRole
-from sentry.remote_subscriptions.models import RemoteSubscription
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -1897,15 +1896,18 @@ class Factories:
         )
 
     @staticmethod
-    def create_remote_subscription(type, subscription_id, status=RemoteSubscription.Status.ACTIVE):
-        return RemoteSubscription.objects.create(
-            type=type, subscription_id=subscription_id, status=status.value
-        )
-
-    @staticmethod
-    def create_uptime_subscription(remote_subscription, url, interval_seconds, timeout_ms):
+    def create_uptime_subscription(
+        type: str,
+        subscription_id: str | None,
+        status: UptimeSubscription.Status,
+        url: str,
+        interval_seconds: int,
+        timeout_ms: int,
+    ):
         return UptimeSubscription.objects.create(
-            remote_subscription=remote_subscription,
+            type=type,
+            subscription_id=subscription_id,
+            status=status.value,
             url=url,
             interval_seconds=interval_seconds,
             timeout_ms=timeout_ms,
