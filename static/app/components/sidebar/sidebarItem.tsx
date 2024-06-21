@@ -218,14 +218,14 @@ function SidebarItem({
       position={placement}
     >
       <SidebarNavigationItemHook id={id}>
-        {({disabled, additionalContent, Wrapper}) => (
+        {({additionalContent, Wrapper}) => (
           <Wrapper>
             <StyledSidebarItem
               {...props}
               id={`sidebar-item-${id}`}
               isInFloatingAccordion={isInFloatingAccordion}
               active={isActive ? 'true' : undefined}
-              to={disabled ? '' : toProps}
+              to={toProps}
               disabled={!hasLink && isInFloatingAccordion}
               className={className}
               aria-current={isActive ? 'page' : undefined}
@@ -310,7 +310,7 @@ export function isItemActive(
   );
 }
 
-const SidebarNavigationItemHook = HookOrDefault({
+export const SidebarNavigationItemHook = HookOrDefault({
   hookName: 'sidebar:navigation-item',
   defaultComponent: ({children}) =>
     children({
