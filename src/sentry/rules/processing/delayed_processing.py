@@ -135,11 +135,11 @@ def get_condition_query_groups(
         for condition_data in slow_conditions:
             for unique_cond in _generate_unique_queries(condition_data, rule.environment_id):
                 # Add to set of group_ids if there are already group_ids
-                # that apply to the unique query
+                # that apply to the unique condition query.
                 if data_and_groups := condition_groups.get(unique_cond):
                     data_and_groups.group_ids.update(rules_to_groups[rule.id])
                 # Otherwise, create the tuple containing the condition data and the
-                # set of group_ids that apply to the unique query
+                # set of group_ids that apply to the unique condition query.
                 else:
                     condition_groups[unique_cond] = DataAndGroups(
                         condition_data, set(rules_to_groups[rule.id])
