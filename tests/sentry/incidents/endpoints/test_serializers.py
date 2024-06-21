@@ -235,12 +235,13 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             {"aggregate": "count_unique(123, hello)"},
             {
                 "aggregate": [
-                    "Invalid Metric: count_unique(123, hello): expected at most 1 argument(s)"
+                    "Invalid Metric: count_unique(123, hello): expected at most 1 argument(s) but got 2 argument(s)"
                 ]
             },
         )
         self.run_fail_validation_test(
-            {"aggregate": "max()"}, {"aggregate": ["Invalid Metric: max(): expected 1 argument(s)"]}
+            {"aggregate": "max()"},
+            {"aggregate": ["Invalid Metric: max(): expected 1 argument(s) but got 0 argument(s)"]},
         )
         aggregate = "count_unique(tags[sentry:user])"
         base_params = self.valid_params.copy()
