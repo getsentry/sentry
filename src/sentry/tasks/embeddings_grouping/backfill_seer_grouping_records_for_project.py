@@ -251,6 +251,10 @@ def call_next_backfill(
         # TODO: delete project redis key here if needed?
         # call the backfill on next project
         if not cohort:
+            logger.info(
+                "backfill finished, no cohort",
+                extra={"project_id": project_id},
+            )
             return
 
         if isinstance(cohort, str):
