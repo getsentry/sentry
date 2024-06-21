@@ -608,9 +608,10 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]
 
-        if features.has("organizations:slack-culprit-blocks", project.organization):
-            if culprit_block := self.get_culprit_block(obj):
-                blocks.append(culprit_block)
+        if features.has("organizations:slack-culprit-blocks", project.organization) and (
+            culprit_block := self.get_culprit_block(obj)
+        ):
+            blocks.append(culprit_block)
 
         # build up text block
         text = text.lstrip(" ")
