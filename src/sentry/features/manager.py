@@ -332,6 +332,9 @@ class FeatureManager(RegisteredFeatureManager):
             if logging_enabled:
                 logger.info(
                     "feature_manager.individual_batch_check",
+                    extra={
+                        "entity_handler": type(self._entity_handler),
+                    },
                 )
             # Fall back to default handler if no entity handler available.
             project_features = [name for name in feature_names if name.startswith("projects:")]
