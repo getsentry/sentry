@@ -7,6 +7,10 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
+from sentry.integrations.slack.metrics import (
+    SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC,
+    SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
@@ -32,8 +36,8 @@ logger = logging.getLogger(__name__)
 class SlackDMEndpoint(Endpoint, abc.ABC):
     slack_request_class = SlackDMRequest
 
-    _METRICS_SUCCESS_KEY = "sentry.integrations.slack.dm_endpoint.success."
-    _METRIC_FAILURE_KEY = "sentry.integrations.slack.dm_endpoint.failure."
+    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC
+    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC
 
     def post_dispatcher(self, request: SlackDMRequest) -> Response:
         """
