@@ -303,7 +303,8 @@ describe('Screen Summary', function () {
               'avg_if(measurements.time_to_initial_display,release,com.example.vu.android@2.10.3+42)': 2000,
               'avg_if(measurements.time_to_full_display,release,com.example.vu.android@2.10.5)': 3000,
               'avg_if(measurements.time_to_full_display,release,com.example.vu.android@2.10.3+42)': 4000,
-              'count()': 20,
+              'count_if(measurements.time_to_initial_display,release,com.example.vu.android@2.10.5)': 20,
+              'count_if(measurements.time_to_initial_display,release,com.example.vu.android@2.10.3+42)': 10,
             },
           ],
         },
@@ -323,7 +324,8 @@ describe('Screen Summary', function () {
         {header: 'Avg TTID (R2)', value: '2.00s'},
         {header: 'Avg TTFD (R1)', value: '3.00s'},
         {header: 'Avg TTFD (R2)', value: '4.00s'},
-        {header: 'Total Count', value: '20'},
+        {header: 'Total Count (R1)', value: '20'},
+        {header: 'Total Count (R2)', value: '10'},
       ];
 
       for (const block of blocks) {

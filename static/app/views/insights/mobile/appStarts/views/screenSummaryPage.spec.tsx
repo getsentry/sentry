@@ -106,7 +106,8 @@ describe('Screen Summary', function () {
               'avg_if(span.duration,release,com.example.vu.android@2.10.3+42)': 2000,
               'avg_compare(span.duration,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
                 -0.5,
-              'count()': 20,
+              'count_if(release,com.example.vu.android@2.10.5)': 20,
+              'count_if(release,com.example.vu.android@2.10.3+42)': 10,
             },
           ],
         },
@@ -125,7 +126,8 @@ describe('Screen Summary', function () {
         {header: 'Avg Cold Start (R1)', value: '1.00s'},
         {header: 'Avg Cold Start (R2)', value: '2.00s'},
         {header: 'Change', value: '-50%'},
-        {header: 'Count', value: '20'},
+        {header: 'Count (R1)', value: '20'},
+        {header: 'Count (R2)', value: '10'},
       ];
 
       for (const block of blocks) {

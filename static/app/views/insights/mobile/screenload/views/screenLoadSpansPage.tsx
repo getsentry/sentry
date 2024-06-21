@@ -115,7 +115,8 @@ function ScreenLoadSpans() {
                   `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
                   `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
                   `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                  'count()',
+                  `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                  `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
                 ]}
                 blocks={[
                   {
@@ -140,8 +141,13 @@ function ScreenLoadSpans() {
                   },
                   {
                     unit: 'count',
-                    dataKey: 'count()',
-                    title: t('Total Count'),
+                    dataKey: `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                    title: t('Total Count (%s)', PRIMARY_RELEASE_ALIAS),
+                  },
+                  {
+                    unit: 'count',
+                    dataKey: `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
+                    title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                 ]}
                 referrer="api.starfish.mobile-screen-totals"

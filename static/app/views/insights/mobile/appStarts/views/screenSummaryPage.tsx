@@ -120,7 +120,8 @@ export function ScreenSummary() {
                   `avg_if(span.duration,release,${primaryRelease})`,
                   `avg_if(span.duration,release,${secondaryRelease})`,
                   `avg_compare(span.duration,release,${primaryRelease},${secondaryRelease})`,
-                  'count()',
+                  `count_if(release,${primaryRelease})`,
+                  `count_if(release,${secondaryRelease})`,
                 ]}
                 blocks={[
                   {
@@ -149,8 +150,13 @@ export function ScreenSummary() {
                   },
                   {
                     unit: 'count',
-                    title: t('Count'),
-                    dataKey: 'count()',
+                    title: t('Count (%s)', PRIMARY_RELEASE_ALIAS),
+                    dataKey: `count_if(release,${primaryRelease})`,
+                  },
+                  {
+                    unit: 'count',
+                    title: t('Count (%s)', SECONDARY_RELEASE_ALIAS),
+                    dataKey: `count_if(release,${secondaryRelease})`,
                   },
                 ]}
                 referrer="api.starfish.mobile-startup-totals"
