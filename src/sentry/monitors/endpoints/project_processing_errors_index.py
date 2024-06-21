@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ValidationError
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -17,6 +18,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams
 from sentry.models.project import Project
+from sentry.monitors.endpoints.base import ProjectMonitorPermission
 from sentry.monitors.processing_errors.errors import ProcessingErrorType
 from sentry.monitors.processing_errors.manager import delete_errors_for_project_by_type
 
@@ -24,6 +26,8 @@ from sentry.monitors.processing_errors.manager import delete_errors_for_project_
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class ProjectProcessingErrorsIndexEndpoint(ProjectEndpoint):
+    permission_classes: tuple[type[BasePermission], ...] = (ProjectMonitorPermission,)
+
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
     }
