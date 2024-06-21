@@ -220,7 +220,7 @@ class FeatureManager(RegisteredFeatureManager):
         logging_enabled = options.get("hybridcloud.endpoint_flag_logging")
         if logging_enabled:
             logger.info(
-                "feature_manager.register_entity_handler", extra={"entity_handler": handler}
+                "feature_manager.register_entity_handler", extra={"entity_handler": type(handler)}
             )
         self._entity_handler = handler
 
@@ -322,7 +322,7 @@ class FeatureManager(RegisteredFeatureManager):
                 logger.info(
                     "feature_manager.entity_batch_check",
                     extra={
-                        "entity_handler": self._entity_handler,
+                        "entity_handler": type(self._entity_handler),
                     },
                 )
             return self._entity_handler.batch_has(
@@ -332,9 +332,6 @@ class FeatureManager(RegisteredFeatureManager):
             if logging_enabled:
                 logger.info(
                     "feature_manager.individual_batch_check",
-                    extra={
-                        "entity_handler": self._entity_handler,
-                    },
                 )
             # Fall back to default handler if no entity handler available.
             project_features = [name for name in feature_names if name.startswith("projects:")]
