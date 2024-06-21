@@ -18,7 +18,9 @@ from sentry.remote_subscriptions.models import BaseRemoteSubscription
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-U = TypeVar("U", bound=BaseRemoteSubscription, covariant=True)
+U = TypeVar("U", bound=BaseRemoteSubscription)
+
+FAKE_SUBSCRIPTION_ID = 12345
 
 
 class ResultProcessor(abc.ABC, Generic[T, U]):
@@ -42,21 +44,35 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
                 extra={"payload": message.payload.value},
             )
         try:
-            self.handle_result(result)
+            # TODO: Handle subscription not existing - we should remove the subscription from
+            # the remote system in that case.
+            self.handle_result(self.get_subscription(result), result)
         except Exception:
             logger.exception("Failed to process message result")
 
     def get_subscription(self, result: T) -> U:
-        return self.subscription_model.objects.get_from_cache(
-            subscription_id=self.get_subscription_id(result)
-        )
+        try:
+            subscription = self.subscription_model.objects.get_from_cache(
+                subscription_id=self.get_subscription_id(result)
+            )
+        except self.subscription_model.DoesNotExist:
+            # XXX: Create fake rows for now
+            subscription = self.subscription_model(
+                id=FAKE_SUBSCRIPTION_ID,
+                subscription_id=self.get_subscription_id(result),
+                type="test",
+                url="https://sentry.io/",
+                interval_seconds=300,
+                timeout_ms=500,
+            )
+        return subscription
 
     @abc.abstractmethod
     def get_subscription_id(self, result: T) -> str:
         pass
 
     @abc.abstractmethod
-    def handle_result(self, result: T):
+    def handle_result(self, subscription: U, result: T):
         pass
 
 

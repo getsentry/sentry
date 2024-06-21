@@ -22,20 +22,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
-    def handle_result(self, result: CheckResult):
-        try:
-            uptime_subscription = self.get_subscription(result)
-        except UptimeSubscription.DoesNotExist:
-            # XXX: Create fake rows for now
-            uptime_subscription = UptimeSubscription(
-                subscription_id=result["subscription_id"],
-                type="test",
-                url="https://sentry.io/",
-                interval_seconds=300,
-                timeout_ms=500,
-            )
-
-        project_subscriptions = list(uptime_subscription.projectuptimesubscription_set.all())
+    def handle_result(self, subscription: UptimeSubscription, result: CheckResult):
+        project_subscriptions = list(subscription.projectuptimesubscription_set.all())
         if not project_subscriptions:
             # XXX: Hack for now, just create a fake row
             try:
@@ -45,8 +33,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             else:
                 project_subscriptions = [
                     ProjectUptimeSubscription(
-                        id=uptime_subscription.id,
-                        uptime_subscription=uptime_subscription,
+                        id=subscription.id,
+                        uptime_subscription=subscription,
                         project=project,
                     )
                 ]
