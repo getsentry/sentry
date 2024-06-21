@@ -246,6 +246,7 @@ class OrganizationSerializer(Serializer):
         from sentry import features
         from sentry.features.base import OrganizationFeature
 
+        logging_enabled = options.get("hybridcloud.endpoint_flag_logging")
         # Retrieve all registered organization features
         org_features = [
             feature
@@ -254,6 +255,14 @@ class OrganizationSerializer(Serializer):
         ]
         feature_set = set()
 
+        if logging_enabled:
+            logger.info(
+                "organization_serializer.begin_feature_check",
+                extra={
+                    "org_features": org_features,
+                    "user.id": user.id if not user.is_anonymous else None,
+                },
+            )
         with sentry_sdk.start_span(op="features.check", description="check batch features"):
             # Check features in batch using the entity handler
             batch_features = features.batch_has(org_features, actor=user, organization=obj)
@@ -269,6 +278,16 @@ class OrganizationSerializer(Serializer):
 
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
+
+        if logging_enabled:
+            logger.info(
+                "organization_serializer.batch_feature_result",
+                extra={
+                    "batch_feature_result": batch_features,
+                    "user.id": user.id if not user.is_anonymous else None,
+                    "remaining_features": org_features,
+                },
+            )
 
         with sentry_sdk.start_span(op="features.check", description="check individual features"):
             # Remaining features should not be checked via the entity handler
@@ -303,17 +322,6 @@ class OrganizationSerializer(Serializer):
             feature_set.add("shared-issues")
         if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
             feature_set.remove("mep-rollout-flag")
-
-        if options.get("hybridcloud.endpoint_flag_logging"):
-            logger.info(
-                "organization_serializer.flags",
-                extra={
-                    "org_features": org_features,
-                    "batch_features": batch_features,
-                    "feature_set": feature_set,
-                    "user.id": user.id if not user.is_anonymous else None,
-                },
-            )
 
         return feature_set
 
