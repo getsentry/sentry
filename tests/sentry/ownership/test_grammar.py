@@ -58,6 +58,20 @@ def test_parse_rules():
     ]
 
 
+def test_parse_lines_with_comments_in_place_of_owners():
+    data = """
+    # regular comment
+    codeowners:/team #frontend
+    codeowners:/ignore # skip
+    """
+    expected_rules = [
+        Rule(Matcher("codeowners", "/team"), [Owner("team", "frontend")]),
+    ]
+
+    parsed_rules = parse_rules(data)
+    assert parsed_rules == expected_rules
+
+
 def test_dump_schema():
     assert dump_schema([Rule(Matcher("path", "*.js"), [Owner("team", "frontend")])]) == {
         "$version": 1,

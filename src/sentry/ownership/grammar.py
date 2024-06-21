@@ -35,9 +35,12 @@ ownership_grammar = Grammar(
 
 ownership = line*
 
-line = _ (comment / rule / empty) newline?
+line = _ (comment / rule / rule_comment / empty) newline?
 
 rule = _ matcher owners
+
+# A partial rule is a rule without owners
+rule_comment = _ matcher comment?
 
 matcher      = _ matcher_tag any_identifier
 matcher_tag  = (matcher_type sep)?
@@ -226,7 +229,7 @@ class Owner(namedtuple("Owner", "type identifier")):
 
 
 class OwnershipVisitor(NodeVisitor):
-    visit_comment = visit_empty = lambda *a: None
+    visit_rule_comment = visit_comment = visit_empty = lambda *a: None
 
     def visit_ownership(self, node: Node, children: Sequence[Rule | None]) -> Sequence[Rule]:
         return [_f for _f in children if _f]
