@@ -76,7 +76,6 @@ function ResourcesLandingPage() {
                   ...DEFAULT_RESOURCE_FILTERS,
                   `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
                 ]}
-                moduleName={ModuleName.RESOURCE}
               />
             </FilterOptionsContainer>
             <ResourceView />
