@@ -88,7 +88,6 @@ class OrganizationTracesSerializer(serializers.Serializer):
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
-    suggestedQuery = serializers.CharField(required=False)
 
 
 @contextmanager
@@ -158,7 +157,6 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
             user_queries=serialized.get("query", []),
-            suggested_query=serialized.get("suggestedQuery", ""),
             metrics_max=serialized.get("metricsMax"),
             metrics_min=serialized.get("metricsMin"),
             metrics_operation=serialized.get("metricsOp"),
@@ -320,7 +318,6 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         user_queries: list[str],
-        suggested_query: str,
         metrics_max: float | None,
         metrics_min: float | None,
         metrics_operation: str | None,
@@ -331,13 +328,7 @@ class TracesExecutor:
     ):
         self.params = params
         self.snuba_params = snuba_params
-        # Filter out empty queries as they do not do anything to change the results.
-        self.user_queries = {
-            query.strip(): i + 1  # ensure no zero ids
-            for i, query in enumerate(user_queries)
-            if query.strip()
-        }
-        self.suggested_query = suggested_query
+        self.user_queries = process_user_queries(params, snuba_params, user_queries)
         self.metrics_max = metrics_max
         self.metrics_min = metrics_min
         self.metrics_operation = metrics_operation
@@ -517,11 +508,8 @@ class TracesExecutor:
             params,
             snuba_params,
         )
-        all_queries.append(query)
 
-        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
-            for query in all_queries:
-                query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
+        all_queries.append(query)
 
         assert timestamp_column is not None
 
@@ -591,10 +579,6 @@ class TracesExecutor:
 
             all_queries.append(query)
 
-        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
-            for query in all_queries:
-                query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
-
         assert timestamp_column is not None
 
         all_raw_results = bulk_snuba_queries(
@@ -639,7 +623,7 @@ class TracesExecutor:
                 Dataset.SpansIndexed,
                 params=params,
                 snuba_params=snuba_params,
-                query=next(iter(self.user_queries)) if self.user_queries else None,
+                query=None,
                 selected_columns=["trace", timestamp_column],
                 # The orderby is intentionally `None` here as this query is much faster
                 # if we let Clickhouse decide which order to return the results in.
@@ -651,6 +635,9 @@ class TracesExecutor:
                     transform_alias_to_input_format=True,
                 ),
             )
+
+            for where in self.user_queries.values():
+                query.where.extend(where)
         else:
             timestamp_column = "min(timestamp)"
             query = SpansIndexedQueryBuilder(
@@ -671,10 +658,7 @@ class TracesExecutor:
             )
 
             trace_conditions = []
-            for user_query in self.user_queries:
-                # We want to ignore all the aggregate conditions here because we're strictly
-                # searching on span attributes, not aggregates
-                where, _ = query.resolve_conditions(user_query)
+            for where in self.user_queries.values():
                 if len(where) == 1:
                     trace_conditions.extend(where)
                 elif len(where) > 1:
@@ -692,6 +676,9 @@ class TracesExecutor:
                 query.where.extend(trace_conditions)
             elif len(trace_conditions) > 1:
                 query.where.append(BooleanCondition(op=BooleanOp.OR, conditions=trace_conditions))
+
+        if options.get("performance.traces.trace-explorer-skip-floating-spans"):
+            query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
 
         return query, timestamp_column
 
@@ -826,13 +813,11 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> QueryBuilder:
-        trace_ids_str = ",".join(trace_ids)
-        trace_ids_condition = f"trace:[{trace_ids_str}]"
-        return SpansIndexedQueryBuilder(
+        query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
             snuba_params=snuba_params,
-            query=f"is_transaction:1 {trace_ids_condition}",
+            query="is_transaction:1",
             selected_columns=[
                 "trace",
                 "project",
@@ -853,19 +838,30 @@ class TracesExecutor:
             ),
         )
 
+        # restrict the query to just this subset of trace ids
+        query.add_conditions(
+            [
+                Condition(
+                    Column("trace_id"),
+                    Op.IN,
+                    Function("splitByChar", [",", ",".join(trace_ids)]),
+                )
+            ]
+        )
+
+        return query
+
     def get_traces_metas_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> QueryBuilder:
-        trace_ids_str = ",".join(trace_ids)
-        trace_ids_condition = f"trace:[{trace_ids_str}]"
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
             snuba_params=snuba_params,
-            query=trace_ids_condition,
+            query=None,
             selected_columns=[
                 "trace",
                 "count()",
@@ -879,6 +875,17 @@ class TracesExecutor:
             ),
         )
 
+        # restrict the query to just this subset of trace ids
+        query.add_conditions(
+            [
+                Condition(
+                    Column("trace_id"),
+                    Op.IN,
+                    Function("splitByChar", [",", ",".join(trace_ids)]),
+                )
+            ]
+        )
+
         """
         We want to get a count of the number of matching spans. To do this, we have to
         translate the user queries into conditions, and get a count of spans that match
@@ -887,11 +894,7 @@ class TracesExecutor:
 
         # Translate each user query into a condition to match one
         trace_conditions = []
-        for user_query in self.user_queries:
-            # We want to ignore all the aggregate conditions here because we're strictly
-            # searching on span attributes, not aggregates
-            where, _ = query.resolve_conditions(user_query)
-
+        for where in self.user_queries.values():
             trace_condition = format_as_trace_conditions(where)
             if not trace_condition:
                 continue
@@ -922,13 +925,11 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> QueryBuilder:
-        trace_ids_str = ",".join(trace_ids)
-        trace_ids_condition = f"trace:[{trace_ids_str}]"
-        return QueryBuilder(
+        query = QueryBuilder(
             Dataset.Events,
             params,
             snuba_params=snuba_params,
-            query=trace_ids_condition,
+            query=None,
             selected_columns=["trace", "count()"],
             limit=len(trace_ids),
             config=QueryBuilderConfig(
@@ -936,25 +937,49 @@ class TracesExecutor:
             ),
         )
 
+        # restrict the query to just this subset of trace ids
+        query.add_conditions(
+            [
+                Condition(
+                    Column("trace_id"),
+                    Op.IN,
+                    Function("splitByChar", [",", ",".join(trace_ids)]),
+                )
+            ]
+        )
+
+        return query
+
     def get_traces_occurrences_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> QueryBuilder:
-        trace_ids_str = ",".join(trace_ids)
-        trace_ids_condition = f"trace:[{trace_ids_str}]"
-        return QueryBuilder(
+        query = QueryBuilder(
             Dataset.IssuePlatform,
             params,
             snuba_params=snuba_params,
-            query=trace_ids_condition,
+            query=None,
             selected_columns=["trace", "count()"],
             limit=len(trace_ids),
             config=QueryBuilderConfig(
                 transform_alias_to_input_format=True,
             ),
         )
+
+        # restrict the query to just this subset of trace ids
+        query.add_conditions(
+            [
+                Condition(
+                    Column("trace_id"),
+                    Op.IN,
+                    Function("splitByChar", [",", ",".join(trace_ids)]),
+                )
+            ]
+        )
+
+        return query
 
 
 class TraceSpansExecutor:
@@ -977,12 +1002,7 @@ class TraceSpansExecutor:
         self.snuba_params = snuba_params
         self.trace_id = trace_id
         self.fields = fields
-        # Filter out empty queries as they do not do anything to change the results.
-        self.user_queries = {
-            query.strip(): i + 1  # ensure no zero ids
-            for i, query in enumerate(user_queries)
-            if query.strip()
-        }
+        self.user_queries = process_user_queries(params, snuba_params, user_queries)
         self.metrics_max = metrics_max
         self.metrics_min = metrics_min
         self.metrics_operation = metrics_operation
@@ -1082,8 +1102,7 @@ class TraceSpansExecutor:
 
         user_conditions = []
 
-        for query, i in self.user_queries.items():
-            where, _ = user_spans_query.resolve_conditions(query)
+        for where in self.user_queries.values():
             user_conditions.append(where)
 
         # First make sure that we only return spans from the trace specified
@@ -1184,8 +1203,7 @@ class TraceStatsExecutor:
         self.params = params
         self.snuba_params = snuba_params
         self.columns = columns
-        # Filter out empty queries as they do not do anything to change the results.
-        self.user_queries = [query.strip() for query in user_queries if query.strip()]
+        self.user_queries = process_user_queries(params, snuba_params, user_queries)
         self.rollup = rollup
         self.zerofill_results = zerofill_results
 
@@ -1226,10 +1244,7 @@ class TraceStatsExecutor:
 
         trace_conditions = []
 
-        for user_query in self.user_queries:
-            # We want to ignore all the aggregate conditions here because we're strictly
-            # searching on span attributes, not aggregates
-            where, _ = query.resolve_conditions(user_query)
+        for where in self.user_queries.values():
             if len(where) == 1:
                 trace_conditions.extend(where)
             elif len(where) > 1:
@@ -1544,6 +1559,39 @@ def process_breakdowns(data, traces_range):
             interval["sliceWidth"] = interval["sliceEnd"] - interval["sliceStart"]
 
     return breakdowns
+
+
+def process_user_queries(
+    params: ParamsType,
+    snuba_params: SnubaParams,
+    user_queries: list[str],
+) -> dict[str, list[list[WhereType]]]:
+    builder = SpansIndexedQueryBuilder(
+        Dataset.SpansIndexed,
+        params,
+        snuba_params=snuba_params,
+        query=None,  # Note: conditions are added below
+        selected_columns=[],
+        config=QueryBuilderConfig(
+            transform_alias_to_input_format=True,
+        ),
+    )
+
+    queries: dict[str, list[list[WhereType]]] = {}
+
+    for user_query in user_queries:
+        user_query = user_query.strip()
+
+        # Filter out empty queries as they do not do anything to change the results.
+        if not user_query:
+            continue
+
+        # We want to ignore all the aggregate conditions here because we're strictly
+        # searching on span attributes, not aggregates
+        where, _ = builder.resolve_conditions(user_query)
+        queries[user_query] = where
+
+    return queries
 
 
 OP_TO_FUNC = {
