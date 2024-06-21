@@ -177,7 +177,9 @@ class DataExportTest(APITestCase):
         payload = self.make_payload("discover", {"field": ["min()"]})
         with self.feature("organizations:discover-query"):
             response = self.get_error_response(self.org.slug, status_code=400, **payload)
-        assert response.data == {"non_field_errors": ["min: expected 1 argument(s)"]}
+        assert response.data == {
+            "non_field_errors": ["min: expected 1 argument(s) but got 0 argument(s)"]
+        }
 
     @freeze_time("2020-02-27 12:07:37")
     def test_export_invalid_date_params(self):
