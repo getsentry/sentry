@@ -275,7 +275,7 @@ const StyledTimelineItem = styled(Timeline.Item)`
   }
   cursor: pointer;
   /* vertical line connecting items */
-  &::before {
+  &:not(:last-child)::before {
     content: '';
     position: absolute;
     left: 16.5px;
@@ -284,6 +284,9 @@ const StyledTimelineItem = styled(Timeline.Item)`
     bottom: -9px;
     background: ${p => p.theme.border};
     z-index: 0;
+  }
+  &:first-child::before {
+    top: 4px;
   }
 `;
 

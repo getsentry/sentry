@@ -125,7 +125,8 @@ const Row = styled('div')<{hasLowerBorder: boolean}>`
     margin-bottom: 0;
     background: ${p => p.theme.background};
   }
-  &:last-child > :last-child {
+  &:last-child > :last-child,
+  &:first-child > :last-child {
     margin-bottom: ${p => (p.hasLowerBorder ? space(1) : 0)};
   }
 `;
@@ -146,6 +147,7 @@ const Title = styled('p')`
   margin: 0;
   font-weight: bold;
   text-transform: capitalize;
+  text-align: left;
   grid-column: span 1;
 `;
 
@@ -163,12 +165,14 @@ const Spacer = styled('div')`
 `;
 
 const Content = styled('div')`
+  text-align: left;
   grid-column: span 2;
   color: ${p => p.theme.subText};
   margin: ${space(0.25)} 0 0;
 `;
 
 export const Text = styled('div')`
+  text-align: left;
   &:only-child {
     margin-top: 0;
   }
