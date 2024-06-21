@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 
 from urllib3.response import HTTPResponse
 
+from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import (
     RawSeerSimilarIssueData,
@@ -63,6 +64,52 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "exception_type": "FailedToFetchError",
         }
         assert get_similarity_data_from_seer(params) == []
+
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_redirect(self, mock_seer_request: MagicMock, mock_logger: MagicMock):
+        event = save_new_event({"message": "Dogs are great!"}, self.project)
+
+        mock_seer_request.return_value = HTTPResponse(
+            status=308, headers={"location": "/new/and/improved/endpoint/"}
+        )
+
+        params: SimilarIssuesEmbeddingsRequest = {
+            "hash": NonNone(event.get_primary_hash()),
+            "project_id": self.project.id,
+            "stacktrace": "string",
+            "message": "message",
+            "exception_type": "FailedToFetchError",
+        }
+
+        assert get_similarity_data_from_seer(params) == []
+        mock_logger.error.assert_called_with(
+            f"Encountered redirect when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}. Please update `SEER_SIMILAR_ISSUES_URL` in `sentry.conf.server` to be '/new/and/improved/endpoint/'."
+        )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_error_status(self, mock_seer_request: MagicMock, mock_logger: MagicMock):
+        event = save_new_event({"message": "Dogs are great!"}, self.project)
+
+        mock_seer_request.return_value = HTTPResponse(
+            "No soup for you",
+            status=403,
+        )
+
+        params: SimilarIssuesEmbeddingsRequest = {
+            "hash": NonNone(event.get_primary_hash()),
+            "project_id": self.project.id,
+            "stacktrace": "string",
+            "message": "message",
+            "exception_type": "FailedToFetchError",
+        }
+
+        assert get_similarity_data_from_seer(params) == []
+        mock_logger.error.assert_called_with(
+            f"Received 403 when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}.",
+            extra={"response_data": "No soup for you"},
+        )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_returns_sorted_similarity_results(self, mock_seer_request: MagicMock):
