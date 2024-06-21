@@ -201,14 +201,10 @@ export function ScreenSummary() {
 }
 
 function PageWithProviders() {
-  const location = useLocation<Query>();
-
-  const {transaction} = location.query;
-
   return (
     <ModulePageProviders
       moduleName="app_start"
-      pageTitle={transaction}
+      pageTitle={t('Screen Summary')}
       features="insights-initial-modules"
     >
       <ScreenSummary />

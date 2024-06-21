@@ -64,3 +64,13 @@ def test_type_validation():
         MetricsExtractionRule("count_clicks", "f", "none", {"tag_1", "tag_2"}, [])
     with pytest.raises(ValueError):
         MetricsExtractionRule("count_clicks", "distribution", "none", {"tag_1", "tag_2"}, [])
+
+
+def test_hard_coded_units():
+    rule = MetricsExtractionRule("span.duration", "c", "none", {"tag_1", "tag_2"}, [])
+    mri = rule.generate_mri()
+    assert mri == "c:custom/span.duration@none"
+
+    rule = MetricsExtractionRule("span.duration", "d", "none", {"tag_1", "tag_2"}, [])
+    mri = rule.generate_mri()
+    assert mri == "d:custom/span.duration@millisecond"

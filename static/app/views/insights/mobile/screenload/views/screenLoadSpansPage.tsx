@@ -213,14 +213,10 @@ function ScreenLoadSpans() {
 }
 
 function PageWithProviders() {
-  const location = useLocation<Query>();
-
-  const {transaction} = location.query;
-
   return (
     <ModulePageProviders
       moduleName="screen_load"
-      pageTitle={transaction}
+      pageTitle={t('Screen Summary')}
       features="insights-initial-modules"
     >
       <ScreenLoadSpans />

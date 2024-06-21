@@ -13,7 +13,7 @@ from sentry.db.models import (
     Model,
     region_silo_model,
 )
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.tasks.relay import schedule_invalidate_project_config
 

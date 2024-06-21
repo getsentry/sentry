@@ -27,6 +27,7 @@ import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
+import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
 import SystemAlerts from './systemAlerts';
@@ -232,12 +233,14 @@ function App({children, params}: Props) {
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <OrganizationContextProvider>
-        <MainContainer tabIndex={-1} ref={mainContainerRef}>
-          <GlobalModal onClose={handleModalClose} />
-          <SystemAlerts className="messages-container" />
-          <Indicators className="indicators-container" />
-          <ErrorBoundary>{renderBody()}</ErrorBoundary>
-        </MainContainer>
+        <AsyncSDKIntegrationContextProvider>
+          <MainContainer tabIndex={-1} ref={mainContainerRef}>
+            <GlobalModal onClose={handleModalClose} />
+            <SystemAlerts className="messages-container" />
+            <Indicators className="indicators-container" />
+            <ErrorBoundary>{renderBody()}</ErrorBoundary>
+          </MainContainer>
+        </AsyncSDKIntegrationContextProvider>
       </OrganizationContextProvider>
     </Profiler>
   );

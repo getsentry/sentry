@@ -185,7 +185,7 @@ sentry-kafka-schemas==0.1.93
 sentry-ophio==0.2.7
 sentry-redis-tools==0.1.7
 sentry-relay==0.8.67
-sentry-sdk==2.2.1
+sentry-sdk==2.6.0
 sentry-usage-accountant==0.0.10
 simplejson==3.17.6
 six==1.16.0
@@ -229,7 +229,7 @@ tzdata==2023.3
 ua-parser==0.10.0
 unidiff==0.7.4
 uritemplate==4.1.1
-urllib3==2.0.7
+urllib3==2.2.2
 vine==5.1.0
 virtualenv==20.25.0
 wcwidth==0.2.10

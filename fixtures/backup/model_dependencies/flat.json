@@ -35,6 +35,7 @@
   "hybridcloud.regioncacheversion": [],
   "hybridcloud.webhookpayload": [],
   "nodestore.node": [],
+  "remote_subscriptions.remotesubscription": [],
   "replays.replayrecordingsegment": [
     "sentry.file",
     "sentry.project"
@@ -856,5 +857,12 @@
   ],
   "social_auth.usersocialauth": [
     "sentry.user"
+  ],
+  "uptime.projectuptimesubscription": [
+    "sentry.project",
+    "uptime.uptimesubscription"
+  ],
+  "uptime.uptimesubscription": [
+    "remote_subscriptions.remotesubscription"
   ]
 }

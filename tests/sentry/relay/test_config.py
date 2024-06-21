@@ -102,20 +102,19 @@ def _validate_project_config(config):
 def test_get_project_config_non_visible(default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update(status=ObjectStatus.PENDING_DELETION)
-    cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+    cfg = get_project_config(default_project, project_keys=keys)
     assert cfg.to_dict() == {"disabled": True}
 
 
 @django_db_all
 @region_silo_test
-@pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
-def test_get_project_config(default_project, insta_snapshot, django_cache, full):
+def test_get_project_config(default_project, insta_snapshot):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
     default_project.update_option("sentry:relay_pii_config", PII_CONFIG)
     default_project.organization.update_option("sentry:relay_pii_config", PII_CONFIG)
     keys = ProjectKey.objects.filter(project=default_project)
 
-    project_cfg = get_project_config(default_project, full_config=full, project_keys=keys)
+    project_cfg = get_project_config(default_project, project_keys=keys)
     cfg = project_cfg.to_dict()
 
     _validate_project_config(cfg["config"])
@@ -144,7 +143,7 @@ def test_get_experimental_config_dyn_sampling(mock_logger, _, default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     with Feature({"organizations:dynamic-sampling": True}):
         # Does not raise:
-        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+        cfg = get_project_config(default_project, project_keys=keys)
     # Check that the "sampling" key is missing from config. It used to be called
     # "dynamicSampling", so we also test for that:
     subconfig = cfg.to_dict()["config"]
@@ -164,7 +163,7 @@ def test_get_experimental_config_transaction_metrics_exception(
     default_project.update_option("sentry:transaction_metrics_custom_tags", 42)
 
     with Feature({"organizations:transaction-metrics-extraction": True}):
-        cfg = get_project_config(default_project, full_config=True, project_keys=keys)
+        cfg = get_project_config(default_project, project_keys=keys)
 
     config = cfg.to_dict()["config"]
 
@@ -191,7 +190,7 @@ def test_project_config_uses_filter_features(
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
 
     with Feature({"projects:custom-inbound-filters": has_custom_filters}):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -221,7 +220,7 @@ def test_project_config_with_react_hydration_errors_filter(default_project):
     # on this.
     for value in ("1", True):
         default_project.update_option("filters:react-hydration-errors", value)
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -236,7 +235,7 @@ def test_project_config_with_chunk_load_error_filter(default_project):
     default_project.update_option("filters:react-hydration-errors", "0")
     default_project.update_option("filters:chunk-load-error", "1")
 
-    project_cfg = get_project_config(default_project, full_config=True)
+    project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -250,7 +249,7 @@ def test_project_config_with_chunk_load_error_filter(default_project):
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
     with Feature({"organizations:profiling": True}):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -264,7 +263,7 @@ def test_project_config_exposed_features(default_project):
 def test_project_config_exposed_features_raise_exc(default_project):
     with Feature({"projects:custom-inbound-filters": True}):
         with pytest.raises(RuntimeError) as exc_info:
-            get_project_config(default_project, full_config=True)
+            get_project_config(default_project)
         assert (
             str(exc_info.value)
             == "EXPOSABLE_FEATURES must start with 'organizations:' or 'projects:'"
@@ -464,7 +463,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
             "organizations:transaction-metrics-extraction": transaction_metrics == "with_metrics",
         }
     ):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -487,7 +486,7 @@ def test_project_config_with_organizations_metrics_extraction(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
     ):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -531,7 +530,7 @@ def test_project_config_satisfaction_thresholds(
             "organizations:transaction-metrics-extraction": True,
         }
     ):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
@@ -756,7 +755,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
 
 @django_db_all
 def test_performance_calculate_score(default_project):
-    config = get_project_config(default_project, full_config=True).to_dict()["config"]
+    config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
     for profile in config["performanceScore"]["profiles"]:
@@ -964,7 +963,7 @@ def test_project_config_cardinality_limits(default_project, insta_snapshot, pass
     )
 
     with override_options(options):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -1024,7 +1023,7 @@ def test_project_config_cardinality_limits_project_options_override_other_option
     )
 
     with override_options(options):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
@@ -1077,7 +1076,7 @@ def test_project_config_cardinality_limits_organization_options_override_options
     )
 
     with override_options(options):
-        project_cfg = get_project_config(default_project, full_config=True)
+        project_cfg = get_project_config(default_project)
 
         cfg = project_cfg.to_dict()
         _validate_project_config(cfg["config"])
