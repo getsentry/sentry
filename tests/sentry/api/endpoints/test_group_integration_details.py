@@ -212,6 +212,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "provider": "Example",
                 "location": "https://example/issues/APP-123",
                 "label": "display name: APP-123",
+                "new": False,
             }
 
     def test_put_feature_disabled(self):
@@ -281,6 +282,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "provider": "Example",
                 "location": "https://example/issues/APP-123",
                 "label": "display name: APP-123",
+                "new": True,
             }
 
     def test_post_feature_disabled(self):
