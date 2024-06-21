@@ -409,17 +409,18 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     )
     alert_rules = [rule for rule in alert_rules_qs if rule.id not in snoozed_rules]
 
-    # STEP 4: Create a map of unique queries to a tuple containing the JSON
-    # information needed to instantiate that condition class and the group_ids that
-    # must be checked for that condition. We don't query per rule condition because
-    # condition of the same class, interval, and environment can share a single scan.
+    # STEP 4: Create a map of unique condition queries to a tuple containing the
+    # JSON information needed to instantiate that condition class and the
+    # group_ids that must be checked for that condition.
+    # We don't query per rule condition because conditions of the same class,
+    # interval, environment, and comparisonInterval can share a single scan.
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
     logger.info(
         "delayed_processing.condition_groups",
         extra={"condition_groups": condition_groups, "project_id": project_id},
     )
 
-    # Step 5: Instantiate the generic condition that we can apply to each unique
+    # Step 5: Instantiate the condition that we can apply to each unique condition
     # query, and evaluate the relevant group_ids that apply for that query.
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
