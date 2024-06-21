@@ -256,7 +256,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return option_override_cm
 
     def get_comparison_start_end(
-        self, end: datetime, duration: timedelta, interval: timedelta = None
+        self, end: datetime, duration: timedelta, interval: timedelta | None = None
     ) -> tuple[datetime, datetime]:
         """
         Calculate the start and end times for the query. `interval` is only used for EventFrequencyPercentCondition

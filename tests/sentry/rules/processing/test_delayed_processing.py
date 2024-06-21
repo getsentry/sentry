@@ -9,9 +9,10 @@ from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
+from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.processing.delayed_processing import (
     apply_delayed,
-    get_condition_groups,
+    get_condition_query_groups,
     process_delayed_alert_conditions,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
@@ -64,6 +65,7 @@ class ProcessDelayedAlertConditionsTest(
         interval="1d",
         id="EventFrequencyCondition",
         value=1,
+        comparison_type=ComparisonType.COUNT,
     ):
         condition_id = f"sentry.rules.conditions.event_frequency.{id}"
         return {"interval": interval, "id": condition_id, "value": value}
@@ -209,7 +211,7 @@ class ProcessDelayedAlertConditionsTest(
         )
         rules_to_groups = {rule_1.id: {1, 2, 3}, rule_2.id: {3, 4, 5}}
         orig_rules_to_groups = deepcopy(rules_to_groups)
-        get_condition_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[arg-type]
+        get_condition_query_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[arg-type]
         assert orig_rules_to_groups == rules_to_groups
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
