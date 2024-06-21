@@ -736,9 +736,9 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
         side_effect=[
-            SlackChannelIdData("#", 10, False),
-            SlackChannelIdData("#", 10, False),
-            SlackChannelIdData("#", 20, False),
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "20", False),
         ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")

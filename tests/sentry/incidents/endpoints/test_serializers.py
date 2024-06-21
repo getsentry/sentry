@@ -33,6 +33,7 @@ from sentry.incidents.serializers import (
 )
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.app import app_service
@@ -531,8 +532,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        return_value=SlackChannelIdData("#", None, True),
     )
     def test_channel_timeout(self, mock_get_channel_id):
         trigger = {
@@ -560,8 +561,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        return_value=SlackChannelIdData("#", None, True),
     )
     def test_invalid_team_with_channel_timeout(self, mock_get_channel_id):
         other_org = self.create_organization()
@@ -588,7 +589,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer.save()
         assert excinfo.value.detail == {"nonFieldErrors": ["Team does not exist"]}
         mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 10, False
+            serialize_integration(self.integration), "my-channel", 10
         )
 
     def test_event_types(self):
