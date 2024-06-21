@@ -7,7 +7,7 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import getDynamicText from 'sentry/utils/getDynamicText';
 
-import {getFormattedTimestamp} from './utils';
+import {getFormattedTimestamp} from '../../../../../../utils/date/getFormattedTimestamp';
 
 type Props = {
   searchTerm: string;
