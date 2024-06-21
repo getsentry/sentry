@@ -85,6 +85,10 @@ def backfill_seer_grouping_records_for_project(
         # TODO: let's just delete this branch since feature is on
         return
 
+    if options.get("seer.similarity-backfill-killswitch.enabled"):
+        logger.info("backfill_seer_grouping_records.killswitch_enabled")
+        return
+
     if only_delete:
         delete_seer_grouping_records(project.id, redis_client)
         logger.info(
