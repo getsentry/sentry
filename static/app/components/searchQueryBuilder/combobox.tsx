@@ -67,6 +67,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   filterValue?: string;
   isLoading?: boolean;
   maxOptions?: number;
+  onClick?: (e: React.MouseEvent) => void;
   /**
    * Called when the user explicitly closes the combobox with the escape key.
    */
@@ -300,6 +301,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onPaste,
     displayTabbedMenu,
     isLoading,
+    onClick,
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
@@ -438,8 +440,9 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       e.stopPropagation();
       inputProps.onClick?.(e);
       state.toggle();
+      onClick?.(e);
     },
-    [inputProps, state]
+    [inputProps, state, onClick]
   );
 
   return (

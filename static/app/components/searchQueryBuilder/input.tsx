@@ -221,15 +221,19 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
-  // TODO(malwilley): Use input ref to update cursor position on mount
   const [selectionIndex, setSelectionIndex] = useState(0);
+
+  const updateSelectionIndex = useCallback(() => {
+    setSelectionIndex(inputRef.current?.selectionStart ?? 0);
+  }, []);
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
-    // TODO(malwilley): Reset cursor position using ref
-  }, [trimmedTokenValue]);
+    updateSelectionIndex();
+  }, [trimmedTokenValue, updateSelectionIndex]);
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
@@ -251,6 +255,8 @@ function SearchQueryBuilderInputInternal({
 
   const onKeyDown = useCallback(
     (e: KeyboardEvent) => {
+      updateSelectionIndex();
+
       // Default combobox behavior stops events from propagating outside of input
       // Certain keys like ctrl+z and ctrl+a are handled in useQueryBuilderGrid()
       // so we need to continue propagation for those.
@@ -288,7 +294,14 @@ function SearchQueryBuilderInputInternal({
         }
       }
     },
-    [inputValue, item.key, state.collection, state.selectionManager, trimmedTokenValue]
+    [
+      inputValue,
+      item.key,
+      state.collection,
+      state.selectionManager,
+      trimmedTokenValue,
+      updateSelectionIndex,
+    ]
   );
 
   const onPaste = useCallback(
@@ -308,8 +321,13 @@ function SearchQueryBuilderInputInternal({
     [aliasToKeyMap, dispatch, resetInputValue, token]
   );
 
+  const onClick = useCallback(() => {
+    updateSelectionIndex();
+  }, [updateSelectionIndex]);
+
   return (
     <SearchQueryBuilderCombobox
+      ref={inputRef}
       items={sections}
       onOptionSelected={value => {
         dispatch({
@@ -379,6 +397,7 @@ function SearchQueryBuilderInputInternal({
         }
         return true;
       }}
+      onClick={onClick}
     >
       {section => (
         <Section title={section.title} key={section.key}>

@@ -52,15 +52,15 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/insights/cache/settings';
-import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/insights/queues/settings';
-import {ModuleName} from 'sentry/views/insights/types';
-import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/llmMonitoring/settings';
-import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 import {
   MODULE_TITLES,
   useModuleTitle,
-} from 'sentry/views/performance/utils/useModuleTitle';
-import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
+} from 'sentry/views/insights/common/utils/useModuleTitle';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/insights/llmMonitoring/settings';
+import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/insights/queues/settings';
+import {ModuleName} from 'sentry/views/insights/types';
+import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 

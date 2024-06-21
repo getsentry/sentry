@@ -14,10 +14,10 @@ import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import type {SpanSample} from 'sentry/views/insights/common/queries/useSpanSamples';
 import {useSpanSamples} from 'sentry/views/insights/common/queries/useSpanSamples';
+import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
 import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 import {SpanMetricsField} from 'sentry/views/insights/types';
-import {AverageValueMarkLine} from 'sentry/views/performance/charts/averageValueMarkLine';
 
 const {SPAN_SELF_TIME, SPAN_OP} = SpanMetricsField;
 

@@ -5,8 +5,8 @@ import type {NewQuery} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {STARFISH_CHART_INTERVAL_FIDELITY} from 'sentry/views/insights/common/utils/constants';
-import {useSpansQuery} from 'sentry/views/insights/common/utils/useSpansQuery';
 
 export const useErrorRateQuery = (queryString: string) => {
   const pageFilters = usePageFilters();

@@ -88,7 +88,7 @@ function IssueListHeader({
   selectedProjectIds,
 }: IssueListHeaderProps) {
   const {projects} = useProjects();
-  const tabs = getTabs(organization);
+  const tabs = getTabs();
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);

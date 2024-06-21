@@ -188,8 +188,6 @@ def update_groups(
     else:
         group_list = None
 
-    has_priority = False
-
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
     # to support multiple projects, but this is pretty complicated
@@ -206,8 +204,6 @@ def update_groups(
         )
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
-        if not has_priority and features.has("projects:issue-priority", project, actor=user):
-            has_priority = True
 
     if serializer is None:
         return
@@ -258,7 +254,7 @@ def update_groups(
     res_type = None
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
-    if has_priority and "priority" in result:
+    if "priority" in result:
         handle_priority(
             priority=result["priority"],
             group_list=group_list,
