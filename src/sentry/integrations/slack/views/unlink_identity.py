@@ -104,6 +104,7 @@ class SlackUnlinkIdentityView(BaseView):
                 idp=kwargs["idp"],
                 slack_id=params_dict["slack_id"],
                 channel_id=params_dict["channel_id"],
+                response_url=params_dict.get("response_url"),
             )
         except KeyError as e:
             _logger.exception("slack.unlink.missing_params", extra={"error": str(e)})
@@ -124,10 +125,7 @@ class SlackUnlinkIdentityView(BaseView):
             )
             raise Http404
 
-        # TODO: We should use use the dataclass to send the slack response
-        send_slack_response(
-            params.integration, SUCCESS_UNLINKED_MESSAGE, params.__dict__, command="unlink"
-        )
+        send_slack_response(params, SUCCESS_UNLINKED_MESSAGE, command="unlink")
 
         _logger.info("unlink_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.unlink_identity", sample_rate=1.0)

@@ -111,6 +111,7 @@ class SlackLinkIdentityView(BaseView):
                 idp=kwargs["idp"],
                 slack_id=params_dict["slack_id"],
                 channel_id=params_dict["channel_id"],
+                response_url=params_dict.get("response_url"),
             )
         except KeyError as e:
             _logger.exception("slack.link.missing_params")
@@ -137,10 +138,7 @@ class SlackLinkIdentityView(BaseView):
             )
             raise Http404
 
-        # TODO: We should use use the dataclass to send the slack response
-        send_slack_response(
-            params.integration, SUCCESS_LINKED_MESSAGE, params.__dict__, command="link"
-        )
+        send_slack_response(params, SUCCESS_LINKED_MESSAGE, command="link")
 
         controller = NotificationController(
             recipients=[request.user],
