@@ -173,8 +173,8 @@ def respond_to_slack_command(
     if params.response_url:
         logger.info(log + "respond-webhook", extra={"response_url": params.response_url})
         try:
-            client = WebhookClient(params.response_url)
-            client.send(text=text, replace_original=False, response_type="ephemeral")
+            webhook_client = WebhookClient(params.response_url)
+            webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
         except SlackApiError as e:
             logger.exception(log + "error", extra={"error": str(e)})
         except SlackRequestError as e:
