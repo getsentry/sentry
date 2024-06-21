@@ -184,7 +184,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             op="db.sql",
         )
 
-        timestamps.append(now - timedelta(minutes=20))
+        timestamps.append(now - timedelta(minutes=30))
         trace_id_3 = uuid4().hex
         self.double_write_segment(
             project_id=project_1.id,
@@ -223,7 +223,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             sdk_name="sentry.javascript.remix",
         )
 
-        timestamps.append(now - timedelta(minutes=19, seconds=50))
+        timestamps.append(now - timedelta(minutes=29, seconds=50))
         self.double_write_segment(
             project_id=project_1.id,
             trace_id=trace_id_3,
@@ -693,6 +693,33 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     ],
                 },
             ]
+
+    def test_sorted(self):
+        (
+            project_1,
+            project_2,
+            trace_id_1,
+            trace_id_2,
+            _,
+            timestamps,
+            span_ids,
+        ) = self.create_mock_traces()
+
+        for sort, descending in [
+            ("timestamp", False),
+            ("-timestamp", True),
+        ]:
+            query = {
+                "project": [project_2.id],
+                "suggestedQuery": "foo:baz span.duration:>0s",
+                "maxSpansPerTrace": 4,
+                "sort": sort,
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+        assert 0
 
     def test_matching_tag_metrics(self):
         (
