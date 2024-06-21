@@ -363,12 +363,7 @@ describe('Dashboards > Dashboard', () => {
     it('does not show the add widget button if dashboard is in preview mode', async function () {
       const testData = initializeOrg({
         organization: {
-          features: [
-            'dashboards-basic',
-            'dashboards-edit',
-            'custom-metrics',
-            'ddm-sidebar-item-hidden',
-          ],
+          features: ['dashboards-basic', 'dashboards-edit', 'custom-metrics'],
         },
       });
       const dashboardWithOneWidget = {
