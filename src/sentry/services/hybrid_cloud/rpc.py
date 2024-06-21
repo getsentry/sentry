@@ -20,16 +20,16 @@ from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
 
 from sentry import options
+from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
-from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.region import RegionResolutionStrategy
+    from sentry.hybridcloud.rpc.resolvers import RegionResolutionStrategy
 
 logger = logging.getLogger(__name__)
 
