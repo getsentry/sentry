@@ -7,7 +7,6 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import Form, {type FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import type FormModel from 'sentry/components/forms/model';
-import {BooleanOperator} from 'sentry/components/searchSyntax/parser';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -63,8 +62,6 @@ const AGGREGATE_OPTIONS = [
     value: 'max',
   },
 ];
-
-const DISALLOWED_LOGICAL_OPERATORS = new Set([BooleanOperator.AND, BooleanOperator.OR]);
 
 export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
@@ -185,8 +182,6 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                             dataset={DiscoverDatasets.SPANS_INDEXED}
                             projectIds={[parseInt(project.id, 10)]}
                             hasRecentSearches={false}
-                            disallowedLogicalOperators={DISALLOWED_LOGICAL_OPERATORS}
-                            disallowWildcard
                             onBlur={(queryString: string) =>
                               onChange(conditions.toSpliced(index, 1, queryString), {})
                             }

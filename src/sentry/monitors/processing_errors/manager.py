@@ -137,9 +137,10 @@ def store_error(error: CheckinProcessingError, monitor: Monitor | None):
     # Cap the error list to the `MAX_ERRORS_PER_SET` most recent errors
     if processing_errors_to_remove:
         pipeline = redis_client.pipeline(transaction=False)
-        pipeline.delete(
-            *[build_error_identifier(uuid.UUID(result)) for result in processing_errors_to_remove]
-        )
+        # XXX: We need to make individual delete commands here since pipeline
+        # doesn't support passing multiple identifiers to delete
+        for result in processing_errors_to_remove:
+            pipeline.delete(build_error_identifier(uuid.UUID(result)))
         pipeline.zrem(error_set_key, *processing_errors_to_remove)
         pipeline.execute()
 

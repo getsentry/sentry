@@ -415,6 +415,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.issues.apps.Config",
     "sentry.feedback",
     "sentry.hybridcloud",
+    "sentry.remote_subscriptions.apps.Config",
 )
 
 # Silence internal hints from Django's system checks
@@ -2913,6 +2914,8 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "social_auth",
     "feedback",
     "hybridcloud",
+    "remote_subscriptions",
+    "uptime",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3429,6 +3432,7 @@ SEER_GROUPING_RECORDS_DELETE_URL = (
 # TODO: Remove this soon, just a way to configure a project for this before we implement properly
 UPTIME_POC_PROJECT_ID = 1
 
+SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

@@ -1,6 +1,6 @@
 import {Fragment, useCallback} from 'react';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Alert from 'sentry/components/alert';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -67,11 +67,11 @@ function ExtractMetric({project}: {project: Project}) {
             navigate(-1);
           },
           onError: error => {
-            onSubmitError(
-              error?.responseJSON?.detail
-                ? error.responseJSON.detail
-                : t('Unable to save your changes.')
-            );
+            const message = error?.responseJSON?.detail
+              ? (error.responseJSON.detail as string)
+              : t('Unable to save your changes.');
+            onSubmitError(message);
+            addErrorMessage(message);
           },
         }
       );

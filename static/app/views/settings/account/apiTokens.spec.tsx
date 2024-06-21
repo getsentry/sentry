@@ -14,22 +14,32 @@ describe('ApiTokens', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders empty result', function () {
+  it('renders empty result', async function () {
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
       body: null,
     });
 
     render(<ApiTokens />);
+
+    expect(
+      await screen.findByText("You haven't created any authentication tokens yet.")
+    ).toBeInTheDocument();
   });
 
-  it('renders with result', function () {
+  it('renders with result', async function () {
+    const token1 = ApiTokenFixture({id: '1', name: 'token1'});
+    const token2 = ApiTokenFixture({id: '2', name: 'token2'});
+
     MockApiClient.addMockResponse({
       url: '/api-tokens/',
-      body: [ApiTokenFixture()],
+      body: [token1, token2],
     });
 
     render(<ApiTokens />);
+
+    expect(await screen.findByText('token1')).toBeInTheDocument();
+    expect(screen.getByText('token2')).toBeInTheDocument();
   });
 
   it('can delete token', async function () {
@@ -38,22 +48,35 @@ describe('ApiTokens', function () {
       body: [ApiTokenFixture()],
     });
 
-    const mock = MockApiClient.addMockResponse({
+    const deleteTokenMock = MockApiClient.addMockResponse({
       url: '/api-tokens/',
       method: 'DELETE',
     });
-    expect(mock).not.toHaveBeenCalled();
 
     render(<ApiTokens />);
     renderGlobalModal();
+    const removeButton = await screen.findByRole('button', {name: 'Remove'});
+    expect(removeButton).toBeInTheDocument();
+    expect(deleteTokenMock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+    // mock response for refetch after delete
+    MockApiClient.addMockResponse({
+      url: '/api-tokens/',
+      body: [],
+    });
+
+    await userEvent.click(removeButton);
     // Confirm modal
     await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
-    // Should be loading
-    expect(mock).toHaveBeenCalledTimes(1);
-    expect(mock).toHaveBeenCalledWith(
+    // Wait for list to update
+    expect(
+      await screen.findByText("You haven't created any authentication tokens yet.")
+    ).toBeInTheDocument();
+
+    // Should have called delete
+    expect(deleteTokenMock).toHaveBeenCalledTimes(1);
+    expect(deleteTokenMock).toHaveBeenCalledWith(
       '/api-tokens/',
       expect.objectContaining({
         method: 'DELETE',
