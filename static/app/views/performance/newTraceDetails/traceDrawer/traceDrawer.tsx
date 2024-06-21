@@ -131,8 +131,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.manager.container
       ) {
         const {width, height} = props.manager.container.getBoundingClientRect();
-        props.manager.initializePhysicalSpace(width, height);
-        props.manager.draw();
+        props.manager.view.initPhysicalSpace(width, height);
       }
 
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;

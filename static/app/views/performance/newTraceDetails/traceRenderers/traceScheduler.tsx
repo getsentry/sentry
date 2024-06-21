@@ -5,11 +5,13 @@ type EventStore = {
 
 interface TraceEvents {
   ['divider resize end']: (list_width: number) => void;
+  ['draw']: () => void;
 }
 
 export class TraceScheduler {
   events: EventStore = {
     ['divider resize end']: new Set<TraceEvents['divider resize end']>(),
+    ['draw']: new Set<TraceEvents['draw']>(),
   };
 
   once<K extends keyof TraceEvents>(eventName: K, cb: Function) {

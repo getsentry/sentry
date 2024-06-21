@@ -499,7 +499,7 @@ export function Trace({
             >
               <div className="TraceIndicatorLabel">
                 {indicatorTimestamp > 0
-                  ? formatTraceDuration(manager.trace_view.x + indicatorTimestamp)
+                  ? formatTraceDuration(manager.view.trace_view.x + indicatorTimestamp)
                   : '0s'}
               </div>
               <div className="TraceIndicatorLine" />

@@ -45,6 +45,7 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
 import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+import {TraceView as TraceViewModel} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
@@ -261,6 +262,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
   const traceScheduler = useMemo(() => new TraceScheduler(), []);
+  const traceView = useMemo(() => new TraceViewModel(), []);
 
   const forceRerender = useCallback(() => {
     flushSync(rerender);
@@ -346,10 +348,14 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   // Initialize the view manager right after the state reducer
   const viewManager = useMemo(() => {
-    return new VirtualizedViewManager({
-      list: {width: traceState.preferences.list.width},
-      span_list: {width: 1 - traceState.preferences.list.width},
-    });
+    return new VirtualizedViewManager(
+      {
+        list: {width: traceState.preferences.list.width},
+        span_list: {width: 1 - traceState.preferences.list.width},
+      },
+      traceScheduler,
+      traceView
+    );
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -837,10 +843,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return undefined;
     }
 
-    viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
+    viewManager.view.initTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
     // Whenever the timeline changes, update the trace space
     const onTraceTimelineChange = (s: [number, number]) => {
-      viewManager.updateTraceSpace(s[0], s[1]);
+      viewManager.view.updateTraceSpace(s[0], s[1]);
     };
 
     tree.on('trace timeline change', onTraceTimelineChange);
