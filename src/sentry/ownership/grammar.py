@@ -345,6 +345,14 @@ def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
     # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
     pattern = re.compile(r"(?<!\\)\s")
     path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
+
+    # Find index of # in code_owners, assume everything after is a comment
+    try:
+        comment_index = code_owners.index("#")
+        code_owners = code_owners[:comment_index]
+    except ValueError:
+        pass
+
     return path, code_owners
 
 
