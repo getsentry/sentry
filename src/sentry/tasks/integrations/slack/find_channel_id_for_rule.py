@@ -1,6 +1,5 @@
 import logging
 from collections.abc import Sequence
-from dataclasses import asdict
 from typing import Any
 
 from sentry import features
@@ -80,15 +79,13 @@ def find_channel_id_for_rule(
     # we can always update later
     try:
         if features.has("organizations:slack-sdk-get-channel-id", organization):
-            (prefix, item_id, _timed_out) = asdict(
-                get_channel_id_with_timeout(
-                    integration,
-                    channel_name,
-                    3 * 60,
-                )
+            channel_data = get_channel_id_with_timeout(
+                integration,
+                channel_name,
+                3 * 60,
             )
         else:
-            (prefix, item_id, _timed_out) = get_channel_id_with_timeout_deprecated(
+            channel_data = get_channel_id_with_timeout_deprecated(
                 integration,
                 channel_name,
                 3 * 60,
@@ -97,18 +94,17 @@ def find_channel_id_for_rule(
         # if we find a duplicate display name and nothing else, we
         # want to set the status to failed. This just lets us skip
         # over the next block and hit the failed status at the end.
-        item_id = None
-        prefix = ""
+        redis_rule_status.set_value("failed")
     except ApiRateLimitedError:
         redis_rule_status.set_value("failed", None, SLACK_RATE_LIMITED_MESSAGE)
         return
 
-    if item_id:
+    if channel_data.channel_id:
         for action in actions:
             # need to make sure we are adding back the right prefix and also the channel_id
             if action.get("channel") and strip_channel_name(action.get("channel")) == channel_name:
-                action["channel"] = prefix + channel_name
-                action["channel_id"] = item_id
+                action["channel"] = channel_data.prefix + channel_name
+                action["channel_id"] = channel_data.channel_id
                 break
 
         kwargs["actions"] = actions
