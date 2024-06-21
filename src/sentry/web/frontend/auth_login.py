@@ -504,10 +504,11 @@ class AuthLoginView(BaseView):
         """
         Returns True if the organization passed in a request exists.
         """
-        return bool(
+        return request.subdomain is not None and (
             organization_service.check_organization_by_slug(
                 slug=request.subdomain, only_visible=True
             )
+            is not None
         )
 
     def can_register(self, request: Request) -> bool:
@@ -563,13 +564,7 @@ class AuthLoginView(BaseView):
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
 
-        org_exists = bool(
-            organization_service.check_organization_by_slug(
-                slug=request.subdomain, only_visible=True
-            )
-        )
-
-        if request.method == "GET" and request.subdomain and org_exists:
+        if request.method == "GET" and request.subdomain and self.org_exists(request):
             urls = [
                 reverse("sentry-auth-organization", args=[request.subdomain]),
                 reverse("sentry-register"),
