@@ -302,25 +302,18 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         current_time: datetime,
         comparison_interval: timedelta | None = None,
     ) -> dict[int, int]:
+        if comparison_type == ComparisonType.COUNT:
+            start, end = self.get_comparison_start_end(current_time, duration)
+        elif comparison_type == ComparisonType.PERCENT:
+            start, end = self.get_comparison_start_end(current_time, duration, comparison_interval)
+
         with self.disable_consistent_snuba_mode(duration):
-            if comparison_type == ComparisonType.COUNT:
-                start, end = self.get_comparison_start_end(current_time, duration)
-                result = self.batch_query(
-                    group_ids=group_ids,
-                    start=start,
-                    end=end,
-                    environment_id=environment_id,
-                )
-            elif comparison_type == ComparisonType.PERCENT:
-                start, comparison_end = self.get_comparison_start_end(
-                    current_time, duration, comparison_interval
-                )
-                result = self.batch_query(
-                    group_ids=group_ids,
-                    start=start,
-                    end=comparison_end,
-                    environment_id=environment_id,
-                )
+            result = self.batch_query(
+                group_ids=group_ids,
+                start=start,
+                end=end,
+                environment_id=environment_id,
+            )
         return result
 
     def get_snuba_query_result(
