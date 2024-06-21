@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
@@ -9,7 +10,7 @@ from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 
-from sentry import features, onboarding_tasks, quotas, roles
+from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -64,6 +65,8 @@ from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user.service import user_service
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
@@ -300,6 +303,17 @@ class OrganizationSerializer(Serializer):
             feature_set.add("shared-issues")
         if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
             feature_set.remove("mep-rollout-flag")
+
+        if options.get("hybridcloud.endpoint_flag_logging"):
+            logger.info(
+                "organization_serializer.flags",
+                extra={
+                    "org_features": org_features,
+                    "batch_features": batch_features,
+                    "feature_set": feature_set,
+                    "user.id": user.id if not user.is_anonymous else None,
+                },
+            )
 
         return feature_set
 

@@ -2,10 +2,10 @@ import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {getFormattedTimestamp} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/time/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFormattedTimestamp} from 'sentry/utils/date/getFormattedTimestamp';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
