@@ -217,7 +217,8 @@ class ProcessDelayedAlertConditionsTest(
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_apply_delayed_rules_to_fire(self):
         """
-        Test that rules of various event frequency conditions, projects, environments, etc. are properly fired
+        Test that rules of various event frequency conditions, projects,
+        environments, etc. are properly fired.
         """
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
@@ -326,7 +327,8 @@ class ProcessDelayedAlertConditionsTest(
 
     def test_apply_delayed_same_condition_diff_value(self):
         """
-        Test that two rules with the same condition and interval but a different value are both fired
+        Test that two rules with the same condition and interval but a
+        different value are both fired.
         """
         rule5 = self.create_project_rule(
             project=self.project,
@@ -358,7 +360,8 @@ class ProcessDelayedAlertConditionsTest(
 
     def test_apply_delayed_same_condition_diff_interval(self):
         """
-        Test that two rules with the same condition and value but a different interval are both fired
+        Test that two rules with the same condition and value but a
+        different interval are both fired.
         """
         diff_interval_rule = self.create_project_rule(
             project=self.project,
@@ -389,7 +392,8 @@ class ProcessDelayedAlertConditionsTest(
 
     def test_apply_delayed_same_condition_diff_env(self):
         """
-        Test that two rules with the same condition, value, and interval but different environment are both fired
+        Test that two rules with the same condition, value, and interval
+        but different environment are both fired.
         """
         environment3 = self.create_environment(project=self.project)
         diff_env_rule = self.create_project_rule(
@@ -421,7 +425,8 @@ class ProcessDelayedAlertConditionsTest(
 
     def test_apply_delayed_two_rules_one_fires(self):
         """
-        Test that with two rules in one project where one rule hasn't met the trigger threshold, only one is fired
+        Test that with two rules in one project where one rule hasn't met
+        the trigger threshold, only one is fired
         """
         high_event_frequency_condition = {
             "interval": "1d",
@@ -457,7 +462,8 @@ class ProcessDelayedAlertConditionsTest(
 
     def test_apply_delayed_action_match_all(self):
         """
-        Test that a rule with multiple conditions and an action match of 'all' is fired
+        Test that a rule with multiple conditions and an action match of
+        'all' is fired.
         """
         two_conditions_match_all_rule = self.create_project_rule(
             project=self.project,
