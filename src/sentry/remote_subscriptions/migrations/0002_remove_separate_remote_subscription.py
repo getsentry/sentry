@@ -22,6 +22,7 @@ class Migration(CheckedMigration):
 
     dependencies = [
         ("remote_subscriptions", "0001_remote_subscription"),
+        ("uptime", "0002_remove_separate_remote_subscription"),
     ]
 
     operations = [
