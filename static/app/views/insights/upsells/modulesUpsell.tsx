@@ -147,8 +147,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   app_start: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={appStartPreviewImg} />
     </div>
@@ -156,8 +157,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   ai: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={llmPreviewImg} />
     </div>
@@ -165,8 +167,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   'mobile-ui': (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={screenLoadsPreviewImg} />
     </div>
@@ -174,8 +177,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   cache: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={cachesPreviewImg} />
     </div>
@@ -183,8 +187,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   db: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={queriesPreviewImg} />
     </div>
@@ -192,8 +197,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   http: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={requestPreviewImg} />
     </div>
@@ -201,8 +207,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   resource: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={assetsPreviewImg} />
     </div>
@@ -210,8 +217,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   screen_load: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={screenLoadsPreviewImg} />
     </div>
@@ -219,8 +227,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   vital: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={webVitalsPreviewImg} />
     </div>
@@ -228,8 +237,9 @@ const modulePreviews: Record<TitleableModuleNames, React.ReactNode> = {
   queue: (
     <div>
       <div>
-        Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallis
-        tellus a rhonc ussit amet tinci dunt risus, sed bibendum vel
+        {t(
+          'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus iaculis convallistellus a rhonc ussit amet tinci dunt risus, sed bibendum vel'
+        )}
       </div>
       <PreviewImage src={queuesPreviewImg} />
     </div>
