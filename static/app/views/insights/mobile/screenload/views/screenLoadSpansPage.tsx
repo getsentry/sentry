@@ -67,9 +67,6 @@ function ScreenLoadSpans() {
     spanDescription,
   } = location.query;
 
-  const countIfPrimaryRelease = `count_if(measurements.time_to_initial_display,release,${primaryRelease})`;
-  const countIfSecondaryRelease = `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`;
-
   return (
     <Layout.Page>
       <PageAlertProvider>
@@ -118,8 +115,8 @@ function ScreenLoadSpans() {
                   `avg_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
                   `avg_if(measurements.time_to_full_display,release,${primaryRelease})`,
                   `avg_if(measurements.time_to_full_display,release,${secondaryRelease})`,
-                  countIfPrimaryRelease,
-                  countIfSecondaryRelease,
+                  `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
+                  `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
                 ]}
                 blocks={[
                   {
@@ -144,12 +141,12 @@ function ScreenLoadSpans() {
                   },
                   {
                     unit: 'count',
-                    dataKey: countIfPrimaryRelease,
+                    dataKey: `count_if(measurements.time_to_initial_display,release,${primaryRelease})`,
                     title: t('Total Count (%s)', PRIMARY_RELEASE_ALIAS),
                   },
                   {
                     unit: 'count',
-                    dataKey: countIfSecondaryRelease,
+                    dataKey: `count_if(measurements.time_to_initial_display,release,${secondaryRelease})`,
                     title: t('Total Count (%s)', SECONDARY_RELEASE_ALIAS),
                   },
                 ]}
