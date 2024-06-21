@@ -228,6 +228,8 @@ class SplunkPlugin(CorePluginMixin, DataForwardingPlugin):
                 or (exc.code is not None and (401 <= exc.code <= 404))
                 # 502s are too noisy.
                 or exc.code == 502
+                # Treat gateway timeout the same as ApiTimeoutError
+                or exc.code == 504
             ):
                 return False
             raise
