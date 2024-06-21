@@ -84,7 +84,6 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     ],
     "quotas:new-spike-protection": [
         ("spike-projections", lambda opt: bool(opt.value)),
-        ("project-stats", lambda opt: bool(opt.value)),
     ],
 }
 
