@@ -92,16 +92,6 @@ repos:
         entry: python3 -m tools.mypy_helpers.check_stronglist
         files: ^pyproject\.toml$
         language: python
-      - id: eslint
-        name: eslint
-        entry: ./node_modules/.bin/eslint
-        language: system
-        files: \.[jt]sx?$
-      - id: stylelint
-        name: stylelint
-        entry: ./node_modules/.bin/stylelint
-        language: system
-        files: \.[jt]sx?$
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
@@ -140,20 +130,46 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
+
   - repo: https://github.com/biomejs/pre-commit
-    rev: v0.2.0
+    rev: v0.4.0
     hooks:
       - id: biome-check
         name: biome (javascript, typescript, json)
+        # This version needs to be synced with package.json.
         additional_dependencies: ['@biomejs/biome@1.8.0']
+        files: \.[jt]sx?$
+        types: [file]
+
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: 'v8.56.0'
+    hooks:
+      - id: eslint
+        name: eslint
+        # This version needs to be synced with package.json.
+        additional_dependencies: ['eslint@8.57.0', 'eslint-config-sentry-app@2.7.0']
+        files: \.[jt]sx?$
+        types: [file]
+
+  - repo: https://github.com/thibaudcolas/pre-commit-stylelint
+    rev: v16.2.1
+    hooks:
+      - id: stylelint
+        name: stylelint
+        additional_dependencies:
+          ['stylelint@16.2.1', 'stylelint-config-recommended@14.0.0']
+        args: [--fix]
+        files: \.[jt]sx?$
+        types: [file]
+
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: 'v3.1.0' # Use the sha or tag you want to point at
+    rev: 'v3.1.0'
     hooks:
       - id: prettier
         name: prettier (yaml, markdown, tsx, jsx, css)
         # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
         types_or: [yaml, markdown, tsx, jsx, css]
-        # Override the default version of prettier since there isn't a tag with 3.2.5
+        # This version needs to be synced with package.json.
         additional_dependencies: ['prettier@3.2.5']
         # https://pre-commit.com/#regular-expressions
         exclude: |
@@ -172,6 +188,7 @@ repos:
             |static/app/utils/profiling/profile/formats/node/trace\.json
             |static/app/utils/profiling/profile/formats/typescript/trace\.json
           )$
+
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.9.0.6
     hooks:

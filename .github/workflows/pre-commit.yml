@@ -53,6 +53,23 @@ jobs:
             all:
               - added|modified: '**/*'
 
+      # pre-commit can use nodeenv to install a specific node version,
+      # but we'll use volta to transparently give it node since we already have that everywhere
+      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
+
+      # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
+      - name: setup matchers
+        run: |
+          echo "::remove-matcher owner=masters::"
+          echo "::add-matcher::.github/tsc.json"
+          echo "::add-matcher::.github/eslint-stylish.json"
+
+      # TODO:
+      #- name: tsc
+      #  id: tsc
+      #  if: steps.dependencies.outcome == 'success'
+      #  run: yarn tsc -p config/tsconfig.ci.json
+
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
           python-version: 3.11.8
@@ -60,10 +77,12 @@ jobs:
             requirements-dev.txt
             requirements-dev-frozen.txt
           install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+
       - uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
         with:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
       - name: Setup pre-commit
         # We don't use make setup-git because we're only interested in installing
         # requirements-dev.txt as a fast path.

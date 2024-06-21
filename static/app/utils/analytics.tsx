@@ -249,6 +249,13 @@ metric.mark = function metricMark({name, data = {}}) {
   metricDataStore.set(name, data);
 };
 
+
+
+// come at me prettier
+
+
+
+
 /**
  * Performs a measurement between `start` and `end` (or now if `end` is not
  * specified) Calls `metric` with `name` and the measured time difference.
