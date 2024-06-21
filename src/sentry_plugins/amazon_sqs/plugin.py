@@ -195,6 +195,11 @@ class AmazonSQSPlugin(CorePluginMixin, DataForwardingPlugin):
             elif str(e).endswith("must contain the parameter MessageGroupId."):
                 log_and_increment("sentry_plugins.amazon_sqs.missing_message_group_id")
                 return False
+            elif str(e).startswith("An error occurred (IllegalLocationConstraintException)"):
+                # https://docs.aws.amazon.com/AmazonS3/latest/API/ErrorResponses.html
+                # "trying to access a bucket from a different Region than where the bucket exists"
+                log_and_increment("sentry_plugins.amazon_sqs.s3_bucket_invalid")
+                return False
             elif str(e).startswith("An error occurred (NoSuchBucket)"):
                 # If there's an issue with the user's s3 bucket then we can't do
                 # anything to recover. Just log and continue.
