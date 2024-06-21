@@ -133,6 +133,7 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.models.userrole import UserRole
+from sentry.remote_subscriptions.models import RemoteSubscription
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -153,6 +154,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -1892,4 +1894,26 @@ class Factories:
         }
         return WebhookPayload.objects.create(
             mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
+        )
+
+    @staticmethod
+    def create_remote_subscription(type, subscription_id, status=RemoteSubscription.Status.ACTIVE):
+        return RemoteSubscription.objects.create(
+            type=type, subscription_id=subscription_id, status=status.value
+        )
+
+    @staticmethod
+    def create_uptime_subscription(remote_subscription, url, interval_seconds, timeout_ms):
+        return UptimeSubscription.objects.create(
+            remote_subscription=remote_subscription,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    @staticmethod
+    def create_project_uptime_subscription(project, uptime_subscription):
+        return ProjectUptimeSubscription.objects.create(
+            uptime_subscription=uptime_subscription,
+            project=project,
         )
