@@ -42,6 +42,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       {
         // In issuePlatform, the message contains the title and the transaction
         message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
+        culprit: '/api/slow/', // Used for subtitle
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
         project: project.slug,
@@ -55,6 +56,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const mainError = {
     message: 'This is the message for the issue',
+    culprit: '/api/foo/', // Used for subtitle
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -67,6 +69,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const secondError = {
     message: 'Message of the second issue',
+    culprit: '/api/foo/', // Used for subtitle
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
@@ -287,9 +290,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     });
 
     render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
+      organization: OrganizationFixture({features: []}), // No global-views feature
     });
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });

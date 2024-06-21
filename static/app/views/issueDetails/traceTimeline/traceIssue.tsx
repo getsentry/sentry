@@ -68,15 +68,28 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   );
 }
 
+// This function tries to imitate getTitle() from utils.events
+// In that module, the data comes from the issues/ endpoint while here
+// we grab the data from the events/ endpoint. A larger effort is
+// required in order to use that function directly since the data between
+// the two endpoint is slightly different. We would need
+// to grab the metadata for the issue from the issues endpoint (which requires work).
+// At this moment, the issues endpoint is extremely slow and we
+// would need to change it to only return the metadata for the issue.
 function getTitleSubtitleMessage(event: TimelineEvent) {
-  let title;
-  // XXX: This is not fully correct but it will make this first PR easier to review
-  const subtitle = event.transaction;
+  let title = event.title;
+  // culprit is what getTitle() from utils.events uses for the subtitle
+  const subtitle = event.culprit || '';
   let message = event.message;
   if (event['event.type'] === 'error') {
+    // getTitle() from utils.events can either use `metadata.title` (custom title; normally empty) or
+    // `metadata.type`. We can't support a customTitle via the events endpoint.
+    // Reversed logic from backend:
+    // https://github.com/getsentry/sentry/blob/8be60023c8c56b1889a6cc692d857ead7e5b89e2/src/sentry/eventtypes/error.py#L86-L90
+    // An event stores the title as "error.type: truncated error.value"
+    // We could query error.type and error.value but those are arrays in the events endpoint.
     title = event.title.split(':')[0];
   } else {
-    title = event.title;
     // It is suspected that this value is calculated somewhere in Relay
     // and we deconstruct it here to match what the Issue details page shows
     message = event.message.replace(event.transaction, '').replace(title, '');
