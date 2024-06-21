@@ -52,21 +52,35 @@ describe('TraceTimeline', () => {
     ],
     meta: {fields: {}, units: {}},
   };
-  const discoverBody: TraceEventResponse = {
-    data: [
-      {
-        message: 'This is the subtitle of the issue',
-        timestamp: '2024-01-23T22:11:42+00:00',
-        'issue.id': event['issue.id'],
-        project: project.slug,
-        'project.name': project.name,
-        title: event.title,
-        id: event.id,
-        transaction: 'important.task',
-        'event.type': event.type,
-        'stack.function': ['important.task', 'task.run'],
-      },
-    ],
+  const mainError = {
+    message: 'This is the subtitle of the issue',
+    timestamp: '2024-01-23T22:11:42+00:00',
+    'issue.id': event['issue.id'],
+    project: project.slug,
+    'project.name': project.name,
+    title: event.title,
+    id: event.id,
+    transaction: 'important.task',
+    'event.type': event.type,
+    'stack.function': ['important.task', 'task.run'],
+  };
+  const secondError = {
+    message: 'Message of the second issue',
+    timestamp: '2024-01-23T22:11:42+00:00',
+    'issue.id': 9999,
+    project: project.slug,
+    'project.name': project.name,
+    title: 'someTitle',
+    id: '12345',
+    transaction: 'foo',
+    'event.type': event.type,
+  };
+  const oneIssue: TraceEventResponse = {
+    data: [mainError],
+    meta: {fields: {}, units: {}},
+  };
+  const twoIssues: TraceEventResponse = {
+    data: [mainError, secondError],
     meta: {fields: {}, units: {}},
   };
 
@@ -83,8 +97,13 @@ describe('TraceTimeline', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: discoverBody,
+      body: twoIssues,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+    });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
     });
     render(<TraceTimeline event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
@@ -93,8 +112,8 @@ describe('TraceTimeline', () => {
     expect(await screen.findByText('You are here')).toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: false,
-      trace_timeline_status: 'shown',
-      trace_timeline_two_issues: true,
+      trace_timeline_status: 'empty',
+      trace_timeline_two_issues: false,
     });
   });
 
@@ -106,7 +125,7 @@ describe('TraceTimeline', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: discoverBody,
+      body: oneIssue,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     const {container} = render(<TraceTimeline event={event} />, {organization});
@@ -153,9 +172,19 @@ describe('TraceTimeline', () => {
       body: emptyBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
     render(<TraceTimeline event={event} />, {organization});
     // Checking for the presence of seconds
     expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(5);
+    expect(useRouteAnalyticsParams).toHaveBeenLastCalledWith({
+      has_related_trace_issue: false, // XXX: Check
+      trace_timeline_status: 'empty',
+      trace_timeline_two_issues: false, // XXX: Check
+    });
   });
 
   it('adds the current event if not in the api response', async () => {
@@ -169,8 +198,18 @@ describe('TraceTimeline', () => {
       body: emptyBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
     render(<TraceTimeline event={event} />, {organization});
-    expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenLastCalledWith({
+      has_related_trace_issue: false, // XXX: Check
+      trace_timeline_status: 'empty',
+      trace_timeline_two_issues: false, // XXX: Check
+    });
   });
 
   it('skips the timeline and shows related issues (2 issues)', async () => {
@@ -184,7 +223,7 @@ describe('TraceTimeline', () => {
       body: emptyBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    // I believe the call to projects is to determine what projects a user belongs to
+    // Used to determine the project badge
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
@@ -192,7 +231,7 @@ describe('TraceTimeline', () => {
 
     render(<TraceTimeline event={event} />, {
       organization: OrganizationFixture({
-        features: ['related-issues-issue-details-page', 'global-views'],
+        features: ['global-views'],
       }),
     });
 
@@ -218,7 +257,7 @@ describe('TraceTimeline', () => {
       {
         group_id: issuePlatformBody.data[0]['issue.id'],
         organization: OrganizationFixture({
-          features: ['related-issues-issue-details-page', 'global-views'],
+          features: ['global-views'],
         }),
       }
     );
@@ -233,10 +272,10 @@ describe('TraceTimeline', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       // Only 1 issue
-      body: discoverBody,
+      body: oneIssue,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    // I believe the call to projects is to determine what projects a user belongs to
+    // Used to determine the project badge
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [],
@@ -286,12 +325,23 @@ describe('TraceTimeline', () => {
         }),
       ],
     });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
 
     render(<TraceTimeline event={event} />, {
       organization: OrganizationFixture({
         features: [], // No global-views feature
       }),
     });
-    expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
+    expect(await screen.queryByText('Slow DB Query')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
+      has_related_trace_issue: false, // Should be true
+      trace_timeline_status: 'empty',
+      trace_timeline_two_issues: false, // Should be true
+    });
   });
 });
