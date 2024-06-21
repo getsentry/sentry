@@ -1,4 +1,5 @@
 from functools import cached_property
+from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -497,3 +498,26 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             self.user,
         )
         assert result["timezone"] == pst
+
+
+class EmailActionHandlerBuildMessageTest(TestCase):
+    @mock.patch("sentry.incidents.action_handlers.MessageBuilder")
+    def test_builds_message_with_additional_context(self, mock_message_builder):
+        action = self.create_alert_rule_trigger_action(
+            target_type=AlertRuleTriggerAction.TargetType.USER,
+            target_identifier=str(self.user.id),
+        )
+        incident = self.create_incident()
+        handler = EmailActionHandler(action, incident, self.project)
+        trigger_status = TriggerStatus.ACTIVE
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        email_context = generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+        )
+        handler.build_message(email_context, trigger_status, self.user.id)
+        assert mock_message_builder.call_count == 1
+        assert "monitor_type" in mock_message_builder.call_args[1]["context"]
