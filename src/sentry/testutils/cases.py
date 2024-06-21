@@ -3220,10 +3220,12 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 
 class UptimeTestCase(TestCase):
-    def create_uptime_result(self) -> CheckResult:
+    def create_uptime_result(self, subscription_id: str | None = None) -> CheckResult:
+        if subscription_id is None:
+            subscription_id = uuid.uuid4().hex
         return {
             "guid": uuid.uuid4().hex,
-            "subscription_id": uuid.uuid4().hex,
+            "subscription_id": subscription_id,
             "status": CHECKSTATUS_FAILURE,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
             "trace_id": uuid.uuid4().hex,

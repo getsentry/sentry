@@ -3,13 +3,13 @@ from random import Random
 
 from django.core.cache import cache
 
-from sentry.hybridcloud.rpc.services.caching import (
+from sentry.hybridcloud.rpc.caching import (
     back_with_silo_cache,
     back_with_silo_cache_many,
     control_caching_service,
     region_caching_service,
 )
-from sentry.hybridcloud.rpc.services.caching.impl import CacheBackend, _consume_generator
+from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser

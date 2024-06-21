@@ -33,6 +33,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
 from sentry.types.activity import ActivityType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 
 
 class Fixtures:
@@ -603,6 +604,34 @@ class Fixtures:
 
     def create_webhook_payload(self, *args, **kwargs):
         return Factories.create_webhook_payload(*args, **kwargs)
+
+    def create_uptime_subscription(
+        self,
+        type: str = "test",
+        subscription_id: str | None = None,
+        status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
+        url="http://sentry.io/",
+        interval_seconds=60,
+        timeout_ms=100,
+    ) -> UptimeSubscription:
+        return Factories.create_uptime_subscription(
+            type=type,
+            subscription_id=subscription_id,
+            status=status,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    def create_project_uptime_subscription(
+        self, project: Project | None = None, uptime_subscription: UptimeSubscription | None = None
+    ) -> ProjectUptimeSubscription:
+        if project is None:
+            project = self.project
+
+        if uptime_subscription is None:
+            uptime_subscription = self.create_uptime_subscription()
+        return Factories.create_project_uptime_subscription(project, uptime_subscription)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):
