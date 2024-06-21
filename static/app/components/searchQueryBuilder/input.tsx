@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
-import type {Node} from '@react-types/shared';
+import type {KeyboardEvent, Node} from '@react-types/shared';
 
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types/group';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type SearchQueryBuilderInputProps = {
@@ -34,6 +35,7 @@ type SearchQueryBuilderInputProps = {
 
 type SearchQueryBuilderInputInternalProps = {
   item: Node<ParseResultToken>;
+  rowRef: React.RefObject<HTMLDivElement>;
   state: ListState<ParseResultToken>;
   tabIndex: number;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
@@ -217,16 +219,21 @@ function SearchQueryBuilderInputInternal({
   token,
   tabIndex,
   state,
+  rowRef,
 }: SearchQueryBuilderInputInternalProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
-  // TODO(malwilley): Use input ref to update cursor position on mount
   const [selectionIndex, setSelectionIndex] = useState(0);
+
+  const updateSelectionIndex = useCallback(() => {
+    setSelectionIndex(inputRef.current?.selectionStart ?? 0);
+  }, []);
 
   const resetInputValue = useCallback(() => {
     setInputValue(trimmedTokenValue);
-    // TODO(malwilley): Reset cursor position using ref
-  }, [trimmedTokenValue]);
+    updateSelectionIndex();
+  }, [trimmedTokenValue, updateSelectionIndex]);
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
@@ -247,7 +254,24 @@ function SearchQueryBuilderInputInternal({
   }
 
   const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent) => {
+      updateSelectionIndex();
+
+      // Default combobox behavior stops events from propagating outside of input
+      // Certain keys like ctrl+z and ctrl+a are handled in useQueryBuilderGrid()
+      // so we need to continue propagation for those.
+      if (isCtrlKeyPressed(e)) {
+        if (e.key === 'z') {
+          // First let native undo behavior take place, but once that is done
+          // allow the event to propagate so that the grid can handle it.
+          if (inputValue === trimmedTokenValue) {
+            e.continuePropagation();
+          }
+        } else if (e.key === 'a') {
+          e.continuePropagation();
+        }
+      }
+
       // At start and pressing backspace, focus the previous full token
       if (
         e.currentTarget.selectionStart === 0 &&
@@ -270,7 +294,14 @@ function SearchQueryBuilderInputInternal({
         }
       }
     },
-    [item.key, state.collection, state.selectionManager]
+    [
+      inputValue,
+      item.key,
+      state.collection,
+      state.selectionManager,
+      trimmedTokenValue,
+      updateSelectionIndex,
+    ]
   );
 
   const onPaste = useCallback(
@@ -290,8 +321,13 @@ function SearchQueryBuilderInputInternal({
     [aliasToKeyMap, dispatch, resetInputValue, token]
   );
 
+  const onClick = useCallback(() => {
+    updateSelectionIndex();
+  }, [updateSelectionIndex]);
+
   return (
     <SearchQueryBuilderCombobox
+      ref={inputRef}
       items={sections}
       onOptionSelected={value => {
         dispatch({
@@ -355,6 +391,13 @@ function SearchQueryBuilderInputInternal({
       maxOptions={50}
       onPaste={onPaste}
       displayTabbedMenu={inputValue.length === 0}
+      shouldCloseOnInteractOutside={el => {
+        if (rowRef.current?.contains(el)) {
+          return false;
+        }
+        return true;
+      }}
+      onClick={onClick}
     >
       {section => (
         <Section title={section.title} key={section.key}>
@@ -389,6 +432,7 @@ export function SearchQueryBuilderInput({
           state={state}
           token={token}
           tabIndex={isFocused ? 0 : -1}
+          rowRef={ref}
         />
       </GridCell>
     </Row>
@@ -402,6 +446,16 @@ const Row = styled('div')`
 
   &:last-child {
     flex-grow: 1;
+  }
+
+  &[aria-selected='true'] {
+    background-color: ${p => p.theme.blue200};
+  }
+
+  input {
+    &::selection {
+      background-color: ${p => p.theme.blue200};
+    }
   }
 `;
 

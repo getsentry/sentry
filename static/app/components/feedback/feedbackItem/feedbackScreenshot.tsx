@@ -56,11 +56,11 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledLoadingIndicator = styled('div')`
-  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
   height: 100%;
+  background: ${p => p.theme.purple100};
 `;
 
 const StyledImageButton = styled('button')`

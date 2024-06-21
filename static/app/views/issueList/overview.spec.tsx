@@ -20,6 +20,7 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import StreamGroup from 'sentry/components/stream/group';
+import {DEFAULT_QUERY} from 'sentry/constants';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
 import {SavedSearchVisibility} from 'sentry/types';
@@ -43,7 +44,7 @@ const project = ProjectFixture({
   firstEvent: new Date().toISOString(),
 });
 
-const {organization, router} = initializeOrg({
+const {organization, projects, router} = initializeOrg({
   organization: {
     id: '1337',
     slug: 'org-slug',
@@ -54,7 +55,7 @@ const {organization, router} = initializeOrg({
     location: {query: {}, search: ''},
     params: {},
   },
-  project,
+  projects: [project],
 });
 
 const routerProps = {
@@ -154,11 +155,11 @@ describe('IssueList', function () {
       savedSearches: [savedSearch],
       useOrgSavedSearches: true,
       selection: {
-        projects: [parseInt(organization.projects[0].id, 10)],
+        projects: [parseInt(projects[0].id, 10)],
         environments: [],
         datetime: {period: '14d'},
       },
-      location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
+      location: {query: {query: DEFAULT_QUERY}, search: `query=${DEFAULT_QUERY}`},
       params: {},
       organization,
       tags: tags.reduce((acc, tag) => {
@@ -208,7 +209,7 @@ describe('IssueList', function () {
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(await screen.findByDisplayValue('is:unresolved'));
+      await userEvent.click(await screen.findByDisplayValue(DEFAULT_QUERY));
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
@@ -224,7 +225,7 @@ describe('IssueList', function () {
         })
       );
 
-      expect(screen.getByDisplayValue('is:unresolved')).toBeInTheDocument();
+      expect(screen.getByDisplayValue(DEFAULT_QUERY)).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: /custom search/i})).toBeInTheDocument();
     });
@@ -297,21 +298,6 @@ describe('IssueList', function () {
 
       // Organization saved search selector should have default saved search selected
       expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
-    });
-
-    it('shows archived tab', async function () {
-      render(<IssueListWithStores {...routerProps} organization={{...organization}} />, {
-        router,
-      });
-
-      await waitFor(() => {
-        expect(issuesRequest).toHaveBeenCalled();
-      });
-
-      expect(screen.getByDisplayValue('is:unresolved')).toBeInTheDocument();
-
-      // TODO(workflow): remove this test when we remove the feature flag
-      expect(screen.getByRole('tab', {name: 'Archived'})).toBeInTheDocument();
     });
 
     it('loads with a saved query', async function () {
@@ -450,7 +436,6 @@ describe('IssueList', function () {
         },
         organization: OrganizationFixture({
           features: ['issue-stream-performance'],
-          projects: [],
         }),
       };
       const {unmount} = render(<IssueListWithStores {...defaultProps} />, {
@@ -559,7 +544,7 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      const queryInput = screen.getByDisplayValue('is:unresolved');
+      const queryInput = screen.getByDisplayValue(DEFAULT_QUERY);
       await userEvent.clear(queryInput);
       await userEvent.type(queryInput, 'assigned:me level:fatal{enter}');
 
@@ -859,7 +844,7 @@ describe('IssueList', function () {
           page: 1,
           environment: [],
           project: [],
-          query: 'is:unresolved',
+          query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
         },
@@ -883,7 +868,7 @@ describe('IssueList', function () {
           page: 2,
           environment: [],
           project: [],
-          query: 'is:unresolved',
+          query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
         },
@@ -905,7 +890,7 @@ describe('IssueList', function () {
           page: 1,
           environment: [],
           project: [],
-          query: 'is:unresolved',
+          query: DEFAULT_QUERY,
           statsPeriod: '14d',
           referrer: 'issue-list',
         },
@@ -929,7 +914,7 @@ describe('IssueList', function () {
             environment: [],
             page: undefined,
             project: [],
-            query: 'is:unresolved',
+            query: DEFAULT_QUERY,
             statsPeriod: '14d',
             referrer: 'issue-list',
           },
@@ -952,7 +937,7 @@ describe('IssueList', function () {
         router,
       });
 
-      const queryInput = screen.getByDisplayValue('is:unresolved');
+      const queryInput = screen.getByDisplayValue(DEFAULT_QUERY);
       await userEvent.clear(queryInput);
       await userEvent.type(queryInput, 'is:ignored{enter}');
 
@@ -1034,7 +1019,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
+          data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&savedSearch=1&shortIdLookup=1&statsPeriod=14d',
         })
       );
     });
@@ -1081,7 +1066,7 @@ describe('IssueList', function () {
       expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
     });
 
-    it('displays congrats robots animation with only is:unresolved query', async function () {
+    it('displays congrats robots animation with only default query', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -1108,7 +1093,7 @@ describe('IssueList', function () {
       render(<IssueListOverview {...routerProps} {...props} />, {router});
 
       await userEvent.type(
-        screen.getByDisplayValue('is:unresolved'),
+        screen.getByDisplayValue(DEFAULT_QUERY),
         ' level:error{enter}'
       );
 
@@ -1138,11 +1123,9 @@ describe('IssueList', function () {
         },
         ...merge({}, routerProps, {
           params: {},
-          location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
+          location: {query: {query: DEFAULT_QUERY}, search: 'query=is:unresolved'},
         }),
-        organization: OrganizationFixture({
-          projects: [],
-        }),
+        organization: OrganizationFixture(),
         ...moreProps,
       };
       render(<IssueListOverview {...defaultProps} />, {router});
@@ -1151,7 +1134,7 @@ describe('IssueList', function () {
     };
 
     it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1180,7 +1163,7 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/foo/issues/',
@@ -1188,16 +1171,14 @@ describe('IssueList', function () {
       });
 
       await createWrapper({
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when no projects selected and any projects have a first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1226,19 +1207,17 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
       await createWrapper({
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();
     });
 
     it('displays when all selected projects do not have first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1267,7 +1246,7 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/foo/issues/',
@@ -1280,16 +1259,14 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(await screen.findByTestId('awaiting-events')).toBeInTheDocument();
     });
 
     it('does not display when any selected projects have first event', async function () {
-      const projects = [
+      const projectsBody = [
         ProjectFixture({
           id: '1',
           slug: 'foo',
@@ -1318,7 +1295,7 @@ describe('IssueList', function () {
       });
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/projects/',
-        body: projects,
+        body: projectsBody,
       });
 
       await createWrapper({
@@ -1327,9 +1304,7 @@ describe('IssueList', function () {
           environments: [],
           datetime: {period: '14d'},
         },
-        organization: OrganizationFixture({
-          projects,
-        }),
+        organization: OrganizationFixture(),
       });
 
       expect(screen.queryByTestId('awaiting-events')).not.toBeInTheDocument();

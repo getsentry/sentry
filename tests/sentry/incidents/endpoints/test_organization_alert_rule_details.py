@@ -37,6 +37,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
     find_channel_id_for_alert_rule,
 )
 from sentry.testutils.abstract import Abstract
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -192,6 +193,17 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert resp.data["latestIncident"] is not None
         assert resp.data["latestIncident"]["id"] == str(incident.id)
         assert "latestIncident" not in no_expand_resp.data
+
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule(description="howdy")
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.description == resp.data.get("description")
 
     @responses.activate
     def test_with_sentryapp_success(self):
@@ -608,6 +620,22 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
             )
 
         assert len(resp.data["triggers"]) == 1
+
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        alert_rule = self.alert_rule
+        # We need the IDs to force update instead of create, so we just get the rule using our own API. Like frontend would.
+        description = "yeehaw"
+        serialized_alert_rule = self.get_serialized_alert_rule()
+        serialized_alert_rule["description"] = description
+
+        resp = self.get_success_response(
+            self.organization.slug, alert_rule.id, **serialized_alert_rule
+        )
+        assert description == resp.data.get("description")
 
     def test_delete_action(self):
         self.create_member(

@@ -17,7 +17,8 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters, Project} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Project} from 'sentry/types/project';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {

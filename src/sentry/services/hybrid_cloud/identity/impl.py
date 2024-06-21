@@ -109,7 +109,7 @@ class DatabaseBackedIdentityService(IdentityService):
             return query
 
         def base_query(self, select_related: bool = True) -> QuerySet[Identity]:
-            return Identity.objects
+            return Identity.objects.all()
 
         def filter_arg_validator(self) -> Callable[[IdentityFilterArgs], str | None]:
             return self._filter_has_any_key_validator(*IdentityFilterArgs.__annotations__.keys())

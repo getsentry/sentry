@@ -858,7 +858,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
 
-    @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_slack_title_link_notification_uuid(self, mock_post):
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
@@ -883,7 +883,7 @@ class RuleProcessorTestFilters(TestCase):
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args[1]["data"]["blocks"])[0]["text"]["text"]
+            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["text"]["text"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")

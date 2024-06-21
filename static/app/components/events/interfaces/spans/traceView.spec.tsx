@@ -23,7 +23,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 
 function initializeData(settings) {
   const data = _initializeData(settings);
-  ProjectsStore.loadInitialData(data.organization.projects);
+  ProjectsStore.loadInitialData(data.projects);
   return data;
 }
 

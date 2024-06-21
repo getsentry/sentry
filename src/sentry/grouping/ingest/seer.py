@@ -7,6 +7,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
@@ -16,6 +17,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
 )
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -74,6 +76,7 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
         else:
             metrics.incr(
                 "grouping.similarity.did_call_seer",
+                sample_rate=1.0,
                 tags={"call_made": False, "blocker": "hybrid-fingerprint"},
             )
             return True
@@ -86,6 +89,7 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
     if fingerprint_variant:
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": fingerprint_variant.type},
         )
         return True
@@ -108,6 +112,7 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
         metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "global-killswitch"},
         )
         return True
@@ -120,6 +125,7 @@ def _killswitch_enabled(event: Event, project: Project) -> bool:
         metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
         return True
@@ -150,6 +156,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "global-rate-limit"},
         )
 
@@ -167,6 +174,7 @@ def _ratelimiting_enabled(event: Event, project: Project) -> bool:
         )
         metrics.incr(
             "grouping.similarity.did_call_seer",
+            sample_rate=1.0,
             tags={"call_made": False, "blocker": "project-rate-limit"},
         )
 
@@ -204,11 +212,31 @@ def get_seer_similar_issues(
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "message": filter_null_from_event_title(event.title),
+        "exception_type": get_path(event.data, "exception", "values", -1, "type"),
         "k": num_neighbors,
     }
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
+    logger.info(
+        "get_seer_similar_issues.request",
+        extra={"event_id": event.event_id, "payload": request_data},
+    )
+    # TODO: This is temporary, to debug Seer being called on existing hashes
+    existing_grouphash = GroupHash.objects.filter(
+        hash=event_hash, project_id=event.project.id
+    ).first()
+    if existing_grouphash and existing_grouphash.group_id:
+        logger.warning(
+            "get_seer_similar_issues.hash_exists",
+            extra={
+                "event_id": event.event_id,
+                "project_id": event.project.id,
+                "hash": event_hash,
+                "grouphash_id": existing_grouphash.id,
+                "group_id": existing_grouphash.group_id,
+            },
+        )
 
     similar_issues_metadata = asdict(
         SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
@@ -221,6 +249,17 @@ def get_seer_similar_issues(
             and features.has("projects:similarity-embeddings-grouping", event.project)
         )
         else None
+    )
+
+    logger.info(
+        "get_seer_similar_issues.results",
+        extra={
+            "event_id": event.event_id,
+            "project_id": event.project.id,
+            "hash": event_hash,
+            "results": similar_issues_metadata,
+            "group_returned": bool(parent_group),
+        },
     )
 
     return (similar_issues_metadata, parent_group)

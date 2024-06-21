@@ -7,6 +7,7 @@ import pytest
 import responses
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTriggerAction
+from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.rule import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
@@ -319,3 +320,50 @@ class SlackTasksTest(TestCase):
             )
         data = parse_qs(responses.calls[0].request.body)
         assert data == {"key": ["val"]}
+
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @responses.activate
+    def test_post_message_success_sdk(self, mock_api_call, mock_metrics):
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        with self.tasks():
+            post_message.apply_async(
+                kwargs={
+                    "integration_id": self.integration.id,
+                    "payload": {"blocks": ["hello"], "text": "text", "channel": "channel"},
+                    "log_error_message": "my_message",
+                    "log_params": {"log_key": "log_value"},
+                    "has_sdk_flag": True,
+                }
+            )
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": True, "status": 200},
+        )
+
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    @responses.activate
+    def test_post_message_failure_sdk(self, mock_metrics):
+        with self.tasks():
+            post_message.apply_async(
+                kwargs={
+                    "integration_id": self.integration.id,
+                    "payload": {"blocks": ["hello"], "text": "text", "channel": "channel"},
+                    "log_error_message": "my_message",
+                    "log_params": {"log_key": "log_value"},
+                    "has_sdk_flag": True,
+                }
+            )
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": False, "status": 200},
+        )

@@ -65,6 +65,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "weeklyAvg",
         "totalThisWeek",
         "latestIncident",
+        "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
@@ -88,6 +89,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
+    description: str
 
 
 @register(AlertRule)
@@ -173,9 +175,9 @@ class AlertRuleSerializer(Serializer):
                 order_by=F("date_added").desc(),
             )
         )
-        activations = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
+        activations_qs = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
         activations_by_alert_rule_id = defaultdict(list)
-        for activation in activations:
+        for activation in activations_qs:
             activations_by_alert_rule_id[activation.alert_rule_id].append(activation)
 
         alert_rule_projects = set()
@@ -299,6 +301,7 @@ class AlertRuleSerializer(Serializer):
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
             "activations": attrs.get("activations", None),
+            "description": obj.description if obj.description is not None else "",
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

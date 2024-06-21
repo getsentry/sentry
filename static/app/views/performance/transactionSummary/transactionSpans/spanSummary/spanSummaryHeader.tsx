@@ -7,7 +7,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 
 type Props = {
   avgDuration: number | undefined;

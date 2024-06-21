@@ -51,14 +51,7 @@ class ErrorEvent(BaseEvent):
 
     def extract_metadata(self, data: MutableMapping[str, Any]) -> Metadata:
         """Extracts the metadata from the event data."""
-        exceptions = get_path(data, "exception", "values")
-        if not exceptions:
-            return {}
-
-        # With chained exceptions, the SDK could set the main_exception_id to
-        # indicate which exception to use for title & subtitle
-        main_exception_id = get_path(data, "main_exception_id")
-        exception = get_exception(exceptions, main_exception_id)
+        exception = _find_main_exception(data)
         if not exception:
             return {}
         rv = {"value": trim(get_path(exception, "value", default=""), 1024)}
@@ -106,6 +99,17 @@ class ErrorEvent(BaseEvent):
 
     def get_location(self, metadata: Metadata) -> str | None:
         return metadata.get("filename")
+
+
+def _find_main_exception(data: MutableMapping[str, Any]) -> str | None:
+    exceptions = get_path(data, "exception", "values")
+    if not exceptions:
+        return None
+
+    # With chained exceptions, the SDK or our grouping logic can set the main_exception_id
+    # to indicate which exception to use for title & subtitle
+    main_exception_id = get_path(data, "main_exception_id")
+    return get_exception(exceptions, main_exception_id)
 
 
 def get_exception(exceptions: MutableMapping[str, Any], main_exception_id: str) -> str | None:

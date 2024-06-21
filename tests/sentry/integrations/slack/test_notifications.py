@@ -3,11 +3,14 @@ from urllib.parse import parse_qs
 
 import orjson
 import responses
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.notifications import send_notification_as_slack
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.testutils.cases import SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import DummyNotification
 
 
@@ -100,3 +103,39 @@ class SlackNotificationsTest(SlackActivityNotificationTest):
             ],
             "type": "actions",
         }
+
+    @with_feature("organizations:slack-sdk-notify-recipient")
+    def test_send_notification_as_slack_sdk(self):
+        with (
+            mock.patch.dict(
+                manager.attachment_generators,
+                {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
+            ),
+        ):
+            with self.tasks():
+                send_notification_as_slack(self.notification, [self.user], {}, {})
+
+    @with_feature("organizations:slack-sdk-notify-recipient")
+    def test_send_notification_as_slack_sdk_error(self):
+        mock_slack_response = SlackResponse(
+            client=None,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.postMessage",
+            req_args={},
+            data={"ok": False},
+            headers={},
+            status_code=200,
+        )
+
+        with (
+            mock.patch.dict(
+                manager.attachment_generators,
+                {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
+            ),
+            mock.patch(
+                "slack_sdk.web.client.WebClient.chat_postMessage",
+                side_effect=SlackApiError("error", mock_slack_response),
+            ),
+        ):
+            with self.tasks():
+                send_notification_as_slack(self.notification, [self.user], {}, {})

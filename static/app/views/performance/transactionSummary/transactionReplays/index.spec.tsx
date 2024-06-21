@@ -34,11 +34,10 @@ const renderComponent = ({
   location,
   organizationProps = {features: ['performance-view', 'session-replay']},
 }: InitializeOrgProps = {}) => {
-  const {organization, router} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {
       ...organizationProps,
     },
-    project: ProjectFixture(),
     projects: [ProjectFixture()],
     router: {
       routes: [
@@ -58,7 +57,7 @@ const renderComponent = ({
   });
 
   ProjectsStore.init();
-  ProjectsStore.loadInitialData(organization.projects);
+  ProjectsStore.loadInitialData(projects);
 
   return render(<TransactionReplays />, {router, organization});
 };

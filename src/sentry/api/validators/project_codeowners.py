@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from typing import Any
 
 from django.db.models import Subquery
@@ -24,7 +24,7 @@ def validate_association_emails(
 
 def validate_association_actors(
     raw_items: Collection[str],
-    associations: Collection[ExternalActor],
+    associations: Iterable[ExternalActor],
 ) -> list[str]:
     raw_items_set = {str(item) for item in raw_items}
     # associations are ExternalActor objects

@@ -43,6 +43,7 @@ export function WidgetDetails() {
     focusArea,
     setHighlightedSampleId,
     setMetricsSamples,
+    hasPerformanceMetrics,
   } = useMetricsContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
@@ -69,6 +70,7 @@ export function WidgetDetails() {
       onRowHover={handleSampleRowHover}
       setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
+      hasPerformanceMetrics={hasPerformanceMetrics}
     />
   );
 }
@@ -76,6 +78,7 @@ export function WidgetDetails() {
 interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
+  hasPerformanceMetrics?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   op?: string;
@@ -93,6 +96,7 @@ export function MetricDetails({
   onRowHover,
   focusArea,
   setMetricsSamples,
+  hasPerformanceMetrics,
 }: MetricDetailsProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -204,6 +208,7 @@ export function MetricDetails({
                     op={op}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 ) : (
                   <MetricSamplesTable
@@ -213,6 +218,7 @@ export function MetricDetails({
                     op={op}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 )}
               </MetricSampleTableWrapper>

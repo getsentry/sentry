@@ -59,7 +59,7 @@ class SessionStackPlugin(CorePluginMixin, Plugin2):
     def get_custom_contexts(self):
         return [SessionStackContextType]
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         self.disable(project)
 
         self.set_option("account_email", "", project)

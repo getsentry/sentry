@@ -7,6 +7,7 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import Any
 
+from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
@@ -14,7 +15,6 @@ from sentry.services.hybrid_cloud.integration.model import (
     RpcOrganizationContext,
     RpcOrganizationContextList,
 )
-from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 

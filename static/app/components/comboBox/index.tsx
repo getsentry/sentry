@@ -370,6 +370,7 @@ function ControlledComboBox<Value extends string>({
 const ControlWrapper = styled('div')`
   position: relative;
   width: max-content;
+  height: max-content;
   min-width: 150px;
   max-width: 100%;
   cursor: pointer;

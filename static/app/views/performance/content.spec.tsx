@@ -26,9 +26,9 @@ function WrappedComponent({router}) {
 function initializeData(projects, query, features = FEATURES) {
   const organization = OrganizationFixture({
     features,
-    projects,
   });
   const initialData = initializeOrg({
+    projects,
     organization,
     router: {
       location: {
@@ -38,7 +38,7 @@ function initializeData(projects, query, features = FEATURES) {
     },
   });
   act(() => void OrganizationStore.onUpdate(initialData.organization, {replace: true}));
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
@@ -47,10 +47,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
     ProjectFixture({id: '1', firstTransactionEvent: false}),
     ProjectFixture({id: '2', firstTransactionEvent: true}),
   ];
-  const organization = OrganizationFixture({
-    features: FEATURES,
-    projects,
-  });
+  const organization = OrganizationFixture({features: FEATURES});
 
   const otherTrendsQuery = addDefaultQuery
     ? {
@@ -60,6 +57,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
 
   const initialData = initializeOrg({
     organization,
+    projects,
     router: {
       location: {
         pathname: '/test',
@@ -70,7 +68,7 @@ function initializeTrendsData(query, addDefaultQuery = true) {
       },
     },
   });
-  act(() => ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 

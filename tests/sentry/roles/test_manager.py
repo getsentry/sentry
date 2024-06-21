@@ -81,6 +81,13 @@ class RoleManagerTest(TestCase):
 
         assert manager.get_choices() == manager.organization_roles.get_choices()
         assert manager.team_roles.get_choices() == tuple(
+            (role["id"], role["name"]) for role in self.TEST_TEAM_ROLES
+        )
+
+    def test_descriptions(self):
+        manager = RoleManager(self.TEST_ORG_ROLES, self.TEST_TEAM_ROLES)
+
+        assert manager.team_roles.get_descriptions() == tuple(
             (role["id"], role["desc"]) for role in self.TEST_TEAM_ROLES
         )
 

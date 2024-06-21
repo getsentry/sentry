@@ -223,6 +223,80 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert materialized["metadata"] == {"title": "<unlabeled event>", "dogs": "are great"}
 
+    def test_react_error_picks_cause_error_title_subtitle(self) -> None:
+        cause_error_value = "Load failed"
+        # React 19 hydration error include the hydration error and a cause
+        # If we derive the title from the cause error the developer will more easily distinguish them
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "value": cause_error_value,
+                            "mechanism": {
+                                "type": "onerror",
+                                "handled": False,
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "Error",
+                            "value": "There was an error during concurrent rendering but React was able to recover by instead synchronously rendering the entire root.",
+                            "mechanism": {
+                                "type": "generic",
+                                "handled": True,
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["value"] == cause_error_value
+        assert event.data["metadata"]["type"] == "TypeError"
+        assert event.group is not None
+        assert event.group.title == f"TypeError: {cause_error_value}"
+
+    def test_react_hydration_error_picks_cause_error_title_subtitle(self) -> None:
+        cause_error_value = "Cannot read properties of undefined (reading 'nodeName')"
+        # React 19 hydration error include the hydration error and a cause
+        # If we derive the title from the cause error the developer will more easily distinguish them
+        manager = EventManager(
+            make_event(
+                exception={
+                    "values": [
+                        {
+                            "type": "TypeError",
+                            "value": cause_error_value,
+                            "mechanism": {
+                                "type": "chained",
+                                "source": "cause",
+                                "exception_id": 1,
+                                "parent_id": 0,
+                            },
+                        },
+                        {
+                            "type": "Error",
+                            "value": "There was an error while hydrating but React was able to recover by instead client rendering from the nearest Suspense boundary.",
+                            "mechanism": {
+                                "type": "generic",
+                                "exception_id": 0,
+                            },
+                        },
+                    ]
+                },
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.data["metadata"]["value"] == cause_error_value
+        assert event.data["metadata"]["type"] == "TypeError"
+        assert event.group is not None
+        assert event.group.title == f"TypeError: {cause_error_value}"
+
     @mock.patch("sentry.signals.issue_unresolved.send_robust")
     def test_unresolves_group(self, send_robust: mock.MagicMock) -> None:
         ts = time() - 300

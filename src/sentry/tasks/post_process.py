@@ -512,7 +512,8 @@ def post_process_group(
     cache_key,
     group_id=None,
     occurrence_id: str | None = None,
-    project_id: int | None = None,
+    *,
+    project_id: int,
     **kwargs,
 ):
     """
