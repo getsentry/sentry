@@ -519,7 +519,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         return self.get_markdown_block(title_text)
 
     def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
-        if isinstance(event_or_group.culprit, str) and event_or_group.culprit != "":
+        if event_or_group.culprit and isinstance(event_or_group.culprit, str):
             return self.get_context_block(event_or_group.culprit)
         else:
             return None
