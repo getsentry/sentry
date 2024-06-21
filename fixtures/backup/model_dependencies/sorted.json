@@ -3,7 +3,6 @@
   "hybridcloud.regioncacheversion",
   "hybridcloud.webhookpayload",
   "nodestore.node",
-  "remote_subscriptions.remotesubscription",
   "sentry.broadcast",
   "sentry.controlfile",
   "sentry.controlfileblob",
