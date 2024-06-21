@@ -52,6 +52,39 @@ describe('ResourcesLandingPage', function () {
     ).toBeInTheDocument();
   });
 
+  it('fetches domain data', async () => {
+    render(<ResourcesLandingPage />, {organization});
+    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
+
+    expect(requestMocks.domainSelector.mock.calls).toMatchInlineSnapshot(`
+[
+  [
+    "/organizations/org-slug/events/",
+    {
+      "error": [Function],
+      "method": "GET",
+      "query": {
+        "dataset": "spansMetrics",
+        "environment": [],
+        "field": [
+          "span.domain",
+          "count()",
+        ],
+        "per_page": 100,
+        "project": [],
+        "query": "has:span.description !span.description:"browser-extension://*" span.op:[resource.script,resource.css,resource.font,resource.img]",
+        "referrer": "api.starfish.get-span-domains",
+        "sort": "-count",
+        "statsPeriod": "10d",
+      },
+      "skipAbort": undefined,
+      "success": [Function],
+    },
+  ],
+]
+`);
+  });
+
   it('contains correct query in charts', async () => {
     render(<ResourcesLandingPage />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
@@ -195,7 +228,7 @@ const setupMockRequests = (organization: Organization) => {
     },
   });
 
-  MockApiClient.addMockResponse({
+  requestMocks.domainSelector = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
     method: 'GET',
     match: [MockApiClient.matchQuery({referrer: 'api.starfish.get-span-domains'})],
