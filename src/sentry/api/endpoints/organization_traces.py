@@ -91,6 +91,9 @@ class OrganizationTracesSerializer(serializers.Serializer):
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
     sort = serializers.CharField(required=False)
+    experiment = serializers.ListField(
+        required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
+    )
 
 
 @contextmanager
@@ -156,6 +159,8 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
+        experiments = set(serialized.get("experiment", []))
+
         executor = TracesExecutor(
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
@@ -167,7 +172,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             mri=serialized.get("mri"),
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
-            sort=serialized.get("sort"),
+            sort=serialized.get("sort") if "timestamp desc" in experiments else None,
         )
 
         return self.paginate(
@@ -401,6 +406,12 @@ class TracesExecutor:
                 traces_breakdown_projects_results=traces_breakdown_projects_results,
             )
 
+            # Ensure that the order of the data is in the same order as the trace ids.
+            # This guarantees that if the trace ids are sorted, the final result will
+            # be sorted the same way.
+            trace_id_order = {trace_id: i for i, trace_id in enumerate(trace_ids)}
+            data.sort(key=lambda row: trace_id_order[row["trace"]])
+
         return data
 
     def refine_params(self, min_timestamp: datetime, max_timestamp: datetime):
@@ -528,6 +539,8 @@ class TracesExecutor:
             builder=builder,
             limit=self.limit,
             timestamp_column=timestamp_column,
+            max_block_size_hours=8,
+            max_batches=7,
             max_execution_seconds=30,
             max_parallel_queries=3,
         )
@@ -1011,7 +1024,7 @@ class TracesExecutor:
 class OrderedTracesExecutor:
     # There needs to be an overlap between blocks to handle
     # traces to happen to lie on the block boundaries.
-    buffer_size = timedelta(minutes=1)
+    buffer_size = timedelta(minutes=5)
 
     def __init__(
         self,
@@ -1021,6 +1034,8 @@ class OrderedTracesExecutor:
         builder: QueryBuilder,
         limit: int,
         timestamp_column: str,
+        max_block_size_hours: int,
+        max_batches: int,
         max_execution_seconds: int,
         max_parallel_queries: int,
     ):
@@ -1029,8 +1044,6 @@ class OrderedTracesExecutor:
         self.builder = builder
         self.limit = limit
         self.timestamp_column = timestamp_column
-        self.max_execution_seconds = max_execution_seconds
-        self.max_parallel_queries = max_parallel_queries
 
         assert snuba_params.start is not None
         assert snuba_params.end is not None
@@ -1038,14 +1051,19 @@ class OrderedTracesExecutor:
         self.unscanned_start = snuba_params.start
         self.unscanned_end = snuba_params.end
 
-        # TODO: Look into dynamic block sizes
         self.block_size = min(
             self.unscanned_end - self.unscanned_start,
-            timedelta(hours=8),
+            timedelta(hours=max_block_size_hours),
         )
+        self.max_batches = max_batches
+        self.max_execution_seconds = max_execution_seconds
+        self.max_parallel_queries = max_parallel_queries
+
+    def has_more_to_scan(self) -> bool:
+        return self.unscanned_end > self.unscanned_start
 
     def execute(self) -> tuple[datetime, datetime, list[str]]:
-        base_request = self.builder.get_snql_query()
+        batches = 0
 
         start_time = time.monotonic()
 
@@ -1056,58 +1074,71 @@ class OrderedTracesExecutor:
         assert max_timestamp is not None
 
         while (
-            # Not enough entries in result
-            len(trace_ids) < self.limit
-            # Have not finished scanning the full range
-            and self.unscanned_end > self.unscanned_start
-            # Still within the max execution tim
-            and time.monotonic() - start_time < self.max_execution_seconds
+            len(trace_ids) < self.limit  # Not enough entries in result
+            and self.has_more_to_scan()
+            and batches < self.max_batches  # Still within the max batches limit
+            and time.monotonic() - start_time
+            < self.max_execution_seconds  # Still within the max execution limit
         ):
-            batch_queries = []
+            batches += 1
 
-            for _ in range(self.max_parallel_queries):
-                block_end: datetime = self.unscanned_end
+            data = self.query_next_batch()
 
-                self.unscanned_end -= self.block_size
-                self.unscanned_end = max(self.unscanned_end, self.unscanned_start)
+            for row in data:
+                trace_ids.append(row["trace"])
+                timestamp = datetime.fromisoformat(row[self.timestamp_column])
+                if timestamp < min_timestamp:
+                    min_timestamp = timestamp
+                if timestamp > max_timestamp:
+                    max_timestamp = timestamp
 
-                block_start: datetime = self.unscanned_end - self.buffer_size
-                block_start = max(block_start, self.unscanned_start)
-
-                if block_end <= block_start:
-                    break
-
-                # Make sure to copy the where list as it's a shared reference.
-                where = list(base_request.query.where) if base_request.query.where else []
-                where.append(Condition(self.builder.column("timestamp"), Op.GTE, block_start))
-                where.append(Condition(self.builder.column("timestamp"), Op.LT, block_end))
-                request = replace(base_request, query=base_request.query.set_where(where))
-
-                batch_queries.append(request)
-
-            batch_results = bulk_snuba_queries(
-                [query for query in batch_queries],
-                Referrer.API_TRACE_EXPLORER_SPANS_LIST_SORTED.value,
-            )
-
-            for result in batch_results:
-                result = self.builder.process_results(result)
-
-                for row in result["data"]:
-                    trace_ids.append(row["trace"])
-                    timestamp = datetime.fromisoformat(row[self.timestamp_column])
-                    if timestamp < min_timestamp:
-                        min_timestamp = timestamp
-                    if timestamp > max_timestamp:
-                        max_timestamp = timestamp
-
-                    if len(trace_ids) >= self.limit:
-                        break
-
+                # Got enough results
                 if len(trace_ids) >= self.limit:
                     break
 
         return min_timestamp, max_timestamp, trace_ids
+
+    def query_next_batch(self):
+        base_request = self.builder.get_snql_query()
+
+        batch_queries = []
+
+        for _ in range(self.max_parallel_queries):
+            block_end: datetime = self.unscanned_end
+
+            # The last block is going to be queried in the next batch.
+            # Move the unscanned_end to indicate this.
+            self.unscanned_end -= self.block_size
+            self.unscanned_end = max(self.unscanned_end, self.unscanned_start)
+
+            # Include a small buffer in case the trace crosses the block boundary.
+            block_start: datetime = self.unscanned_end - self.buffer_size
+            block_start = max(block_start, self.unscanned_start)
+
+            if block_start >= block_end:  # empty block, no need to query it
+                break
+
+            # Make sure to copy the where list as it's a shared reference.
+            where = list(base_request.query.where) if base_request.query.where else []
+            where.append(Condition(self.builder.column("timestamp"), Op.GTE, block_start))
+            where.append(Condition(self.builder.column("timestamp"), Op.LT, block_end))
+            request = replace(base_request, query=base_request.query.set_where(where))
+
+            batch_queries.append(request)
+
+        if not batch_queries:
+            return
+
+        batch_results = bulk_snuba_queries(
+            [query for query in batch_queries],
+            Referrer.API_TRACE_EXPLORER_SPANS_LIST_SORTED.value,
+        )
+
+        data = []
+        for result in batch_results:
+            result = self.builder.process_results(result)
+            data.extend(result["data"])
+        return data
 
 
 class TraceSpansExecutor:
