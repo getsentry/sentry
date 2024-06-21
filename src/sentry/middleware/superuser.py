@@ -64,9 +64,10 @@ class SuperuserMiddleware(MiddlewareMixin):
 
         If the superuser is authorized with an email address that belongs to the host
         organization, include that address in the log entry as a convenience.
-        Otherwise, the User object might be showing a personal email address,
-        in which case we want to omit the email address from the logs and rely on
-        "user_id" to identify them instead.
+        Otherwise, the User object might be showing the address of a user being
+        impersonated, which leaks PII into the logs. It also could be a secondary,
+        personal email address on the superuser's account. In such cases, we want to
+        omit the email address from the logs and rely on "user_id" instead.
 
         See https://github.com/getsentry/team-core-product-foundations/issues/315
         """
