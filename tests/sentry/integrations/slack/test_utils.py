@@ -3,11 +3,14 @@ from unittest.mock import patch
 import orjson
 import pytest
 import responses
-from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.integrations.slack.utils.channel import CHANNEL_PREFIX, MEMBER_PREFIX
+from sentry.integrations.slack.utils.channel import (
+    CHANNEL_PREFIX,
+    MEMBER_PREFIX,
+    SlackChannelIdData,
+)
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
@@ -52,7 +55,7 @@ class GetChannelIdTest(TestCase):
         )
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
-        assert (expected_prefix, expected_id, timed_out) == get_channel_id(
+        assert SlackChannelIdData(expected_prefix, expected_id, timed_out) == get_channel_id(
             self.organization, self.integration, channel
         )
 
@@ -162,8 +165,10 @@ class GetChannelIdTest(TestCase):
 
     def test_invalid_channel_selected(self):
         self.add_msg_response("channel_not_found")
-        assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
-        assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
+        assert (
+            get_channel_id(self.organization, self.integration, "#fake-channel").channel_id is None
+        )
+        assert get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
 
     @with_feature("organizations:slack-sdk-get-channel-id")
     @patch("sentry.integrations.slack.sdk_client.metrics")
@@ -176,9 +181,10 @@ class GetChannelIdTest(TestCase):
             "status": 200,
         }
 
-        with pytest.raises(SlackApiError):
-            get_channel_id(self.organization, self.integration, "#fake-channel")
-            get_channel_id(self.organization, self.integration, "@fake-user")
+        assert (
+            get_channel_id(self.organization, self.integration, "#fake-channel").channel_id is None
+        )
+        assert get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
 
     def test_rate_limiting(self):
         """Should handle 429 from Slack when searching for users"""
