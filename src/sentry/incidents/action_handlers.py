@@ -208,15 +208,7 @@ class EmailActionHandler(ActionHandler):
         self, context: dict[str, Any], status: TriggerStatus, user_id: int
     ) -> MessageBuilder:
         display = self.status_display[status]
-        alert_rule = self.incident.alert_rule
-        activation = self.incident.activation
-        additional_context = {
-            "monitor_type": alert_rule.monitor_type,  # 0 = continuous, 1 = activated
-            "activator": (activation.activator if activation else ""),
-            "condition_type": (
-                activation.condition_type if activation else None
-            ),  # 0 = release creation, 1 = deploy creation
-        }
+
         return MessageBuilder(
             subject="[{}] {} - {}".format(
                 context["status"], context["incident_name"], self.project.slug
@@ -224,10 +216,7 @@ class EmailActionHandler(ActionHandler):
             template="sentry/emails/incidents/trigger.txt",
             html_template="sentry/emails/incidents/trigger.html",
             type=f"incident.alert_rule_{display.lower()}",
-            context={
-                **context,
-                **additional_context,
-            },
+            context=context,
             headers={"X-SMTPAPI": orjson.dumps({"category": "metric_alert_email"}).decode()},
         )
 
@@ -409,6 +398,7 @@ def generate_incident_trigger_email_context(
 ):
     trigger = alert_rule_trigger
     alert_rule = trigger.alert_rule
+    activation = incident.activation
     snuba_query = alert_rule.snuba_query
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
@@ -505,4 +495,9 @@ def generate_incident_trigger_email_context(
         "timezone": tz,
         "snooze_alert": snooze_alert,
         "snooze_alert_url": snooze_alert_url,
+        "monitor_type": alert_rule.monitor_type,  # 0 = continuous, 1 = activated
+        "activator": (activation.activator if activation else ""),
+        "condition_type": (
+            activation.condition_type if activation else None
+        ),  # 0 = release creation, 1 = deploy creation
     }

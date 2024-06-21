@@ -1,5 +1,4 @@
 from functools import cached_property
-from unittest import mock
 from unittest.mock import patch
 
 import pytest
@@ -15,7 +14,11 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.charts import fetch_metric_alert_events_timeseries
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleMonitorType,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
@@ -268,6 +271,60 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
+            "monitor_type": 0,
+            "activator": "",
+            "condition_type": None,
+        }
+        assert expected == generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+        )
+
+    def test_with_activated_alert(self):
+        trigger_status = TriggerStatus.ACTIVE
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        activations = self.create_alert_rule_activation(
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.ACTIVATED
+        )
+        incident = self.create_incident(alert_rule=alert_rule, activation=activations[0])
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        alert_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query="referrer=metric_alert_email",
+        )
+        expected = {
+            "link": alert_link,
+            "incident_name": incident.title,
+            "aggregate": aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
+            "threshold": action.alert_rule_trigger.alert_threshold,
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_direction_string": ">",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": None,
+            "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": True,
+            "snooze_alert_url": alert_link + "&mute=1",
+            "monitor_type": 1,
+            "activator": "testing",
+            "condition_type": 0,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -498,26 +555,3 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             self.user,
         )
         assert result["timezone"] == pst
-
-
-class EmailActionHandlerBuildMessageTest(TestCase):
-    @mock.patch("sentry.incidents.action_handlers.MessageBuilder")
-    def test_builds_message_with_additional_context(self, mock_message_builder):
-        action = self.create_alert_rule_trigger_action(
-            target_type=AlertRuleTriggerAction.TargetType.USER,
-            target_identifier=str(self.user.id),
-        )
-        incident = self.create_incident()
-        handler = EmailActionHandler(action, incident, self.project)
-        trigger_status = TriggerStatus.ACTIVE
-        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
-        email_context = generate_incident_trigger_email_context(
-            self.project,
-            incident,
-            action.alert_rule_trigger,
-            trigger_status,
-            IncidentStatus(incident.status),
-        )
-        handler.build_message(email_context, trigger_status, self.user.id)
-        assert mock_message_builder.call_count == 1
-        assert "monitor_type" in mock_message_builder.call_args[1]["context"]
