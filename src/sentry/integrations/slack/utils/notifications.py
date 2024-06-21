@@ -183,7 +183,12 @@ def respond_to_slack_command(
         logger.info(log + "respond-ephemeral")
         try:
             client = SlackSdkClient(integration_id=params.integration.id)
-            client.chat_postEphemeral(text=text, channel=params.slack_id, replace_original=False)
+            client.chat_postMessage(
+                text=text,
+                channel=params.slack_id,
+                replace_original=False,
+                response_type="ephemeral",
+            )
         except SlackApiError as e:
             logger.exception(log + "error", extra={"error": str(e)})
 
