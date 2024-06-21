@@ -92,12 +92,17 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
 
 
 @sentry_sdk.tracing.trace
-def initialize_backfill(project_id, last_processed_index):
+def initialize_backfill(
+    project_id: int,
+    cohort: str | list[int] | None,
+    last_processed_group_index: int | None,
+    last_processed_project_index: int | None,
+):
     logger.info(
         "backfill_seer_grouping_records.start",
         extra={
             "project_id": project_id,
-            "last_processed_index": last_processed_index,
+            "last_processed_index": last_processed_group_index,
         },
     )
     project = Project.objects.get_from_cache(id=project_id)
@@ -106,13 +111,28 @@ def initialize_backfill(project_id, last_processed_index):
 
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
-    if last_processed_index is None:
-        last_processed_index = int(redis_client.get(make_backfill_redis_key(project_id)) or 0)
-    return project, redis_client, last_processed_index
+    if last_processed_group_index is None:
+        last_processed_group_index_ret = int(
+            redis_client.get(make_backfill_grouping_index_redis_key(project_id)) or 0
+        )
+    else:
+        last_processed_group_index_ret = last_processed_group_index
+
+    if last_processed_project_index is None:
+        if cohort and isinstance(cohort, str):
+            last_processed_project_index_ret = int(
+                redis_client.get(make_backfill_project_index_redis_key(cohort)) or 0
+            )
+        else:
+            last_processed_project_index_ret = 0
+    else:
+        last_processed_project_index_ret = last_processed_project_index
+
+    return project, redis_client, last_processed_group_index_ret, last_processed_project_index_ret
 
 
 @sentry_sdk.tracing.trace
-def get_current_batch_groups_from_postgres(project, last_processed_index, batch_size):
+def get_current_batch_groups_from_postgres(project, last_processed_group_index, batch_size):
     groups_to_backfill_query = (
         Group.objects.filter(
             project_id=project.id,
@@ -124,17 +144,17 @@ def get_current_batch_groups_from_postgres(project, last_processed_index, batch_
         .values_list("id", "data")
         .order_by("-times_seen", "id")
     )
-    total_groups_to_backfill_length = len(groups_to_backfill_query)
+    total_groups_to_backfill_length = groups_to_backfill_query.count()
 
-    batch_end_index = min(last_processed_index + batch_size, total_groups_to_backfill_length)
-    groups_to_backfill_batch = groups_to_backfill_query[last_processed_index:batch_end_index]
+    batch_end_index = min(last_processed_group_index + batch_size, total_groups_to_backfill_length)
+    groups_to_backfill_batch = groups_to_backfill_query[last_processed_group_index:batch_end_index]
 
     logger.info(
         "backfill_seer_grouping_records.batch",
         extra={
             "project_id": project.id,
             "batch_len": len(groups_to_backfill_batch),
-            "last_processed_index": last_processed_index,
+            "last_processed_index": last_processed_group_index,
             "total_groups_length": total_groups_to_backfill_length,
         },
     )
@@ -452,9 +472,14 @@ def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     return event
 
 
-def make_backfill_redis_key(project_id: int):
-    redis_key = "grouping_record_backfill.last_processed_index"
+def make_backfill_grouping_index_redis_key(project_id: int):
+    redis_key = "grouping_record_backfill.last_processed_grouping_index"
     return f"{redis_key}-{project_id}"
+
+
+def make_backfill_project_index_redis_key(cohort_name: str):
+    redis_key = "grouping_record_backfill.last_processed_project_index"
+    return f"{redis_key}-{cohort_name}"
 
 
 def delete_seer_grouping_records(
@@ -470,7 +495,7 @@ def delete_seer_grouping_records(
         extra={"project_id": project_id},
     )
     delete_grouping_records(project_id)
-    redis_client.delete(make_backfill_redis_key(project_id))
+    redis_client.delete(make_backfill_grouping_index_redis_key(project_id))
 
     for groups in chunked(
         RangeQuerySetWrapper(
@@ -487,3 +512,12 @@ def delete_seer_grouping_records(
         for group in groups_with_seer_metadata:
             del group.data["metadata"]["seer_similarity"]
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
+
+
+def get_project_for_batch(last_processed_project_index, cohort_list, cohort_name):
+    next_cohort_index = last_processed_project_index + 1
+    if next_cohort_index >= len(cohort_list):
+        return None, None
+    project_id = cohort_list[next_cohort_index]
+    last_processed_project_index = next_cohort_index
+    return project_id, last_processed_project_index
