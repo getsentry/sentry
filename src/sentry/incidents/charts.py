@@ -215,7 +215,7 @@ def build_metric_alert_chart(
     project_id = project_id or first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
-    query_str = f"{snuba_query.query}{query_extra}"
+    query_str = f"{snuba_query.query}{query_extra if query_extra else ''}"
     query = (
         query_str
         if is_crash_free_alert

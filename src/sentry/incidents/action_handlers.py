@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import logging
 from collections.abc import Sequence
+from typing import Any
 from urllib.parse import urlencode
 
 import orjson
@@ -204,7 +205,7 @@ class EmailActionHandler(ActionHandler):
             self.record_alert_sent_analytics(user_id, notification_uuid)
 
     def build_message(
-        self, context: dict[str, any], status: TriggerStatus, user_id: int
+        self, context: dict[str, Any], status: TriggerStatus, user_id: int
     ) -> MessageBuilder:
         display = self.status_display[status]
         alert_rule = self.incident.alert_rule
