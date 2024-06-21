@@ -4,12 +4,8 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.incidents.action_handlers import generate_incident_trigger_email_context
-from sentry.incidents.models.alert_rule import (
-    AlertRule,
-    AlertRuleActivations,
-    AlertRuleMonitorType,
-    AlertRuleTrigger,
-)
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorType, AlertRuleTrigger
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import Incident, IncidentStatus, TriggerStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.organization import Organization
@@ -42,12 +38,11 @@ class DebugIncidentActivatedAlertTriggerEmailView(MailPreviewView):
             organization=organization,
             name="My Alert",
             snuba_query=query,
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorType.ACTIVATED.value,
         )
         activation = AlertRuleActivations(
             alert_rule=alert_rule,
-            label="My Activation",
-            condition_type=AlertRuleActivationConditionType.DEPLOY_CREATION,
+            condition_type=AlertRuleActivationConditionType.DEPLOY_CREATION.value,
         )
         incident = Incident(
             id=2,
@@ -55,7 +50,7 @@ class DebugIncidentActivatedAlertTriggerEmailView(MailPreviewView):
             organization=organization,
             title="Something broke",
             alert_rule=alert_rule,
-            status=IncidentStatus.CRITICAL,
+            status=IncidentStatus.CRITICAL.value,
             activation=activation,
         )
         trigger = AlertRuleTrigger(alert_rule=alert_rule)

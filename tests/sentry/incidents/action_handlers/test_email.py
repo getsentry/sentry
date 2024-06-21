@@ -20,6 +20,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
@@ -286,11 +287,18 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
     def test_with_activated_alert(self):
         trigger_status = TriggerStatus.ACTIVE
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-        activations = self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.ACTIVATED
+        alert_rule.subscribe_projects(
+            projects=[self.project],
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
+            activator="testing",
         )
+        activations = alert_rule.activations.all()
         incident = self.create_incident(alert_rule=alert_rule, activation=activations[0])
-        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         alert_link = self.organization.absolute_url(
             reverse(
@@ -322,9 +330,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
-            "monitor_type": 1,
+            "monitor_type": AlertRuleMonitorType.ACTIVATED.value,
             "activator": "testing",
-            "condition_type": 0,
+            "condition_type": AlertRuleActivationConditionType.DEPLOY_CREATION.value,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
