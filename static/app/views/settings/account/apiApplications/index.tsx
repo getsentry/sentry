@@ -29,11 +29,30 @@ function ApiApplications({router}: Props) {
   const api = useApi();
   const queryClient = useQueryClient();
 
+  const ENDPOINT = '/api-applications/';
+
+  const {
+    data: appList,
+    isLoading,
+    isError,
+    refetch,
+  } = useApiQuery<ApiApplication[]>([ENDPOINT], {
+    staleTime: 0,
+  });
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
+
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
   const handleCreateApplication = async () => {
     addLoadingMessage();
 
     try {
-      const app = await api.requestPromise('/api-applications/', {
+      const app = await api.requestPromise(ENDPOINT, {
         method: 'POST',
       });
 
@@ -45,27 +64,10 @@ function ApiApplications({router}: Props) {
   };
 
   const handleRemoveApplication = (app: ApiApplication) => {
-    setApiQueryData<any>(queryClient, ['/api-applications/'], oldAppList =>
+    setApiQueryData<any>(queryClient, [ENDPOINT], oldAppList =>
       oldAppList.filter(a => a.id !== app.id)
     );
   };
-
-  const {
-    data: appList,
-    isLoading,
-    isError,
-    refetch,
-  } = useApiQuery<ApiApplication[]>(['/api-applications/'], {
-    staleTime: 0,
-  });
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
-  if (isError) {
-    return <LoadingError onRetry={refetch} />;
-  }
 
   const isEmpty = appList.length === 0;
 
