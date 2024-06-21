@@ -26,10 +26,6 @@ const createMockTablePayload = ({
 }) => ({
   'avg_compare(mobile.frames_delay,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
     null,
-  'avg_compare(mobile.frozen_frames,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
-    null,
-  'avg_compare(mobile.slow_frames,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)':
-    null,
   'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.5)': 0,
   'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.3+42)': 0.259326119,
   'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.5)': 0,
@@ -84,7 +80,6 @@ describe('Performance Mobile UI Screens', () => {
     ].forEach(header => {
       expect(screen.getByRole('columnheader', {name: header})).toBeInTheDocument();
     });
-    expect(screen.getAllByRole('columnheader', {name: 'Change'})).toHaveLength(3);
 
     expect(tableRequestMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -99,8 +94,6 @@ describe('Performance Mobile UI Screens', () => {
             'avg_if(mobile.frozen_frames,release,com.example.vu.android@2.10.3+42)',
             'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.5)',
             'avg_if(mobile.frames_delay,release,com.example.vu.android@2.10.3+42)',
-            'avg_compare(mobile.slow_frames,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)',
-            'avg_compare(mobile.frozen_frames,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)',
             'avg_compare(mobile.frames_delay,release,com.example.vu.android@2.10.5,com.example.vu.android@2.10.3+42)',
           ],
         }),

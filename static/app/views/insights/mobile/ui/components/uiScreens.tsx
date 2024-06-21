@@ -72,8 +72,6 @@ export function UIScreens() {
       `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
       `avg_if(mobile.frames_delay,release,${primaryRelease})`,
       `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
-      `avg_compare(mobile.slow_frames,release,${primaryRelease},${secondaryRelease})`,
-      `avg_compare(mobile.frozen_frames,release,${primaryRelease},${secondaryRelease})`,
       `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
     ],
     query: queryString,
