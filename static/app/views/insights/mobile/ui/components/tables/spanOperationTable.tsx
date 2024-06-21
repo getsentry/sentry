@@ -71,10 +71,8 @@ export function SpanOperationTable({
       SPAN_DESCRIPTION,
       `avg_if(mobile.slow_frames,release,${primaryRelease})`,
       `avg_if(mobile.slow_frames,release,${secondaryRelease})`,
-      `avg_compare(mobile.slow_frames,release,${primaryRelease},${secondaryRelease})`,
       `avg_if(mobile.frozen_frames,release,${primaryRelease})`,
       `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
-      `avg_compare(mobile.frozen_frames,release,${primaryRelease},${secondaryRelease})`,
       `avg_if(mobile.frames_delay,release,${primaryRelease})`,
       `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
       `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
@@ -107,8 +105,6 @@ export function SpanOperationTable({
       'Slow (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
-    [`avg_compare(mobile.slow_frames,release,${primaryRelease},${secondaryRelease})`]:
-      t('Change'),
     [`avg_if(mobile.frozen_frames,release,${primaryRelease})`]: t(
       'Frozen (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -117,8 +113,6 @@ export function SpanOperationTable({
       'Frozen (%s)',
       SECONDARY_RELEASE_ALIAS
     ),
-    [`avg_compare(mobile.frozen_frames,release,${primaryRelease},${secondaryRelease})`]:
-      t('Change'),
     [`avg_if(mobile.frames_delay,release,${primaryRelease})`]: t(
       'Delay (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -178,10 +172,8 @@ export function SpanOperationTable({
         String(SPAN_DESCRIPTION),
         `avg_if(mobile.slow_frames,release,${primaryRelease})`,
         `avg_if(mobile.slow_frames,release,${secondaryRelease})`,
-        `avg_compare(mobile.slow_frames,release,${primaryRelease},${secondaryRelease})`,
         `avg_if(mobile.frozen_frames,release,${primaryRelease})`,
         `avg_if(mobile.frozen_frames,release,${secondaryRelease})`,
-        `avg_compare(mobile.frozen_frames,release,${primaryRelease},${secondaryRelease})`,
         `avg_if(mobile.frames_delay,release,${primaryRelease})`,
         `avg_if(mobile.frames_delay,release,${secondaryRelease})`,
         `avg_compare(mobile.frames_delay,release,${primaryRelease},${secondaryRelease})`,
