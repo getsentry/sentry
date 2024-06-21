@@ -17,8 +17,8 @@ def test_delete_seer_grouping_records_by_hash_batches(
     another task with the end index of the previous batch.
     """
     mock_delete_grouping_records_by_hash.return_value = True
-    project_id, hashes = 1, [str(i) for i in range(21)]
+    project_id, hashes = 1, [str(i) for i in range(101)]
     delete_seer_grouping_records_by_hash(project_id, hashes, 0)
     assert mock_delete_seer_grouping_records_by_hash_apply_async.call_args[1] == {
-        "args": [project_id, hashes, 20]
+        "args": [project_id, hashes, 100]
     }
