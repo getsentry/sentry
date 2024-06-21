@@ -590,7 +590,6 @@ interface UseTracesOptions {
   mri?: string;
   query?: string | string[];
   sort?: string[];
-  suggestedQuery?: string;
 }
 
 function useTraces({
@@ -603,7 +602,6 @@ function useTraces({
   metricsOp,
   metricsQuery,
   query,
-  suggestedQuery,
   sort,
 }: UseTracesOptions) {
   const organization = useOrganization();
@@ -618,11 +616,9 @@ function useTraces({
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       query,
-      suggestedQuery,
       sort,
       per_page: limit,
       breakdownSlices: BREAKDOWN_SLICES,
-      maxSpansPerTrace: 10,
       mri,
       metricsMax,
       metricsMin,
