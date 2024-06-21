@@ -55,7 +55,7 @@ jobs:
 
       # pre-commit can use nodeenv to install a specific node version,
       # but we'll use volta to transparently give it node since we already have that everywhere
-      - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
+      #- uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
 
       # Setup custom tsc matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -91,8 +91,8 @@ jobs:
         run: |
           pre-commit install-hooks
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
+      #- name: Setup tmate session
+     #   uses: mxschmitt/action-tmate@v3
 
       - name: Run pre-commit on PR commits
         run: |
