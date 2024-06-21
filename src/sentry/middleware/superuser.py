@@ -32,6 +32,7 @@ class SuperuserMiddleware(MiddlewareMixin):
                     "method": request.method,
                     "ip_address": request.META["REMOTE_ADDR"],
                     "user_id": request.user.id,
+                    "user_email": self._extract_email(request),
                 },
             )
 
