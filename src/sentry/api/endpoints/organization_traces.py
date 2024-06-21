@@ -445,7 +445,7 @@ class TracesExecutor:
             else:
                 with sentry_sdk.push_scope() as scope:
                     scope.set_extra("sort", {"sort": self.sort})
-                sentry_sdk.capture_message("Unsupported sort specified")
+                    sentry_sdk.capture_message("Unsupported sort specified")
 
         return self.get_traces_matching_span_conditions(params, snuba_params)
 
