@@ -1723,7 +1723,7 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # hours
+)
 register(
     "performance.traces.trace-explorer-max-trace-ids-per-chunk",
     type=Int,
@@ -1734,6 +1734,30 @@ register(
     "performance.traces.trace-explorer-skip-floating-spans",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-block-size-hours",
+    type=Int,
+    default=8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-batches",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-execution-seconds",
+    type=Int,
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-parallel-queries",
+    type=Int,
+    default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(

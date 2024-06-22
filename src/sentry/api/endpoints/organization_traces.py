@@ -22,6 +22,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.builder import (
@@ -99,7 +100,7 @@ def handle_span_query_errors() -> Generator[None, None, None]:
         try:
             yield
         except ReadTimeoutError:
-            raise ParseError(detail=TIMEOUT_SPAN_ERROR_MESSAGE)
+            raise InvalidSearchQuery(TIMEOUT_SPAN_ERROR_MESSAGE)
 
 
 class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
@@ -156,6 +157,10 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
+        allow_sorting = features.has(
+            "organizations:performance-trace-explorer-sorting", organization, actor=request.user
+        )
+
         executor = TracesExecutor(
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
@@ -167,7 +172,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             mri=serialized.get("mri"),
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
-            sort=serialized.get("sort"),
+            sort=serialized.get("sort") if allow_sorting else None,
         )
 
         return self.paginate(
@@ -534,10 +539,16 @@ class TracesExecutor:
             builder=builder,
             limit=self.limit,
             timestamp_column=timestamp_column,
-            max_block_size_hours=8,
-            max_batches=7,
-            max_execution_seconds=30,
-            max_parallel_queries=3,
+            max_block_size_hours=options.get(
+                "performance.traces.trace-explorer-scan-max-block-size-hours"
+            ),
+            max_batches=options.get("performance.traces.trace-explorer-scan-max-batches"),
+            max_execution_seconds=options.get(
+                "performance.traces.trace-explorer-scan-max-execution-seconds"
+            ),
+            max_parallel_queries=options.get(
+                "performance.traces.trace-explorer-scan-max-parallel-queries"
+            ),
         )
 
         return executor.execute()
@@ -1090,6 +1101,11 @@ class OrderedTracesExecutor:
                 # Got enough results
                 if len(trace_ids) >= self.limit:
                     break
+
+        # If this didn't find any matching traces but there's
+        # still more to scan, we treat it as if it timed out.
+        if not trace_ids and self.has_more_to_scan():
+            raise InvalidSearchQuery(TIMEOUT_SPAN_ERROR_MESSAGE)
 
         return min_timestamp, max_timestamp, trace_ids
 
@@ -1720,30 +1736,31 @@ def process_user_queries(
     snuba_params: SnubaParams,
     user_queries: list[str],
 ) -> dict[str, list[list[WhereType]]]:
-    builder = SpansIndexedQueryBuilder(
-        Dataset.SpansIndexed,
-        params,
-        snuba_params=snuba_params,
-        query=None,  # Note: conditions are added below
-        selected_columns=[],
-        config=QueryBuilderConfig(
-            transform_alias_to_input_format=True,
-        ),
-    )
+    with handle_span_query_errors():
+        builder = SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            params,
+            snuba_params=snuba_params,
+            query=None,  # Note: conditions are added below
+            selected_columns=[],
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
+        )
 
-    queries: dict[str, list[list[WhereType]]] = {}
+        queries: dict[str, list[list[WhereType]]] = {}
 
-    for user_query in user_queries:
-        user_query = user_query.strip()
+        for user_query in user_queries:
+            user_query = user_query.strip()
 
-        # Filter out empty queries as they do not do anything to change the results.
-        if not user_query:
-            continue
+            # Filter out empty queries as they do not do anything to change the results.
+            if not user_query:
+                continue
 
-        # We want to ignore all the aggregate conditions here because we're strictly
-        # searching on span attributes, not aggregates
-        where, _ = builder.resolve_conditions(user_query)
-        queries[user_query] = where
+            # We want to ignore all the aggregate conditions here because we're strictly
+            # searching on span attributes, not aggregates
+            where, _ = builder.resolve_conditions(user_query)
+            queries[user_query] = where
 
     return queries
 

@@ -7,9 +7,11 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.organization_traces import process_breakdowns
+from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 
 
@@ -716,7 +718,13 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "sort": "-timestamp",
             }
 
-            response = self.do_request(query)
+            response = self.do_request(
+                query,
+                features=[
+                    "organizations:performance-trace-explorer",
+                    "organizations:performance-trace-explorer-sorting",
+                ],
+            )
             assert response.status_code == 200, response.data
 
             assert response.data["meta"] == {
@@ -730,6 +738,73 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             }
 
             assert [row["trace"] for row in response.data["data"]] == trace_ids
+
+    def test_sorted_early_exit(self):
+        (
+            _,
+            _,
+            trace_id_1,
+            trace_id_2,
+            trace_id_3,
+            _,
+            _,
+        ) = self.create_mock_traces()
+
+        trace_ids = [trace_id_1, trace_id_2, trace_id_3]
+        query = {
+            "query": [f"trace:[{','.join(trace_ids)}]"],
+            "sort": "-timestamp",
+            "per_page": 2,
+        }
+
+        response = self.do_request(
+            query,
+            features=[
+                "organizations:performance-trace-explorer",
+                "organizations:performance-trace-explorer-sorting",
+            ],
+        )
+        assert response.status_code == 200, response.data
+
+        assert response.data["meta"] == {
+            "dataset": "unknown",
+            "datasetReason": "unchanged",
+            "fields": {},
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {},
+        }
+
+        # even though we searched for 3, it should exit after 2
+        assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
+
+    @override_options(
+        {
+            "performance.traces.trace-explorer-scan-max-block-size-hours": 1,
+            "performance.traces.trace-explorer-scan-max-batches": 1,
+            "performance.traces.trace-explorer-scan-max-parallel-queries": 1,
+        }
+    )
+    def test_sorted_timeout(self):
+        self.create_mock_traces()
+
+        query = {
+            "sort": "-timestamp",
+        }
+
+        response = self.do_request(
+            query,
+            features=[
+                "organizations:performance-trace-explorer",
+                "organizations:performance-trace-explorer-sorting",
+            ],
+        )
+        assert response.status_code == 400, response.data
+
+        assert response.data == {
+            "detail": ErrorDetail(string=TIMEOUT_SPAN_ERROR_MESSAGE, code="parse_error"),
+        }
 
     def test_matching_tag_metrics(self):
         (
