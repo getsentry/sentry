@@ -442,10 +442,9 @@ class TracesExecutor:
                 return self.get_traces_matching_span_conditions_timestamp_order(
                     params, snuba_params
                 )
-            else:
-                with sentry_sdk.push_scope() as scope:
-                    scope.set_extra("sort", {"sort": self.sort})
-                    sentry_sdk.capture_message("Unsupported sort specified")
+            with sentry_sdk.push_scope() as scope:
+                scope.set_extra("sort", {"sort": self.sort})
+                sentry_sdk.capture_message("Unsupported sort specified")
 
         return self.get_traces_matching_span_conditions(params, snuba_params)
 
@@ -480,10 +479,8 @@ class TracesExecutor:
         assert max_timestamp is not None
 
         for timestamp in timestamps:
-            if timestamp < min_timestamp:
-                min_timestamp = timestamp
-            if timestamp > max_timestamp:
-                max_timestamp = timestamp
+            min_timestamp = min(min_timestamp, timestamp)
+            max_timestamp = max(max_timestamp, timestamp)
 
         if not trace_ids or min_timestamp > max_timestamp:
             return min_timestamp, max_timestamp, []
@@ -512,10 +509,8 @@ class TracesExecutor:
             trace_ids = trace_ids[: self.limit]
             timestamps = timestamps[: self.limit]
             for timestamp in timestamps:
-                if timestamp < min_timestamp:
-                    min_timestamp = timestamp
-                if timestamp > max_timestamp:
-                    max_timestamp = timestamp
+                min_timestamp = min(min_timestamp, timestamp)
+                max_timestamp = max(max_timestamp, timestamp)
 
         return min_timestamp, max_timestamp, trace_ids
 
@@ -578,10 +573,8 @@ class TracesExecutor:
         for row in results["data"]:
             matching_trace_ids.append(row["trace"])
             timestamp = datetime.fromisoformat(row[timestamp_column])
-            if timestamp < min_timestamp:
-                min_timestamp = timestamp
-            if timestamp > max_timestamp:
-                max_timestamp = timestamp
+            min_timestamp = min(min_timestamp, timestamp)
+            max_timestamp = max(max_timestamp, timestamp)
 
             # early escape once we have enough results
             if len(matching_trace_ids) >= self.limit:
@@ -646,10 +639,8 @@ class TracesExecutor:
             for row in trace_results["data"]:
                 matching_trace_ids.append(row["trace"])
                 timestamp = datetime.fromisoformat(row[timestamp_column])
-                if timestamp < min_timestamp:
-                    min_timestamp = timestamp
-                if timestamp > max_timestamp:
-                    max_timestamp = timestamp
+                min_timestamp = min(min_timestamp, timestamp)
+                max_timestamp = max(max_timestamp, timestamp)
 
                 # early escape once we have enough results
                 if len(matching_trace_ids) >= self.limit:
@@ -1093,10 +1084,8 @@ class OrderedTracesExecutor:
             for row in data:
                 trace_ids.append(row["trace"])
                 timestamp = datetime.fromisoformat(row[self.timestamp_column])
-                if timestamp < min_timestamp:
-                    min_timestamp = timestamp
-                if timestamp > max_timestamp:
-                    max_timestamp = timestamp
+                min_timestamp = min(min_timestamp, timestamp)
+                max_timestamp = max(max_timestamp, timestamp)
 
                 # Got enough results
                 if len(trace_ids) >= self.limit:
