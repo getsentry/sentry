@@ -141,6 +141,7 @@ class FeatureManager(RegisteredFeatureManager):
         self.option_features: MutableSet[str] = set()
         self.flagpole_features: MutableSet[str] = set()
         self._entity_handler: FeatureHandler | None = None
+        logger.info("feature_manager.init", extra={"manager": self})
 
     def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
         """
@@ -220,7 +221,11 @@ class FeatureManager(RegisteredFeatureManager):
         logging_enabled = options.get("hybridcloud.endpoint_flag_logging")
         if logging_enabled:
             logger.info(
-                "feature_manager.register_entity_handler", extra={"entity_handler": type(handler)}
+                "feature_manager.register_entity_handler",
+                extra={
+                    "entity_handler": type(handler),
+                    "manager": self,
+                },
             )
         self._entity_handler = handler
 
@@ -322,6 +327,7 @@ class FeatureManager(RegisteredFeatureManager):
                 logger.info(
                     "feature_manager.entity_batch_check",
                     extra={
+                        "manager": self,
                         "entity_handler": type(self._entity_handler),
                     },
                 )
@@ -333,6 +339,7 @@ class FeatureManager(RegisteredFeatureManager):
                 logger.info(
                     "feature_manager.individual_batch_check",
                     extra={
+                        "manager": self,
                         "entity_handler": type(self._entity_handler),
                     },
                 )

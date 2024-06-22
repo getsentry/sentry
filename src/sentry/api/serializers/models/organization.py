@@ -260,6 +260,8 @@ class OrganizationSerializer(Serializer):
                 extra={
                     "org_features": org_features,
                     "user.id": user.id if not user.is_anonymous else None,
+                    "manager": features.default_manager,
+                    "entity_handler": type(features.default_manager._entity_handler),
                 },
             )
         with sentry_sdk.start_span(op="features.check", description="check batch features"):
