@@ -3,7 +3,7 @@
 const detectDeprecations = !!process.env.SENTRY_DETECT_DEPRECATIONS;
 
 module.exports = {
-  root: true,
+  root: false,
   extends: detectDeprecations
     ? ['sentry-app/strict', 'plugin:deprecation/recommended']
     : ['sentry-app/strict'],
