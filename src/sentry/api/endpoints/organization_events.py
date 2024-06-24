@@ -447,6 +447,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 sentry_sdk.capture_exception(e)
                 return _data_fn(scopedDataset, offset, limit, scoped_query)
 
+        @sentry_sdk.tracing.trace
         def _discover_data_fn(scopedDataset, offset, limit, scoped_query, discover_saved_query_id):
             try:
                 discover_query = DiscoverSavedQuery.objects.get(
