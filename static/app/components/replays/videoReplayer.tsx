@@ -9,11 +9,14 @@ type RootElem = HTMLDivElement | null;
 // Also the number of segments we load initially
 const PRELOAD_BUFFER = 3;
 
+const SCALE_FACTOR = 1.5;
+
 interface OffsetOptions {
   segmentOffsetMs?: number;
 }
 
 interface VideoReplayerOptions {
+  dimensions: {height: number; width: number};
   durationMs: number;
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
@@ -64,6 +67,7 @@ export class VideoReplayer {
   };
   public wrapper: HTMLElement;
   public iframe = {};
+  private _dimensions: {height: number; width: number};
 
   constructor(
     attachments: VideoEvent[],
@@ -76,6 +80,7 @@ export class VideoReplayer {
       onLoaded,
       clipWindow,
       durationMs,
+      dimensions,
     }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
@@ -90,6 +95,7 @@ export class VideoReplayer {
     this._videos = new Map<any, HTMLVideoElement>();
     this._clipDuration = undefined;
     this._durationMs = durationMs;
+    this._dimensions = dimensions;
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -206,6 +212,8 @@ export class VideoReplayer {
     el.setAttribute('preload', 'auto');
     // TODO: Timer needs to also account for playback speed
     el.setAttribute('playbackRate', `${this.config.speed}`);
+    el.setAttribute('width', `${this._dimensions.width * SCALE_FACTOR}px`);
+    el.setAttribute('height', `${this._dimensions.height * SCALE_FACTOR}px`);
     el.appendChild(sourceEl);
 
     this.addListeners(el, index);

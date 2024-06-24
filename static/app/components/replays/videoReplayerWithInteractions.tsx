@@ -10,6 +10,7 @@ import type {ClipWindow, VideoEvent} from 'sentry/utils/replays/types';
 type RootElem = HTMLDivElement | null;
 
 interface VideoReplayerWithInteractionsOptions {
+  dimensions: {height: number; width: number};
   durationMs: number;
   events: eventWithTime[];
   onBuffer: (isBuffering: boolean) => void;
@@ -47,6 +48,7 @@ export class VideoReplayerWithInteractions {
     clipWindow,
     durationMs,
     theme,
+    dimensions,
   }: VideoReplayerWithInteractionsOptions) {
     this.videoReplayer = new VideoReplayer(videoEvents, {
       videoApiPrefix,
@@ -57,6 +59,7 @@ export class VideoReplayerWithInteractions {
       onBuffer,
       clipWindow,
       durationMs,
+      dimensions,
     });
 
     root?.classList.add('video-replayer');

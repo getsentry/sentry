@@ -541,6 +541,7 @@ function ProviderNonMemo({
         durationMs,
         // rrweb specific
         theme,
+        dimensions,
         events: events ?? [],
         // common to both
         root,
@@ -573,6 +574,7 @@ function ProviderNonMemo({
       clipWindow,
       durationMs,
       theme,
+      dimensions,
     ]
   );
 
