@@ -643,21 +643,23 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             data["start_timestamp"] = iso_format(fixture[1] - timedelta(seconds=1))
             self.store_event(data=data, project_id=self.project.id)
 
-        response = self.do_request(
-            data={
-                "project": self.project.id,
-                "end": iso_format(before_now()),
-                "start": iso_format(before_now(hours=2)),
-                "query": "event.type:transaction",
-                "interval": "30m",
-                "yAxis": "count()",
-            },
-        )
-        assert response.status_code == 200, response.content
-        items = [item for time, item in response.data["data"] if item]
-        # We could get more results depending on where the 30 min
-        # windows land.
-        assert len(items) >= 3
+        for dataset in ["discover", "transactions"]:
+            response = self.do_request(
+                data={
+                    "project": self.project.id,
+                    "end": iso_format(before_now()),
+                    "start": iso_format(before_now(hours=2)),
+                    "query": "event.type:transaction",
+                    "interval": "30m",
+                    "yAxis": "count()",
+                    "dataset": dataset,
+                },
+            )
+            assert response.status_code == 200, response.content
+            items = [item for time, item in response.data["data"] if item]
+            # We could get more results depending on where the 30 min
+            # windows land.
+            assert len(items) >= 3
 
     def test_project_id_query_filter(self):
         response = self.do_request(
@@ -1722,29 +1724,31 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         )
 
     def test_top_events_with_functions(self):
-        with self.feature(self.enabled_features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "start": iso_format(self.day_ago),
-                    "end": iso_format(self.day_ago + timedelta(hours=2)),
-                    "interval": "1h",
-                    "yAxis": "count()",
-                    "orderby": ["-p99()"],
-                    "field": ["transaction", "avg(transaction.duration)", "p99()"],
-                    "topEvents": 5,
-                },
-                format="json",
-            )
+        for dataset in ["transactions", "discover"]:
+            with self.feature(self.enabled_features):
+                response = self.client.get(
+                    self.url,
+                    data={
+                        "start": iso_format(self.day_ago),
+                        "end": iso_format(self.day_ago + timedelta(hours=2)),
+                        "interval": "1h",
+                        "yAxis": "count()",
+                        "orderby": ["-p99()"],
+                        "field": ["transaction", "avg(transaction.duration)", "p99()"],
+                        "topEvents": 5,
+                        "dataset": dataset,
+                    },
+                    format="json",
+                )
 
-        data = response.data
+            data = response.data
 
-        assert response.status_code == 200, response.content
-        assert len(data) == 1
+            assert response.status_code == 200, response.content
+            assert len(data) == 1
 
-        results = data[self.transaction.transaction]
-        assert results["order"] == 0
-        assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
+            results = data[self.transaction.transaction]
+            assert results["order"] == 0
+            assert [attrs for time, attrs in results["data"]] == [[{"count": 3}], [{"count": 0}]]
 
     def test_top_events_with_functions_on_different_transactions(self):
         """Transaction2 has less events, but takes longer so order should be self.transaction then transaction2"""
