@@ -1,12 +1,18 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'sentry/actionCreators/projects';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
 import type {AccessRequest} from 'sentry/types/organization';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {
+  type ApiQueryKey,
+  setApiQueryData,
+  useApiQuery,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -14,35 +20,49 @@ import OrganizationTeams from './organizationTeams';
 
 export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
   const api = useApi();
-  const organization = useOrganization();
-  const [requestList, setRequestList] = useState<AccessRequest[]>([]);
+  const organization = useOrganization({allowNull: true});
+  const queryClient = useQueryClient();
 
-  const {isLoading, isError} = useApiQuery<AccessRequest[]>(
-    [`/organizations/${organization.slug}/access-requests/`],
-    {
-      staleTime: 0,
-      retry: false,
-      onSuccess: ([data]) => {
-        setRequestList(data);
-      },
-    }
+  const queryKey: ApiQueryKey = useMemo(
+    () => [`/organizations/${organization?.slug}/access-requests/`],
+    [organization?.slug]
   );
 
+  const {
+    isLoading,
+    isError,
+    data: requestList = [],
+  } = useApiQuery<AccessRequest[]>(queryKey, {
+    staleTime: 0,
+    retry: false,
+    enabled: !!organization?.slug,
+  });
+
   useEffect(() => {
+    if (!organization?.slug) {
+      return;
+    }
     loadStats(api, {
-      orgId: organization.slug,
+      orgId: organization?.slug,
       query: {
         since: (new Date().getTime() / 1000 - 3600 * 24).toString(),
         stat: 'generated',
         group: 'project',
       },
     });
-  }, [organization.slug, api]);
+  }, [organization?.slug, api]);
 
   const handleRemoveAccessRequest = useCallback(
     (id: string, isApproved: boolean) => {
       const requestToRemove = requestList.find(request => request.id === id);
-      setRequestList(requestList.filter(request => request.id !== id));
+      const newRequestList = requestList.filter(request => request.id !== id);
+
+      // Update the cache with the new value
+      setApiQueryData(queryClient, queryKey, newRequestList);
+
+      // To be safer, trigger a refetch to ensure data is correct
+      queryClient.invalidateQueries(queryKey);
+
       if (isApproved && requestToRemove) {
         const team = requestToRemove.team;
         TeamStore.onUpdateSuccess(team.slug, {
@@ -51,12 +71,12 @@ export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
         });
       }
     },
-    [requestList]
+    [requestList, queryKey, queryClient]
   );
 
-  // can an organization be null here?
+  // Can't do anything if we don't have an organization
   if (!organization) {
-    return null;
+    return <LoadingError message={t('Organization not found')} />;
   }
 
   if (isLoading) {
@@ -70,8 +90,8 @@ export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
   return (
     <OrganizationTeams
       {...props}
-      access={new Set(organization.access)}
-      features={new Set(organization.features)}
+      access={new Set(organization?.access)}
+      features={new Set(organization?.features)}
       organization={organization}
       requestList={requestList}
       onRemoveAccessRequest={handleRemoveAccessRequest}
