@@ -37,6 +37,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.project import Project
 from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import QueryBuilderConfig, WhereType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -469,6 +470,12 @@ def parse_conditions(
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
+    def load_config(
+        self,
+    ) -> None:
+        self.config = SessionsDatasetConfig(self)
+        self.parse_config(self.config)
+
     def _contains_wildcard_in_query(self, query: str | None) -> bool:
         parsed_terms = self.parse_query(query)
         for parsed_term in parsed_terms:
