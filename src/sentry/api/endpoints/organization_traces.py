@@ -39,6 +39,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import clip
+from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 MAX_SNUBA_RESULTS = 10_000
@@ -348,6 +349,9 @@ class TracesExecutor:
         self.breakdown_slices = breakdown_slices
         self.sort = sort
 
+        if self.sort is not None:
+            sentry_sdk.set_tag("sort_key", self.sort)
+
     def execute(self, offset: int, limit: int):
         return {"data": self._execute()}
 
@@ -435,6 +439,7 @@ class TracesExecutor:
         snuba_params: SnubaParams,
     ) -> tuple[datetime, datetime, list[str]]:
         if self.mri is not None:
+            sentry_sdk.set_tag("mri", self.mri)
             return self.get_traces_matching_metric_conditions(params, snuba_params)
 
         if self.sort is not None:
@@ -1065,6 +1070,7 @@ class OrderedTracesExecutor:
         start_time = time.monotonic()
 
         trace_ids: list[str] = []
+        seen_trace_ids: set[str] = set()
         min_timestamp = self.snuba_params.end
         max_timestamp = self.snuba_params.start
         assert min_timestamp is not None
@@ -1082,7 +1088,14 @@ class OrderedTracesExecutor:
             data = self.query_next_batch()
 
             for row in data:
-                trace_ids.append(row["trace"])
+                trace_id = row["trace"]
+
+                if trace_id in seen_trace_ids:
+                    continue
+
+                trace_ids.append(trace_id)
+                seen_trace_ids.add(trace_id)
+
                 timestamp = datetime.fromisoformat(row[self.timestamp_column])
                 min_timestamp = min(min_timestamp, timestamp)
                 max_timestamp = max(max_timestamp, timestamp)
@@ -1750,6 +1763,9 @@ def process_user_queries(
             # searching on span attributes, not aggregates
             where, _ = builder.resolve_conditions(user_query)
             queries[user_query] = where
+
+    set_measurement("user_queries_count", len(queries))
+    sentry_sdk.set_context("user_queries", {"raw_queries": user_queries})
 
     return queries
 
