@@ -26,7 +26,7 @@ from sentry.signals import event_processed, issue_unignored, transaction_process
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
-from sentry.uptime.detectors.detector import detect_hostname_for_project
+from sentry.uptime.detectors.detector import detect_base_url_for_project
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -1513,9 +1513,9 @@ def detect_new_escalation(job: PostProcessJob):
         return
 
 
-def detect_hostnames_for_uptime(job: PostProcessJob):
+def detect_base_urls_for_uptime(job: PostProcessJob):
     url = get_path(job["event"].data, "request", "url")
-    detect_hostname_for_project(job["event"].project, url)
+    detect_base_url_for_project(job["event"].project, url)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
@@ -1539,7 +1539,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         sdk_crash_monitoring,
         process_replay_link,
         link_event_to_user_report,
-        detect_hostnames_for_uptime,
+        detect_base_urls_for_uptime,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

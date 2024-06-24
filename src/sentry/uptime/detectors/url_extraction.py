@@ -23,9 +23,10 @@ extractor = TLDExtract(
 )
 
 
-def extract_hostname_from_url(url: str | None) -> str | None:
+def extract_base_url(url: str | None) -> str | None:
     """
-    Examines a url string and extracts a usable hostname from it.
+    Examines a url string and returns a url containing just the
+    protocol and fully qualified domain name from it.
     Filters out invalid TLDs and domains with ip addresses. The
     goal is to reduce the set of hostnames down so that we only test
     hostnames that might actually return a valid response.

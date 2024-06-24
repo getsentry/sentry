@@ -32,9 +32,9 @@ def _get_cluster() -> RedisCluster | StrictRedis:
     return redis.redis_clusters.get(settings.SENTRY_UPTIME_DETECTOR_CLUSTER)
 
 
-def add_hostname_to_rank(project: Project, hostname: str):
+def add_base_url_to_rank(project: Project, base_url: str):
     """
-    Takes a project and valid hostname and stores ranking information about it in Redis.
+    Takes a project and valid base url and stores ranking information about it in Redis.
 
     We use two keys here: A hash set that stores a list of projects and the total number
     of events with valid hostnames that they've seen, and a zset of hostnames seen in the
@@ -54,7 +54,7 @@ def add_hostname_to_rank(project: Project, hostname: str):
     pipeline = cluster.pipeline()
     pipeline.hincrby(bucket_key, str(project.id), 1)
     rank_key = get_project_hostname_rank_key(project)
-    pipeline.zincrby(rank_key, 1, hostname)
+    pipeline.zincrby(rank_key, 1, base_url)
     if random.random() < RANKED_TRIM_CHANCE:
         pipeline.zremrangebyrank(rank_key, 0, -(RANKED_MAX_SIZE + 1))
     project_incr_result = pipeline.execute()[0]

@@ -1,10 +1,10 @@
 from sentry.testutils.cases import TestCase
-from sentry.uptime.detectors.hostname_extraction import extract_hostname_from_url
+from sentry.uptime.detectors.url_extraction import extract_base_url
 
 
-class ExtractHostnameFromUrlTest(TestCase):
-    def run_test(self, url: str, expected_fqdn: str | None):
-        assert extract_hostname_from_url(url) == expected_fqdn
+class ExtractBaseUrlTest(TestCase):
+    def run_test(self, url: str, expected_url: str | None):
+        assert extract_base_url(url) == expected_url
 
     def test(self):
         self.run_test("", None)
