@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, ClassVar
 from django.db.models import QuerySet
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_model
+from sentry.db.models import FlexibleForeignKey, control_silo_model
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import ControlOutboxBase

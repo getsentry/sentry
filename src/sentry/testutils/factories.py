@@ -153,6 +153,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -471,7 +472,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
+    def create_project(
+        organization=None, teams=None, fire_project_created=False, **kwargs
+    ) -> Project:
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -1458,6 +1461,7 @@ class Factories:
         date_closed=None,
         seen_by=None,
         alert_rule=None,
+        subscription=None,
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
@@ -1476,6 +1480,7 @@ class Factories:
             date_detected=date_detected or timezone.now(),
             date_closed=timezone.now() if date_closed is not None else date_closed,
             type=IncidentType.ALERT_TRIGGERED.value,
+            subscription=subscription,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -1670,6 +1675,7 @@ class Factories:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
         with outbox_runner():
             organization_integration = integration.add_organization(organization)
+            assert organization_integration is not None
         organization_integration.update(**(oi_params or {}))
 
         return integration
@@ -1887,4 +1893,29 @@ class Factories:
         }
         return WebhookPayload.objects.create(
             mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
+        )
+
+    @staticmethod
+    def create_uptime_subscription(
+        type: str,
+        subscription_id: str | None,
+        status: UptimeSubscription.Status,
+        url: str,
+        interval_seconds: int,
+        timeout_ms: int,
+    ):
+        return UptimeSubscription.objects.create(
+            type=type,
+            subscription_id=subscription_id,
+            status=status.value,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    @staticmethod
+    def create_project_uptime_subscription(project, uptime_subscription):
+        return ProjectUptimeSubscription.objects.create(
+            uptime_subscription=uptime_subscription,
+            project=project,
         )

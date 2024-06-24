@@ -5,19 +5,28 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import withDomainRequired, {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 describe('normalizeUrl', function () {
+  let configState: Config;
   let result;
 
   beforeEach(function () {
-    window.__initialData = {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
+  });
+
+  afterEach(function () {
+    ConfigStore.loadInitialData(configState);
   });
 
   it('replaces paths in strings', function () {
@@ -121,7 +130,7 @@ describe('normalizeUrl', function () {
     }
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     for (const [input, expected] of cases) {
       result = normalizeUrl(input, {forceCustomerDomain: true});
       expect(result).toEqual(expected);
@@ -130,8 +139,7 @@ describe('normalizeUrl', function () {
       expect(result).toEqual(expected);
     }
 
-    // No effect if customerDomain isn't defined
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     for (const [input, _expected] of cases) {
       result = normalizeUrl(input);
       expect(result).toEqual(input);
@@ -176,7 +184,7 @@ describe('normalizeUrl', function () {
     expect(result.pathname).toEqual('/issues');
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     result = normalizeUrl({pathname: '/settings/acme/'}, location, {
       forceCustomerDomain: true,
     });
@@ -204,6 +212,7 @@ describe('withDomainRequired', function () {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
+  let configState: Config;
 
   beforeEach(function () {
     Object.defineProperty(window, 'location', {
@@ -215,34 +224,38 @@ describe('withDomainRequired', function () {
         hash: '#hash',
       },
     });
-    window.__initialData = {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
   });
 
   afterEach(function () {
     window.location = originalLocation;
+    ConfigStore.loadInitialData(configState);
   });
 
   it('redirects to sentryUrl in non-customer domain world', function () {
-    window.__initialData = {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: null,
-      features: ['organizations:customer-domains'],
+      features: new Set(['system:multi-region']),
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
@@ -278,20 +291,21 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('redirects to sentryUrl if customer-domains is omitted', function () {
-    window.__initialData = {
+  it('redirects to sentryUrl if multi-region feature is omitted', function () {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-      features: [],
+      features: new Set(),
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
@@ -327,20 +341,21 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('renders when window.__initialData.customerDomain and customer-domains feature is present', function () {
-    window.__initialData = {
+  it('renders when window.__initialData.customerDomain and multi-region feature is present', function () {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-      features: ['organizations:customer-domains'],
+      features: new Set(['system:multi-region']),
       links: {
         organizationUrl: 'https://albertos-apples.sentry.io',
         regionUrl: 'https://eu.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const organization = OrganizationFixture({
       slug: 'albertos-apples',

@@ -842,6 +842,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.similarity-backfill-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.severity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -888,12 +894,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "seer.similarity.supported_platforms",
-    type=Sequence,
-    default=["python", "javascript", "node"],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # seer nearest neighbour endpoint timeout
 register(
@@ -1795,14 +1795,6 @@ register(
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
-register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-register(
-    "hybrid_cloud.use_region_specific_upload_url", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1820,6 +1812,7 @@ register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIF
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.endpoint_flag_logging", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Webhook processing controls
 register(
@@ -2556,10 +2549,26 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# max number of profile chunks to use for computing
+# the merged profile.
+register(
+    "profiling.continuous-profiling.chunks-set.size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enable orjson in the occurrence_consumer.process_[message|batch]
 register(
     "issues.occurrence_consumer.use_orjson",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls the rate of using the sentry api shared secret for communicating to sentry.
+register(
+    "seer.api.use-shared-secret",
+    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

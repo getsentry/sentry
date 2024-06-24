@@ -12,20 +12,23 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 import {
   AVG_COLOR,
   THROUGHPUT_COLOR,
   TXN_THROUGHPUT_COLOR,
-} from 'sentry/views/starfish/colors';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanMetricsSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+} from 'sentry/views/insights/colors';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {
+  Block,
+  BlockContainer,
+} from 'sentry/views/insights/common/views/spanSummaryPage/block';
 import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {Block, BlockContainer} from 'sentry/views/starfish/views/spanSummaryPage/block';
+} from 'sentry/views/insights/types';
+import {SpanSummaryReferrer} from 'sentry/views/performance/transactionSummary/transactionSpans/spanSummary/referrers';
 
 function SpanSummaryCharts() {
   const organization = useOrganization();

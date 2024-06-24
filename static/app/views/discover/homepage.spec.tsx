@@ -34,7 +34,7 @@ describe('Discover > Homepage', () => {
       },
     });
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(initialData.projects);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       body: [],

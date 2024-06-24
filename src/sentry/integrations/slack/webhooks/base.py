@@ -7,6 +7,10 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
+from sentry.integrations.slack.metrics import (
+    SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC,
+    SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
@@ -15,7 +19,10 @@ LINK_USER_MESSAGE = (
     "<{associate_url}|Link your Slack identity> to your Sentry account to receive notifications. "
     "You'll also be able to perform actions in Sentry through Slack. "
 )
-UNLINK_USER_MESSAGE = "<{associate_url}|Click here to unlink your identity.>"
+UNLINK_USER_MESSAGE = (
+    "<{associate_url}|Click here to unlink your identity.>"
+    "Once you do this, the Slack Integration will not be able to identify you. If you need to link your identity again, please use the /sentry link command"
+)
 NOT_LINKED_MESSAGE = "You do not have a linked identity to unlink."
 ALREADY_LINKED_MESSAGE = "You are already linked as `{username}`."
 
@@ -29,8 +36,8 @@ logger = logging.getLogger(__name__)
 class SlackDMEndpoint(Endpoint, abc.ABC):
     slack_request_class = SlackDMRequest
 
-    _METRICS_SUCCESS_KEY = "sentry.integrations.slack.dm_endpoint.success."
-    _METRIC_FAILURE_KEY = "sentry.integrations.slack.dm_endpoint.failure."
+    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC
+    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC
 
     def post_dispatcher(self, request: SlackDMRequest) -> Response:
         """

@@ -36,7 +36,6 @@ export function initializeData(settings?: InitializeDataSettings) {
 
   const organization = OrganizationFixture({
     features,
-    projects,
   });
   const routerLocation: {query: {project?: string}} = {
     query: {

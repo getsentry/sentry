@@ -8,7 +8,6 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -16,6 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GROUP_SUBSTATUS_TO_GROUP_HISTORY_STATUS

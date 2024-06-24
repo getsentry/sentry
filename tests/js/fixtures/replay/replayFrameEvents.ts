@@ -85,7 +85,7 @@ export function ReplayOptionFrameEventFixture(
 }
 
 export function ReplayOptionFrameFixture(
-  fields: Partial<OptionFrameEvent['data']['payload']>
+  fields: Partial<OptionFrameEvent['data']['payload']> = {}
 ): OptionFrameEvent['data']['payload'] {
   return {
     blockAllMedia: false,

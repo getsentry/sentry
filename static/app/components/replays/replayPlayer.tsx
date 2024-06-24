@@ -148,7 +148,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
-        {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>

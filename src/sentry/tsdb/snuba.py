@@ -28,7 +28,7 @@ from sentry.constants import DataCategory
 from sentry.ingest.inbound_filters import FILTER_STAT_KEYS_TO_VALUES
 from sentry.issues.query import manual_group_on_time_aggregation
 from sentry.snuba.dataset import Dataset
-from sentry.tsdb.base import BaseTSDB, TSDBKey, TSDBModel
+from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
 from sentry.utils import outcomes, snuba
 from sentry.utils.dates import to_datetime
 from sentry.utils.snuba import (
@@ -884,14 +884,14 @@ class SnubaTSDB(BaseTSDB):
 
     def get_frequency_series(
         self,
-        model,
-        items: Mapping[str, Sequence[str]],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        tenant_ids=None,
-    ):
+        model: TSDBModel,
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         result = self.get_data(
             model,
             items,

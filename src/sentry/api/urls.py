@@ -115,6 +115,7 @@ from sentry.issues.endpoints import (
     GroupEventsEndpoint,
     OrganizationActivityEndpoint,
     OrganizationGroupIndexEndpoint,
+    OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
     OrganizationSearchesEndpoint,
     ProjectStacktraceLinkEndpoint,
@@ -162,6 +163,9 @@ from sentry.monitors.endpoints.project_monitor_processing_errors_index import (
 from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsEndpoint
 from sentry.monitors.endpoints.project_processing_errors_details import (
     ProjectProcessingErrorsDetailsEndpoint,
+)
+from sentry.monitors.endpoints.project_processing_errors_index import (
+    ProjectProcessingErrorsIndexEndpoint,
 )
 from sentry.remote_config.endpoints import (
     ProjectConfigurationEndpoint,
@@ -441,6 +445,7 @@ from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndp
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
+    OrganizationProfilingChunksEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
@@ -489,6 +494,7 @@ from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
+    OrganizationTraceSpansEndpoint,
     OrganizationTracesStatsEndpoint,
 )
 from .endpoints.organization_transaction_anomaly_detection import (
@@ -535,6 +541,7 @@ from .endpoints.project_key_stats import ProjectKeyStatsEndpoint
 from .endpoints.project_keys import ProjectKeysEndpoint
 from .endpoints.project_member_index import ProjectMemberIndexEndpoint
 from .endpoints.project_metrics import ProjectMetricsVisibilityEndpoint
+from .endpoints.project_metrics_extraction_rules import ProjectMetricsExtractionRulesEndpoint
 from .endpoints.project_ownership import ProjectOwnershipEndpoint
 from .endpoints.project_performance_general_settings import (
     ProjectPerformanceGeneralSettingsEndpoint,
@@ -1402,6 +1409,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-stats",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
+        OrganizationTraceSpansEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-spans",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/traces/$",
         OrganizationTracesEndpoint.as_view(),
         name="sentry-api-0-organization-traces",
@@ -1699,6 +1711,11 @@ ORGANIZATION_URLS = [
             csrf_exempt=True,
         ),
         name="sentry-api-0-organization-monitor-check-in-attachment",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/group-search-views/$",
+        OrganizationGroupSearchViewsEndpoint.as_view(),
+        name="sentry-api-0-organization-group-search-views",
     ),
     # Pinned and saved search
     re_path(
@@ -2094,6 +2111,11 @@ ORGANIZATION_URLS = [
                     OrganizationProfilingFunctionTrendsEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-function-trends",
                 ),
+                re_path(
+                    r"^chunks/$",
+                    OrganizationProfilingChunksEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks",
+                ),
             ],
         ),
     ),
@@ -2372,6 +2394,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/visibility/$",
         ProjectMetricsVisibilityEndpoint.as_view(),
         name="sentry-api-0-project-metrics-visibility",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/metrics/extraction-rules/$",
+        ProjectMetricsExtractionRulesEndpoint.as_view(),
+        name="sentry-api-0-project-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/releases/$",
@@ -2769,6 +2796,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/(?P<uuid>[^\/]+)/$",
         ProjectProcessingErrorsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-processing-errors-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/$",
+        ProjectProcessingErrorsIndexEndpoint.as_view(),
+        name="sentry-api-0-project-processing-errors-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/$",

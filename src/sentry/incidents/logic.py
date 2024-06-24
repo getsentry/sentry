@@ -122,6 +122,7 @@ def create_incident(
     user=None,
     alert_rule=None,
     activation=None,
+    subscription=None,
 ):
     if date_detected is None:
         date_detected = date_started
@@ -137,6 +138,7 @@ def create_incident(
             date_detected=date_detected,
             alert_rule=alert_rule,
             activation=activation,
+            subscription=subscription,
         )
         if projects:
             incident_projects = [
