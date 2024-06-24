@@ -368,7 +368,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         )
         response = self.client.get(
             url,
-            {"transaction": "/beth/sanchez", "project": project1.id},
+            {"transaction": "/beth/sanchez", "project": str(project1.id)},
             format="json",
         )
 
@@ -396,7 +396,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         )
         response = self.client.get(
             url,
-            {"transaction": '/beth/"sanchez"', "project": project.id},
+            {"transaction": '/beth/"sanchez"', "project": str(project.id)},
             format="json",
         )
 
@@ -411,7 +411,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
         )
         response = self.client.get(
             url,
-            {"transaction": '/beth/\\"sanchez\\"', "project": project.id},
+            {"transaction": '/beth/\\"sanchez\\"', "project": str(project.id)},
             format="json",
         )
 
