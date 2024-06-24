@@ -364,6 +364,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 on_demand_metrics_type=on_demand_metrics_type,
             )
 
+        @sentry_sdk.tracing.trace
         def _dashboards_data_fn(scopedDataset, offset, limit, scoped_query, dashboard_widget_id):
             try:
                 widget = DashboardWidget.objects.get(id=dashboard_widget_id)
