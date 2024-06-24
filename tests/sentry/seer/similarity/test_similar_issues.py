@@ -66,6 +66,12 @@ class GetSimilarityDataFromSeerTest(TestCase):
             ]
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_no_groups_found(self, mock_seer_request: MagicMock):
+        mock_seer_request.return_value = self._make_response({"responses": []})
+
+        assert get_similarity_data_from_seer(self.request_params) == []
+
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_empty_similar_issues_embeddings(self, mock_seer_request: MagicMock):
         mock_seer_request.return_value = HTTPResponse([])
 
