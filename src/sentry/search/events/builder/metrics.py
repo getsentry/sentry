@@ -42,7 +42,6 @@ from sentry.search.events.builder.utils import (
 )
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
-from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
@@ -145,13 +144,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def load_config(self):
         if self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if self.spans_metrics_builder:
-                # For now, we won't support the metrics layer for spans since it needs some work,
-                # but once the work will be done, we will have to add:
-                # if self.builder_config.use_metrics_layer:
-                #     self.config = SpansMetricsLayerDatasetConfig(self)
-                self.config = SpansMetricsDatasetConfig(self)
-            elif self.builder_config.use_metrics_layer:
+            if self.builder_config.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
                 self.config = MetricsDatasetConfig(self)
