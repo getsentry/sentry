@@ -33,26 +33,37 @@ class GetSimilarityDataFromSeerTest(TestCase):
         return HTTPResponse(json.dumps(data).encode("utf-8"), status=status)
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_similar_issues_embeddings_simple(self, mock_seer_request: MagicMock):
-        raw_similar_issue_data: RawSeerSimilarIssueData = {
-            "message_distance": 0.05,
-            "parent_hash": self.similar_event_hash,
-            "should_group": True,
-            "stacktrace_distance": 0.01,
-        }
-
-        mock_seer_request.return_value = self._make_response(
-            {"responses": [raw_similar_issue_data]}
-        )
-
-        similar_issue_data: Any = {
-            **raw_similar_issue_data,
-            "parent_group_id": self.similar_event.group_id,
-        }
-
-        assert get_similarity_data_from_seer(self.request_params) == [
-            SeerSimilarIssueData(**similar_issue_data)
+    def test_groups_found(self, mock_seer_request: MagicMock):
+        cases: list[tuple[RawSeerSimilarIssueData]] = [
+            (
+                {
+                    "message_distance": 0.05,
+                    "parent_hash": self.similar_event_hash,
+                    "should_group": True,
+                    "stacktrace_distance": 0.01,
+                },
+            ),
+            (
+                {
+                    "message_distance": 0.08,
+                    "parent_hash": self.similar_event_hash,
+                    "should_group": False,
+                    "stacktrace_distance": 0.05,
+                },
+            ),
         ]
+
+        for (raw_data,) in cases:
+            mock_seer_request.return_value = self._make_response({"responses": [raw_data]})
+
+            similar_issue_data: Any = {
+                **raw_data,
+                "parent_group_id": self.similar_event.group_id,
+            }
+
+            assert get_similarity_data_from_seer(self.request_params) == [
+                SeerSimilarIssueData(**similar_issue_data)
+            ]
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_empty_similar_issues_embeddings(self, mock_seer_request: MagicMock):
