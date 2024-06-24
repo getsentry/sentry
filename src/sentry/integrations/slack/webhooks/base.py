@@ -73,9 +73,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
 
     def link_user(self, slack_request: SlackDMRequest) -> Response:
         if slack_request.has_identity:
-            return self.reply(
-                slack_request, ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str)
-            )
+            return self.reply(ALREADY_LINKED_MESSAGE.format(username=slack_request.identity_str))
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
             logger.error(".link-user.bad_request.error", extra={"slack_request": slack_request})
@@ -91,14 +89,14 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
 
         metrics.incr(self._METRICS_SUCCESS_KEY + ".link_user", sample_rate=1.0)
 
-        return self.reply(slack_request, LINK_USER_MESSAGE.format(associate_url=associate_url))
+        return self.reply(LINK_USER_MESSAGE.format(associate_url=associate_url))
 
     def unlink_user(self, slack_request: SlackDMRequest) -> Response:
         if not slack_request.has_identity:
             logger.error(".unlink-user.no-identity.error", extra={"slack_request": slack_request})
             metrics.incr(self._METRIC_FAILURE_KEY + "unlink_user.no_identity", sample_rate=1.0)
 
-            return self.reply(slack_request, NOT_LINKED_MESSAGE)
+            return self.reply(NOT_LINKED_MESSAGE)
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
             logger.error(".unlink-user.bad_request.error", extra={"slack_request": slack_request})
@@ -115,7 +113,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
 
         metrics.incr(self._METRICS_SUCCESS_KEY + ".unlink_user", sample_rate=1.0)
 
-        return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
+        return self.reply(UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 
     def link_team(self, slack_request: SlackDMRequest) -> Response:
         raise NotImplementedError
