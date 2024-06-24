@@ -3,6 +3,9 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
+from sentry.search.events.datasets.profile_functions_metrics import (
+    ProfileFunctionsMetricsDatasetConfig,
+)
 from sentry.search.events.types import SelectType
 
 
@@ -29,6 +32,10 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
         "os_name",
         "os_version",
     }
+
+    def load_config(self):
+        self.config = ProfileFunctionsMetricsDatasetConfig(self)
+        self.parse_config(self.config)
 
     @property
     def use_default_tags(self) -> bool:
