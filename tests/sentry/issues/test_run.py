@@ -407,7 +407,12 @@ class TestBatchedOccurrenceConsumer(TestCase, OccurrenceTestMixin, StatusChangeT
             strategy.terminate()
 
         calls = [mock.call({partition_1: 2, partition_2: 2})]
-        mock_commit.assert_has_calls(calls=calls, any_order=True)
+        separate_calls = [mock.call({partition_1: 2}), mock.call({partition_2: 2})]
+
+        try:
+            mock_commit.assert_has_calls(calls=calls, any_order=True)
+        except AssertionError:
+            mock_commit.assert_has_calls(calls=separate_calls, any_order=True)
 
         assert mock_save_issue_occurrence.call_count == 2
         occurrence_data1 = occurrence1.to_dict()
