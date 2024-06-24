@@ -316,7 +316,17 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return TraceTree.Empty();
     }
 
-    if (props.status === 'loading') {
+    // Display the loading state if the trace is still loading and the Trace View has less than 10 transactions.
+    // This allows us to display part of the trace while the rest is incrementally loading, for the multiple traces scenario.
+    // Note: The check for transactions count will only impact cases where we are querying multiple traces, like in replays detail trace tab as for a
+    // single trace scenario, the status will be 'loading' till all the transactions of the trace finish loading.
+    if (
+      props.status === 'loading' &&
+      !(
+        props.trace &&
+        props.trace.transactions.length + props.trace.orphan_errors.length > 10
+      )
+    ) {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(
@@ -879,7 +889,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         ) : tree.type === 'empty' ? (
           <TraceEmpty />
         ) : tree.type === 'loading' ||
-          (scrollQueueRef.current && tree.type !== 'trace') ? (
+          (scrollQueueRef.current && tree.type !== 'trace') ||
+          (props.status === 'loading' && tree.type === 'trace') ? ( // This condition is for when the Trace View is incrementally loading
           <TraceLoading />
         ) : null}
 
