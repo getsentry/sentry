@@ -233,8 +233,8 @@ class HistoricGroupCounts(
         org_b = self.create_organization()
         proj_b = self.create_project(organization=org_b)
 
-        event1 = self._create_events_for_group(project_id=proj_a, hours_ago=1)
-        event_proj_org_b_1 = self._create_events_for_group(project_id=proj_b, hours_ago=1)
+        event1 = self._create_events_for_group(project_id=proj_a.id, hours_ago=1)
+        event_proj_org_b_1 = self._create_events_for_group(project_id=proj_b.id, hours_ago=1)
 
         # Since proj_org_b is created
         assert query_groups_past_counts(Group.objects.all()) == [

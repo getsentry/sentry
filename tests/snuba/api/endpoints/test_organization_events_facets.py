@@ -711,7 +711,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         # Get the next page
         with self.feature(self.features):
             response = self.client.get(
-                self.url, format="json", data={"project": test_project.id, "cursor": "0:10:0"}
+                self.url, format="json", data={"project": str(test_project.id), "cursor": "0:10:0"}
             )
             links = requests.utils.parse_header_links(
                 response.get("link", "").rstrip(">").replace(">,<", ",<")
@@ -784,7 +784,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"project": [test_project.id, test_project2.id], "cursor": "0:10:0"},
+                data={"project": [str(test_project.id), str(test_project2.id)], "cursor": "0:10:0"},
             )
             links = requests.utils.parse_header_links(
                 response.get("link", "").rstrip(">").replace(">,<", ",<")
@@ -832,7 +832,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"project": test_project.id, "cursor": links[1]["cursor"]},
+                data={"project": str(test_project.id), "cursor": links[1]["cursor"]},
             )
             links = requests.utils.parse_header_links(
                 response.get("link", "").rstrip(">").replace(">,<", ",<")
@@ -847,7 +847,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"project": test_project.id, "cursor": links[1]["cursor"]},
+                data={"project": str(test_project.id), "cursor": links[1]["cursor"]},
             )
             links = requests.utils.parse_header_links(
                 response.get("link", "").rstrip(">").replace(">,<", ",<")
@@ -886,7 +886,10 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"project": [test_project.id, test_project2.id], "cursor": links[1]["cursor"]},
+                data={
+                    "project": [str(test_project.id), str(test_project2.id)],
+                    "cursor": links[1]["cursor"],
+                },
             )
             links = requests.utils.parse_header_links(
                 response.get("link", "").rstrip(">").replace(">,<", ",<")
@@ -901,7 +904,10 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             response = self.client.get(
                 self.url,
                 format="json",
-                data={"project": [test_project.id, test_project2.id], "cursor": links[1]["cursor"]},
+                data={
+                    "project": [str(test_project.id), str(test_project2.id)],
+                    "cursor": links[1]["cursor"],
+                },
             )
             links = requests.utils.parse_header_links(
                 response.get("link", "").rstrip(">").replace(">,<", ",<")

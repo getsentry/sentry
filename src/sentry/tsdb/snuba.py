@@ -911,14 +911,14 @@ class SnubaTSDB(BaseTSDB):
 
     def get_frequency_totals(
         self,
-        model,
-        items: Mapping[str, Sequence[str]],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        tenant_ids=None,
-    ):
+        model: TSDBModel,
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
         return self.get_data(
             model,
             items,
