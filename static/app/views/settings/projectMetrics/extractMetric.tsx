@@ -15,6 +15,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {
+  explodeAggregateGroup,
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
@@ -51,7 +52,7 @@ function ExtractMetric({project}: {project: Project}) {
       const extractionRule: MetricsExtractionRule = {
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
-        aggregates: data.aggregates!,
+        aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
         conditions: data.conditions.filter(Boolean),
       };

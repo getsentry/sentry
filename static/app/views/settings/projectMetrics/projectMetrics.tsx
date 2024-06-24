@@ -282,14 +282,8 @@ function MetricsExtractionTable({
           <IconArrow size="xs" direction="down" />
           {t('Span attribute')}
         </Cell>,
-        <Cell right key="aggregates">
-          {t('Aggregates')}
-        </Cell>,
         <Cell right key="filters">
           {t('Filters')}
-        </Cell>,
-        <Cell right key="tags">
-          {t('Tags')}
         </Cell>,
         <Cell right key="actions">
           {t('Actions')}
@@ -305,23 +299,9 @@ function MetricsExtractionTable({
           <Fragment key={rule.spanAttribute + rule.unit}>
             <Cell>{rule.spanAttribute}</Cell>
             <Cell right>
-              {rule.aggregates.map(aggregate => (
-                <Tag key={aggregate}>{aggregate}</Tag>
-              ))}
-            </Cell>
-            <Cell right>
               {rule.conditions.length ? (
                 <Button priority="link" onClick={() => onEdit(rule)}>
                   {rule.conditions.length}
-                </Button>
-              ) : (
-                <NoValue>{t('(none)')}</NoValue>
-              )}
-            </Cell>
-            <Cell right>
-              {rule.tags.length ? (
-                <Button priority="link" onClick={() => onEdit(rule)}>
-                  {rule.tags.length}
                 </Button>
               ) : (
                 <NoValue>{t('(none)')}</NoValue>
@@ -469,7 +449,7 @@ const MetricsPanelTable = styled(PanelTable)`
 `;
 
 const ExtractionRulesPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr repeat(5, min-content);
+  grid-template-columns: 1fr repeat(2, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`

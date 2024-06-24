@@ -16,8 +16,9 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
+export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
 export interface FormData {
-  aggregates: MetricsAggregate[];
+  aggregates: AggregateGroup[];
   conditions: string[];
   spanAttribute: string | null;
   tags: string[];
@@ -36,32 +37,60 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
   ) => void;
 }
 
-const AGGREGATE_OPTIONS = [
+const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
   {
-    label: 'avg',
-    value: 'avg',
-  },
-  {
-    label: 'count',
+    label: t('count'),
     value: 'count',
   },
   {
-    label: 'count_unique',
+    label: t('count_unique'),
     value: 'count_unique',
   },
   {
-    label: 'sum',
-    value: 'sum',
+    label: t('min, max, sum, avg'),
+    value: 'min_max',
   },
   {
-    label: 'min',
-    value: 'min',
-  },
-  {
-    label: 'max',
-    value: 'max',
+    label: t('percentiles'),
+    value: 'percentiles',
   },
 ];
+
+export function explodeAggregateGroup(group: AggregateGroup): MetricsAggregate[] {
+  switch (group) {
+    case 'count':
+      return ['count'];
+    case 'count_unique':
+      return ['count_unique'];
+    case 'min_max':
+      return ['min', 'max', 'sum', 'avg'];
+    case 'percentiles':
+      return ['p50', 'p75', 'p95', 'p99'];
+    default:
+      throw new Error(`Unknown aggregate group: ${group}`);
+  }
+}
+
+export function aggregatesToGroups(aggregates: MetricsAggregate[]): AggregateGroup[] {
+  const groups: AggregateGroup[] = [];
+  if (aggregates.includes('count')) {
+    groups.push('count');
+  }
+
+  if (aggregates.includes('count_unique')) {
+    groups.push('count_unique');
+  }
+  const minMaxAggregates = new Set<MetricsAggregate>(['min', 'max', 'sum', 'avg']);
+  if (aggregates.find(aggregate => minMaxAggregates.has(aggregate))) {
+    groups.push('min_max');
+  }
+
+  const percentileAggregates = new Set<MetricsAggregate>(['p50', 'p75', 'p95', 'p99']);
+  if (aggregates.find(aggregate => percentileAggregates.has(aggregate))) {
+    groups.push('percentiles');
+  }
+  return groups;
+}
 
 export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
@@ -199,10 +228,11 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   </ConditionsWrapper>
                   <ConditionsButtonBar>
                     <Button
+                      disabled={conditions.some(query => !query)}
                       onClick={() => onChange([...conditions, ''], {})}
                       icon={<IconAdd />}
                     >
-                      {t('Add condition')}
+                      {t('Add filter')}
                     </Button>
                   </ConditionsButtonBar>
                 </Fragment>

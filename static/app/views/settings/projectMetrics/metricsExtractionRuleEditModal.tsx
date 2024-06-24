@@ -7,6 +7,8 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  aggregatesToGroups,
+  explodeAggregateGroup,
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
@@ -37,7 +39,7 @@ export function MetricsExtractionRuleEditModal({
   const initialData: FormData = useMemo(() => {
     return {
       spanAttribute: metricExtractionRule.spanAttribute,
-      aggregates: metricExtractionRule.aggregates,
+      aggregates: aggregatesToGroups(metricExtractionRule.aggregates),
       tags: metricExtractionRule.tags,
       conditions: metricExtractionRule.conditions.length
         ? metricExtractionRule.conditions
@@ -54,7 +56,7 @@ export function MetricsExtractionRuleEditModal({
       const extractionRule: MetricsExtractionRule = {
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
-        aggregates: data.aggregates,
+        aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
         conditions: data.conditions.filter(Boolean),
       };
