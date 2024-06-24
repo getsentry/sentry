@@ -22,6 +22,7 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.discover.models import DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.group import Group
@@ -260,6 +261,25 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return new_discover_widget_split
 
+    def save_discover_saved_query_split_decision(self, query, has_errors, has_transactions_data):
+        """This can be removed once the discover dataset has been fully split"""
+        if has_errors and not has_transactions_data:
+            decision = DiscoverSavedQueryTypes.ERROR_EVENTS
+        elif not has_errors and has_transactions_data:
+            decision = DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        else:
+            # In the case that neither or both datasets return data,
+            # we don't split this yet and can make multiple queries to check each time.
+            # This will help newly created widgets or infrequent count
+            # widgets that shouldn't be prematurely assigned a side.
+            decision = DiscoverSavedQueryTypes.DISCOVER
+        sentry_sdk.set_tag("discover.split_decision", decision)
+        if query.dataset != decision:
+            query.dataset = decision
+            query.save()
+
+        return decision
+
     def handle_unit_meta(
         self, meta: dict[str, str]
     ) -> tuple[dict[str, str], dict[str, str | None]]:
@@ -301,6 +321,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
+                discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -312,6 +333,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 }
                 if dataset is not None:
                     meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
+
+                if discoverSplitDecision is not None:
+                    meta["discoverSplitDecision"] = discoverSplitDecision
             else:
                 meta = fields_meta
 
