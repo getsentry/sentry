@@ -1,6 +1,6 @@
 import pydantic
 
-from sentry.services.hybrid_cloud.sig import SerializableFunctionSignature
+from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.testutils.cases import TestCase
 
 

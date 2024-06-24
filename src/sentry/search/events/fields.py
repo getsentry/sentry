@@ -1455,14 +1455,16 @@ class DiscoverFunction:
         if args_count != total_args_count:
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
-                raise InvalidSearchQuery(f"{field}: expected {total_args_count:g} argument(s)")
+                raise InvalidSearchQuery(
+                    f"{field}: expected {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
+                )
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at least {required_args_count:g} argument(s)"
+                    f"{field}: expected at least {required_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
             elif args_count > total_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at most {total_args_count:g} argument(s)"
+                    f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
     def validate_result_type(self, result_type):

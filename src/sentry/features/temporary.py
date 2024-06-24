@@ -84,8 +84,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables custom metrics extraction rule endpoint
     manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Hides DDM sidebar item
-    manager.add("organizations:ddm-sidebar-item-hidden", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the default alert at project creation to be the high priority alert
     manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables automatically deriving of code mappings
@@ -259,8 +257,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-span-histogram-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable trace details page with embedded spans
     manager.add("organizations:performance-trace-details", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable trace explorer features in performance
+    # Enable trace explorer features
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable trace explorer sorting by newest
+    manager.add("organizations:performance-trace-explorer-sorting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable linking to trace explorer from metrics
     manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable FE/BE for tracing without performance
@@ -308,8 +308,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Limit project events endpoint to only query back a certain number of days
     manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable project selection on the stats page
-    manager.add("organizations:project-stats", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
     # Enable the new Related Events feature
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable related issues feature
@@ -382,8 +380,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-web-vitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable the UI for updated terms of service
-    manager.add("organizations:settings-legal-tos-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable Slack messages using Block Kit
     manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable description field in Slack metric alerts

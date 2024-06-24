@@ -52,8 +52,6 @@ describe('SpanOperationTable', () => {
       expect(screen.getByRole('columnheader', {name: header})).toBeInTheDocument();
     });
 
-    expect(screen.getAllByRole('columnheader', {name: 'Change'})).toHaveLength(3);
-
     expect(spanOpTableRequestMock).toHaveBeenCalledTimes(1);
 
     expect(spanOpTableRequestMock).toHaveBeenCalledWith(
@@ -67,10 +65,8 @@ describe('SpanOperationTable', () => {
             'span.description',
             'avg_if(mobile.slow_frames,release,foo)',
             'avg_if(mobile.slow_frames,release,bar)',
-            'avg_compare(mobile.slow_frames,release,foo,bar)',
             'avg_if(mobile.frozen_frames,release,foo)',
             'avg_if(mobile.frozen_frames,release,bar)',
-            'avg_compare(mobile.frozen_frames,release,foo,bar)',
             'avg_if(mobile.frames_delay,release,foo)',
             'avg_if(mobile.frames_delay,release,bar)',
             'avg_compare(mobile.frames_delay,release,foo,bar)',

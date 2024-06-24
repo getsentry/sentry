@@ -6,15 +6,15 @@ from django.db import models
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model
 from sentry.db.models.manager.base import BaseManager
+from sentry.remote_subscriptions.models import BaseRemoteSubscription
 
 
 @region_silo_model
-class UptimeSubscription(DefaultFieldsModel):
+class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModel):
     # TODO: This should be included in export/import, but right now it has no relation to
     # any projects/orgs. Will fix this in a later pr
     __relocation_scope__ = RelocationScope.Excluded
 
-    remote_subscription = FlexibleForeignKey("remote_subscriptions.RemoteSubscription", unique=True)
     # The url to check
     url = models.CharField(max_length=255)
     # How frequently to run the check in seconds
@@ -23,7 +23,7 @@ class UptimeSubscription(DefaultFieldsModel):
     timeout_ms = models.IntegerField()
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
-        cache_fields=["pk", "remote_subscription_id"],
+        cache_fields=["pk", "subscription_id"],
         cache_ttl=int(timedelta(hours=1).total_seconds()),
     )
 

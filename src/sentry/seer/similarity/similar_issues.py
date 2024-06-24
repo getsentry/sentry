@@ -23,7 +23,6 @@ seer_grouping_connection_pool = connection_from_url(
 )
 
 
-# TODO: Handle non-200 responses
 def get_similarity_data_from_seer(
     similar_issues_request: SimilarIssuesEmbeddingsRequest,
 ) -> list[SeerSimilarIssueData]:
@@ -39,6 +38,19 @@ def get_similarity_data_from_seer(
             "utf8"
         ),
     )
+
+    if response.status > 200:
+        redirect = response.get_redirect_location()
+        if redirect:
+            logger.error(
+                f"Encountered redirect when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}. Please update `SEER_SIMILAR_ISSUES_URL` in `sentry.conf.server` to be '{redirect}'."  # noqa
+            )
+        else:
+            logger.error(
+                f"Received {response.status} when calling Seer endpoint {SEER_SIMILAR_ISSUES_URL}.",  # noqa
+                extra={"response_data": response.data},
+            )
+        return []
 
     try:
         response_data = json.loads(response.data.decode("utf-8"))

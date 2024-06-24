@@ -2460,10 +2460,10 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def store_replay_segments(
         self,
         replay_id: str,
-        project_id: str,
+        project_id: int,
         segment_id: int,
         segment,
-    ):
+    ) -> None:
         f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
         f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
         ReplayRecordingSegment.objects.create(
@@ -3220,10 +3220,12 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 
 class UptimeTestCase(TestCase):
-    def create_uptime_result(self) -> CheckResult:
+    def create_uptime_result(self, subscription_id: str | None = None) -> CheckResult:
+        if subscription_id is None:
+            subscription_id = uuid.uuid4().hex
         return {
             "guid": uuid.uuid4().hex,
-            "subscription_id": uuid.uuid4().hex,
+            "subscription_id": subscription_id,
             "status": CHECKSTATUS_FAILURE,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
             "trace_id": uuid.uuid4().hex,

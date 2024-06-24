@@ -203,7 +203,6 @@ DETAILED_PROJECT = {
             "promotion-be-adoption-enabled",
             "monitors",
             "am2-billing",
-            "project-stats",
             "profiling-ga",
             "performance-new-trends",
             "performance-n-plus-one-api-calls-post-process-group",
