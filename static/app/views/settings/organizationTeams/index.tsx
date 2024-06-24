@@ -1,40 +1,35 @@
+import {useCallback, useEffect, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import {loadStats} from 'sentry/actionCreators/projects';
-import type {Client} from 'sentry/api';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TeamStore from 'sentry/stores/teamStore';
-import type {AccessRequest, Organization, Team} from 'sentry/types/organization';
-import withApi from 'sentry/utils/withApi';
-import withOrganization from 'sentry/utils/withOrganization';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import type {AccessRequest} from 'sentry/types/organization';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import OrganizationTeams from './organizationTeams';
 
-type Props = {
-  api: Client;
-  organization: Organization;
-  teams: Team[];
-} & RouteComponentProps<{}, {}>;
+export function OrganizationTeamsContainer(props: RouteComponentProps<{}, {}>) {
+  const api = useApi();
+  const organization = useOrganization();
+  const [requestList, setRequestList] = useState<AccessRequest[]>([]);
 
-type State = DeprecatedAsyncView['state'] & {
-  requestList: AccessRequest[];
-};
+  const {isLoading, isError} = useApiQuery<AccessRequest[]>(
+    [`/organizations/${organization.slug}/access-requests/`],
+    {
+      staleTime: 0,
+      retry: false,
+      onSuccess: ([data]) => {
+        setRequestList(data);
+      },
+    }
+  );
 
-class OrganizationTeamsContainer extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization} = this.props;
-
-    return [['requestList', `/organizations/${organization.slug}/access-requests/`]];
-  }
-
-  componentDidMount() {
-    super.componentDidMount();
-    this.fetchStats();
-  }
-
-  fetchStats() {
-    const {organization} = this.props;
-    loadStats(this.props.api, {
+  useEffect(() => {
+    loadStats(api, {
       orgId: organization.slug,
       query: {
         since: (new Date().getTime() / 1000 - 3600 * 24).toString(),
@@ -42,42 +37,46 @@ class OrganizationTeamsContainer extends DeprecatedAsyncView<Props, State> {
         group: 'project',
       },
     });
+  }, [organization.slug, api]);
+
+  const handleRemoveAccessRequest = useCallback(
+    (id: string, isApproved: boolean) => {
+      const requestToRemove = requestList.find(request => request.id === id);
+      setRequestList(requestList.filter(request => request.id !== id));
+      if (isApproved && requestToRemove) {
+        const team = requestToRemove.team;
+        TeamStore.onUpdateSuccess(team.slug, {
+          ...team,
+          memberCount: team.memberCount + 1,
+        });
+      }
+    },
+    [requestList]
+  );
+
+  // can an organization be null here?
+  if (!organization) {
+    return null;
   }
 
-  removeAccessRequest = (id: string, isApproved: boolean) => {
-    const requestToRemove = this.state.requestList.find(request => request.id === id);
-    this.setState(state => ({
-      requestList: state.requestList.filter(request => request.id !== id),
-    }));
-    if (isApproved && requestToRemove) {
-      const team = requestToRemove.team;
-      TeamStore.onUpdateSuccess(team.slug, {
-        ...team,
-        memberCount: team.memberCount + 1,
-      });
-    }
-  };
-
-  renderBody() {
-    const {organization} = this.props;
-
-    if (!organization) {
-      return null;
-    }
-
-    return (
-      <OrganizationTeams
-        {...this.props}
-        access={new Set(organization.access)}
-        features={new Set(organization.features)}
-        organization={organization}
-        requestList={this.state.requestList}
-        onRemoveAccessRequest={this.removeAccessRequest}
-      />
-    );
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
+
+  if (isError) {
+    return <LoadingError />;
+  }
+
+  return (
+    <OrganizationTeams
+      {...props}
+      access={new Set(organization.access)}
+      features={new Set(organization.features)}
+      organization={organization}
+      requestList={requestList}
+      onRemoveAccessRequest={handleRemoveAccessRequest}
+    />
+  );
 }
 
-export {OrganizationTeamsContainer};
-
-export default withApi(withOrganization(OrganizationTeamsContainer));
+export default OrganizationTeamsContainer;
