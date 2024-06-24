@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -38,7 +37,6 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -126,7 +124,6 @@ function ProjectMetrics({project, location}: Props) {
     [location.pathname, location.query, navigate]
   );
 
-  const {activateSidebar} = useMetricsOnboardingSidebar();
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
 
   const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
@@ -140,25 +137,7 @@ function ProjectMetrics({project, location}: Props) {
   return (
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(t('Metrics'), project.slug, false)} />
-      <SettingsPageHeader
-        title={t('Metrics')}
-        action={
-          <Button
-            priority="primary"
-            onClick={() => {
-              Sentry.metrics.increment('ddm.add_custom_metric', 1, {
-                tags: {
-                  referrer: 'settings',
-                },
-              });
-              activateSidebar();
-            }}
-            size="sm"
-          >
-            {t('Add Metric')}
-          </Button>
-        }
-      />
+      <SettingsPageHeader title={t('Metrics')} />
 
       <TextBlock>
         {tct(
