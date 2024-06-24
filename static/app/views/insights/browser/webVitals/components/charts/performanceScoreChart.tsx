@@ -23,9 +23,7 @@ type Props = {
   webVital?: WebVitals | null;
 };
 
-export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
-export const ORDER_WITH_INP = ['lcp', 'fcp', 'inp', 'cls', 'ttfb', 'fid'];
-export const ORDER_WITH_INP_WITHOUT_FID = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
+export const ORDER = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -35,7 +33,6 @@ export function PerformanceScoreChart({
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
-  const order = ORDER_WITH_INP;
 
   const score = projectScore
     ? webVital
@@ -47,7 +44,7 @@ export function PerformanceScoreChart({
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {
-    const index = order.indexOf(webVital);
+    const index = ORDER.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
       return i === index ? color : theme.gray200;
     });
@@ -64,7 +61,6 @@ export function PerformanceScoreChart({
     ? {
         lcp: projectScore.lcpWeight,
         fcp: projectScore.fcpWeight,
-        fid: 0,
         inp: projectScore.inpWeight,
         cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,

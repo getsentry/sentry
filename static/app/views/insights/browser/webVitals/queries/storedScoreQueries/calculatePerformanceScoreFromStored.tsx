@@ -52,7 +52,6 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
       fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
       clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
       ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
-      fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
       inpWeight: PERFORMANCE_SCORE_WEIGHTS.inp,
     };
   }
@@ -60,7 +59,6 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
   const hasLcp = hasWebVitalScore(data, 'lcp');
   const hasFcp = hasWebVitalScore(data, 'fcp');
   const hasCls = hasWebVitalScore(data, 'cls');
-  const hasFid = hasWebVitalScore(data, 'fid');
   const hasInp = hasWebVitalScore(data, 'inp');
   const hasTtfb = hasWebVitalScore(data, 'ttfb');
 
@@ -69,7 +67,6 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
     fcpScore: hasFcp ? Math.round(getWebVitalScore(data, 'fcp') * 100) : undefined,
     clsScore: hasCls ? Math.round(getWebVitalScore(data, 'cls') * 100) : undefined,
     ttfbScore: hasTtfb ? Math.round(getWebVitalScore(data, 'ttfb') * 100) : undefined,
-    fidScore: hasFid ? Math.round(getWebVitalScore(data, 'fid') * 100) : undefined,
     inpScore: hasInp ? Math.round(getWebVitalScore(data, 'inp') * 100) : undefined,
     totalScore: Math.round(getTotalScore(data) * 100),
     ...calculateWeights(data),
@@ -88,8 +85,8 @@ const calculateWeights = (data: TableDataRow) => {
     ((inpWeight * inpScoreCount) / totalScoreCount) * 100
   );
 
-  const pageLoadWebVitals: WebVitals[] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'];
-  const [lcpWeight, fcpWeight, clsWeight, ttfbWeight, fidWeight] = pageLoadWebVitals.map(
+  const pageLoadWebVitals: WebVitals[] = ['lcp', 'fcp', 'cls', 'ttfb'];
+  const [lcpWeight, fcpWeight, clsWeight, ttfbWeight] = pageLoadWebVitals.map(
     webVital => {
       const weight = getWebVitalWeight(data, webVital);
       const actualWeight = Math.round(((weight * pageLoadCount) / totalScoreCount) * 100);
@@ -101,7 +98,6 @@ const calculateWeights = (data: TableDataRow) => {
     fcpWeight,
     clsWeight,
     ttfbWeight,
-    fidWeight,
     inpWeight: inpActualWeight,
   };
 };
