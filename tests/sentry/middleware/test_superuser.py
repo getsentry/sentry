@@ -15,8 +15,8 @@ class SuperuserMiddlewareTestCase(TestCase):
     def _create_request(self, is_superuser: bool):
         request = RequestFactory().get("/")
         request.user = self.user
-        request.organization = self.organization
         request.session = self.session
+        setattr(request, "organization", self.organization)
 
         if is_superuser:
             request.superuser = mock_su = MagicMock()
