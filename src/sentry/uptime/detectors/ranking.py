@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from random import random
 from typing import TYPE_CHECKING
@@ -26,7 +28,7 @@ RANKED_MAX_SIZE = 20
 KEY_EXPIRY = PROJECT_FLUSH_FREQUENCY * 2
 
 
-def _get_cluster() -> RedisCluster | StrictRedis[str]:
+def _get_cluster() -> RedisCluster | StrictRedis:
     return redis.redis_clusters.get(settings.SENTRY_UPTIME_DETECTOR_CLUSTER)
 
 
