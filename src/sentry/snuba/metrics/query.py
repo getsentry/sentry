@@ -142,7 +142,7 @@ class MetricsQueryValidationRunner:
 
 
 @dataclass(frozen=True)
-class DeperecatingMetricsQuery(MetricsQueryValidationRunner):
+class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
     """Definition of a metrics query, inspired by snuba_sdk.Query"""
 
     org_id: int

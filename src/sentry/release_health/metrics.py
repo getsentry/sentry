@@ -36,7 +36,7 @@ from sentry.release_health.metrics_sessions_v2 import run_sessions_query
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
-    DeperecatingMetricsQuery,
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
@@ -156,7 +156,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         groupby = [
             MetricGroupByField(field="project_id"),
         ]
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -304,7 +304,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 MetricField(metric_mri=SessionMRI.ALL.value, alias="value", op=None),
             ]
 
-            query = DeperecatingMetricsQuery(
+            query = DeprecatingMetricsQuery(
                 org_id=org_id,
                 start=start,
                 end=now,
@@ -324,7 +324,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             select = [
                 MetricField(metric_mri=SessionMRI.RAW_USER.value, alias="value", op="count_unique")
             ]
-            query = DeperecatingMetricsQuery(
+            query = DeprecatingMetricsQuery(
                 org_id=org_id,
                 start=start,
                 end=now,
@@ -469,7 +469,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             )
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -567,7 +567,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             where_clause.append(filter_releases_by_project_release(projects_list))  # type: ignore[arg-type]
             groupby.append(MetricGroupByField(field="release"))
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -622,7 +622,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             )
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -678,7 +678,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -735,7 +735,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -795,7 +795,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -850,7 +850,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -906,7 +906,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=[metric_field],
@@ -1116,7 +1116,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
         def query_stats(end: datetime) -> CrashFreeBreakdown:
             def _get_data(select: list[MetricField]) -> tuple[int, int]:
-                query = DeperecatingMetricsQuery(
+                query = DeprecatingMetricsQuery(
                     org_id=org_id,
                     project_ids=[project_id],
                     select=select,
@@ -1231,7 +1231,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="project_id"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -1283,7 +1283,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             ),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -1351,7 +1351,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricGroupByField(field="release"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=organization_id,
             project_ids=project_ids,
             select=select,
@@ -1446,7 +1446,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 MetricField(metric_mri=SessionMRI.HEALTHY.value, alias="sessions_healthy", op=None),
             ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -1471,7 +1471,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
             MetricField(metric_mri=SessionMRI.DURATION.value, alias="duration_p90", op="p90"),
         ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -1547,7 +1547,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
             where.append(Condition(Column("tags[environment]"), Op.EQ, env_name))
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=[project_id],
             select=select,
@@ -1603,7 +1603,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             )
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,
@@ -1705,7 +1705,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
                 )
             ]
 
-        query = DeperecatingMetricsQuery(
+        query = DeprecatingMetricsQuery(
             org_id=org_id,
             project_ids=project_ids,
             select=select,

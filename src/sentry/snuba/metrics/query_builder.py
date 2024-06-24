@@ -63,7 +63,7 @@ from sentry.snuba.metrics.naming_layer.mapping import (
 from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
 from sentry.snuba.metrics.naming_layer.public import PUBLIC_EXPRESSION_REGEX
 from sentry.snuba.metrics.query import (
-    DeperecatingMetricsQuery,
+    DeprecatingMetricsQuery,
     MetricActionByField,
     MetricConditionField,
     MetricField,
@@ -536,8 +536,8 @@ class QueryDefinition:
         self.include_series = query_params.get("includeSeries", "1") == "1"
         self.include_totals = query_params.get("includeTotals", "1") == "1"
 
-    def to_metrics_query(self) -> DeperecatingMetricsQuery:
-        return DeperecatingMetricsQuery(
+    def to_metrics_query(self) -> DeprecatingMetricsQuery:
+        return DeprecatingMetricsQuery(
             org_id=org_id_from_projects(self._projects),
             project_ids=[project.id for project in self._projects],
             include_totals=self.include_totals,
@@ -777,7 +777,7 @@ class SnubaQueryBuilder:
     def __init__(
         self,
         projects: Sequence[Project],
-        metrics_query: DeperecatingMetricsQuery,
+        metrics_query: DeprecatingMetricsQuery,
         use_case_id: UseCaseID,
     ):
         self._projects = projects
@@ -1226,7 +1226,7 @@ class SnubaResultConverter:
     def __init__(
         self,
         organization_id: int,
-        metrics_query: DeperecatingMetricsQuery,
+        metrics_query: DeprecatingMetricsQuery,
         fields_in_entities: dict,
         intervals: list[datetime],
         results,

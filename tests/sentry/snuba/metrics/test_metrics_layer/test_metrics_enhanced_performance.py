@@ -23,7 +23,7 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MAX_POINTS,
-    DeperecatingMetricsQuery,
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
@@ -1220,7 +1220,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     seconds_before_now=-1,
                 )
 
-        metrics_query = DeperecatingMetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -1854,7 +1854,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 minutes_before_now=minutes,
             )
 
-        metrics_query = DeperecatingMetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -1950,7 +1950,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def test_limit_when_not_passed_and_interval_is_provided(self):
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        metrics_query = DeperecatingMetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -2003,9 +2003,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             "include_series": True,
         }
         with pytest.raises(InvalidParams):
-            DeperecatingMetricsQuery(**metrics_query_dict)
+            DeprecatingMetricsQuery(**metrics_query_dict)
 
-        mq = DeperecatingMetricsQuery(**metrics_query_dict, interval=3600)
+        mq = DeprecatingMetricsQuery(**metrics_query_dict, interval=3600)
         assert mq.limit is not None
         assert mq.limit.limit == 50
 
