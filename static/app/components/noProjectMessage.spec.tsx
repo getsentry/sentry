@@ -59,7 +59,11 @@ describe('NoProjectMessage', function () {
     // No org-level access
     render(
       <NoProjectMessage
-        organization={OrganizationFixture({access: [], features: ['team-roles']})}
+        organization={OrganizationFixture({
+          access: [],
+          features: ['team-roles'],
+          allowMemberProjectCreation: true,
+        })}
       />
     );
 
