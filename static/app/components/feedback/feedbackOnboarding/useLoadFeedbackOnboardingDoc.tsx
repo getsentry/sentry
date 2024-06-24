@@ -30,6 +30,16 @@ function getPlatformPath(platform: PlatformIntegration) {
         return platform.id.replace(`${platform.language}-`, `${platform.language}/`);
     }
   }
+  if (platform.language === 'apple') {
+    switch (platform.id) {
+      case 'apple-ios':
+        return `apple/ios`;
+      case 'apple-macos':
+        return `apple/macos`;
+      default:
+        return `apple/apple`;
+    }
+  }
   return `${platform.language}/${platform.id}`;
 }
 

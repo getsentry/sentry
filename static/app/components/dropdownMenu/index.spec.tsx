@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 
@@ -93,29 +93,41 @@ describe('DropdownMenu', function () {
 
     // Can be dismissed by clicking outside
     await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Item One'})).toBeInTheDocument();
-    await userEvent.click(document.body);
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Item One'})
-    ).not.toBeInTheDocument();
+      await screen.findByRole('menuitemradio', {name: 'Item One'})
+    ).toBeInTheDocument();
+    await userEvent.click(document.body);
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Item One'})
+      ).not.toBeInTheDocument();
+    });
 
     // Can be dismissed by pressing Escape
     await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Item One'})).toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Item One'})
-    ).not.toBeInTheDocument();
+      await screen.findByRole('menuitemradio', {name: 'Item One'})
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Item One'})
+      ).not.toBeInTheDocument();
+    });
 
     // When menu A is open, clicking once on menu B's trigger button closes menu A and
     // then opens menu B
     await userEvent.click(screen.getByRole('button', {name: 'Menu A'}));
     expect(screen.getByRole('menuitemradio', {name: 'Item One'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Menu B'}));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Item One'})
+      ).not.toBeInTheDocument();
+    });
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Item One'})
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Item Two'})).toBeInTheDocument();
+      await screen.findByRole('menuitemradio', {name: 'Item Two'})
+    ).toBeInTheDocument();
   });
 
   it('renders submenus', async function () {

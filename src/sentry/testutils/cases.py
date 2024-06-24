@@ -12,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, Literal, Union
+from typing import Any, Literal, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -49,6 +49,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -2459,10 +2460,10 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def store_replay_segments(
         self,
         replay_id: str,
-        project_id: str,
+        project_id: int,
         segment_id: int,
         segment,
-    ):
+    ) -> None:
         f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
         f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
         ReplayRecordingSegment.objects.create(
@@ -2583,6 +2584,15 @@ class SetRefsTestCase(APITestCase):
         assert commit.key == key
 
 
+class _QueryDict(TypedDict):
+    name: str
+    fields: list[str]
+    aggregates: list[str]
+    columns: list[str]
+    fieldAliases: list[str]
+    conditions: str
+
+
 class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -2590,7 +2600,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
-        self.anon_users_query = {
+        self.anon_users_query: _QueryDict = {
             "name": "Anonymous Users",
             "fields": ["count()"],
             "aggregates": ["count()"],
@@ -2598,7 +2608,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
-        self.known_users_query = {
+        self.known_users_query: _QueryDict = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
@@ -2606,7 +2616,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": [],
             "conditions": "has:user.email",
         }
-        self.geo_errors_query = {
+        self.geo_errors_query: _QueryDict = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
@@ -2886,6 +2896,22 @@ class SlackActivityNotificationTest(ActivityTestCase):
     @pytest.fixture(autouse=True)
     def responses_context(self):
         with responses.mock:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with mock.patch(
+            "slack_sdk.web.client.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
             yield
 
     def assert_performance_issue_attachments(
@@ -3203,10 +3229,12 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 
 class UptimeTestCase(TestCase):
-    def create_uptime_result(self) -> CheckResult:
+    def create_uptime_result(self, subscription_id: str | None = None) -> CheckResult:
+        if subscription_id is None:
+            subscription_id = uuid.uuid4().hex
         return {
             "guid": uuid.uuid4().hex,
-            "subscription_id": uuid.uuid4().hex,
+            "subscription_id": subscription_id,
             "status": CHECKSTATUS_FAILURE,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
             "trace_id": uuid.uuid4().hex,

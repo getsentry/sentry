@@ -25,6 +25,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
@@ -91,7 +92,11 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
-function logTraceMetadata(tree: TraceTree, organization: Organization) {
+function logTraceMetadata(
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization
+) {
   switch (tree.shape) {
     case TraceType.BROKEN_SUBTRACES:
     case TraceType.EMPTY_TRACE:
@@ -100,7 +105,7 @@ function logTraceMetadata(tree: TraceTree, organization: Organization) {
     case TraceType.NO_ROOT:
     case TraceType.ONLY_ERRORS:
     case TraceType.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceMetadata(tree, organization);
+      traceAnalytics.trackTraceMetadata(tree, projects, organization);
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
@@ -822,8 +827,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    logTraceMetadata(tree, props.organization);
-  }, [tree, props.organization]);
+    logTraceMetadata(tree, projects, props.organization);
+  }, [tree, projects, props.organization]);
 
   useLayoutEffect(() => {
     if (!tree.root?.space || tree.type !== 'trace') {

@@ -14,7 +14,7 @@ from sentry.db.models import (
     Model,
     control_silo_model,
 )
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.sentry_app import SentryApp
 

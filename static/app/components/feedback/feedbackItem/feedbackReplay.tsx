@@ -21,9 +21,10 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
   const hasReplayId = feedbackHasReplay(feedbackItem.id);
 
-  // replay ID can be found in two places
+  // replay ID can be found in three places
   const replayId =
     eventData?.contexts?.feedback?.replay_id ??
+    eventData?.contexts?.replay?.replay_id ??
     eventData?.tags?.find(({key}) => key === 'replayId')?.value;
   const {hasSentOneReplay, fetching: isFetchingSentOneReplay} =
     useHaveSelectedProjectsSentAnyReplayEvents();

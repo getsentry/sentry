@@ -161,6 +161,7 @@ class EventCommittersTest(APITestCase):
             project_id=self.project.id,
             event_type=EventType.ERROR,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -221,6 +222,7 @@ class EventCommittersTest(APITestCase):
             project_id=self.project.id,
             event_type=EventType.ERROR,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,

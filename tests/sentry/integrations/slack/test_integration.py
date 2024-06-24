@@ -13,6 +13,7 @@ from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.testutils.cases import APITestCase, IntegrationTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import control_silo_test
 
 
@@ -265,52 +266,54 @@ class SlackIntegrationPostInstallTest(APITestCase):
             scopes=[],
         )
 
+        self.response_json = {
+            "ok": True,
+            "members": [
+                {
+                    "id": "UXXXXXXX1",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": self.user.email,
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX2",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": self.user2.email,
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX3",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": "wrongemail@example.com",
+                        "team": "TXXXXXXX1",
+                    },
+                },
+                {
+                    "id": "UXXXXXXX4",
+                    "team_id": "TXXXXXXX1",
+                    "deleted": False,
+                    "profile": {
+                        "email": "ialreadyexist@example.com",
+                        "team": "TXXXXXXX1",
+                    },
+                },
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/users.list",
             match=[query_string_matcher(f"limit={SLACK_GET_USERS_PAGE_SIZE}")],
-            json={
-                "ok": True,
-                "members": [
-                    {
-                        "id": "UXXXXXXX1",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": self.user.email,
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                    {
-                        "id": "UXXXXXXX2",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": self.user2.email,
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                    {
-                        "id": "UXXXXXXX3",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": "wrongemail@example.com",
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                    {
-                        "id": "UXXXXXXX4",
-                        "team_id": "TXXXXXXX1",
-                        "deleted": False,
-                        "profile": {
-                            "email": "ialreadyexist@example.com",
-                            "team": "TXXXXXXX1",
-                        },
-                    },
-                ],
-                "response_metadata": {"next_cursor": ""},
-            },
+            json=self.response_json,
         )
 
     @responses.activate
@@ -331,6 +334,114 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user2_identity
         assert user2_identity.external_id == "UXXXXXXX2"
         assert user2_identity.user.email == "foo@example.com"
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-get-users")
+    @responses.activate
+    def test_link_multiple_users_sdk_client(self, mock_api_call):
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        user1_identity = Identity.objects.get(user=self.user)
+        assert user1_identity
+        assert user1_identity.external_id == "UXXXXXXX1"
+        assert user1_identity.user.email == "admin@localhost"
+
+        user2_identity = Identity.objects.get(user=self.user2)
+        assert user2_identity
+        assert user2_identity.external_id == "UXXXXXXX2"
+        assert user2_identity.user.email == "foo@example.com"
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-get-users")
+    @responses.activate
+    def test_link_multiple_users_sdk_client_pagination(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(
+                    self.response_json,
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps(
+                    {
+                        "ok": True,
+                        "members": [
+                            {
+                                "id": "UXXXXXXX5",
+                                "team_id": "TXXXXXXX1",
+                                "deleted": False,
+                                "profile": {
+                                    "email": "hello@example.com",
+                                    "team": "TXXXXXXX1",
+                                },
+                            }
+                        ],
+                    },
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        user5 = self.create_user("hello@example.com")
+        self.create_member(
+            user=user5,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        user5_identity = Identity.objects.get(user=user5)
+        assert user5_identity
+        assert user5_identity.external_id == "UXXXXXXX5"
+        assert user5_identity.user.email == "hello@example.com"
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-get-users")
+    @responses.activate
+    def test_link_multiple_users_sdk_client_pagination_error(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(
+                    self.response_json,
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps({"ok": False}).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        user5 = self.create_user("hello@example.com")
+        self.create_member(
+            user=user5,
+            organization=self.organization,
+            role="manager",
+            teams=[self.team],
+        )
+
+        with self.tasks():
+            SlackIntegrationProvider().post_install(self.integration, self.organization)
+
+        user5_identity = Identity.objects.filter(user=user5).first()
+        assert user5_identity is None
 
     @responses.activate
     def test_email_no_match(self):

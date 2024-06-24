@@ -11,6 +11,7 @@ from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import AppPlatformEvent
 from sentry.constants import SentryAppInstallationStatus
+from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
@@ -35,7 +36,6 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request

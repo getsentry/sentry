@@ -15,6 +15,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
+    DEFAULT_COMPARISON_INTERVAL,
     BaseEventFrequencyCondition,
     ComparisonType,
     EventFrequencyConditionData,
@@ -48,7 +49,7 @@ class UniqueCondition(NamedTuple):
 
 
 class DataAndGroups(NamedTuple):
-    data: EventFrequencyConditionData | None
+    data: EventFrequencyConditionData
     group_ids: set[int]
 
     def __repr__(self):
@@ -143,7 +144,9 @@ def get_condition_group_results(
             return None
 
         _, duration = condition_inst.intervals[unique_condition.interval]
-        comparison_interval = condition_inst.intervals[unique_condition.interval][1]
+        comparison_interval = condition_inst.intervals[
+            condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
+        ][1]
         comparison_type = (
             condition_data.get("comparisonType", ComparisonType.COUNT)
             if condition_data
