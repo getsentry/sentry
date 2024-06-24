@@ -570,7 +570,7 @@ class ProcessDelayedAlertConditionsTest(
             project=self.project,
             condition_match=[percent_condition],
         )
-        incorrect_interval_time = self.now - timedelta(minutes=5)
+        incorrect_interval_time = self.now - timedelta(minutes=7)
         correct_interval_time = self.now - timedelta(hours=1)
 
         event5 = self.create_event(self.project.id, self.now, "group-5")
