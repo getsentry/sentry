@@ -11,12 +11,13 @@ import requestPreviewImg from 'sentry-images/insights/module-upsells/insights-re
 import screenLoadsPreviewImg from 'sentry-images/insights/module-upsells/insights-screen-loads-module-upsell.svg';
 import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-web-vitals-module-upsell.svg';
 
-import {Button} from 'sentry/components/button';
+import {LinkButton} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SidebarNavigationItemHook} from 'sentry/components/sidebar/sidebarItem';
 import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleTitle} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -27,7 +28,10 @@ const SUBTITLE = t(
 const TITLE = t('Start monitoring your insights');
 
 export function ModulesUpsell({selectedModule}: {selectedModule: TitleableModuleNames}) {
+  const organization = useOrganization();
+
   const modulePreview = modulePreviews[selectedModule];
+  const checkoutUrl = `/settings/${organization.slug}/billing/checkout/?referrer=upsell-insights-${selectedModule}`;
 
   return (
     <Layout.Page>
@@ -46,8 +50,12 @@ export function ModulesUpsell({selectedModule}: {selectedModule: TitleableModule
           <ModuleLayout.Half>
             <PerfImage src={upsellImage} />
           </ModuleLayout.Half>
-          <Button priority="primary">Start Free Trial</Button>
-          <Button priority="default">Upgrade Now</Button>
+          <LinkButton to priority="primary">
+            Start Free Trial
+          </LinkButton>
+          <LinkButton to={checkoutUrl} priority="default">
+            Upgrade Now
+          </LinkButton>
         </ModuleLayout.Layout>
       </Container>
     </Layout.Page>
@@ -128,7 +136,8 @@ const StyledListItem = styled('li')<{isSelected: boolean}>`
   ${p => p.isSelected && `font-weight: ${p.theme.fontWeightBold};`}
 `;
 
-const Title = styled('h3')`
+const Title = styled('h2')`
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: ${space(1)};
 `;
 
