@@ -10,7 +10,7 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {IconOpen} from 'sentry/icons';
 import type {EventTag} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {isUrl} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 const iconStyle = css`
   position: relative;

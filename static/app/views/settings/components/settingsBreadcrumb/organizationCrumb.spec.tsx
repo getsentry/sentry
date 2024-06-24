@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import type {Config} from 'sentry/types/system';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -14,7 +15,7 @@ jest.unmock('sentry/utils/recreateRoute');
 
 describe('OrganizationCrumb', function () {
   let initialData: Config;
-  const {organization, project, routerContext, routerProps} = initializeOrg();
+  const {organization, project, router, routerProps} = initializeOrg();
   const organizations = [
     organization,
     OrganizationFixture({
@@ -27,7 +28,7 @@ describe('OrganizationCrumb', function () {
     OrganizationsStore.init();
     OrganizationsStore.load(organizations);
 
-    initialData = window.__initialData;
+    initialData = ConfigStore.getState();
     jest.mocked(browserHistory.push).mockReset();
     jest.mocked(window.location.assign).mockReset();
   });
@@ -43,12 +44,12 @@ describe('OrganizationCrumb', function () {
     >
   ) =>
     render(<OrganizationCrumb {...routerProps} params={{}} {...props} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
   afterEach(function () {
-    window.__initialData = initialData;
+    ConfigStore.loadInitialData(initialData);
   });
 
   it('switches organizations on settings index', async function () {
@@ -133,13 +134,12 @@ describe('OrganizationCrumb', function () {
   });
 
   it('switches organizations for child route with customer domains', async function () {
-    window.__initialData = {
-      customerDomain: {
-        subdomain: 'albertos-apples',
-        organizationUrl: 'https://albertos-apples.sentry.io',
-        sentryUrl: 'https://sentry.io',
-      },
-    } as Config;
+    ConfigStore.set('customerDomain', {
+      subdomain: 'albertos-apples',
+      organizationUrl: 'https://albertos-apples.sentry.io',
+      sentryUrl: 'https://sentry.io',
+    });
+    ConfigStore.set('features', new Set(['system:multi-region']));
 
     const routes: RouteWithName[] = [
       {path: '/'},
@@ -158,7 +158,6 @@ describe('OrganizationCrumb', function () {
       OrganizationFixture({
         id: '234',
         slug: 'acme',
-        features: ['customer-domains'],
         links: {
           organizationUrl: 'https://acme.sentry.io',
           regionUrl: 'https://us.sentry.io',

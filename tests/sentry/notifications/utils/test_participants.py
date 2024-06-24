@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.eventstore.models import Event
+from sentry.integrations.types import ExternalProviders
 from sentry.models.commit import Commit
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -41,7 +42,6 @@ from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
 
@@ -488,6 +488,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -535,6 +536,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             },
             project_id=project_suspect_committer.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -565,6 +567,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -588,6 +591,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -614,6 +618,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,

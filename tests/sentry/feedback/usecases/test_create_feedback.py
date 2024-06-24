@@ -700,7 +700,6 @@ def test_create_feedback_spam_detection_adds_field_calls(
         {
             "organizations:user-feedback-spam-filter-actions": True,
             "organizations:user-feedback-spam-filter-ingest": True,
-            "organizations:issue-platform": True,
             "organizations:feedback-ingest": True,
             "organizations:feedback-post-process-group": True,
         }
@@ -769,7 +768,6 @@ def test_create_feedback_spam_detection_adds_field_calls(
             event, default_project.id, FeedbackCreationSource.NEW_FEEDBACK_ENVELOPE
         )
 
-        assert Group.objects.all().count() == 1
-        group = Group.objects.first()
+        group = Group.objects.get()
         assert group.status == GroupStatus.IGNORED
         assert group.substatus == GroupSubStatus.FOREVER

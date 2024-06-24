@@ -134,7 +134,7 @@ export class VirtualizedTree<T extends TreeLike> {
     value: boolean,
     opts?: {expandChildren: boolean}
   ) {
-    // Because node.setExpanded handles toggling the node and all it's children, we still need to update the
+    // Because node.setExpanded handles toggling the node and all its children, we still need to update the
     // flattened list. To do that w/o having to rebuild the entire tree, we can just remove the node and add them
     const removedOrAddedNodes = node.setExpanded(value, opts);
 

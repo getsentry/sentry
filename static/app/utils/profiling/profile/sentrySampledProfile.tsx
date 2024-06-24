@@ -1,6 +1,7 @@
 import moment from 'moment';
 
-import {defined, lastOfArray} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import type {Frame} from './../frame';

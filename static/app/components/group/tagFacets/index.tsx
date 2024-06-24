@@ -17,10 +17,10 @@ import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {formatVersion} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {useFetchIssueTagsForDetailsPage} from 'sentry/views/issueDetails/utils';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';

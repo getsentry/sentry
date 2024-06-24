@@ -14,7 +14,7 @@ import type {EventAttachment, Project} from 'sentry/types';
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 function renderModal({
-  initialData: {organization, routerContext},
+  initialData: {organization, router},
   eventAttachment,
   projectSlug,
   attachmentIndex,
@@ -53,7 +53,7 @@ function renderModal({
       enablePagination={enablePagination}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -172,7 +172,7 @@ describe('Modals -> ScreenshotModal', function () {
         enablePagination
       />,
       {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       }
     );
@@ -209,7 +209,7 @@ describe('Modals -> ScreenshotModal', function () {
         enablePagination
       />,
       {
-        context: initialData.routerContext,
+        router: initialData.router,
         organization: initialData.organization,
       }
     );

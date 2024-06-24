@@ -33,6 +33,7 @@ from snuba_sdk import (
 )
 
 from sentry.api import event_search
+from sentry.api.event_search import SearchValue
 from sentry.discover.arithmetic import (
     OperandType,
     Operation,
@@ -86,6 +87,7 @@ class BaseQueryBuilder:
     uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    profile_functions_metrics_builder = False
     entity: Entity | None = None
 
     def get_middle(self):
@@ -490,6 +492,7 @@ class BaseQueryBuilder:
             # Chained or statements become field:a OR (field:b OR (...))
             operator == Or
             and is_where_condition(lhs_where)
+            and rhs_where
             and isinstance(rhs_where[0], Or)
             # Even in a long chain the first condition would be the next field
             and isinstance(rhs_where[0].conditions[0], Condition)
@@ -1269,11 +1272,27 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            condition = Condition(
-                Function("match", [lhs, f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
+            raw_value = search_filter.value.raw_value
+            new_value = SearchValue(raw_value[1:-1])
+            if (
+                raw_value.startswith("*")
+                and raw_value.endswith("*")
+                and not new_value.is_wildcard()
+            ):
+                # This is an optimization to avoid using regular expressions
+                # for wild card searches if it can be avoided.
+                # Here, we're just interested if the substring exists.
+                condition = Condition(
+                    Function("positionCaseInsensitive", [lhs, new_value.value]),
+                    Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+                    0,
+                )
+            else:
+                condition = Condition(
+                    Function("match", [lhs, f"(?i){value}"]),
+                    Op(search_filter.operator),
+                    1,
+                )
         else:
             # pull out the aliased expression if it exists
             if isinstance(lhs, AliasedExpression):

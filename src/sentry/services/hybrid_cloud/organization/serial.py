@@ -122,6 +122,7 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
         slug=org.slug,
         id=org.id,
         name=org.name,
+        flags=_serialize_flags(org),
     )
 
 
@@ -142,10 +143,10 @@ def serialize_rpc_organization(
     )
 
     if include_projects:
-        projects: list[Project] = Project.objects.filter(organization=org)
+        projects = Project.objects.filter(organization=org)
         rpc_org.projects.extend(serialize_project(project) for project in projects)
     if include_teams:
-        teams: list[Team] = Team.objects.filter(organization=org)
+        teams = Team.objects.filter(organization=org)
         rpc_org.teams.extend(serialize_rpc_team(team) for team in teams)
 
     return rpc_org

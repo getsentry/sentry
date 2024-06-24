@@ -1,7 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -282,9 +281,7 @@ describe('DeprecatedAssigneeSelector', () => {
 
   it('shows invite member button', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2]);
-    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />, {
-      context: RouterContextFixture(),
-    });
+    render(<DeprecatedAssigneeSelector id={GROUP_1.id} />);
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 
     await openMenu();

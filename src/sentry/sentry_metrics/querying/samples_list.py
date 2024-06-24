@@ -827,6 +827,7 @@ class SpansMeasurementsSamplesListExecutor(SpansSamplesListExecutor):
         SpanMRI.DECODED_RESPONSE_CONTENT_LENGTH.value: "http.decoded_response_content_length",
         SpanMRI.RESPONSE_TRANSFER_SIZE.value: "http.response_transfer_size",
         SpanMRI.AI_TOTAL_TOKENS.value: "ai_total_tokens_used",
+        SpanMRI.AI_TOTAL_COST.value: "ai_total_cost",
         SpanMRI.CACHE_ITEM_SIZE.value: "cache.item_size",
         SpanMRI.MOBILE_SLOW_FRAMES.value: "frames.slow",
         SpanMRI.MOBILE_FROZEN_FRAMES.value: "frames.frozen",

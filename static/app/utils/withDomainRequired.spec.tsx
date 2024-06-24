@@ -5,19 +5,28 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import withDomainRequired, {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 describe('normalizeUrl', function () {
+  let configState: Config;
   let result;
 
   beforeEach(function () {
-    window.__initialData = {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
+  });
+
+  afterEach(function () {
+    ConfigStore.loadInitialData(configState);
   });
 
   it('replaces paths in strings', function () {
@@ -46,6 +55,19 @@ describe('normalizeUrl', function () {
       [
         '/settings/sentry-organizations/integrations/vercel/12345/?next=something',
         '/settings/integrations/vercel/12345/?next=something',
+      ],
+      // Settings views for orgs with acccount/billing in their slugs.
+      ['/settings/account-on/', '/settings/organization/'],
+      ['/settings/billing-co/', '/settings/organization/'],
+      ['/settings/account-on/integrations/', '/settings/integrations/'],
+      [
+        '/settings/account-on/projects/billing-app/source-maps/',
+        '/settings/projects/billing-app/source-maps/',
+      ],
+      ['/settings/billing-co/integrations/', '/settings/integrations/'],
+      [
+        '/settings/billing-co/projects/billing-app/source-maps/',
+        '/settings/projects/billing-app/source-maps/',
       ],
       // Account settings should stay the same
       ['/settings/account/', '/settings/account/'],
@@ -108,7 +130,7 @@ describe('normalizeUrl', function () {
     }
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     for (const [input, expected] of cases) {
       result = normalizeUrl(input, {forceCustomerDomain: true});
       expect(result).toEqual(expected);
@@ -117,8 +139,7 @@ describe('normalizeUrl', function () {
       expect(result).toEqual(expected);
     }
 
-    // No effect if customerDomain isn't defined
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     for (const [input, _expected] of cases) {
       result = normalizeUrl(input);
       expect(result).toEqual(input);
@@ -163,7 +184,7 @@ describe('normalizeUrl', function () {
     expect(result.pathname).toEqual('/issues');
 
     // Normalizes urls if options.customerDomain is true and orgslug.sentry.io isn't being used
-    window.__initialData.customerDomain = null;
+    ConfigStore.set('customerDomain', null);
     result = normalizeUrl({pathname: '/settings/acme/'}, location, {
       forceCustomerDomain: true,
     });
@@ -191,6 +212,7 @@ describe('withDomainRequired', function () {
     const {params} = props;
     return <div>Org slug: {params.orgId ?? 'no org slug'}</div>;
   }
+  let configState: Config;
 
   beforeEach(function () {
     Object.defineProperty(window, 'location', {
@@ -202,34 +224,38 @@ describe('withDomainRequired', function () {
         hash: '#hash',
       },
     });
-    window.__initialData = {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
   });
 
   afterEach(function () {
     window.location = originalLocation;
+    ConfigStore.loadInitialData(configState);
   });
 
   it('redirects to sentryUrl in non-customer domain world', function () {
-    window.__initialData = {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: null,
-      features: ['organizations:customer-domains'],
+      features: new Set(['system:multi-region']),
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
@@ -239,7 +265,7 @@ describe('withDomainRequired', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -253,9 +279,9 @@ describe('withDomainRequired', function () {
         params={params}
         routes={router.routes}
         routeParams={router.params}
-        route={route}
+        route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -265,20 +291,21 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('redirects to sentryUrl if customer-domains is omitted', function () {
-    window.__initialData = {
+  it('redirects to sentryUrl if multi-region feature is omitted', function () {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-      features: [],
+      features: new Set(),
       links: {
-        organizationUrl: null,
-        regionUrl: null,
+        organizationUrl: undefined,
+        regionUrl: undefined,
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
@@ -288,7 +315,7 @@ describe('withDomainRequired', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -302,9 +329,9 @@ describe('withDomainRequired', function () {
         params={params}
         routes={router.routes}
         routeParams={router.params}
-        route={route}
+        route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(container).toBeEmptyDOMElement();
@@ -314,20 +341,21 @@ describe('withDomainRequired', function () {
     );
   });
 
-  it('renders when window.__initialData.customerDomain and customer-domains feature is present', function () {
-    window.__initialData = {
+  it('renders when window.__initialData.customerDomain and multi-region feature is present', function () {
+    ConfigStore.loadInitialData({
+      ...configState,
       customerDomain: {
         subdomain: 'albertos-apples',
         organizationUrl: 'https://albertos-apples.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-      features: ['organizations:customer-domains'],
+      features: new Set(['system:multi-region']),
       links: {
         organizationUrl: 'https://albertos-apples.sentry.io',
         regionUrl: 'https://eu.sentry.io',
         sentryUrl: 'https://sentry.io',
       },
-    } as any;
+    });
 
     const organization = OrganizationFixture({
       slug: 'albertos-apples',
@@ -337,7 +365,7 @@ describe('withDomainRequired', function () {
     const params = {
       orgId: 'albertos-apples',
     };
-    const {router, route, routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -351,9 +379,9 @@ describe('withDomainRequired', function () {
         params={params}
         routes={router.routes}
         routeParams={router.params}
-        route={route}
+        route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();

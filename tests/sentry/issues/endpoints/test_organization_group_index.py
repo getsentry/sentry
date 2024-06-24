@@ -32,6 +32,7 @@ from sentry.models.groupinbox import (
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
@@ -1947,6 +1948,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert response.data[0]["latestEventHasAttachments"] is True
 
+    @with_feature("organizations:event-attachments")
+    @patch("sentry.models.Group.get_latest_event", return_value=None)
+    def test_expand_no_latest_event_has_no_attachments(self, mock_latest_event) -> None:
+        self.store_event(
+            data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        )
+        query = "status:unresolved"
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date", limit=10, query=query, expand=["latestEventHasAttachments"]
+        )
+        assert response.status_code == 200
+
+        # Expand should not execute since there is no latest event
+        assert "latestEventHasAttachments" not in response.data[0]
+
     def test_expand_owners(self) -> None:
         event = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2297,6 +2315,114 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
+
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_user_default_custom_view_query(self) -> None:
+        SavedSearch.objects.create(
+            name="Saved Search",
+            query="TypeError",
+            organization=self.organization,
+            owner_id=self.user.id,
+            visibility=Visibility.OWNER_PINNED,
+        )
+        GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=0,
+            name="Default View",
+            query="ZeroDivisionError",
+            query_sort="date",
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_non_default_custom_view_query(self) -> None:
+        GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=0,
+            name="Default View",
+            query="TypeError",
+            query_sort="date",
+        )
+
+        view = GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=1,
+            name="Custom View",
+            query="ZeroDivisionError",
+            query_sort="date",
+        )
+
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            searchId=view.id,
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_global_default_custom_view_query(self) -> None:
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+        event.group.update(priority=PriorityLevel.LOW)
+
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, collapse=["unhandled"])
+
+        # The request is not populated with a query, or a searchId to extract a query from, so the
+        # query used should be the global default, the Prioritized query. Since the only event is a low priority event,
+        # we should expect no results here.
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_query_status_and_substatus_overlapping(self) -> None:
         event = self.store_event(
@@ -2856,7 +2982,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    @with_feature("organizations:issue-platform")
     def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a performance issue
@@ -2917,7 +3042,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
-    @with_feature("organizations:issue-platform")
     @with_feature(PerformanceRenderBlockingAssetSpanGroupType.build_visible_feature_name())
     @with_feature(PerformanceNPlusOneGroupType.build_visible_feature_name())
     def test_snuba_type_and_category(
@@ -4020,10 +4144,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         # The current_release_version should be to the latest (in semver) release associated with
         # a group
-        grp_resolution = GroupResolution.objects.filter(group=group)
-
-        assert len(grp_resolution) == 1
-        grp_resolution = grp_resolution.first()
+        grp_resolution = GroupResolution.objects.get(group=group)
 
         assert grp_resolution.current_release_version == release_2.version
 
@@ -4042,11 +4163,11 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             assert not GroupResolution.has_resolution(group=group, release=release)
 
         # Ensure that Activity has `current_release_version` set on `Resolved in next release`
-        activity = Activity.objects.filter(
+        activity = Activity.objects.get(
             group=grp_resolution.group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=grp_resolution.id,
-        ).first()
+        )
 
         assert "current_release_version" in activity.data
         assert activity.data["current_release_version"] == release_2.version
@@ -4186,21 +4307,18 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data["status"] == "resolved"
         assert response.data["statusDetails"]["inNextRelease"]
 
-        grp_resolution = GroupResolution.objects.filter(group=group)
-
-        assert len(grp_resolution) == 1
-        grp_resolution = grp_resolution[0]
+        grp_resolution = GroupResolution.objects.get(group=group)
 
         assert grp_resolution.current_release_version == release_1.version
         assert grp_resolution.release.id == release_2.id
         assert grp_resolution.type == GroupResolution.Type.in_release
         assert grp_resolution.status == GroupResolution.Status.resolved
 
-        activity = Activity.objects.filter(
+        activity = Activity.objects.get(
             group=grp_resolution.group,
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=grp_resolution.id,
-        ).first()
+        )
         assert activity.data["version"] == release_2.version
 
     def test_selective_status_update(self) -> None:
@@ -5018,7 +5136,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
-    @with_feature("projects:issue-priority")
     def test_update_priority(self) -> None:
         """
         Bulk-setting priority successfully changes the priority of the groups
@@ -5043,7 +5160,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group=group, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
             ).exists()
 
-    @with_feature("projects:issue-priority")
     def test_update_priority_no_change(self) -> None:
         """
         When the priority is the same as the current priority, no changes are made
@@ -5075,6 +5191,22 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not Activity.objects.filter(
             group=group2, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
         ).exists()
+
+    def test_resolved_in_upcoming_release_multiple_projects(self) -> None:
+        project_2 = self.create_project(slug="foo")
+        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED, project=project_2)
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            qs_params={
+                "id": [group1.id, group2.id],
+                "statd": "resolved",
+                "statusDetails": {"inUpcomingRelease": True},
+            }
+        )
+
+        assert response.status_code == 400
 
 
 class GroupDeleteTest(APITestCase, SnubaTestCase):

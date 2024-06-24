@@ -264,9 +264,7 @@ def get_emails_for_user_or_org(user: RpcUser | None, orgId: int):
         organization = Organization.objects.get(id=orgId)
         members = organization.get_members_with_org_roles(roles=["owner"])
         user_ids = [m.user_id for m in members if m.user_id]
-        emails = list(
-            {u.email for u in user_service.get_many(filter={"user_ids": user_ids}) if u.email}
-        )
+        emails = list({u.email for u in user_service.get_many_by_id(ids=user_ids) if u.email})
     else:
         emails = [user.email]
 

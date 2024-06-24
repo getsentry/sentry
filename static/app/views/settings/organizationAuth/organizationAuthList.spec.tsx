@@ -1,6 +1,5 @@
 import {AuthProvidersFixture} from 'sentry-fixture/authProviders';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -31,17 +30,14 @@ describe('OrganizationAuthList', function () {
   });
 
   it('renders for members', function () {
-    const context = RouterContextFixture([
-      {organization: OrganizationFixture({access: ['org:read']})},
-    ]);
+    const organization = OrganizationFixture({access: ['org:read']});
 
     render(
       <OrganizationAuthList
-        organization={OrganizationFixture()}
+        organization={organization}
         providerList={AuthProvidersFixture()}
         activeProvider={AuthProvidersFixture()[0]}
-      />,
-      {context}
+      />
     );
 
     expect(screen.getByText('Active')).toBeInTheDocument();
@@ -54,14 +50,12 @@ describe('OrganizationAuthList', function () {
 
     it('renders', function () {
       const organization = OrganizationFixture({...require2fa, ...withSSO});
-      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
           organization={organization}
           providerList={AuthProvidersFixture()}
-        />,
-        {context}
+        />
       );
 
       expect(
@@ -71,14 +65,12 @@ describe('OrganizationAuthList', function () {
 
     it('renders with saml available', function () {
       const organization = OrganizationFixture({...require2fa, ...withSAML});
-      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
           organization={organization}
           providerList={AuthProvidersFixture()}
-        />,
-        {context}
+        />
       );
 
       expect(
@@ -88,14 +80,12 @@ describe('OrganizationAuthList', function () {
 
     it('does not render without sso available', function () {
       const organization = OrganizationFixture({...require2fa});
-      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
           organization={organization}
           providerList={AuthProvidersFixture()}
-        />,
-        {context}
+        />
       );
 
       expect(
@@ -105,14 +95,12 @@ describe('OrganizationAuthList', function () {
 
     it('does not render with sso and require 2fa disabled', function () {
       const organization = OrganizationFixture({...withSSO});
-      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
           organization={organization}
           providerList={AuthProvidersFixture()}
-        />,
-        {context}
+        />
       );
 
       expect(
@@ -122,14 +110,12 @@ describe('OrganizationAuthList', function () {
 
     it('does not render with saml and require 2fa disabled', function () {
       const organization = OrganizationFixture({...withSAML});
-      const context = RouterContextFixture([{organization}]);
 
       render(
         <OrganizationAuthList
           organization={organization}
           providerList={AuthProvidersFixture()}
-        />,
-        {context}
+        />
       );
 
       expect(

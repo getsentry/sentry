@@ -43,6 +43,10 @@ class TestGroupAutofixUpdate(APITestCase):
                         "cause_id": 456,
                         "fix_id": 789,
                     },
+                    "invoking_user": {
+                        "id": self.user.id,
+                        "display_name": self.user.get_display_name(),
+                    },
                 }
             ),
             headers={"content-type": "application/json;charset=utf-8"},
@@ -61,6 +65,10 @@ class TestGroupAutofixUpdate(APITestCase):
                         "type": "select_root_cause",
                         "cause_id": 456,
                         "fix_id": 789,
+                    },
+                    "invoking_user": {
+                        "id": self.user.id,
+                        "display_name": self.user.get_display_name(),
                     },
                 }
             ),

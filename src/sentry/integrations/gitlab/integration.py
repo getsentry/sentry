@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from sentry.identity.gitlab import get_oauth_data, get_user_info
 from sentry.identity.gitlab.provider import GitlabIdentityProvider
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,

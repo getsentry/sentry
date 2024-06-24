@@ -857,7 +857,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(self.user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
         }
-        activity = Activity.objects.filter(group=event.group).first()
+        activity = Activity.objects.get(group=event.group)
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
@@ -1224,8 +1224,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = (
             GroupOwner.objects.filter()
             .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            .order_by("type")[0]
         )
         assert assignee.user_id == self.user.id
 
@@ -1255,10 +1254,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Mimic filter used in get_autoassigned_owner_cached to get the issue owner to be
         # auto-assigned
         assignee = (
-            GroupOwner.objects.filter()
-            .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            GroupOwner.objects.filter().exclude(user_id__isnull=True, team_id__isnull=True).get()
         )
         # Group should be re-assigned to the new group owner
         assert assignee.user_id == user_3.id
@@ -2001,22 +1997,6 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert kafka_producer.return_value.publish.call_count == 0
         incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
-    def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        assert kafka_producer.return_value.publish.call_count == 0
-        for args, _ in incr.call_args_list:
-            assert args != "post_process.process_replay_link.id_sampled"
-
 
 class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
     def test_user_report_gets_environment(self):
@@ -2169,7 +2149,6 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated(self, mock_run_post_process_job):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2196,7 +2175,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2216,7 +2194,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2238,7 +2215,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2548,6 +2524,7 @@ class PostProcessGroupPerformanceTest(
             cache_key=cache_key,
             group_id=None,
             group_states=None,
+            project_id=self.project.id,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2671,6 +2648,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
+            project_id=self.project.id,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2855,8 +2833,9 @@ class PostProcessGroupFeedbackTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(FeedbackGroup.build_post_process_group_feature_name()), self.feature(
-            "organizations:user-feedback-spam-filter-actions"
+        with (
+            self.feature(FeedbackGroup.build_post_process_group_feature_name()),
+            self.feature("organizations:user-feedback-spam-filter-actions"),
         ):
             post_process_group(
                 is_new=is_new,
@@ -2869,7 +2848,6 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_option_disabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
@@ -2895,7 +2873,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_spam(self):
         event = self.create_event(
             data={},
@@ -2921,7 +2898,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_project_option_enabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", True)
 
@@ -2948,7 +2924,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_setting_option_epoch_0(self):
         self.project.update_option("sentry:option-epoch", 1)
         event = self.create_event(
@@ -2974,7 +2949,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_default_on_new_projects(self):
         event = self.create_event(
             data={},
@@ -2999,7 +2973,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},

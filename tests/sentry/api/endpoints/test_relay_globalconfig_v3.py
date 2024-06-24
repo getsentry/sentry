@@ -44,7 +44,6 @@ def call_endpoint(client, relay, private_key):
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
         "profiling.generic_metrics.functions_ingestion.enabled": True,
-        "feedback.ingest-inline-attachments": True,
         "relay.disable_normalization.processing": True,
         "relay.force_full_normalization": True,
         "relay.metric-bucket-distribution-encodings": {

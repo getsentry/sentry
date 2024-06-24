@@ -190,7 +190,7 @@ SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
 @region_silo_endpoint
 class OrganizationSCIMSchemaIndex(SCIMEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationSCIMMemberPermission,)
 

@@ -17,6 +17,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
+from sentry.newsletter.dummy import DummyNewsletter
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
@@ -158,7 +159,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
                 ("/organizations/baz/issues/", 302),
             ]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_login_valid_credentials_with_org_and_customer_domains(self):
         org = self.create_organization(owner=self.user)
         # load it once for test cookie
@@ -440,14 +441,10 @@ class AuthLoginNewsletterTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
-    def setUp(self):
-        super().setUp()
-
-        def disable_newsletter():
-            newsletter.backend.disable()
-
-        self.addCleanup(disable_newsletter)
-        newsletter.backend.enable()
+    @pytest.fixture(autouse=True)
+    def enable_newsletter(self):
+        with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
+            yield
 
     def test_registration_requires_subscribe_choice_with_newsletter(self):
         with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
@@ -511,9 +508,6 @@ class AuthLoginNewsletterTest(TestCase):
 
 
 @control_silo_test
-@override_settings(
-    SENTRY_USE_CUSTOMER_DOMAINS=True,
-)
 class AuthLoginCustomerDomainTest(TestCase):
     @cached_property
     def path(self):
@@ -597,7 +591,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             ]
 
     def test_login_valid_credentials_invalid_customer_domain(self):
-        with self.disable_registration():
+        with self.feature("system:multi-region"), self.disable_registration():
             self.create_organization(name="albertos-apples", owner=self.user)
 
             # load it once for test cookie
@@ -613,7 +607,6 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                ("http://invalid.testserver/auth/login/", 302),
                 ("http://albertos-apples.testserver/auth/login/", 302),
                 ("http://albertos-apples.testserver/issues/", 302),
             ]

@@ -1,7 +1,7 @@
 import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex} from 'sentry/components/profiling/flex';
+import {Flex} from 'sentry/components/container/flex';
 import ThemeSwitcher from 'sentry/components/stories/themeSwitcher';
 import {IconSentry} from 'sentry/icons';
 import {space} from 'sentry/styles/space';

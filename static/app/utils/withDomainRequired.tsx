@@ -3,19 +3,21 @@ import type {Location, LocationDescriptor} from 'history';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
+import ConfigStore from 'sentry/stores/configStore';
+
 // If you change this also update the patterns in sentry.api.utils
 const NORMALIZE_PATTERNS: Array<[pattern: RegExp, replacement: string]> = [
   // /organizations/slug/section, but not /organizations/new
   [/\/organizations\/(?!new)[^\/]+\/(.*)/, '/$1'],
   // For /settings/:orgId/ -> /settings/organization/
   [
-    /\/settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/?$/,
+    /\/settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/?$/,
     '/settings/organization/',
   ],
   // Move /settings/:orgId/:section -> /settings/:section
   // but not /settings/organization or /settings/projects which is a new URL
   [
-    /^\/?settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/(.*)/,
+    /^\/?settings\/(?!account\/|billing\/|projects\/|teams\/)[^\/]+\/(.*)/,
     '/settings/$1',
   ],
   [/^\/?join-request\/[^\/]+\/?.*/, '/join-request/'],
@@ -56,7 +58,8 @@ export function normalizeUrl(
     location = undefined;
   }
 
-  if (!options?.forceCustomerDomain && !window.__initialData?.customerDomain) {
+  const customerDomain = ConfigStore.get('customerDomain');
+  if (!options?.forceCustomerDomain && !customerDomain) {
     return path;
   }
 
@@ -99,10 +102,10 @@ export function normalizeUrl(
  * For example: orgslug.sentry.io
  *
  * The side-effect that this HOC provides is that it'll redirect the browser to sentryUrl
- * (from window.__initialData.links) whenever one of the following conditions are not satisfied:
+ * (from ConfigStore.getState().links) whenever one of the following conditions are not satisfied:
  *
- * - window.__initialData.customerDomain is present.
- * - window.__initialData.features contains organizations:customer-domains feature.
+ * - ConfigStore.getState().customerDomain is present.
+ * - ConfigStore.getState().features contains system:multi-region feature.
  *
  * If both conditions above are satisfied, then WrappedComponent will be rendered with orgId included in the route
  * params prop.
@@ -114,12 +117,10 @@ function withDomainRequired<P extends RouteComponentProps<{}, {}>>(
 ) {
   return function withDomainRequiredWrapper(props: P) {
     const {params} = props;
-    const {features, customerDomain} = window.__initialData;
-    const {sentryUrl} = window.__initialData.links;
+    const {features, customerDomain, links} = ConfigStore.getState();
+    const {sentryUrl} = links;
 
-    const hasCustomerDomain = (features as unknown as string[]).includes(
-      'organizations:customer-domains'
-    );
+    const hasCustomerDomain = features.has('system:multi-region');
 
     if (!customerDomain || !hasCustomerDomain) {
       // This route should only be accessed if a customer domain is used.

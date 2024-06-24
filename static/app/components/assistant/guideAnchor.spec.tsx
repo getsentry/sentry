@@ -17,12 +17,14 @@ describe('GuideAnchor', function () {
   const firstGuideHeader = 'How bad is it?';
 
   beforeEach(function () {
-    ConfigStore.config = ConfigFixture({
-      user: UserFixture({
-        isSuperuser: false,
-        dateJoined: '2020-01-01T00:00:00',
-      }),
-    });
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({
+          isSuperuser: false,
+          dateJoined: '2020-01-01T00:00:00',
+        }),
+      })
+    );
   });
 
   it('renders, async advances, async and finishes', async function () {

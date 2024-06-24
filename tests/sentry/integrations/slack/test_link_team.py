@@ -10,6 +10,7 @@ from rest_framework import status
 
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.organization import Organization
@@ -19,7 +20,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, get_response_text, install_slack, link_team
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.integrations import ExternalProviders
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):

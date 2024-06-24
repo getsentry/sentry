@@ -1,42 +1,29 @@
 import {createStore} from 'reflux';
 
-import type {CommonStoreDefinition} from 'sentry/stores/types';
+import type {StrictStoreDefinition} from 'sentry/stores/types';
 import type {SentryAppInstallation} from 'sentry/types/integrations';
 
 interface SentryAppInstallationStoreDefinition
-  extends CommonStoreDefinition<SentryAppInstallation[]> {
-  getInitialState(): SentryAppInstallation[];
+  extends StrictStoreDefinition<SentryAppInstallation[]> {
   load(items: SentryAppInstallation[]): void;
 }
 
 const storeConfig: SentryAppInstallationStoreDefinition = {
+  state: [],
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
 
-    this.items = [];
+    this.state = [];
   },
 
   getState() {
-    return this.items;
-  },
-
-  getInitialState(): SentryAppInstallation[] {
-    return this.items;
+    return this.state;
   },
 
   load(items: SentryAppInstallation[]) {
-    this.items = items;
+    this.state = items;
     this.trigger(items);
-  },
-
-  get(uuid: string) {
-    const items: SentryAppInstallation[] = this.items;
-    return items.find(item => item.uuid === uuid);
-  },
-
-  getAll(): SentryAppInstallation[] {
-    return this.items;
   },
 };
 

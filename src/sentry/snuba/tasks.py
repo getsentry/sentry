@@ -2,18 +2,14 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING
 
 import orjson
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
-from sentry.models.environment import Environment
-from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
-    BaseEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_key_from_request,
     get_entity_key_from_snuba_query,
@@ -24,9 +20,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
-
-if TYPE_CHECKING:
-    from sentry.search.events.builder import QueryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -195,16 +188,6 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_query_builder(
-    entity_subscription: BaseEntitySubscription,
-    query: str,
-    project_ids: list[int],
-    environment: Environment | None,
-    params: ParamsType | None = None,
-) -> QueryBuilder:
-    return entity_subscription.build_query_builder(query, project_ids, environment, params)
-
-
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
         span.set_tag(
@@ -223,8 +206,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             if snuba_query.query:
                 extra = " and "
             extra += subscription.query_extra
-        snql_query = build_query_builder(
-            entity_subscription=entity_subscription,
+        snql_query = entity_subscription.build_query_builder(
             query=f"{snuba_query.query}{extra}",
             project_ids=[subscription.project_id],
             environment=snuba_query.environment,

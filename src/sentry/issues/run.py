@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor
 from typing import Literal
 
+import orjson
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import (
     CommitOffsets,
@@ -92,12 +93,13 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
+
     from sentry.issues.occurrence_consumer import _process_message
-    from sentry.utils import json, metrics
+    from sentry.utils import metrics
 
     try:
         with metrics.timer("occurrence_consumer.process_message"):
-            payload = json.loads(message.payload.value, use_rapid_json=True)
+            payload = orjson.loads(message.payload.value)
             _process_message(payload)
     except Exception:
         logger.exception("failed to process message payload")

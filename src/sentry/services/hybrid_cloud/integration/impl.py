@@ -11,6 +11,7 @@ from sentry import analytics
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import AppPlatformEvent
 from sentry.constants import SentryAppInstallationStatus
+from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
@@ -35,7 +36,6 @@ from sentry.services.hybrid_cloud.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
-from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request
@@ -248,23 +248,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
             integration=context.integration, organization_integration=install
         )
 
-    def get_organization_context(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
-        # Depreated use organization_context instead.
-        context = self.organization_context(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            provider=provider,
-            external_id=external_id,
-        )
-        return (context.integration, context.organization_integration)
-
     def organization_contexts(
         self,
         *,
@@ -288,23 +271,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return RpcOrganizationContextList(
             integration=integration, organization_integrations=organization_integrations
         )
-
-    def get_organization_contexts(
-        self,
-        *,
-        organization_id: int | None = None,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
-        # Depreated use organization_contexts instead.
-        context = self.organization_contexts(
-            organization_id=organization_id,
-            integration_id=integration_id,
-            provider=provider,
-            external_id=external_id,
-        )
-        return (context.integration, context.organization_integrations)
 
     def update_integrations(
         self,
@@ -505,7 +471,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         except OrganizationIntegration.DoesNotExist:
             return []
 
-        iep_kwargs = {"organization_integration_id": oi.id}
+        iep_kwargs: dict[str, Any] = {"organization_integration_id": oi.id}
         if external_id is not None:
             iep_kwargs["external_id"] = external_id
         external_projects = IntegrationExternalProject.objects.filter(**iep_kwargs)

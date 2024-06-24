@@ -5,6 +5,7 @@
 from abc import abstractmethod
 from collections.abc import Mapping, MutableMapping
 
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
@@ -14,7 +15,6 @@ from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStat
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 
 class NotificationsService(RpcService):
@@ -69,18 +69,6 @@ class NotificationsService(RpcService):
     @rpc_method
     @abstractmethod
     def remove_notification_settings_for_project(self, *, project_id: int) -> None:
-        pass
-
-    @rpc_method
-    @abstractmethod
-    def get_subscriptions_for_projects(
-        self,
-        *,
-        user_id: int,
-        project_ids: list[int],
-        type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
-        """Deprecated: Use subscriptions_for_projects instead."""
         pass
 
     @rpc_method

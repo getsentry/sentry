@@ -15,7 +15,8 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryRequest, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import {defined, isUrl} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {RichHttpContentClippedBoxBodySection} from './richHttpContentClippedBoxBodySection';
 import {RichHttpContentClippedBoxKeyValueList} from './richHttpContentClippedBoxKeyValueList';

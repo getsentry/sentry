@@ -23,7 +23,8 @@ import {
   type EventTransaction,
   type Meta,
 } from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 

@@ -174,12 +174,7 @@ def group_categories_from_search_filters(
     group_categories = group_categories_from(search_filters)
 
     if not group_categories:
-        group_categories = {
-            gc
-            for gc in get_search_strategies().keys()
-            if gc != GroupCategory.PROFILE.value
-            or features.has("organizations:issue-platform", organization, actor=actor)
-        }
+        group_categories = set(get_search_strategies().keys())
         # if we're not searching for feedbacks, then hide them by default
         group_categories.discard(GroupCategory.FEEDBACK.value)
 

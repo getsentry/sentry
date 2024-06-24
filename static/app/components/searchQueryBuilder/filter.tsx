@@ -1,22 +1,19 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useFocusWithin} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {FilterOperator} from 'sentry/components/searchQueryBuilder/filterOperator';
+import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/useFilterButtonProps';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {
-  formatFilterValue,
-  getValidOpsForFilter,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {formatFilterValue, getKeyLabel} from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   type ParseResultToken,
-  TermOperator,
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
@@ -31,89 +28,13 @@ type SearchQueryTokenProps = {
   token: TokenResult<Token.FILTER>;
 };
 
-const OP_LABELS = {
-  [TermOperator.DEFAULT]: 'is',
-  [TermOperator.GREATER_THAN]: '>',
-  [TermOperator.GREATER_THAN_EQUAL]: '>=',
-  [TermOperator.LESS_THAN]: '<',
-  [TermOperator.LESS_THAN_EQUAL]: '<=',
-  [TermOperator.NOT_EQUAL]: 'is not',
-};
+function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
+  const {keys} = useSearchQueryBuilder();
+  const key = token.key.text;
+  const tag = keys[key];
+  const label = tag ? getKeyLabel(tag) : key;
 
-const getOpLabel = (token: TokenResult<Token.FILTER>) => {
-  if (token.negated) {
-    return OP_LABELS[TermOperator.NOT_EQUAL];
-  }
-
-  return OP_LABELS[token.operator] ?? token.operator;
-};
-
-function useFilterButtonProps({
-  item,
-  state,
-}: Pick<SearchQueryTokenProps, 'item' | 'state'>) {
-  const onFocus = useCallback(() => {
-    // Ensure that the state is updated correctly
-    state.selectionManager.setFocusedKey(item.key);
-  }, [item.key, state.selectionManager]);
-
-  return {
-    onFocus,
-    tabIndex: -1,
-  };
-}
-
-function FilterOperator({token, state, item}: SearchQueryTokenProps) {
-  const {dispatch} = useSearchQueryBuilder();
-
-  const items: MenuItemProps[] = useMemo(() => {
-    return getValidOpsForFilter(token).map(op => ({
-      key: op,
-      label: OP_LABELS[op] ?? op,
-      onAction: val => {
-        dispatch({
-          type: 'UPDATE_FILTER_OP',
-          token,
-          op: val as TermOperator,
-        });
-      },
-    }));
-  }, [dispatch, token]);
-
-  const filterButtonProps = useFilterButtonProps({state, item});
-
-  return (
-    <DropdownMenu
-      trigger={triggerProps => (
-        <OpButton
-          aria-label={t('Edit operator for filter: %s', token.key.text)}
-          {...mergeProps(triggerProps, filterButtonProps)}
-        >
-          <InteractionStateLayer />
-          {getOpLabel(token)}
-        </OpButton>
-      )}
-      items={items}
-    />
-  );
-}
-
-function FilterKey({token, state, item}: SearchQueryTokenProps) {
-  const label = token.key.text;
-
-  const filterButtonProps = useFilterButtonProps({state, item});
-  // TODO(malwilley): Add edit functionality
-
-  return (
-    <KeyButton
-      aria-label={t('Edit filter key: %s', label)}
-      onClick={() => {}}
-      {...filterButtonProps}
-    >
-      <InteractionStateLayer />
-      {label}
-    </KeyButton>
-  );
+  return <KeyLabel>{label}</KeyLabel>;
 }
 
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
@@ -138,12 +59,20 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
 function FilterValue({token, state, item}: SearchQueryTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const {dispatch, focusOverride} = useSearchQueryBuilder();
 
   const [isEditing, setIsEditing] = useState(false);
 
-  if (!token.value.text && !isEditing) {
-    setIsEditing(true);
-  }
+  useLayoutEffect(() => {
+    if (
+      !isEditing &&
+      focusOverride?.itemKey === item.key &&
+      focusOverride.part === 'value'
+    ) {
+      setIsEditing(true);
+      dispatch({type: 'RESET_FOCUS_OVERRIDE'});
+    }
+  }, [dispatch, focusOverride, isEditing, item.key]);
 
   const {focusWithinProps} = useFocusWithin({
     onBlurWithin: () => {
@@ -211,7 +140,13 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     if (e.key === 'Backspace' || e.key === 'Delete') {
       e.preventDefault();
       e.stopPropagation();
-      dispatch({type: 'DELETE_TOKEN', token});
+
+      // Only delete if full filter token is focused, otherwise focus it
+      if (ref.current === document.activeElement) {
+        dispatch({type: 'DELETE_TOKEN', token});
+      } else {
+        ref.current?.focus();
+      }
     }
   };
 
@@ -230,8 +165,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       ref={ref}
       {...modifiedRowProps}
     >
-      <BaseTokenPart {...gridCellProps}>
-        <FilterKey token={token} state={state} item={item} />
+      <BaseTokenPart>
+        <FilterKey token={token} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
         <FilterOperator token={token} state={state} item={item} />
@@ -259,6 +194,10 @@ const FilterWrapper = styled('div')`
     background-color: ${p => p.theme.gray100};
     outline: none;
   }
+
+  &[aria-selected='true'] {
+    background-color: ${p => p.theme.blue200};
+  }
 `;
 
 const BaseTokenPart = styled('div')`
@@ -279,7 +218,9 @@ const UnstyledButton = styled('button')`
   }
 `;
 
-const KeyButton = styled(UnstyledButton)`
+const KeyLabel = styled('div')`
+  display: flex;
+  align-items: center;
   padding: 0 ${space(0.5)} 0 ${space(0.75)};
   border-radius: 3px 0 0 3px;
   border-right: 1px solid transparent;
@@ -287,20 +228,6 @@ const KeyButton = styled(UnstyledButton)`
   :focus-within {
     background-color: ${p => p.theme.translucentGray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
-const OpButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.5)};
-  color: ${p => p.theme.subText};
-  height: 100%;
-  border-left: 1px solid transparent;
-  border-right: 1px solid transparent;
-
-  :focus {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-    border-left: 1px solid ${p => p.theme.innerBorder};
   }
 `;
 

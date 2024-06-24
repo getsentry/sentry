@@ -34,10 +34,8 @@ class RpcOrganizationMappingUpdate(RpcModel):
     slug: str = ""
     region_name: str = ""
     # When not set, no change to customer id performed,
-    # when set with a tuple, the customer_id set to either None or the string
-    # that is the first element.
-    # TODO(hybridcloud) Using a tuple is deprecated and will be removed.
-    customer_id: tuple[str | None] | CustomerId | None = None
+    # when set with a CustomerId, the customer_id set to either None or string
+    customer_id: CustomerId | None = None
     requires_2fa: bool = False
     early_adopter: bool = False
     codecov_access: bool = False

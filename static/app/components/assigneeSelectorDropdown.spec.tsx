@@ -1,7 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
 
@@ -609,10 +608,7 @@ describe('AssigneeSelectorDropdown', () => {
         group={GROUP_1}
         loading={false}
         onAssign={newAssignee => updateGroup(GROUP_1, newAssignee)}
-      />,
-      {
-        context: RouterContextFixture(),
-      }
+      />
     );
     jest.spyOn(ConfigStore, 'get').mockImplementation(() => true);
 

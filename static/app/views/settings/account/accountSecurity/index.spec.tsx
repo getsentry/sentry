@@ -1,7 +1,6 @@
 import {AccountEmailsFixture} from 'sentry-fixture/accountEmails';
 import {AuthenticatorsFixture} from 'sentry-fixture/authenticators';
 import {OrganizationsFixture} from 'sentry-fixture/organizations';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
@@ -66,8 +65,7 @@ describe('AccountSecurity', function () {
           routeParams={router.params}
           params={{...router.params, authId: '15'}}
         />
-      </AccountSecurityWrapper>,
-      {context: RouterContextFixture()}
+      </AccountSecurityWrapper>
     );
   }
 

@@ -22,9 +22,11 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     project_id: int
     stacktrace: str
     message: str
+    exception_type: str | None
     hash: str
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
+    read_only: NotRequired[bool]
 
 
 class RawSeerSimilarIssueData(TypedDict):

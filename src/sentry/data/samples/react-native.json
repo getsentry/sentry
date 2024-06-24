@@ -1,6 +1,8 @@
 {
   "culprit": "-[RNSentry crash]",
-  "logentry": {"formatted": "EXC_BREAKPOINT fatal error | TEST - Sentry Client Crash -[RNSentry crash]"},
+  "logentry": {
+    "formatted": "EXC_BREAKPOINT fatal error | TEST - Sentry Client Crash -[RNSentry crash]"
+  },
   "tags": [
     ["react", "1"],
     ["environment", "production"],

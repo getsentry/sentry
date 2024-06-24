@@ -9,6 +9,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 interface BaseEvent {
   id: string;
   'issue.id': number;
+  message: string;
   project: string;
   'project.name': string;
   timestamp: string;
@@ -42,6 +43,10 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
   traceEvents: TimelineEvent[];
 } {
   const organization = useOrganization();
+  // If the org has global views, we want to look across all projects,
+  // otherwise, just look at the current project.
+  const hasGlobalViews = organization.features.includes('global-views');
+  const project = hasGlobalViews ? -1 : event.projectID;
   const {start, end} = getTraceTimeRangeFromEvent(event);
 
   const traceId = event.contexts?.trace?.trace_id ?? '';
@@ -57,13 +62,14 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         query: {
           // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['title', 'project', 'timestamp', 'issue.id', 'transaction'],
+          field: ['message', 'title', 'project', 'timestamp', 'issue.id', 'transaction'],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
           sort: '-timestamp',
           start,
           end,
+          project: project,
         },
       },
     ],
@@ -84,6 +90,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
           field: [
+            'message',
             'title',
             'project',
             'timestamp',
@@ -98,6 +105,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           sort: '-timestamp',
           start,
           end,
+          project: project,
         },
       },
     ],
@@ -129,6 +137,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       events.push({
         id: event.id,
         'issue.id': Number(event.groupID),
+        message: event.message,
         project: event.projectID,
         // The project name for current event is not used
         'project.name': '',

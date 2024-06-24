@@ -1,12 +1,9 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import Tag from 'sentry/components/badge/tag';
 import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
-  const routerContext = RouterContextFixture();
   it('basic', () => {
     render(<Tag>Text</Tag>);
     expect(screen.getByText('Text')).toBeInTheDocument();
@@ -55,8 +52,7 @@ describe('Tag', () => {
     render(
       <Tag type="highlight" to={to}>
         Internal link
-      </Tag>,
-      {context: routerContext}
+      </Tag>
     );
     expect(screen.getByText('Internal link')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Internal link'})).toBeInTheDocument();

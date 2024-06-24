@@ -1,3 +1,4 @@
+import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
@@ -33,6 +34,7 @@ describe('useOwners', () => {
     TeamStore.loadInitialData(mockTeams);
     OrganizationStore.onUpdate(org, {replace: true});
 
+    MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/user-teams/`,
       body: [],
@@ -60,6 +62,22 @@ describe('useOwners', () => {
   });
 
   it('fetches users and memberrs', async () => {
+    const members = [
+      MemberFixture({
+        user: UserFixture({id: '5'}),
+      }),
+    ];
+    const teams = [TeamFixture({id: '4', slug: 'other-slug'})];
+
+    teamsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/teams/`,
+      body: teams,
+    });
+    membersRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/`,
+      body: members,
+    });
+
     const {result} = renderHook(useOwners, {
       wrapper: Wrapper,
       initialProps: {currentValue: ['user:5', 'team:4']},
@@ -80,7 +98,10 @@ describe('useOwners', () => {
       })
     );
 
-    expect(result.current.members).toEqual(mockUsers);
-    expect(result.current.teams).toEqual(mockTeams);
+    expect(result.current.members).toEqual([
+      ...members.map(member => member.user),
+      ...mockUsers,
+    ]);
+    expect(result.current.teams).toEqual([...teams, ...mockTeams]);
   });
 });

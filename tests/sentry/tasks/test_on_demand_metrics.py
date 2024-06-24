@@ -39,7 +39,7 @@ def organization(owner: User) -> None:
 
 
 @pytest.fixture
-def project(organization: Organization) -> None:
+def project(organization: Organization) -> Project:
     return Factories.create_project(organization=organization)
 
 

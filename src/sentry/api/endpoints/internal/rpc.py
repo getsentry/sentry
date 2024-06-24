@@ -10,9 +10,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import RpcSignatureAuthentication
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.rpc import RpcResolutionException, dispatch_to_local_service
-from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.utils.env import in_test_environment
 
 

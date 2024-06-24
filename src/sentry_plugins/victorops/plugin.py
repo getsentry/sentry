@@ -1,4 +1,4 @@
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.notify import NotifyPlugin
 from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.base import CorePluginMixin

@@ -53,7 +53,6 @@ describe('groupDetails', () => {
   };
 
   const defaultInit = initializeOrg<{groupId: string}>({
-    project,
     router: initRouter,
   });
 
@@ -100,14 +99,14 @@ describe('groupDetails', () => {
       <GroupDetails {...init.routerProps}>
         <MockComponent />
       </GroupDetails>,
-      {context: init.routerContext, organization: init.organization, router: init.router}
+      {organization: init.organization, router: init.router}
     );
   };
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     OrganizationStore.onUpdate(defaultInit.organization);
-    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
+    act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -158,6 +157,10 @@ describe('groupDetails', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${defaultInit.organization.slug}/${project.slug}/`,
+      body: project,
+    });
   });
 
   afterEach(() => {
@@ -173,7 +176,7 @@ describe('groupDetails', () => {
 
     expect(screen.queryByText(group.title)).not.toBeInTheDocument();
 
-    act(() => ProjectsStore.loadInitialData(defaultInit.organization.projects));
+    act(() => ProjectsStore.loadInitialData(defaultInit.projects));
 
     expect(await screen.findByText(group.title, {exact: false})).toBeInTheDocument();
 
@@ -289,6 +292,10 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group, project: {slug: 'other-project-slug'}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${defaultInit.organization.slug}/other-project-slug/`,
+      body: {},
     });
 
     createWrapper();

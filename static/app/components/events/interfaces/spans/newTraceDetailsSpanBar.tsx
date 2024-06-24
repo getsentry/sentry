@@ -125,7 +125,7 @@ export class NewTraceDetailsSpanBar extends Component<
     this.updateHighlightedState();
     this.connectObservers();
 
-    // If span is anchored scroll to span bar and open it's detail panel
+    // If span is anchored scroll to span bar and open its detail panel
     if (this.isHighlighted && this.props.onRowClick) {
       this.props.onRowClick(undefined);
 
@@ -577,7 +577,7 @@ export class NewTraceDetailsSpanBar extends Component<
     const observer = new IntersectionObserver(([entry]) =>
       this.setState({isIntersecting: entry.isIntersecting}, () => {
         // Scrolls the next(invisible) bar from the virtualized list,
-        // by it's height. Allows us to look for anchored span bars occuring
+        // by its height. Allows us to look for anchored span bars occuring
         // at the bottom of the span tree.
         if (
           this.hashSpanId &&

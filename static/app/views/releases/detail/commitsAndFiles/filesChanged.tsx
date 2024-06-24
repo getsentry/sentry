@@ -11,12 +11,12 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tn} from 'sentry/locale';
 import type {CommitFile, Organization, Project, Repository} from 'sentry/types';
-import {formatVersion} from 'sentry/utils/formatters';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 
 import {getFilesByRepository, getQuery, getReposToRender} from '../utils';
 

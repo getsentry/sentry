@@ -618,6 +618,7 @@ class ProjectUpdateTest(APITestCase):
             "sentry:token": "*",
             "sentry:token_header": "*",
             "sentry:verify_ssl": False,
+            "sentry:replay_hydration_error_issues": True,
             "sentry:replay_rage_click_issues": True,
             "sentry:feedback_user_report_notifications": True,
             "sentry:feedback_ai_spam_detection": True,
@@ -734,6 +735,7 @@ class ProjectUpdateTest(APITestCase):
                 event=audit_log.get_event_id("PROJECT_EDIT"),
             ).exists()
         assert project.get_option("feedback:branding") == "0"
+        assert project.get_option("sentry:replay_hydration_error_issues") is True
         assert project.get_option("sentry:replay_rage_click_issues") is True
         assert project.get_option("sentry:feedback_user_report_notifications") is True
         assert project.get_option("sentry:feedback_ai_spam_detection") is True
@@ -1543,12 +1545,12 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
-        deleted_project = Project.objects.get(id=self.project.id)
-        assert deleted_project.status == ObjectStatus.PENDING_DELETION
-        assert deleted_project.slug == "abc123"
+        project = Project.objects.get(id=self.project.id)
+        assert project.status == ObjectStatus.PENDING_DELETION
+        assert project.slug == "abc123"
         assert OrganizationOption.objects.filter(
-            organization_id=deleted_project.organization_id,
-            key=deleted_project.build_pending_deletion_key(),
+            organization_id=project.organization_id,
+            key=project.build_pending_deletion_key(),
         ).exists()
         deleted_project = DeletedProject.objects.get(slug=self.project.slug)
         self.assert_valid_deleted_log(deleted_project, self.project)

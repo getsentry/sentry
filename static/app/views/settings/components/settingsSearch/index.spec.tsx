@@ -1,8 +1,6 @@
 import {MembersFixture} from 'sentry-fixture/members';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -17,13 +15,6 @@ jest.mock('sentry/actionCreators/navigation');
 
 describe('SettingsSearch', function () {
   let orgsMock: jest.Mock;
-  const routerContext = RouterContextFixture([
-    {
-      router: RouterFixture({
-        params: {},
-      }),
-    },
-  ]);
 
   beforeEach(function () {
     FormSearchStore.loadSearchMap([]);
@@ -80,9 +71,7 @@ describe('SettingsSearch', function () {
   });
 
   it('can search', async function () {
-    render(<SettingsSearch />, {
-      context: routerContext,
-    });
+    render(<SettingsSearch />);
 
     await userEvent.type(screen.getByPlaceholderText('Search'), 'bil');
 

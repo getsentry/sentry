@@ -30,6 +30,7 @@ import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useMutation} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import useApi from 'sentry/utils/useApi';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -83,7 +84,7 @@ function getSuggestedReason(owner: IssueOwner) {
 
   if (owner.rules?.length) {
     const firstRule = owner.rules[0];
-    return t('Owner of %s', firstRule.join(':'));
+    return `${toTitleCase(firstRule[0])}:${firstRule[1]}`;
   }
 
   return '';

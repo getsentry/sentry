@@ -21,7 +21,7 @@ describe('Frame Variables', function () {
     });
     ProjectsStore.loadInitialData([project]);
 
-    const {organization, router, routerContext} = initializeOrg({
+    const {organization, router} = initializeOrg({
       router: {
         location: {query: {project: project.id}},
       },
@@ -70,7 +70,7 @@ describe('Frame Variables', function () {
           },
         }}
       />,
-      {organization, router, context: routerContext}
+      {organization, router}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
