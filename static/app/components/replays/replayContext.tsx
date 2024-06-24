@@ -1,6 +1,5 @@
 import {
   createContext,
-  memo,
   useCallback,
   useContext,
   useEffect,
@@ -273,7 +272,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-function ProviderNonMemo({
+export function Provider({
   analyticsContext,
   children,
   initialTimeOffsetMs,
@@ -773,5 +772,3 @@ function ProviderNonMemo({
 }
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);
-
-export const Provider = memo(ProviderNonMemo);
