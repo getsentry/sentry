@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -9,7 +9,7 @@ from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.rules.conditions.event_frequency import ComparisonType
+from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyConditionData
 from sentry.rules.processing.delayed_processing import (
     apply_delayed,
     get_condition_query_groups,
@@ -66,9 +66,19 @@ class ProcessDelayedAlertConditionsTest(
         id="EventFrequencyCondition",
         value=1,
         comparison_type=ComparisonType.COUNT,
-    ):
+        comparison_interval=None,
+    ) -> EventFrequencyConditionData:
         condition_id = f"sentry.rules.conditions.event_frequency.{id}"
-        return {"interval": interval, "id": condition_id, "value": value}
+        condition_blob = EventFrequencyConditionData(
+            interval=interval,
+            id=condition_id,
+            value=value,
+            comparisonType=comparison_type,
+        )
+        if comparison_interval:
+            condition_blob["comparisonInterval"] = comparison_interval
+
+        return condition_blob
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
@@ -550,3 +560,47 @@ class ProcessDelayedAlertConditionsTest(
         assert (rule_1.id, group1.id) in rule_fire_histories
         assert (rule_2.id, group2.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=project_three.id)
+
+    def test_apply_delayed_percent_condition_comparison_interval(self):
+        """
+        Test that a rule with a percent condition is querying backwards against
+        the correct comparison interval, e.g. # events is ... compared to 1 hr ago
+        """
+        percent_condition = self.create_event_frequency_condition(
+            interval="5m",
+            value=50,
+            comparison_type=ComparisonType.PERCENT,
+            comparison_interval="1h",
+        )
+        percent_comparison_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[percent_condition],
+        )
+        incorrect_interval_time = self.now - timedelta(minutes=5)
+        correct_interval_time = self.now - timedelta(hours=1)
+
+        event5 = self.create_event(self.project.id, self.now, "group-5")
+        self.create_event(self.project.id, self.now, "group-5")
+        # Create events for the incorrect interval that will not trigger the rule
+        self.create_event(self.project.id, incorrect_interval_time, "group-5")
+        self.create_event(self.project.id, incorrect_interval_time, "group-5")
+        # Create an event for the correct interval that will trigger the rule
+        self.create_event(self.project.id, correct_interval_time, "group-5")
+
+        group5 = event5.group
+        assert group5
+        self.push_to_hash(self.project.id, percent_comparison_rule.id, group5.id, event5.event_id)
+
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+        )
+        apply_delayed(project_ids[0][0])
+        rule_fire_histories = RuleFireHistory.objects.filter(
+            rule__in=[percent_comparison_rule],
+            group__in=[group5],
+            event_id__in=[event5.event_id],
+            project=self.project,
+        ).values_list("rule", "group")
+        assert len(rule_fire_histories) == 1
+        assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
+        self.assert_buffer_cleared(project_id=self.project.id)

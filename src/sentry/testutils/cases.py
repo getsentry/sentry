@@ -12,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, Literal, Union
+from typing import Any, Literal, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -2584,6 +2584,15 @@ class SetRefsTestCase(APITestCase):
         assert commit.key == key
 
 
+class _QueryDict(TypedDict):
+    name: str
+    fields: list[str]
+    aggregates: list[str]
+    columns: list[str]
+    fieldAliases: list[str]
+    conditions: str
+
+
 class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -2591,7 +2600,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
-        self.anon_users_query = {
+        self.anon_users_query: _QueryDict = {
             "name": "Anonymous Users",
             "fields": ["count()"],
             "aggregates": ["count()"],
@@ -2599,7 +2608,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
-        self.known_users_query = {
+        self.known_users_query: _QueryDict = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
@@ -2607,7 +2616,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": [],
             "conditions": "has:user.email",
         }
-        self.geo_errors_query = {
+        self.geo_errors_query: _QueryDict = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
