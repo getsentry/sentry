@@ -785,10 +785,6 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
-        result = integration_service.organization_contexts(
-            integration_id=slack_request.integration.id
-        )
-
         action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
 
