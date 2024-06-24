@@ -190,7 +190,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         resp = self.post_webhook_block_kit(
             type="view_submission",
-            private_metadata=orjson.dumps(private_metadata),
+            private_metadata=orjson.dumps(private_metadata).decode(),
             selected_option=selected_option,
         )
         assert resp.status_code == 200, resp.content
@@ -252,7 +252,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         resp = self.post_webhook_block_kit(
             type="view_submission",
-            private_metadata=orjson.dumps(private_metadata),
+            private_metadata=orjson.dumps(private_metadata).decode(),
             selected_option=selected_option,
         )
         assert resp.status_code == 200, resp.content
@@ -272,24 +272,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @responses.activate
     def test_archive_issue_until_escalating(self):
-        original_message = self.get_original_message(self.group.id)
-        self.archive_issue(original_message, "ignored:archived_until_escalating")
-
-        self.group = Group.objects.get(id=self.group.id)
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
-
-        update_data = orjson.loads(responses.calls[1].request.body)
-
-        expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
-        assert "via" not in update_data["blocks"][4]["elements"][0]["text"]
-        assert ":red_circle:" in update_data["blocks"][0]["text"]["text"]
-
-    @responses.activate
-    @with_feature("organizations:slack-improvements")
-    def test_archive_issue_until_escalating_block_kit_improvements(self):
         original_message = self.get_original_message(self.group.id)
         self.archive_issue(original_message, "ignored:archived_until_escalating")
 
@@ -496,43 +478,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_assign_issue(self):
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.organization, teams=[self.team])
-        original_message = self.get_original_message(self.group.id)
-
-        # Assign to user
-        resp = self.assign_issue(original_message, user2)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
-        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
-        assert ":red_circle:" in resp.data["blocks"][0]["text"]["text"]
-
-        # Assign to team
-        resp = self.assign_issue(original_message, self.team)
-        assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
-        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
-        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
-        assert ":red_circle:" in resp.data["blocks"][0]["text"]["text"]
-
-        # Assert group assignment activity recorded
-        group_activity = Activity.objects.filter(group=self.group)
-        assert group_activity.first().data == {
-            "assignee": str(user2.id),
-            "assigneeEmail": user2.email,
-            "assigneeType": "user",
-            "integration": ActivityIntegration.SLACK.value,
-        }
-        assert group_activity.last().data == {
-            "assignee": str(self.team.id),
-            "assigneeEmail": None,
-            "assigneeType": "team",
-            "integration": ActivityIntegration.SLACK.value,
-        }
-
-    @with_feature("organizations:slack-improvements")
-    def test_assign_issue_block_kit_improvements(self):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         original_message = self.get_original_message(self.group.id)
@@ -918,7 +863,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         resp = self.post_webhook_block_kit(
             type="view_submission",
-            private_metadata=orjson.dumps(private_metadata),
+            private_metadata=orjson.dumps(private_metadata).decode(),
             selected_option="ignored:archived_forever",
         )
         assert resp.status_code == 200, resp.content
@@ -983,7 +928,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         resp = self.post_webhook_block_kit(
             type="view_submission",
-            private_metadata=orjson.dumps(private_metadata),
+            private_metadata=orjson.dumps(private_metadata).decode(),
             selected_option="ignored:archived_forever",
             slack_user={"id": user2_identity.external_id},
         )
@@ -1052,7 +997,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         resp = self.post_webhook_block_kit(
             type="view_submission",
-            private_metadata=orjson.dumps(private_metadata),
+            private_metadata=orjson.dumps(private_metadata).decode(),
             selected_option="ignored:archived_until_escalating",
             slack_user={"id": user2_identity.external_id},
         )
