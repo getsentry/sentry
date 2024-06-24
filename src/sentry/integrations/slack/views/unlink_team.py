@@ -12,7 +12,7 @@ from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_UNLINK_TEAM_SUCCESS_DATADOG_METRIC,
 )
-from sentry.integrations.slack.views.types import TeamIdentityRequest
+from sentry.integrations.slack.views.types import TeamUnlinkRequest
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
@@ -71,7 +71,7 @@ class SlackUnlinkTeamView(BaseView):
 
         try:
             converted = unsign(signed_params)
-            params = TeamIdentityRequest(**converted)
+            params = TeamUnlinkRequest(**converted)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)
             metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
