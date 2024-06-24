@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
+// import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
@@ -14,6 +15,7 @@ type Props = {
 };
 
 function SharedGroupHeader({group}: Props) {
+  const date = group.latestEvent?.dateReceived ?? group.latestEvent?.dateCreated;
   return (
     <Wrapper>
       <Details>
@@ -33,6 +35,15 @@ function SharedGroupHeader({group}: Props) {
               />
             )}
           </ShortIdWrapper>
+
+          <TimeStamp>
+            {'Last Seen: '}
+            {(date as string).toLocaleString()}
+            {/* <DateTime
+              // date={group.latestEvent?.dateReceived ?? group.latestEvent?.dateCreated}
+              date = {(date as string).toLocaleString()}
+            /> */}
+          </TimeStamp>
         </TitleWrap>
         <EventMessage
           showUnhandled={group.isUnhandled}
@@ -80,4 +91,11 @@ const Title = styled('h3')`
   @media (min-width: ${props => props.theme.breakpoints.small}) {
     font-size: ${p => p.theme.headerFontSize};
   }
+`;
+
+const TimeStamp = styled('div')`
+  color: ${p => p.theme.headingColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: ${p => p.theme.text.lineHeightHeading};
+  margin-top: ${space(0)};
 `;
