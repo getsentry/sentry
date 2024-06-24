@@ -2,18 +2,16 @@ import {LinkButton} from 'sentry/components/button';
 import type {SpanType} from 'sentry/components/events/interfaces/spans/types';
 import {t, tct} from 'sentry/locale';
 import type {EventTransaction, Organization} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
-import {
-  DATA_TYPE as RESOURCE_DATA_TYPE,
-  PERFORMANCE_DATA_TYPE as PERFORMANCE_RESOURCE_DATA_TYPE,
-} from 'sentry/views/performance/browser/resources/settings';
+import {DATA_TYPE} from 'sentry/views/insights/browser/resources/settings';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {ModuleName} from 'sentry/views/insights/types';
 import {
   querySummaryRouteWithQuery,
   resourceSummaryRouteWithQuery,
 } from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
 
 interface Props {
   event: Readonly<EventTransaction>;
@@ -33,11 +31,6 @@ function SpanSummaryButton(props: Props) {
   }
 
   const resolvedModule = resolveSpanModule(sentryTags.op, sentryTags.category);
-  const isInsightsEnabled = organization.features.includes('performance-insights');
-
-  const resourceDataType = isInsightsEnabled
-    ? RESOURCE_DATA_TYPE
-    : PERFORMANCE_RESOURCE_DATA_TYPE;
 
   if (
     organization.features.includes('insights-initial-modules') &&
@@ -52,6 +45,12 @@ function SpanSummaryButton(props: Props) {
           group: sentryTags.group,
           projectID: event.projectID,
         })}
+        onClick={() => {
+          trackAnalytics('trace.trace_layout.view_in_insight_module', {
+            organization,
+            module: ModuleName.DB,
+          });
+        }}
       >
         {t('View Query Summary')}
       </LinkButton>
@@ -72,8 +71,14 @@ function SpanSummaryButton(props: Props) {
           group: sentryTags.group,
           projectID: event.projectID,
         })}
+        onClick={() => {
+          trackAnalytics('trace.trace_layout.view_in_insight_module', {
+            organization,
+            module: ModuleName.RESOURCE,
+          });
+        }}
       >
-        {tct('View [dataType] Summary', {dataType: resourceDataType})}
+        {tct('View [dataType] Summary', {dataType: DATA_TYPE})}
       </LinkButton>
     );
   }

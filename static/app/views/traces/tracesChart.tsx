@@ -11,10 +11,10 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanIndexedSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
 
@@ -24,42 +24,66 @@ export function TracesChart({}: Props) {
   const location = useLocation();
 
   const queries = useMemo(() => {
-    return decodeList(location.query.query);
+    return decodeList(location.query.query)?.map(query => query.trim());
   }, [location.query.query]);
 
-  const firstCountSeries = useTraceCountSeries(queries[0] ?? ''); // Always provide query string to visualize at least some spans when landing on the page.
-  const secondCountSeries = useTraceCountSeries(queries[1]);
-  const thirdCountSeries = useTraceCountSeries(queries[2]);
+  const enabled = useMemo(
+    () => [
+      true, // always visualize the first series
+      Boolean(queries?.[1]),
+      Boolean(queries?.[2]),
+    ],
+    [queries]
+  );
+
+  const firstCountSeries = useTraceCountSeries({
+    query: queries?.[0] || '',
+    enabled: enabled[0],
+  });
+  const secondCountSeries = useTraceCountSeries({
+    query: queries?.[1],
+    enabled: enabled[1],
+  });
+  const thirdCountSeries = useTraceCountSeries({
+    query: queries?.[2],
+    enabled: enabled[2],
+  });
 
   const seriesAreLoading =
-    firstCountSeries.isLoading ||
-    secondCountSeries.isLoading ||
-    thirdCountSeries.isLoading;
+    // Disabled queries have `isLoading: true`, but this changes in v5.
+    // To handle this gracefully, we check if the query is enabled + isLoading.
+    //
+    // References
+    // - https://tanstack.com/query/v4/docs/framework/react/guides/disabling-queries
+    // - https://tanstack.com/query/latest/docs/framework/react/guides/disabling-queries#isloading-previously-isinitialloading
+    (enabled[0] && firstCountSeries.isLoading) ||
+    (enabled[1] && secondCountSeries.isLoading) ||
+    (enabled[2] && thirdCountSeries.isLoading);
 
   const chartData = useMemo<Series[]>(() => {
-    const data: Series[] = [];
-    const firstQueryData = firstCountSeries.data['count()'];
-    const secondQueryData = secondCountSeries.data['count()'];
-    const thirdQueryData = thirdCountSeries.data['count()'];
+    const series = [firstCountSeries.data, secondCountSeries.data, thirdCountSeries.data];
 
-    firstQueryData.color = CHART_PALETTE[2][0];
-    secondQueryData.color = CHART_PALETTE[2][1];
-    thirdQueryData.color = CHART_PALETTE[2][2];
+    const allData: Series[] = [];
 
-    firstQueryData.seriesName = queries[0] || t('All spans');
-    secondQueryData.seriesName = queries[1];
-    thirdQueryData.seriesName = queries[2];
-
-    data.push(firstQueryData);
-
-    if (queries[1]) {
-      data.push(secondQueryData);
+    for (let i = 0; i < series.length; i++) {
+      if (!enabled[i]) {
+        continue;
+      }
+      const data = series[i]['count()'];
+      data.color = CHART_PALETTE[2][i];
+      data.seriesName =
+        `span ${i + 1}: ${queries[i] || t('All spans')}` || t('All spans');
+      allData.push(data);
     }
-    if (queries[2]) {
-      data.push(thirdQueryData);
-    }
-    return data;
-  }, [queries, firstCountSeries.data, secondCountSeries.data, thirdCountSeries.data]);
+
+    return allData;
+  }, [
+    enabled,
+    queries,
+    firstCountSeries.data,
+    secondCountSeries.data,
+    thirdCountSeries.data,
+  ]);
 
   return (
     <ChartContainer>
@@ -83,7 +107,6 @@ export function TracesChart({}: Props) {
           tooltipFormatterOptions={{
             valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
           }}
-          preserveIncompletePoints
         />
       </ChartPanel>
     </ChartContainer>
@@ -96,7 +119,13 @@ const ChartContainer = styled('div')`
   grid-template-columns: 1fr;
 `;
 
-const useTraceCountSeries = (query: string | null) => {
+const useTraceCountSeries = ({
+  enabled,
+  query,
+}: {
+  enabled: boolean;
+  query: string | null;
+}) => {
   const pageFilters = usePageFilters();
 
   return useSpanIndexedSeries(
@@ -105,7 +134,7 @@ const useTraceCountSeries = (query: string | null) => {
       yAxis: ['count()'],
       interval: getInterval(pageFilters.selection.datetime, 'metrics'),
       overriddenRoute: 'traces-stats',
-      enabled: query !== null && query !== undefined,
+      enabled,
     },
     'api.trace-explorer.stats'
   );

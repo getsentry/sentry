@@ -20,15 +20,9 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
         self.new = new
         self.changed = changed
 
-    def linkify_rule(self):
-        org_slug = self.rule.project.organization.slug
-        project_slug = self.rule.project.slug
-        rule_url_path = (
-            f"/organizations/{org_slug}/alerts/rules/{project_slug}/{self.rule.id}/details/"
-        )
-        rule_url = absolute_uri(rule_url_path)
-        rule_name = self.rule.label
-        return f"<{rule_url}|*{escape_slack_text(rule_name)}*>"
+    def linkify(self, org_slug: str, project_slug: str, url_str: str, url_text: str):
+        url = absolute_uri(url_str)
+        return f"<{url}|*{escape_slack_text(url_text)}*>"
 
     def get_settings_url(self):
         url_str = "/settings/account/notifications/"
@@ -39,18 +33,27 @@ class SlackRuleSaveEditMessageBuilder(BlockSlackMessageBuilder):
 
     def build(self) -> SlackBlock:
         blocks = []
-        rule_url = self.linkify_rule()
-        project = self.rule.project.slug
+        org_slug = self.rule.project.organization.slug
+        project_slug = self.rule.project.slug
+        rule_url_path = (
+            f"/organizations/{org_slug}/alerts/rules/{project_slug}/{self.rule.id}/details/"
+        )
+        rule_name = self.rule.label
+        rule_url = self.linkify(org_slug, project_slug, rule_url_path, rule_name)
+        project_url_path = f"/organizations/{org_slug}/projects/{project_slug}/"
+        project_url = self.linkify(org_slug, project_slug, project_url_path, project_slug)
         if self.new:
-            rule_text = f"Alert rule {rule_url} was created in the *{project}* project and will send notifications here."
+            rule_text = "*Alert rule created*\n\n"
+            rule_text += f"{rule_url} was created in the {project_url} project and will send notifications to this channel."
         else:
-            rule_text = f"Alert rule {rule_url} in the *{project}* project was updated."
+            rule_text = "*Alert rule updated*\n\n"
+            rule_text += f"{rule_url} in the {project_url} project was recently updated."
             # TODO potentially use old name if it's changed?
 
         blocks.append(self.get_markdown_block(rule_text))
 
         if not self.new and self.changed:
-            changes_text = "*Changes*\n"
+            changes_text = "Changes\n"
             for changes in self.changed.values():
                 for change in changes:
                     changes_text += f"• {change}\n"

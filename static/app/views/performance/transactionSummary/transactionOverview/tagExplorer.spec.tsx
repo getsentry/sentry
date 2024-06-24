@@ -22,11 +22,10 @@ function WrapperComponent(props) {
   );
 }
 
-function initialize(projects, query, additionalFeatures = []) {
+function initialize(query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
-    projects,
   });
   const initialOrgData = {
     organization,
@@ -37,7 +36,7 @@ function initialize(projects, query, additionalFeatures = []) {
     },
   };
   const initialData = initializeOrg(initialOrgData);
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  ProjectsStore.loadInitialData(initialData.projects);
   const eventView = EventView.fromLocation(initialData.router.location);
 
   const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
@@ -108,7 +107,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(projects, {});
+    } = initialize({});
 
     render(
       <WrapperComponent
@@ -137,7 +136,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(projects, {
+    } = initialize({
       project: '123',
     });
 
@@ -178,7 +177,6 @@ describe('WrapperComponent', function () {
       transactionName,
       router,
     } = initialize(
-      projects,
       {
         project: '123',
       },
@@ -208,10 +206,7 @@ describe('WrapperComponent', function () {
 
   it('Tag explorer uses the operation breakdown as a column', async function () {
     const projects = [ProjectFixture({platform: 'javascript-react'})];
-    const {organization, location, eventView, api, transactionName} = initialize(
-      projects,
-      {}
-    );
+    const {organization, location, eventView, api, transactionName} = initialize({});
 
     render(
       <WrapperComponent
@@ -249,7 +244,7 @@ describe('WrapperComponent', function () {
       spanOperationBreakdownFilter,
       transactionName,
       router,
-    } = initialize(projects, {});
+    } = initialize({});
 
     render(
       <WrapperComponent

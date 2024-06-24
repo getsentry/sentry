@@ -31,7 +31,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.indexes import IndexWithPostgresNameLimits
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.activity import Activity
@@ -245,7 +245,7 @@ class Release(Model):
     # where they are "specialized" for a specific project.  The goal is to
     # later split up releases by project again.  This is for instance used
     # by the org release listing.
-    _for_project_id = None
+    _for_project_id: int | None = None
     # the user agent that set the release
     user_agent = models.TextField(null=True)
 

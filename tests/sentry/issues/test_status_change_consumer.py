@@ -8,7 +8,6 @@ from sentry.issues.status_change_consumer import bulk_get_groups_from_fingerprin
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
@@ -102,7 +101,6 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             ActivityType.SET_IGNORED,
         )
 
-    @with_feature("projects:issue-priority")
     def test_valid_payload_unresolved_escalating(self) -> None:
         self.group.update(
             status=GroupStatus.IGNORED,
@@ -130,7 +128,6 @@ class StatusChangeProcessMessageTest(IssueOccurrenceTestBase):
             PriorityLevel.HIGH,
         )
 
-    @with_feature("projects:issue-priority")
     def test_valid_payload_auto_ongoing(self) -> None:
         self.group.update(
             status=GroupStatus.UNRESOLVED,

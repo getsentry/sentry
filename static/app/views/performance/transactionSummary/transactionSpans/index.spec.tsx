@@ -1,5 +1,4 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {generateSuspectSpansResponse} from 'sentry-test/performance/initializePerformanceData';
@@ -25,7 +24,6 @@ function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
 
   const organization = OrganizationFixture({
     features: [...defaultFeatures, ...(additionalFeatures ? additionalFeatures : [])],
-    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -39,7 +37,7 @@ function initializeData(options: {query: {}; additionalFeatures?: string[]}) {
       },
     },
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 

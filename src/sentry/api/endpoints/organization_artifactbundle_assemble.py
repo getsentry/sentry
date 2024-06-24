@@ -60,9 +60,11 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         if len(projects) == 0:
             return Response({"error": "You need to specify at least one project"}, status=400)
 
-        project_ids = Project.objects.filter(
-            organization=organization, status=ObjectStatus.ACTIVE, slug__in=projects
-        ).values_list("id", flat=True)
+        project_ids = list(
+            Project.objects.filter(
+                organization=organization, status=ObjectStatus.ACTIVE, slug__in=projects
+            ).values_list("id", flat=True)
+        )
         if len(project_ids) != len(projects):
             return Response({"error": "One or more projects are invalid"}, status=400)
 

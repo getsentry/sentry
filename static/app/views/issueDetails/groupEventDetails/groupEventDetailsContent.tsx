@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
 import {EventDevice} from 'sentry/components/events/device';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
@@ -37,6 +38,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
+import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -100,6 +102,7 @@ function DefaultGroupEventDetailsContent({
 }: Required<GroupEventDetailsContentProps>) {
   const organization = useOrganization();
   const location = useLocation();
+  const hasNewTimelineUI = useHasNewTimelineUI();
   const tagsRef = useRef<HTMLDivElement>(null);
 
   const projectSlug = project.slug;
@@ -141,7 +144,7 @@ function DefaultGroupEventDetailsContent({
         </EventDataSection>
       )}
       {event.type === EventOrGroupType.ERROR &&
-      organization.features.includes('ai-analytics') &&
+      organization.features.includes('insights-addon-modules') &&
       event?.entries
         ?.filter((x): x is EntryException => x.type === EntryType.EXCEPTION)
         .flatMap(x => x.data.values ?? [])
@@ -169,12 +172,7 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection
-        event={event}
-        group={group}
-        project={project}
-        viewAllRef={tagsRef}
-      />
+      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -218,7 +216,11 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
-      <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
+      {hasNewTimelineUI ? (
+        <BreadcrumbsDataSection event={event} />
+      ) : (
+        <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
+      )}
       {!showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}

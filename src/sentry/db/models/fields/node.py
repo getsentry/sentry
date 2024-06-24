@@ -13,7 +13,6 @@ from django.utils.functional import cached_property
 from sentry import nodestore
 from sentry.db.models.utils import Creator
 from sentry.utils import json
-from sentry.utils.canonical import CANONICAL_TYPES, CanonicalKeyDict
 from sentry.utils.strings import decompress
 
 from .gzippeddict import GzippedDictField
@@ -52,21 +51,12 @@ class NodeData(MutableMapping[str, Any]):
 
     def __getstate__(self):
         data = dict(self.__dict__)
-        # downgrade this into a normal dict in case it's a shim dict.
-        # This is needed as older workers might not know about newer
-        # collection types.  For instance we have events where this is a
-        # CanonicalKeyDict
         data.pop("data", None)
-        data["_node_data_CANONICAL"] = isinstance(data["_node_data"], CANONICAL_TYPES)
+        # downgrade this into a normal dict in case it's a shim dict.
         data["_node_data"] = dict(data["_node_data"].items())
         return data
 
     def __setstate__(self, state):
-        # If there is a legacy pickled version that used to have data as a
-        # duplicate, reject it.
-        state.pop("data", None)
-        if state.pop("_node_data_CANONICAL", False):
-            state["_node_data"] = CanonicalKeyDict(state["_node_data"])
         self.__dict__ = state
 
     def __getitem__(self, key):
@@ -150,7 +140,7 @@ class NodeData(MutableMapping[str, Any]):
         # We can't put our wrappers into the nodestore, so we need to
         # ensure that the data is converted into a plain old dict
         to_write = self._node_data
-        if isinstance(to_write, CANONICAL_TYPES):
+        if not isinstance(to_write, dict):
             to_write = dict(to_write.items())
 
         subkeys = subkeys or {}

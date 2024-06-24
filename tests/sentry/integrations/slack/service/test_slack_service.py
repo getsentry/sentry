@@ -4,11 +4,9 @@ from uuid import uuid4
 
 import orjson
 import pytest
-import responses
 from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.repository.issue_alert import IssueAlertNotificationMessage
-from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.service import RuleDataError, SlackService
 from sentry.models.activity import Activity
@@ -17,7 +15,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 
@@ -130,20 +127,6 @@ class TestNotifyAllThreadsForActivity(TestCase):
         assert not mock_handle.called
 
     @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
-    def test_calls_handle_parent_notification(self, mock_handle, mock_logger):
-        parent_notification = IssueAlertNotificationMessage.from_model(
-            instance=self.parent_notification
-        )
-        self.service.notify_all_threads_for_activity(activity=self.activity)
-
-        mock_handle.assert_called()
-        assert mock_handle.call_args.kwargs["parent_notification"] == parent_notification
-
-        # check client type
-        assert isinstance(mock_handle.call_args.kwargs["client"], SlackClient)
-
-    @mock.patch("sentry.integrations.slack.service.SlackService._handle_parent_notification")
-    @with_feature("organizations:slack-sdk-activity-threads")
     def test_calls_handle_parent_notification_sdk_client(self, mock_handle, mock_logger):
         parent_notification = IssueAlertNotificationMessage.from_model(
             instance=self.parent_notification
@@ -218,39 +201,6 @@ class TestHandleParentNotification(TestCase):
             rule_action_uuid=self.rule_action_uuid,
             rule_fire_history=self.slack_rule_fire_history,
         )
-
-    @responses.activate
-    def test_handles_parent_notification(
-        self,
-    ) -> None:
-        responses.add(
-            responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            json={"ok": True},
-            status=200,
-        )
-        self.service._handle_parent_notification(
-            parent_notification=self.parent_notification,
-            notification_to_send="",
-            client=SlackClient(integration_id=self.integration.id),
-        )
-
-    @responses.activate
-    def test_handles_parent_notification_slack_error(
-        self,
-    ) -> None:
-        responses.add(
-            responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            json={},
-            status=500,
-        )
-        with pytest.raises(Exception):
-            self.service._handle_parent_notification(
-                parent_notification=self.parent_notification,
-                notification_to_send="",
-                client=SlackClient(integration_id=self.integration.id),
-            )
 
     @mock.patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     def test_handles_parent_notification_sdk(self, mock_api_call):

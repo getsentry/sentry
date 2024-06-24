@@ -14,6 +14,7 @@ ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
 
 TSDBKey = TypeVar("TSDBKey", str, int)
+TSDBItem = TypeVar("TSDBItem", str, int)
 
 
 class IncrMultiOptions(TypedDict):
@@ -661,13 +662,13 @@ class BaseTSDB(Service):
     def get_frequency_series(
         self,
         model: TSDBModel,
-        items: Mapping[str, Sequence[str]],
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, list[tuple[float, dict[str, float]]]]:
+    ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         """
         Retrieve the frequency of known items in a table over time.
 
@@ -708,10 +709,10 @@ class BaseTSDB(Service):
         self,
         model: TSDBModel,
         destination: str,
-        sources: list[str],
+        sources: Sequence[TSDBKey],
         timestamp: datetime | None = None,
         environment_ids: Iterable[int] | None = None,
-    ):
+    ) -> None:
         """
         Transfer all frequency tables from the source keys to the destination
         key.

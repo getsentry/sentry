@@ -4,14 +4,13 @@ import {
   type MouseEventHandler,
   type ReactNode,
   useCallback,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import isPropValid from '@emotion/is-prop-valid';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {useComboBox} from '@react-aria/combobox';
+import {type AriaComboBoxProps, useComboBox} from '@react-aria/combobox';
 import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {type ComboBoxState, useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren, Key, KeyboardEvent} from '@react-types/shared';
@@ -30,12 +29,14 @@ import {
   getHiddenOptions,
 } from 'sentry/components/compactSelect/utils';
 import {GrowingInput} from 'sentry/components/growingInput';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {Overlay} from 'sentry/components/overlay';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
 import useOverlay from 'sentry/utils/useOverlay';
+import usePrevious from 'sentry/utils/usePrevious';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -64,11 +65,14 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   displayTabbedMenu?: boolean;
   filterValue?: string;
+  isLoading?: boolean;
   maxOptions?: number;
+  onClick?: (e: React.MouseEvent) => void;
   /**
    * Called when the user explicitly closes the combobox with the escape key.
    */
   onExit?: () => void;
+  onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: KeyboardEvent) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
@@ -117,26 +121,23 @@ function mergeSets<T>(...sets: Set<T>[]) {
 function menuIsOpen({
   state,
   hiddenOptions,
-  items,
+  totalOptions,
   displayTabbedMenu,
+  isLoading,
 }: {
   hiddenOptions: Set<SelectKey>;
-  items: SelectOptionOrSectionWithKey<string>[];
   state: ComboBoxState<any>;
+  totalOptions: number;
   displayTabbedMenu?: boolean;
+  isLoading?: boolean;
 }) {
-  if (displayTabbedMenu) {
+  if (displayTabbedMenu || isLoading) {
     return state.isOpen;
   }
 
-  // When the tabbed menu is not being displayed, we only want to show the menu
-  // when there are options to select from
-  const totalOptions = items.reduce(
-    (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
-    0
-  );
-
-  return totalOptions > hiddenOptions.size;
+  // When the tabbed menu is not being displayed and we aren't loading anything,
+  // only show when there is something to select from.
+  return state.isOpen && totalOptions > hiddenOptions.size;
 }
 
 function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
@@ -270,7 +271,7 @@ function SectionedListBox<T extends SelectOptionOrSectionWithKey<string>>({
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen={isOpen}
-          size="md"
+          size="sm"
         />
       </SectionedListBoxPane>
     </SectionedOverlay>
@@ -293,15 +294,17 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onInputChange,
     autoFocus,
     openOnFocus,
+    onFocus,
     tabIndex = -1,
     maxOptions,
     shouldCloseOnInteractOutside,
     onPaste,
     displayTabbedMenu,
+    isLoading,
+    onClick,
   }: SearchQueryBuilderComboboxProps<T>,
   ref: ForwardedRef<HTMLInputElement>
 ) {
-  const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -327,31 +330,40 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     [items, onOptionSelected]
   );
 
-  const state = useComboBoxState<T>({
-    children,
+  const comboBoxProps: Partial<AriaComboBoxProps<T>> = {
     items,
     autoFocus,
     inputValue: filterValue,
     onSelectionChange,
+    allowsCustomValue: true,
     disabledKeys,
+  };
+
+  const state = useComboBoxState<T>({
+    children,
+    // We handle closing on blur ourselves to prevent the combobox from closing
+    // when the user clicks inside the tabbed menu
+    shouldCloseOnBlur: false,
+    ...comboBoxProps,
   });
 
   const {inputProps, listBoxProps} = useComboBox<T>(
     {
+      ...comboBoxProps,
       'aria-label': inputLabel,
       listBoxRef,
       inputRef,
       popoverRef,
-      items,
-      inputValue: filterValue,
-      onSelectionChange,
-      autoFocus,
-      onFocus: () => {
+      onFocus: e => {
         if (openOnFocus) {
           state.open();
         }
+        onFocus?.(e);
       },
-      onBlur: () => {
+      onBlur: e => {
+        if (e.relatedTarget && !shouldCloseOnInteractOutside?.(e.relatedTarget)) {
+          return;
+        }
         onCustomValueBlurred(inputValue);
         state.close();
       },
@@ -377,9 +389,23 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     state
   );
 
-  const isOpen = menuIsOpen({state, hiddenOptions, items, displayTabbedMenu});
+  const totalOptions = items.reduce(
+    (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
+    0
+  );
+  const isOpen = menuIsOpen({
+    state,
+    hiddenOptions,
+    totalOptions,
+    displayTabbedMenu,
+    isLoading,
+  });
 
-  const {overlayProps, triggerProps} = useOverlay({
+  const {
+    overlayProps,
+    triggerProps,
+    update: updateOverlayPosition,
+  } = useOverlay({
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
@@ -395,15 +421,28 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
       }
       state.close();
     },
+    preventOverflowOptions: {boundary: document.body, altAxis: true},
   });
+
+  const previousValues = usePrevious({isLoading, isOpen, inputValue});
+
+  useLayoutEffect(() => {
+    if (
+      (isOpen && previousValues?.inputValue !== inputValue) ||
+      previousValues?.isLoading !== isLoading
+    ) {
+      updateOverlayPosition?.();
+    }
+  }, [inputValue, isLoading, isOpen, previousValues, updateOverlayPosition]);
 
   const handleInputClick: MouseEventHandler<HTMLInputElement> = useCallback(
     e => {
       e.stopPropagation();
       inputProps.onClick?.(e);
       state.toggle();
+      onClick?.(e);
     },
-    [inputProps, state]
+    [inputProps, state, onClick]
   );
 
   return (
@@ -420,11 +459,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
         tabIndex={tabIndex}
         onPaste={onPaste}
       />
-      <StyledPositionWrapper
-        {...overlayProps}
-        zIndex={theme.zIndex?.tooltip}
-        visible={isOpen}
-      >
+      <StyledPositionWrapper {...overlayProps} visible={isOpen}>
         {displayTabbedMenu ? (
           <SectionedListBox
             popoverRef={popoverRef}
@@ -438,16 +473,22 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
           />
         ) : (
           <StyledOverlay ref={popoverRef}>
-            <ListBox
-              {...listBoxProps}
-              ref={listBoxRef}
-              listState={state}
-              hasSearch={!!filterValue}
-              hiddenOptions={hiddenOptions}
-              keyDownHandler={() => true}
-              overlayIsOpen={isOpen}
-              size="md"
-            />
+            {isLoading && hiddenOptions.size >= totalOptions ? (
+              <LoadingWrapper>
+                <LoadingIndicator mini />
+              </LoadingWrapper>
+            ) : (
+              <ListBox
+                {...listBoxProps}
+                ref={listBoxRef}
+                listState={state}
+                hasSearch={!!filterValue}
+                hiddenOptions={hiddenOptions}
+                keyDownHandler={() => true}
+                overlayIsOpen={isOpen}
+                size="sm"
+              />
+            )}
           </StyledOverlay>
         )}
       </StyledPositionWrapper>
@@ -488,16 +529,15 @@ const UnstyledInput = styled(GrowingInput)`
   }
 `;
 
-const StyledPositionWrapper = styled(PositionWrapper, {
-  shouldForwardProp: prop => isPropValid(prop),
-})<{visible?: boolean}>`
+const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
+  z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
 const StyledOverlay = styled(Overlay)`
   max-height: 400px;
   min-width: 200px;
-  width: 300px;
+  width: 600px;
   max-width: min-content;
   overflow-y: auto;
 `;
@@ -539,4 +579,11 @@ const SectionButton = styled(Button)`
     color: ${p => p.theme.purple300};
     font-weight: ${p => p.theme.fontWeightBold};
   }
+`;
+
+const LoadingWrapper = styled('div')`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 140px;
 `;

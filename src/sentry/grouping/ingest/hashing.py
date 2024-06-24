@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import copy
 import logging
-from collections.abc import MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 import sentry_sdk
 
@@ -35,11 +35,10 @@ from sentry.utils.metrics import MutableTags
 from sentry.utils.tag_normalization import normalized_sdk_tag_from_event
 
 if TYPE_CHECKING:
+    from sentry.event_manager import Job
     from sentry.eventstore.models import Event
 
 logger = logging.getLogger("sentry.events.grouping")
-
-Job = MutableMapping[str, Any]
 
 
 def _calculate_event_grouping(

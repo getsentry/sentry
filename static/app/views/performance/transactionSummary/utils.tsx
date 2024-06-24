@@ -12,6 +12,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
+import {TraceViewSources} from '../newTraceDetails/traceMetadataHeader';
+
 export enum DisplayModes {
   DURATION_PERCENTILE = 'durationpercentile',
   DURATION = 'duration',
@@ -124,14 +126,21 @@ export function generateTraceLink(dateSelection) {
   return (
     organization: Organization,
     tableRow: TableDataRow,
-    _location: Location
+    location: Location
   ): LocationDescriptor => {
     const traceId = `${tableRow.trace}`;
     if (!traceId) {
       return {};
     }
 
-    return getTraceDetailsUrl(organization, traceId, dateSelection, tableRow.timestamp);
+    return getTraceDetailsUrl({
+      organization,
+      traceSlug: traceId,
+      dateSelection,
+      timestamp: tableRow.timestamp,
+      location,
+      source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
+    });
   };
 }
 
@@ -151,6 +160,7 @@ export function generateTransactionIdLink(transactionName?: string) {
       organization,
       spanId,
       transactionName,
+      source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
     });
   };
 }

@@ -93,7 +93,7 @@ class RedisReprocessingStore(ReprocessingStore):
         self,
         project_id: int,
         group_id: int,
-        event_id: int,
+        event_id: str,
         date_val: datetime,
         old_primary_hash: str,
     ) -> None:

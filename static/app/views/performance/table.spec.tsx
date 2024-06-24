@@ -192,7 +192,7 @@ describe('Performance > Table', function () {
         query: 'event.type:transaction transaction:/api*',
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -277,7 +277,7 @@ describe('Performance > Table', function () {
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -308,7 +308,7 @@ describe('Performance > Table', function () {
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
