@@ -1,14 +1,18 @@
 import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
-// import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
+import getDynamicText from 'sentry/utils/getDynamicText';
+import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {
   group: Group;
@@ -16,6 +20,8 @@ type Props = {
 
 function SharedGroupHeader({group}: Props) {
   const date = group.latestEvent?.dateReceived ?? group.latestEvent?.dateCreated;
+  const d = new Date(date as string);
+  const event = group.latestEvent as Event;
   return (
     <Wrapper>
       <Details>
@@ -37,12 +43,25 @@ function SharedGroupHeader({group}: Props) {
           </ShortIdWrapper>
 
           <TimeStamp>
-            {'Last Seen: '}
-            {(date as string).toLocaleString()}
-            {/* <DateTime
-              // date={group.latestEvent?.dateReceived ?? group.latestEvent?.dateCreated}
-              date = {(date as string).toLocaleString()}
-            /> */}
+            {'Last seen '}
+            {(event.dateCreated ?? event.dateReceived) && (
+              <EventTimeLabel>
+                {getDynamicText({
+                  fixed: 'Jan 1, 12:00 AM',
+                  value: (
+                    <Tooltip
+                      isHoverable
+                      showUnderline
+                      title={<EventCreatedTooltip event={event} />}
+                      overlayStyle={{maxWidth: 300}}
+                    >
+                      <DateTime date={d.toLocaleString()} />
+                      {/* {d.toLocaleString('default', {month: 'long'})} */}
+                    </Tooltip>
+                  ),
+                })}
+              </EventTimeLabel>
+            )}
           </TimeStamp>
         </TitleWrap>
         <EventMessage
@@ -98,4 +117,8 @@ const TimeStamp = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: ${p => p.theme.text.lineHeightHeading};
   margin-top: ${space(0)};
+`;
+
+const EventTimeLabel = styled('span')`
+  color: ${p => p.theme.subText};
 `;
