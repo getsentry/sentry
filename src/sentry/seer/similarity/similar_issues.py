@@ -69,15 +69,14 @@ def get_similarity_data_from_seer(
         )
         return []
 
-    normalized = []
+    normalized_results = []
 
     for raw_similar_issue_data in response_data.get("responses") or []:
         try:
-            normalized.append(
-                SeerSimilarIssueData.from_raw(
-                    similar_issues_request["project_id"], raw_similar_issue_data
-                )
+            normalized = SeerSimilarIssueData.from_raw(
+                similar_issues_request["project_id"], raw_similar_issue_data
             )
+            normalized_results.append(normalized)
         except IncompleteSeerDataError as err:
             logger.exception(
                 str(err),
@@ -97,6 +96,6 @@ def get_similarity_data_from_seer(
             )
 
     return sorted(
-        normalized,
+        normalized_results,
         key=lambda issue_data: issue_data.stacktrace_distance,
     )
