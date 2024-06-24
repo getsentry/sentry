@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -109,14 +109,14 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     code,
     description: configDescription,
     language,
-  } = docs.onboarding.install(docParams)[0].configurations?.[0] ?? {};
+  } = install.configurations?.[0] ?? {};
 
-  const {configurations, description: configureDescription} = configure[0];
+  const {configurations, description: configureDescription} = configure[0] ?? {};
   const {configurations: sourceMapConfigurations, description: sourcemapDescription} =
-    configure[1];
+    configure[1] ?? {};
 
   const {description: verifyDescription, configurations: verifyConfigutations} =
-    verify[0];
+    verify[0] ?? {};
 
   return (
     <div>
@@ -168,54 +168,65 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 </GuidedSteps.ButtonWrapper>
               </div>
             </GuidedSteps.Step>
-            <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
-              <div>
+            {configureDescription ? (
+              <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
                 <div>
-                  {configureDescription}
-                  {configurations?.map((configuration, index) => (
-                    <div key={index}>
-                      {configuration.description}
-                      {Array.isArray(configuration.code) ? (
-                        <StyledTabbedCodeSnippet tabs={configuration.code} />
-                      ) : (
-                        <StyledCodeSnippet language={configuration.language}>
-                          {configuration.code ?? ''}
-                        </StyledCodeSnippet>
-                      )}
-                    </div>
-                  ))}
+                  <div>
+                    {configureDescription}
+                    {configurations?.map((configuration, index) => (
+                      <div key={index}>
+                        {configuration.description}
+                        {Array.isArray(configuration.code) ? (
+                          <StyledTabbedCodeSnippet tabs={configuration.code} />
+                        ) : (
+                          <StyledCodeSnippet language={configuration.language}>
+                            {configuration.code ?? ''}
+                          </StyledCodeSnippet>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                    <GuidedSteps.NextButton size="md" />
+                  </GuidedSteps.ButtonWrapper>
                 </div>
-                <GuidedSteps.ButtonWrapper>
-                  <GuidedSteps.BackButton size="md" />
-                  <GuidedSteps.NextButton size="md" />
-                </GuidedSteps.ButtonWrapper>
-              </div>
-            </GuidedSteps.Step>
-            <GuidedSteps.Step stepKey="sourcemaps-sentry" title={t('Upload Sourcemaps')}>
-              <div>
+              </GuidedSteps.Step>
+            ) : (
+              <Fragment />
+            )}
+            {sourcemapDescription ? (
+              <GuidedSteps.Step
+                stepKey="sourcemaps-sentry"
+                title={t('Upload Sourcemaps')}
+              >
                 <div>
-                  {sourcemapDescription}
-                  {sourceMapConfigurations?.map((configuration, index) => (
-                    <div key={index}>
-                      {configuration.description}
-                      {Array.isArray(configuration.code) ? (
-                        <StyledTabbedCodeSnippet tabs={configuration.code} />
-                      ) : (
-                        <StyledCodeSnippet language={configuration.language}>
-                          {configuration.code ?? ''}
-                        </StyledCodeSnippet>
-                      )}
-                    </div>
-                  ))}
+                  <div>
+                    {sourcemapDescription}
+                    {sourceMapConfigurations?.map((configuration, index) => (
+                      <div key={index}>
+                        {configuration.description}
+                        {Array.isArray(configuration.code) ? (
+                          <StyledTabbedCodeSnippet tabs={configuration.code} />
+                        ) : (
+                          <StyledCodeSnippet language={configuration.language}>
+                            {configuration.code ?? ''}
+                          </StyledCodeSnippet>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <GuidedSteps.ButtonWrapper>
+                    <GuidedSteps.BackButton size="md" />
+                    <GuidedSteps.NextButton size="md" />
+                  </GuidedSteps.ButtonWrapper>
                 </div>
-                <GuidedSteps.ButtonWrapper>
-                  <GuidedSteps.BackButton size="md" />
-                  <GuidedSteps.NextButton size="md" />
-                </GuidedSteps.ButtonWrapper>
-              </div>
-            </GuidedSteps.Step>
-            <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
-              <div>
+              </GuidedSteps.Step>
+            ) : (
+              <Fragment />
+            )}
+            {verifyDescription ? (
+              <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                 <div>
                   {verifyDescription}
                   {verifyConfigutations?.map((configuration, index) => (
@@ -230,13 +241,26 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       )}
                     </div>
                   ))}
+                  <FirstEventIndicator
+                    organization={organization}
+                    project={project}
+                    eventType="error"
+                  >
+                    {({indicator, firstEventButton}) => (
+                      <div>
+                        <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                        <StyledButtonBar gap={1}>
+                          <GuidedSteps.BackButton size="md" />
+                          {firstEventButton}
+                        </StyledButtonBar>
+                      </div>
+                    )}
+                  </FirstEventIndicator>
                 </div>
-                <GuidedSteps.ButtonWrapper>
-                  <GuidedSteps.BackButton size="md" />
-                  <GuidedSteps.NextButton size="md" />
-                </GuidedSteps.ButtonWrapper>
-              </div>
-            </GuidedSteps.Step>
+              </GuidedSteps.Step>
+            ) : (
+              <Fragment />
+            )}
           </GuidedSteps>
         </Setup>
         <Preview>
