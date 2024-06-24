@@ -69,9 +69,12 @@ def get_similarity_data_from_seer(
         )
         return []
 
+    if not response_data:
+        return []
+
     normalized_results = []
 
-    for raw_similar_issue_data in response_data or []:
+    for raw_similar_issue_data in response_data:
         try:
             normalized = SeerSimilarIssueData.from_raw(
                 similar_issues_request["project_id"], raw_similar_issue_data
