@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -9,7 +9,8 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
@@ -19,11 +20,12 @@ import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import ReplayTableWrapper from 'sentry/views/issueDetails/groupReplays/replayTableWrapper';
-import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
+
+import {ReplayClipPreviewWrapper} from './replayClipPreviewWrapper';
+import useReplaysFromIssue from './useReplaysFromIssue';
 
 type Props = {
   group: Group;
@@ -86,19 +88,26 @@ function GroupReplays({group}: Props) {
 }
 
 function GroupReplaysTableInner({
+  children,
   organization,
   group,
   replaySlug,
-  ...props
+  setSelectedReplayIndex,
+  selectedReplayIndex,
+  overlayContent,
+  replays,
+  pageLinks,
 }: {
+  children: React.ReactNode;
   group: Group;
   organization: Organization;
   pageLinks: string | null;
   replaySlug: string;
+  replays: ReplayListRecord[] | undefined;
   selectedReplayIndex: number;
   setSelectedReplayIndex: (index: number) => void;
   overlayContent?: React.ReactNode;
-} & ReturnType<typeof useReplayList>) {
+}) {
   const orgSlug = organization.slug;
   const {fetching, replay} = useReplayReader({
     orgSlug,
@@ -114,23 +123,23 @@ function GroupReplaysTableInner({
       replay={replay}
       autoStart
     >
-      <ReplayTableWrapper
+      <ReplayClipPreviewWrapper
         orgSlug={orgSlug}
         replaySlug={replaySlug}
-        sort={undefined}
         group={group}
-        pageLinks={props.pageLinks}
-        selectedReplayIndex={props.selectedReplayIndex}
-        setSelectedReplayIndex={props.setSelectedReplayIndex}
+        pageLinks={pageLinks}
+        selectedReplayIndex={selectedReplayIndex}
+        setSelectedReplayIndex={setSelectedReplayIndex}
         visibleColumns={VISIBLE_COLUMNS_WITH_PLAY}
-        overlayContent={props.overlayContent}
-        replays={props.replays}
-        isFetching={props.isFetching}
-        fetchError={props.fetchError}
+        overlayContent={overlayContent}
+        replays={replays}
       />
+      {children}
     </ReplayContextProvider>
   );
 }
+
+const locationForFetching = {query: {}} as Location<ReplayListLocationQuery>;
 
 function GroupReplaysTable({
   eventView,
@@ -143,10 +152,6 @@ function GroupReplaysTable({
   pageLinks: string | null;
   visibleColumns: ReplayColumn[];
 }) {
-  const locationForFetching = useMemo(
-    () => ({query: {}}) as Location<ReplayListLocationQuery>,
-    []
-  );
   const location = useLocation();
   const urlParams = useUrlParams();
   const {getReplayCountForIssue} = useReplayCountForIssues({
@@ -179,24 +184,6 @@ function GroupReplaysTable({
 
   const selectedReplay = replays?.[selectedReplayIndex];
 
-  // If the selected replay changes, we want to force the replay to hide to cause the
-  // replay context to unmount and reset
-  const [previousReplayIndex, setPreviousReplayIndex] =
-    useState<number>(selectedReplayIndex);
-  const [forceHideReplay, setForceHideReplay] = useState<boolean>(false);
-  useEffect(() => {
-    if (selectedReplayIndex !== previousReplayIndex) {
-      setPreviousReplayIndex(selectedReplayIndex);
-      setForceHideReplay(true);
-    }
-  }, [selectedReplayIndex, previousReplayIndex]);
-
-  useEffect(() => {
-    if (forceHideReplay) {
-      setForceHideReplay(false);
-    }
-  }, [forceHideReplay]);
-
   const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
@@ -221,31 +208,36 @@ function GroupReplaysTable({
       </Fragment>
     ) : undefined;
 
-  const inner =
-    selectedReplay && !forceHideReplay ? (
-      <GroupReplaysTableInner
-        setSelectedReplayIndex={setSelectedReplayIndex}
-        selectedReplayIndex={selectedReplayIndex}
-        overlayContent={overlayContent}
-        organization={organization}
-        group={group}
-        replaySlug={selectedReplay.id}
-        pageLinks={replayListData.pageLinks}
-        fetchError={replayListData.fetchError}
-        isFetching={replayListData.isFetching}
-        replays={replays}
-      />
-    ) : (
-      <ReplayTable
-        sort={undefined}
-        visibleColumns={VISIBLE_COLUMNS}
-        showDropdownFilters={false}
-        onClickPlay={setSelectedReplayIndex}
-        fetchError={replayListData.fetchError}
-        isFetching={replayListData.isFetching}
-        replays={replays}
-      />
-    );
+  const replayTable = (
+    <ReplayTable
+      sort={undefined}
+      visibleColumns={selectedReplay ? VISIBLE_COLUMNS_WITH_PLAY : VISIBLE_COLUMNS}
+      showDropdownFilters={false}
+      onClickPlay={setSelectedReplayIndex}
+      fetchError={replayListData.fetchError}
+      isFetching={replayListData.isFetching}
+      replays={replays}
+    />
+  );
+
+  const inner = selectedReplay ? (
+    <GroupReplaysTableInner
+      // Use key to force unmount/remount of component to reset the context and replay iframe
+      key={selectedReplay.id}
+      setSelectedReplayIndex={setSelectedReplayIndex}
+      selectedReplayIndex={selectedReplayIndex}
+      overlayContent={overlayContent}
+      organization={organization}
+      group={group}
+      replaySlug={selectedReplay.id}
+      pageLinks={replayListData.pageLinks}
+      replays={replays}
+    >
+      {replayTable}
+    </GroupReplaysTableInner>
+  ) : (
+    replayTable
+  );
 
   return (
     <StyledLayoutPage withPadding>
