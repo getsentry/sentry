@@ -25,9 +25,14 @@ import SidebarItem, {isItemActive} from './sidebarItem';
 
 type SidebarAccordionProps = SidebarItemProps & {
   children?: React.ReactNode;
+  initiallyExpanded?: boolean;
 };
 
-function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
+function SidebarAccordion({
+  children,
+  initiallyExpanded,
+  ...itemProps
+}: SidebarAccordionProps) {
   const {id, collapsed: sidebarCollapsed} = itemProps;
 
   const accordionRef = useRef<HTMLDivElement>(null);
@@ -40,7 +45,7 @@ function SidebarAccordion({children, ...itemProps}: SidebarAccordionProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useLocalStorageState(
     `sidebar-accordion-${id}:expanded`,
-    true
+    initiallyExpanded ?? true
   );
 
   useOnClickOutside(floatingAccordionRef, e => {

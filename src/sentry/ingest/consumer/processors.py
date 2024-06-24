@@ -117,8 +117,6 @@ def process_event(
     # Parse the JSON payload. This is required to compute the cache key and
     # call process_event. The payload will be put into Kafka raw, to avoid
     # serializing it again.
-    # XXX: Do not use CanonicalKeyDict here. This may break preprocess_event
-    # which assumes that data passed in is a raw dictionary.
     data = orjson.loads(payload)
 
     if project_id == settings.SENTRY_PROJECT:

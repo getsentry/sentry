@@ -36,9 +36,7 @@ class HandleStatusChangeTest(TestCase):
         )
 
         assert issue_unignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -61,9 +59,7 @@ class HandleStatusChangeTest(TestCase):
         )
 
         assert issue_unresolved.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_UNRESOLVED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_UNRESOLVED.value)
         assert activity.data == {}
 
         assert GroupHistory.objects.filter(
@@ -86,9 +82,7 @@ class HandleStatusChangeTest(TestCase):
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreDuration") == 30
 
         assert GroupHistory.objects.filter(
@@ -111,9 +105,7 @@ class HandleStatusChangeTest(TestCase):
         )
 
         assert issue_ignored.called
-        activity = Activity.objects.filter(
-            group=self.group, type=ActivityType.SET_IGNORED.value
-        ).first()
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
         assert activity.data.get("ignoreUntilEscalating")
 
         assert GroupHistory.objects.filter(

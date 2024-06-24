@@ -1,7 +1,14 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {
+  isDateToken,
+  makeTokenKey,
+  parseQueryBuilderValue,
+} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  FilterType,
   type ParseResultToken,
   TermOperator,
   Token,
@@ -16,7 +23,11 @@ type QueryBuilderState = {
 
 type ClearAction = {type: 'CLEAR'};
 
-type UpdateQueryAction = {query: string; type: 'UPDATE_QUERY'};
+type UpdateQueryAction = {
+  query: string;
+  type: 'UPDATE_QUERY';
+  focusOverride?: FocusOverride | null;
+};
 
 type ResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 
@@ -32,6 +43,12 @@ type UpdateFreeTextAction = {
   focusOverride?: FocusOverride;
 };
 
+type PasteFreeTextAction = {
+  text: string;
+  token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
+  type: 'PASTE_FREE_TEXT';
+};
+
 type UpdateFilterOpAction = {
   op: TermOperator;
   token: TokenResult<Token.FILTER>;
@@ -39,7 +56,7 @@ type UpdateFilterOpAction = {
 };
 
 type UpdateTokenValueAction = {
-  token: TokenResult<Token>;
+  token: TokenResult<Token.FILTER>;
   type: 'UPDATE_TOKEN_VALUE';
   value: string;
 };
@@ -61,14 +78,15 @@ export type QueryBuilderActions =
   | ResetFocusOverrideAction
   | DeleteTokenAction
   | UpdateFreeTextAction
+  | PasteFreeTextAction
   | UpdateFilterOpAction
   | UpdateTokenValueAction
   | MultiSelectFilterValueAction
   | DeleteLastMultiSelectFilterValueAction;
 
 function removeQueryToken(query: string, token: TokenResult<Token>): string {
-  return (
-    query.substring(0, token.location.start.offset) +
+  return removeExcessWhitespaceFromParts(
+    query.substring(0, token.location.start.offset),
     query.substring(token.location.end.offset)
   );
 }
@@ -78,6 +96,10 @@ function modifyFilterOperator(
   token: TokenResult<Token.FILTER>,
   newOperator: TermOperator
 ): string {
+  if (isDateToken(token)) {
+    return modifyFilterOperatorDate(query, token, newOperator);
+  }
+
   const isNotEqual = newOperator === TermOperator.NOT_EQUAL;
 
   const newToken: TokenResult<Token.FILTER> = {...token};
@@ -85,6 +107,62 @@ function modifyFilterOperator(
   newToken.negated = isNotEqual;
 
   return replaceQueryToken(query, token, stringifyToken(newToken));
+}
+
+function modifyFilterOperatorDate(
+  query: string,
+  token: TokenResult<Token.FILTER>,
+  newOperator: TermOperator
+): string {
+  switch (newOperator) {
+    case TermOperator.GREATER_THAN:
+    case TermOperator.LESS_THAN: {
+      if (token.filter === FilterType.RELATIVE_DATE) {
+        token.value.sign = newOperator === TermOperator.GREATER_THAN ? '-' : '+';
+      } else if (
+        token.filter === FilterType.SPECIFIC_DATE ||
+        token.filter === FilterType.DATE
+      ) {
+        token.operator = newOperator;
+      }
+      return replaceQueryToken(query, token, stringifyToken(token));
+    }
+
+    // The "equal" and "or equal to" operators require a specific date
+    case TermOperator.EQUAL:
+    case TermOperator.GREATER_THAN_EQUAL:
+    case TermOperator.LESS_THAN_EQUAL:
+      // If it's a relative date, modify the operator and generate an ISO timestamp
+      if (token.filter === FilterType.RELATIVE_DATE) {
+        const generatedIsoDateStr = new Date().toISOString();
+        const newTokenStr = `${token.key.text}:${newOperator}${generatedIsoDateStr}`;
+        return replaceQueryToken(query, token, newTokenStr);
+      }
+      return modifyFilterOperator(query, token, newOperator);
+    default:
+      return replaceQueryToken(query, token, newOperator);
+  }
+}
+
+function modifyFilterValueDate(
+  query: string,
+  token: TokenResult<Token.FILTER>,
+  newValue: string
+): string {
+  const parsedValue = parseFilterValueDate(newValue);
+
+  if (!parsedValue) {
+    return query;
+  }
+
+  if (token.value.type === parsedValue?.type) {
+    return replaceQueryToken(query, token.value, newValue);
+  }
+
+  if (parsedValue.type === Token.VALUE_ISO_8601_DATE) {
+    return replaceQueryToken(query, token.value, newValue);
+  }
+  return `${token.key.text}:${newValue}`;
 }
 
 function replaceQueryToken(
@@ -98,6 +176,14 @@ function replaceQueryToken(
   return start + value + end;
 }
 
+function removeExcessWhitespaceFromParts(...parts: string[]): string {
+  return parts
+    .map(part => part.trim())
+    .filter(part => part.length > 0)
+    .join(' ')
+    .trim();
+}
+
 // Ensures that the replaced token is separated from the rest of the query
 // and cleans up any extra whitespace
 export function replaceTokenWithPadding(
@@ -108,7 +194,7 @@ export function replaceTokenWithPadding(
   const start = query.substring(0, token.location.start.offset);
   const end = query.substring(token.location.end.offset);
 
-  return (start.trimEnd() + ' ' + value.trim() + ' ' + end.trimStart()).trim();
+  return removeExcessWhitespaceFromParts(start, value, end);
 }
 
 function updateFreeText(
@@ -123,6 +209,38 @@ function updateFreeText(
     focusOverride:
       action.focusOverride === undefined ? state.focusOverride : action.focusOverride,
   };
+}
+
+function pasteFreeText(
+  state: QueryBuilderState,
+  action: PasteFreeTextAction
+): QueryBuilderState {
+  const newQuery = replaceTokenWithPadding(state.query, action.token, action.text);
+  const cursorPosition = action.token.location.start.offset + action.text.length;
+  const newParsedQuery = parseQueryBuilderValue(newQuery);
+  const focusedToken = newParsedQuery?.find(
+    token =>
+      token.type === Token.FREE_TEXT && token.location.start.offset >= cursorPosition
+  );
+  const focusedItemKey = focusedToken ? makeTokenKey(focusedToken, newParsedQuery) : null;
+
+  return {
+    ...state,
+    query: newQuery,
+    focusOverride: focusedItemKey ? {itemKey: focusedItemKey} : null,
+  };
+}
+
+function modifyFilterValue(
+  query: string,
+  token: TokenResult<Token.FILTER>,
+  newValue: string
+): string {
+  if (isDateToken(token)) {
+    return modifyFilterValueDate(query, token, newValue);
+  }
+
+  return replaceQueryToken(query, token.value, newValue);
 }
 
 function updateFilterMultipleValues(
@@ -199,11 +317,15 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return {
             ...state,
             query: '',
+            focusOverride: {
+              itemKey: `${Token.FREE_TEXT}:0`,
+            },
           };
         case 'UPDATE_QUERY':
           return {
             ...state,
             query: action.query,
+            focusOverride: action.focusOverride ?? null,
           };
         case 'RESET_FOCUS_OVERRIDE':
           return {
@@ -217,6 +339,8 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           };
         case 'UPDATE_FREE_TEXT':
           return updateFreeText(state, action);
+        case 'PASTE_FREE_TEXT':
+          return pasteFreeText(state, action);
         case 'UPDATE_FILTER_OP':
           return {
             ...state,
@@ -225,7 +349,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
         case 'UPDATE_TOKEN_VALUE':
           return {
             ...state,
-            query: replaceQueryToken(state.query, action.token, action.value),
+            query: modifyFilterValue(state.query, action.token, action.value),
           };
         case 'TOGGLE_FILTER_VALUE':
           return multiSelectTokenValue(state, action);

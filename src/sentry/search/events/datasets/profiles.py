@@ -22,7 +22,7 @@ from sentry.search.events.fields import (
     SnQLFunction,
     with_default,
 )
-from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 
 
 class Kind(Enum):
@@ -107,9 +107,7 @@ COLUMN_MAP = {column.alias: column for column in COLUMNS}
 
 
 class ProfileColumnArg(ColumnArg):
-    def normalize(
-        self, value: str, params: ParamsType, combinator: Combinator | None
-    ) -> NormalizedArg:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         column = COLUMN_MAP.get(value)
 
         # must be a known column or field alias

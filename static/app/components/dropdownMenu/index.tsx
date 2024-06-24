@@ -166,6 +166,7 @@ function DropdownMenu({
     offset,
     position,
     isDismissable,
+    disableTrigger: isDisabled,
     shouldCloseOnBlur,
     shouldCloseOnInteractOutside,
     onInteractOutside,

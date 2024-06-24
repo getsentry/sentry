@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Callable, Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
@@ -423,7 +423,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
         project_id: ProjectId,
         release: ReleaseName,
         org_id: OrganizationId,
-        environments: Sequence[EnvironmentName] | None = None,
+        environments: Iterable[str] | None = None,
     ) -> ReleaseSessionsTimeBounds:
 
         projects, org_id = self._get_projects_and_org_id([project_id])
@@ -1206,7 +1206,7 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
 
     def get_changed_project_release_model_adoptions(
         self,
-        project_ids: Sequence[ProjectId],
+        project_ids: Iterable[int],
         now: datetime | None = None,
     ) -> Sequence[ProjectRelease]:
 
@@ -1572,8 +1572,8 @@ class MetricsReleaseHealthBackend(ReleaseHealthBackend):
     def get_num_sessions_per_project(
         self,
         project_ids: Sequence[ProjectId],
-        start: datetime,
-        end: datetime,
+        start: datetime | None,
+        end: datetime | None,
         environment_ids: Sequence[int] | None = None,
         rollup: int | None = None,  # rollup in seconds
     ) -> Sequence[ProjectWithCount]:

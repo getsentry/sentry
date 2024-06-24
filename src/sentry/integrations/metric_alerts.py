@@ -83,7 +83,7 @@ def get_incident_status_text(alert_rule: AlertRule, metric_value: str) -> str:
     interval = "minute" if time_window == 1 else "minutes"
     # % change alerts have a comparison delta
     if alert_rule.comparison_delta:
-        metric_and_agg_text = f"{agg_text.capitalize()} {int(metric_value)}%"
+        metric_and_agg_text = f"{agg_text.capitalize()} {int(float(metric_value))}%"
         higher_or_lower = (
             "higher" if alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value else "lower"
         )

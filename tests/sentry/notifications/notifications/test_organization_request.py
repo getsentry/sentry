@@ -1,3 +1,4 @@
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request import OrganizationRequestNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
@@ -5,7 +6,6 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
 )
 from sentry.testutils.cases import TestCase
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 
 class DummyRoleBasedRecipientStrategy(RoleBasedRecipientStrategy):

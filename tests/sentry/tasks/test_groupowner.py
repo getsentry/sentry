@@ -271,7 +271,7 @@ class TestGroupOwners(TestCase):
         assert GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).exists()
         assert not GroupOwner.objects.filter(group=event_2.group, user_id=self.user_3.id).exists()
 
-        go = GroupOwner.objects.filter(group=event_2.group, user_id=self.user_2.id).first()
+        go = GroupOwner.objects.get(group=event_2.group, user_id=self.user_2.id)
         go.date_added = timezone.now() - PREFERRED_GROUP_OWNER_AGE * 2
         go.save()
 

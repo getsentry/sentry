@@ -11,7 +11,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from sentry.integrations.discord.requests.base import DiscordRequestError, DiscordRequestTypes
-from sentry.middleware.integrations.parsers.base import create_async_request_payload
+from sentry.integrations.middleware.hybrid_cloud.parser import create_async_request_payload
 from sentry.middleware.integrations.parsers.discord import DiscordRequestParser
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase

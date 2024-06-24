@@ -1,4 +1,9 @@
-from sentry.plugins.base.v2 import Plugin2
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
+from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
 
@@ -34,7 +39,7 @@ class JavascriptPlugin(Plugin2):
     def can_configure_for_project(self, project, **kwargs):
         return False
 
-    def get_event_preprocessors(self, data, **kwargs):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         # XXX: rewrite_exception we probably also want if the event
         # platform is something else? unsure
         if data.get("platform") in ("javascript", "node"):

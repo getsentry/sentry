@@ -42,7 +42,10 @@ interface VirtualizedViewManagerEvents {
   ['divider resize end']: (list_width: number) => void;
   ['virtualized list init']: () => void;
 }
-
+type VerticalIndicator = {
+  ref: HTMLElement | null;
+  timestamp: number | undefined;
+};
 /**
  * Tracks the state of the virtualized view and manages the resizing of the columns.
  * Children components should call the appropriate register*Ref methods to register their
@@ -126,6 +129,8 @@ export class VirtualizedViewManager {
   private readonly MAX_ZOOM_PRECISION = 1;
   private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
+
+  vertical_indicators: {[key: string]: VerticalIndicator} = {};
 
   timers: {
     onFovChange: {id: number} | null;
@@ -377,13 +382,6 @@ export class VirtualizedViewManager {
   }
 
   registerIndicatorContainerRef(ref: HTMLElement | null) {
-    if (ref) {
-      const correction =
-        (this.scrollbar_width / this.container_physical_space.width) *
-        this.columns.span_list.width;
-      ref.style.transform = `translateX(${-this.scrollbar_width}px)`;
-      ref.style.width = (this.columns.span_list.width - correction) * 100 + '%';
-    }
     this.indicator_container = ref;
   }
 
@@ -514,6 +512,13 @@ export class VirtualizedViewManager {
     }
   }
 
+  registerVerticalIndicator(key: string, indicator: VerticalIndicator) {
+    if (indicator.ref) {
+      this.vertical_indicators[key] = indicator;
+      this.drawVerticalIndicator(indicator);
+    }
+  }
+
   registerHorizontalScrollBarContainerRef(ref: HTMLElement | null) {
     if (ref) {
       ref.style.width = Math.round(this.columns.list.width * 100) + '%';
@@ -540,15 +545,23 @@ export class VirtualizedViewManager {
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
+
+      // If this is the first zoom event, then read the clientX and offset it from the container element as offset
+      // is relative to the **target element**. In subsequent events, we can use the offsetX property as
+      // the pointer-events are going to be disabled and we will receive the correct offsetX value
+      let offsetX = 0;
       if (!this.timers.onWheelEnd) {
+        offsetX =
+          (event.currentTarget as HTMLElement | null)?.getBoundingClientRect()?.left ?? 0;
         this.onWheelStart();
       }
       this.enqueueOnWheelEndRaf();
 
       const scale = 1 - event.deltaY * 0.01 * -1;
+      const x = offsetX > 0 ? event.clientX - offsetX : event.offsetX;
       const configSpaceCursor = this.getConfigSpaceCursor({
-        x: event.offsetX,
-        y: event.offsetY,
+        x: x,
+        y: 0,
       });
 
       const center = vec2.fromValues(configSpaceCursor[0], 0);
@@ -563,8 +576,12 @@ export class VirtualizedViewManager {
       );
 
       const newView = this.trace_view.transform(centerScaleMatrix);
+
+      // When users zoom in, the matrix will compute a width value that is lower than the min,
+      // which results in the value of x being incorrectly set and the view moving to the right.
+      // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
       this.setTraceView({
-        x: newView[0],
+        x: newView[2] < this.MAX_ZOOM_PRECISION ? this.trace_view.x : newView[0],
         width: newView[2],
       });
       this.draw();
@@ -759,11 +776,15 @@ export class VirtualizedViewManager {
     const x = view.x ?? this.trace_view.x;
     const width = view.width ?? this.trace_view.width;
 
-    this.trace_view.x = clamp(x, 0, this.trace_space.width - width);
     this.trace_view.width = clamp(
       width,
       this.MAX_ZOOM_PRECISION,
       this.trace_space.width - this.trace_view.x
+    );
+    this.trace_view.x = clamp(
+      x,
+      0,
+      Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION)
     );
 
     this.recomputeTimelineIntervals();
@@ -807,6 +828,20 @@ export class VirtualizedViewManager {
     if (!this.reset_zoom_button) return;
     this.reset_zoom_button.disabled =
       this.trace_view.x === 0 && this.trace_view.width === this.trace_space.width;
+  }
+
+  maybeSyncViewWithVerticalIndicator(key: string) {
+    const indicator = this.vertical_indicators[key];
+    if (!indicator || typeof indicator.timestamp !== 'number') {
+      return;
+    }
+
+    const timestamp = indicator.timestamp - this.to_origin;
+    this.setTraceView({
+      x: timestamp - this.trace_view.width / 2,
+      width: this.trace_view.width,
+    });
+    this.draw();
   }
 
   onHorizontalScrollbarScroll(_event: Event) {
@@ -1135,64 +1170,37 @@ export class VirtualizedViewManager {
     span_space: [number, number],
     text: string
   ): [number, number] {
-    const text_left = span_space[0] > this.to_origin + this.trace_space.width * 0.8;
-    const width = this.text_measurer.measure(text);
-
-    const has_profiles = node && node.profiles.length > 0;
-    const has_error_icons =
-      node &&
-      (node.profiles.length > 0 ||
-        node.errors.size > 0 ||
-        node.performance_issues.size > 0);
-
-    const has_icons = has_profiles || has_error_icons;
-
-    const node_width = span_space[1] / this.span_to_px[0];
     const TEXT_PADDING = 2;
-    // This is inaccurate in the case of left anchored text. In order to determine a true overlap, we would need to compute
-    // the distance between the min timestamp of an icon and beginning of the span. Once we determine the distance, we can compute
-    // the width and see if there is an actual overlap. Since this is a rare case which only happens in the case where we anchor the text
-    // to the left (20% of the time) and the node may have many errors, this could be computationally expensive to do on every frame.
-    // We'll live with the inaccuracy for now as it is purely visual and just make sure to handle a single error case as it will be easy
-    // to determine if there is an overlap.
-    const TEXT_PADDING_LEFT = text_left && has_icons ? 10 : TEXT_PADDING;
 
-    const TEXT_PADDING_RIGHT =
-      !text_left && has_icons
-        ? node_width < 10
-          ? // If the node is too small, we need to make sure the text is anchored to the right edge of the icon.
-            // We take the distance from the right edge of the node to the right edge of the icon and subtract it from
-            // the base width (10) and the base padding when (expanded) to get the correct padding. If we take only 10px
-            // as our padding, the text can be anchored directly to the right edge of our icon - we want to preserve
-            // a min padding of 2px.
-            12 - node_width
-          : TEXT_PADDING
-        : TEXT_PADDING;
+    const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
+    const text_anchor_left =
+      span_space[0] > this.to_origin + this.trace_space.width * 0.8;
+    const text_width = this.text_measurer.measure(text);
+
+    const timestamps = getIconTimestamps(node, span_space, icon_width_config_space);
+    const text_left = Math.min(span_space[0], timestamps[0]);
+    const text_right = Math.max(span_space[0] + span_space[1], timestamps[1]);
 
     // precompute all anchor points aot, so we make the control flow more readable.
-    // this wastes some cycles, but it's not a big deal as computers go brrrr when it comes to simple arithmetic.
     /// |---| text
-    const right_outside =
-      this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) +
-      TEXT_PADDING_RIGHT;
-    /// text |---|
-    const left_outside =
-      this.computeTransformXFromTimestamp(span_space[0]) - TEXT_PADDING_LEFT - width;
-
-    // |   text|
+    const right_outside = this.computeTransformXFromTimestamp(text_right) + TEXT_PADDING;
+    // |---text|
     const right_inside =
       this.computeTransformXFromTimestamp(span_space[0] + span_space[1]) -
-      width -
+      text_width -
       TEXT_PADDING;
-    // |text   |
+    // |text---|
     const left_inside = this.computeTransformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+    /// text |---|
+    const left_outside =
+      this.computeTransformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
       this.computeTransformXFromTimestamp(
         this.to_origin + this.trace_view.left + this.trace_view.width
       ) -
-      width -
+      text_width -
       TEXT_PADDING;
     const window_left =
       this.computeTransformXFromTimestamp(this.to_origin + this.trace_view.left) +
@@ -1209,22 +1217,22 @@ export class VirtualizedViewManager {
 
     // Span is completely outside of the view on the left side
     if (span_right < this.trace_view.x) {
-      return text_left ? [1, right_inside] : [0, right_outside];
+      return text_anchor_left ? [1, right_inside] : [0, right_outside];
     }
 
     // Span is completely outside of the view on the right side
     if (span_left > this.trace_view.right) {
-      return text_left ? [0, left_outside] : [1, left_inside];
+      return text_anchor_left ? [0, left_outside] : [1, left_inside];
     }
 
     // Span "spans" the entire view
     if (span_left <= this.trace_view.x && span_right >= this.trace_view.right) {
-      return text_left ? [1, window_left] : [1, window_right];
+      return text_anchor_left ? [1, window_left] : [1, window_right];
     }
 
     const full_span_px_width = span_space[1] / this.span_to_px[0];
 
-    if (text_left) {
+    if (text_anchor_left) {
       // While we have space on the left, place the text there
       if (space_left > 0) {
         return [0, left_outside];
@@ -1235,7 +1243,7 @@ export class VirtualizedViewManager {
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= width) {
+      if (visible_width - TEXT_PADDING >= text_width) {
         return [1, window_left];
       }
 
@@ -1257,7 +1265,7 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.trace_space.right * 0.9 &&
-        space_right / this.span_to_px[0] < width
+        space_right / this.span_to_px[0] < text_width
       ) {
         return [1, right_inside];
       }
@@ -1265,14 +1273,14 @@ export class VirtualizedViewManager {
     }
 
     // If text fits inside the span
-    if (full_span_px_width > width) {
+    if (full_span_px_width > text_width) {
       const distance = span_right - this.trace_view.right;
       const visible_width =
         (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
-      if (visible_width - TEXT_PADDING >= width) {
+      if (visible_width - TEXT_PADDING >= text_width) {
         return [1, window_right];
       }
 
@@ -1411,6 +1419,7 @@ export class VirtualizedViewManager {
       entry.ref.style.transform = `translate(${clamped_transform}px, 0)`;
     }
 
+    this.drawVerticalIndicators();
     this.drawTimelineIntervals();
   }
 
@@ -1471,6 +1480,27 @@ export class VirtualizedViewManager {
         span_arrow.ref.className = 'TraceArrow';
       }
     }
+  }
+
+  drawVerticalIndicators() {
+    for (const key in this.vertical_indicators) {
+      this.drawVerticalIndicator(this.vertical_indicators[key]);
+    }
+  }
+
+  drawVerticalIndicator(indicator: VerticalIndicator) {
+    if (!indicator.ref) {
+      return;
+    }
+
+    if (indicator.timestamp === undefined) {
+      indicator.ref.style.opacity = '0';
+      return;
+    }
+
+    const placement = this.computeTransformXFromTimestamp(indicator.timestamp);
+    indicator.ref.style.opacity = '1';
+    indicator.ref.style.transform = `translateX(${placement}px)`;
   }
 
   drawTimelineInterval(ref: HTMLElement | undefined, index: number) {
@@ -1570,7 +1600,7 @@ export class VirtualizedViewManager {
       const correction =
         (this.scrollbar_width / this.container_physical_space.width) *
         options.span_list_width;
-      this.indicator_container.style.transform = `transform(${-this.scrollbar_width}px, 0)`;
+      this.indicator_container.style.transform = `translateX(${-this.scrollbar_width}px)`;
       const new_indicator_container_width = options.span_list_width - correction;
 
       if (this.last_indicator_width !== new_indicator_container_width) {
@@ -1645,6 +1675,50 @@ export class VirtualizedViewManager {
       this.container = null;
     }
   }
+}
+
+// Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
+// of the span to include the icon. We need this because when the icon is close to the edge
+// it can extend it and cause overlaps with duration labels
+function getIconTimestamps(
+  node: TraceTreeNode<any>,
+  span_space: [number, number],
+  icon_width: number
+) {
+  let min_icon_timestamp = span_space[0];
+  let max_icon_timestamp = span_space[0] + span_space[1];
+
+  if (!node.errors.size && !node.performance_issues.size) {
+    return [min_icon_timestamp, max_icon_timestamp];
+  }
+
+  for (const issue of node.performance_issues) {
+    // Perf issues render icons at the start timestamp
+    if (typeof issue.start === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, issue.start * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, issue.start * 1e3 + icon_width);
+    }
+  }
+
+  for (const err of node.errors) {
+    if (typeof err.timestamp === 'number') {
+      min_icon_timestamp = Math.min(min_icon_timestamp, err.timestamp * 1e3 - icon_width);
+      max_icon_timestamp = Math.max(max_icon_timestamp, err.timestamp * 1e3 + icon_width);
+    }
+  }
+
+  min_icon_timestamp = clamp(
+    min_icon_timestamp,
+    span_space[0] - icon_width,
+    span_space[0] + span_space[1] + icon_width
+  );
+  max_icon_timestamp = clamp(
+    max_icon_timestamp,
+    span_space[0] - icon_width,
+    span_space[0] + span_space[1] + icon_width
+  );
+
+  return [min_icon_timestamp, max_icon_timestamp];
 }
 
 // Jest does not implement scroll updates, however since we have the

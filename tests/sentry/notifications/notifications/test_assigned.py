@@ -136,17 +136,17 @@ class AssignedNotificationAPITest(APITestCase):
         ).exists()
 
         assert len(mail.outbox) == 3
-        txt_msg = f"{user1.email} assigned {self.group.qualified_short_id} to {user2.email}"
-        html_msg = f"{self.group.qualified_short_id}</a> to {user2.email}"
-        self.validate_email(mail.outbox, 1, user2.email, txt_msg, html_msg)
-
         txt_msg = f"assigned {self.group.qualified_short_id} to {user2.email}"
         html_msg = f"{self.group.qualified_short_id}</a> to {user2.email}</p>"
-        self.validate_email(mail.outbox, 2, user1.email, txt_msg, html_msg)
+        self.validate_email(mail.outbox, 1, user1.email, txt_msg, html_msg)
+
+        txt_msg = f"{user1.email} assigned {self.group.qualified_short_id} to {user2.email}"
+        html_msg = f"{self.group.qualified_short_id}</a> to {user2.email}"
+        self.validate_email(mail.outbox, 2, user2.email, txt_msg, html_msg)
 
         msg = f"Issue assigned to {user2.get_display_name()} by {user1.get_display_name()}"
-        self.validate_slack_message(msg, self.group, self.project, user2.id, index=1)
-        self.validate_slack_message(msg, self.group, self.project, user1.id, index=2)
+        self.validate_slack_message(msg, self.group, self.project, user1.id, index=1)
+        self.validate_slack_message(msg, self.group, self.project, user2.id, index=2)
 
     @responses.activate
     def test_sends_reassignment_notification_team(self):
@@ -186,11 +186,12 @@ class AssignedNotificationAPITest(APITestCase):
         assert len(mail.outbox) == 2
         txt_msg = f"assigned {group.qualified_short_id} to the {team1.slug} team"
         html_msg = f"{group.qualified_short_id}</a> to the {team1.slug} team</p>"
-        self.validate_email(mail.outbox, 0, user2.email, txt_msg, html_msg)
-        self.validate_email(mail.outbox, 1, user1.email, txt_msg, html_msg)
+        self.validate_email(mail.outbox, 0, user1.email, txt_msg, html_msg)
+        self.validate_email(mail.outbox, 1, user2.email, txt_msg, html_msg)
+
         msg = f"Issue assigned to the {team1.slug} team by {user1.email}"
-        self.validate_slack_message(msg, group, project, user2.id, index=0)
-        self.validate_slack_message(msg, group, project, user1.id, index=1)
+        self.validate_slack_message(msg, group, project, user1.id, index=0)
+        self.validate_slack_message(msg, group, project, user2.id, index=1)
 
         # reassign to team2
         with self.tasks():
@@ -209,16 +210,16 @@ class AssignedNotificationAPITest(APITestCase):
 
         txt_msg = f"{user1.email} assigned {group.qualified_short_id} to the {team2.slug} team"
         html_msg = f"{user1.email}</strong> assigned"
-        self.validate_email(mail.outbox, 2, user2.email, txt_msg, html_msg)
-        self.validate_email(mail.outbox, 3, user3.email, txt_msg, html_msg)
+        self.validate_email(mail.outbox, 2, user1.email, txt_msg, html_msg)
+        self.validate_email(mail.outbox, 3, user2.email, txt_msg, html_msg)
 
         txt_msg = f"assigned {group.qualified_short_id} to the {team2.slug} team"
         html_msg = f"to the {team2.slug} team</p>"
-        self.validate_email(mail.outbox, 4, user4.email, txt_msg, html_msg)
-        self.validate_email(mail.outbox, 5, user1.email, txt_msg, html_msg)
+        self.validate_email(mail.outbox, 4, user3.email, txt_msg, html_msg)
+        self.validate_email(mail.outbox, 5, user4.email, txt_msg, html_msg)
 
         msg = f"Issue assigned to the {team2.slug} team by {user1.email}"
-        self.validate_slack_message(msg, group, project, user2.id, index=2)
-        self.validate_slack_message(msg, group, project, user3.id, index=3)
-        self.validate_slack_message(msg, group, project, user4.id, index=4)
-        self.validate_slack_message(msg, group, project, user1.id, index=5)
+        self.validate_slack_message(msg, group, project, user1.id, index=2)
+        self.validate_slack_message(msg, group, project, user2.id, index=3)
+        self.validate_slack_message(msg, group, project, user3.id, index=4)
+        self.validate_slack_message(msg, group, project, user4.id, index=5)

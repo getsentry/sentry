@@ -52,6 +52,7 @@ export const Body = styled(({children, ...props}) => (
   </Panel>
 ))`
   overflow-x: auto;
+  overflow-y: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
 

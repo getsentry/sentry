@@ -177,7 +177,6 @@ DETAILED_PROJECT = {
         "features": [
             "performance-uncompressed-assets-ingest",
             "dashboards-rh-widget",
-            "org-subdomains",
             "performance-db-main-thread-visible",
             "transaction-name-mark-scrubbed-as-sanitized",
             "sentry-pride-logo-footer",
@@ -204,7 +203,6 @@ DETAILED_PROJECT = {
             "promotion-be-adoption-enabled",
             "monitors",
             "am2-billing",
-            "project-stats",
             "profiling-ga",
             "performance-new-trends",
             "performance-n-plus-one-api-calls-post-process-group",
@@ -284,7 +282,6 @@ DETAILED_PROJECT = {
             "performance-large-http-payload-ingest",
             "crons-issue-platform",
             "profile-file-io-main-thread-ingest",
-            "customer-domains",
             "performance-file-io-main-thread-post-process-group",
             "performance-render-blocking-asset-span-visible",
             "ds-sliding-window-org",

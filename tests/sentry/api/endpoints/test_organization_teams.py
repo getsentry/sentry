@@ -2,13 +2,13 @@ from functools import cached_property
 
 from django.urls import reverse
 
+from sentry.integrations.utils.providers import get_provider_string
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
 from sentry.slug.errors import DEFAULT_SLUG_ERROR_MESSAGE
 from sentry.testutils.cases import APITestCase
-from sentry.types.integrations import get_provider_string
 
 
 class OrganizationTeamsListTest(APITestCase):

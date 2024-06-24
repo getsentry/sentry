@@ -1,6 +1,6 @@
 import logging
-from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, Union
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
+from typing import Any, ParamSpec, TypeVar, Union
 
 from django.conf import settings
 from django.utils.encoding import force_str
@@ -11,9 +11,11 @@ from sentry.utils.strings import truncatechars
 
 PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
 
+P = ParamSpec("P")
+R = TypeVar("R")
 
-def safe_execute(func, *args, **kwargs):
-    expected_errors = kwargs.pop("expected_errors", None)
+
+def safe_execute(func: Callable[P, R], *args: P.args, **kwargs: P.kwargs) -> R | None:
     try:
         result = func(*args, **kwargs)
     except Exception as e:
@@ -26,10 +28,8 @@ def safe_execute(func, *args, **kwargs):
         cls_name = cls.__name__
         logger = logging.getLogger(f"sentry.safe.{cls_name.lower()}")
 
-        if expected_errors and isinstance(e, expected_errors):
-            logger.info("%s.process_error_ignored", func_name, extra={"exception": e})
-            return
         logger.exception("%s.process_error", func_name, extra={"exception": e})
+        return None
     else:
         return result
 

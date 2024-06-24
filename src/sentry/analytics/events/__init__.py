@@ -6,6 +6,7 @@ from .alert_rule_ui_component_webhook_sent import *  # noqa: F401,F403
 from .alert_sent import *  # noqa: F401,F403
 from .api_token_created import *  # noqa: F401,F403
 from .api_token_deleted import *  # noqa: F401,F403
+from .checkin_processing_error_stored import *  # noqa: F401,F403
 from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403
 from .codeowners_updated import *  # noqa: F401,F403
@@ -21,6 +22,7 @@ from .first_cron_checkin_sent import *  # noqa: F401,F403
 from .first_custom_metric_sent import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
 from .first_feedback_sent import *  # noqa: F401,F403
+from .first_insight_span_sent import *  # noqa: F401,F403
 from .first_new_feedback_sent import *  # noqa: F401,F403
 from .first_profile_sent import *  # noqa: F401,F403
 from .first_release_tag_sent import *  # noqa: F401,F403

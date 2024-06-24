@@ -857,7 +857,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(self.user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
         }
-        activity = Activity.objects.filter(group=event.group).first()
+        activity = Activity.objects.get(group=event.group)
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
@@ -1224,8 +1224,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = (
             GroupOwner.objects.filter()
             .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            .order_by("type")[0]
         )
         assert assignee.user_id == self.user.id
 
@@ -1255,10 +1254,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Mimic filter used in get_autoassigned_owner_cached to get the issue owner to be
         # auto-assigned
         assignee = (
-            GroupOwner.objects.filter()
-            .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            GroupOwner.objects.filter().exclude(user_id__isnull=True, team_id__isnull=True).get()
         )
         # Group should be re-assigned to the new group owner
         assert assignee.user_id == user_3.id
@@ -2153,7 +2149,6 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated(self, mock_run_post_process_job):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2180,7 +2175,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2200,7 +2194,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2222,7 +2215,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2532,6 +2524,7 @@ class PostProcessGroupPerformanceTest(
             cache_key=cache_key,
             group_id=None,
             group_states=None,
+            project_id=self.project.id,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2655,6 +2648,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
+            project_id=self.project.id,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2839,8 +2833,9 @@ class PostProcessGroupFeedbackTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(FeedbackGroup.build_post_process_group_feature_name()), self.feature(
-            "organizations:user-feedback-spam-filter-actions"
+        with (
+            self.feature(FeedbackGroup.build_post_process_group_feature_name()),
+            self.feature("organizations:user-feedback-spam-filter-actions"),
         ):
             post_process_group(
                 is_new=is_new,

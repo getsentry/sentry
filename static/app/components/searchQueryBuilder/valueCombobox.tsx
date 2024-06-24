@@ -1,6 +1,7 @@
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
+import type {KeyboardEvent} from '@react-types/shared';
 import orderBy from 'lodash/orderBy';
 
 import Checkbox from 'sentry/components/checkbox';
@@ -8,18 +9,28 @@ import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
 import {
   escapeTagValue,
   formatFilterValue,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
-import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
-import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
-import {t} from 'sentry/locale';
+import {
+  FilterType,
+  TermOperator,
+  Token,
+  type TokenResult,
+} from 'sentry/components/searchSyntax/parser';
+import {
+  ItemType,
+  type SearchGroup,
+  type SearchItem,
+} from 'sentry/components/smartSearchBar/types';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types';
-import {defined} from 'sentry/utils';
+import type {Tag, TagCollection} from 'sentry/types';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 
 type SearchQueryValueBuilderProps = {
@@ -27,9 +38,15 @@ type SearchQueryValueBuilderProps = {
   token: TokenResult<Token.FILTER>;
 };
 
+type SuggestionItem = {
+  value: string;
+  description?: ReactNode;
+  label?: string;
+};
+
 type SuggestionSection = {
   sectionText: string;
-  suggestions: string[];
+  suggestions: SuggestionItem[];
 };
 
 type SuggestionSectionItem = {
@@ -37,55 +54,259 @@ type SuggestionSectionItem = {
   sectionText: string;
 };
 
+const NUMERIC_REGEX = /^-?\d+(\.\d+)?$/;
+const FILTER_VALUE_NUMERIC = /^-?\d+(\.\d+)?[kmb]?$/i;
+const FILTER_VALUE_INT = /^-?\d+[kmb]?$/i;
+
+const RELATIVE_DATE_INPUT_REGEX = /^(\d+)\s*([mhdw]?)/;
+
+function isNumeric(value: string) {
+  return NUMERIC_REGEX.test(value);
+}
+
 function isStringFilterValues(
   tagValues: string[] | SearchGroup[]
 ): tagValues is string[] {
   return typeof tagValues[0] === 'string';
 }
 
-function getPredefinedValues({key}: {key?: Tag}): SuggestionSection[] {
+const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
+const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;
+const DURATION_UNITS = ['ms', 's', 'm', 'h', 'd', 'w'] as const;
+
+const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
+  {
+    sectionText: '',
+    suggestions: [{value: '100'}, {value: '100k'}, {value: '100m'}, {value: '100b'}],
+  },
+];
+
+const DEFAULT_DURATION_SUGGESTIONS: SuggestionSection[] = [
+  {
+    sectionText: '',
+    suggestions: [{value: '100'}, {value: '100k'}, {value: '100m'}, {value: '100b'}],
+  },
+];
+
+const DEFAULT_BOOLEAN_SUGGESTIONS: SuggestionSection[] = [
+  {
+    sectionText: '',
+    suggestions: [{value: 'true'}, {value: 'false'}],
+  },
+];
+
+function getRelativeDateSign(token: TokenResult<Token.FILTER>) {
+  return token.value.type === Token.VALUE_RELATIVE_DATE ? token.value.sign : '-';
+}
+
+function makeRelativeDateDescription(value: number, unit: string) {
+  switch (unit) {
+    case 's':
+      return tn('%s second ago', '%s seconds ago', value);
+    case 'm':
+      return tn('%s minute ago', '%s minutes ago', value);
+    case 'h':
+      return tn('%s hour ago', '%s hours ago', value);
+    case 'd':
+      return tn('%s day ago', '%s days ago', value);
+    case 'w':
+      return tn('%s week ago', '%s weeks ago', value);
+    default:
+      return '';
+  }
+}
+
+function makeDefaultDateSuggestions(
+  token: TokenResult<Token.FILTER>
+): SuggestionSection[] {
+  const sign = getRelativeDateSign(token);
+
+  return [
+    {
+      sectionText: '',
+      suggestions: [
+        {value: `${sign}1h`, label: makeRelativeDateDescription(1, 'h')},
+        {value: `${sign}24h`, label: makeRelativeDateDescription(24, 'h')},
+        {value: `${sign}7d`, label: makeRelativeDateDescription(7, 'd')},
+        {value: `${sign}14d`, label: makeRelativeDateDescription(14, 'd')},
+        {value: `${sign}30d`, label: makeRelativeDateDescription(30, 'd')},
+      ],
+    },
+  ];
+}
+
+function getNumericSuggestions(inputValue: string): SuggestionSection[] {
+  if (!inputValue) {
+    return DEFAULT_NUMERIC_SUGGESTIONS;
+  }
+
+  if (isNumeric(inputValue)) {
+    return [
+      {
+        sectionText: '',
+        suggestions: NUMERIC_UNITS.map(unit => ({
+          value: `${inputValue}${unit}`,
+        })),
+      },
+    ];
+  }
+
+  // If the value is not numeric, don't show any suggestions
+  return [];
+}
+
+function getDurationSuggestions(inputValue: string): SuggestionSection[] {
+  if (!inputValue) {
+    return DEFAULT_DURATION_SUGGESTIONS;
+  }
+
+  if (isNumeric(inputValue)) {
+    return [
+      {
+        sectionText: '',
+        suggestions: DURATION_UNITS.map(unit => ({
+          value: `${inputValue}${unit}`,
+        })),
+      },
+    ];
+  }
+
+  // If the value is not numeric, don't show any suggestions
+  return [];
+}
+
+function getRelativeDateSuggestions(
+  inputValue: string,
+  token: TokenResult<Token.FILTER>
+): SuggestionSection[] {
+  const match = inputValue.match(RELATIVE_DATE_INPUT_REGEX);
+
+  if (!match) {
+    return makeDefaultDateSuggestions(token);
+  }
+
+  const [, value] = match;
+  const intValue = parseInt(value, 10);
+
+  if (isNaN(intValue)) {
+    return makeDefaultDateSuggestions(token);
+  }
+
+  const sign = token.value.type === Token.VALUE_RELATIVE_DATE ? token.value.sign : '-';
+
+  return [
+    {
+      sectionText: '',
+      suggestions: RELATIVE_DATE_UNITS.map(unit => {
+        return {
+          value: `${sign}${intValue}${unit}`,
+          label: makeRelativeDateDescription(intValue, unit),
+        };
+      }),
+    },
+  ];
+}
+
+function getSuggestionDescription(group: SearchGroup | SearchItem) {
+  const description = group.desc ?? group.documentation;
+
+  if (description !== group.value) {
+    return description;
+  }
+
+  return undefined;
+}
+
+function getPredefinedValues({
+  key,
+  inputValue,
+  token,
+}: {
+  inputValue: string;
+  token: TokenResult<Token.FILTER>;
+  key?: Tag;
+}): SuggestionSection[] {
   if (!key) {
     return [];
   }
 
   const fieldDef = getFieldDefinition(key.key);
 
-  if (!key.values) {
+  if (!key.values?.length) {
     switch (fieldDef?.valueType) {
-      // TODO(malwilley): Better duration suggestions
+      case FieldValueType.NUMBER:
+        return getNumericSuggestions(inputValue);
       case FieldValueType.DURATION:
-        return [{sectionText: '', suggestions: ['-1d', '-7d', '+14d']}];
+        return getDurationSuggestions(inputValue);
       case FieldValueType.BOOLEAN:
-        return [{sectionText: '', suggestions: ['true', 'false']}];
+        return DEFAULT_BOOLEAN_SUGGESTIONS;
       // TODO(malwilley): Better date suggestions
       case FieldValueType.DATE:
-        return [{sectionText: '', suggestions: ['-1h', '-24h', '-7d', '-14d', '-30d']}];
+        return getRelativeDateSuggestions(inputValue, token);
       default:
         return [];
     }
   }
 
   if (isStringFilterValues(key.values)) {
-    return [{sectionText: '', suggestions: key.values}];
+    return [{sectionText: '', suggestions: key.values.map(value => ({value}))}];
   }
 
-  return key.values.map(group => ({
-    sectionText: group.title,
-    suggestions: group.children.map(child => child.value).filter(defined),
-  }));
+  const valuesWithoutSection = key.values
+    .filter(group => group.type === ItemType.TAG_VALUE && group.value)
+    .map(group => ({
+      value: group.value as string,
+      description: getSuggestionDescription(group),
+    }));
+  const sections = key.values
+    .filter(group => group.type === 'header')
+    .map(group => {
+      return {
+        sectionText: group.title,
+        suggestions: group.children
+          .filter(child => child.value)
+          .map(child => ({
+            value: child.value as string,
+            description: getSuggestionDescription(child),
+          })),
+      };
+    });
+
+  return [
+    ...(valuesWithoutSection.length > 0
+      ? [{sectionText: '', suggestions: valuesWithoutSection}]
+      : []),
+    ...sections,
+  ];
 }
 
-function keySupportsMultipleValues(key?: Tag): boolean {
-  if (!key) {
-    return true;
-  }
+function tokenSupportsMultipleValues(
+  token: TokenResult<Token.FILTER>,
+  keys: TagCollection
+): boolean {
+  switch (token.filter) {
+    case FilterType.TEXT:
+      // The search parser defaults to the text type, so we need to do further
+      // checks to ensure that the filter actually supports multiple values
+      const key = keys[token.key.text];
+      if (!key) {
+        return true;
+      }
 
-  const fieldDef = getFieldDefinition(key.key);
+      const fieldDef = getFieldDefinition(key.key);
 
-  switch (fieldDef?.valueType) {
-    case FieldValueType.STRING:
-    case FieldValueType.NUMBER:
-    case FieldValueType.INTEGER:
+      return [
+        FieldValueType.STRING,
+        FieldValueType.NUMBER,
+        FieldValueType.INTEGER,
+      ].includes(fieldDef?.valueType ?? FieldValueType.STRING);
+    case FilterType.NUMERIC:
+      if (token.operator === TermOperator.DEFAULT) {
+        return true;
+      }
+      return false;
+    case FilterType.TEXT_IN:
+    case FilterType.NUMERIC_IN:
       return true;
     default:
       return false;
@@ -99,12 +320,43 @@ function getOtherSelectedValues(token: TokenResult<Token.FILTER>): string[] {
         return [];
       }
       return [unescapeTagValue(token.value.value)];
+    case Token.VALUE_NUMBER:
+      return token.value.text ? [token.value.text] : [];
     case Token.VALUE_NUMBER_LIST:
       return token.value.items.map(item => item.value?.text ?? '');
     case Token.VALUE_TEXT_LIST:
       return token.value.items.map(item => unescapeTagValue(item.value?.value ?? ''));
     default:
       return [];
+  }
+}
+
+function cleanFilterValue(key: string, value: string): string {
+  const fieldDef = getFieldDefinition(key);
+  if (!fieldDef) {
+    return escapeTagValue(value);
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.NUMBER:
+      if (FILTER_VALUE_NUMERIC.test(value)) {
+        return value;
+      }
+      return '';
+    case FieldValueType.INTEGER:
+      if (FILTER_VALUE_INT.test(value)) {
+        return value;
+      }
+      return '';
+    case FieldValueType.DATE:
+      const parsed = parseFilterValueDate(value);
+
+      if (!parsed) {
+        return '';
+      }
+      return value;
+    default:
+      return escapeTagValue(value);
   }
 }
 
@@ -119,11 +371,15 @@ function useFilterSuggestions({
 }) {
   const {getTagValues, keys} = useSearchQueryBuilder();
   const key = keys[token.key.text];
-  const shouldFetchValues = key && !key.predefined;
-  const canSelectMultipleValues = keySupportsMultipleValues(key);
+  const predefinedValues = useMemo(
+    () => getPredefinedValues({key, inputValue, token}),
+    [key, inputValue, token]
+  );
+  const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
 
   // TODO(malwilley): Display error states
-  const {data} = useQuery<string[]>({
+  const {data, isFetching} = useQuery<string[]>({
     queryKey: ['search-query-builder', token.key, inputValue] as QueryKey,
     queryFn: () => getTagValues(key, inputValue),
     keepPreviousData: true,
@@ -131,11 +387,12 @@ function useFilterSuggestions({
   });
 
   const createItem = useCallback(
-    (value: string, selected = false) => {
+    (suggestion: SuggestionItem, selected = false) => {
       return {
-        label: value,
-        value: value,
-        textValue: value,
+        label: suggestion.label ?? suggestion.value,
+        value: suggestion.value,
+        details: suggestion.description,
+        textValue: suggestion.value,
         hideCheck: true,
         selectionMode: canSelectMultipleValues ? 'multiple' : 'single',
         trailingItems: ({isFocused, disabled}) => {
@@ -149,7 +406,7 @@ function useFilterSuggestions({
               selected={selected}
               token={token}
               disabled={disabled}
-              value={value}
+              value={suggestion.value}
             />
           );
         },
@@ -160,32 +417,32 @@ function useFilterSuggestions({
 
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
     return shouldFetchValues
-      ? [{sectionText: '', suggestions: data ?? []}]
-      : getPredefinedValues({key});
-  }, [data, key, shouldFetchValues]);
+      ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
+      : predefinedValues;
+  }, [data, predefinedValues, shouldFetchValues]);
 
   // Grouped sections for rendering purposes
   const suggestionSectionItems = useMemo<SuggestionSectionItem[]>(() => {
     const itemsWithoutSection = suggestionGroups
       .filter(group => group.sectionText === '')
       .flatMap(group => group.suggestions)
-      .filter(value => !selectedValues.includes(value));
+      .filter(suggestion => !selectedValues.includes(suggestion.value));
     const sections = suggestionGroups.filter(group => group.sectionText !== '');
 
     return [
       {
         sectionText: '',
         items: getItemsWithKeys([
-          ...selectedValues.map(value => createItem(value, true)),
-          ...itemsWithoutSection.map(value => createItem(value)),
+          ...selectedValues.map(value => createItem({value}, true)),
+          ...itemsWithoutSection.map(suggestion => createItem(suggestion)),
         ]),
       },
       ...sections.map(group => ({
         sectionText: group.sectionText,
         items: getItemsWithKeys(
           group.suggestions
-            .filter(value => !selectedValues.includes(value))
-            .map(value => createItem(value))
+            .filter(suggestion => !selectedValues.includes(suggestion.value))
+            .map(suggestion => createItem(suggestion))
         ),
       })),
     ];
@@ -199,6 +456,7 @@ function useFilterSuggestions({
   return {
     items,
     suggestionSectionItems,
+    isFetching,
   };
 }
 
@@ -243,12 +501,12 @@ export function SearchQueryBuilderValueCombobox({
   token,
   onCommit,
 }: SearchQueryValueBuilderProps) {
+  const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [inputValue, setInputValue] = useState('');
 
   const {keys, dispatch} = useSearchQueryBuilder();
-  const key = keys[token.key.text];
-  const canSelectMultipleValues = keySupportsMultipleValues(key);
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
   const selectedValues = useMemo(
     () =>
       canSelectMultipleValues
@@ -256,7 +514,7 @@ export function SearchQueryBuilderValueCombobox({
         : [],
     [canSelectMultipleValues, token]
   );
-  const {items, suggestionSectionItems} = useFilterSuggestions({
+  const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     inputValue,
     selectedValues,
@@ -264,7 +522,10 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleSelectValue = useCallback(
     (value: string) => {
-      if (!value) {
+      const cleanedValue = cleanFilterValue(token.key.text, value);
+
+      // TODO(malwilley): Add visual feedback for invalid values
+      if (!cleanedValue) {
         return;
       }
 
@@ -272,7 +533,7 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'TOGGLE_FILTER_VALUE',
           token: token,
-          value: escapeTagValue(value),
+          value: cleanedValue,
         });
 
         // If toggling off a value, keep focus inside the value
@@ -282,8 +543,8 @@ export function SearchQueryBuilderValueCombobox({
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token.value,
-          value: escapeTagValue(value),
+          token: token,
+          value: cleanedValue,
         });
         onCommit();
       }
@@ -292,17 +553,25 @@ export function SearchQueryBuilderValueCombobox({
   );
 
   const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
+    (e: KeyboardEvent) => {
+      // Default combobox behavior stops events from propagating outside of input
+      // Certain keys like ctrl+z should be handled handled in useQueryBuilderGrid()
+      // so we need to continue propagation for those.
+      if (e.key === 'z' && isCtrlKeyPressed(e)) {
+        e.continuePropagation();
+      }
+
       // If at the start of the input and backspace is pressed, delete the last selected value
       if (
         e.key === 'Backspace' &&
         e.currentTarget.selectionStart === 0 &&
-        e.currentTarget.selectionEnd === 0
+        e.currentTarget.selectionEnd === 0 &&
+        canSelectMultipleValues
       ) {
         dispatch({type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE', token});
       }
     },
-    [dispatch, token]
+    [canSelectMultipleValues, dispatch, token]
   );
 
   // Clicking anywhere in the value editing area should focus the input
@@ -316,7 +585,7 @@ export function SearchQueryBuilderValueCombobox({
   }, []);
 
   return (
-    <ValueEditing onClick={onClick} data-test-id="filter-value-editing">
+    <ValueEditing ref={ref} onClick={onClick} data-test-id="filter-value-editing">
       {selectedValues.map(value => (
         <SelectedValue key={value}>{value},</SelectedValue>
       ))}
@@ -335,6 +604,10 @@ export function SearchQueryBuilderValueCombobox({
         onKeyDown={onKeyDown}
         autoFocus
         maxOptions={50}
+        openOnFocus
+        isLoading={isFetching}
+        // Ensure that the menu stays open when clicking on the selected items
+        shouldCloseOnInteractOutside={el => el !== ref.current}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>

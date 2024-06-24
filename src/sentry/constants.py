@@ -8,6 +8,7 @@ import os.path
 from collections import namedtuple
 from collections.abc import Sequence
 from datetime import timedelta
+from enum import Enum
 from typing import cast
 
 import sentry_relay.consts
@@ -597,6 +598,43 @@ class ExportQueryType:
             return cls.DISCOVER
         else:
             raise ValueError(f"Not an ExportQueryType str: {string!r}")
+
+
+class InsightModules(Enum):
+    HTTP = "http"
+    DB = "db"
+    ASSETS = "assets"  # previously named resources
+    APP_START = "app_start"
+    SCREEN_LOAD = "screen_load"
+    VITAL = "vital"
+    CACHE = "cache"
+    QUEUE = "queue"
+    LLM_MONITORING = "llm_monitoring"
+
+
+# each span filter takes in a span object and returns whether
+# the span belongs in the corresponding insight module
+INSIGHT_MODULE_SPAN_FILTERS = {
+    InsightModules.HTTP: lambda span: span.get("op") == "http.client"
+    and span.get("module") == "http",
+    InsightModules.DB: lambda span: span.get("module") == "db" and "description" in span.keys(),
+    InsightModules.ASSETS: lambda span: span.get("op")
+    in ["resource.script", "resource.css", "resource.font", "resource.img"],
+    InsightModules.APP_START: lambda span: span.get("op").startswith("app.start."),
+    InsightModules.SCREEN_LOAD: lambda span: span.get("sentry_tags", {}).get("transaction.op")
+    == "ui.load",
+    InsightModules.VITAL: lambda span: span.get("op")
+    in [
+        "ui.interaction.click",
+        "ui.interaction.hover",
+        "ui.interaction.drag",
+        "ui.interaction.press",
+    ],
+    InsightModules.CACHE: lambda span: span.get("op")
+    in ["cache.get_item", "cache.get", "cache.put"],
+    InsightModules.QUEUE: lambda span: span.get("op") in ["queue.process", "queue.publish"],
+    InsightModules.LLM_MONITORING: lambda span: span.get("op").startswith("ai.pipeline"),
+}
 
 
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))

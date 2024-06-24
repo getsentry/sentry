@@ -1,6 +1,6 @@
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
-from unittest.mock import Mock, patch
+from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
 from django.core import signing
@@ -189,23 +189,22 @@ class StaffTestCase(TestCase):
         request_staff = getattr(request, "staff")
         assert request_staff.is_active
 
-        # Mock the signed cookie in the request to match the token in the session
-        request.get_signed_cookie = Mock(return_value=request_staff.token)  # type: ignore[method-assign]
+        # mock the signed cookie in the request to match the token in the session
+        with mock.patch.object(request, "get_signed_cookie", return_value=request_staff.token):
+            activated_staff = Staff(request)
 
-        activated_staff = Staff(request)
+            # Staff should still be active
+            assert activated_staff.is_active
+            # The session should not be modified because the staff key in the
+            # session wasn't replaced
+            assert request.session.modified is False
 
-        # Staff should still be active
-        assert activated_staff.is_active
-        # The session should not be modified because the staff key in the
-        # session wasn't replaced
-        assert request.session.modified is False
-
-        # See mypy issue: https://github.com/python/mypy/issues/9457
-        data = request.session.get(SESSION_KEY)
-        assert data
-        assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
-        assert len(data["tok"]) == 12
-        assert data["uid"] == str(self.staff_user.id)
+            # See mypy issue: https://github.com/python/mypy/issues/9457
+            data = request.session.get(SESSION_KEY)
+            assert data
+            assert data["exp"] == (self.current_datetime + MAX_AGE).strftime("%s")
+            assert len(data["tok"]) == 12
+            assert data["uid"] == str(self.staff_user.id)
 
     def test_logout_clears_session(self):
         request = self.build_request()
@@ -225,7 +224,7 @@ class StaffTestCase(TestCase):
         assert request.staff.is_active
         assert is_active_staff(request)
 
-        response = Mock()
+        response = mock.Mock()
         middleware.process_response(request, response)
         response.set_signed_cookie.assert_called_once_with(
             COOKIE_NAME,
@@ -248,7 +247,7 @@ class StaffTestCase(TestCase):
         assert not request.staff.is_active
         assert not is_active_staff(request)
 
-        response = Mock()
+        response = mock.Mock()
         middleware.process_response(request, response)
         response.delete_cookie.assert_called_once_with(COOKIE_NAME)
 
@@ -263,7 +262,7 @@ class StaffTestCase(TestCase):
         assert not request.staff.is_active
         assert not is_active_staff(request)
 
-        response = Mock()
+        response = mock.Mock()
         middleware.process_response(request, response)
         assert not response.set_signed_cookie.called
 
@@ -304,7 +303,7 @@ class StaffTestCase(TestCase):
         request.staff._is_active = False
         assert not is_active_staff(request)
 
-    @patch.object(Staff, "is_active", return_value=True)
+    @mock.patch.object(Staff, "is_active", return_value=True)
     def test_is_active_staff_from_request(self, mock_is_active):
         request = self.build_request()
         request.staff = None

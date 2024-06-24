@@ -8,7 +8,7 @@ from hashlib import sha256
 from django.http import HttpResponse
 from rest_framework.request import Request
 
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.models.apikey import ApiKey
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository

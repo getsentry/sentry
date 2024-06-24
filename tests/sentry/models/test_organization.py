@@ -74,7 +74,10 @@ class OrganizationTest(TestCase, HybridCloudTestMixin):
         assert org.default_owner_id is None
 
     @mock.patch.object(
-        Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
+        Organization,
+        "get_members_with_org_roles",
+        side_effect=Organization.get_members_with_org_roles,
+        autospec=True,
     )
     def test_default_owner_id_cached(self, mock_get_owners):
         user = self.create_user("foo@example.com")
@@ -406,7 +409,7 @@ class Require2fa(TestCase, HybridCloudTestMixin):
         url = org.absolute_url("/organizations/acme/issues/", query="project=123", fragment="ref")
         assert url == "http://testserver/organizations/acme/issues/?project=123#ref"
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_absolute_url_with_customer_domain(self):
         org = self.create_organization(owner=self.user, slug="acme")
         url = org.absolute_url("/organizations/acme/restore/")

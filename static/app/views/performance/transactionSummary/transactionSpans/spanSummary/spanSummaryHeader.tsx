@@ -7,14 +7,14 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {DataTitles} from 'sentry/views/starfish/views/spans/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
 
 type Props = {
-  avgDuration: number;
-  spanCount: number;
-  spanDescription: string;
-  spanOp: string;
-  timeSpent: number;
+  avgDuration: number | undefined;
+  spanCount: number | undefined;
+  spanDescription: string | undefined;
+  spanOp: string | undefined;
+  timeSpent: number | undefined;
 };
 
 export default function SpanSummaryHeader(props: Props) {
@@ -25,11 +25,13 @@ export default function SpanSummaryHeader(props: Props) {
       <HeaderInfo data-test-id="header-operation-name">
         <StyledSectionHeading>{t('Span')}</StyledSectionHeading>
         <SectionBody>
-          <SpanLabelContainer>
+          <SpanLabelContainer data-test-id="header-span-description">
             {spanDescription ? spanDescription : emptyValue}
           </SpanLabelContainer>
         </SectionBody>
-        <SectionSubtext data-test-id="operation-name">{spanOp}</SectionSubtext>
+        <SectionSubtext data-test-id="operation-name">
+          {spanOp ? spanOp : emptyValue}
+        </SectionSubtext>
       </HeaderInfo>
 
       <HeaderInfo data-test-id="header-avg-duration">
@@ -43,7 +45,7 @@ export default function SpanSummaryHeader(props: Props) {
         </NumericSectionWrapper>
       </HeaderInfo>
 
-      <HeaderInfo data-test-id="header-total-exclusive-time">
+      <HeaderInfo data-test-id="header-total-time-spent">
         <StyledSectionHeading>{DataTitles.timeSpent}</StyledSectionHeading>
         <NumericSectionWrapper>
           <SectionBody>
@@ -53,7 +55,7 @@ export default function SpanSummaryHeader(props: Props) {
               '\u2014'
             )}
           </SectionBody>
-          <SectionSubtext>
+          <SectionSubtext data-test-id="total-span-count">
             {defined(spanCount)
               ? tct('[spanCount] spans', {spanCount: <Count value={spanCount} />})
               : '\u2014'}
@@ -107,4 +109,4 @@ const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
 `;
 
-const emptyValue = <EmptyValueContainer>{t('(unnamed span)')}</EmptyValueContainer>;
+const emptyValue = <EmptyValueContainer>{'\u2014'}</EmptyValueContainer>;

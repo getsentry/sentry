@@ -111,12 +111,12 @@ class PostSentryAppInstallationsTest(SentryAppInstallationsTest):
     method = "post"
 
     def get_expected_response(self, app, org):
+        installation = SentryAppInstallation.objects.get(sentry_app=app, organization_id=org.id)
+        assert installation.api_grant is not None
         return {
             "app": {"slug": app.slug, "uuid": app.uuid},
             "organization": {"slug": org.slug},
-            "code": SentryAppInstallation.objects.get(
-                sentry_app=app, organization_id=org.id
-            ).api_grant.code,
+            "code": installation.api_grant.code,
         }
 
     def test_install_unpublished_app(self):

@@ -1,6 +1,5 @@
 import {GroupsFixture} from 'sentry-fixture/groups';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
@@ -27,14 +26,9 @@ describe('Issues Similar View', function () {
     features: ['similarity-view'],
   });
 
-  const routerContext = RouterContextFixture([
-    {
-      router: {
-        ...RouterFixture(),
-        params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
-      },
-    },
-  ]);
+  const router = RouterFixture({
+    params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
+  });
 
   const scores = [
     {'exception:stacktrace:pairs': 0.375},
@@ -46,8 +40,6 @@ describe('Issues Similar View', function () {
   const mockData = {
     similar: GroupsFixture().map((issue, i) => [issue, scores[i]]),
   };
-
-  const router = RouterFixture();
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
@@ -82,7 +74,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -111,7 +103,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 
@@ -144,7 +136,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 
@@ -175,7 +167,7 @@ describe('Issues Similar View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 
@@ -201,14 +193,9 @@ describe('Issues Similar Embeddings View', function () {
     features: ['similarity-view', 'similarity-embeddings'],
   });
 
-  const routerContext = RouterContextFixture([
-    {
-      router: {
-        ...RouterFixture(),
-        params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
-      },
-    },
-  ]);
+  const router = RouterFixture({
+    params: {orgId: 'org-slug', projectId: 'project-slug', groupId: 'group-id'},
+  });
 
   const similarEmbeddingsScores = [
     {exception: 0.01, message: 0.3748, shouldBeGrouped: 'Yes'},
@@ -223,8 +210,6 @@ describe('Issues Similar Embeddings View', function () {
       similarEmbeddingsScores[i],
     ]),
   };
-
-  const router = RouterFixture();
 
   beforeEach(function () {
     mock = MockApiClient.addMockResponse({
@@ -259,7 +244,7 @@ describe('Issues Similar Embeddings View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -289,7 +274,7 @@ describe('Issues Similar Embeddings View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 
@@ -322,7 +307,7 @@ describe('Issues Similar Embeddings View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 
@@ -345,7 +330,7 @@ describe('Issues Similar Embeddings View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 
@@ -382,7 +367,7 @@ describe('Issues Similar Embeddings View', function () {
         routes={router.routes}
         route={{}}
       />,
-      {context: routerContext}
+      {router}
     );
     renderGlobalModal();
 

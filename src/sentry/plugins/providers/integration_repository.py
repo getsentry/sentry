@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
-from sentry.integrations import IntegrationInstallation
+from sentry.integrations.base import IntegrationInstallation
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.models.user import User

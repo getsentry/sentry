@@ -132,7 +132,7 @@ class AppStoreConnectAppsEndpoint(ProjectEndpoint):
     ```
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
@@ -218,7 +218,7 @@ class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):
     they receive the saved configuration.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project) -> Response:
@@ -296,7 +296,7 @@ class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):
     a sub-set. Useful for API key refreshes.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     def post(self, request: Request, project: Project, credentials_id: str) -> Response:
@@ -364,7 +364,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):
     headers, see the sentry.middleware.ratelimit module.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (StrictProjectPermission,)
 
     enforce_rate_limit = True
@@ -440,7 +440,7 @@ class AppStoreConnectStatusEndpoint(ProjectEndpoint):
       of whether there were any or no builds in App Store Connect at the time.
     """
 
-    owner = ApiOwner.OWNERS_NATIVE
+    owner = ApiOwner.PROCESSING
     permission_classes = (ProjectPermission,)
 
     def get(self, request: Request, project: Project) -> Response:

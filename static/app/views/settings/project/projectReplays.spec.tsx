@@ -6,7 +6,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ProjectReplays from 'sentry/views/settings/project/projectReplays';
 
 describe('ProjectReplays', function () {
-  const {routerProps, organization, project, routerContext} = initializeOrg();
+  const {routerProps, organization, project, router} = initializeOrg();
   const url = `/projects/${organization.slug}/${project.slug}/`;
 
   beforeEach(function () {
@@ -27,7 +27,7 @@ describe('ProjectReplays', function () {
     render(
       <ProjectReplays {...routerProps} organization={organization} project={project} />,
       {
-        context: routerContext,
+        router,
       }
     );
 

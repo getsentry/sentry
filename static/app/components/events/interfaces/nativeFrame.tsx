@@ -329,7 +329,9 @@ function NativeFrame({
           </GenericCellWrapper>
           <FunctionNameCell>
             {functionName ? (
-              <AnnotatedText value={functionName.value} meta={functionName.meta} />
+              <Tooltip title={frame?.rawFunction ?? frame?.symbol} delay={tooltipDelay}>
+                <AnnotatedText value={functionName.value} meta={functionName.meta} />
+              </Tooltip>
             ) : (
               `<${t('unknown')}>`
             )}{' '}

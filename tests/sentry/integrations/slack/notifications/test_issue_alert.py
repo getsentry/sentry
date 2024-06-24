@@ -12,6 +12,7 @@ from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
 from sentry.integrations.slack.message_builder.issues import get_tags
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import MonitorIncidentType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models.identity import Identity, IdentityStatus
@@ -34,7 +35,6 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_P
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.integrations import ExternalProviders
 
 pytestmark = [requires_snuba]
 
@@ -469,8 +469,10 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
                 status=ObjectStatus.DISABLED
             )
 
-        rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
-        ProjectOwnership.objects.create(project_id=self.project.id, schema=dump_schema([rule]))
+        grammar_rule = GrammarRule(Matcher("path", "*"), [Owner("team", self.team.slug)])
+        ProjectOwnership.objects.create(
+            project_id=self.project.id, schema=dump_schema([grammar_rule])
+        )
 
         event = self.store_event(
             data={

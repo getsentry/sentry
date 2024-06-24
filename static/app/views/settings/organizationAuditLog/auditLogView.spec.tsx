@@ -15,7 +15,7 @@ import OrganizationAuditLog from 'sentry/views/settings/organizationAuditLog';
 // XXX(epurkhiser): This appears to also be tested by ./index.spec.tsx
 
 describe('OrganizationAuditLog', function () {
-  const {routerContext, organization, router} = initializeOrg({
+  const {organization, router} = initializeOrg({
     projects: [],
     router: {
       params: {orgId: 'org-slug'},
@@ -33,7 +33,7 @@ describe('OrganizationAuditLog', function () {
 
   it('renders', async function () {
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByRole('heading')).toHaveTextContent('Audit Log');
@@ -54,7 +54,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('No audit entries available')).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe('OrganizationAuditLog', function () {
 
   it('displays whether an action was done by a superuser', async () => {
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('Sentry Staff')).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     await userEvent.click(screen.getByText('Select Action:'));
@@ -123,7 +123,7 @@ describe('OrganizationAuditLog', function () {
     });
 
     render(<OrganizationAuditLog location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));

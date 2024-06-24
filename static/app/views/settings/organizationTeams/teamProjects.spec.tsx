@@ -25,7 +25,7 @@ describe('OrganizationTeamProjects', function () {
     access: ['project:read', 'project:write', 'project:admin'],
   });
 
-  const {routerContext, routerProps, organization} = initializeOrg({
+  const {router, routerProps, organization} = initializeOrg({
     organization: OrganizationFixture({slug: 'org-slug'}),
     projects: [project, project2],
     router: {params: {teamId: team.slug}},
@@ -64,7 +64,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('should fetch linked and unlinked projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -78,7 +78,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('should allow bookmarking', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -101,7 +101,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('should allow adding and removing projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 
@@ -121,7 +121,7 @@ describe('OrganizationTeamProjects', function () {
 
   it('handles filtering unlinked projects', async function () {
     render(<OrganizationTeamProjects {...routerProps} team={team} />, {
-      context: routerContext,
+      router,
       organization,
     });
 

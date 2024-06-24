@@ -42,6 +42,7 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
@@ -60,6 +61,7 @@ type TraceDrawerProps = {
   metaResults: TraceMetaQueryResults;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  replayRecord: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   trace: TraceTree;
   traceEventView: EventView;
@@ -439,6 +441,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 <TraceProfiles tree={props.trace} onScrollToNode={props.onScrollToNode} />
               ) : (
                 <TraceTreeNodeDetails
+                  replayRecord={props.replayRecord}
                   manager={props.manager}
                   organization={organization}
                   onParentClick={onParentClick}

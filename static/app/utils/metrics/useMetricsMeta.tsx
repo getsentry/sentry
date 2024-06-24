@@ -3,7 +3,7 @@ import {useMemo} from 'react';
 import type {PageFilters} from 'sentry/types/core';
 import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
-import {useApiQueries} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {MetricMeta, MRI, UseCase} from '../../types/metrics';
@@ -27,52 +27,31 @@ export function useMetricsMeta(
 ): {data: MetricMeta[]; isLoading: boolean; isRefetching: boolean; refetch: () => void} {
   const {slug} = useOrganization();
 
-  const queryKeys = useMemo(() => {
-    return useCases.map(useCase => getMetricsMetaQueryKey(slug, pageFilters, [useCase]));
-  }, [slug, pageFilters, useCases]);
-
-  const results = useApiQueries<MetricMeta[]>(queryKeys, {
-    enabled,
-    staleTime: 2000, // 2 seconds to cover page load
-  });
-
-  const {data, isLoading, isRefetching, refetch} = useMemo(() => {
-    const mergedResult: {
-      data: MetricMeta[];
-      isLoading: boolean;
-      isRefetching: boolean;
-      refetch: () => void;
-    } = {
-      data: [],
-      isLoading: false,
-      isRefetching: false,
-      refetch: () => {
-        results.forEach(result => result.refetch());
-      },
-    };
-
-    for (const useCaseResult of results) {
-      mergedResult.isLoading ||= useCaseResult.isLoading;
-      mergedResult.isRefetching ||= useCaseResult.isRefetching;
-      const useCaseData = useCaseResult.data ?? [];
-      mergedResult.data.push(...useCaseData);
+  const {data, isLoading, isRefetching, refetch} = useApiQuery<MetricMeta[]>(
+    getMetricsMetaQueryKey(slug, pageFilters, useCases),
+    {
+      enabled,
+      staleTime: 2000, // 2 seconds to cover page load
     }
-
-    return mergedResult;
-  }, [results]);
-
-  const meta = (data ?? []).sort((a, b) =>
-    formatMRI(a.mri).localeCompare(formatMRI(b.mri))
   );
 
-  if (!filterBlockedMetrics) {
-    return {data: meta, isLoading, isRefetching, refetch};
-  }
+  const meta = useMemo(
+    () => (data ?? []).sort((a, b) => formatMRI(a.mri).localeCompare(formatMRI(b.mri))),
+    [data]
+  );
+
+  const filteredMeta = useMemo(
+    () =>
+      filterBlockedMetrics
+        ? meta.filter(entry => {
+            return entry.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
+          })
+        : meta,
+    [filterBlockedMetrics, meta]
+  );
 
   return {
-    data: data.filter(entry => {
-      return entry.blockingStatus?.every(({isBlocked}) => !isBlocked) ?? true;
-    }),
+    data: filteredMeta,
     isLoading,
     isRefetching,
     refetch,

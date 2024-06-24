@@ -8,18 +8,19 @@ import SpanSummaryButton from 'sentry/components/events/interfaces/spans/spanSum
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {SQLishFormatter} from 'sentry/utils/sqlish/SQLishFormatter';
+import {resolveSpanModule} from 'sentry/views/insights/common/utils/resolveSpanModule';
+import {
+  MissingFrame,
+  StackTraceMiniFrame,
+} from 'sentry/views/insights/database/components/stackTraceMiniFrame';
+import {ModuleName} from 'sentry/views/insights/types';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {
-  MissingFrame,
-  StackTraceMiniFrame,
-} from 'sentry/views/starfish/components/stackTraceMiniFrame';
-import {ModuleName} from 'sentry/views/starfish/types';
-import {resolveSpanModule} from 'sentry/views/starfish/utils/resolveSpanModule';
-import {SQLishFormatter} from 'sentry/views/starfish/utils/sqlish/SQLishFormatter';
 
 import {TraceDrawerComponents} from '../../styles';
 
@@ -76,6 +77,18 @@ export function SpanDescription({
             spanSlug: {op: span.op, group: groupHash},
             projectID: event.projectID,
           })}
+          onClick={() => {
+            hasNewSpansUIFlag
+              ? trackAnalytics('trace.trace_layout.view_span_summary', {
+                  organization,
+                  module: resolvedModule,
+                })
+              : trackAnalytics('trace.trace_layout.view_similar_spans', {
+                  organization,
+                  module: resolvedModule,
+                  source: 'span_description',
+                });
+          }}
         >
           {hasNewSpansUIFlag ? t('View Span Summary') : t('View Similar Spans')}
         </Button>

@@ -31,7 +31,7 @@ function mountModal({columns, onApply, customMeasurements}, initialData) {
       measurementKeys={null}
       customMeasurements={customMeasurements}
     />,
-    {context: initialData.routerContext}
+    {router: initialData.router}
   );
 }
 

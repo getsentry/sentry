@@ -19,13 +19,13 @@ import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidg
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
@@ -60,6 +60,7 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
@@ -91,8 +92,12 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
-function logTraceType(type: TraceType, organization: Organization) {
-  switch (type) {
+function logTraceMetadata(
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization
+) {
+  switch (tree.shape) {
     case TraceType.BROKEN_SUBTRACES:
     case TraceType.EMPTY_TRACE:
     case TraceType.MULTIPLE_ROOTS:
@@ -100,7 +105,7 @@ function logTraceType(type: TraceType, organization: Organization) {
     case TraceType.NO_ROOT:
     case TraceType.ONLY_ERRORS:
     case TraceType.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceShape(type, organization);
+      traceAnalytics.trackTraceMetadata(tree, projects, organization);
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
@@ -211,6 +216,7 @@ export function TraceView() {
                 traceEventView={traceEventView}
                 metaResults={meta}
                 rootEvent={rootEvent}
+                replayRecord={null}
                 source="performance"
               />
             </TraceInnerLayout>
@@ -234,6 +240,7 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
 type TraceViewWaterfallProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
+  replayRecord: ReplayRecord | null;
   rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
   status: UseApiQueryResult<any, any>['status'];
@@ -245,9 +252,9 @@ type TraceViewWaterfallProps = {
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const api = useApi();
   const {projects} = useProjects();
+  const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const {replay} = useReplayContext();
 
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
@@ -325,11 +332,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (props.trace) {
-      return TraceTree.FromTrace(props.trace, replay?.getReplay());
+      return TraceTree.FromTrace(props.trace, props.replayRecord);
     }
 
     throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects, replay]);
+  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -519,6 +526,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      trackAnalytics('trace.trace_layout.span_row_click', {
+        organization,
+        num_children: node.children.length,
+        project_platform:
+          projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
+      });
+
       if (traceStateRef.current.preferences.drawer.minimized) {
         traceDispatch({type: 'minimize drawer', payload: false});
       }
@@ -542,7 +556,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch]
+    [setRowAsFocused, traceDispatch, organization, projects]
   );
 
   const scrollRowIntoView = useCallback(
@@ -813,8 +827,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    logTraceType(shape, props.organization);
-  }, [tree, shape, props.organization]);
+    logTraceMetadata(tree, projects, props.organization);
+  }, [tree, projects, props.organization]);
 
   useLayoutEffect(() => {
     if (!tree.root?.space || tree.type !== 'trace') {
@@ -838,7 +852,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   return (
     <Fragment>
       <TraceToolbar>
-        <TraceSearchInput onTraceSearch={onTraceSearch} />
+        <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
         <TraceResetZoomButton
           viewManager={viewManager}
           organization={props.organization}
@@ -870,6 +884,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         ) : null}
 
         <TraceDrawer
+          replayRecord={props.replayRecord}
           metaResults={props.metaResults}
           traceType={shape}
           trace={tree}

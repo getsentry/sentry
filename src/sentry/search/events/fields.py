@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import datetime, timezone
 from re import Match
@@ -1455,14 +1455,16 @@ class DiscoverFunction:
         if args_count != total_args_count:
             required_args_count = self.required_args_count
             if required_args_count == total_args_count:
-                raise InvalidSearchQuery(f"{field}: expected {total_args_count:g} argument(s)")
+                raise InvalidSearchQuery(
+                    f"{field}: expected {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
+                )
             elif args_count < required_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at least {required_args_count:g} argument(s)"
+                    f"{field}: expected at least {required_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
             elif args_count > total_args_count:
                 raise InvalidSearchQuery(
-                    f"{field}: expected at most {total_args_count:g} argument(s)"
+                    f"{field}: expected at most {total_args_count:g} argument(s) but got {args_count:g} argument(s)"
                 )
 
     def validate_result_type(self, result_type):
@@ -2111,6 +2113,29 @@ def normalize_percentile_alias(args: Mapping[str, str]) -> str:
     return f"{match.group(1)}({aggregate_arg})"
 
 
+def custom_time_processor(interval, time_column):
+    """For when snuba doesn't have a time processor for a dataset"""
+    return Function(
+        "toDateTime",
+        [
+            Function(
+                "multiply",
+                [
+                    Function(
+                        "intDiv",
+                        [
+                            time_column,
+                            interval,
+                        ],
+                    ),
+                    interval,
+                ],
+            ),
+        ],
+        "time",
+    )
+
+
 class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
@@ -2142,7 +2167,7 @@ class MetricArg(FunctionArg):
     def __init__(
         self,
         name: str,
-        allowed_columns: Sequence[str] | None = None,
+        allowed_columns: Iterable[str] | None = None,
         allow_custom_measurements: bool | None = True,
         validate_only: bool | None = True,
         allow_mri: bool = True,
