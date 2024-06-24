@@ -69,7 +69,7 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
             },
         )
-        return
+        return [], []
     filtered_snuba_results: list[GroupEventRow] = [
         snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
     ]
