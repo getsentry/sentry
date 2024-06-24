@@ -11,7 +11,7 @@ from sentry.seer.similarity.types import (
     SimilarGroupNotFoundError,
     SimilarIssuesEmbeddingsRequest,
 )
-from sentry.utils import json, metrics
+from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -78,11 +78,7 @@ def get_similarity_data_from_seer(
                     similar_issues_request["project_id"], raw_similar_issue_data
                 )
             )
-            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "found"})
         except IncompleteSeerDataError as err:
-            metrics.incr(
-                "seer.similar_issue_request.parent_issue", tags={"outcome": "incomplete_data"}
-            )
             logger.exception(
                 str(err),
                 extra={
@@ -91,7 +87,14 @@ def get_similarity_data_from_seer(
                 },
             )
         except SimilarGroupNotFoundError:
-            metrics.incr("seer.similar_issue_request.parent_issue", tags={"outcome": "not_found"})
+            logger.warning(
+                "get_similarity_data_from_seer.parent_group_not_found",
+                extra={
+                    "hash": similar_issues_request["hash"],
+                    "parent_hash": raw_similar_issue_data.get("parent_hash"),
+                    "project_id": similar_issues_request["project_id"],
+                },
+            )
 
     return sorted(
         normalized,
