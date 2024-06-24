@@ -210,12 +210,14 @@ class DispatchRemoteCallTest(TestCase):
         with pytest.raises(RpcDisabledException):
             dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
 
-    def test_get_method_timeout(self):
+    def test_get_method_timeout(self) -> None:
         override_value = 20.0
         assert settings.RPC_TIMEOUT is not None
         assert override_value != settings.RPC_TIMEOUT
 
-        timeout_override_setting = {"organization_service.get_org_by_id": override_value}
+        timeout_override_setting: dict[str, Any] = {
+            "organization_service.get_org_by_id": override_value
+        }
 
         # Test for no value
         test_class = _RemoteSiloCall(
@@ -259,13 +261,15 @@ class DispatchRemoteCallTest(TestCase):
         ):
             assert test_class.get_method_timeout() == settings.RPC_TIMEOUT
 
-    def test_get_method_retry_count(self):
+    def test_get_method_retry_count(self) -> None:
         override_value = 1
         default_value = options.get("hybridcloud.rpc.retries")
         assert default_value is not None
         assert override_value != default_value
 
-        retry_override_setting = {"organization_service.get_org_by_id": override_value}
+        retry_override_setting: dict[str, Any] = {
+            "organization_service.get_org_by_id": override_value
+        }
 
         # Test for no value
         test_class = _RemoteSiloCall(
