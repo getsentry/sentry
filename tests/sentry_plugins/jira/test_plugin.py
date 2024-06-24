@@ -189,7 +189,7 @@ issue_response: dict[str, Any] = {
     "fields": {"summary": "TypeError: 'set' object has no attribute '__getitem__'"},
 }
 
-user_search_response: dict[str, Any] = [
+user_search_response: list[dict[str, Any]] = [
     {
         "self": "https://getsentry.atlassian.net/rest/api/2/user?username=userexample",
         "key": "JIRAUSER10100",
@@ -336,7 +336,7 @@ class JiraPluginTest(TestCase):
         url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=issue_id"
         response = self.client.get(url)
 
-        assert response.data == {
+        assert response.json() == {
             "issue_id": [
                 {
                     "text": "(SEN-19) TypeError: 'set' object has no attribute '__getitem__'",
@@ -357,7 +357,7 @@ class JiraPluginTest(TestCase):
 
         url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=user&autocomplete_field=reporter&jira_url=https://getsentry.atlassian.net/rest/api/2/user/search/"
         response = self.client.get(url)
-        assert response.data == {
+        assert response.json() == {
             "reporter": [
                 {"id": "userexample", "text": "User Example - user@example.com (userexample)"}
             ]
@@ -368,7 +368,7 @@ class JiraPluginTest(TestCase):
 
         url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=reporter"
         response = self.client.get(url)
-        assert response.data == {
+        assert response.json() == {
             "error_type": "validation",
             "errors": [{"jira_url": "missing required parameter"}],
         }
@@ -378,7 +378,7 @@ class JiraPluginTest(TestCase):
 
         url = f"/api/0/issues/{self.group.id}/plugins/jira/autocomplete/?autocomplete_query=SEN&autocomplete_field=reporter&jira_url=https://eviljira.com/"
         response = self.client.get(url)
-        assert response.data == {
+        assert response.json() == {
             "error_type": "validation",
             "errors": [{"jira_url": "domain must match"}],
         }
