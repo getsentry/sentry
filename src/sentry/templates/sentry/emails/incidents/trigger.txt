@@ -1,6 +1,6 @@
 {% spaceless %}
 {% autoescape off %}
-# Alert Rule Trigger on {{ incident_name }}.
+# {% if monitor_type == 1 %} Activated {% endif %}Alert Rule Trigger on {{ incident_name }}.
 
 {% if enhanced_privacy %}
 Details about this alert are not shown in this email since enhanced privacy

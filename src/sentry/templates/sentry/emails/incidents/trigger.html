@@ -38,7 +38,10 @@
       </div>
     {% endif %}
     <div>
-      <h5 style="margin-bottom: 12px;">Alert Rule Details</h5>
+      <h5 style="margin-bottom: 12px;">
+        {% if monitor_type == 1 %}Activated {% endif %}
+        Alert Rule Details
+      </h5>
       <table class="alert-details">
         <tr>
           <td width="25%">Project</td>
@@ -51,10 +54,10 @@
           {% if monitor_type == 1 %}
             <tr>
               {% if condition_type == 0 %}
-                <td width="25%">Release</td>
+                <td width="25%">New Release</td>
                 <td>{{activator}}</td>
               {% elif condition_type == 1 %}
-                <td width="25%">Deploy</td>
+                <td width="25%">New Deploy</td>
                 <td>{{activator}}</td>
               {% endif %}
               </tr>
