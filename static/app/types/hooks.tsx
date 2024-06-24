@@ -203,7 +203,6 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
-  'component:issue-priority-feedback': () => React.ComponentType<QualitativeIssueFeedbackProps>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
@@ -310,7 +309,6 @@ export type InterfaceChromeHooks = {
 export type OnboardingHooks = {
   'onboarding-wizard:skip-help': () => React.ComponentType<{}>;
   'onboarding:block-hide-sidebar': () => boolean;
-  'onboarding:extra-chrome': GenericComponentHook;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 

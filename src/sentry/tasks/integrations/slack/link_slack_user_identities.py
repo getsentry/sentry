@@ -55,6 +55,14 @@ def link_slack_user_identities(
     )
     slack_data_by_user = get_slack_data_by_user_via_sdk(integration, organization, emails_by_user)
     for data in slack_data_by_user:
+        logger.info(
+            "slack.post_install.link_identities.paginate",
+            extra={
+                "organization": organization.slug,
+                "integration_id": integration.id,
+                "num_users": len(data),
+            },
+        )
         update_identities(data, idp)
 
 
