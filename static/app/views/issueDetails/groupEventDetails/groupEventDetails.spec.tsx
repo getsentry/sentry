@@ -332,6 +332,10 @@ const mockGroupApis = (
       meta: {fields: {}, units: {}},
     },
   });
+  MockApiClient.addMockResponse({
+    url: `/projects/${organization.slug}/${project.slug}/`,
+    body: project,
+  });
 };
 
 describe('groupEventDetails', () => {

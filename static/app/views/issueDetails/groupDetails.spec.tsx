@@ -157,6 +157,10 @@ describe('groupDetails', () => {
       url: '/organizations/org-slug/replay-count/',
       body: {},
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${defaultInit.organization.slug}/${project.slug}/`,
+      body: project,
+    });
   });
 
   afterEach(() => {
@@ -288,6 +292,10 @@ describe('groupDetails', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
       body: {...group, project: {slug: 'other-project-slug'}},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${defaultInit.organization.slug}/other-project-slug/`,
+      body: {},
     });
 
     createWrapper();
