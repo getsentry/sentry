@@ -3,6 +3,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -37,7 +38,12 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
     });
   }
 
-  const setupDisabled = health && platform && !releaseHealth.includes(platform);
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const setupDisabled =
+    (health && platform && !releaseHealth.includes(platform)) || isSelfHostedErrorsOnly;
+  const setupDisabledTooltip = isSelfHostedErrorsOnly
+    ? t('Release health is not available for errors only self-hosted.')
+    : t('Release Health is not yet supported on this platform.');
 
   return (
     <ButtonBar gap={1}>
@@ -47,11 +53,7 @@ function MissingReleasesButtons({organization, health, projectId, platform}: Pro
         external
         href={health ? DOCS_HEALTH_URL : DOCS_URL}
         disabled={setupDisabled}
-        title={
-          setupDisabled
-            ? t('Release Health is not yet supported on this platform.')
-            : undefined
-        }
+        title={setupDisabled ? setupDisabledTooltip : undefined}
       >
         {t('Start Setup')}
       </Button>

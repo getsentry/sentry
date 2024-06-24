@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar, Union
 
 import pydantic
 
-from sentry.services.hybrid_cloud.region import ByRegionName
+from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.silo.base import SiloMode
 from sentry.utils import json, metrics

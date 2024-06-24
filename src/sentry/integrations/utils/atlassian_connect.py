@@ -11,7 +11,7 @@ from rest_framework.request import Request
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.integration.service import integration_service
-from sentry.services.hybrid_cloud.util import control_silo_function
+from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri, percent_encode
 
