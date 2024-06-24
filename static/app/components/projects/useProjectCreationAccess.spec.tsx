@@ -28,13 +28,13 @@ describe('ProjectCreationAccess', function () {
   });
 
   it('fails for members if org has team-roles but disabled allowMemberProjectCreation', function () {
-    const experiment_org = Organization({
+    const experiment_org = OrganizationFixture({
       access: ['org:read', 'team:read', 'project:read'],
       features: ['team-roles'],
       allowMemberProjectCreation: false,
     });
 
-    const {result} = reactHooks.renderHook(useProjectCreationAccess, {
+    const {result} = renderHook(useProjectCreationAccess, {
       initialProps: {organization: experiment_org},
     });
     expect(result.current.canCreateProject).toBeFalsy();
