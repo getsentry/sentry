@@ -39,6 +39,7 @@ class DeleteProjectTest(APITestCase, TransactionTestCase, HybridCloudTestMixin):
     def test_simple(self):
         project = self.create_project(name="test")
         event = self.store_event(data={}, project_id=project.id)
+        assert event.group is not None
         group = event.group
         GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
         GroupMeta.objects.create(group=group, key="foo", value="bar")

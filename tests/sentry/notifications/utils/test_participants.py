@@ -488,6 +488,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -535,6 +536,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             },
             project_id=project_suspect_committer.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -565,6 +567,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -588,6 +591,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,
@@ -614,6 +618,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             data={"stacktrace": STACKTRACE},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         GroupOwner.objects.create(
             group=event.group,

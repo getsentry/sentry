@@ -135,6 +135,7 @@ class GithubCommentTestCase(IntegrationTestCase):
             },
             project_id=project.id,
         )
+        assert event.group is not None
         self.fingerprint += 1
         groupowner = GroupOwner.objects.create(
             group=event.group,

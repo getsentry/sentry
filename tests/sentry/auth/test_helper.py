@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import TypedDict
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
@@ -33,6 +36,13 @@ def _set_up_request():
     return request
 
 
+class _Identity(TypedDict):
+    id: str
+    email: str
+    name: str
+    data: dict[str, str]
+
+
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
@@ -42,7 +52,7 @@ class AuthIdentityHandlerTest(TestCase):
             organization_id=self.organization.id, provider=self.provider
         )
         self.email = "test@example.com"
-        self.identity = {
+        self.identity: _Identity = {
             "id": "1234",
             "email": self.email,
             "name": "Morty",

@@ -443,7 +443,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         response = self.get_success_response(self.organization.slug, **data)
 
         monitor = Monitor.objects.get(slug=response.data["slug"])
-        alert_rule_id = monitor.config.get("alert_rule_id")
+        alert_rule_id = monitor.config["alert_rule_id"]
         rule = Rule.objects.get(
             project_id=monitor.project_id, id=alert_rule_id, source=RuleSource.CRON_MONITOR
         )

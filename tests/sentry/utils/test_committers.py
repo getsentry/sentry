@@ -841,7 +841,7 @@ class GetEventFileCommitters(CommitTestCase):
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
         GroupOwner.objects.create(
-            group_id=event.group_id,
+            group_id=event.group.id,
             project=self.project,
             organization_id=self.organization.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,

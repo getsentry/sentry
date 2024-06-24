@@ -1146,6 +1146,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_group_release_no_env(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
+        assert event.group_id is not None
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
@@ -1160,6 +1161,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(make_event(release="1.0", environment="prod", event_id="a" * 32))
         manager.normalize()
         event = manager.save(self.project.id)
+        assert event.group_id is not None
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
@@ -1172,6 +1174,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
+        assert event.group_id is not None
         assert GroupRelease.objects.filter(
             release_id=release.id, group_id=event.group_id, environment="staging"
         ).exists()
@@ -1361,6 +1364,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             return manager.save(self.project.id)
 
         event = save_event()
+        assert event.group_id is not None
 
         # Ensure the `GroupEnvironment` record was created.
         instance = GroupEnvironment.objects.get(

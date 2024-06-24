@@ -50,6 +50,7 @@ class TestInit(RuleTestCase):
             },
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         self.rule_fire_history = RuleFireHistory.objects.create(
             project=self.project,
             rule=self.rule,
