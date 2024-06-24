@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 import sentry_sdk
+from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
@@ -124,6 +125,14 @@ class BaseOrganizationSerializer(serializers.Serializer):
                 f'The slug "{value}" should not contain any whitespace.'
             )
         return value
+
+
+class TrustedRelaySerializerResponse(TypedDict):
+    name: str
+    description: str
+    publicKey: str
+    created: datetime
+    lastModified: datetime
 
 
 class TrustedRelaySerializer(serializers.Serializer):
@@ -422,6 +431,7 @@ class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResp
     orgRole: str
 
 
+@extend_schema_serializer(exclude_fields=["availableRoles"])
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
     experiments: Any
     quota: Any
@@ -435,9 +445,9 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     enhancedPrivacy: bool
     dataScrubber: bool
     dataScrubberDefaults: bool
-    sensitiveFields: list[Any]  # TODO
-    safeFields: list[Any]
-    storeCrashReports: Any  # TODO
+    sensitiveFields: list[str]
+    safeFields: list[str]
+    storeCrashReports: int
     attachmentsRole: Any  # TODO
     debugFilesRole: str
     eventsMemberAdmin: bool
@@ -446,7 +456,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     scrapeJavaScript: bool
     allowJoinRequests: bool
     relayPiiConfig: str | None
-    trustedRelays: Any  # TODO
+    trustedRelays: list[TrustedRelaySerializerResponse]
     access: frozenset[str]
     pendingAccessRequests: int
     onboardingTasks: OnboardingTasksSerializerResponse

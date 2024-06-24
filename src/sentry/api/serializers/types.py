@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Any, TypedDict
 
+from drf_spectacular.utils import extend_schema_serializer
+
 from sentry.api.serializers.release_details_types import Author, LastDeploy, Project, VersionInfo
 
 
@@ -22,6 +24,7 @@ class _Links(TypedDict):
 
 # Moved from serializers/models/organization.py to avoid a circular import between project and
 # organization serializers
+@extend_schema_serializer(exclude_fields=["features"])
 class OrganizationSerializerResponse(TypedDict):
     id: str
     slug: str
