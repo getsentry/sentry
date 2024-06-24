@@ -108,8 +108,9 @@ function GroupReplaysTableInner({
   setSelectedReplayIndex: (index: number) => void;
   overlayContent?: React.ReactNode;
 }) {
+  const orgSlug = organization.slug;
   const {fetching, replay} = useReplayReader({
-    orgSlug: organization.slug,
+    orgSlug,
     replaySlug,
     group,
   });
@@ -123,7 +124,7 @@ function GroupReplaysTableInner({
       autoStart
     >
       <ReplayClipPreviewWrapper
-        orgSlug={organization.slug}
+        orgSlug={orgSlug}
         replaySlug={replaySlug}
         group={group}
         pageLinks={pageLinks}
