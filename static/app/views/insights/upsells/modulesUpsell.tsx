@@ -14,7 +14,7 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SidebarNavigationItemHook} from 'sentry/components/sidebar/sidebarItem';
-import {IconCheckmark, IconLightning} from 'sentry/icons';
+import {IconBusiness, IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
@@ -87,7 +87,7 @@ function ModuleNameListItem({
     <SidebarNavigationItemHook id={sidebarIdMap[moduleName]}>
       {({disabled}) => (
         <StyledListItem isSelected={isSelected}>
-          {disabled ? <IconLightning /> : <IconCheckmark />} {moduleTitle}
+          {disabled ? <IconBusiness /> : <IconCheckmark />} {moduleTitle}
         </StyledListItem>
       )}
     </SidebarNavigationItemHook>
@@ -119,6 +119,9 @@ const StyledList = styled('ul')`
 `;
 
 const StyledListItem = styled('li')<{isSelected: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
   :not(:last-child) {
     margin-bottom: ${space(2)};
   }
