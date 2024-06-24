@@ -17,7 +17,8 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
-import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {
   CanvasPoolManager,
   useCanvasScheduler,

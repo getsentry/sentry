@@ -179,7 +179,7 @@ class GroupSerializerBase(Serializer, ABC):
         for team in Team.objects.filter(id__in=all_team_ids.keys()):
             for group_id in all_team_ids[team.id]:
                 result[group_id] = team
-        for user in user_service.get_many(filter=dict(user_ids=list(all_user_ids.keys()))):
+        for user in user_service.get_many_by_id(ids=list(all_user_ids.keys())):
             for group_id in all_user_ids[user.id]:
                 result[group_id] = user
 
@@ -349,10 +349,9 @@ class GroupSerializerBase(Serializer, ABC):
             "issueCategory": obj.issue_category.name.lower(),
         }
 
-        if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-            group_dict["priority"] = priority_label
-            group_dict["priorityLockedAt"] = obj.priority_locked_at
+        priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
+        group_dict["priority"] = priority_label
+        group_dict["priorityLockedAt"] = obj.priority_locked_at
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
@@ -654,7 +653,7 @@ class GroupSerializerBase(Serializer, ABC):
     def _resolve_integration_annotations(
         org_id: int, groups: Sequence[Group]
     ) -> Sequence[Mapping[int, Sequence[Any]]]:
-        from sentry.integrations import IntegrationFeatures
+        from sentry.integrations.base import IntegrationFeatures
 
         integration_annotations = []
         # find all the integration installs that have issue tracking
@@ -905,8 +904,8 @@ class GroupSerializerSnuba(GroupSerializerBase):
     def __init__(
         self,
         environment_ids=None,
-        start=None,
-        end=None,
+        start: datetime | None = None,
+        end: datetime | None = None,
         search_filters=None,
         collapse=None,
         expand=None,

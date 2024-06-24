@@ -60,7 +60,6 @@ class OrganizationMetricsPermissionTest(APITestCase):
             "get",
             "sentry-api-0-organization-metrics-details",
         ),
-        ("get", "sentry-api-0-organization-metric-details", "foo"),
         (
             "get",
             "sentry-api-0-organization-metrics-tags",

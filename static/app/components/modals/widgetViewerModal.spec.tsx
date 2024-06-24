@@ -35,7 +35,7 @@ const waitForMetaToHaveBeenCalled = async () => {
 };
 
 async function renderModal({
-  initialData: {organization, routerContext},
+  initialData: {organization, router},
   widget,
   seriesData,
   tableData,
@@ -70,7 +70,7 @@ async function renderModal({
       />
     </div>,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );
@@ -562,7 +562,7 @@ describe('Modals -> WidgetViewerModal', function () {
       });
 
       it('renders transaction summary link', async function () {
-        ProjectsStore.loadInitialData(initialData.organization.projects);
+        ProjectsStore.loadInitialData(initialData.projects);
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           body: {

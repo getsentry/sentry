@@ -97,7 +97,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" not in response.data["features"]
 
     def test_include_feature_flag_query_param(self):
         response = self.get_success_response(
@@ -126,16 +125,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" in response.data["features"]
 
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             HTTP_HOST = f"{self.organization.slug}.testserver"
             response = self.get_success_response(
                 self.organization.slug,
                 extra_headers={"HTTP_HOST": HTTP_HOST},
                 qs_params={"include_feature_flags": 1},
             )
-            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"

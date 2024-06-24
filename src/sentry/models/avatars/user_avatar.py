@@ -6,7 +6,8 @@ from typing import Any, ClassVar, Self
 
 from django.db import models, router, transaction
 
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_model
+from sentry.db.models import FlexibleForeignKey, control_silo_model
+from sentry.db.models.manager.base import BaseManager
 
 from ...types.region import find_regions_for_user
 from ..outbox import ControlOutboxBase, OutboxCategory

@@ -3,6 +3,7 @@ from django.conf import settings
 from django.test.utils import override_settings
 
 from sentry import newsletter
+from sentry.newsletter.dummy import DummyNewsletter
 from sentry.receivers import create_default_projects
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -60,9 +61,8 @@ class AuthConfigEndpointTest(APITestCase):
         reason="Requires DummyNewsletter.",
     )
     def test_has_newsletter(self):
-        newsletter.backend.enable()
-        response = self.client.get(self.path)
-        newsletter.backend.disable()
+        with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
+            response = self.client.get(self.path)
 
         assert response.status_code == 200
         assert response.data["hasNewsletter"]

@@ -20,7 +20,6 @@ import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSumma
 function initializeData() {
   const organization = OrganizationFixture({
     features: ['discover-basic', 'performance-view'],
-    projects: [ProjectFixture()],
   });
   const initialData = initializeOrg({
     organization,
@@ -35,7 +34,7 @@ function initializeData() {
     },
     projects: [],
   });
-  act(() => void ProjectsStore.loadInitialData(initialData.organization.projects));
+  act(() => void ProjectsStore.loadInitialData(initialData.projects));
   return initialData;
 }
 
@@ -192,7 +191,7 @@ describe('Performance Transaction Events Content', function () {
           projects={[]}
         />
       </OrganizationContext.Provider>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -233,7 +232,7 @@ describe('Performance Transaction Events Content', function () {
           projects={[]}
         />
       </OrganizationContext.Provider>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();
@@ -279,7 +278,7 @@ describe('Performance Transaction Events Content', function () {
           projects={[ProjectFixture({id: '1', platform: 'python'})]}
         />
       </OrganizationContext.Provider>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByTestId('events-table')).toBeInTheDocument();

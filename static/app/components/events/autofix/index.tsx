@@ -15,7 +15,7 @@ interface Props {
 export function Autofix({event, group}: Props) {
   const {autofixData, triggerAutofix, reset} = useAiAutofix(group, event);
 
-  const {hasSuccessfulSetup} = useAutofixSetup({
+  const {canStartAutofix} = useAutofixSetup({
     groupId: group.id,
   });
 
@@ -33,7 +33,7 @@ export function Autofix({event, group}: Props) {
             groupId={group.id}
             projectId={group.project.id}
             triggerAutofix={triggerAutofix}
-            hasSuccessfulSetup={hasSuccessfulSetup}
+            hasSuccessfulSetup={canStartAutofix}
           />
         )}
       </div>

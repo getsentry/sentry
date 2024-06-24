@@ -15,9 +15,12 @@ import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useUpdateQuery} from 'sentry/utils/metrics';
+import {parseMRI} from 'sentry/utils/metrics/mri';
+import {isMetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useMetricsContext} from 'sentry/views/metrics/context';
 
 const ALL_INTERVAL_OPTIONS = [
   {value: '1m', label: t('1 minute')},
@@ -51,13 +54,21 @@ const maximumInterval = new GranularityLadder([
   [0, '1m'],
 ]);
 
-export function getIntervalOptionsForStatsPeriod(datetime: PageFilters['datetime']) {
+export function getIntervalOptionsForStatsPeriod(
+  datetime: PageFilters['datetime'],
+  maxInterval?: string
+) {
   const diffInMinutes = getDiffInMinutes(datetime);
+  const maxIntervalInHours = maxInterval && parsePeriodToHours(maxInterval);
 
   const minimumOption = minimumInterval.getInterval(diffInMinutes);
   const minimumOptionInHours = parsePeriodToHours(minimumOption);
 
-  const maximumOption = maximumInterval.getInterval(diffInMinutes);
+  const defaultMaximumOption = maximumInterval.getInterval(diffInMinutes);
+  const maximumOption =
+    maxIntervalInHours && maxIntervalInHours > parsePeriodToHours(defaultMaximumOption)
+      ? maxInterval
+      : defaultMaximumOption;
   const maximumOptionInHours = parsePeriodToHours(maximumOption);
 
   return ALL_INTERVAL_OPTIONS.filter(option => {
@@ -68,20 +79,30 @@ export function getIntervalOptionsForStatsPeriod(datetime: PageFilters['datetime
 
 export function validateInterval(
   interval: string,
-  options: {label: string; value: string}[]
+  options: {label: string; value: string; disabled?: boolean}[]
 ) {
   const isPeriod = !!parseStatsPeriod(interval);
-  const currentIntervalValues = options.map(option => option.value);
+  const enabledOptions = options.filter(option => !option.disabled);
+  const currentIntervalValues = enabledOptions.map(option => option.value);
   return isPeriod && currentIntervalValues.includes(interval)
     ? interval
     : // Take the 2nd most granular option if available
-      options[1]?.value ?? options[0].value;
+      enabledOptions[1]?.value ?? enabledOptions[0].value;
 }
 
 export function useMetricsIntervalParam() {
   const {datetime} = usePageFilters().selection;
   const {interval} = useLocationQuery({fields: {interval: decodeScalar}});
+  const {widgets} = useMetricsContext();
   const updateQuery = useUpdateQuery();
+
+  const hasSetMetric = useMemo(
+    () =>
+      widgets.some(
+        widget => isMetricsQueryWidget(widget) && parseMRI(widget.mri)!.type === 's'
+      ),
+    [widgets]
+  );
 
   const handleIntervalChange = useCallback(
     (newInterval: string) => {
@@ -92,6 +113,7 @@ export function useMetricsIntervalParam() {
 
   const metricsIntervalOptions = useMetricsIntervalOptions({
     interval,
+    hasSetMetric,
     datetime,
     onIntervalChange: handleIntervalChange,
   });
@@ -107,19 +129,37 @@ export function useMetricsIntervalParam() {
 
 export interface MetricsIntervalParamProps {
   datetime: PageFilters['datetime'];
+  hasSetMetric: boolean;
   interval: string;
   onIntervalChange: (interval: string) => void;
 }
 
 export function useMetricsIntervalOptions({
   interval,
+  hasSetMetric,
   datetime,
   onIntervalChange,
 }: MetricsIntervalParamProps) {
-  const currentIntervalOptions = useMemo(
-    () => getIntervalOptionsForStatsPeriod(datetime),
-    [datetime]
-  );
+  const currentIntervalOptions = useMemo(() => {
+    const minInterval = hasSetMetric ? '1h' : undefined;
+    const options = getIntervalOptionsForStatsPeriod(datetime, minInterval);
+    if (!hasSetMetric) {
+      return options;
+    }
+
+    // Disable all intervals that are smaller than one hour for set metrics
+    return options.map(option => {
+      return parsePeriodToHours(option.value) < 1
+        ? {
+            ...option,
+            disabled: true,
+            tooltip: t(
+              'Intervals smaller than 1 hour are not available for set metrics.'
+            ),
+          }
+        : option;
+    });
+  }, [datetime, hasSetMetric]);
 
   const setInterval = useCallback(
     (newInterval: string) => {

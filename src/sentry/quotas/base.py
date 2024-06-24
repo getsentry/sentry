@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, Literal
@@ -15,6 +16,7 @@ from sentry.utils.services import Service
 
 if TYPE_CHECKING:
     from sentry.models.project import Project
+    from sentry.models.projectkey import ProjectKey
     from sentry.monitors.models import Monitor
 
 
@@ -256,10 +258,14 @@ class SeatAssignmentResult:
     """
     Can the seat assignment be made?
     """
-    reason: str | None = None
+    reason: str = ""
     """
     The human readable reason the assignment can be made or not.
     """
+
+    def __post_init__(self) -> None:
+        if not self.assignable and not self.reason:
+            raise ValueError("`reason` must be specified when not assignable")
 
 
 def index_data_category(event_type: str | None, organization) -> DataCategory:
@@ -309,7 +315,12 @@ class Quota(Service):
     def __init__(self, **options):
         pass
 
-    def get_quotas(self, project, key=None, keys=None):
+    def get_quotas(
+        self,
+        project: Project,
+        key: ProjectKey | None = None,
+        keys: Iterable[ProjectKey] | None = None,
+    ) -> list[QuotaConfig]:
         """
         Returns a quotas for the given project and its organization.
 

@@ -1,7 +1,6 @@
 import type {Query} from 'history';
 
 import type {EventTag} from 'sentry/types/event';
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/formatters';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
 export function intcomma(x: number): string {
@@ -34,84 +33,6 @@ export function percent(value: number, totalValue: number): number {
   }
 
   return (value / totalValue) * 100;
-}
-
-/**
- * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
- * means that:
- * - 1000 megabytes is equal to 1 gigabyte
- * - 1024 mebibytes is equal to 1 gibibytes
- *
- * We will use base 10 throughout billing for attachments. This function formats
- * quota/usage values for display.
- *
- * For storage/memory/file sizes, please take a look at formatBytesBase2
- */
-export function formatBytesBase10(bytes: number, u: number = 0) {
-  const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-  const threshold = 1000;
-
-  while (bytes >= threshold) {
-    bytes /= threshold;
-    u += 1;
-  }
-
-  return formatNumberWithDynamicDecimalPoints(bytes) + ' ' + units[u];
-}
-
-/**
- * Note the difference between *a-bytes (base 10) vs *i-bytes (base 2), which
- * means that:
- * - 1000 megabytes is equal to 1 gigabyte
- * - 1024 mebibytes is equal to 1 gibibytes
- *
- * We will use base 2 to display storage/memory/file sizes as that is commonly
- * used by Windows or RAM or CPU cache sizes, and it is more familiar to the user
- *
- * For billing-related code around attachments. please take a look at
- * formatBytesBase10
- */
-export function formatBytesBase2(bytes: number, fixPoints: number | false = 1): string {
-  const units = ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
-  const thresh = 1024;
-  if (bytes < thresh) {
-    return (
-      (fixPoints === false
-        ? formatNumberWithDynamicDecimalPoints(bytes)
-        : bytes.toFixed(fixPoints)) + ' B'
-    );
-  }
-
-  let u = -1;
-  do {
-    bytes /= thresh;
-    ++u;
-  } while (bytes >= thresh);
-  return (
-    (fixPoints === false
-      ? formatNumberWithDynamicDecimalPoints(bytes)
-      : bytes.toFixed(fixPoints)) +
-    ' ' +
-    units[u]
-  );
-}
-
-export function getShortCommitHash(hash: string): string {
-  if (hash.match(/^[a-f0-9]{40}$/)) {
-    hash = hash.substring(0, 7);
-  }
-  return hash;
-}
-
-export function parseRepo<T>(repo: T): T {
-  if (typeof repo === 'string') {
-    const re = /(?:github\.com|bitbucket\.org)\/([^\/]+\/[^\/]+)/i;
-    const match = repo.match(re);
-    const parsedRepo = match ? match[1] : repo;
-    return parsedRepo as any;
-  }
-
-  return repo;
 }
 
 /**

@@ -27,6 +27,7 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.scope import bind_org_context_from_integration
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
@@ -38,7 +39,6 @@ from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.integrations import ExternalProviderEnum
 
 from ..utils import logger
 

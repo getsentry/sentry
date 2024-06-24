@@ -4,7 +4,7 @@ import {IconBitbucket, IconGithub, IconGitlab, IconVsts} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
-import {getShortCommitHash} from 'sentry/utils';
+import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
 type CommitFormatterParameters = {
   baseUrl: string;

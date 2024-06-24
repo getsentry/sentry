@@ -7,6 +7,7 @@ from sentry.eventstore.models import Event
 from sentry.seer.similarity.utils import (
     SEER_ELIGIBLE_PLATFORMS,
     event_content_is_seer_eligible,
+    filter_null_from_event_title,
     get_stacktrace_string,
 )
 from sentry.testutils.cases import TestCase
@@ -653,3 +654,7 @@ class EventContentIsSeerEligibleTest(TestCase):
         assert bad_event_data["platform"] not in SEER_ELIGIBLE_PLATFORMS
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
+
+    def test_filter_null_from_event_title(self):
+        title_with_null = 'Title with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
+        assert filter_null_from_event_title(title_with_null) == 'Title with null , "" is null'

@@ -25,7 +25,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import IncidentTrigger
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
@@ -268,6 +268,7 @@ class AlertRule(Model):
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS.value)
+    description = models.CharField(max_length=1000, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -395,7 +396,7 @@ class AlertRuleThresholdType(Enum):
 @region_silo_model
 class AlertRuleTrigger(Model):
     """
-    This model represents the threshold trigger for an AlertRule
+    This model represents the *threshold* trigger for an AlertRule
 
     threshold_type is AlertRuleThresholdType (Above/Below)
     alert_threshold is the trigger value
@@ -458,6 +459,8 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     """
     This model represents an action that occurs when a trigger (over/under) is fired. This is
     typically some sort of notification.
+
+    NOTE: AlertRuleTrigger is the 'threshold' for the AlertRule
     """
 
     __relocation_scope__ = RelocationScope.Global

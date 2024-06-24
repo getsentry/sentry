@@ -319,6 +319,9 @@ def devserver(
             kafka_consumers.add("ingest-generic-metrics")
             kafka_consumers.add("billing-metrics-consumer")
 
+        if settings.SENTRY_USE_UPTIME:
+            kafka_consumers.add("uptime-results")
+
         if settings.SENTRY_USE_RELAY:
             daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 

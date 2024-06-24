@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 from collections import defaultdict
-from datetime import timedelta
+from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, TypedDict
 
@@ -46,7 +46,7 @@ GROUP_OWNER_TYPE = {
 class OwnersSerialized(TypedDict):
     type: str
     owner: str
-    date_added: models.DateTimeField
+    date_added: datetime
 
 
 @region_silo_model

@@ -109,7 +109,7 @@ describe('IntegrationOrganizationLink', () => {
         params={{integrationSlug: 'vercel'}}
       />,
       {
-        context: initialData.routerContext,
+        router: initialData.router,
       }
     );
 

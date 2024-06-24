@@ -322,7 +322,21 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
     if (!ruleId && !this.isDuplicateRule) {
       // now that we've loaded all the possible conditions, we can populate the
       // value of conditions for a new alert
-      this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      const hasHighPriorityIssueAlerts =
+        this.props.organization.features.includes('default-high-priority-alerts') ||
+        this.props.project.features.includes('high-priority-alerts');
+      const isValidPlatform =
+        this.props.project.platform?.startsWith('javascript') ||
+        this.props.project.platform?.startsWith('python');
+
+      if (hasHighPriorityIssueAlerts && isValidPlatform) {
+        this.handleChange('conditions', [
+          {id: IssueAlertConditionType.NEW_HIGH_PRIORITY_ISSUE},
+          {id: IssueAlertConditionType.EXISTING_HIGH_PRIORITY_ISSUE},
+        ]);
+      } else {
+        this.handleChange('conditions', [{id: IssueAlertConditionType.FIRST_SEEN_EVENT}]);
+      }
     }
   }
 
@@ -731,6 +745,16 @@ class IssueRuleEditor extends DeprecatedAsyncView<Props, State> {
       newTypeList.splice(idx, 1);
 
       set(clonedState, `rule[${type}]`, newTypeList);
+
+      const {organization} = this.props;
+      const {project} = this.state;
+      const deletedItem = prevState.rule ? prevState.rule[type][idx] : null;
+      trackAnalytics('edit_alert_rule.delete_row', {
+        organization,
+        project_id: project.id,
+        type,
+        name: deletedItem?.id ?? '',
+      });
       return clonedState;
     });
   };

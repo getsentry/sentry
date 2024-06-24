@@ -6,6 +6,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import orjson
 from django.db import models
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
@@ -31,7 +32,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.utils import json
 
 CONTROL_OPTION_MODEL_NAME = get_model_name(ControlOption)
 OPTION_MODEL_NAME = get_model_name(Option)
@@ -312,8 +312,10 @@ class RpcImportErrorTests(TestCase):
 
     @cached_property
     def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
-        with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
-            return json.load(backup_file)
+        with open(
+            get_fixture_path("backup", "user-with-minimum-privileges.json"), "rb"
+        ) as backup_file:
+            return orjson.loads(backup_file.read())
 
     def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
@@ -410,7 +412,10 @@ class RpcImportErrorTests(TestCase):
             if self.is_user_model(model):
                 model["fields"]["username"] = "a" * (MAX_USERNAME_LENGTH + 1)
 
-        json_data = json.dumps([m for m in models if self.is_user_model(m)])
+        json_data = orjson.dumps(
+            [m for m in models if self.is_user_model(m)],
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
         result = import_export_service.import_by_model(
             model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
@@ -426,7 +431,10 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_unexpected_model(self):
         models = self.json_of_exhaustive_user_with_minimum_privileges()
-        json_data = json.dumps([m for m in models if self.is_user_model(m)])
+        json_data = orjson.dumps(
+            [m for m in models if self.is_user_model(m)],
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
         result = import_export_service.import_by_model(
             model_name="sentry.option",
             scope=RpcImportScope.Global,

@@ -8,6 +8,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Deque, Optional, Union
 
+from django.db.models import QuerySet
 from snuba_sdk import Column, Condition, Entity, Function, Granularity, Op, Query, Request
 from snuba_sdk.orderby import Direction, OrderBy
 
@@ -220,7 +221,7 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> EntityKey | None:
 
 
 def _get_entity_of_metric_mri(
-    projects: Sequence[Project], metric_mri: str, use_case_id: UseCaseID
+    projects: QuerySet[Project] | Sequence[Project], metric_mri: str, use_case_id: UseCaseID
 ) -> EntityKey:
     known_entity = _get_known_entity_of_metric_mri(metric_mri)
     if known_entity is not None:
@@ -604,7 +605,7 @@ class MetricExpressionBase(ABC):
 
     @abstractmethod
     def get_entity(
-        self, projects: Sequence[Project], use_case_id: UseCaseID
+        self, projects: QuerySet[Project] | Sequence[Project], use_case_id: UseCaseID
     ) -> MetricEntity | dict[MetricEntity, Sequence[str]]:
         """
         Method that generates the entity of an instance of MetricsFieldBase.
@@ -777,7 +778,9 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     def validate_can_orderby(self) -> None:
         self.metric_operation.validate_can_orderby()
 
-    def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseID) -> MetricEntity:
+    def get_entity(
+        self, projects: QuerySet[Project] | Sequence[Project], use_case_id: UseCaseID
+    ) -> MetricEntity:
         return _get_entity_of_metric_mri(projects, self.metric_object.metric_mri, use_case_id).value
 
     def generate_select_statements(
@@ -982,7 +985,9 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
             )
         return entities
 
-    def get_entity(self, projects: Sequence[Project], use_case_id: UseCaseID) -> MetricEntity:
+    def get_entity(
+        self, projects: QuerySet[Project] | Sequence[Project], use_case_id: UseCaseID
+    ) -> MetricEntity:
         if not projects:
             self._raise_entity_validation_exception("get_entity")
         try:
@@ -1207,7 +1212,7 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         return default_null_value
 
     def get_entity(
-        self, projects: Sequence[Project], use_case_id: UseCaseID
+        self, projects: QuerySet[Project] | Sequence[Project], use_case_id: UseCaseID
     ) -> dict[MetricEntity, list[str]]:
         if not projects:
             self._raise_entity_validation_exception("get_entity")

@@ -1,3 +1,6 @@
+// This file contains the analytic events for the performance landing page.
+// The analytic events for the insights modules are stored separately in
+// analytics/insightAnalyticsEvents.tsx
 import type {FieldValue} from 'sentry/components/forms/model';
 import type {Organization, PlatformKey} from 'sentry/types';
 
@@ -16,25 +19,11 @@ type PageLayoutParams = {
 
 export type PerformanceEventParameters = {
   'performance_views.all_events.open_in_discover': {};
-  'performance_views.anomalies.anomalies_tab_clicked': PageLayoutParams;
   'performance_views.change_view': {
     project_platforms: string;
     view_name: string;
   };
   'performance_views.create_sample_transaction': SampleTransactionParam;
-  'performance_views.event_details.anchor_span': {
-    span_id: string;
-  };
-  'performance_views.event_details.filter_by_op': {
-    operation: string;
-  };
-  'performance_views.event_details.json_button_click': {};
-  'performance_views.event_details.open_span_details': {
-    operation: string;
-    origin: string;
-    project_platform: string;
-  };
-  'performance_views.event_details.search_query': {};
   'performance_views.events.events_tab_clicked': PageLayoutParams;
   'performance_views.filter_dropdown.selection': {
     action: string;
@@ -164,7 +153,6 @@ export type PerformanceEventParameters = {
     direction?: string;
     field?: string;
   };
-  'performance_views.summary.tag_explorer.tag_value': {};
   'performance_views.summary.tag_explorer.visit_tag_key': {};
   'performance_views.summary.view_in_transaction_events': {};
   'performance_views.tags.change_aggregate_column': {
@@ -241,7 +229,6 @@ export type PerformanceEventParameters = {
   };
   'performance_views.vitals.filter_changed': {value: string};
   'performance_views.vitals.open_all_events': {vital: string};
-  'performance_views.vitals.open_in_discover': {vital: string};
   'performance_views.vitals.reset_view': {};
   'performance_views.vitals.vitals_tab_clicked': PageLayoutParams;
 };
@@ -285,8 +272,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.spans.change_sort': 'Performance Views: Change span sort column',
   'performance_views.summary.create_alert_clicked':
     'Performance Views: Create alert clicked',
-  'performance_views.summary.tag_explorer.tag_value':
-    'Performance Views: Tag Explorer Value Clicked',
   'performance_views.summary.tag_explorer.cell_action':
     'Performance Views: Tag Explorer Cell Action Clicked',
   'performance_views.summary.tag_explorer.visit_tag_key':
@@ -331,16 +316,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
     'Performance Views: Trends Widget Page Changed',
   'performance_views.trends.change_duration':
     'Performance Views: Trends Widget Duration Changed',
-  'performance_views.event_details.filter_by_op':
-    'Performance Views: Event Details page operation filter applied',
-  'performance_views.event_details.search_query':
-    'Performance Views: Event Details search query',
-  'performance_views.event_details.open_span_details':
-    'Performance Views: Event Details span details opened',
-  'performance_views.event_details.anchor_span':
-    'Performance Views: Event Details span anchored',
-  'performance_views.event_details.json_button_click':
-    'Performance Views: Event Details JSON button clicked',
   'performance_views.transactionEvents.cellaction':
     'Performance Views: Transaction Events Tab Cell Action Clicked',
   'performance_views.transactionEvents.sort':
@@ -359,8 +334,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.tags.tags_tab_clicked': 'Performance Views: Tags tab clicked',
   'performance_views.events.events_tab_clicked': 'Performance Views: Events tab clicked',
   'performance_views.spans.spans_tab_clicked': 'Performance Views: Spans tab clicked',
-  'performance_views.anomalies.anomalies_tab_clicked':
-    'Performance Views: Anomalies tab clicked',
   'performance_views.summary.view_in_transaction_events':
     'Performance Views: View in All Events from Transaction Summary',
   'performance_views.summary.open_issues':
@@ -370,8 +343,6 @@ export const performanceEventMap: Record<PerformanceEventKey, string | null> = {
   'performance_views.vitals.reset_view': 'Performance Views: Reset vitals view',
   'performance_views.trends.change_parameter': 'Performance Views: Change Parameter',
   'performance_views.trends.change_function': 'Performance Views: Change Function',
-  'performance_views.vitals.open_in_discover':
-    'Performance Views: Open vitals in discover',
   'performance_views.vitals.open_all_events':
     'Performance Views: Open vitals in all events',
   'performance_views.landing.table.unparameterized':

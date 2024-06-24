@@ -58,3 +58,7 @@ class ProcessControlOutboxTest(TestCase):
         mock_caching.clear_key.assert_any_call(
             key=f"app_service.get_installation:{install_two.id}", region_name=_TEST_REGION.name
         )
+        mock_caching.clear_key.assert_any_call(
+            key=f"app_service.get_by_application_id:{sentry_app.application_id}",
+            region_name=_TEST_REGION.name,
+        )

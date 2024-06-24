@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
@@ -136,6 +136,9 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if (
             all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
             and len(average_columns) > 0
+            and features.has(
+                "organizations:insights-initial-modules", organization, actor=request.user
+            )
         ):
             add_comparison_to_event(event, average_columns)
 

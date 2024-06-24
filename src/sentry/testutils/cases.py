@@ -7,6 +7,7 @@ import os.path
 import random
 import re
 import time
+import uuid
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
@@ -41,7 +42,14 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
+    REQUESTTYPE_HEAD,
+    CheckResult,
+)
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -1494,6 +1502,7 @@ class BaseSpansTestCase(SnubaTestCase):
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
         op: str | None = None,
+        status: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1531,6 +1540,8 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["sentry_tags"]["sdk.name"] = sdk_name
         if op is not None:
             payload["sentry_tags"]["op"] = op
+        if status is not None:
+            payload["sentry_tags"]["status"] = status
 
         self.store_span(payload)
 
@@ -2878,6 +2889,22 @@ class SlackActivityNotificationTest(ActivityTestCase):
         with responses.mock:
             yield
 
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with mock.patch(
+            "slack_sdk.web.client.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield
+
     def assert_performance_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -3192,6 +3219,23 @@ class MonitorIngestTestCase(MonitorTestCase):
         self.token = self.create_internal_integration_token(install=app, user=self.user)
 
 
+class UptimeTestCase(TestCase):
+    def create_uptime_result(self, subscription_id: str | None = None) -> CheckResult:
+        if subscription_id is None:
+            subscription_id = uuid.uuid4().hex
+        return {
+            "guid": uuid.uuid4().hex,
+            "subscription_id": subscription_id,
+            "status": CHECKSTATUS_FAILURE,
+            "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "trace_id": uuid.uuid4().hex,
+            "scheduled_check_time": datetime.now().timestamp(),
+            "actual_check_time": datetime.now().timestamp(),
+            "duration_ms": 100,
+            "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+        }
+
+
 class IntegratedApiTestCase(BaseTestCase):
     def should_call_api_without_proxying(self) -> bool:
         return not IntegrationProxyClient.determine_whether_should_proxy_to_control()
@@ -3396,6 +3440,7 @@ class TraceTestCase(SpanTestCase):
                 "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
+                "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),

@@ -8,9 +8,14 @@ import {
   getContextTitle,
   getFormattedContextData,
 } from 'sentry/components/events/contexts/utils';
-import * as KeyValueData from 'sentry/components/keyValueData/card';
-import type {Event, Group, KeyValueListDataItem, Project} from 'sentry/types';
+import KeyValueData, {
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
+import type {Event} from 'sentry/types/event';
+import type {Group, KeyValueListDataItem} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface ContextCardProps {
@@ -25,8 +30,8 @@ interface ContextCardProps {
 interface ContextCardContentConfig {
   // Omit error styling from being displayed, even if context is invalid
   disableErrors?: boolean;
-  // Displays tag value as plain text, rather than a hyperlink if applicable
-  disableRichValue?: boolean;
+  // Displays value as plain text, rather than a hyperlink if applicable
+  disableLink?: boolean;
   // Includes the Context Type as a prefix to the key. Useful if displaying a single Context key
   // apart from the rest of that Context. E.g. 'Email' -> 'User: Email'
   includeAliasInSubject?: boolean;
@@ -60,7 +65,7 @@ export function ContextCardContent({
       item={{...item, subject: contextSubject}}
       meta={contextMeta}
       errors={config?.disableErrors ? [] : contextErrors}
-      disableRichValue={config?.disableRichValue ?? false}
+      disableLink={config?.disableLink ?? false}
       {...props}
     />
   );
@@ -73,6 +78,7 @@ export default function ContextCard({
   project,
   value = {},
 }: ContextCardProps) {
+  const location = useLocation();
   const organization = useOrganization();
   if (isEmptyObject(value)) {
     return null;
@@ -85,11 +91,12 @@ export default function ContextCard({
     contextType: type,
     organization,
     project,
+    location,
   });
 
-  const contentItems = contextItems.map<KeyValueData.ContentProps>(item => {
-    const itemMeta: KeyValueData.ContentProps['meta'] = meta?.[item?.key];
-    const itemErrors: KeyValueData.ContentProps['errors'] = itemMeta?.['']?.err ?? [];
+  const contentItems = contextItems.map<KeyValueDataContentProps>(item => {
+    const itemMeta: KeyValueDataContentProps['meta'] = meta?.[item?.key];
+    const itemErrors: KeyValueDataContentProps['errors'] = itemMeta?.['']?.err ?? [];
     return {
       item,
       meta: itemMeta,
@@ -103,7 +110,7 @@ export default function ContextCard({
       title={
         <Title>
           <div>{getContextTitle({alias, type, value})}</div>
-          <div>{getContextIcon({type, value})}</div>
+          <div>{getContextIcon({alias, type, value})}</div>
         </Title>
       }
       sortAlphabetically

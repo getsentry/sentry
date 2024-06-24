@@ -24,7 +24,6 @@ describe('AlertRuleDetails', () => {
 
   const createWrapper = (props: any = {}, newContext?: any, org = organization) => {
     const router = newContext ? newContext.router : context.router;
-    const routerContext = newContext ? newContext.routerContext : context.routerContext;
 
     return render(
       <AlertRuleDetails
@@ -37,7 +36,7 @@ describe('AlertRuleDetails', () => {
         router={router}
         {...props}
       />,
-      {context: routerContext, organization: org}
+      {router, organization: org}
     );
   };
 

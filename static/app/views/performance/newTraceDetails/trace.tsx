@@ -1,5 +1,13 @@
 import type React from 'react';
-import {Fragment, useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -7,10 +15,13 @@ import {PlatformIcon} from 'platformicons';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
+import {replayPlayerTimestampEmitter} from 'sentry/components/replays/replayContext';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization, PlatformKey, Project} from 'sentry/types';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {
   TraceError,
   TracePerformanceIssue,
@@ -19,7 +30,6 @@ import {clamp} from 'sentry/utils/profiling/colors/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {formatTraceDuration} from 'sentry/views/performance/newTraceDetails/formatters';
 import {
   useVirtualizedList,
   type VirtualizedRow,
@@ -436,6 +446,9 @@ export function Trace({
     render: render,
   });
 
+  const traceNode = trace.root.children[0];
+  const traceStartTimestamp = traceNode?.space?.[0];
+
   return (
     <TraceStylingWrapper
       ref={manager.registerContainerRef}
@@ -493,6 +506,12 @@ export function Trace({
             </div>
           );
         })}
+        {traceNode && traceStartTimestamp ? (
+          <VerticalTimestampIndicators
+            viewmanager={manager}
+            traceStartTimestamp={traceStartTimestamp}
+          />
+        ) : null}
       </div>
       <div
         ref={setScrollContainer}
@@ -588,10 +607,13 @@ function RenderRow(props: {
 
   const onSpanRowDoubleClick = useCallback(
     e => {
+      trackAnalytics('trace.trace_layout.zoom_to_fill', {
+        organization: props.organization,
+      });
       e.stopPropagation();
       props.manager.onZoomIntoSpace(props.node.space!);
     },
-    [props.node, props.manager]
+    [props.node, props.manager, props.organization]
   );
 
   const onSpanRowArrowClick = useCallback(
@@ -1411,17 +1433,16 @@ function BackgroundPatterns(props: BackgroundPatternsProps) {
             );
 
             return (
-              <Fragment key={i}>
-                <div
-                  className="TracePatternContainer"
-                  style={{
-                    left: left * 100 + '%',
-                    width: (1 - left) * 100 + '%',
-                  }}
-                >
-                  <div className="TracePattern performance_issue" />
-                </div>
-              </Fragment>
+              <div
+                key={i}
+                className="TracePatternContainer"
+                style={{
+                  left: left * 100 + '%',
+                  width: (1 - left) * 100 + '%',
+                }}
+              >
+                <div className="TracePattern performance_issue" />
+              </div>
             );
           })}
         </Fragment>
@@ -1620,6 +1641,79 @@ function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
   );
 }
 
+function VerticalTimestampIndicators({
+  viewmanager,
+  traceStartTimestamp,
+}: {
+  traceStartTimestamp: number;
+  viewmanager: VirtualizedViewManager;
+}) {
+  useEffect(() => {
+    function replayTimestampListener({
+      currentTime,
+      currentHoverTime,
+    }: {
+      currentHoverTime: number | undefined;
+      currentTime: number;
+    }) {
+      if (viewmanager.vertical_indicators['replay_timestamp.current']) {
+        viewmanager.vertical_indicators['replay_timestamp.current'].timestamp =
+          traceStartTimestamp + currentTime;
+      }
+
+      if (viewmanager.vertical_indicators['replay_timestamp.hover']) {
+        viewmanager.vertical_indicators['replay_timestamp.hover'].timestamp =
+          currentHoverTime ? traceStartTimestamp + currentHoverTime : undefined;
+      }
+
+      // When timestamp is changing, it needs to be redrawn
+      // if it is out of bounds, we need to scroll to it
+      viewmanager.drawVerticalIndicators();
+      viewmanager.maybeSyncViewWithVerticalIndicator('replay_timestamp.current');
+    }
+
+    replayPlayerTimestampEmitter.on('replay timestamp change', replayTimestampListener);
+
+    return () => {
+      replayPlayerTimestampEmitter.off(
+        'replay timestamp change',
+        replayTimestampListener
+      );
+    };
+  }, [traceStartTimestamp, viewmanager]);
+
+  const registerReplayCurrentTimestampRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      viewmanager.registerVerticalIndicator('replay_timestamp.current', {
+        ref,
+        timestamp: undefined,
+      });
+    },
+    [viewmanager]
+  );
+
+  const registerReplayHoverTimestampRef = useCallback(
+    (ref: HTMLDivElement | null) => {
+      viewmanager.registerVerticalIndicator('replay_timestamp.hover', {
+        ref,
+        timestamp: undefined,
+      });
+    },
+    [viewmanager]
+  );
+
+  return (
+    <Fragment>
+      <div ref={registerReplayCurrentTimestampRef} className="TraceIndicator Timeline">
+        <div className="Indicator CurrentReplayTimestamp" />
+      </div>
+      <div ref={registerReplayHoverTimestampRef} className="TraceIndicator Timeline">
+        <div className="Indicator HoverReplayTimestamp" />
+      </div>
+    </Fragment>
+  );
+}
+
 /**
  * This is a wrapper around the Trace component to apply styles
  * to the trace tree. It exists because we _do not_ want to trigger
@@ -1656,6 +1750,10 @@ const TraceStylingWrapper = styled('div')`
 
       .TraceIndicatorLine {
         top: 30px;
+      }
+
+      .Indicator {
+        top: 44px;
       }
     }
   }
@@ -1791,6 +1889,23 @@ const TraceStylingWrapper = styled('div')`
           ${p => p.theme.textColor} 4px 8px
         )
         80%/2px 100% no-repeat;
+    }
+
+    .Indicator {
+      width: 1px;
+      height: 100%;
+      position: absolute;
+      left: 50%;
+      transform: translateX(-2px);
+      top: 26px;
+
+      &.CurrentReplayTimestamp {
+        background: ${p => p.theme.purple300};
+      }
+
+      &.HoverReplayTimestamp {
+        background: ${p => p.theme.purple200};
+      }
     }
 
     &.Errored {
@@ -2129,6 +2244,17 @@ const TraceStylingWrapper = styled('div')`
         }
         svg {
           fill: ${p => p.theme.white};
+        }
+      }
+
+      &.error {
+        color: ${p => p.theme.red300};
+
+        .TraceChildrenCountWrapper {
+          button {
+            color: ${p => p.theme.white};
+            background-color: ${p => p.theme.red300};
+          }
         }
       }
     }

@@ -53,7 +53,7 @@ def register_plugins(settings: Any, raise_on_plugin_load_failure: bool = False) 
     for plugin in plugins.all(version=None):
         init_plugin(plugin)
 
-    from sentry import integrations
+    from sentry.integrations.manager import default_manager as integrations
     from sentry.utils.imports import import_string
 
     for integration_path in settings.SENTRY_DEFAULT_INTEGRATIONS:

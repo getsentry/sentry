@@ -51,7 +51,6 @@ from sentry.snuba.models import QuerySubscription, SnubaQueryEventType
 from sentry.testutils.cases import BaseMetricsTestCase, SnubaTestCase, TestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
 
 EMPTY = object()
@@ -183,7 +182,9 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 class ProcessUpdateTest(ProcessUpdateBaseClass):
     @pytest.fixture(autouse=True)
     def _setup_slack_client(self):
-        with mock.patch("sentry.integrations.slack.SlackClient.post") as self.slack_client:
+        with mock.patch(
+            "sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage"
+        ) as self.slack_client:
             yield
 
     @cached_property
@@ -292,7 +293,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     def assert_slack_calls(self, trigger_labels):
         expected_result = [f"{label}: some rule 2" for label in trigger_labels]
         actual = [
-            (call_kwargs["data"]["text"], json.loads(call_kwargs["data"]["attachments"]))
+            (call_kwargs["text"], json.loads(call_kwargs["attachments"]))
             for (_, call_kwargs) in self.slack_client.call_args_list
         ]
 
@@ -2048,7 +2049,6 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             incident, [self.action], [(50.0, IncidentStatus.CLOSED, mock.ANY)]
         )
 
-    @with_feature("organizations:metric-alert-ignore-archived")
     def test_is_unresolved_comparison_query(self):
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query) and requires an entity

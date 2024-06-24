@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 
 from snuba_sdk import Column as SnQLColumn
@@ -25,7 +26,7 @@ from sentry.search.events.fields import (
     TimestampArg,
     with_default,
 )
-from sentry.search.events.types import NormalizedArg, ParamsType, SelectType, WhereType
+from sentry.search.events.types import ParamsType, SelectType, WhereType
 
 
 class Kind(Enum):
@@ -97,9 +98,7 @@ AGG_STATE_COLUMNS = [
 
 
 class ProfileFunctionColumnArg(ColumnArg):
-    def normalize(
-        self, value: str, params: ParamsType, combinator: Combinator | None
-    ) -> NormalizedArg:
+    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
         column = COLUMN_MAP.get(value)
 
         # must be a known column or field alias
@@ -563,6 +562,9 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         args: Mapping[str, str | Column | SelectType | int | float],
         alias: str | None,
     ) -> SelectType:
+        assert (
+            self.builder.params.end is not None and self.builder.params.start is not None
+        ), f"params.end: {self.builder.params.end} - params.start: {self.builder.params.start}"
         interval = (self.builder.params.end - self.builder.params.start).total_seconds()
 
         return Function(
@@ -580,10 +582,17 @@ class ProfileFunctionsDatasetConfig(DatasetConfig):
         alias: str | None,
         cond: str,
     ) -> SelectType:
+        timestamp = args["timestamp"]
         if cond == "greater":
-            interval = (self.builder.params.end - args["timestamp"]).total_seconds()
+            assert isinstance(self.builder.params.end, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.end: {self.builder.params.end} - timestamp: {timestamp}"
+            interval = (self.builder.params.end - timestamp).total_seconds()
         elif cond == "less":
-            interval = (args["timestamp"] - self.builder.params.start).total_seconds()
+            assert isinstance(self.builder.params.start, datetime) and isinstance(
+                timestamp, datetime
+            ), f"params.start: {self.builder.params.start} - timestamp: {timestamp}"
+            interval = (timestamp - self.builder.params.start).total_seconds()
         else:
             raise InvalidSearchQuery(f"Unsupported condition for cpm: {cond}")
 

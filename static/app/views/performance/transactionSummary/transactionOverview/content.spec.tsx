@@ -7,16 +7,13 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {OrganizationContext} from 'sentry/views/organizationContext';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import SummaryContent from 'sentry/views/performance/transactionSummary/transactionOverview/content';
-import {RouteContext} from 'sentry/views/routeContext';
 
-function initialize(project, query, additionalFeatures: string[] = []) {
+function initialize(query, additionalFeatures: string[] = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
-    projects: [project],
   });
   const initialData = initializeOrg({
     organization,
@@ -52,19 +49,14 @@ function initialize(project, query, additionalFeatures: string[] = []) {
 
 function WrappedComponent({
   organization,
-  router,
   ...props
 }: React.ComponentProps<typeof SummaryContent> & {
   router: InjectedRouter<Record<string, string>, any>;
 }) {
   return (
-    <OrganizationContext.Provider value={organization}>
-      <RouteContext.Provider value={{router, ...router}}>
-        <MEPSettingProvider>
-          <SummaryContent organization={organization} {...props} />
-        </MEPSettingProvider>
-      </RouteContext.Provider>
-    </OrganizationContext.Provider>
+    <MEPSettingProvider>
+      <SummaryContent organization={organization} {...props} />
+    </MEPSettingProvider>
   );
 }
 
@@ -152,7 +144,7 @@ describe('Transaction Summary Content', function () {
       spanOperationBreakdownFilter,
       transactionName,
       router,
-    } = initialize(project, {});
+    } = initialize({});
 
     render(
       <WrappedComponent
@@ -167,7 +159,8 @@ describe('Transaction Summary Content', function () {
         error={null}
         onChangeFilter={() => {}}
         router={router}
-      />
+      />,
+      {router, organization}
     );
 
     expect(

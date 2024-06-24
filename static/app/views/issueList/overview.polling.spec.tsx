@@ -37,7 +37,7 @@ describe('IssueList -> Polling', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const {organization, project, routerProps, routerContext} = initializeOrg({
+  const {organization, project, routerProps, router} = initializeOrg({
     organization: {
       access: ['project:releases'],
     },
@@ -63,7 +63,7 @@ describe('IssueList -> Polling', function () {
   /* helpers */
   const renderComponent = async () => {
     render(<IssueList {...routerProps} {...defaultProps} />, {
-      context: routerContext,
+      router,
     });
 
     await Promise.resolve();

@@ -20,7 +20,7 @@ import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {Container} from 'sentry/utils/discover/styles';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import theme from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
@@ -190,7 +190,6 @@ export function MetricsTable(props: MetricsTableProps) {
         renderHeadCell,
         renderBodyCell,
       }}
-      location={location}
       isLoading={isLoadingBefore || isLoadingAfter || isLoading}
     />
   );
