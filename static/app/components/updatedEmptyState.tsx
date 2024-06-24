@@ -1,135 +1,33 @@
-import {Fragment} from 'react';
+import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
+import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
+import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import type {
+  Docs,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project, ProjectKey} from 'sentry/types';
+import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
+import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
-type GuidedStepInfo = {
-  install: string;
-  installCode: string;
-  configure?: string;
-  configureCode?: (dsn: string) => string;
-  importInst?: string;
-  importInstCode?: string;
-  sourcemaps?: string;
-  sourcemapsCode?: string;
-  verify?: string;
-  verifyCode?: string;
-};
-
-const GuidedStepsMap: Partial<Record<PlatformKey, GuidedStepInfo>> = {
-  'javascript-nextjs': {
-    install: t(
-      'Add Sentry automiatcally to your app with the Sentry Wizard (call this inside your project directory)'
-    ),
-    installCode: 'npx @sentry/wizard@latest -i nextjs',
-  },
-  node: {
-    install: t('Add the Sentry Node SDK as a dependency'),
-    installCode: 'npm install --save @sentry/node @sentry/profiling-node',
-    configure: t(
-      "Initialize Sentry as early as possible in your application's lifecycle. To initialize the SDK before everything else, create an external file called `instrument.js/mjs`."
-    ),
-    configureCode:
-      dsn => `// Import with 'import * as Sentry from "@sentry/node"' if you are using ESM
-const Sentry = require("@sentry/node");
-const { nodeProfilingIntegration } = require("@sentry/profiling-node");
-
-Sentry.init({
-  dsn: "${dsn}",
-  integrations: [
-    nodeProfilingIntegration(),
-  ],
-  // Performance Monitoring
-  tracesSampleRate: 1.0, //  Capture 100% of the transactions
-
-  // Set sampling rate for profiling - this is relative to tracesSampleRate
-  profilesSampleRate: 1.0,
-});`,
-    importInst: t(
-      'You need to require or import the instrument.js file before requiring any other modules in your application'
-    ),
-    importInstCode: `// IMPORTANT: Make sure to import 'instrument.js' at the top of your file.
-// If you're using ECMAScript Modules (ESM) syntax, use 'import "./instrument.js";'
-require("./instrument.js");
-
-// All other imports below
-const { createServer } = require("node:http");
-
-const server = createServer((req, res) => {
-  // server code
-});
-
-server.listen(3000, "127.0.0.1");`,
-    sourcemaps: t(
-      'Automatically upload your source maps to enable readable stack traces for Errors.'
-    ),
-    sourcemapsCode: 'npx @sentry/wizard@latest -i sourcemaps',
-    verify: t(
-      'Add this intentional error to your application to test that everything is working right away.'
-    ),
-    verifyCode: `Sentry.startSpan({
-      op: "test",
-      name: "My First Test Span",
-}, () => {
-  try {
-    foo();
-  } catch (e) {
-    Sentry.captureException(e);
-  }
-});`,
-  },
-  'python-django': {
-    install: t('Use the following command to install our Python Django SDK'),
-    installCode: "pip install --upgrade 'sentry-sdk[django]'",
-    configure: t('To configure the Sentry SDK, initialize it in your settings.py file.'),
-    configureCode: dsn => `import sentry_sdk
-
-sentry_sdk.init(
-  dsn="${dsn}",
-  # Set traces_sample_rate to 1.0 to capture 100%
-  # of transactions for performance monitoring.
-  traces_sample_rate=1.0,
-  # Set profiles_sample_rate to 1.0 to profile 100%
-  # of sampled transactions.
-  # We recommend adjusting this value in production.
-  profiles_sample_rate=1.0,
-)`,
-    verify: t(
-      'Add this intentional error to your application to test that everything is working right away.'
-    ),
-    verifyCode: `# urls.py
-from django.urls import path
-
-def trigger_error(request):
-    division_by_zero = 1 / 0
-
-urlpatterns = [
-    path('sentry-debug/', trigger_error),
-    # ...
-]`,
-  },
-  android: {
-    install: t(
-      'Add Sentry automiatcally to your app with the Sentry Wizard (call this inside your project directory)'
-    ),
-    installCode: 'brew install getsentry/tools/sentry-wizard && sentry-wizard -i android',
-  },
-};
-
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const organization = useOrganization();
-  const platformGuidedSteps = project?.platform ? GuidedStepsMap[project.platform] : null;
+
+  const [module, setModule] = useState<null | {
+    default: Docs<any>;
+  }>(null);
 
   const {
     data: projectKeys,
@@ -143,32 +41,83 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     }
   );
 
+  const {isLoading: isLoadingRegistry, data: registryData} =
+    useSourcePackageRegistries(organization);
+
+  const currentPlatformKey = project?.platform ?? 'other';
+  const currentPlatform = platforms.find(
+    p => p.id === currentPlatformKey
+  ) as PlatformIntegration;
+
+  const platformPath = getPlatformPath(currentPlatform);
+
+  useEffect(() => {
+    async function getGettingStartedDoc() {
+      const mod = await import(
+        /* webpackExclude: /.spec/ */
+        `sentry/gettingStartedDocs/${platformPath}`
+      );
+      setModule(mod);
+    }
+    getGettingStartedDoc();
+    return () => {
+      setModule(null);
+    };
+  }, [platformPath]);
+
   if (
-    !platformGuidedSteps ||
     !project ||
     projectKeysIsError ||
     projectKeysIsLoading ||
     !projectKeys ||
-    projectKeys.length === 0
+    projectKeys.length === 0 ||
+    !module ||
+    !currentPlatform
   ) {
     return null;
   }
 
   const dsn = projectKeys[0].dsn.public;
-  const language = project?.platform === 'node' ? 'javascript' : 'python';
+  const {default: docs} = module;
 
+  const docParams: DocsParams<any> = {
+    cdn: projectKeys[0].dsn.cdn,
+    dsn,
+    organization,
+    platformKey: currentPlatformKey,
+    projectId: project.id,
+    projectSlug: project.slug,
+    isFeedbackSelected: false,
+    isPerformanceSelected: true,
+    isProfilingSelected: true,
+    isReplaySelected: true,
+    sourcePackageRegistries: {
+      isLoading: isLoadingRegistry,
+      data: registryData,
+    },
+    platformOptions: {installationMode: 'auto'},
+    newOrg: false,
+    replayOptions: {block: true, mask: true},
+  };
+
+  const install = docs.onboarding.install(docParams)[0];
+  const configure = docs.onboarding.configure(docParams);
+  const verify = docs.onboarding.verify(docParams);
+
+  const {description: installDescription} = install;
   const {
-    install,
-    configure,
-    importInst,
-    verify,
-    installCode,
-    configureCode,
-    importInstCode,
-    verifyCode,
-    sourcemaps,
-    sourcemapsCode,
-  } = platformGuidedSteps;
+    code,
+    description: configDescription,
+    language,
+  } = docs.onboarding.install(docParams)[0].configurations?.[0] ?? {};
+
+  const {configurations, description: configureDescription} = configure[0];
+  const {configurations: sourceMapConfigurations, description: sourcemapDescription} =
+    configure[1];
+
+  const {description: verifyDescription, configurations: verifyConfigutations} =
+    verify[0];
+
   return (
     <div>
       <HeaderWrapper>
@@ -186,9 +135,16 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
               <div>
                 <div>
-                  {install}
-                  <StyledCodeSnippet>{installCode}</StyledCodeSnippet>
-                  {!verify && (
+                  {configDescription}
+                  {installDescription}
+                  {Array.isArray(code) ? (
+                    <StyledTabbedCodeSnippet tabs={code} />
+                  ) : (
+                    <StyledCodeSnippet language={language}>
+                      {code ?? ''}
+                    </StyledCodeSnippet>
+                  )}
+                  {verify.length === 0 && (
                     <FirstEventIndicator
                       organization={organization}
                       project={project}
@@ -212,98 +168,75 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 </GuidedSteps.ButtonWrapper>
               </div>
             </GuidedSteps.Step>
-            {configure ? (
-              <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
+            <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
+              <div>
                 <div>
-                  <div>
-                    {configure}
-                    {configureCode && (
-                      <StyledCodeSnippet language={language}>
-                        {configureCode(dsn)}
-                      </StyledCodeSnippet>
-                    )}
-                  </div>
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
+                  {configureDescription}
+                  {configurations?.map((configuration, index) => (
+                    <div key={index}>
+                      {configuration.description}
+                      {Array.isArray(configuration.code) ? (
+                        <StyledTabbedCodeSnippet tabs={configuration.code} />
+                      ) : (
+                        <StyledCodeSnippet language={configuration.language}>
+                          {configuration.code ?? ''}
+                        </StyledCodeSnippet>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </GuidedSteps.Step>
-            ) : (
-              <Fragment />
-            )}
-            {importInst ? (
-              <GuidedSteps.Step
-                stepKey="import-inst-sentry"
-                title={t('Import Instrumentation')}
-              >
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </GuidedSteps.ButtonWrapper>
+              </div>
+            </GuidedSteps.Step>
+            <GuidedSteps.Step stepKey="sourcemaps-sentry" title={t('Upload Sourcemaps')}>
+              <div>
                 <div>
-                  <div>
-                    {importInst}
-                    {importInstCode && (
-                      <StyledCodeSnippet language={language}>
-                        {importInstCode}
-                      </StyledCodeSnippet>
-                    )}
-                  </div>
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
+                  {sourcemapDescription}
+                  {sourceMapConfigurations?.map((configuration, index) => (
+                    <div key={index}>
+                      {configuration.description}
+                      {Array.isArray(configuration.code) ? (
+                        <StyledTabbedCodeSnippet tabs={configuration.code} />
+                      ) : (
+                        <StyledCodeSnippet language={configuration.language}>
+                          {configuration.code ?? ''}
+                        </StyledCodeSnippet>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </GuidedSteps.Step>
-            ) : (
-              <Fragment />
-            )}
-            {sourcemaps ? (
-              <GuidedSteps.Step stepKey="sourcemaps" title={t('Upload Source Maps')}>
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </GuidedSteps.ButtonWrapper>
+              </div>
+            </GuidedSteps.Step>
+            <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
+              <div>
                 <div>
-                  <div>
-                    {sourcemaps}
-                    {sourcemapsCode && (
-                      <StyledCodeSnippet language={language}>
-                        {sourcemapsCode}
-                      </StyledCodeSnippet>
-                    )}
-                  </div>
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
+                  {verifyDescription}
+                  {verifyConfigutations?.map((configuration, index) => (
+                    <div key={index}>
+                      {configuration.description}
+                      {Array.isArray(configuration.code) ? (
+                        <StyledTabbedCodeSnippet tabs={configuration.code} />
+                      ) : (
+                        <StyledCodeSnippet language={configuration.language}>
+                          {configuration.code ?? ''}
+                        </StyledCodeSnippet>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              </GuidedSteps.Step>
-            ) : (
-              <Fragment />
-            )}
-            {verify ? (
-              <GuidedSteps.Step stepKey="verify" title={t('Verify')}>
-                <div>
-                  {verify}
-                  {verifyCode && (
-                    <StyledCodeSnippet language={language}>
-                      {verifyCode}
-                    </StyledCodeSnippet>
-                  )}
-                  <FirstEventIndicator
-                    organization={organization}
-                    project={project}
-                    eventType="error"
-                  >
-                    {({indicator, firstEventButton}) => (
-                      <div>
-                        <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                        <StyledButtonBar gap={1}>
-                          <GuidedSteps.BackButton size="md" />
-                          {firstEventButton}
-                        </StyledButtonBar>
-                      </div>
-                    )}
-                  </FirstEventIndicator>
-                </div>
-              </GuidedSteps.Step>
-            ) : (
-              <Fragment />
-            )}
+                <GuidedSteps.ButtonWrapper>
+                  <GuidedSteps.BackButton size="md" />
+                  <GuidedSteps.NextButton size="md" />
+                </GuidedSteps.ButtonWrapper>
+              </div>
+            </GuidedSteps.Step>
           </GuidedSteps>
         </Setup>
         <Preview>
@@ -412,7 +345,12 @@ const IndicatorWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const StyledCodeSnippet = styled(CodeSnippet)`
+const StyledCodeSnippet = styled(OnboardingCodeSnippet)`
+  margin-top: ${space(1)};
+  margin-bottom: ${space(1)};
+`;
+
+const StyledTabbedCodeSnippet = styled(TabbedCodeSnippet)`
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
 `;
