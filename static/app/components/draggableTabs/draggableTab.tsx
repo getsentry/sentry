@@ -1,9 +1,13 @@
-import {forwardRef, useCallback} from 'react';
+import {forwardRef, Fragment, useCallback, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useButton} from '@react-aria/button';
+import {useDrag, useDropIndicator, useDroppableItem} from '@react-aria/dnd';
+import {useFocusRing} from '@react-aria/focus';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
-import {useObjectRef} from '@react-aria/utils';
+import {mergeProps, useObjectRef} from '@react-aria/utils';
+import type {DroppableCollectionState} from '@react-stately/dnd';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
@@ -13,7 +17,8 @@ import {space} from 'sentry/styles/space';
 
 import {tabsShouldForwardProp} from './utils';
 
-interface TabProps extends AriaTabProps {
+interface DraggableTabProps extends AriaTabProps {
+  dropState: DroppableCollectionState;
   item: Node<any>;
   orientation: Orientation;
   /**
@@ -37,16 +42,39 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
+function DropIndicator(props) {
+  const ref = useRef(null);
+  const {dropIndicatorProps, isHidden, isDropTarget} = useDropIndicator(
+    props,
+    props.dropState,
+    ref
+  );
+  if (isHidden) {
+    return null;
+  }
+
+  return (
+    <li
+      {...dropIndicatorProps}
+      role="option"
+      ref={ref}
+      className={`drop-indicator ${isDropTarget ? 'drop-target' : ''}`}
+    />
+  );
+}
+
 /**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-function BaseTab(
-  {item, state, orientation, overflowing}: TabProps,
+function BaseDraggableTab(
+  {item, state, orientation, overflowing, dropState}: DraggableTabProps,
   forwardedRef: React.ForwardedRef<HTMLLIElement>
 ) {
   const ref = useObjectRef(forwardedRef);
+
+  const {isFocusVisible} = useFocusRing();
 
   const {
     key,
@@ -73,28 +101,80 @@ function BaseTab(
     [to, orientation]
   );
 
+  const {dropProps, isDropTarget} = useDroppableItem(
+    {
+      target: {type: 'item', key: item.key, dropPosition: 'on'},
+    },
+    dropState,
+    ref
+  );
+
+  function Draggable({children}) {
+    const {dragProps, dragButtonProps, isDragging} = useDrag({
+      getAllowedDropOperations: () => ['move'],
+      getItems() {
+        return [
+          {
+            tab: JSON.stringify({key: item.key, value: children}),
+          },
+        ];
+      },
+    });
+
+    const draggableRef = useRef(null);
+    const {buttonProps} = useButton(
+      {...dragButtonProps, elementType: 'div'},
+      draggableRef
+    );
+
+    return (
+      <div
+        {...mergeProps(dragProps, buttonProps)}
+        ref={draggableRef}
+        className={`draggable ${isDragging ? 'dragging' : ''}`}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <TabWrap
-      {...tabProps}
-      hidden={hidden}
-      selected={isSelected}
-      overflowing={overflowing}
-      ref={ref}
-    >
-      <InnerWrap>
-        <StyledInteractionStateLayer
-          orientation={orientation}
-          higherOpacity={isSelected}
+    <Fragment>
+      <DropIndicator
+        target={{type: 'item', key: item.key, dropPosition: 'before'}}
+        dropState={dropState}
+      />
+      <TabWrap
+        {...mergeProps(tabProps, dropProps)}
+        hidden={hidden}
+        selected={isSelected}
+        overflowing={overflowing}
+        ref={ref}
+        className={`option ${isFocusVisible ? 'focus-visible' : ''} ${
+          isDropTarget ? 'drop-target' : ''
+        }`}
+      >
+        <InnerWrap>
+          <StyledInteractionStateLayer
+            orientation={orientation}
+            higherOpacity={isSelected}
+          />
+          <FocusLayer orientation={orientation} />
+          <Draggable>{rendered}</Draggable>
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        </InnerWrap>
+      </TabWrap>
+      {state.collection.getKeyAfter(item.key) == null && (
+        <DropIndicator
+          target={{type: 'item', key: item.key, dropPosition: 'after'}}
+          dropState={dropState}
         />
-        <FocusLayer orientation={orientation} />
-        {rendered}
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-      </InnerWrap>
-    </TabWrap>
+      )}
+    </Fragment>
   );
 }
 
-export const Tab = forwardRef(BaseTab);
+export const DraggableTab = forwardRef(BaseDraggableTab);
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;

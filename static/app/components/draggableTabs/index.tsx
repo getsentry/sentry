@@ -4,11 +4,14 @@ import {createContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
-import type {Orientation} from '@react-types/shared';
+import type {Key, Orientation} from '@react-types/shared';
+
+import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
+import {DraggableTabPanels} from 'sentry/components/draggableTabs/draggableTabPanels';
 
 import {tabsShouldForwardProp} from './utils';
 
-export interface TabsProps<T>
+export interface DraggableTabsProps<T>
   extends Omit<
       AriaTabListOptions<any>,
       'selectedKey' | 'defaultSelectedKey' | 'onSelectionChange' | 'isDisabled'
@@ -40,13 +43,13 @@ export interface TabsProps<T>
   value?: T;
 }
 
-interface TabContext {
-  rootProps: Omit<TabsProps<any>, 'children' | 'className'>;
+interface DraggableTabContext {
+  rootProps: Omit<DraggableTabsProps<any>, 'children' | 'className'>;
   setTabListState: (state: TabListState<any>) => void;
   tabListState?: TabListState<any>;
 }
 
-export const TabsContext = createContext<TabContext>({
+export const TabsContext = createContext<DraggableTabContext>({
   rootProps: {orientation: 'horizontal'},
   setTabListState: () => {},
 });
@@ -56,12 +59,12 @@ export const TabsContext = createContext<TabContext>({
  * child components (TabList and TabPanels) to work together. See example
  * usage in tabs.stories.js
  */
-export function Tabs<T extends string | number>({
+export function DraggableTabs<T extends string | number>({
   orientation = 'horizontal',
   className,
   children,
   ...props
-}: TabsProps<T>) {
+}: DraggableTabsProps<T>) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
@@ -72,6 +75,35 @@ export function Tabs<T extends string | number>({
         {children}
       </TabsWrap>
     </TabsContext.Provider>
+  );
+}
+
+export interface Tab {
+  content: React.ReactNode;
+  key: Key;
+  label: string;
+}
+
+export interface DragAndDropTabBarProps {
+  tabs: Tab[];
+}
+
+export function DraggableTabBar(props: DragAndDropTabBarProps) {
+  const [tabs, setTabs] = useState<Tab[]>(props.tabs);
+
+  return (
+    <DraggableTabs>
+      <DraggableTabList tabs={tabs} setTabs={setTabs}>
+        {tabs.map(tab => (
+          <DraggableTabList.Item key={tab.key}>{tab.label}</DraggableTabList.Item>
+        ))}
+      </DraggableTabList>
+      <DraggableTabPanels>
+        {tabs.map(tab => (
+          <DraggableTabPanels.Item key={tab.key}>{tab.content}</DraggableTabPanels.Item>
+        ))}
+      </DraggableTabPanels>
+    </DraggableTabs>
   );
 }
 

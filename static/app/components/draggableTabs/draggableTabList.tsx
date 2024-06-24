@@ -1,24 +1,36 @@
 import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {ListDropTargetDelegate, useDroppableCollection} from '@react-aria/dnd';
+import {ListKeyboardDelegate} from '@react-aria/selection';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
+import {mergeProps} from '@react-aria/utils';
 import {useCollection} from '@react-stately/collections';
+import {
+  type DroppableCollectionStateOptions,
+  useDroppableCollectionState,
+} from '@react-stately/dnd';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {
+  DroppableCollectionInsertDropEvent,
+  Node,
+  Orientation,
+  TextDropItem,
+} from '@react-types/shared';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {type Tab, TabsContext} from 'sentry/components/draggableTabs';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
-import {Tab} from './draggableTab';
-import {TabsContext} from './index';
-import type {TabListItemProps} from './item';
+import {DraggableTab} from './draggableTab';
+import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
 
@@ -31,7 +43,7 @@ function useOverflowTabs({
   tabItemsRef,
   tabItems,
 }: {
-  tabItems: TabListItemProps[];
+  tabItems: DraggableTabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
 }) {
@@ -85,24 +97,16 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-export interface TabListProps
-  extends AriaTabListOptions<TabListItemProps>,
-    TabListStateOptions<TabListItemProps> {
-  className?: string;
-  hideBorder?: boolean;
-  outerWrapStyles?: React.CSSProperties;
+interface BaseDraggableTabListProps extends DraggableTabListProps {
+  items: DraggableTabListItemProps[];
 }
 
-interface BaseTabListProps extends TabListProps {
-  items: TabListItemProps[];
-}
-
-function BaseTabList({
+function BaseDraggableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
   ...props
-}: BaseTabListProps) {
+}: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -142,6 +146,27 @@ function BaseTabList({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
 
+  const dropState = useDroppableCollectionState({
+    ...props,
+    collection: state.collection,
+    selectionManager: state.selectionManager,
+  });
+
+  const {collectionProps} = useDroppableCollection(
+    {
+      ...props,
+      // Provide drop targets for keyboard and pointer-based drag and drop.
+      keyboardDelegate: new ListKeyboardDelegate(
+        state.collection,
+        state.disabledKeys,
+        tabListRef
+      ),
+      dropTargetDelegate: new ListDropTargetDelegate(state.collection, tabListRef),
+    },
+    dropState,
+    tabListRef
+  );
+
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
   const overflowTabs = useOverflowTabs({
@@ -176,19 +201,20 @@ function BaseTabList({
   return (
     <TabListOuterWrap style={outerWrapStyles}>
       <TabListWrap
-        {...tabListProps}
+        {...mergeProps(tabListProps, collectionProps)}
         orientation={orientation}
         hideBorder={hideBorder}
         className={className}
         ref={tabListRef}
       >
         {[...state.collection].map(item => (
-          <Tab
+          <DraggableTab
             key={item.key}
             item={item}
             state={state}
             orientation={orientation}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
+            dropState={dropState}
             ref={element => (tabItemsRef.current[item.key] = element)}
           />
         ))}
@@ -223,14 +249,47 @@ function BaseTabList({
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
+export interface DraggableTabListProps
+  extends AriaTabListOptions<DraggableTabListItemProps>,
+    TabListStateOptions<DraggableTabListItemProps>,
+    Omit<DroppableCollectionStateOptions, 'collection' | 'selectionManager'> {
+  setTabs: (tabs: Tab[]) => void;
+  tabs: Tab[];
+  className?: string;
+  hideBorder?: boolean;
+  outerWrapStyles?: React.CSSProperties;
+}
+
 /**
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function TabList({items, ...props}: TabListProps) {
-  /**
-   * Initial, unfiltered list of tab items.
-   */
+export function DraggableTabList({
+  items,
+  tabs,
+  setTabs,
+  ...props
+}: DraggableTabListProps) {
+  const onInsert = async (e: DroppableCollectionInsertDropEvent) => {
+    const dropItem = e.items[0] as TextDropItem;
+    const eventTab = JSON.parse(await dropItem.getText('tab'));
+    const draggedTab = tabs.find(tab => tab.key === eventTab.key);
+
+    if (draggedTab) {
+      const updatedTabs = tabs.filter(tab => tab.key !== draggedTab.key);
+      const targetTab = tabs.find(tab => tab.key === e.target.key);
+      if (targetTab) {
+        const targetIdx = updatedTabs.indexOf(targetTab);
+        if (targetTab && e.target.dropPosition === 'before') {
+          updatedTabs.splice(targetIdx, 0, draggedTab);
+        } else if (targetTab && e.target.dropPosition === 'after') {
+          updatedTabs.splice(targetIdx + 1, 0, draggedTab);
+        }
+        setTabs(updatedTabs);
+      }
+    }
+  };
+
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -248,13 +307,20 @@ export function TabList({items, ...props}: TabListProps) {
   );
 
   return (
-    <BaseTabList items={parsedItems} disabledKeys={disabledKeys} {...props}>
+    <BaseDraggableTabList
+      tabs={tabs}
+      onInsert={onInsert}
+      items={parsedItems}
+      disabledKeys={disabledKeys}
+      setTabs={setTabs}
+      {...props}
+    >
       {item => <Item {...item} />}
-    </BaseTabList>
+    </BaseDraggableTabList>
   );
 }
 
-TabList.Item = Item;
+DraggableTabList.Item = Item;
 
 const TabListOuterWrap = styled('div')`
   position: relative;
