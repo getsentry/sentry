@@ -208,12 +208,14 @@ def get_seer_similar_issues(
     )
 
     request_data: SimilarIssuesEmbeddingsRequest = {
+        "event_id": event.event_id,
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "message": filter_null_from_event_title(event.title),
         "exception_type": get_path(event.data, "exception", "values", -1, "type"),
         "k": num_neighbors,
+        "referrer": "ingest",
     }
 
     # Similar issues are returned with the closest match first
