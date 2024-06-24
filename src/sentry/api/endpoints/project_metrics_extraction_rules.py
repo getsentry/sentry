@@ -71,7 +71,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             on_results=lambda x: serialize(
                 x, user=request.user, serializer=MetricsExtractionRuleSerializer()
             ),
-            default_per_page=25,
+            default_per_page=1000,
+            max_per_page=1000,
+            max_limit=1000,  # overrides default max_limit of 100 when creating paginator object
         )
 
     def post(self, request: Request, project: Project) -> Response:

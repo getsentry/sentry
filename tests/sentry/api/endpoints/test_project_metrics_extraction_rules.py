@@ -409,12 +409,12 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         json_payload = {
             "metricsExtractionRules": [
                 {
-                    "spanAttribute": f"count_clicks_{i:02d}",
+                    "spanAttribute": f"count_clicks_{i:04d}",
                     "type": "c",
                     "unit": "none",
                     "tags": ["tag1", "tag2", "tag3"],
                 }
-                for i in range(0, 60)
+                for i in range(0, 2050)
             ]
         }
 
@@ -431,29 +431,29 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         )
         assert response.status_code == 200
         span_attributes = [x["spanAttribute"] for x in response.data]
-        assert len(span_attributes) == 25
-        assert min(span_attributes) == "count_clicks_00"
-        assert max(span_attributes) == "count_clicks_24"
+        assert len(span_attributes) == 1000
+        assert min(span_attributes) == "count_clicks_0000"
+        assert max(span_attributes) == "count_clicks_0999"
         assert len(set(span_attributes)) == len(span_attributes)
 
         response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get", cursor="25:1:0"
+            self.organization.slug, self.project.slug, method="get", cursor="1000:1:0"
         )
         assert response.status_code == 200
         span_attributes = [x["spanAttribute"] for x in response.data]
-        assert len(span_attributes) == 25
-        assert min(span_attributes) == "count_clicks_25"
-        assert max(span_attributes) == "count_clicks_49"
+        assert len(span_attributes) == 1000
+        assert min(span_attributes) == "count_clicks_1000"
+        assert max(span_attributes) == "count_clicks_1999"
         assert len(set(span_attributes)) == len(span_attributes)
 
         response = self.get_success_response(
-            self.organization.slug, self.project.slug, method="get", cursor="25:2:0"
+            self.organization.slug, self.project.slug, method="get", cursor="1000:2:0"
         )
         assert response.status_code == 200
         span_attributes = [x["spanAttribute"] for x in response.data]
-        assert len(span_attributes) == 10
-        assert min(span_attributes) == "count_clicks_50"
-        assert max(span_attributes) == "count_clicks_59"
+        assert len(span_attributes) == 50
+        assert min(span_attributes) == "count_clicks_2000"
+        assert max(span_attributes) == "count_clicks_2049"
         assert len(set(span_attributes)) == len(span_attributes)
 
     @with_feature("organizations:custom-metrics-extraction-rule")
