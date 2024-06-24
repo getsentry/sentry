@@ -72,10 +72,40 @@ class GetSimilarityDataFromSeerTest(TestCase):
         assert get_similarity_data_from_seer(self.request_params) == []
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_empty_similar_issues_embeddings(self, mock_seer_request: MagicMock):
-        mock_seer_request.return_value = HTTPResponse([])
+    def test_bad_response_data(self, mock_seer_request: MagicMock):
+        cases: list[tuple[Any]] = [
+            (None,),
+            ([],),
+            (
+                {
+                    "responses": [
+                        {
+                            "message_distance": 0.05,
+                            # missing parent hash
+                            "should_group": True,
+                            "stacktrace_distance": 0.01,
+                        }
+                    ]
+                },
+            ),
+            (
+                {
+                    "responses": [
+                        {
+                            "message_distance": 0.05,
+                            "parent_hash": "04152013090820131121201212312012",
+                            "should_group": True,
+                            "stacktrace_distance": 0.01,
+                        }
+                    ]
+                },
+            ),
+        ]
 
-        assert get_similarity_data_from_seer(self.request_params) == []
+        for (response_data,) in cases:
+            mock_seer_request.return_value = self._make_response(response_data)
+
+            assert get_similarity_data_from_seer(self.request_params) == []
 
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
