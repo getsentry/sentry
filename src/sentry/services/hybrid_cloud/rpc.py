@@ -21,7 +21,6 @@ from requests.adapters import HTTPAdapter, Retry
 
 from sentry import options
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
-from sentry.options import UnknownOption
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
@@ -501,7 +500,7 @@ class _RemoteSiloCall:
             **additional_tags,
         )
 
-    def _get_method_retry_count(self) -> int:
+    def get_method_retry_count(self) -> int:
         retry_key = f"{self.service_name}.{self.method_name}"
         try:
             retry_counts_map = options.get("hybridcloud.rpc.method_retry_overrides")
@@ -517,7 +516,7 @@ class _RemoteSiloCall:
 
         return options.get("hybridcloud.rpc.retries")
 
-    def _get_method_timeout(self) -> float:
+    def get_method_timeout(self) -> float:
         timeout_key = f"{self.service_name}.{self.method_name}"
         try:
             timeout_overrides_map = options.get("hybridcloud.rpc.method_timeout_overrides")
@@ -628,7 +627,7 @@ class _RemoteSiloCall:
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
-        retry_count = self._get_method_retry_count()
+        retry_count = self.get_method_retry_count()
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
                 total=retry_count,
@@ -644,7 +643,7 @@ class _RemoteSiloCall:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
-        timeout = self._get_method_timeout()
+        timeout = self.get_method_timeout()
         try:
             return http.post(url, headers=headers, data=data, timeout=timeout)
         except requests.exceptions.ConnectionError as e:
