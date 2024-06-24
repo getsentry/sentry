@@ -79,3 +79,13 @@ def test_counter():
     assert not metric_spec["field"]
     assert metric_spec["mri"] == "c:custom/foobar@none"
     assert metric_spec["tags"] == []
+
+
+def test_empty_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="foobar", type="c", unit="none", tags=set(), conditions=[""]
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert not metric_spec["condition"]

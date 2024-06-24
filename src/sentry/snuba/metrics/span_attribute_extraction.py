@@ -80,7 +80,9 @@ def _parse_conditions(conditions: Sequence[str] | None) -> Sequence[QueryToken]:
     if not conditions:
         return []
 
-    search_query = " or ".join([f"({condition})" for condition in conditions])
+    non_empty_conditions = [condition for condition in conditions if condition]
+
+    search_query = " or ".join([f"({condition})" for condition in non_empty_conditions])
     return event_search.parse_search_query(search_query)
 
 
