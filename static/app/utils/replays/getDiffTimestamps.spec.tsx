@@ -63,23 +63,32 @@ const RRWEB_EVENTS = [
   }),
 ];
 
-function getMockReplay(
+function getMockReplay(rrwebEvents: any[], errors: ReplayError[]) {
+  const attachments = [...rrwebEvents];
+  const replay = ReplayReader.factory({
+    replayRecord,
+    errors,
+    attachments,
+  });
+
+  return {replay};
+}
+
+function getMockReplayWithCrumbFrame(
   rrwebEvents: any[],
-  crumbFrame: undefined | RawBreadcrumbFrame,
+  crumbFrame: RawBreadcrumbFrame,
   errors: ReplayError[]
 ) {
   const attachments = [...rrwebEvents];
 
-  if (crumbFrame) {
-    attachments.push(
-      ReplayBreadcrumbFrameEventFixture({
-        timestamp: new Date(crumbFrame.timestamp),
-        data: {
-          payload: crumbFrame,
-        },
-      })
-    );
-  }
+  attachments.push(
+    ReplayBreadcrumbFrameEventFixture({
+      timestamp: new Date(crumbFrame.timestamp),
+      data: {
+        payload: crumbFrame,
+      },
+    })
+  );
 
   const {rrwebFrames} = hydrateFrames(attachments);
   const [hydrationErrorFrame] = hydrateBreadcrumbs(
@@ -87,7 +96,6 @@ function getMockReplay(
     crumbFrame ? [crumbFrame] : [],
     rrwebFrames
   );
-  invariant(isHydrationErrorFrame(hydrationErrorFrame), '');
 
   const replay = ReplayReader.factory({
     replayRecord,
@@ -95,6 +103,7 @@ function getMockReplay(
     attachments,
   });
 
+  invariant(isHydrationErrorFrame(hydrationErrorFrame), '');
   return {hydrationErrorFrame, replay};
 }
 
@@ -103,7 +112,7 @@ describe('getReplayDiffOffsetsFromFrame', () => {
     const rawHydrationCrumbFrame = ReplayHydrationErrorFrameFixture({
       timestamp: CRUMB_1_DATE,
     });
-    const {replay, hydrationErrorFrame} = getMockReplay(
+    const {replay, hydrationErrorFrame} = getMockReplayWithCrumbFrame(
       RRWEB_EVENTS,
       rawHydrationCrumbFrame,
       []
@@ -119,7 +128,7 @@ describe('getReplayDiffOffsetsFromFrame', () => {
     const rawHydrationCrumbFrame = ReplayHydrationErrorFrameFixture({
       timestamp: CRUMB_2_DATE,
     });
-    const {replay, hydrationErrorFrame} = getMockReplay(
+    const {replay, hydrationErrorFrame} = getMockReplayWithCrumbFrame(
       RRWEB_EVENTS,
       rawHydrationCrumbFrame,
       []
@@ -138,7 +147,7 @@ describe('getReplayDiffOffsetsFromEvent', () => {
       timestamp: CRUMB_1_DATE,
     });
     const errorEvent = EventFixture({dateCreated: ERROR_DATE.toISOString()});
-    const {replay} = getMockReplay(RRWEB_EVENTS, rawHydrationCrumbFrame, [
+    const {replay} = getMockReplayWithCrumbFrame(RRWEB_EVENTS, rawHydrationCrumbFrame, [
       errorEvent as any as ReplayError,
     ]);
 
@@ -150,9 +159,7 @@ describe('getReplayDiffOffsetsFromEvent', () => {
 
   it('should get offsets when no hydration breadcrumb exists', () => {
     const errorEvent = EventFixture({dateCreated: ERROR_DATE.toISOString()});
-    const {replay} = getMockReplay(RRWEB_EVENTS, undefined, [
-      errorEvent as any as ReplayError,
-    ]);
+    const {replay} = getMockReplay(RRWEB_EVENTS, [errorEvent as any as ReplayError]);
 
     expect(getReplayDiffOffsetsFromEvent(replay!, errorEvent)).toEqual({
       leftOffsetMs: 1_000, // offset of ERROR_DATE
