@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import uuid
 from datetime import timedelta
+from typing import Any, TypedDict
 from unittest import mock
 from uuid import uuid4
 
@@ -12,6 +15,7 @@ from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
 from sentry.issues.grouptype import ProfileFileIOGroupType
+from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SnubaTestCase
@@ -20,6 +24,12 @@ from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+class _EventDataDict(TypedDict):
+    data: dict[str, Any]
+    project: Project
+    count: int
 
 
 class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -1067,7 +1077,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
     def test_group_id_tag_simple(self):
-        event_data = {
+        event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
                 "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
@@ -1120,7 +1130,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         transaction_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=2))
         transaction_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=4))
         transaction_data["tags"] = {"shared-tag": "yup"}
-        self.event_data = [
+        self.event_data: list[_EventDataDict] = [
             {
                 "data": {
                     "message": "poof",
@@ -1349,7 +1359,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         assert [attrs[0]["count"] for _, attrs in data["Other"]["data"]] == [7, 6]
 
     def test_tag_with_conflicting_function_alias_simple(self):
-        event_data = {
+        event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
                 "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
@@ -1396,7 +1406,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
         reason="The response.data[Other] returns 15 locally and returns 16 or 15 remotely."
     )
     def test_tag_with_conflicting_function_alias_with_other_single_grouping(self):
-        event_data = [
+        event_data: list[_EventDataDict] = [
             {
                 "data": {
                     "message": "poof",
@@ -1444,7 +1454,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.data["Other"]["data"][0][1] == [{"count": 16}]
 
     def test_tag_with_conflicting_function_alias_with_other_multiple_groupings(self):
-        event_data = [
+        event_data: list[_EventDataDict] = [
             {
                 "data": {
                     "message": "abc",
@@ -1492,7 +1502,7 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.data["Other"]["data"][0][1] == [{"count": 25}]
 
     def test_group_id_tag_simple(self):
-        event_data = {
+        event_data: _EventDataDict = {
             "data": {
                 "message": "poof",
                 "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
@@ -2247,14 +2257,14 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             )
 
         assert response.status_code == 200, response.content
-        data = response.data
+        res_data = response.data
 
-        assert len(data) == 2
+        assert len(res_data) == 2
 
-        results = data["1"]
+        results = res_data["1"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 20}], [{"count": 6}]]
 
-        results = data["0"]
+        results = res_data["0"]
         assert [attrs for time, attrs in results["data"]] == [[{"count": 1}], [{"count": 0}]]
 
     def test_top_events_with_aggregate_condition(self):

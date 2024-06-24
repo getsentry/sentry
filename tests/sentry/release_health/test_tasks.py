@@ -152,8 +152,8 @@ class BaseTestReleaseMonitor(TestCase, BaseMetricsTestCase):
             },
         ]
         process_projects_with_sessions(test_data[0]["org_id"][0], test_data[0]["project_id"])
-        self.project1.refresh_from_db()
-        assert self.project1.flags.has_sessions
+        project1 = Project.objects.get(id=self.project1.id)
+        assert project1.flags.has_sessions
 
         assert not ReleaseProjectEnvironment.objects.filter(
             project_id=self.project1.id,
