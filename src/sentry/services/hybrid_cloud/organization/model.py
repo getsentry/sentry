@@ -207,6 +207,9 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     slug: str = ""
     id: int = -1
     name: str = ""
+    flags: RpcOrganizationMappingFlags = Field(
+        default_factory=lambda: RpcOrganizationMappingFlags()
+    )
 
     def __hash__(self) -> int:
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
