@@ -17,7 +17,7 @@ import {space} from 'sentry/styles/space';
 
 import {tabsShouldForwardProp} from './utils';
 
-interface DroppableTabProps extends AriaTabProps {
+interface DraggableTabProps extends AriaTabProps {
   dropState: DroppableCollectionState;
   item: Node<any>;
   orientation: Orientation;
@@ -68,8 +68,8 @@ function DropIndicator(props) {
  * page/view – it's only meant to be used by <TabsList />. See the correct
  * usage in tabs.stories.js
  */
-function BaseDroppableTab(
-  {item, state, orientation, overflowing, dropState}: DroppableTabProps,
+function BaseDraggableTab(
+  {item, state, orientation, overflowing, dropState}: DraggableTabProps,
   forwardedRef: React.ForwardedRef<HTMLLIElement>
 ) {
   const ref = useObjectRef(forwardedRef);
@@ -174,7 +174,7 @@ function BaseDroppableTab(
   );
 }
 
-export const DroppableTab = forwardRef(BaseDroppableTab);
+export const DraggableTab = forwardRef(BaseDraggableTab);
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;

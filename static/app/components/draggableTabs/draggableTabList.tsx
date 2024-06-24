@@ -22,15 +22,15 @@ import type {
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {type Tab, TabsContext} from 'sentry/components/draggableTabs';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {type Tab, TabsContext} from 'sentry/components/tabs_dndTabs';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
-import {DroppableTab} from './droppableTab';
-import type {DroppableTabListItemProps} from './item';
+import {DraggableTab} from './draggableTab';
+import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
 
@@ -43,7 +43,7 @@ function useOverflowTabs({
   tabItemsRef,
   tabItems,
 }: {
-  tabItems: DroppableTabListItemProps[];
+  tabItems: DraggableTabListItemProps[];
   tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: React.RefObject<HTMLUListElement>;
 }) {
@@ -97,16 +97,16 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-interface BaseDroppableTabListProps extends DroppableTabListProps {
-  items: DroppableTabListItemProps[];
+interface BaseDraggableTabListProps extends DraggableTabListProps {
+  items: DraggableTabListItemProps[];
 }
 
-function BaseDroppableTabList({
+function BaseDraggableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
   ...props
-}: BaseDroppableTabListProps) {
+}: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -208,7 +208,7 @@ function BaseDroppableTabList({
         ref={tabListRef}
       >
         {[...state.collection].map(item => (
-          <DroppableTab
+          <DraggableTab
             key={item.key}
             item={item}
             state={state}
@@ -249,9 +249,9 @@ function BaseDroppableTabList({
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-export interface DroppableTabListProps
-  extends AriaTabListOptions<DroppableTabListItemProps>,
-    TabListStateOptions<DroppableTabListItemProps>,
+export interface DraggableTabListProps
+  extends AriaTabListOptions<DraggableTabListItemProps>,
+    TabListStateOptions<DraggableTabListItemProps>,
     Omit<DroppableCollectionStateOptions, 'collection' | 'selectionManager'> {
   setTabs: (tabs: Tab[]) => void;
   tabs: Tab[];
@@ -264,12 +264,12 @@ export interface DroppableTabListProps
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DroppableTabList({
+export function DraggableTabList({
   items,
   tabs,
   setTabs,
   ...props
-}: DroppableTabListProps) {
+}: DraggableTabListProps) {
   const onInsert = async (e: DroppableCollectionInsertDropEvent) => {
     const dropItem = e.items[0] as TextDropItem;
     const eventTab = JSON.parse(await dropItem.getText('tab'));
@@ -307,7 +307,7 @@ export function DroppableTabList({
   );
 
   return (
-    <BaseDroppableTabList
+    <BaseDraggableTabList
       tabs={tabs}
       onInsert={onInsert}
       items={parsedItems}
@@ -316,11 +316,11 @@ export function DroppableTabList({
       {...props}
     >
       {item => <Item {...item} />}
-    </BaseDroppableTabList>
+    </BaseDraggableTabList>
   );
 }
 
-DroppableTabList.Item = Item;
+DraggableTabList.Item = Item;
 
 const TabListOuterWrap = styled('div')`
   position: relative;

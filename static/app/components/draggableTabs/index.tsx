@@ -6,12 +6,12 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
 import type {Key, Orientation} from '@react-types/shared';
 
-import {DroppableTabList} from 'sentry/components/tabs_dndTabs/droppableTabList';
-import {DroppableTabPanels} from 'sentry/components/tabs_dndTabs/droppableTabPanels';
+import {DraggableTabList} from 'sentry/components/draggableTabs/draggableTabList';
+import {DraggableTabPanels} from 'sentry/components/draggableTabs/draggableTabPanels';
 
 import {tabsShouldForwardProp} from './utils';
 
-export interface DroppableTabsProps<T>
+export interface DraggableTabsProps<T>
   extends Omit<
       AriaTabListOptions<any>,
       'selectedKey' | 'defaultSelectedKey' | 'onSelectionChange' | 'isDisabled'
@@ -43,13 +43,13 @@ export interface DroppableTabsProps<T>
   value?: T;
 }
 
-interface DroppableTabContext {
-  rootProps: Omit<DroppableTabsProps<any>, 'children' | 'className'>;
+interface DraggableTabContext {
+  rootProps: Omit<DraggableTabsProps<any>, 'children' | 'className'>;
   setTabListState: (state: TabListState<any>) => void;
   tabListState?: TabListState<any>;
 }
 
-export const TabsContext = createContext<DroppableTabContext>({
+export const TabsContext = createContext<DraggableTabContext>({
   rootProps: {orientation: 'horizontal'},
   setTabListState: () => {},
 });
@@ -59,12 +59,12 @@ export const TabsContext = createContext<DroppableTabContext>({
  * child components (TabList and TabPanels) to work together. See example
  * usage in tabs.stories.js
  */
-export function DroppableTabs<T extends string | number>({
+export function DraggableTabs<T extends string | number>({
   orientation = 'horizontal',
   className,
   children,
   ...props
-}: DroppableTabsProps<T>) {
+}: DraggableTabsProps<T>) {
   const [tabListState, setTabListState] = useState<TabListState<any>>();
 
   return (
@@ -88,22 +88,22 @@ export interface DragAndDropTabBarProps {
   tabs: Tab[];
 }
 
-export function DragAndDropTabBar(props: DragAndDropTabBarProps) {
+export function DraggableTabBar(props: DragAndDropTabBarProps) {
   const [tabs, setTabs] = useState<Tab[]>(props.tabs);
 
   return (
-    <DroppableTabs>
-      <DroppableTabList tabs={tabs} setTabs={setTabs}>
+    <DraggableTabs>
+      <DraggableTabList tabs={tabs} setTabs={setTabs}>
         {tabs.map(tab => (
-          <DroppableTabList.Item key={tab.key}>{tab.label}</DroppableTabList.Item>
+          <DraggableTabList.Item key={tab.key}>{tab.label}</DraggableTabList.Item>
         ))}
-      </DroppableTabList>
-      <DroppableTabPanels>
+      </DraggableTabList>
+      <DraggableTabPanels>
         {tabs.map(tab => (
-          <DroppableTabPanels.Item key={tab.key}>{tab.content}</DroppableTabPanels.Item>
+          <DraggableTabPanels.Item key={tab.key}>{tab.content}</DraggableTabPanels.Item>
         ))}
-      </DroppableTabPanels>
-    </DroppableTabs>
+      </DraggableTabPanels>
+    </DraggableTabs>
   );
 }
 

@@ -13,7 +13,7 @@ import {tabsShouldForwardProp} from './utils';
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-interface DroppableTabPanelsProps extends AriaTabPanelProps, CollectionBase<any> {
+interface DraggableTabPanelsProps extends AriaTabPanelProps, CollectionBase<any> {
   className?: string;
 }
 
@@ -21,7 +21,7 @@ interface DroppableTabPanelsProps extends AriaTabPanelProps, CollectionBase<any>
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DroppableTabPanels(props: DroppableTabPanelsProps) {
+export function DraggableTabPanels(props: DraggableTabPanelsProps) {
   const {
     rootProps: {orientation, items},
     tabListState,
@@ -51,7 +51,7 @@ export function DroppableTabPanels(props: DroppableTabPanelsProps) {
   );
 }
 
-DroppableTabPanels.Item = Item;
+DraggableTabPanels.Item = Item;
 
 interface TabPanelProps extends AriaTabPanelProps {
   state: TabListState<any>;
