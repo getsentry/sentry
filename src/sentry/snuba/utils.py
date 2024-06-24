@@ -10,6 +10,7 @@ from sentry.snuba import (
     profiles,
     spans_indexed,
     spans_metrics,
+    transactions,
 )
 
 # Doesn't map 1:1 with real datasets, but rather what we present to users
@@ -24,6 +25,7 @@ DATASET_OPTIONS = {
     "profileFunctions": functions,
     "spansIndexed": spans_indexed,
     "spansMetrics": spans_metrics,
+    "transactions": transactions,
 }
 DATASET_LABELS = {value: key for key, value in DATASET_OPTIONS.items()}
 

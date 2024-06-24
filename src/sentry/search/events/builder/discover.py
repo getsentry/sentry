@@ -542,6 +542,7 @@ class BaseQueryBuilder:
             # Chained or statements become field:a OR (field:b OR (...))
             operator == Or
             and is_where_condition(lhs_where)
+            and rhs_where
             and isinstance(rhs_where[0], Or)
             # Even in a long chain the first condition would be the next field
             and isinstance(rhs_where[0].conditions[0], Condition)

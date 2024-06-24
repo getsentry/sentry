@@ -5,7 +5,7 @@ import pytest
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
-from sentry.snuba import discover
+from sentry.snuba import transactions
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -21,43 +21,33 @@ class TimeseriesBase(SnubaTestCase, TestCase):
         self.one_min_ago = before_now(minutes=1)
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
 
-        self.store_event(
-            data={
-                "event_id": "a" * 32,
-                "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
-                "fingerprint": ["group1"],
-                "tags": {"important": "yes"},
-                "user": {"id": 1},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "b" * 32,
-                "message": "oh my",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1, minutes=1)),
-                "fingerprint": ["group2"],
-                "tags": {"important": "no"},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "event_id": "c" * 32,
-                "message": "very bad",
-                "timestamp": iso_format(self.day_ago + timedelta(hours=2, minutes=1)),
-                "fingerprint": ["group2"],
-                "tags": {"important": "yes"},
-            },
-            project_id=self.project.id,
-        )
+        # transaction event
+        data = load_data("transaction", timestamp=self.day_ago + timedelta(hours=1))
+        data["event_id"] = "a" * 32
+        data["transaction"] = "very bad"
+        data["user"] = {"id": 1}
+        data["tags"] = {"important": "yes"}
+        self.store_event(data=data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=self.day_ago + timedelta(hours=1, minutes=1))
+        data["event_id"] = "b" * 32
+        data["transaction"] = "oh my"
+        data["user"] = {}
+        data["tags"] = {"important": "no"}
+        self.store_event(data=data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=self.day_ago + timedelta(hours=2, minutes=1))
+        data["event_id"] = "c" * 32
+        data["transaction"] = "very bad"
+        data["user"] = {}
+        data["tags"] = {"important": "yes"}
+        self.store_event(data=data, project_id=self.project.id)
 
 
-class DiscoverTimeseriesQueryTest(TimeseriesBase):
+class TransactionsTimeseriesQueryTest(TimeseriesBase):
     def test_invalid_field_in_function(self):
         with pytest.raises(InvalidSearchQuery):
-            discover.timeseries_query(
+            transactions.timeseries_query(
                 selected_columns=["min(transaction)"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
@@ -67,7 +57,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
 
     def test_missing_start_and_end(self):
         with pytest.raises(InvalidSearchQuery):
-            discover.timeseries_query(
+            transactions.timeseries_query(
                 selected_columns=["count()"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
@@ -77,7 +67,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
 
     def test_no_aggregations(self):
         with pytest.raises(InvalidSearchQuery):
-            discover.timeseries_query(
+            transactions.timeseries_query(
                 selected_columns=["transaction", "title"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
@@ -90,7 +80,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             )
 
     def test_field_alias(self):
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["p95()"],
             query="event.type:transaction transaction:api.issue.delete",
             referrer="test_discover_query",
@@ -104,7 +94,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
 
     def test_failure_rate_field_alias(self):
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["failure_rate()"],
             query="event.type:transaction transaction:api.issue.delete",
             referrer="test_discover_query",
@@ -118,7 +108,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
 
     def test_aggregate_function(self):
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
@@ -132,7 +122,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
         assert [2] == [val["count"] for val in result.data["data"] if "count" in val]
 
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["count_unique(user)"],
             query="",
             referrer="test_discover_query",
@@ -154,7 +144,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         with pytest.raises(
             InvalidSearchQuery, match="Only one column can be selected for comparison queries"
         ):
-            discover.timeseries_query(
+            transactions.timeseries_query(
                 selected_columns=["count()", "count_unique(user)"],
                 query="",
                 referrer="test_discover_query",
@@ -168,15 +158,11 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             )
 
     def test_comparison_aggregate_function(self):
-        self.store_event(
-            data={
-                "timestamp": iso_format(self.day_ago + timedelta(hours=1)),
-                "user": {"id": 1},
-            },
-            project_id=self.project.id,
-        )
+        data = load_data("transaction", timestamp=self.day_ago + timedelta(hours=1))
+        data["user"] = {"id": 1}
+        self.store_event(data=data, project_id=self.project.id)
 
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
@@ -194,28 +180,23 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             (val.get("count", 0), val.get("comparisonCount", 0)) for val in result.data["data"]
         ]
 
-        self.store_event(
-            data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1)),
-                "user": {"id": 1},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=1, minutes=2)),
-                "user": {"id": 2},
-            },
-            project_id=self.project.id,
-        )
-        self.store_event(
-            data={
-                "timestamp": iso_format(self.day_ago + timedelta(days=-1, hours=2, minutes=1)),
-            },
-            project_id=self.project.id,
-        )
+        data = load_data("transaction", timestamp=self.day_ago + timedelta(days=-1, hours=1))
+        data["user"] = {"id": 1}
+        self.store_event(data=data, project_id=self.project.id)
 
-        result = discover.timeseries_query(
+        data = load_data(
+            "transaction", timestamp=self.day_ago + timedelta(days=-1, hours=1, minutes=2)
+        )
+        data["user"] = {"id": 2}
+        self.store_event(data=data, project_id=self.project.id)
+
+        data = load_data(
+            "transaction", timestamp=self.day_ago + timedelta(days=-1, hours=2, minutes=1)
+        )
+        data["user"] = {}
+        self.store_event(data=data, project_id=self.project.id)
+
+        result = transactions.timeseries_query(
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
@@ -234,7 +215,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             (val.get("count", 0), val.get("comparisonCount", 0)) for val in result.data["data"]
         ]
 
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["count_unique(user)"],
             query="",
             params={
@@ -256,6 +237,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
 
     def test_count_miserable(self):
         event_data = load_data("transaction")
+        event_data["transaction"] = "api/foo/"
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
         event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
@@ -276,10 +258,10 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             metric=TransactionMetric.DURATION.value,
         )
 
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["count_miserable(user)"],
             referrer="test_discover_query",
-            query="",
+            query="transaction:api/foo/",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -297,6 +279,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
 
     def test_count_miserable_with_arithmetic(self):
         event_data = load_data("transaction")
+        event_data["transaction"] = "api/foo/"
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 300
         event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
@@ -317,10 +300,10 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
             metric=TransactionMetric.DURATION.value,
         )
 
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["equation|count_miserable(user) - 100"],
             referrer="test_discover_query",
-            query="",
+            query="transaction:api/foo/",
             params={
                 "start": self.day_ago,
                 "end": self.day_ago + timedelta(hours=2),
@@ -335,7 +318,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         ]
 
     def test_equation_function(self):
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["equation|count() / 100"],
             query="",
             referrer="test_discover_query",
@@ -349,7 +332,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert len(result.data["data"]) == 3
         assert [0.02] == [val["equation[0]"] for val in result.data["data"] if "equation[0]" in val]
 
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["equation|count_unique(user) / 100"],
             query="",
             params={
@@ -368,7 +351,7 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         assert "time" in keys
 
     def test_zerofilling(self):
-        result = discover.timeseries_query(
+        result = transactions.timeseries_query(
             selected_columns=["count()"],
             query="",
             referrer="test_discover_query",
@@ -388,16 +371,13 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
         project2 = self.create_project(organization=self.organization)
         project3 = self.create_project(organization=self.organization)
 
-        self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
-            project_id=project2.id,
-        )
-        self.store_event(
-            data={"message": "hello", "timestamp": iso_format(self.one_min_ago)},
-            project_id=project3.id,
-        )
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        self.store_event(data=data, project_id=project2.id)
 
-        result = discover.timeseries_query(
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        self.store_event(data=data, project_id=project3.id)
+
+        result = transactions.timeseries_query(
             selected_columns=["count()"],
             query=f"project:{self.project.slug} OR project:{project2.slug}",
             params={
@@ -417,24 +397,24 @@ class DiscoverTimeseriesQueryTest(TimeseriesBase):
 
     def test_nested_conditional_filter(self):
         project2 = self.create_project(organization=self.organization)
-        self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
-            project_id=self.project.id,
-        )
-        self.event = self.store_event(
-            data={"release": "b" * 32, "timestamp": iso_format(self.one_min_ago)},
-            project_id=self.project.id,
-        )
-        self.event = self.store_event(
-            data={"release": "c" * 32, "timestamp": iso_format(self.one_min_ago)},
-            project_id=self.project.id,
-        )
-        self.event = self.store_event(
-            data={"release": "a" * 32, "timestamp": iso_format(self.one_min_ago)},
-            project_id=project2.id,
-        )
 
-        result = discover.timeseries_query(
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        data["release"] = "a" * 32
+        self.store_event(data=data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        data["release"] = "b" * 32
+        self.store_event(data=data, project_id=self.project.id)
+
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        data["release"] = "c" * 32
+        self.store_event(data=data, project_id=project2.id)
+
+        data = load_data("transaction", timestamp=self.one_min_ago)
+        data["release"] = "a" * 32
+        self.store_event(data=data, project_id=project2.id)
+
+        result = transactions.timeseries_query(
             selected_columns=["release", "count()"],
             query="(release:{} OR release:{}) AND project:{}".format(
                 "a" * 32, "b" * 32, self.project.slug
@@ -472,7 +452,7 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
         }
         start = before_now(minutes=5)
         end = before_now(seconds=1)
-        discover.top_events_timeseries(
+        transactions.top_events_timeseries(
             selected_columns=["project", "count()"],
             params={
                 "start": start,
@@ -535,7 +515,7 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
         }
         start = before_now(days=3, minutes=10)
         end = before_now(minutes=1)
-        discover.top_events_timeseries(
+        transactions.top_events_timeseries(
             selected_columns=["timestamp", "timestamp.to_day", "timestamp.to_hour", "count()"],
             params={
                 "start": start,
@@ -598,7 +578,7 @@ class TopEventsTimeseriesQueryTest(TimeseriesBase):
     def test_equation_fields_are_auto_added(self, mock_query):
         start = before_now(minutes=5)
         end = before_now(seconds=1)
-        discover.top_events_timeseries(
+        transactions.top_events_timeseries(
             selected_columns=["count()"],
             equations=["equation|count_unique(user) * 2"],
             params={"start": start, "end": end, "project_id": [self.project.id]},
