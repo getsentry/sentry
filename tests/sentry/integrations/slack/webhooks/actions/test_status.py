@@ -197,6 +197,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             )
 
         assert resp.status_code == 200, resp.content
+        return resp
 
     def assign_issue_block_kit(self, original_message, selected_option, payload_data=None):
         if isinstance(selected_option, Team):
@@ -402,7 +403,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    def test_archive_issue_forever_block_kit(self):
+    def test_archive_issue_forever_(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         self.archive_issue_block_kit(original_message, "ignored:archived_forever")
 
@@ -415,6 +416,21 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue archived by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
+    @patch("sentry.models.organization.Organization.has_access", return_value=False)
+    def test_archive_issue_forever_error(self, mock_access):
+        original_message = self.get_original_message_block_kit(self.group.id)
+
+        resp = self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+        expected_text = f"Looks like this Slack identity is linked to the Sentry user *{self.user.email}* who is not a member of organization *{self.organization.slug}* used with this Slack integration. "
+        assert expected_text in resp.data["text"]
+        assert resp.data["response_type"] == "ephemeral"
+        assert resp.data["replace_original"] is False
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.UNRESOLVED
+        assert self.group.substatus == GroupSubStatus.ONGOING
 
     @responses.activate
     def test_archive_issue_forever_block_kit_through_unfurl(self):

@@ -190,16 +190,14 @@ class SlackActionEndpoint(Endpoint):
         )
         channel_id = None
         response_url = None
-        view = None
-        if features.has("organizations:slack-block-kit", group.project.organization):
-            # the channel ID and response URL are in a different place if it's coming from a modal
-            view = slack_request.data.get("view")
-            if view:
-                private_metadata = view.get("private_metadata")
-                if private_metadata:
-                    data = orjson.loads(private_metadata)
-                    channel_id = data.get("channel_id")
-                    response_url = data.get("orig_response_url")
+        # the channel ID and response URL are in a different place if it's coming from a modal
+        view = slack_request.data.get("view")
+        if view:
+            private_metadata = view.get("private_metadata")
+            if private_metadata:
+                data = orjson.loads(private_metadata)
+                channel_id = data.get("channel_id")
+                response_url = data.get("orig_response_url")
 
         if error.status_code == 403:
             text = UNLINK_IDENTITY_MESSAGE.format(

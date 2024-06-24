@@ -216,7 +216,6 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    @with_feature("organizations:slack-block-kit")
     def test_unfurl_issues_block_kit(self):
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
