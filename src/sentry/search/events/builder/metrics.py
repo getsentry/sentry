@@ -1110,7 +1110,9 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
         return result
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str, is_frontend: bool | None = None, use_cache: bool = False
+    ) -> Any:
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
@@ -1315,9 +1317,10 @@ class MetricsQueryBuilder(QueryBuilder):
                     tenant_ids=self.tenant_ids,
                 )
                 current_result = raw_snql_query(
-                    request,
-                    f"{referrer}.{referrer_suffix}",
-                    use_cache,
+                    request=request,
+                    referrer=f"{referrer}.{referrer_suffix}",
+                    is_frontend=is_frontend,
+                    use_cache=use_cache,
                 )
                 for meta in current_result["meta"]:
                     meta_dict[meta["name"]] = meta["type"]

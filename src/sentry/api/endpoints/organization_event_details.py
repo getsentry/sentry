@@ -16,6 +16,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
+from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
 from sentry.search.events.builder import SpansMetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
@@ -25,7 +26,7 @@ from sentry.snuba.referrer import Referrer
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
-def add_comparison_to_event(event, average_columns):
+def add_comparison_to_event(event, average_columns, request: Request):
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
@@ -68,7 +69,10 @@ def add_comparison_to_event(event, average_columns):
             ]
         )
         result = builder.process_results(
-            builder.run_query(Referrer.API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN.value)
+            builder.run_query(
+                referrer=Referrer.API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN.value,
+                is_frontend=is_frontend_request(request),
+            )
         )
         sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
         for row in result["data"]:
@@ -140,7 +144,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
                 "organizations:insights-initial-modules", organization, actor=request.user
             )
         ):
-            add_comparison_to_event(event, average_columns)
+            add_comparison_to_event(event, average_columns, request)
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:

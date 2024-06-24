@@ -856,6 +856,9 @@ ResultSet = list[Mapping[str, Any]]
 def raw_snql_query(
     request: Request,
     referrer: str | None = None,
+    is_frontend: (
+        bool | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
     use_cache: bool = False,
 ) -> Mapping[str, Any]:
     """
@@ -864,12 +867,17 @@ def raw_snql_query(
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
-    return bulk_snuba_queries([request], referrer, use_cache)[0]
+    return bulk_snuba_queries(
+        requests=[request], referrer=referrer, is_frontend=is_frontend, use_cache=use_cache
+    )[0]
 
 
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
+    is_frontend: (
+        bool | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
     use_cache: bool = False,
 ) -> ResultSet:
     """
@@ -888,7 +896,9 @@ def bulk_snuba_queries(
             request.tenant_ids["referrer"] = referrer
 
     params = [(request, lambda x: x, lambda x: x) for request in requests]
-    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
+    return _apply_cache_and_build_results(
+        params, referrer=referrer, is_frontend=is_frontend, use_cache=use_cache
+    )
 
 
 # TODO: This is the endpoint that accepts legacy (non-SnQL/MQL queries)
@@ -923,12 +933,17 @@ def get_cache_key(query: SnubaQuery) -> str:
 def _apply_cache_and_build_results(
     snuba_param_list: Sequence[RequestQueryBody],
     referrer: str | None = None,
+    is_frontend: (
+        bool | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
     use_cache: bool | None = False,
 ) -> ResultSet:
     headers = {}
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
+    if is_frontend is not None:
+        headers["is_frontend"] = is_frontend
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
