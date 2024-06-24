@@ -50,7 +50,7 @@ export function MetricRulesEdit({
       staleTime: 0,
       retry: false,
       onSuccess: data => {
-        onChangeTitle(data[0].name ?? '');
+        onChangeTitle(data[0]?.name ?? '');
       },
       onError: ({responseText}) => {
         const {detail} = JSON.parse(responseText ?? '');
