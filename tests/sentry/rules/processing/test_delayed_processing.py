@@ -69,12 +69,12 @@ class ProcessDelayedAlertConditionsTest(
         comparison_interval=None,
     ) -> EventFrequencyConditionData:
         condition_id = f"sentry.rules.conditions.event_frequency.{id}"
-        condition_blob = {
-            "interval": interval,
-            "id": condition_id,
-            "value": value,
-            "comparisonType": comparison_type,
-        }
+        condition_blob = EventFrequencyConditionData(
+            interval=interval,
+            id=condition_id,
+            value=value,
+            comparisonType=comparison_type,
+        )
         if comparison_interval:
             condition_blob["comparisonInterval"] = comparison_interval
 
