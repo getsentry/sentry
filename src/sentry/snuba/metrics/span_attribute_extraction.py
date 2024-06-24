@@ -29,7 +29,7 @@ class SpanAttributeMetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
-def convert_to_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
+def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
 
     field = _get_field(extraction_rule)
     parsed_conditions = _parse_conditions(extraction_rule.conditions)
@@ -39,7 +39,7 @@ def convert_to_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetr
         "mri": extraction_rule.generate_mri(),
         "field": field,
         "tags": _get_tags(extraction_rule.tags, parsed_conditions),
-        "condition": _get_condition(parsed_conditions),
+        "condition": _get_rule_condition(parsed_conditions),
     }
 
 
@@ -72,8 +72,6 @@ def _flatten_query_tokens(conditions: Sequence[QueryToken]) -> list[SearchFilter
             query_tokens.append(token)
         elif isinstance(token, ParenExpression):
             query_tokens = query_tokens + _flatten_query_tokens(token.children)
-        else:
-            pass
 
     return query_tokens
 
@@ -83,12 +81,10 @@ def _parse_conditions(conditions: Sequence[str] | None) -> Sequence[QueryToken]:
         return []
 
     search_query = " or ".join([f"({condition})" for condition in conditions])
-    parsed_search_query = event_search.parse_search_query(search_query)
-
-    return parsed_search_query
+    return event_search.parse_search_query(search_query)
 
 
-def _get_condition(parsed_search_query: Sequence[Any] | None) -> RuleCondition | None:
+def _get_rule_condition(parsed_search_query: Sequence[Any] | None) -> RuleCondition | None:
     if not parsed_search_query:
         return None
 
