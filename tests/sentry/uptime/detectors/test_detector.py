@@ -1,3 +1,4 @@
+from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.uptime.detectors.detector import detect_base_url_for_project
@@ -5,7 +6,7 @@ from sentry.uptime.detectors.ranking import _get_cluster, get_project_bucket_key
 
 
 class DetectBaseUrlForProjectTest(TestCase):
-    def assert_project_key(self, project, exists: bool) -> None:
+    def assert_project_key(self, project: Project, exists: bool) -> None:
         key = get_project_bucket_key(project)
         cluster = _get_cluster()
         assert exists == cluster.hexists(key, str(project.id))

@@ -21,7 +21,9 @@ class AddBaseUrlToRankTest(TestCase):
             assert int(str(cluster.hget(key, str(project.id)))) == count
             return self.check_expiry(key, expiry)
 
-    def assert_url_count(self, project, url, count: int | None, expiry: int | None) -> int | None:
+    def assert_url_count(
+        self, project: Project, url: str, count: int | None, expiry: int | None
+    ) -> int | None:
         key = get_project_hostname_rank_key(project)
         cluster = _get_cluster()
         if count is None:
