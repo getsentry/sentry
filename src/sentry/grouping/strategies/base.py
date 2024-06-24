@@ -111,10 +111,26 @@ class GroupingContext:
 
     def get_grouping_component(
         self, interface: Interface, *, event: Event, **kwargs: Any
-    ) -> GroupingComponent | ReturnedVariants:
+    ) -> ReturnedVariants:
         """Invokes a delegate grouping strategy.  If no such delegate is
         configured a fallback grouping component is returned.
         """
+        return self._get_strategy_dict(interface, event=event, **kwargs)
+
+    def get_single_grouping_component(
+        self, interface: Interface, *, event: Event, **kwargs: Any
+    ) -> GroupingComponent:
+        """Invokes a delegate grouping strategy.  If no such delegate is
+        configured a fallback grouping component is returned.
+        """
+        rv = self._get_strategy_dict(interface, event=event, **kwargs)
+
+        assert len(rv) == 1
+        return rv[self["variant"]]
+
+    def _get_strategy_dict(
+        self, interface: Interface, *, event: Event, **kwargs: Any
+    ) -> ReturnedVariants:
         path = interface.path
         strategy = self.config.delegates.get(path)
         if strategy is None:
@@ -124,10 +140,6 @@ class GroupingContext:
         kwargs["event"] = event
         rv = strategy(interface, **kwargs)
         assert isinstance(rv, dict)
-
-        if self["variant"] is not None:
-            assert len(rv) == 1
-            return rv[self["variant"]]
 
         return rv
 

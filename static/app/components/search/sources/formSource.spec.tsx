@@ -38,7 +38,7 @@ describe('FormSource', function () {
   });
 
   afterEach(function () {
-    (ActionCreators.loadSearchMap as jest.Mock).mockRestore();
+    jest.mocked(ActionCreators.loadSearchMap).mockRestore();
   });
 
   it('can find a form field', async function () {

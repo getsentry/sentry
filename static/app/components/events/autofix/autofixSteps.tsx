@@ -273,7 +273,7 @@ const StepHeaderRight = styled('div')`
 `;
 
 const StepTitle = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
   display: flex;
   flex-shrink: 1;

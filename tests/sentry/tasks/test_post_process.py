@@ -15,7 +15,6 @@ from django.test import override_settings
 from django.utils import timezone
 
 from sentry import buffer
-from sentry.buffer.redis import RedisBuffer
 from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
@@ -71,6 +70,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.performance_issues.store_transaction import store_transaction
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -416,6 +416,7 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
         mock_callback.assert_called_once_with(EventMatcher(event), mock_futures)
 
+    @mock_redis_buffer()
     def test_rule_processor_buffer_values(self):
         # Test that pending buffer values for `times_seen` are applied to the group and that alerts
         # fire as expected
@@ -423,10 +424,9 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
 
         MOCK_RULES = ("sentry.rules.filters.issue_occurrences.IssueOccurrencesFilter",)
 
-        redis_buffer = RedisBuffer()
         with (
-            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
-            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
             patch("sentry.constants._SENTRY_RULES", MOCK_RULES),
             patch("sentry.rules.rules", init_registry()) as rules,
         ):
@@ -533,9 +533,9 @@ class RuleProcessorTestMixin(BasePostProgressGroupMixin):
         mock_processor.assert_called_with(
             EventMatcher(event2, group=group1), False, True, False, False, False
         )
-        sent_group_date = mock_processor.call_args[0][0].group.last_seen
+        sent_group_date: datetime = mock_processor.call_args[0][0].group.last_seen
         # Check that last_seen was updated to be at least the new event's date
-        self.assertAlmostEqual(sent_group_date, event2.datetime, delta=timedelta(seconds=10))
+        assert abs(sent_group_date - event2.datetime) < timedelta(seconds=10)
 
 
 class ServiceHooksTestMixin(BasePostProgressGroupMixin):
@@ -857,7 +857,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(self.user.id, None), (None, self.team.id)} == {
             (o.user_id, o.team_id) for o in owners
         }
-        activity = Activity.objects.filter(group=event.group).first()
+        activity = Activity.objects.get(group=event.group)
         assert activity.data == {
             "assignee": str(self.user.id),
             "assigneeEmail": self.user.email,
@@ -1056,10 +1056,19 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
 
     def test_suspect_committer_affect_cache_debouncing_issue_owners_calculations(self):
         self.make_ownership()
+        event = self.create_event(
+            data={
+                "message": "oh no",
+                "platform": "python",
+                "stacktrace": {"frames": [{"filename": "src/app/things/in/a/path/example2.py"}]},
+            },
+            project_id=self.project.id,
+        )
+
         committer = GroupOwner(
-            group=self.created_event.group,
-            project=self.created_event.project,
-            organization=self.created_event.project.organization,
+            group=event.group,
+            project=event.project,
+            organization=event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
         )
         committer.save()
@@ -1215,8 +1224,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = (
             GroupOwner.objects.filter()
             .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            .order_by("type")[0]
         )
         assert assignee.user_id == self.user.id
 
@@ -1246,10 +1254,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Mimic filter used in get_autoassigned_owner_cached to get the issue owner to be
         # auto-assigned
         assignee = (
-            GroupOwner.objects.filter()
-            .exclude(user_id__isnull=True, team_id__isnull=True)
-            .order_by("type")
-            .first()
+            GroupOwner.objects.filter().exclude(user_id__isnull=True, team_id__isnull=True).get()
         )
         # Group should be re-assigned to the new group owner
         assert assignee.user_id == user_3.id
@@ -1500,6 +1505,8 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
                 },
             )
             organization_integration = integration.add_organization(self.organization)
+        assert organization_integration is not None
+
         self.repo.update(integration_id=integration.id, provider="integrations:github_enterprise")
         self.code_mapping.update(organization_integration_id=organization_integration.id)
 
@@ -1674,14 +1681,14 @@ class SnoozeTestMixin(BasePostProgressGroupMixin):
         ).exists()
         assert mock_send_unignored_robust.called
 
+    @mock_redis_buffer()
     @override_settings(SENTRY_BUFFER="sentry.buffer.redis.RedisBuffer")
     @patch("sentry.signals.issue_unignored.send_robust")
     @patch("sentry.rules.processing.processor.RuleProcessor")
     def test_invalidates_snooze_with_buffers(self, mock_processor, send_robust):
-        redis_buffer = RedisBuffer()
         with (
-            mock.patch("sentry.buffer.backend.get", redis_buffer.get),
-            mock.patch("sentry.buffer.backend.incr", redis_buffer.incr),
+            mock.patch("sentry.buffer.backend.get", buffer.backend.get),
+            mock.patch("sentry.buffer.backend.incr", buffer.backend.incr),
         ):
             event = self.create_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
@@ -1990,22 +1997,6 @@ class ReplayLinkageTestMixin(BasePostProgressGroupMixin):
         assert kafka_producer.return_value.publish.call_count == 0
         incr.assert_any_call("post_process.process_replay_link.id_sampled")
 
-    def test_0_sample_rate_replays(self, incr, kafka_producer, kafka_publisher):
-        event = self.create_event(
-            data={"message": "testing"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event,
-        )
-        assert kafka_producer.return_value.publish.call_count == 0
-        for args, _ in incr.call_args_list:
-            self.assertNotEqual(args, ("post_process.process_replay_link.id_sampled"))
-
 
 class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
     def test_user_report_gets_environment(self):
@@ -2158,7 +2149,6 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated(self, mock_run_post_process_job):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2185,7 +2175,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=1)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_no_flag(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2205,7 +2194,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold")
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_escalated_old(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2227,7 +2215,6 @@ class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
 
     @patch("sentry.issues.issue_velocity.get_latest_threshold", return_value=11)
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
-    @with_feature("projects:issue-priority")
     def test_has_not_escalated(self, mock_run_post_process_job, mock_threshold):
         event = self.create_event(data={}, project_id=self.project.id)
         group = event.group
@@ -2537,6 +2524,7 @@ class PostProcessGroupPerformanceTest(
             cache_key=cache_key,
             group_id=None,
             group_states=None,
+            project_id=self.project.id,
         )
 
         assert transaction_processed_signal_mock.call_count == 1
@@ -2660,6 +2648,7 @@ class TransactionClustererTestCase(TestCase, SnubaTestCase):
             is_new_group_environment=False,
             cache_key=cache_key,
             group_id=None,
+            project_id=self.project.id,
         )
 
         assert mock_store_transaction_name.mock_calls == [
@@ -2844,8 +2833,9 @@ class PostProcessGroupFeedbackTest(
     def call_post_process_group(
         self, is_new, is_regression, is_new_group_environment, event, cache_key=None
     ):
-        with self.feature(FeedbackGroup.build_post_process_group_feature_name()), self.feature(
-            "organizations:user-feedback-spam-filter-actions"
+        with (
+            self.feature(FeedbackGroup.build_post_process_group_feature_name()),
+            self.feature("organizations:user-feedback-spam-filter-actions"),
         ):
             post_process_group(
                 is_new=is_new,
@@ -2858,7 +2848,6 @@ class PostProcessGroupFeedbackTest(
             )
         return cache_key
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_option_disabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", False)
         event = self.create_event(
@@ -2884,7 +2873,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_spam(self):
         event = self.create_event(
             data={},
@@ -2910,7 +2898,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_project_option_enabled(self):
         self.project.update_option("sentry:feedback_user_report_notifications", True)
 
@@ -2937,7 +2924,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_not_ran_if_crash_report_setting_option_epoch_0(self):
         self.project.update_option("sentry:option-epoch", 1)
         event = self.create_event(
@@ -2963,7 +2949,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 0
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_default_on_new_projects(self):
         event = self.create_event(
             data={},
@@ -2988,7 +2973,6 @@ class PostProcessGroupFeedbackTest(
             )
         assert mock_process_func.call_count == 1
 
-    @override_options({"feedback.spam-detection-actions": True})
     def test_ran_if_crash_feedback_envelope(self):
         event = self.create_event(
             data={},

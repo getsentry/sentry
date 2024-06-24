@@ -31,7 +31,7 @@ def get_anomalies(snuba_io):
     response = ads_connection_pool.urlopen(
         "POST",
         "/anomaly/predict",
-        body=orjson.dumps(snuba_io),
+        body=orjson.dumps(snuba_io, option=orjson.OPT_UTC_Z),
         headers={"content-type": "application/json;charset=utf-8"},
     )
     return Response(orjson.loads(response.data), status=200)

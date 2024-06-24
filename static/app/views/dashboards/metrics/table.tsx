@@ -6,7 +6,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse} from 'sentry/types';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {isNotQueryOnly, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
@@ -16,7 +16,7 @@ import {
   type MetricsQueryApiRequestQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
 import type {Order} from 'sentry/views/dashboards/metrics/types';
-import {LoadingScreen} from 'sentry/views/starfish/components/chart';
+import {LoadingScreen} from 'sentry/views/insights/common/components/chart';
 
 interface MetricTableContainerProps {
   isLoading: boolean;

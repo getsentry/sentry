@@ -333,9 +333,9 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
                 <ProjectLatestReleases
                   organization={organization}
                   projectSlug={params.projectId}
-                  projectId={project?.id}
                   location={location}
                   isProjectStabilized={isProjectStabilized}
+                  project={project}
                 />
                 <ProjectQuickLinks
                   organization={organization}

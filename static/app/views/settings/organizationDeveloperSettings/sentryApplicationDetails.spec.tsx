@@ -1,5 +1,5 @@
+import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 import {SentryAppTokenFixture} from 'sentry-fixture/sentryAppToken';
@@ -16,7 +16,6 @@ import selectEvent from 'sentry-test/selectEvent';
 import SentryApplicationDetails from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDetails';
 
 describe('Sentry Application Details', function () {
-  let org;
   let sentryApp;
   let token;
   let createAppRequest;
@@ -28,8 +27,6 @@ describe('Sentry Application Details', function () {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-
-    org = OrganizationFixture({features: ['sentry-app-logo-upload']});
   });
 
   describe('Creating a new public Sentry App', () => {
@@ -37,13 +34,12 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={{path: 'new-public/'}}
+          route={{}}
           params={{}}
-        />,
-        {context: RouterContextFixture([{organization: org}])}
+        />
       );
     }
 
@@ -116,7 +112,7 @@ describe('Sentry Application Details', function () {
       const data = {
         name: 'Test App',
         author: 'Sentry',
-        organization: org.slug,
+        organization: OrganizationFixture().slug,
         redirectUrl: 'https://webhook.com/setup',
         webhookUrl: 'https://webhook.com',
         scopes: expect.arrayContaining([
@@ -148,13 +144,12 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-internal/'})}
           routes={router.routes}
           routeParams={{}}
-          route={{path: 'new-internal/'}}
+          route={{}}
           params={{}}
-        />,
-        {context: RouterContextFixture([{organization: org}])}
+        />
       );
     }
 
@@ -183,15 +178,12 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
-        />,
-        {
-          context: RouterContextFixture([{organization: org}]),
-        }
+        />
       );
     }
 
@@ -247,15 +239,12 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
-        />,
-        {
-          context: RouterContextFixture([{organization: org}]),
-        }
+        />
       );
     }
 
@@ -316,15 +305,12 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
-        />,
-        {
-          context: RouterContextFixture([{organization: org}]),
-        }
+        />
       );
     }
 
@@ -365,15 +351,12 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
-        />,
-        {
-          context: RouterContextFixture([{organization: org}]),
-        }
+        />
       );
     }
 
@@ -453,15 +436,12 @@ describe('Sentry Application Details', function () {
       return render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
-        />,
-        {
-          context: RouterContextFixture([{organization: org}]),
-        }
+        />
       );
     }
 
@@ -547,15 +527,12 @@ describe('Sentry Application Details', function () {
       render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
           routeParams={{}}
-          route={router.routes[0]}
+          route={{}}
           params={{appSlug: sentryApp.slug}}
-        />,
-        {
-          context: RouterContextFixture([{organization: org}]),
-        }
+        />
       );
     }
 
@@ -616,9 +593,9 @@ describe('Sentry Application Details', function () {
       render(
         <SentryApplicationDetails
           router={router}
-          location={router.location}
+          location={LocationFixture({pathname: 'new-public/'})}
           routes={router.routes}
-          route={router.routes[0]}
+          route={{}}
           routeParams={{}}
           params={{appSlug: sentryApp.slug}}
         />

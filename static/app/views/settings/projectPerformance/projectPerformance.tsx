@@ -25,9 +25,9 @@ import type {Organization, Project, Scope} from 'sentry/types';
 import {IssueTitle, IssueType} from 'sentry/types';
 import type {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {formatPercentage} from 'sentry/utils/formatters';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -841,7 +841,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
         <PermissionAlert project={project} />
         <Access access={requiredScopes} project={project}>
           {({hasAccess}) => (
-            <Feature features="organizations:spans-first-ui">
+            <Feature features="organizations:insights-initial-modules">
               <Form
                 initialData={this.state.general}
                 saveOnBlur

@@ -8,11 +8,13 @@ from typing import Any
 import orjson
 import sentry_sdk
 
+from sentry import features
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.integration import Integration
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.base import BaseNotification
@@ -21,7 +23,6 @@ from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack import post_message, post_message_control
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.notifications")
@@ -109,17 +110,26 @@ def _notify_recipient(
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             post_message_task = post_message_control
 
+        has_sdk_flag = features.has(
+            "organizations:slack-sdk-notify-recipient", notification.organization
+        )
+
         log_params = {
             "notification": str(notification),
             "recipient": recipient.id,
             "channel_id": channel,
         }
+        if has_sdk_flag:
+            log_error_message = "slack.notify_recipient.fail"
+        else:
+            log_error_message = "notification.fail.slack_post"
         post_message_task.apply_async(
             kwargs={
                 "integration_id": integration.id,
                 "payload": payload,
-                "log_error_message": "notification.fail.slack_post",
+                "log_error_message": log_error_message,
                 "log_params": log_params,
+                "has_sdk_flag": has_sdk_flag,
             }
         )
     # recording data outside of span

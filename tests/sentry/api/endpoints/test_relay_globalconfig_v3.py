@@ -44,7 +44,6 @@ def call_endpoint(client, relay, private_key):
         "relay.span-usage-metric": True,
         "relay.cardinality-limiter.mode": "passive",
         "profiling.generic_metrics.functions_ingestion.enabled": True,
-        "feedback.ingest-inline-attachments": True,
         "relay.disable_normalization.processing": True,
         "relay.force_full_normalization": True,
         "relay.metric-bucket-distribution-encodings": {
@@ -122,3 +121,9 @@ def test_return_global_config_on_right_version(
 def test_global_config_valid_with_generic_filters():
     config = get_global_config()
     assert config == normalize_global_config(config)
+
+
+@django_db_all
+def test_global_config_histogram_outliers(insta_snapshot):
+    config = get_global_config()
+    insta_snapshot(config["metricExtraction"])

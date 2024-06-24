@@ -37,7 +37,6 @@ const group = GroupFixture({
 const organization = OrganizationFixture({
   id: '4660',
   slug: 'org',
-  features: ['reprocessing-v2'],
 });
 
 describe('GroupActions', function () {
@@ -45,7 +44,6 @@ describe('GroupActions', function () {
 
   beforeEach(function () {
     ConfigStore.init();
-    jest.spyOn(ConfigStore, 'get').mockImplementation(() => []);
   });
   afterEach(function () {
     MockApiClient.clearMockResponses();
@@ -132,7 +130,7 @@ describe('GroupActions', function () {
   });
 
   describe('reprocessing', function () {
-    it('renders ReprocessAction component if org has feature flag reprocessing-v2 and native exception event', async function () {
+    it('renders ReprocessAction component if org has native exception event', async function () {
       const event = EventStacktraceExceptionFixture({
         platform: 'native',
       });
@@ -251,7 +249,7 @@ describe('GroupActions', function () {
 
     expect(deleteMock).toHaveBeenCalled();
     expect(browserHistory.push).toHaveBeenCalledWith({
-      pathname: `/organizations/${organization.slug}/issues/`,
+      pathname: `/organizations/${org.slug}/issues/`,
       query: {project: project.id},
     });
   });

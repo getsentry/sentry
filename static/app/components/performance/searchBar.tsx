@@ -11,6 +11,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -20,6 +21,8 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import SearchDropdown from '../smartSearchBar/searchDropdown';
 import type {SearchGroup} from '../smartSearchBar/types';
 import {ItemType} from '../smartSearchBar/types';
+
+const TRANSACTION_SEARCH_PERIOD = '14d';
 
 export type SearchBarProps = {
   eventView: EventView;
@@ -148,6 +151,15 @@ function SearchBar(props: SearchBarProps) {
           if (Object.keys(api.activeRequests).length) {
             api.clear();
           }
+          const parsedPeriodHours = eventView.statsPeriod
+            ? parsePeriodToHours(eventView.statsPeriod)
+            : 0;
+          const parsedDefaultHours = parsePeriodToHours(TRANSACTION_SEARCH_PERIOD);
+
+          const statsPeriod =
+            parsedDefaultHours > parsedPeriodHours
+              ? TRANSACTION_SEARCH_PERIOD
+              : eventView.statsPeriod;
 
           const [results] = await doDiscoverQuery<{
             data: DataItem[];
@@ -156,7 +168,7 @@ function SearchBar(props: SearchBarProps) {
             project: projectIdStrings,
             sort: '-count()',
             query: conditions.formatString(),
-            statsPeriod: eventView.statsPeriod,
+            statsPeriod,
             referrer: 'api.performance.transaction-name-search-bar',
           });
 

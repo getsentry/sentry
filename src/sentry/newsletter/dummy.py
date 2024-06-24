@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+import contextlib
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
 from typing import Any
 
 from django.utils import timezone
@@ -75,11 +76,13 @@ class DummyNewsletter(Newsletter):
         self._subscriptions: dict[User, dict[int, NewsletterSubscription]] = defaultdict(dict)
         self._enabled = enabled
 
-    def enable(self):
+    @contextlib.contextmanager
+    def enable(self) -> Generator[None, None, None]:
         self._enabled = True
-
-    def disable(self):
-        self._enabled = False
+        try:
+            yield
+        finally:
+            self._enabled = False
 
     def clear(self):
         self._subscriptions = defaultdict(dict)

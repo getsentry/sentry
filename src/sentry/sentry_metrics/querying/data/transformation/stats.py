@@ -1,11 +1,19 @@
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from typing import Any
 
 from sentry.sentry_metrics.querying.data.execution import QueryResult
 from sentry.sentry_metrics.querying.data.transformation.base import QueryResultsTransformer
+from sentry.utils.outcomes import Outcome
 
 
-class MetricsStatsTransformer(QueryResultsTransformer[Mapping[str, Any]]):
+@dataclass(frozen=True)
+class MetricsOutcomesResult:
+    series: Sequence[Mapping[str, Any]]
+    totals: Sequence[Mapping[str, Any]]
+
+
+class MetricsOutcomesTransformer(QueryResultsTransformer[Mapping[str, Any]]):
     def transform_result(self, result: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
         ret_val = []
 
@@ -13,7 +21,8 @@ class MetricsStatsTransformer(QueryResultsTransformer[Mapping[str, Any]]):
             ret_val_item = {}
             for key in item:
                 if key == "outcome.id":
-                    ret_val_item["outcome"] = int(item[key])
+                    outcome = int(item[key])
+                    ret_val_item["outcome"] = Outcome(outcome).api_name()
                 elif key in "aggregate_value":
                     ret_val_item["quantity"] = item[key]
                 else:

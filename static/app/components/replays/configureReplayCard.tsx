@@ -111,12 +111,12 @@ const ButtonContent = styled('div')`
 `;
 
 const ButtonTitle = styled('div')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const ButtonSubtitle = styled('div')`
   color: ${p => p.theme.gray300};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 

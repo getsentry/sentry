@@ -1192,6 +1192,13 @@ const SECTIONS: TSection[] = [
         name: 'FileBroken',
         defaultProps: {},
       },
+      {
+        id: 'image',
+        groups: ['device'],
+        keywords: ['image', 'photo', 'screenshot'],
+        name: 'Image',
+        defaultProps: {},
+      },
     ],
   },
 ];

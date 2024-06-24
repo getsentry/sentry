@@ -30,7 +30,7 @@ async function fetchOrg(
       // If this url changes make sure to update the preload
       api.requestPromise(`/organizations/${slug}/`, {
         includeAllArgs: true,
-        query: {detailed: 0},
+        query: {detailed: 0, include_feature_flags: 1},
       }),
     usePreload
   );
@@ -132,49 +132,62 @@ export function fetchOrganizationDetails(
     PageFiltersStore.onReset();
   }
 
-  const loadOrganization = async () => {
-    try {
-      await fetchOrg(api, slug, usePreload);
-    } catch (err) {
-      if (!err) {
-        return;
-      }
-
-      OrganizationStore.onFetchOrgError(err);
-
-      if (err.status === 403 || err.status === 401) {
-        const errMessage =
-          typeof err.responseJSON?.detail === 'string'
-            ? err.responseJSON?.detail
-            : typeof err.responseJSON?.detail?.message === 'string'
-              ? err.responseJSON?.detail.message
-              : null;
-
-        if (errMessage) {
-          addErrorMessage(errMessage);
-        }
-
-        return;
-      }
-
-      Sentry.captureException(err);
+  const getErrorMessage = err => {
+    if (typeof err.responseJSON?.detail === 'string') {
+      return err.responseJSON?.detail;
     }
+    if (typeof err.responseJSON?.detail?.message === 'string') {
+      return err.responseJSON?.detail.message;
+    }
+    return null;
   };
 
-  const loadTeamsAndProjects = async () => {
-    const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+  const loadOrganization = () => {
+    return new Promise(async (resolve, reject) => {
+      let org: Organization | undefined = undefined;
+      try {
+        org = await fetchOrg(api, slug, usePreload);
+      } catch (err) {
+        if (!err) {
+          reject(err);
+          return;
+        }
 
-    ProjectsStore.loadInitialData(projects ?? []);
+        OrganizationStore.onFetchOrgError(err);
 
-    const teamPageLinks = resp?.getResponseHeader('Link');
-    if (teamPageLinks) {
-      const paginationObject = parseLinkHeader(teamPageLinks);
-      const hasMore = paginationObject?.next?.results ?? false;
-      const cursor = paginationObject.next?.cursor;
-      TeamStore.loadInitialData(teams, hasMore, cursor);
-    } else {
-      TeamStore.loadInitialData(teams);
-    }
+        if (err.status === 403 || err.status === 401) {
+          const errMessage = getErrorMessage(err);
+
+          if (errMessage) {
+            addErrorMessage(errMessage);
+            reject(errMessage);
+          }
+
+          return;
+        }
+        Sentry.captureException(err);
+      }
+      resolve(org);
+    });
+  };
+
+  const loadTeamsAndProjects = () => {
+    return new Promise(async resolve => {
+      const [[projects], [teams, , resp]] = await fetchProjectsAndTeams(slug, usePreload);
+
+      ProjectsStore.loadInitialData(projects ?? []);
+
+      const teamPageLinks = resp?.getResponseHeader('Link');
+      if (teamPageLinks) {
+        const paginationObject = parseLinkHeader(teamPageLinks);
+        const hasMore = paginationObject?.next?.results ?? false;
+        const cursor = paginationObject.next?.cursor;
+        TeamStore.loadInitialData(teams, hasMore, cursor);
+      } else {
+        TeamStore.loadInitialData(teams);
+      }
+      resolve([projects, teams]);
+    });
   };
 
   return Promise.all([loadOrganization(), loadTeamsAndProjects()]);

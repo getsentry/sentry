@@ -78,7 +78,7 @@ def _export(
     if filter_by is not None:
         filters.append(filter_by)
         if filter_by.model == Organization:
-            if filter_by.field not in {"pk", "id", "slug"}:
+            if filter_by.field != "slug":
                 raise ValueError(
                     "Filter arguments must only apply to `Organization`'s `slug` field"
                 )

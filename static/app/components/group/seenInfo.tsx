@@ -10,7 +10,8 @@ import VersionHoverCard from 'sentry/components/versionHoverCard';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Release} from 'sentry/types';
-import {defined, toTitleCase} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
@@ -153,7 +154,7 @@ const StyledTimeSince = styled(TimeSince)`
 const StyledHovercard = styled(Hovercard)`
   width: 250px;
   ${Header} {
-    font-weight: normal;
+    font-weight: ${p => p.theme.fontWeightNormal};
     border-bottom: 1px solid ${p => p.theme.innerBorder};
   }
   ${Body} {

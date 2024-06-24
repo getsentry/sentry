@@ -1,8 +1,6 @@
 import type {InjectedRouter} from 'react-router';
 import {MetricsFieldFixture} from 'sentry-fixture/metrics';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -20,14 +18,12 @@ import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils
 const api = new MockApiClient();
 const organization = OrganizationFixture({
   features: ['discover-basic', 'performance-view'],
-  projects: [ProjectFixture()],
 });
 
 const {
-  routerContext,
   organization: org,
-  router,
   project,
+  router,
 } = initializeOrg({
   organization,
   router: {
@@ -71,7 +67,7 @@ const testSupportedBrowserRendering = (webVital: WebVital) => {
 describe('Performance > VitalDetail', function () {
   beforeEach(function () {
     TeamStore.loadInitialData([], false, null);
-    ProjectsStore.loadInitialData(org.projects);
+    ProjectsStore.loadInitialData([project]);
     browserHistory.push = jest.fn();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
@@ -223,7 +219,7 @@ describe('Performance > VitalDetail', function () {
 
   it('renders basic UI elements', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -248,7 +244,7 @@ describe('Performance > VitalDetail', function () {
 
   it('triggers a navigation on search', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -280,17 +276,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -334,17 +321,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -389,17 +367,8 @@ describe('Performance > VitalDetail', function () {
       },
     };
 
-    const context = RouterContextFixture([
-      {
-        organization,
-        project,
-        router: newRouter,
-        location: newRouter.location,
-      },
-    ]);
-
     render(<TestComponent router={newRouter} />, {
-      context,
+      router: newRouter,
       organization: org,
     });
 
@@ -424,7 +393,7 @@ describe('Performance > VitalDetail', function () {
 
   it('renders LCP vital correctly', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -439,7 +408,7 @@ describe('Performance > VitalDetail', function () {
 
   it('correctly renders which browsers support LCP', async function () {
     render(<TestComponent />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -459,7 +428,7 @@ describe('Performance > VitalDetail', function () {
     };
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -484,7 +453,7 @@ describe('Performance > VitalDetail', function () {
     });
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 
@@ -509,7 +478,7 @@ describe('Performance > VitalDetail', function () {
     });
 
     render(<TestComponent router={newRouter} />, {
-      context: routerContext,
+      router,
       organization: org,
     });
 

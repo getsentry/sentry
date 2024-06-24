@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
 
+import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
@@ -17,8 +19,6 @@ import {
   type WidgetQuery,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 import {getUniqueQueryIdGenerator} from 'sentry/views/metrics/utils/uniqueQueryId';
 
 function extendQuery(query = '', dashboardFilters?: DashboardFilters) {
@@ -269,26 +269,4 @@ export function defaultMetricWidget(): Widget {
     '',
     DisplayType.LINE
   );
-}
-
-export function filterQueriesByDisplayType(
-  queries: DashboardMetricsQuery[],
-  displayType: DisplayType
-) {
-  // Big number can display only one query
-  if (displayType === DisplayType.BIG_NUMBER) {
-    return queries.slice(0, 1);
-  }
-  return queries;
-}
-
-export function filterEquationsByDisplayType(
-  equations: DashboardMetricsEquation[],
-  displayType: DisplayType
-) {
-  // Big number can display only one query
-  if (displayType === DisplayType.BIG_NUMBER) {
-    return [];
-  }
-  return equations;
 }

@@ -132,15 +132,19 @@ def apply_cors_headers(
         allowed_methods = []
     allow = ", ".join(allowed_methods)
     if not allow or "*" in allow:
-        logger.info(
-            "api.cors.no_methods",
-            extra={
-                "url": request.path,
-                "method": request.method,
-                "origin": request.META.get("HTTP_ORIGIN", ""),
-                "allow": allow,
-            },
-        )
+        with sentry_sdk.push_scope() as scope:
+            scope.set_level("warning")
+            scope.set_context(
+                "cors_headers",
+                {
+                    "url": request.path,
+                    "method": request.method,
+                    "origin": request.META.get("HTTP_ORIGIN", ""),
+                    "allow": allow,
+                },
+            )
+            sentry_sdk.capture_message("api.cors.no_methods")
+
     response["Allow"] = allow
     response["Access-Control-Allow-Methods"] = allow
     response["Access-Control-Allow-Headers"] = (
@@ -626,11 +630,13 @@ class StatsMixin:
         rollups that may put strain on the system.
         """
         try:
-            resolution = request.GET.get("resolution")
-            if resolution:
-                resolution = self._parse_resolution(resolution)
+            resolution_s = request.GET.get("resolution")
+            if resolution_s:
+                resolution = self._parse_resolution(resolution_s)
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
+            else:
+                resolution = None
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
@@ -665,7 +671,7 @@ class StatsMixin:
             "environment_ids": environment_id and [environment_id],
         }
 
-    def _parse_resolution(self, value):
+    def _parse_resolution(self, value: str) -> int:
         if value.endswith("h"):
             return int(value[:-1]) * ONE_HOUR
         elif value.endswith("d"):

@@ -405,6 +405,20 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+class TagMapping(TypedDict):
+    #: A list of Metric Resource Identifiers (MRI) to apply tags to.
+    #:
+    #: Entries in this list can contain wildcards to match metrics with dynamic MRIs.
+    metrics: list[str]
+
+    #: A list of tags to add to the metric.
+    #:
+    #: Tags can be conditional, see `TagSpec` for configuration options. For this reason, it is
+    #: possible to list tag keys multiple times, each with different conditions. The first matching
+    #: condition will be applied.
+    tags: list[TagSpec]
+
+
 def _check_event_type_transaction(
     query: Sequence[QueryToken], is_top_level_call: bool = True
 ) -> bool:
@@ -1676,9 +1690,13 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken]):
+    def __init__(
+        self, tokens: Sequence[QueryToken], field_mapper: Callable[[str], str] = _map_field_name
+    ):
         self._tokens = tokens
         self._position = 0
+        # The field mapper is used to map the field names in the search query to the event protocol path.
+        self._field_mapper = field_mapper
 
     def convert(self) -> RuleCondition:
         """
@@ -1749,7 +1767,7 @@ class SearchQueryConverter:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
-            return SearchQueryConverter(paren.children).convert()
+            return SearchQueryConverter(paren.children, self._field_mapper).convert()
         elif token := self._peek():
             raise ValueError(f"Unexpected token {token}")
         else:
@@ -1766,7 +1784,7 @@ class SearchQueryConverter:
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": [_escape_wildcard(value)],
             }
         else:
@@ -1782,7 +1800,7 @@ class SearchQueryConverter:
 
             condition = {
                 "op": operator,
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": value,
             }
 

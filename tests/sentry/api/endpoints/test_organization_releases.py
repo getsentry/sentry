@@ -330,7 +330,7 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
 
         release2 = Release.objects.create(
             organization_id=org.id,
-            version="sdfsdfsdf",
+            version="release2",
             date_added=datetime(2013, 8, 13, 3, 8, 24, 880386, tzinfo=UTC),
         )
         release2.add_project(project)
@@ -346,11 +346,31 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         response = self.get_success_response(self.organization.slug, query=f"{RELEASE_ALIAS}:baz")
         self.assert_expected_versions(response, [])
 
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_ALIAS}:[foobar]"
+        )
+        self.assert_expected_versions(response, [release])
+
+        response = self.get_success_response(
+            self.organization.slug, query=f"{RELEASE_ALIAS}:[foobar,release2]"
+        )
+        self.assert_expected_versions(response, [release, release2])
+
         # NOT release
         response = self.get_success_response(
             self.organization.slug, query=f"!{RELEASE_ALIAS}:foobar"
         )
         self.assert_expected_versions(response, [release2])
+
+        response = self.get_success_response(
+            self.organization.slug, query=f"!{RELEASE_ALIAS}:[foobar]"
+        )
+        self.assert_expected_versions(response, [release2])
+
+        response = self.get_success_response(
+            self.organization.slug, query=f"!{RELEASE_ALIAS}:[foobar,release2]"
+        )
+        self.assert_expected_versions(response, [])
 
     def test_query_filter_suffix(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1764,7 +1784,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             wrong_org_token_str = generate_token(org2.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org2.id,
-                name="token 1",
+                name="org2 token 1",
                 token_hashed=hash_token(wrong_org_token_str),
                 token_last_characters="ABCD",
                 scope_list=["org:ci"],
@@ -1782,7 +1802,7 @@ class OrganizationReleaseCreateTest(APITestCase):
             good_token_str = generate_token(org.slug, "")
             OrgAuthToken.objects.create(
                 organization_id=org.id,
-                name="token 1",
+                name="token 2",
                 token_hashed=hash_token(good_token_str),
                 token_last_characters="ABCD",
                 scope_list=["org:ci"],

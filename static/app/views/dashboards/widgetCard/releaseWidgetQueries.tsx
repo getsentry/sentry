@@ -2,6 +2,7 @@ import {Component} from 'react';
 import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
+import pick from 'lodash/pick';
 import trimStart from 'lodash/trimStart';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -19,6 +20,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {stripDerivedMetricsPrefix} from 'sentry/utils/discover/fields';
 import {TOP_N} from 'sentry/utils/discover/types';
+import {dashboardFiltersToString} from 'sentry/views/dashboards/utils';
 
 import {ReleasesConfig} from '../datasetConfig/releases';
 import type {DashboardFilters, Widget, WidgetQuery} from '../types';
@@ -169,7 +171,7 @@ class ReleaseWidgetQueries extends Component<Props, State> {
 
   fetchReleases = async () => {
     this.setState({loading: true, errorMessage: undefined});
-    const {selection, api, organization} = this.props;
+    const {selection, api, organization, dashboardFilters} = this.props;
     const {environments, projects} = selection;
 
     try {
@@ -182,6 +184,10 @@ class ReleaseWidgetQueries extends Component<Props, State> {
             project: projects,
             per_page: 50,
             environment: environments,
+            // Propagate release filters
+            query: dashboardFilters
+              ? dashboardFiltersToString(pick(dashboardFilters, 'release'))
+              : undefined,
           },
         }
       );

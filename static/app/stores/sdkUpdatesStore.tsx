@@ -2,27 +2,21 @@ import {createStore} from 'reflux';
 
 import type {ProjectSdkUpdates} from 'sentry/types/project';
 
-import type {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 /**
  * Org slug mapping to SDK updates
  */
 type State = Map<string, ProjectSdkUpdates[]>;
 
-type InternalDefinition = {
-  orgSdkUpdates: State;
-};
-
-interface SdkUpdatesStoreDefinition
-  extends CommonStoreDefinition<State>,
-    InternalDefinition {
+interface SdkUpdatesStoreDefinition extends StrictStoreDefinition<State> {
   getUpdates(orgSlug: string): ProjectSdkUpdates[] | undefined;
   isSdkUpdatesLoaded(orgSlug: string): boolean;
   loadSuccess(orgSlug: string, data: ProjectSdkUpdates[]): void;
 }
 
 const storeConfig: SdkUpdatesStoreDefinition = {
-  orgSdkUpdates: new Map(),
+  state: new Map(),
 
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
@@ -30,20 +24,20 @@ const storeConfig: SdkUpdatesStoreDefinition = {
   },
 
   loadSuccess(orgSlug, data) {
-    this.orgSdkUpdates.set(orgSlug, data);
-    this.trigger(this.orgSdkUpdates);
+    this.state.set(orgSlug, data);
+    this.trigger(this.state);
   },
 
   getUpdates(orgSlug) {
-    return this.orgSdkUpdates.get(orgSlug);
+    return this.state.get(orgSlug);
   },
 
   isSdkUpdatesLoaded(orgSlug) {
-    return this.orgSdkUpdates.has(orgSlug);
+    return this.state.has(orgSlug);
   },
 
   getState() {
-    return this.orgSdkUpdates;
+    return this.state;
   },
 };
 

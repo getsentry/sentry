@@ -40,7 +40,9 @@ export default function useFetchFeedbackData({feedbackId}: Props) {
   const {markAsRead} = useMutateFeedback({
     feedbackIds: [feedbackId],
     organization,
-    projectIds: issueData ? [issueData?.project.id] : [],
+    // Typescript is a lie. `project` might be missing if feedback didn't go
+    // through the new ingest pipeline. This can happen in new self-hosted upgrades.
+    projectIds: issueData?.project ? [issueData.project.id] : [],
   });
 
   // TODO: it would be excellent if `PUT /issues/` could return the same data

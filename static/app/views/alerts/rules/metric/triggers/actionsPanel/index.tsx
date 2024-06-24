@@ -50,7 +50,7 @@ type Props = {
 };
 
 /**
- * When a new action is added, all of it's settings should be set to their default values.
+ * When a new action is added, all of its settings should be set to their default values.
  * @param actionConfig
  * @param dateCreated kept to maintain order of unsaved actions
  */

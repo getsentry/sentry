@@ -14,6 +14,12 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getIngestionSeriesId, MetricChart} from 'sentry/components/metrics/chart/chart';
+import type {Series} from 'sentry/components/metrics/chart/types';
+import {useFocusArea} from 'sentry/components/metrics/chart/useFocusArea';
+import {useMetricChartSamples} from 'sentry/components/metrics/chart/useMetricChartSamples';
+import {useReleaseSeries} from 'sentry/components/metrics/chart/useMetricReleases';
+import {EquationFormatter} from 'sentry/components/metrics/equationInput/syntax/formatter';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -21,7 +27,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricAggregation, MetricsQueryApiResponse, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MetricAggregation, MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {
   areResultsLimited,
@@ -30,7 +37,6 @@ import {
   getFormattedMQL,
   getMetricsSeriesId,
   getMetricsSeriesName,
-  isCumulativeAggregation,
   isNotQueryOnly,
   unescapeMetricsFormula,
 } from 'sentry/utils/metrics';
@@ -53,13 +59,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useRouter from 'sentry/utils/useRouter';
-import {getIngestionSeriesId, MetricChart} from 'sentry/views/metrics/chart/chart';
-import type {Series} from 'sentry/views/metrics/chart/types';
-import {useFocusArea} from 'sentry/views/metrics/chart/useFocusArea';
-import {useMetricChartSamples} from 'sentry/views/metrics/chart/useMetricChartSamples';
-import {useReleaseSeries} from 'sentry/views/metrics/chart/useMetricReleases';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
-import {EquationFormatter} from 'sentry/views/metrics/formulaParser/formatter';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {updateQueryWithSeriesFilter} from 'sentry/views/metrics/utils';
@@ -439,10 +439,6 @@ const MetricWidgetBody = memo(
       [queries, onQueryChange, widgetIndex]
     );
 
-    const isCumulativeSamplesOp =
-      queries[0] &&
-      !isMetricFormula(queries[0]) &&
-      isCumulativeAggregation(queries[0].aggregation);
     const firstScalingFactor = chartSeries.find(s => !s.hidden)?.scalingFactor || 1;
 
     const focusArea = useFocusArea({
@@ -451,8 +447,9 @@ const MetricWidgetBody = memo(
       chartRef,
       opts: {
         widgetIndex,
-        isDisabled: !focusAreaProps.onAdd,
-        useFullYAxis: isCumulativeSamplesOp,
+        // The focus area relies on the chart samples to calculate its position
+        isDisabled: chartSamples === undefined || !focusAreaProps.onAdd,
+        useFullYAxis: true,
       },
       onZoom: handleZoom,
     });

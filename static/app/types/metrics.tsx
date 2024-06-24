@@ -14,7 +14,7 @@ export type MetricAggregation =
 
 export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
 
-export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans';
+export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans' | 'metric_stats';
 
 export type MRI = `${MetricType}:${UseCase}${string}@${string}`;
 

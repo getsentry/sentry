@@ -369,5 +369,5 @@ const TriggerText = styled('span')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   width: 100%;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

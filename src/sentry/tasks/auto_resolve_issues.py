@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from time import time
+from typing import Any
 
 from django.utils import timezone as django_timezone
 
@@ -33,11 +33,11 @@ ONE_HOUR = 3600
 )
 @log_error_if_queue_has_items
 def schedule_auto_resolution():
-    options = ProjectOption.objects.filter(
+    options_qs = ProjectOption.objects.filter(
         key__in=["sentry:resolve_age", "sentry:_last_auto_resolve"]
     )
-    opts_by_project: Mapping[int, dict] = defaultdict(dict)
-    for opt in options:
+    opts_by_project: dict[int, dict[str, Any]] = defaultdict(dict)
+    for opt in options_qs:
         opts_by_project[opt.project_id][opt.key] = opt.value
 
     cutoff = time() - ONE_HOUR
@@ -94,7 +94,11 @@ def auto_resolve_project_issues(project_id, cutoff=None, chunk_size=1000, **kwar
     might_have_more = len(queryset) == chunk_size
 
     for group in queryset:
-        happened = Group.objects.filter(id=group.id, status=GroupStatus.UNRESOLVED).update(
+        happened = Group.objects.filter(
+            id=group.id,
+            status=GroupStatus.UNRESOLVED,
+            last_seen__lte=cutoff,
+        ).update(
             status=GroupStatus.RESOLVED,
             resolved_at=django_timezone.now(),
             substatus=None,

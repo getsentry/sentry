@@ -1,3 +1,4 @@
+import {CheckinProcessingErrorFixture} from 'sentry-fixture/checkinProcessingError';
 import {MonitorFixture} from 'sentry-fixture/monitor';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -33,11 +34,22 @@ describe('Monitor Details', () => {
       url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/checkins/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/processing-errors/`,
+      body: [],
+    });
   });
 
   it('renders', async function () {
     render(<MonitorDetails {...routerProps} />);
     expect(await screen.findByText(monitor.slug, {exact: false})).toBeInTheDocument();
+
+    // Doesn't show processing errors
+    expect(
+      screen.queryByText(
+        'Errors were encountered while ingesting check-ins for this monitor'
+      )
+    ).not.toBeInTheDocument();
   });
 
   it('renders error when monitor is not found', async function () {
@@ -49,6 +61,20 @@ describe('Monitor Details', () => {
     render(<MonitorDetails {...routerProps} />);
     expect(
       await screen.findByText('The monitor you were looking for was not found.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows processing errors when they exist', async function () {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/monitors/${monitor.slug}/processing-errors/`,
+      body: [CheckinProcessingErrorFixture()],
+    });
+
+    render(<MonitorDetails {...routerProps} />);
+    expect(
+      await screen.findByText(
+        'Errors were encountered while ingesting check-ins for this monitor'
+      )
     ).toBeInTheDocument();
   });
 });

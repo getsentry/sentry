@@ -62,11 +62,11 @@ class EventFrequencyConditionData(GenericCondition):
     """
 
     # Either the count or percentage.
-    value: int
+    value: int | float
     # The interval to compare the value against such as 5m, 1h, 3w, etc.
     # e.g. # of issues is more than {value} in {interval}.
     interval: str
-    # NOTE: Some of tne earliest COUNT conditions were created without the
+    # NOTE: Some of the earliest COUNT conditions were created without the
     # comparisonType field, although modern rules will always have it.
     comparisonType: NotRequired[Literal[ComparisonType.COUNT, ComparisonType.PERCENT]]
     # The previous interval to compare the curr interval against. This is only
@@ -405,7 +405,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="alert_event_frequency",
+                referrer_suffix="batch_alert_event_frequency",
             )
             batch_sums.update(error_sums)
 
@@ -417,7 +417,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="alert_event_frequency",
+                referrer_suffix="batch_alert_event_frequency",
             )
             batch_sums.update(generic_sums)
 
@@ -462,7 +462,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="alert_event_uniq_user_frequency",
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
             )
             batch_totals.update(error_totals)
 
@@ -474,7 +474,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
                 start=start,
                 end=end,
                 environment_id=environment_id,
-                referrer_suffix="alert_event_uniq_user_frequency",
+                referrer_suffix="batch_alert_event_uniq_user_frequency",
             )
             batch_totals.update(generic_totals)
 
@@ -633,7 +633,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                     start=start,
                     end=end,
                     environment_id=environment_id,
-                    referrer_suffix="alert_event_frequency_percent",
+                    referrer_suffix="batch_alert_event_frequency_percent",
                 )
                 for group_id, count in error_issue_count.items():
                     percent: int = int(100 * round(count / avg_sessions_in_interval, 4))

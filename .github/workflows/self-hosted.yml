@@ -30,7 +30,7 @@ jobs:
         with:
           python-version: 3.11.6
           cache-dependency-path: requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install pip setuptools wheel -c requirements-dev-frozen.txt
+          install-cmd: python3 -m tools.hack_pip
 
       - name: Step configurations
         id: config
@@ -56,8 +56,8 @@ jobs:
         run: yarn install --frozen-lockfile --production
 
       - run: |
-          SETUPTOOLS_USE_DISTUTILS=stdlib python setup.py bdist_wheel --build-number 0
-          cp requirements-frozen.txt dist/
+          python3 -m tools.fast_editable --path .
+          python3 -m sentry.build.main
 
       - run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
         env:

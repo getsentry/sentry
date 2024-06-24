@@ -2,9 +2,9 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {Flex} from 'sentry/components/profiling/flex';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -62,10 +62,11 @@ export default function FeedbackShortId({className, feedbackItem, style}: Props)
       css={hideDropdown}
     >
       <Flex gap={space(0.75)} align="center">
-        <ProjectAvatar
+        <ProjectBadge
           project={feedbackItem.project}
-          size={12}
-          title={feedbackItem.project.slug}
+          avatarSize={16}
+          hideName
+          avatarProps={{hasTooltip: true, tooltip: feedbackItem.project.slug}}
         />
         <ShortId>{feedbackItem.shortId}</ShortId>
       </Flex>

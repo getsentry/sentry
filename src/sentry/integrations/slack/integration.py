@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import logging
 from collections import namedtuple
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from django.utils.translation import gettext_lazy as _
 from django.views import View
+from slack_sdk import WebClient
+from slack_sdk.errors import SlackApiError
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -19,7 +20,7 @@ from sentry.integrations import (
 from sentry.models.integrations.integration import Integration
 from sentry.pipeline import NestedPipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.integrations.slack import link_slack_user_identities
 from sentry.utils.http import absolute_uri
 
@@ -68,77 +69,18 @@ metadata = IntegrationMetadata(
     aspects={"alerts": [setup_alert]},
 )
 
-_default_logger = logging.getLogger(__name__)
-
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
-    _FLAGS_KEY: str = "toggleableFlags"
-    _ISSUE_ALERTS_THREAD_FLAG: str = "issueAlertsThreadFlag"
-    _METRIC_ALERTS_THREAD_FLAG: str = "metricAlertsThreadFlag"
-    _SUPPORTED_FLAGS_WITH_DEFAULTS: dict[str, bool] = {
-        _ISSUE_ALERTS_THREAD_FLAG: True,
-        _METRIC_ALERTS_THREAD_FLAG: True,
-    }
-
     def get_client(self) -> SlackClient:
         return SlackClient(integration_id=self.model.id)
 
-    def get_config_data(self) -> Mapping[str, Any]:
-        base_data = super().get_config_data()
-
-        # Add installationType key to config data
+    def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
         # Classic bots had a user_access_token in the metadata.
         default_installation = (
             "classic_bot" if "user_access_token" in metadata_ else "workspace_app"
         )
-        base_data["installationType"] = metadata_.get("installation_type", default_installation)
-
-        # Add missing toggleable feature flags
-        stored_flag_data = base_data.get(self._FLAGS_KEY, {})
-        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
-            if flag_name not in stored_flag_data:
-                stored_flag_data[flag_name] = default_flag_value
-
-        base_data[self._FLAGS_KEY] = stored_flag_data
-        return base_data
-
-    def _update_and_clean_flags_in_organization_config(
-        self, data: MutableMapping[str, Any]
-    ) -> None:
-        """
-        Checks the new provided data for the flags key.
-        If the key does not exist, uses the default set values.
-        """
-
-        cleaned_flags_data = data.get(self._FLAGS_KEY, {})
-        # ensure we add the default supported flags if they don't already exist
-        for flag_name, default_flag_value in self._SUPPORTED_FLAGS_WITH_DEFAULTS.items():
-            flag_value = cleaned_flags_data.get(flag_name, None)
-            if flag_value is None:
-                cleaned_flags_data[flag_name] = default_flag_value
-            else:
-                # if the type for the flag is not the same as the default, use the default value as an override
-                if type(flag_value) is not type(default_flag_value):
-                    _default_logger.info(
-                        "Flag value was not correct, overriding with default",
-                        extra={
-                            "flag_name": flag_name,
-                            "flag_value": flag_value,
-                            "default_flag_value": default_flag_value,
-                        },
-                    )
-                    cleaned_flags_data[flag_name] = default_flag_value
-
-        data[self._FLAGS_KEY] = cleaned_flags_data
-
-    def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
-        """
-        Update the organization's configuration, but make sure to properly handle specific things for Slack installation
-        before passing it off to the parent method
-        """
-        self._update_and_clean_flags_in_organization_config(data=data)
-        super().update_organization_config(data=data)
+        return {"installationType": metadata_.get("installation_type", default_installation)}
 
 
 class SlackIntegrationProvider(IntegrationProvider):
@@ -193,14 +135,16 @@ class SlackIntegrationProvider(IntegrationProvider):
 
     def _get_team_info(self, access_token: str) -> Any:
         # Manually add authorization since this method is part of slack installation
-        headers = {"Authorization": f"Bearer {access_token}"}
-        try:
-            resp = SlackClient().get("/team.info", headers=headers)
-        except ApiError as e:
-            logger.error("slack.team-info.response-error", extra={"error": str(e)})
-            raise IntegrationError("Could not retrieve Slack team information.")
 
-        return resp["team"]
+        # first try with new SDK client (not attached to integration)
+        try:
+            client = WebClient(token=access_token)
+            sdk_response = client.team_info()
+
+            return sdk_response.get("team")
+        except SlackApiError as e:
+            logger.error("slack.install.team-info.error", extra={"error": str(e)})
+            raise IntegrationError("Could not retrieve Slack team information.")
 
     def build_integration(self, state: Mapping[str, Any]) -> Mapping[str, Any]:
         data = state["identity"]["data"]

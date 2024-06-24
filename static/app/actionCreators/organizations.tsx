@@ -187,7 +187,11 @@ export async function fetchOrganizationDetails(
   orgId: string,
   {setActive, loadProjects, loadTeam}: FetchOrganizationDetailsParams
 ) {
-  const data = await api.requestPromise(`/organizations/${orgId}/`);
+  const data = await api.requestPromise(`/organizations/${orgId}/`, {
+    query: {
+      include_feature_flags: 1,
+    },
+  });
 
   if (setActive) {
     setActiveOrganization(data);

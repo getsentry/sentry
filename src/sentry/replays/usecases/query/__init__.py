@@ -45,6 +45,7 @@ from sentry.utils.snuba import raw_snql_query
 
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
 NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
+DEFAULT_SORT_FIELD = "started_at"
 
 
 def handle_viewed_by_me_filters(
@@ -208,7 +209,7 @@ def query_using_optimized_search(
     # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
     search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
-    can_scalar_sort = sort_is_scalar_compatible(sort or "started_at")
+    can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     can_scalar_search = can_scalar_search_subquery(search_filters)
 
     if can_scalar_sort and can_scalar_search:
@@ -282,7 +283,7 @@ def make_scalar_search_conditions_query(
     # "segment_id = 0" condition to the WHERE clause.
 
     where = handle_search_filters(scalar_search_config, search_filters)
-    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
+    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
     return Query(
         match=Entity("replays"),
@@ -306,7 +307,7 @@ def make_aggregate_search_conditions_query(
     period_start: datetime,
     period_stop: datetime,
 ) -> Query:
-    orderby = handle_ordering(agg_sort_config, sort or "-started_at")
+    orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))

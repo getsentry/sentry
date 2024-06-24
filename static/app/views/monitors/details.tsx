@@ -3,7 +3,10 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import {updateMonitor} from 'sentry/actionCreators/monitors';
+import {
+  deleteMonitorProcessingErrorByType,
+  updateMonitor,
+} from 'sentry/actionCreators/monitors';
 import Alert from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingError from 'sentry/components/loadingError';
@@ -19,6 +22,8 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import DetailsSidebar from 'sentry/views/monitors/components/detailsSidebar';
 import {DetailsTimeline} from 'sentry/views/monitors/components/detailsTimeline';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 import {makeMonitorDetailsQueryKey} from 'sentry/views/monitors/utils';
 
 import MonitorCheckIns from './components/monitorCheckIns';
@@ -27,7 +32,7 @@ import MonitorIssues from './components/monitorIssues';
 import MonitorStats from './components/monitorStats';
 import MonitorOnboarding from './components/onboarding';
 import {StatusToggleButton} from './components/statusToggleButton';
-import type {Monitor} from './types';
+import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 
 const DEFAULT_POLL_INTERVAL_MS = 5000;
 
@@ -65,6 +70,13 @@ function MonitorDetails({params, location}: Props) {
     },
   });
 
+  const {data: checkinErrors, refetch: refetchErrors} = useApiQuery<
+    CheckinProcessingError[]
+  >(makeMonitorErrorsQueryKey(organization, params.projectId, params.monitorSlug), {
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+  });
+
   function onUpdate(data: Monitor) {
     const updatedMonitor = {
       ...data,
@@ -86,6 +98,17 @@ function MonitorDetails({params, location}: Props) {
       onUpdate(resp);
     }
   };
+
+  function handleDismissError(errortype: ProcessingErrorType) {
+    deleteMonitorProcessingErrorByType(
+      api,
+      organization.slug,
+      params.projectId,
+      params.monitorSlug,
+      errortype
+    );
+    refetchErrors();
+  }
 
   if (isError) {
     return (
@@ -133,6 +156,14 @@ function MonitorDetails({params, location}: Props) {
               >
                 {t('This monitor is disabled and is not accepting check-ins.')}
               </Alert>
+            )}
+            {!!checkinErrors?.length && (
+              <MonitorProcessingErrors
+                checkinErrors={checkinErrors}
+                onDismiss={handleDismissError}
+              >
+                {t('Errors were encountered while ingesting check-ins for this monitor')}
+              </MonitorProcessingErrors>
             )}
             {!hasLastCheckIn(monitor) ? (
               <MonitorOnboarding monitor={monitor} />

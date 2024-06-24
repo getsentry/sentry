@@ -27,6 +27,7 @@ class MetricsDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
+            "message": self._message_filter_converter,
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
@@ -172,6 +173,47 @@ class MetricsDatasetConfig(DatasetConfig):
                     ),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
+                ),
+                fields.MetricsFunction(
+                    "count_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            args["metric_id"],
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [self.builder.column(args["if_col"]), args["if_val"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
                 ),
                 fields.MetricsFunction(
                     "count_miserable",
@@ -592,6 +634,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.fid",
                                 "measurements.cls",
                                 "measurements.ttfb",
+                                "measurements.inp",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -640,12 +683,14 @@ class MetricsDatasetConfig(DatasetConfig):
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_weighted_web_vital_score_with_computed_total_count_function
-                    if features.has(
-                        "organizations:starfish-browser-webvitals-score-computed-total",
-                        self.builder.params.organization,
-                    )
-                    else self._resolve_weighted_web_vital_score_function,
+                    snql_distribution=(
+                        self._resolve_weighted_web_vital_score_with_computed_total_count_function
+                        if features.has(
+                            "organizations:starfish-browser-webvitals-score-computed-total",
+                            self.builder.params.organization,
+                        )
+                        else self._resolve_weighted_web_vital_score_function
+                    ),
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
@@ -969,6 +1014,9 @@ class MetricsDatasetConfig(DatasetConfig):
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)
@@ -1355,6 +1403,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.fid",
             "measurements.cls",
             "measurements.ttfb",
+            "measurements.inp",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 

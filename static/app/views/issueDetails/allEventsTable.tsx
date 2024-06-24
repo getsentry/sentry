@@ -136,7 +136,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(group.project);
+    projectCanLinkToReplay(organization, group.project);
 
   // profiles only exist on transactions, so this only works with
   // performance issues, and not errors

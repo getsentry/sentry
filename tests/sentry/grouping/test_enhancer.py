@@ -44,6 +44,8 @@ module:core::*                                  -app
 family:javascript path:*/test.js                -app
 family:javascript app:1 path:*/test.js          -app
 family:native                                   max-frames=3
+
+error.value:"*something*"                       max-frames=12
 """,
         bases=["common:v1"],
     )
@@ -474,7 +476,7 @@ def test_sentinel_and_prefix(action, type):
     enhancements = Enhancements.from_config_string(f"function:foo {action}{type}")
 
     frames = [{"function": "foo"}]
-    component = GroupingComponent(id=None)
+    component = GroupingComponent(id="foo")
     assert not getattr(component, f"is_{type}_frame")
     frame_components = [component]
 

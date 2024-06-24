@@ -30,8 +30,8 @@ import type {
   MRI,
   UseCase,
 } from 'sentry/types/metrics';
-import {statsPeriodToDays} from 'sentry/utils/dates';
 import {isMeasurement} from 'sentry/utils/discover/fields';
+import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
@@ -332,15 +332,8 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
-export function isSpanSelfTime({mri}: {mri: MRI}) {
-  return (
-    mri === 'd:spans/exclusive_time@millisecond' ||
-    mri === 'g:spans/self_time@millisecond'
-  );
-}
-
-export function isGaugeMetric({mri}: {mri: MRI}) {
-  return parseMRI(mri)?.type === 'g';
+export function isSpanDuration({mri}: {mri: MRI}) {
+  return mri === 'd:spans/duration@millisecond';
 }
 
 export function getFieldFromMetricsQuery(metricsQuery: MetricsQuery) {

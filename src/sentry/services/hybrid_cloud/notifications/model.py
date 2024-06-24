@@ -4,8 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
+from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.types.integrations import ExternalProviders
 
 
 class RpcExternalActor(RpcModel):
@@ -20,3 +20,9 @@ class RpcExternalActor(RpcModel):
     external_name: str = ""
     # The unique identifier i.e user ID, channel ID.
     external_id: str | None = None
+
+
+class RpcSubscriptionStatus(RpcModel):
+    is_disabled: bool
+    is_active: bool
+    has_only_inactive_subscriptions: bool

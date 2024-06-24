@@ -298,7 +298,7 @@ const GuideContent = styled('div')`
 `;
 
 const GuideTitle = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraLarge};
 `;
 
@@ -330,7 +330,7 @@ const DismissButton = styled(StyledButton)`
 
 const StepCount = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
 `;
 

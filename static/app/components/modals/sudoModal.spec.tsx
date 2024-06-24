@@ -89,6 +89,10 @@ describe('Sudo Modal', function () {
 
     // Clear mocks and allow DELETE
     MockApiClient.clearMockResponses();
+    MockApiClient.addMockResponse({
+      url: '/authenticators/',
+      body: [],
+    });
     const orgDeleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',

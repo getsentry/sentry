@@ -5,7 +5,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.integrations import IntegrationProvider
+from sentry.integrations.base import IntegrationProvider
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.user import User
@@ -155,12 +155,13 @@ class OrganizationIntegrationSerializer(Serializer):
         try:
             installation = integration.get_installation(organization_id=obj.organization_id)
         except NotImplementedError:
+            # slack doesn't have an installation implementation
             config_data = obj.config if include_config else None
         else:
             try:
                 # just doing this to avoid querying for an object we already have
                 installation._org_integration = obj
-                config_data = installation.get_config_data() if include_config else None
+                config_data = installation.get_config_data() if include_config else None  # type: ignore[assignment]
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
                 # If there is an ApiError from our 3rd party integration

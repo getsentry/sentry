@@ -111,7 +111,7 @@ interface BaseButtonProps extends CommonButtonProps, ElementProps<ButtonElement>
    *
    * See: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/a#attr-download
    *
-   * @deprecated Use LnikButton instead
+   * @deprecated Use LinkButton instead
    */
   download?: HTMLAnchorElement['download'];
   /**
@@ -527,7 +527,7 @@ const StyledButton = styled(
   display: inline-block;
   border-radius: ${p => p.theme.borderRadius};
   text-transform: none;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${getColors};
   ${getSizeStyles};
   ${getBoxShadow};

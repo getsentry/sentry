@@ -9,15 +9,20 @@ import {
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
 
+import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import type {MRI} from 'sentry/types';
+import type {MRI} from 'sentry/types/metrics';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
   emptyMetricsQueryWidget,
   NO_QUERY_ID,
 } from 'sentry/utils/metrics/constants';
-import {MetricExpressionType, type MetricsWidget} from 'sentry/utils/metrics/types';
+import {
+  isMetricsQueryWidget,
+  MetricExpressionType,
+  type MetricsWidget,
+} from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
@@ -25,7 +30,6 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
-import type {FocusAreaSelection} from 'sentry/views/metrics/chart/types';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/metrics/utils/useStructuralSharing';
 
@@ -122,6 +126,19 @@ export function useMetricWidgets(mri: MRI) {
     (index: number, data: Partial<Omit<MetricsWidget, 'type'>>) => {
       setWidgets(currentWidgets => {
         const newWidgets = [...currentWidgets];
+        const oldWidget = currentWidgets[index];
+
+        if (isMetricsQueryWidget(oldWidget)) {
+          // Reset focused series if mri, query or groupBy changes
+          if (
+            ('mri' in data && data.mri !== oldWidget.mri) ||
+            ('query' in data && data.query !== oldWidget.query) ||
+            ('groupBy' in data && !isEqual(data.groupBy, oldWidget.groupBy))
+          ) {
+            data.focusedSeries = undefined;
+          }
+        }
+
         newWidgets[index] = {
           ...currentWidgets[index],
           ...data,

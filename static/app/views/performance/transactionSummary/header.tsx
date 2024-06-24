@@ -78,7 +78,9 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
-  const hasAggregateWaterfall = organization.features.includes('spans-first-ui');
+  const hasAggregateWaterfall = organization.features.includes(
+    'insights-initial-modules'
+  );
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -113,10 +115,6 @@ function TransactionHeader({
     statsPeriod: '90d',
   });
   const replaysCount = getReplayCountForTransaction(transactionName);
-
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
 
   return (
     <Layout.Header>
@@ -200,10 +198,7 @@ function TransactionHeader({
               <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
               <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
               <TabList.Item key={Tab.TAGS}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.SPANS} hidden={hasTransactionSummaryCleanupFlag}>
-                {t('Spans')}
-              </TabList.Item>
-
+              <TabList.Item key={Tab.SPANS}>{t('Spans')}</TabList.Item>
               <TabList.Item
                 key={Tab.ANOMALIES}
                 textValue={t('Anomalies')}

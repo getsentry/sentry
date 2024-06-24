@@ -9,7 +9,7 @@ import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import {trimSlug} from 'sentry/utils/trimSlug';
+import {trimSlug} from 'sentry/utils/string/trimSlug';
 
 import {DesyncedFilterIndicator} from '../pageFilters/desyncedFilter';
 

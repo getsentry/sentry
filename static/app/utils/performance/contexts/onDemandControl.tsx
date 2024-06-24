@@ -93,6 +93,12 @@ export function isOnDemandMetricWidget(widget: Widget): boolean {
   return true;
 }
 
+/**
+ * On-demand doesn't include 'release'
+ */
+const doesWidgetHaveReleaseConditions = (widget: Widget) =>
+  widget.queries.some(q => q.conditions.includes('release:'));
+
 export const shouldUseOnDemandMetrics = (
   organization: Organization,
   widget: Widget,
@@ -104,6 +110,10 @@ export const shouldUseOnDemandMetrics = (
 
   if (onDemandControlContext?.isControlEnabled) {
     return onDemandControlContext.forceOnDemand;
+  }
+
+  if (doesWidgetHaveReleaseConditions(widget)) {
+    return false;
   }
 
   return isOnDemandMetricWidget(widget);

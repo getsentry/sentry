@@ -17,7 +17,7 @@ jest.mock(
 );
 
 describe('OrganizationLayout', function () {
-  const {routerContext} = initializeOrg();
+  const {router} = initializeOrg();
 
   beforeEach(function () {
     OrganizationStore.reset();
@@ -49,7 +49,7 @@ describe('OrganizationLayout', function () {
         <OrganizationLayout>
           <div />
         </OrganizationLayout>,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe('OrganizationLayout', function () {
         <OrganizationLayout>
           <div />
         </OrganizationLayout>,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
@@ -102,7 +102,7 @@ describe('OrganizationLayout', function () {
       <OrganizationLayout>
         <div />
       </OrganizationLayout>,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const inProgress = await screen.findByText(

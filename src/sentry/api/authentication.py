@@ -243,10 +243,13 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
         if password:
             return None
 
+        key: ApiKeyReplica | ApiKey
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            key = ApiKeyReplica.objects.filter(key=userid).last()
-            if key is None:
+            key_replica = ApiKeyReplica.objects.filter(key=userid).last()
+            if key_replica is None:
                 raise AuthenticationFailed("API key is not valid")
+            else:
+                key = key_replica
         else:
             try:
                 key = ApiKey.objects.get_from_cache(key=userid)
@@ -452,9 +455,9 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
         return token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX)
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
-        token = None
         token_hashed = hash_token(token_str)
 
+        token: OrgAuthTokenReplica | OrgAuthToken
         if SiloMode.get_current_mode() == SiloMode.REGION:
             try:
                 token = OrgAuthTokenReplica.objects.get(

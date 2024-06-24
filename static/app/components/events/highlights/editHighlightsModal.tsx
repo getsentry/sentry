@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {useLocation} from 'sentry/utils/useLocation';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -54,6 +55,7 @@ function EditPreviewHighlightSection({
   ...props
 }: EditPreviewHighlightSectionProps) {
   const organization = useOrganization();
+  const location = useLocation();
   const previewColumnCount = 2;
 
   const highlightContextDataItems = getHighlightContextData({
@@ -61,6 +63,7 @@ function EditPreviewHighlightSection({
     project,
     organization,
     highlightContext,
+    location,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
     (rowList, {alias, data}) => {
@@ -81,7 +84,7 @@ function EditPreviewHighlightSection({
             config={{
               includeAliasInSubject: true,
               disableErrors: true,
-              disableRichValue: true,
+              disableLink: true,
             }}
             data-test-id="highlights-preview-ctx"
           />
@@ -457,7 +460,8 @@ function SectionFilterInput(props: InputProps) {
 const modalBodyCss = css`
   margin: 0 -${space(4)};
   padding: 0 ${space(4)};
-  max-height: 75vh;
+  /* Full height minus enough buffer for header, footer and margins */
+  max-height: calc(100vh - 275px);
   overflow-y: auto;
 `;
 
@@ -593,7 +597,7 @@ const HighlightKey = styled('p')<{disabled?: boolean}>`
 
 const ContextType = styled('p')`
   grid-column: span 2;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: capitalize;
   margin-bottom: ${space(0.25)};
 `;

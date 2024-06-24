@@ -18,7 +18,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
-import {generateQueryWithTag, isUrl, objectIsEmpty} from 'sentry/utils';
+import {generateQueryWithTag} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {isUrl} from 'sentry/utils/string/isUrl';
+import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 import useMutateProject from 'sentry/utils/useMutateProject';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -55,7 +58,7 @@ export default function EventTagsTreeRow({
   const originalTag = content.originalTag;
   const tagErrors = content.meta?.value?.['']?.err ?? [];
   const hasTagErrors = tagErrors.length > 0 && !config?.disableErrors;
-  const hasStem = !isLast && objectIsEmpty(content.subtree);
+  const hasStem = !isLast && isEmptyObject(content.subtree);
 
   if (!originalTag) {
     return (
@@ -118,6 +121,9 @@ function EventTagsTreeRowDropdown({
 }: Pick<EventTagsTreeRowProps, 'content' | 'event' | 'project'>) {
   const organization = useOrganization();
   const router = useRouter();
+  const {onClick: handleCopy} = useCopyToClipboard({
+    text: content.value,
+  });
   const {mutate: saveTag} = useMutateProject({organization, project});
   const [isVisible, setIsVisible] = useState(false);
   const originalTag = content.originalTag;
@@ -174,6 +180,11 @@ function EventTagsTreeRowDropdown({
               router
             );
           },
+        },
+        {
+          key: 'copy-value',
+          label: t('Copy tag value to clipboard'),
+          onAction: handleCopy,
         },
         {
           key: 'add-to-highlights',
@@ -408,6 +419,7 @@ const TreeSearchKey = styled('span')`
 `;
 
 const TreeValueDropdown = styled(DropdownMenu)`
+  display: block;
   margin: 1px;
   height: 20px;
   .tag-button {
@@ -426,5 +438,10 @@ const TreeValueErrors = styled('div')`
 
 const TagLinkText = styled('span')`
   color: ${p => p.theme.linkColor};
+  text-decoration: ${p => p.theme.linkUnderline} underline dotted;
   margin: 0;
+  &:hover,
+  &:focus {
+    text-decoration: none;
+  }
 `;

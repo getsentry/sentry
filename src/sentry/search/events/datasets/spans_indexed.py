@@ -36,6 +36,7 @@ class SpansIndexedDatasetConfig(DatasetConfig):
         self,
     ) -> Mapping[str, Callable[[SearchFilter], WhereType | None]]:
         return {
+            "message": self._message_filter_converter,
             constants.PROJECT_ALIAS: self._project_slug_filter_converter,
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.DEVICE_CLASS_ALIAS: self._device_class_filter_converter,
@@ -344,6 +345,9 @@ class SpansIndexedDatasetConfig(DatasetConfig):
     @property
     def orderby_converter(self) -> Mapping[str, Callable[[Direction], OrderBy]]:
         return {}
+
+    def _message_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        return filter_aliases.message_filter_converter(self.builder, search_filter)
 
     def _project_slug_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.project_slug_converter(self.builder, search_filter)

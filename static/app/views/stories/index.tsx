@@ -104,7 +104,7 @@ const Main = styled(VerticalScroll)`
 
   padding: var(--stories-grid-space);
   overflow-x: hidden;
-  overflow-y: scroll;
+  overflow-y: auto;
 
   position: relative;
 `;

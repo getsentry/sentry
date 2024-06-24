@@ -189,7 +189,7 @@ const FingerprintLabel = styled('label')`
   gap: ${space(1)};
   font-family: ${p => p.theme.text.familyMono};
   line-height: 1;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
 

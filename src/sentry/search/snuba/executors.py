@@ -23,7 +23,9 @@ from snuba_sdk import (
     Direction,
     Entity,
     Function,
+    Identifier,
     Join,
+    Lambda,
     Limit,
     Op,
     OrderBy,
@@ -58,8 +60,8 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.events.builder.discover import UnresolvedQuery
-from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.dataset import Dataset
 from sentry.utils import json, metrics, snuba
@@ -103,6 +105,11 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
     "regressed_in_release",
     "for_review",
 ]
+
+
+ENTITY_EVENTS = "events"
+ENTITY_GROUP_ATTRIBUTES = "group_attributes"
+ENTITY_SEARCH_ISSUES = "search_issues"
 
 
 def map_field_name_from_format_search_filter(field: str) -> str:
@@ -167,12 +174,7 @@ def group_categories_from_search_filters(
     group_categories = group_categories_from(search_filters)
 
     if not group_categories:
-        group_categories = {
-            gc
-            for gc in get_search_strategies().keys()
-            if gc != GroupCategory.PROFILE.value
-            or features.has("organizations:issue-platform", organization, actor=actor)
-        }
+        group_categories = set(get_search_strategies().keys())
         # if we're not searching for feedbacks, then hide them by default
         group_categories.discard(GroupCategory.FEEDBACK.value)
 
@@ -1190,62 +1192,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         self,
         search_filter: SearchFilter,
         joined_entity: Entity,
-        organization_id: int,
-        project_ids: Sequence[int],
-        environments: Sequence[str],
+        snuba_params: ParamsType,
     ) -> Condition:
         """
         Returns the basic lookup for a search filter.
         """
-        # note this might hit postgres to do queries on releases
-        raw_conditions, projects_to_filter, group_ids = format_search_filter(
-            search_filter,
-            params={
-                "organization_id": organization_id,
-                "project_id": project_ids,
-                "environment": environments,
-            },
+        dataset = Dataset.Events if joined_entity.name == ENTITY_EVENTS else Dataset.IssuePlatform
+        query_builder = UnresolvedQuery(
+            dataset=dataset, entity=joined_entity, snuba_params=snuba_params, params={}
         )
-        if not raw_conditions:
-            return None
-
-        item = raw_conditions[0]
-        if not isinstance(item, list):
-            raw_conditions = [raw_conditions]
-
-        query_builder = self.def_get_query_builder(joined_entity)
-        query_builder.default_filter_converter(search_filter)
-
-        output_conditions = []
-        for item in raw_conditions:
-            lhs = item[0]
-            if isinstance(lhs, str):
-                raw_column = map_field_name_from_format_search_filter(lhs)
-                lhs = query_builder.resolve_column(raw_column)
-            else:
-                # right now we are assuming lhs looks like ['isNull', ['user']]
-                # if there are more complex expressions we will need to handle them
-                raw_column = map_field_name_from_format_search_filter(lhs[1][0])
-                rhs = [query_builder.resolve_column(raw_column)]
-                if len(lhs[1]) > 1:
-                    # example item here: [['ifNull', ['date', "''"]], '>=', 1715707188000]
-                    # which has lhs ['ifNull', ['date', "''"]]
-                    # we need this to become Function('ifNull', [Column('date', entity), ''])
-                    rhs.append(lhs[1][1])
-                lhs = Function(lhs[0], rhs)
-
-            operator = Op(item[1])
-            value = item[2]
-            output_conditions.append(Condition(lhs, operator, value))
-
-        for entity in [joined_entity, self.entities["attrs"]]:
-            for name, value in [("project_id", projects_to_filter), ("group_id", group_ids)]:
-                if value:
-                    output_conditions.append(Condition(Column(name, entity), Op.IN, value))
-
-        if len(output_conditions) == 1:
-            return output_conditions[0]
-        return BooleanCondition(op=BooleanOp.AND, conditions=output_conditions)
+        return query_builder.convert_search_filter_to_condition(search_filter)
 
     def get_assigned(
         self, search_filter: SearchFilter, joined_entity: Entity, check_none=True
@@ -1476,24 +1432,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             conditions=top_level_conditions,
         )
 
-    def def_get_query_builder(self, joined_entity: Entity) -> Condition:
-        dataset = Dataset.Events if joined_entity.alias == "e" else Dataset.IssuePlatform
-
-        return UnresolvedQuery(
-            dataset=dataset,
-            entity=joined_entity,
-            params={},
-        )
-
-    def get_message_condition(
-        self, search_filter: SearchFilter, joined_entity: Entity
-    ) -> Condition:
-        query_builder = self.def_get_query_builder(joined_entity)
-
-        # leverage discover logic internally here
-        dataset_config = DiscoverDatasetConfig(query_builder)
-        return dataset_config._message_filter_converter(search_filter)
-
     def get_last_seen_aggregation(self, joined_entity: Entity) -> Function:
         return Function(
             "ifNull",
@@ -1513,12 +1451,60 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             alias="score",
         )
 
+    def get_handled_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the handled and unhandled lookup for a search filter.
+        Does not use the functions that Snuba has, instead replicates that logic
+        and queries the exception_stacks.mechanism_handled colunn directly
+        """
+        if search_filter.key.name == "error.handled":
+            check_handled = search_filter.value.raw_value == 1
+        elif search_filter.key.name == "error.unhandled":
+            check_handled = search_filter.value.raw_value == 0
+
+        if check_handled:
+            outer_function_operator = "arrayAll"
+            inner_function_operator = "or"
+            is_null_check = "isNull"
+            inner_equality_check = "notEquals"
+        else:
+            outer_function_operator = "arrayExists"
+            inner_function_operator = "and"
+            is_null_check = "isNotNull"
+            inner_equality_check = "equals"
+
+        return Condition(
+            Function(
+                outer_function_operator,
+                [
+                    Lambda(
+                        ["x"],
+                        Function(
+                            inner_function_operator,
+                            [
+                                Function(is_null_check, [Identifier("x")]),
+                                Function(
+                                    inner_equality_check,
+                                    [Function("assumeNotNull", [Identifier("x")]), 0],
+                                ),
+                            ],
+                        ),
+                    ),
+                    Column("exception_stacks.mechanism_handled", joined_entity),
+                ],
+            ),
+            Op.EQ,
+            1,
+        )
+
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
-        "event": Entity("events", alias="e"),
-        "attrs": Entity("group_attributes", alias="g"),
-        "search_issues": Entity("search_issues", alias="si"),
+        "event": Entity(ENTITY_EVENTS, alias="e"),
+        "attrs": Entity(ENTITY_GROUP_ATTRIBUTES, alias="g"),
+        "search_issues": Entity(ENTITY_SEARCH_ISSUES, alias="si"),
     }
 
     group_conditions_lookup = {
@@ -1526,10 +1512,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "substatus": (get_basic_group_snuba_condition, Clauses.WHERE),
         "assigned_or_suggested": (get_assigned_or_suggested, Clauses.WHERE),
         "assigned_to": (get_assigned, Clauses.WHERE),
-        "message": (get_message_condition, Clauses.WHERE),
         "first_seen": (get_basic_group_snuba_condition, Clauses.WHERE),
         "last_seen": (get_last_seen_filter, Clauses.HAVING),
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
+        "error.handled": (get_handled_condition, Clauses.WHERE),
+        "error.unhandled": (get_handled_condition, Clauses.WHERE),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
@@ -1636,7 +1623,6 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         ]
 
         organization = projects[0].organization
-        project_ids = [p.id for p in projects]
 
         event_entity = self.entities["event"]
         attr_entity = self.entities["attrs"]
@@ -1654,7 +1640,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             entities_to_check.append(search_issues_entity)
 
         for joined_entity in entities_to_check:
-            is_errors = joined_entity.alias == "e"
+            is_errors = joined_entity.name == ENTITY_EVENTS
             where_conditions = [
                 Condition(Column("project_id", joined_entity), Op.IN, [p.id for p in projects]),
                 Condition(Column("project_id", attr_entity), Op.IN, [p.id for p in projects]),
@@ -1698,7 +1684,17 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                         raise InvalidQueryForExecutor(f"Invalid clause {clause}")
                 else:
                     condition = self.get_basic_event_snuba_condition(
-                        search_filter, joined_entity, organization.id, project_ids, environments
+                        search_filter,
+                        joined_entity,
+                        SnubaParams(
+                            organization=organization,
+                            projects=projects,
+                            user=actor,
+                            start=start,
+                            end=end,
+                            environments=environments,
+                            teams=[],  # may need to change, tbd
+                        ),
                     )
                     if condition is not None:
                         where_conditions.append(condition)

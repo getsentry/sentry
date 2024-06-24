@@ -13,6 +13,9 @@ inputs:
   token:
     description: 'The codecov token'
     required: true
+  commit_sha:
+    description: 'The commit sha'
+    required: true
 
 runs:
   using: 'composite'
@@ -23,6 +26,7 @@ runs:
         token: ${{ inputs.token }}
         flags: ${{ inputs.type }}
         files: ${{ inputs.files }}
+        override_commit: ${{ inputs.commit_sha}}
         plugin: noop
         verbose: true
       continue-on-error: true

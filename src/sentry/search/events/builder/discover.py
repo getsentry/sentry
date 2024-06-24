@@ -32,6 +32,7 @@ from snuba_sdk import (
 )
 
 from sentry.api import event_search
+from sentry.api.event_search import SearchValue
 from sentry.discover.arithmetic import (
     OperandType,
     Operation,
@@ -54,6 +55,9 @@ from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.datasets.metrics_summaries import MetricsSummariesDatasetConfig
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
+from sentry.search.events.datasets.profile_functions_metrics import (
+    ProfileFunctionsMetricsDatasetConfig,
+)
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
@@ -90,10 +94,10 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
-    free_text_key = "message"
     uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    profile_functions_metrics_builder = False
     entity: Entity | None = None
 
     def get_middle(self):
@@ -207,7 +211,6 @@ class BaseQueryBuilder:
             self.builder_config = config
         if self.builder_config.parser_config_overrides is None:
             self.builder_config.parser_config_overrides = {}
-        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
 
         self.dataset = dataset
 
@@ -366,6 +369,8 @@ class BaseQueryBuilder:
                 # if self.builder_config.use_metrics_layer:
                 #     self.config = SpansMetricsLayerDatasetConfig(self)
                 self.config = SpansMetricsDatasetConfig(self)
+            elif self.profile_functions_metrics_builder:
+                self.config = ProfileFunctionsMetricsDatasetConfig(self)
             elif self.builder_config.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
             else:
@@ -1316,11 +1321,27 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            condition = Condition(
-                Function("match", [lhs, f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
+            raw_value = search_filter.value.raw_value
+            new_value = SearchValue(raw_value[1:-1])
+            if (
+                raw_value.startswith("*")
+                and raw_value.endswith("*")
+                and not new_value.is_wildcard()
+            ):
+                # This is an optimization to avoid using regular expressions
+                # for wild card searches if it can be avoided.
+                # Here, we're just interested if the substring exists.
+                condition = Condition(
+                    Function("positionCaseInsensitive", [lhs, new_value.value]),
+                    Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+                    0,
+                )
+            else:
+                condition = Condition(
+                    Function("match", [lhs, f"(?i){value}"]),
+                    Op(search_filter.operator),
+                    1,
+                )
         else:
             # pull out the aliased expression if it exists
             if isinstance(lhs, AliasedExpression):

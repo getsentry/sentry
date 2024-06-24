@@ -254,12 +254,12 @@ const SchedulePanel = styled(Panel)<{highlighted: boolean}>`
 `;
 
 const ScheduleLabel = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-bottom: ${space(2)};
 `;
 
 const Label = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 
@@ -292,7 +292,7 @@ const IntervalInputs = styled(MultiColumnInput)`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;

@@ -213,7 +213,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_distinct_counts_totals.call_count == 1
-            assert cache_spy.incr.called_with(cache_key)
+            cache_spy.incr.assert_called_with(cache_key)
             assert cache_spy.get(cache_key) == 96
 
             assert snooze.is_valid(test_rates=True)
@@ -299,7 +299,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_count_users_seen.call_count == 1
-            assert cache_spy.incr.called_with(cache_key)
+            cache_spy.incr.assert_called_with(cache_key)
             assert cache_spy.get(cache_key) == 96
 
             assert snooze.is_valid(test_rates=True)
@@ -380,7 +380,7 @@ class GroupSnoozeTest(
 
             assert snooze.is_valid(test_rates=True)
             assert mocked_get_sums.call_count == 1
-            assert cache_spy.incr.called_with(cache_key)
+            cache_spy.incr.assert_called_with(cache_key)
             assert cache_spy.get(cache_key) == 96
 
             assert snooze.is_valid(test_rates=True)

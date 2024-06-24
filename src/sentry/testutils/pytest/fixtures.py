@@ -30,115 +30,6 @@ UNSAFE_PATH_CHARS = ("<", ">", ":", '"', " | ", "?", "*")
 DIRECTORY_GROUPING_CHARS = ("::", "-", "[", "]", "\\")
 
 
-DEFAULT_EVENT_DATA = {
-    "extra": {
-        "loadavg": [0.97607421875, 0.88330078125, 0.833984375],
-        "sys.argv": [
-            "/Users/dcramer/.virtualenvs/sentry/bin/raven",
-            "test",
-            "https://ebc35f33e151401f9deac549978bda11:f3403f81e12e4c24942d505f086b2cad@sentry.io/1",
-        ],
-        "user": "dcramer",
-    },
-    "modules": {"raven": "3.1.13"},
-    "request": {
-        "cookies": {},
-        "data": {},
-        "env": {},
-        "headers": {},
-        "method": "GET",
-        "query_string": "",
-        "url": "http://example.com",
-    },
-    "stacktrace": {
-        "frames": [
-            {
-                "abs_path": "www/src/sentry/models/foo.py",
-                "context_line": "                        string_max_length=self.string_max_length)",
-                "filename": "sentry/models/foo.py",
-                "function": "build_msg",
-                "in_app": True,
-                "lineno": 29,
-                "module": "raven.base",
-                "post_context": [
-                    "                },",
-                    "            })",
-                    "",
-                    "        if 'stacktrace' in data:",
-                    "            if self.include_paths:",
-                ],
-                "pre_context": [
-                    "",
-                    "            data.update({",
-                    "                'stacktrace': {",
-                    "                    'frames': get_stack_info(frames,",
-                    "                        list_max_length=self.list_max_length,",
-                ],
-                "vars": {
-                    "culprit": "raven.scripts.runner",
-                    "date": "datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)",
-                    "event_id": "598fb19363e745ec8be665e6ba88b1b2",
-                    "event_type": "raven.events.Message",
-                    "frames": "<generator object iter_stack_frames at 0x103fef050>",
-                    "handler": "<raven.events.Message object at 0x103feb710>",
-                    "k": "logentry",
-                    "public_key": None,
-                    "result": {
-                        "logentry": "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
-                    },
-                    "self": "<raven.base.Client object at 0x104397f10>",
-                    "stack": True,
-                    "tags": None,
-                    "time_spent": None,
-                },
-            },
-            {
-                "abs_path": "/Users/dcramer/.virtualenvs/sentry/lib/python2.7/site-packages/raven/base.py",
-                "context_line": "                        string_max_length=self.string_max_length)",
-                "filename": "raven/base.py",
-                "function": "build_msg",
-                "in_app": False,
-                "lineno": 290,
-                "module": "raven.base",
-                "post_context": [
-                    "                },",
-                    "            })",
-                    "",
-                    "        if 'stacktrace' in data:",
-                    "            if self.include_paths:",
-                ],
-                "pre_context": [
-                    "",
-                    "            data.update({",
-                    "                'stacktrace': {",
-                    "                    'frames': get_stack_info(frames,",
-                    "                        list_max_length=self.list_max_length,",
-                ],
-                "vars": {
-                    "culprit": "raven.scripts.runner",
-                    "date": "datetime.datetime(2013, 2, 14, 20, 6, 33, 479471)",
-                    "event_id": "598fb19363e745ec8be665e6ba88b1b2",
-                    "event_type": "raven.events.Message",
-                    "frames": "<generator object iter_stack_frames at 0x103fef050>",
-                    "handler": "<raven.events.Message object at 0x103feb710>",
-                    "k": "logentry",
-                    "public_key": None,
-                    "result": {
-                        "logentry": "{'message': 'This is a test message generated using ``raven test``', 'params': []}"
-                    },
-                    "self": "<raven.base.Client object at 0x104397f10>",
-                    "stack": True,
-                    "tags": None,
-                    "time_spent": None,
-                },
-            },
-        ]
-    },
-    "tags": [],
-    "platform": "python",
-}
-
-
 def django_db_all(func=None, *, transaction=None, reset_sequences=None, **kwargs):
     """Pytest decorator for resetting all databases"""
 
@@ -173,21 +64,6 @@ def task_runner():
     from sentry.testutils.helpers.task_runner import TaskRunner
 
     return TaskRunner
-
-
-@pytest.fixture
-def burst_task_runner():
-    """Context manager that queues up Celery tasks until called.
-
-    The yielded value which can be assigned by the ``as`` clause is callable and will
-    execute all queued up tasks. It takes a ``max_jobs`` argument to limit the number of
-    jobs to process.
-
-    The queue itself can be inspected via the ``queue`` attribute of the yielded value.
-    """
-    from sentry.testutils.helpers.task_runner import BurstTaskRunner
-
-    return BurstTaskRunner
 
 
 @pytest.fixture(scope="function")

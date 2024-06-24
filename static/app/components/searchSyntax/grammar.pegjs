@@ -11,7 +11,10 @@ search
     }
 
 term
-  = (boolean_operator / paren_group / filter / free_text) spaces
+  = (boolean_operator / paren_group / open_paren / closed_paren / filter / free_text) spaces
+
+term_no_paren
+  = (boolean_operator / paren_group /  filter / free_text) spaces
 
 boolean_operator
   = (or_operator / and_operator) {
@@ -19,7 +22,9 @@ boolean_operator
     }
 
 paren_group
-  = open_paren spaces:spaces inner:term+ closed_paren {
+  = open_paren spaces:spaces inner:term_no_paren* closed_paren &{
+    return tc.predicateParenGroup();
+  } {
       return tc.tokenLogicGroup([spaces, ...inner].flat());
     }
 
@@ -175,7 +180,7 @@ aggregate_rel_date_filter
 
 // has filter for not null type checks
 has_filter
-  = negation:negation? &"has:" key:search_key sep value:(search_key / search_value) &{
+  = negation:negation? &"has:" key:search_key sep value:(search_value/search_key) &{
       return tc.predicateFilter(FilterType.HAS, key)
     } {
       return tc.tokenFilter(FilterType.HAS, key, value, opDefault, !!negation);
@@ -377,8 +382,8 @@ operator       = ">=" / "<=" / ">" / "<" / "=" / "!="
 or_operator    = "OR"i  &end_value
 and_operator   = "AND"i &end_value
 numeric        = [0-9]+ ("." [0-9]*)? { return text(); }
-open_paren     = "("
-closed_paren   = ")"
+open_paren     = "(" { return tc.tokenLParen(text()); }
+closed_paren   = ")" { return tc.tokenRParen(text()); }
 open_bracket   = "["
 closed_bracket = "]"
 sep            = ":"

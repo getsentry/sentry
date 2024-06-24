@@ -3,19 +3,28 @@ from __future__ import annotations
 from logging import Logger, getLogger
 
 import orjson
+from slack_sdk.errors import SlackApiError
 
+from sentry.constants import ISSUE_ALERTS_THREAD_DEFAULT
 from sentry.integrations.repository import get_default_issue_alert_repository
 from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessage,
     IssueAlertNotificationMessageRepository,
 )
-from sentry.integrations.slack import BlockSlackMessageBuilder, SlackClient
+from sentry.integrations.slack import BlockSlackMessageBuilder
+from sentry.integrations.slack.metrics import (
+    SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
+    SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC,
+)
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.threads.activity_notifications import (
     AssignedActivityNotification,
     ExternalIssueCreatedActivityNotification,
 )
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.common import get_active_integration_for_organization
 from sentry.models.activity import Activity
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.notifications.activity.archive import ArchiveActivityNotification
 from sentry.notifications.notifications.activity.base import ActivityNotification
@@ -29,7 +38,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.notifications.notifications.activity.unresolved import UnresolvedActivityNotification
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviderEnum
+from sentry.utils import metrics
 
 _default_logger = getLogger(__name__)
 
@@ -114,6 +123,22 @@ class SlackService:
             )
             return None
 
+        organization_id = activity.group.organization.id
+        # If the feature is turned off for the organization, exit early as there's nothing to do
+        if not OrganizationOption.objects.get_value(
+            organization=activity.group.organization,
+            key="sentry:issue_alerts_thread_flag",
+            default=ISSUE_ALERTS_THREAD_DEFAULT,
+        ):
+            self._logger.info(
+                "feature is turned off for this organization",
+                extra={
+                    "activity_id": activity.id,
+                    "organization_id": organization_id,
+                    "project_id": activity.project.id,
+                },
+            )
+            return None
         # The same message is sent to all the threads, so this needs to only happen once
         notification_to_send = self._get_notification_message_to_send(activity=activity)
         if not notification_to_send:
@@ -126,7 +151,7 @@ class SlackService:
             return None
 
         integration = get_active_integration_for_organization(
-            organization_id=activity.group.organization.id,
+            organization_id=organization_id,
             provider=ExternalProviderEnum.SLACK,
         )
         if integration is None:
@@ -134,13 +159,13 @@ class SlackService:
                 "no integration found for activity",
                 extra={
                     "activity_id": activity.id,
-                    "organization_id": activity.project.organization_id,
+                    "organization_id": organization_id,
                     "project_id": activity.project.id,
                 },
             )
             return None
 
-        slack_client = SlackClient(integration_id=integration.id)
+        slack_client = SlackSdkClient(integration_id=integration.id)
 
         # Get all parent notifications, which will have the message identifier to use to reply in a thread
         parent_notifications = (
@@ -172,7 +197,7 @@ class SlackService:
         self,
         parent_notification: IssueAlertNotificationMessage,
         notification_to_send: str,
-        client: SlackClient,
+        client: SlackSdkClient,
     ) -> None:
         # For each parent notification, we need to get the channel that the notification is replied to
         # Get the channel by using the action uuid
@@ -206,19 +231,32 @@ class SlackService:
         )
         payload.update(slack_payload)
         # TODO (Yash): Users should not have to remember to do this, interface should handle serializing the field
-        payload["blocks"] = orjson.dumps(payload.get("blocks")).decode()
+        json_blocks = orjson.dumps(payload.get("blocks")).decode()
+        payload["blocks"] = json_blocks
+
+        extra = {
+            "channel": channel_id,
+            "thread_ts": parent_notification.message_identifier,
+            "rule_action_uuid": parent_notification.rule_action_uuid,
+        }
+
         try:
-            client.post("/chat.postMessage", data=payload, timeout=5)
-        except Exception as err:
+            client.chat_postMessage(
+                channel=channel_id,
+                thread_ts=parent_notification.message_identifier,
+                text=notification_to_send,
+                blocks=json_blocks,
+            )
+            metrics.incr(SLACK_ACTIVITY_THREAD_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+        except SlackApiError as e:
             self._logger.info(
                 "failed to post message to slack",
-                extra={
-                    "error": str(err),
-                    "payload": payload,
-                    "channel": channel_id,
-                    "thread_ts": parent_notification.message_identifier,
-                    "rule_action_uuid": parent_notification.rule_action_uuid,
-                },
+                extra={"error": str(e), "blocks": json_blocks, **extra},
+            )
+            metrics.incr(
+                SLACK_ACTIVITY_THREAD_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
             )
             raise
 

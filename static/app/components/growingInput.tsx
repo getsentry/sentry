@@ -70,7 +70,6 @@ export const GrowingInput = forwardRef<HTMLInputElement, InputProps>(
       }
     }, [isControlled]);
 
-    useLayoutEffect(() => {});
     return (
       <StyledInput {...props} ref={mergeRefs([ref, inputRef])} onChange={handleChange} />
     );

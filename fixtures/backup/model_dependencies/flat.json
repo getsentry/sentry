@@ -365,6 +365,10 @@
     "sentry.project",
     "sentry.rule"
   ],
+  "sentry.groupsearchview": [
+    "sentry.organization",
+    "sentry.user"
+  ],
   "sentry.groupseen": [
     "sentry.group",
     "sentry.project",
@@ -395,7 +399,8 @@
   "sentry.incident": [
     "sentry.alertrule",
     "sentry.alertruleactivations",
-    "sentry.organization"
+    "sentry.organization",
+    "sentry.querysubscription"
   ],
   "sentry.incidentactivity": [
     "sentry.incident",
@@ -851,5 +856,10 @@
   ],
   "social_auth.usersocialauth": [
     "sentry.user"
-  ]
+  ],
+  "uptime.projectuptimesubscription": [
+    "sentry.project",
+    "uptime.uptimesubscription"
+  ],
+  "uptime.uptimesubscription": []
 }

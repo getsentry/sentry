@@ -1332,7 +1332,7 @@ const ListItemTitleWrapper = styled('div')`
 `;
 
 const ListItemTitle = styled('p')<{status: 'none' | 'checked' | 'alert' | 'question'}>`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p =>
     ({
       none: p.theme.gray300,
@@ -1365,7 +1365,7 @@ const MonoBlock = styled('code')`
   border: 1px solid ${p => p.theme.gray200};
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   white-space: nowrap;
 `;
 

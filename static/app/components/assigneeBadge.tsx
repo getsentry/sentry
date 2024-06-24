@@ -18,6 +18,7 @@ type AssigneeBadgeProps = {
   assignedTo?: Actor | undefined;
   assignmentReason?: SuggestedOwnerReason;
   chevronDirection?: 'up' | 'down';
+  isTooltipDisabled?: boolean;
   loading?: boolean;
   showLabel?: boolean;
 };
@@ -30,6 +31,7 @@ export function AssigneeBadge({
   showLabel = false,
   chevronDirection = 'down',
   loading = false,
+  isTooltipDisabled,
 }: AssigneeBadgeProps) {
   const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
     suspectCommit: tct('Based on [commit:commit data]', {
@@ -79,6 +81,7 @@ export function AssigneeBadge({
     <Fragment>
       <Placeholder
         shape="circle"
+        testId="unassigned-avatar"
         width={`${AVATAR_SIZE}px`}
         height={`${AVATAR_SIZE}px`}
       />
@@ -91,6 +94,8 @@ export function AssigneeBadge({
     <StyledTag icon={loadingIcon} />
   ) : assignedTo ? (
     <Tooltip
+      isHoverable
+      disabled={isTooltipDisabled}
       title={
         <TooltipWrapper>
           {t('Assigned to ')}
@@ -105,6 +110,8 @@ export function AssigneeBadge({
     </Tooltip>
   ) : (
     <Tooltip
+      isHoverable
+      disabled={isTooltipDisabled}
       title={
         <TooltipWrapper>
           <div>{t('Unassigned')}</div>

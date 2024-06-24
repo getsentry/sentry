@@ -4,6 +4,7 @@ from collections.abc import Mapping, MutableMapping
 
 from django.db import router, transaction
 
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
@@ -14,9 +15,9 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.notifications import NotificationsService
+from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor, ActorType
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -112,16 +113,13 @@ class DatabaseBackedNotificationsService(NotificationsService):
             scope_identifier=project_id,
         ).delete()
 
-    def get_subscriptions_for_projects(
+    def subscriptions_for_projects(
         self,
         *,
         user_id: int,
         project_ids: list[int],
         type: NotificationSettingEnum,
-    ) -> Mapping[int, tuple[bool, bool, bool]]:
-        """
-        Returns a mapping of project_id to a tuple of (is_disabled, is_active, has_only_inactive_subscriptions)
-        """
+    ) -> Mapping[int, RpcSubscriptionStatus]:
         user = user_service.get_user(user_id)
         if not user:
             return {}
@@ -132,10 +130,15 @@ class DatabaseBackedNotificationsService(NotificationsService):
             type=type,
         )
         return {
-            project: (s.is_disabled, s.is_active, s.has_only_inactive_subscriptions)
-            # TODO(Steve): Simplify API to pass in one project at a time
-            for project, s in controller.get_subscriptions_status_for_projects(
-                user=user, project_ids=project_ids, type=type
+            project: RpcSubscriptionStatus(
+                is_active=sub.is_active,
+                is_disabled=sub.is_disabled,
+                has_only_inactive_subscriptions=sub.has_only_inactive_subscriptions,
+            )
+            for project, sub in controller.get_subscriptions_status_for_projects(
+                user=user,
+                project_ids=project_ids,
+                type=type,
             ).items()
         }
 

@@ -1,15 +1,11 @@
 import logging
-import uuid
 from collections.abc import Mapping
 from typing import Any
-
-import sentry_sdk
-
-from sentry.models.options.project_option import ProjectOption
 
 # Is reprocessing on or off by default?
 REPROCESSING_DEFAULT = False
 REPROCESSING_OPTION = "sentry:reprocessing_active"
+# TODO: make sure to clean these option up at some point:
 REPROCESSING_REVISION_OPTION = "sentry:processing-rev"
 SENT_NOTIFICATION_OPTION = "sentry:sent_failed_event_hint"
 
@@ -34,76 +30,6 @@ def event_supports_reprocessing(data: Mapping[str, Any]) -> bool:
         if not stacktrace_info.platforms.isdisjoint(NATIVE_PLATFORMS):
             return True
     return False
-
-
-def is_active(project_id: int) -> bool:
-    return ProjectOption.objects.get_value(project_id, REPROCESSING_OPTION, REPROCESSING_DEFAULT)
-
-
-def did_send_notification(project_id: int) -> bool:
-    return ProjectOption.objects.get_value(project_id, SENT_NOTIFICATION_OPTION, False)
-
-
-def mark_notification_sent(project_id: int, value: bool):
-    ProjectOption.objects.set_value(project_id, SENT_NOTIFICATION_OPTION, value)
-
-
-@sentry_sdk.tracing.trace
-def get_reprocessing_revision(project, cached=True):
-    """Returns the current revision of the projects reprocessing config set."""
-    from sentry.models.project import Project
-
-    if cached:
-        return ProjectOption.objects.get_value(project, REPROCESSING_REVISION_OPTION)
-    try:
-        if isinstance(project, Project):
-            project = project.id
-        return ProjectOption.objects.get(project=project, key=REPROCESSING_REVISION_OPTION).value
-    except ProjectOption.DoesNotExist:
-        pass
-
-
-def bump_reprocessing_revision(project, use_buffer=False):
-    """Bumps the reprocessing revision."""
-    from sentry.tasks.process_buffer import buffer_incr
-
-    rev = uuid.uuid4().hex
-    if use_buffer:
-        buffer_incr(
-            ProjectOption,
-            columns={},
-            filters={"project_id": project.id, "key": REPROCESSING_REVISION_OPTION},
-            signal_only=True,
-        )
-    else:
-        ProjectOption.objects.set_value(project, REPROCESSING_REVISION_OPTION, rev)
-    return rev
-
-
-def report_processing_issue(event_data, scope, object=None, type=None, data=None):
-    """Reports a processing issue for a given scope and object.  Per
-    scope/object combination only one issue can be recorded where the last
-    one reported wins.
-    """
-    if object is None:
-        object = "*"
-    if type is None:
-        from sentry.models.eventerror import EventError
-
-        type = EventError.INVALID_DATA
-
-    # This really should not happen.
-    if not event_supports_reprocessing(event_data):
-        logger.error("processing_issue.bad_report", extra={"platform": event_data.get("platform")})
-        return
-
-    uid = f"{scope}:{object}"
-    event_data.setdefault("processing_issues", {})[uid] = {
-        "scope": scope,
-        "object": object,
-        "type": type,
-        "data": data,
-    }
 
 
 def resolve_processing_issue(project, scope, object=None, type=None):

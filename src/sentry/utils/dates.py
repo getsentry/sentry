@@ -1,10 +1,11 @@
+import logging
 import re
 import zoneinfo
 from collections.abc import Mapping
 from datetime import UTC, date, datetime, timedelta
 from typing import Any, overload
 
-from dateutil.parser import parse
+from dateutil.parser import ParserError, parse
 from django.http.request import HttpRequest
 from django.utils.timezone import is_aware, make_aware
 
@@ -15,6 +16,8 @@ epoch = datetime(1970, 1, 1, tzinfo=UTC)
 
 # Factory is an obscure GMT alias
 AVAILABLE_TIMEZONES = frozenset(zoneinfo.available_timezones() - {"Factory"})
+
+logger = logging.getLogger("sentry.utils.dates")
 
 
 def ensure_aware(value: datetime) -> datetime:
@@ -76,32 +79,22 @@ def parse_date(datestr: str, timestr: str) -> datetime | None:
             return None
 
 
-def parse_timestamp(value: Any) -> datetime | None:
+def parse_timestamp(value: datetime | int | float | str | bytes | None) -> datetime | None:
     # TODO(mitsuhiko): merge this code with coreapis date parser
-    if isinstance(value, datetime):
+    if not value:
+        return None
+    elif isinstance(value, datetime):
         return value
     elif isinstance(value, (int, float)):
         return datetime.fromtimestamp(value, UTC)
-    value = (value or "").rstrip("Z").encode("ascii", "replace").split(b".", 1)
-    if not value:
-        return None
+
     try:
-        # Attempt to decode without timezone
-        rv = datetime.strptime(value[0].decode("ascii"), "%Y-%m-%dT%H:%M:%S")
-    except ValueError:
-        # Fallback to decoding with timezone as a ISO8610 string
-        try:
-            rv = datetime.fromisoformat(value[0].decode("ascii"))
-        except Exception:
-            return None
-    except Exception:
+        if isinstance(value, bytes):
+            value = value.decode()
+        return parse(value, ignoretz=True).replace(tzinfo=UTC)
+    except (ParserError, ValueError):
+        logger.exception("parse_timestamp")
         return None
-    if len(value) == 2:
-        try:
-            rv = rv.replace(microsecond=int(value[1].ljust(6, b"0")[:6]))
-        except ValueError:
-            return None
-    return rv.replace(tzinfo=UTC)
 
 
 def parse_stats_period(period: str) -> timedelta | None:

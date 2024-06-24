@@ -28,11 +28,6 @@ export const dropDownItems = [
     label: customRepoTypeLabel[CustomRepoType.HTTP],
     searchKey: t('http symbol server ssqp symstore symsrv'),
   },
-  {
-    value: CustomRepoType.APP_STORE_CONNECT,
-    label: customRepoTypeLabel[CustomRepoType.APP_STORE_CONNECT],
-    searchKey: t('apple store connect itunes ios'),
-  },
 ];
 
 export function getRequestMessages(

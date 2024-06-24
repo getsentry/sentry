@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 from django.utils.encoding import force_str
 
 from sentry.db.models import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.notifications.helpers import get_reason_context
@@ -14,7 +15,6 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.participants import ParticipantMap
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models.project import Project

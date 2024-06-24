@@ -1,15 +1,14 @@
-import {useRef} from 'react';
-import styled from '@emotion/styled';
-
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getOrderedContextItems} from 'sentry/components/events/contexts';
 import ContextCard from 'sentry/components/events/contexts/contextCard';
-import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contextSummary/utils';
+import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import KeyValueData from 'sentry/components/keyValueData';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import type {Event, Group, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 
 interface ContextDataSectionProps {
   event: Event;
@@ -17,11 +16,11 @@ interface ContextDataSectionProps {
   project?: Project;
 }
 
-function ContextData({event, group, project}: ContextDataSectionProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef);
-  const columns: React.ReactNode[] = [];
-
+export default function ContextDataSection({
+  event,
+  group,
+  project,
+}: ContextDataSectionProps) {
   const cards = getOrderedContextItems(event).map(
     ({alias, type, value: contextValue}) => (
       <ContextCard
@@ -36,18 +35,6 @@ function ContextData({event, group, project}: ContextDataSectionProps) {
     )
   );
 
-  const columnSize = Math.ceil(cards.length / columnCount);
-  for (let i = 0; i < cards.length; i += columnSize) {
-    columns.push(<CardColumn key={i}>{cards.slice(i, i + columnSize)}</CardColumn>);
-  }
-  return (
-    <CardWrapper columnCount={columnCount} ref={containerRef}>
-      {columns}
-    </CardWrapper>
-  );
-}
-
-export default function ContextDataSection(props: ContextDataSectionProps) {
   return (
     <EventDataSection
       key={'context'}
@@ -62,19 +49,8 @@ export default function ContextDataSection(props: ContextDataSectionProps) {
       isHelpHoverable
     >
       <ErrorBoundary mini message={t('There was a problem loading event context.')}>
-        <ContextData {...props} />
+        <KeyValueData.Container>{cards}</KeyValueData.Container>
       </ErrorBoundary>
     </EventDataSection>
   );
 }
-
-const CardWrapper = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  gap: 10px;
-`;
-
-const CardColumn = styled('div')`
-  grid-column: span 1;
-`;

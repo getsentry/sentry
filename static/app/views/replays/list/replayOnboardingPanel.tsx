@@ -3,13 +3,13 @@ import styled from '@emotion/styled';
 
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {Tooltip} from 'sentry/components/tooltip';
 import {mobile, replayPlatforms} from 'sentry/data/platformCategories';
@@ -126,10 +126,10 @@ export function SetupReplaysCTA({
   const [expanded, setExpanded] = useState(-1);
   const FAQ = [
     {
-      header: () => (
+      header: (
         <QuestionContent>{t('Can I use Session Replay with my app?')}</QuestionContent>
       ),
-      content: () => (
+      content: (
         <AnswerContent>
           <div>
             {t(
@@ -160,10 +160,8 @@ export function SetupReplaysCTA({
       ),
     },
     {
-      header: () => (
-        <QuestionContent>{t('What’s the performance overhead?')}</QuestionContent>
-      ),
-      content: () => (
+      header: <QuestionContent>{t('What’s the performance overhead?')}</QuestionContent>,
+      content: (
         <AnswerContent>
           <div>
             {t(
@@ -189,10 +187,8 @@ export function SetupReplaysCTA({
       ),
     },
     {
-      header: () => (
-        <QuestionContent>{t('How do you protect user data?')}</QuestionContent>
-      ),
-      content: () => (
+      header: <QuestionContent>{t('How do you protect user data?')}</QuestionContent>,
+      content: (
         <AnswerContent>
           <div>
             {t(
@@ -288,12 +284,7 @@ export function SetupReplaysCTA({
             })}
           />
         </StyledHeaderContainer>
-        <Accordion
-          items={FAQ}
-          expandedIndex={expanded}
-          setExpandedIndex={setExpanded}
-          buttonOnLeft
-        />
+        <Accordion items={FAQ} expandedIndex={expanded} setExpandedIndex={setExpanded} />
       </StyledWidgetContainer>
     </CenteredContent>
   );
@@ -350,12 +341,12 @@ const AnswerContent = styled('div')`
 `;
 
 const QuestionContent = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   cursor: pointer;
 `;
 
 const StyledHeaderContainer = styled(HeaderContainer)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray300};
   display: flex;

@@ -94,4 +94,4 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
                 organization_id=organization.id, slug=slug, notify=True
             ).run(user=request.user, request=request)
 
-        return Response(serialize(install))
+        return Response(serialize(install, access=request.access))

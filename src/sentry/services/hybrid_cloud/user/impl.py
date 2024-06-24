@@ -204,12 +204,6 @@ class DatabaseBackedUserService(UserService):
             return None
         return serialize_rpc_user(user)
 
-    def get_or_create_user_by_email(
-        self, *, email: str, ident: str | None = None, referrer: str | None = None
-    ) -> tuple[RpcUser, bool]:
-        result = self.get_or_create_by_email(email=email, ident=ident, referrer=referrer)
-        return (result.user, result.created)
-
     def get_or_create_by_email(
         self, *, email: str, ident: str | None = None, referrer: str | None = None
     ) -> UserCreateResult:
@@ -339,7 +333,7 @@ class DatabaseBackedUserService(UserService):
 
         def base_query(self, select_related: bool = True) -> QuerySet[User]:
             if not select_related:
-                return User.objects
+                return User.objects.all()
 
             return User.objects.extra(
                 select={

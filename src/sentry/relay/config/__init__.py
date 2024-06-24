@@ -1,6 +1,8 @@
+from __future__ import annotations
+
 import logging
 import uuid
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -71,7 +73,8 @@ EXPOSABLE_FEATURES = [
     "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
-    "projects:span-metrics-double-write-distributions-as-gauges",
+    "projects:span-metrics-extraction-addons",
+    "organizations:indexed-spans-extraction",
     "projects:relay-otel-endpoint",
 ]
 
@@ -109,7 +112,7 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 
 def get_public_key_configs(
-    project: Project, full_config: bool, project_keys: Sequence[ProjectKey] | None = None
+    project_keys: Iterable[ProjectKey] | None = None,
 ) -> list[Mapping[str, Any]]:
     public_keys: list[Mapping[str, Any]] = []
     for project_key in project_keys or ():
@@ -158,7 +161,8 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
         # 425 - Text content does not match server-rendered HTML.
         error_messages += [
-            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*",
+            "*https://react.dev/errors/{418,419,422,423,425}*",
         ]
 
     if project.get_option("filters:chunk-load-error") == "1":
@@ -223,7 +227,7 @@ def _get_generic_project_filters() -> GenericFiltersConfig:
     }
 
 
-def get_quotas(project: Project, keys: Sequence[ProjectKey] | None = None) -> list[str]:
+def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
@@ -258,86 +262,79 @@ class CardinalityLimitOption(TypedDict):
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
     metrics_config = {}
 
-    if features.has("organizations:relay-cardinality-limiter", project.organization):
-        passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
-            str(project.organization.id), []
-        )
+    passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
+        str(project.organization.id), []
+    )
 
-        existing_ids: set[str] = set()
-        cardinality_limits: list[CardinalityLimit] = []
-        for namespace in CARDINALITY_LIMIT_USE_CASES:
-            timeout.check()
-            option = options.get(
-                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
-            )
-            if not option or not len(option) == 1:
-                # Multiple quotas are not supported
-                continue
-
-            quota = option[0]
-            id = namespace.value
-
-            limit: CardinalityLimit = {
-                "id": id,
-                "window": {
-                    "windowSeconds": quota["window_seconds"],
-                    "granularitySeconds": quota["granularity_seconds"],
-                },
-                "limit": quota["limit"],
-                "scope": "organization",
-                "namespace": namespace.value,
-            }
-            if id in passive_limits:
-                limit["passive"] = True
-            cardinality_limits.append(limit)
-            existing_ids.add(id)
-
-        project_limit_options: list[CardinalityLimitOption] = project.get_option(
-            "relay.cardinality-limiter.limits", []
-        )
-        organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
-            "relay.cardinality-limiter.limits", []
-        )
-        option_limit_options: list[CardinalityLimitOption] = options.get(
-            "relay.cardinality-limiter.limits", []
-        )
-
-        for clo in project_limit_options + organization_limit_options + option_limit_options:
-            rollout_rate = clo.get("rollout_rate", 1.0)
-            if (project.organization.id % 100000) / 100000 >= rollout_rate:
-                continue
-
-            try:
-                limit = clo["limit"]
-                if clo["limit"]["id"] in existing_ids:
-                    # skip if a limit with the same id already exists
-                    continue
-                cardinality_limits.append(limit)
-                existing_ids.add(clo["limit"]["id"])
-            except KeyError:
-                pass
-
-        metrics_config["cardinalityLimits"] = cardinality_limits
-
-    if features.has("organizations:metrics-blocking", project.organization):
-        metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+    existing_ids: set[str] = set()
+    cardinality_limits: list[CardinalityLimit] = []
+    for namespace in CARDINALITY_LIMIT_USE_CASES:
         timeout.check()
-        if metrics_blocking_state is not None:
-            metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
+        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
+        if not option or not len(option) == 1:
+            # Multiple quotas are not supported
+            continue
+
+        quota = option[0]
+        id = namespace.value
+
+        limit: CardinalityLimit = {
+            "id": id,
+            "window": {
+                "windowSeconds": quota["window_seconds"],
+                "granularitySeconds": quota["granularity_seconds"],
+            },
+            "limit": quota["limit"],
+            "scope": "organization",
+            "namespace": namespace.value,
+        }
+        if id in passive_limits:
+            limit["passive"] = True
+        cardinality_limits.append(limit)
+        existing_ids.add(id)
+
+    project_limit_options: list[CardinalityLimitOption] = project.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    option_limit_options: list[CardinalityLimitOption] = options.get(
+        "relay.cardinality-limiter.limits", []
+    )
+
+    for clo in project_limit_options + organization_limit_options + option_limit_options:
+        rollout_rate = clo.get("rollout_rate", 1.0)
+        if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        try:
+            limit = clo["limit"]
+            if clo["limit"]["id"] in existing_ids:
+                # skip if a limit with the same id already exists
+                continue
+            cardinality_limits.append(limit)
+            existing_ids.add(clo["limit"]["id"])
+        except KeyError:
+            pass
+
+    metrics_config["cardinalityLimits"] = cardinality_limits
+
+    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+    timeout.check()
+    if metrics_blocking_state is not None:
+        metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
 
     return metrics_config or None
 
 
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Sequence[ProjectKey] | None = None
-) -> "ProjectConfig":
+    project: Project, project_keys: Iterable[ProjectKey] | None = None
+) -> ProjectConfig:
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
         the database.
-    :param full_config: True if only the full config is required, False
-        if only the restricted (for external relays) is required
-        (default True, i.e. full configuration)
     :param project_keys: Pre-fetched project keys for performance. However, if
         no project keys are provided it is assumed that the config does not
         need to contain auth information (this is the case when used in
@@ -350,7 +347,7 @@ def get_project_config(
             sentry_sdk.start_transaction(name="get_project_config"),
             metrics.timer("relay.config.get_project_config.duration"),
         ):
-            return _get_project_config(project, full_config=full_config, project_keys=project_keys)
+            return _get_project_config(project, project_keys=project_keys)
 
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
@@ -739,12 +736,12 @@ def _get_mobile_performance_profiles(organization: Organization) -> list[dict[st
 
 
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Sequence[ProjectKey] | None = None
-) -> "ProjectConfig":
+    project: Project, project_keys: Iterable[ProjectKey] | None = None
+) -> ProjectConfig:
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
-    public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
+    public_keys = get_public_key_configs(project_keys=project_keys)
 
     with Hub.current.start_span(op="get_public_config"):
         now = datetime.now(timezone.utc)
@@ -787,10 +784,6 @@ def _get_project_config(
     # This prevents projects from prematurely marking all URL transactions as sanitized.
     if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
         config["txNameReady"] = True
-
-    if not full_config:
-        # This is all we need for external Relay processors
-        return ProjectConfig(project, **cfg)
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
@@ -1011,7 +1004,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 5
+TRANSACTION_METRICS_EXTRACTION_VERSION = 6
 
 
 class CustomMeasurementSettings(TypedDict):

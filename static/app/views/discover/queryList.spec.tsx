@@ -30,7 +30,7 @@ describe('Discover > QueryList', function () {
     eventsStatsMock,
     wrapper;
 
-  const {router, routerContext} = initializeOrg();
+  const {router} = initializeOrg();
 
   beforeAll(async function () {
     await import('sentry/components/modals/widgetBuilder/addToDashboardModal');
@@ -194,7 +194,7 @@ describe('Discover > QueryList', function () {
         onQueryChange={queryChangeMock}
         location={location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await userEvent.click(screen.getAllByTestId(/card-*/).at(0)!);
@@ -216,7 +216,7 @@ describe('Discover > QueryList', function () {
         onQueryChange={queryChangeMock}
         location={location}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const card = screen.getAllByTestId(/card-*/).at(0)!;

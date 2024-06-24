@@ -38,6 +38,9 @@ function NotificationSettings({organizations}: NotificationSettingsProps) {
   };
   const notificationFields = NOTIFICATION_SETTINGS_TYPES.filter(type => {
     const notificationFlag = NOTIFICATION_FEATURE_MAP[type];
+    if (Array.isArray(notificationFlag)) {
+      return notificationFlag.some(flag => checkFeatureFlag(flag));
+    }
     if (notificationFlag) {
       return checkFeatureFlag(notificationFlag);
     }

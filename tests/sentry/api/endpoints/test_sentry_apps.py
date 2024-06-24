@@ -681,6 +681,7 @@ class PostSentryAppsTest(SentryAppsTest):
             **self.get_data(allowedOrigins=("google.com", "example.com")), status_code=201
         )
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.application is not None
         assert sentry_app.application.get_allowed_origins() == ["google.com", "example.com"]
 
     def test_create_internal_integration_with_allowed_origins_and_test_route(self):
@@ -693,6 +694,7 @@ class PostSentryAppsTest(SentryAppsTest):
         )
         response = self.get_success_response(**data, status_code=201)
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.application is not None
         assert sentry_app.application.get_allowed_origins() == ["example.com"]
 
         self.assert_sentry_app_status_code(sentry_app, status_code=200)
@@ -703,6 +705,7 @@ class PostSentryAppsTest(SentryAppsTest):
         data = self.get_data(isInternal=True, scopes=("project:read", "event:read", "org:read"))
         response = self.get_success_response(**data, status_code=201)
         sentry_app = SentryApp.objects.get(slug=response.data["slug"])
+        assert sentry_app.application is not None
         assert sentry_app.application.get_allowed_origins() == []
 
         self.assert_sentry_app_status_code(sentry_app, status_code=400)

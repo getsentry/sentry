@@ -185,7 +185,7 @@ export default function InviteMembersModalView({
 }
 
 const Heading = styled('h1')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
   margin-bottom: ${space(0.75)};
@@ -207,7 +207,7 @@ const InviteeHeadings = styled('div')`
   ${inviteRowGrid};
 
   margin-bottom: ${space(1)};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeSmall};
 `;

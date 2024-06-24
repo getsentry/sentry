@@ -104,7 +104,6 @@ Makefile                                                 @getsentry/owners-sentr
 /scripts/bump-version.sh                                 @getsentry/release-approvers
 /scripts/post-release.sh                                 @getsentry/release-approvers
 /self-hosted                                             @getsentry/release-approvers
-setup.py                                                 @getsentry/release-approvers
 setup.cfg                                                @getsentry/release-approvers
 requirements*.txt                                        @getsentry/owners-python-build
 pyproject.toml                                           @getsentry/owners-python-build
@@ -160,6 +159,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /static/app/views/settings/projectAlerts/                 @getsentry/alerts-notifications
 /static/app/views/alerts/                                 @getsentry/alerts-notifications
 /static/app/views/releases/                               @getsentry/alerts-notifications
+/src/sentry/rules/processing/delayed_processing.py        @getsentry/alerts-notifications
 
 /static/app/views/settings/account/notifications/         @getsentry/alerts-notifications
 
@@ -171,9 +171,17 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/snuba/models.py                               @getsentry/alerts-notifications
 /src/sentry/snuba/query_subscriptions/                    @getsentry/alerts-notifications
 /src/sentry/snuba/subscriptions.py                        @getsentry/alerts-notifications
+/src/sentry/snuba/tasks.py                                @getsentry/alerts-notifications
 /tests/snuba/incidents/                                   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_query_subscription_consumer.py   @getsentry/alerts-notifications
 /tests/sentry/snuba/test_subscriptions.py                 @getsentry/alerts-notifications
+/tests/sentry/snuba/test_tasks.py                         @getsentry/alerts-notifications
+/src/sentry/api/endpoints/notification_defaults.py                          @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_email.py                        @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_options_detail.py      @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_options.py             @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_settings_providers.py           @getsentry/alerts-notifications
+/src/sentry/api/endpoints/user_notification_details.py                      @getsentry/alerts-notifications
 ## Endof Alerts & Notifications
 
 
@@ -215,6 +223,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/utils/performance_issues/                                     @getsentry/performance
 /src/sentry/spans/                                                        @getsentry/performance
 
+/static/app/views/traces/                                                 @getsentry/performance
 /static/app/views/performance/                                            @getsentry/performance
 /static/app/utils/performance/                                            @getsentry/performance
 /static/app/components/events/interfaces/spans/                           @getsentry/performance
@@ -264,7 +273,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/performance
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/performance
 
-/static/app/views/starfish/                                                         @getsentry/performance
+/static/app/views/insights/                                                         @getsentry/performance
 ## Endof Performance
 
 
@@ -282,6 +291,12 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/api/endpoints/test_project_profiling_profile.py         @getsentry/profiling
 /tests/sentry/api/endpoints/test_organization_profiling_profiles.py   @getsentry/profiling
 ## End of Profiling
+
+
+## Configurations
+/src/sentry/remote_config/              @getsentry/replay-backend
+/tests/sentry/remote_config/            @getsentry/replay-backend
+## End of Configurations
 
 
 ## Replays
@@ -377,7 +392,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /static/app/components/superuserStaffAccessForm.tsx                     @getsentry/enterprise
 /static/app/constants/superuserAccessErrors.tsx                         @getsentry/enterprise
 /static/app/views/organizationStats                                     @getsentry/enterprise
-/static/app/views/releases/thresholdsList/                              @getsentry/enterprise
 /static/app/views/settings/organizationAuth/                            @getsentry/enterprise
 /static/app/views/settings/organizationMembers/inviteBanner.tsx         @getsentry/enterprise
 /tests/sentry/api/endpoints/test_auth*.py                               @getsentry/enterprise
@@ -390,24 +404,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/tasks/integrations/github/                                @getsentry/enterprise
 /tests/sentry/models/releases/                                          @getsentry/alerts-notifications
 ## End of Enterprise
-
-
-## Native
-/src/sentry/api/endpoints/chunk.py                                   @getsentry/owners-native
-/src/sentry/api/endpoints/project_app_store_connect_credentials.py   @getsentry/owners-native
-/src/sentry/lang/native/                                             @getsentry/owners-native
-/src/sentry/processing/realtime_metrics/                             @getsentry/owners-native
-/src/sentry/tasks/app_store_connect.py                               @getsentry/owners-native
-/src/sentry/tasks/assemble.py                                        @getsentry/owners-native
-/src/sentry/tasks/low_priority_symbolication.py                      @getsentry/owners-native
-/src/sentry/tasks/symbolication.py                                   @getsentry/owners-native
-/src/sentry/utils/appleconnect/                                      @getsentry/owners-native
-/tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/owners-native
-/src/sentry/tasks/reprocessing.py                                    @getsentry/processing
-/src/sentry/tasks/reprocessing2.py                                   @getsentry/processing
-/src/sentry/reprocessing2.py                                         @getsentry/processing
-/src/sentry/tasks/store.py                                           @getsentry/processing
-## End of Native
 
 
 ## APIs
@@ -515,7 +511,6 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/event_manager/                                @getsentry/issues
 /tests/sentry/grouping/                                     @getsentry/issues
 /tests/sentry/search/                                       @getsentry/issues
-/tests/sentry/snuba/test_tasks.py                           @getsentry/issues
 /tests/sentry/tasks/test_post_process.py                    @getsentry/issues
 /tests/snuba/search/                                        @getsentry/issues
 ## End of Issues
@@ -533,11 +528,25 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## End of ML & AI
 
 ## Processing
-/src/sentry/processing/*                                @getsentry/processing
-/src/sentry/api/endpoints/project_user_reports.py       @getsentry/processing
-/src/sentry/api/endpoints/event_attachments.py          @getsentry/processing
-/src/sentry/api/endpoints/event_reprocessable.py        @getsentry/processing
-/src/sentry/api/endpoints/project_reprocessing.py       @getsentry/processing
+/src/sentry/processing/*                                             @getsentry/processing
+/src/sentry/api/endpoints/project_user_reports.py                    @getsentry/processing
+/src/sentry/api/endpoints/event_attachments.py                       @getsentry/processing
+/src/sentry/api/endpoints/event_reprocessable.py                     @getsentry/processing
+/src/sentry/api/endpoints/project_reprocessing.py                    @getsentry/processing
+/src/sentry/api/endpoints/chunk.py                                   @getsentry/processing
+/src/sentry/api/endpoints/project_app_store_connect_credentials.py   @getsentry/processing
+/src/sentry/lang/native/                                             @getsentry/processing
+/src/sentry/processing/realtime_metrics/                             @getsentry/processing
+/src/sentry/tasks/app_store_connect.py                               @getsentry/processing
+/src/sentry/tasks/assemble.py                                        @getsentry/processing
+/src/sentry/tasks/low_priority_symbolication.py                      @getsentry/processing
+/src/sentry/tasks/symbolication.py                                   @getsentry/processing
+/src/sentry/utils/appleconnect/                                      @getsentry/processing
+/tests/sentry/tasks/test_low_priority_symbolication.py               @getsentry/processing
+/src/sentry/tasks/reprocessing.py                                    @getsentry/processing
+/src/sentry/tasks/reprocessing2.py                                   @getsentry/processing
+/src/sentry/reprocessing2.py                                         @getsentry/processing
+/src/sentry/tasks/store.py                                           @getsentry/processing
 ## End of Processing
 
 ## Ecosystem

@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
@@ -24,6 +25,7 @@ type DefaultProps = typeof defaultProps;
 type Props = {
   api: Client;
   baseIssueId: string;
+  location: Location;
   orgId: string;
   project: Project;
   targetIssueId: string;
@@ -67,10 +69,11 @@ class IssueDiff extends Component<Props, State> {
       organization,
       project,
       shouldBeGrouped,
+      location,
     } = this.props;
-    const hasSimilarityEmbeddingsFeature = project.features.includes(
-      'similarity-embeddings'
-    );
+    const hasSimilarityEmbeddingsFeature =
+      project.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
 
     // Fetch component and event data
     const asyncFetch = async () => {

@@ -165,6 +165,17 @@ export const QUOTA_FIELDS = [
     ] as const,
   },
   {
+    name: 'quotaSpans',
+    label: t('Spans'),
+    help: tct('Receive notifications about your spans quotas. [learnMore:Learn more]', {
+      learnMore: <ExternalLink href={getDocsLinkForEventType('span')} />,
+    }),
+    choices: [
+      ['always', t('On')],
+      ['never', t('Off')],
+    ] as const,
+  },
+  {
     name: 'quotaReplays',
     label: t('Replays'),
     help: tct('Receive notifications about your replay quotas. [learnMore:Learn more]', {
@@ -221,12 +232,18 @@ export const QUOTA_FIELDS = [
 
 export const SPEND_FIELDS = [
   {
-    name: 'quotaWarnings',
+    name: 'quota',
     label: t('Spend Notifications'),
     help: tct(
       'Receive notifications when your spend crosses predefined or custom thresholds. [learnMore:Learn more]',
       {
-        learnMore: <ExternalLink href={'#'} />, // TODO(isabella): replace with proper link
+        learnMore: (
+          <ExternalLink
+            href={
+              'https://docs.sentry.io/product/alerts/notifications/#spend-notifications'
+            }
+          />
+        ),
       }
     ),
     choices: [

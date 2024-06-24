@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {getDateTimeParams, getMetricsInterval} from 'sentry/utils/metrics';
 import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -13,6 +12,7 @@ import type {
   MetricsQueryApiResponse,
   MRI,
 } from '../../types/metrics';
+import {parsePeriodToHours} from '../duration/parsePeriodToHours';
 
 export function createMqlQuery({
   field,
@@ -78,8 +78,9 @@ export function getMetricsQueryApiRequestPayload(
   {
     intervalLadder,
     interval: intervalParam,
+    includeSeries = true,
   }: {
-    autoOrder?: boolean;
+    includeSeries?: boolean;
     interval?: string;
     intervalLadder?: MetricsDataIntervalLadder;
   } = {}
@@ -152,6 +153,7 @@ export function getMetricsQueryApiRequestPayload(
       project: projects,
       environment: environments,
       interval,
+      includeSeries,
     },
     body: {
       queries: requestQueries,
@@ -163,7 +165,11 @@ export function getMetricsQueryApiRequestPayload(
 export function useMetricsQuery(
   queries: MetricsQueryApiQueryParams[],
   {projects, environments, datetime}: PageFilters,
-  overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {},
+  overrides: {
+    includeSeries?: boolean;
+    interval?: string;
+    intervalLadder?: MetricsDataIntervalLadder;
+  } = {},
   enableRefetch = true
 ) {
   const organization = useOrganization();

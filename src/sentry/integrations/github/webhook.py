@@ -20,6 +20,7 @@ from sentry import analytics, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
+from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.utils.scope import clear_tags_and_context
@@ -90,9 +91,12 @@ class Webhook:
     def __call__(self, event: Mapping[str, Any], host: str | None = None) -> None:
         external_id = get_github_external_id(event=event, host=host)
 
-        integration, installs = integration_service.get_organization_contexts(
+        result = integration_service.organization_contexts(
             external_id=external_id, provider=self.provider
         )
+        integration = result.integration
+        installs = result.organization_integrations
+
         if integration is None or not installs:
             # It seems possible for the GH or GHE app to be installed on their
             # end, but the integration to not exist. Possibly from deleting in
@@ -153,6 +157,7 @@ class Webhook:
                 repos = repos.all()
 
             for repo in repos.exclude(status=ObjectStatus.HIDDEN):
+                self.update_repo_data(repo, event)
                 self._handle(integration, event, orgs[repo.organization_id], repo)
 
     def update_repo_data(self, repo: Repository, event: Mapping[str, Any]) -> None:
@@ -176,11 +181,24 @@ class Webhook:
             or repo.config.get("name") != name_from_event
             or repo.url != url_from_event
         ):
-            repo.update(
-                name=name_from_event,
-                url=url_from_event,
-                config=dict(repo.config, name=name_from_event),
-            )
+            try:
+                repo.update(
+                    name=name_from_event,
+                    url=url_from_event,
+                    config=dict(repo.config, name=name_from_event),
+                )
+            except IntegrityError:
+                logger.exception(
+                    "github.webhook.update_repo_data.integrity_error",
+                    extra={
+                        "repo_id": repo.id,
+                        "new_name": name_from_event,
+                        "new_url": url_from_event,
+                        "old_name": repo.name,
+                        "old_url": repo.url,
+                    },
+                )
+                pass
 
 
 class InstallationEventWebhook:
@@ -213,10 +231,13 @@ class InstallationEventWebhook:
             external_id = event["installation"]["id"]
             if host:
                 external_id = "{}:{}".format(host, event["installation"]["id"])
-            integration, org_integrations = integration_service.get_organization_contexts(
+            result = integration_service.organization_contexts(
                 provider=self.provider,
                 external_id=external_id,
             )
+            integration = result.integration
+            org_integrations = result.organization_integrations
+
             if integration is not None:
                 self._handle_delete(event, integration, org_integrations)
             else:
@@ -550,6 +571,10 @@ class PullRequestEventWebhook(Webhook):
 
         except IntegrityError:
             pass
+
+        # Because we require that the sentry github integration be installed for autofix, we can piggyback
+        # on this webhook for autofix for now. We may move to a separate autofix github integration in the future.
+        handle_github_pr_webhook_for_autofix(organization, action, pull_request, user)
 
 
 @all_silo_endpoint

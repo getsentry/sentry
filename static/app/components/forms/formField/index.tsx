@@ -54,6 +54,7 @@ const propsToObserve = [
   'inline',
   'visible',
   'disabled',
+  'disabledReason',
 ] satisfies Array<keyof FormFieldProps>;
 
 interface FormFieldPropModel extends FormFieldProps {
@@ -75,6 +76,7 @@ type ObservedPropResolver = [
  */
 interface ObservableProps {
   disabled?: ObservedFnOrValue<{}, FieldGroupProps['disabled']>;
+  disabledReason?: ObservedFnOrValue<{}, FieldGroupProps['disabledReason']>;
   help?: ObservedFnOrValue<{}, FieldGroupProps['help']>;
   highlighted?: ObservedFnOrValue<{}, FieldGroupProps['highlighted']>;
   inline?: ObservedFnOrValue<{}, FieldGroupProps['inline']>;
@@ -86,6 +88,7 @@ interface ObservableProps {
  */
 interface ResolvedObservableProps {
   disabled?: FieldGroupProps['disabled'];
+  disabledReason?: FieldGroupProps['disabledReason'];
   help?: FieldGroupProps['help'];
   highlighted?: FieldGroupProps['highlighted'];
   inline?: FieldGroupProps['inline'];

@@ -77,7 +77,10 @@ class ControlOrganizationProvisioningRpcService(RpcService):
     @abstractmethod
     @rpc_method
     def bulk_create_organization_slug_reservations(
-        self, *, region_name: str, organization_ids_and_slugs: set[tuple[int, str]]
+        self,
+        *,
+        region_name: str,
+        slug_mapping: dict[int, str],
     ) -> None:
         """
         Only really intended for bulk organization import usage. Creates unique organization slug
@@ -85,7 +88,9 @@ class ControlOrganizationProvisioningRpcService(RpcService):
         in the provided region.
 
         :param region_name: The region where the imported organization exist
-        :param organization_ids_and_slugs: A set of ID and base slug tuples to reserve slugs for
+        :param organization_ids_and_slugs: A set of ID and base slug tuples to reserve slugs for.
+            This parameter is deprecated. Use slug_mapping instead.
+        :param slug_mapping: A map of organization id -> slug to reserve.
         :return:
         """
 

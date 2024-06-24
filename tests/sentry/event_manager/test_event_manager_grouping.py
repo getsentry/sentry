@@ -420,15 +420,11 @@ class EventManagerGroupingMetricsTest(TestCase):
         for primary_hashes, secondary_hashes, expected_tag in cases:
             with mock.patch(
                 "sentry.grouping.ingest.hashing._calculate_primary_hash",
-                return_value=CalculatedHashes(
-                    hashes=primary_hashes, hierarchical_hashes=[], tree_labels=[]
-                ),
+                return_value=CalculatedHashes(primary_hashes),
             ):
                 with mock.patch(
                     "sentry.grouping.ingest.hashing._calculate_secondary_hash",
-                    return_value=CalculatedHashes(
-                        hashes=secondary_hashes, hierarchical_hashes=[], tree_labels=[]
-                    ),
+                    return_value=CalculatedHashes(secondary_hashes),
                 ):
                     save_new_event({"message": "Dogs are great!"}, self.project)
 

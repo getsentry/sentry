@@ -56,6 +56,22 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         uuid = UUID("00000000-0000-0000-0000-000000000000")
         self.get_error_response(self.organization.slug, uuid, status_code=404)
 
+    @override_options({"api.id-or-slug-enabled": True})
+    def test_simple_with_uuid_like_slug(self):
+        """
+        When the slug looks like a UUID we still want to make sure we're
+        prioritizing slug lookup
+        """
+        monitor = self._create_monitor(slug="8a65d0f2-b7d9-4b4a-9436-3de9db3c9e2f")
+
+        # We can still find our monitor by it's slug
+        resp = self.get_success_response(self.organization.slug, monitor.slug)
+        assert resp.data["slug"] == monitor.slug
+
+        # We can still find our monitor by it's id
+        resp = self.get_success_response(self.organization.slug, monitor.guid)
+        assert resp.data["slug"] == monitor.slug
+
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
         self.get_error_response("asdf", monitor.slug, status_code=404)

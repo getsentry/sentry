@@ -4,7 +4,8 @@ import partition from 'lodash/partition';
 import type {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {PlatformKey, Project} from 'sentry/types';
+import type {PlatformKey, Project} from 'sentry/types/project';
+import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 
 type Props = {
@@ -20,9 +21,11 @@ function useCurrentProjectState({
   onboardingPlatforms,
   allPlatforms,
 }: Props) {
-  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
+  const params = useParams<{projectId?: string}>();
+  const projectSlug = params.projectId;
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {selection, isReady} = useLegacyStore(PageFiltersStore);
+  const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
 
   const isActive = currentPanel === targetPanel;
 
@@ -49,6 +52,11 @@ function useCurrentProjectState({
       !projectsWithOnboarding ||
       !supportedProjects
     ) {
+      return;
+    }
+
+    if (projectSlug) {
+      setCurrentProject(projects.find(p => p.slug === projectSlug) ?? undefined);
       return;
     }
 
@@ -92,6 +100,7 @@ function useCurrentProjectState({
     selection.projects,
     projectsWithOnboarding,
     supportedProjects,
+    projectSlug,
   ]);
 
   return {

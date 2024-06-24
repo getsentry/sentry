@@ -97,6 +97,24 @@ describe('updateQueryWithSeriesFilter', () => {
     expect(updatedQuery.query).toEqual('project:"1" release:"latest"');
     expect(updatedQuery.groupBy).toEqual(['environment']);
   });
+
+  it('should add an empty filter value', () => {
+    const query = {
+      mri: 'd:transactions/duration@milisecond' as MRI,
+      op: 'count',
+      groupBy: [],
+      query: '',
+    };
+
+    const updatedQuery = updateQueryWithSeriesFilter(
+      query,
+      {project: ''},
+      MetricSeriesFilterUpdateType.ADD
+    );
+
+    expect(updatedQuery.query).toEqual('project:""');
+    expect(updatedQuery.groupBy).toEqual([]);
+  });
 });
 
 describe('ensureQuotedTextFilters', () => {

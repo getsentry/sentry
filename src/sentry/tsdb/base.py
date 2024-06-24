@@ -1,7 +1,7 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict
+from typing import Any, TypedDict, TypeVar
 
 from django.conf import settings
 from django.utils import timezone
@@ -12,6 +12,9 @@ from sentry.utils.services import Service
 ONE_MINUTE = 60
 ONE_HOUR = ONE_MINUTE * 60
 ONE_DAY = ONE_HOUR * 24
+
+TSDBKey = TypeVar("TSDBKey", str, int)
+TSDBItem = TypeVar("TSDBItem", str, int)
 
 
 class IncrMultiOptions(TypedDict):
@@ -207,7 +210,7 @@ class BaseTSDB(Service):
         epoch = int(timestamp.timestamp())
         return epoch - (epoch % seconds)
 
-    def normalize_ts_to_epoch(self, epoch: int, seconds: int) -> int:
+    def normalize_ts_to_epoch(self, epoch: float, seconds: int) -> float:
         """
         Given a ``epoch`` normalize to an epoch rollup.
         """
@@ -333,7 +336,7 @@ class BaseTSDB(Service):
     def incr(
         self,
         model: TSDBModel,
-        key: int,
+        key: TSDBKey,
         timestamp: datetime | None = None,
         count: int = 1,
         environment_id: int | None = None,
@@ -347,7 +350,7 @@ class BaseTSDB(Service):
 
     def incr_multi(
         self,
-        items: list[tuple[TSDBModel, int] | tuple[TSDBModel, int, IncrMultiOptions]],
+        items: Sequence[tuple[TSDBModel, TSDBKey] | tuple[TSDBModel, TSDBKey, IncrMultiOptions]],
         timestamp: datetime | None = None,
         count: int = 1,
         environment_id: int | None = None,
@@ -413,16 +416,17 @@ class BaseTSDB(Service):
     def get_range(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime,
         rollup: int | None = None,
         environment_ids: list[int] | None = None,
+        conditions=None,
         use_cache: bool = False,
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
         referrer_suffix: str | None = None,
-    ) -> dict[int, list[tuple[float, int]]]:
+    ) -> dict[TSDBKey, list[tuple[int, int]]]:
         """
         To get a range of data for group ID=[1, 2, 3]:
 
@@ -474,19 +478,18 @@ class BaseTSDB(Service):
         return series
 
     def rollup(
-        self, values: dict[int, list[tuple[int, int]]], rollup: int
+        self, values: Mapping[int, Sequence[tuple[float, int]]], rollup: int
     ) -> dict[int, list[list[float]]]:
         """
         Given a set of values (as returned from ``get_range``), roll them up
         using the ``rollup`` time (in seconds).
         """
-        normalize_ts_to_epoch = self.normalize_ts_to_epoch
         result: dict[int, list[list[float]]] = {}
         for key, points in values.items():
             result[key] = []
             last_new_ts = None
             for ts, count in points:
-                new_ts = normalize_ts_to_epoch(ts, rollup)
+                new_ts = self.normalize_ts_to_epoch(ts, rollup)
                 if new_ts == last_new_ts:
                     result[key][-1][1] += count
                 else:
@@ -522,7 +525,7 @@ class BaseTSDB(Service):
     def get_distinct_counts_series(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[int],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -537,7 +540,7 @@ class BaseTSDB(Service):
     def get_distinct_counts_totals(
         self,
         model: TSDBModel,
-        keys: list[int],
+        keys: Sequence[int],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -598,7 +601,7 @@ class BaseTSDB(Service):
 
     def record_frequency_multi(
         self,
-        requests: Iterable[tuple[TSDBModel, dict[str, dict[str, int | float]]]],
+        requests: Sequence[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]],
         timestamp: datetime | None = None,
         environment_id: int | None = None,
     ) -> None:
@@ -613,14 +616,14 @@ class BaseTSDB(Service):
     def get_most_frequent(
         self,
         model: TSDBModel,
-        keys: Iterable[str],
+        keys: Sequence[TSDBKey],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
         limit: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, list[tuple[str, float]]]:
+    ) -> dict[TSDBKey, list[tuple[str, float]]]:
         """
         Retrieve the most frequently seen items in a frequency table.
 
@@ -659,13 +662,13 @@ class BaseTSDB(Service):
     def get_frequency_series(
         self,
         model: TSDBModel,
-        items: dict[str, Iterable[str]],
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, list[tuple[float, dict[str, float]]]]:
+    ) -> dict[TSDBKey, list[tuple[float, dict[TSDBItem, float]]]]:
         """
         Retrieve the frequency of known items in a table over time.
 
@@ -682,7 +685,7 @@ class BaseTSDB(Service):
     def get_frequency_totals(
         self,
         model: TSDBModel,
-        items: dict[str, Iterable[str]],
+        items: Mapping[str, Sequence[str]],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
@@ -706,10 +709,10 @@ class BaseTSDB(Service):
         self,
         model: TSDBModel,
         destination: str,
-        sources: list[str],
+        sources: Sequence[TSDBKey],
         timestamp: datetime | None = None,
         environment_ids: Iterable[int] | None = None,
-    ):
+    ) -> None:
         """
         Transfer all frequency tables from the source keys to the destination
         key.

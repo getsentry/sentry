@@ -5,12 +5,12 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import integrations
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
-from sentry.integrations import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.utils.code_mapping import find_roots
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service

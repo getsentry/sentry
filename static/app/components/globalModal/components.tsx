@@ -24,7 +24,7 @@ const ModalHeader = styled('header')`
   h5,
   h6 {
     font-size: 20px;
-    font-weight: 600;
+    font-weight: ${p => p.theme.fontWeightBold};
     margin-bottom: 0;
     line-height: 1.1;
   }
@@ -99,7 +99,7 @@ const makeClosableHeader = (closeModal: () => void) => {
  */
 const makeCloseButton = (closeModal: () => void) =>
   function (props: Omit<ButtonProps, 'aria-label'>) {
-    return <CloseButton {...props} onClick={closeModal} />;
+    return <CloseButton onClick={closeModal} {...props} />;
   };
 
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter};

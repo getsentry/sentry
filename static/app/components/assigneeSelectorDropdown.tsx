@@ -24,7 +24,10 @@ import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import type {Actor, Group, SuggestedOwnerReason, Team, User} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {Group, SuggestedOwnerReason} from 'sentry/types/group';
+import type {Team} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
@@ -583,6 +586,7 @@ const AssigneeWrapper = styled('div')`
 `;
 
 const AssigneeDropdownButton = styled(DropdownButton)`
+  z-index: 0;
   padding-left: ${space(0.5)};
   padding-right: ${space(0.5)};
 `;

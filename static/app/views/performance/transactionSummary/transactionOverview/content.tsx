@@ -330,24 +330,19 @@ function SummaryContent({
     handleOpenAllEventsClick: handleAllEventsViewClick,
   };
 
-  const hasTransactionSummaryCleanupFlag = organization.features.includes(
-    'performance-transaction-summary-cleanup'
-  );
+  const hasNewSpansUIFlag =
+    organization.features.includes('performance-spans-new-ui') &&
+    organization.features.includes('insights-initial-modules');
 
   return (
     <Fragment>
       <Layout.Main>
-        <FilterActions
-          hasTransactionSummaryCleanupFlag={hasTransactionSummaryCleanupFlag}
-        >
-          {!hasTransactionSummaryCleanupFlag && (
-            <Filter
-              organization={organization}
-              currentFilter={spanOperationBreakdownFilter}
-              onChangeFilter={onChangeFilter}
-            />
-          )}
-
+        <FilterActions>
+          <Filter
+            organization={organization}
+            currentFilter={spanOperationBreakdownFilter}
+            onChangeFilter={onChangeFilter}
+          />
           <PageFilterBar condensed>
             <EnvironmentPageFilter />
             <DatePageFilter />
@@ -408,7 +403,7 @@ function SummaryContent({
           />
         </PerformanceAtScaleContextProvider>
 
-        {!hasTransactionSummaryCleanupFlag && (
+        {!hasNewSpansUIFlag && (
           <SuspectSpans
             location={location}
             organization={organization}
@@ -560,7 +555,7 @@ function getTransactionsListSort(
   return {selected: selectedSort, options: sortOptions};
 }
 
-const FilterActions = styled('div')<{hasTransactionSummaryCleanupFlag: boolean}>`
+const FilterActions = styled('div')`
   display: grid;
   gap: ${space(2)};
   margin-bottom: ${space(2)};
@@ -570,10 +565,7 @@ const FilterActions = styled('div')<{hasTransactionSummaryCleanupFlag: boolean}>
   }
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-    ${p =>
-      p.hasTransactionSummaryCleanupFlag
-        ? `grid-template-columns: auto 1fr;`
-        : `grid-template-columns: auto auto 1fr;`}
+    grid-template-columns: auto auto 1fr;
   }
 `;
 

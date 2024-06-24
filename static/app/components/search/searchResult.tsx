@@ -134,6 +134,6 @@ const StyledPluginIcon = styled(PluginIcon)`
 const HighlightMarker = styled('mark')`
   padding: 0;
   background: transparent;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.active};
 `;

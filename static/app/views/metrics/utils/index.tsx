@@ -5,6 +5,7 @@ import {
   type SearchConfig,
   Token,
 } from 'sentry/components/searchSyntax/parser';
+import {defined} from 'sentry/utils';
 import {
   MetricSeriesFilterUpdateType,
   type MetricsQuery,
@@ -53,7 +54,7 @@ export function ensureQuotedTextFilters(
   for (let i = 0; i < parsedSearch.length; i++) {
     const token = parsedSearch[i];
     if (token.type === Token.FILTER && token.filter === FilterType.TEXT) {
-      // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of it's value
+      // joinQuery() does not access nested tokens, so we need to manipulate the text of the filter instead of its value
       if (!token.value.quoted) {
         token.text = `${token.negated ? '!' : ''}${token.key.text}:"${token.value.text}"`;
       }
@@ -93,7 +94,7 @@ export function updateQueryWithSeriesFilter(
 
   const groupByEntries = Object.entries(groupBys);
   groupByEntries.forEach(([key, value]) => {
-    if (!value) {
+    if (!defined(value)) {
       return;
     }
     updateType === MetricSeriesFilterUpdateType.ADD

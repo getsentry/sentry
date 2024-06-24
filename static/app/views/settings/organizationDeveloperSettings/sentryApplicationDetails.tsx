@@ -244,7 +244,7 @@ class SentryApplicationDetails extends DeprecatedAsyncView<Props, State> {
       // if we are editing an existing app, check the status of the app
       return app.status === 'internal';
     }
-    return this.props.route.path === 'new-internal/';
+    return this.props.location.pathname.endsWith('new-internal/');
   }
 
   get showAuthInfo() {
@@ -580,7 +580,7 @@ const AvatarPreviewTitle = styled('span')`
   display: block;
   grid-area: 1 / 2 / 2 / 3;
   padding-left: ${space(2)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const AvatarPreviewText = styled('span')`

@@ -39,5 +39,5 @@ export default function ReplayInlineCTAPanel() {
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

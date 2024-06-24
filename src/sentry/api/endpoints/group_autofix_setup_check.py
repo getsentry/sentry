@@ -16,11 +16,12 @@ from sentry.api.helpers.autofix import (
     AutofixCodebaseIndexingStatus,
     get_project_codebase_indexing_status,
 )
-from sentry.api.helpers.repos import get_repos_from_project_code_mappings
+from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.services.hybrid_cloud.integration import integration_service
 
 logger = logging.getLogger(__name__)
@@ -64,18 +65,26 @@ def get_repos_and_access(project: Project) -> list[dict]:
 
     Returns a list of repos with the "ok" key set to True if we have write access, False otherwise.
     """
-    repos = get_repos_from_project_code_mappings(project)
+    repos = get_autofix_repos_from_project_code_mappings(project)
 
     repos_and_access: list[dict] = []
+    path = "/v1/automation/codebase/repo/check-access"
     for repo in repos:
+        body = orjson.dumps(
+            {
+                "repo": repo,
+            }
+        )
         response = requests.post(
-            f"{settings.SEER_AUTOFIX_URL}/v1/automation/codebase/repo/check-access",
-            data=orjson.dumps(
-                {
-                    "repo": repo,
-                }
-            ),
-            headers={"content-type": "application/json;charset=utf-8"},
+            f"{settings.SEER_AUTOFIX_URL}{path}",
+            data=body,
+            headers={
+                "content-type": "application/json;charset=utf-8",
+                **sign_with_seer_secret(
+                    url=f"{settings.SEER_AUTOFIX_URL}{path}",
+                    body=body,
+                ),
+            },
         )
 
         response.raise_for_status()
@@ -103,9 +112,13 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         org: Organization = request.organization
         has_gen_ai_consent = org.get_option("sentry:gen_ai_consent", False)
 
-        integration_check = get_autofix_integration_setup_problems(
-            organization=org, project=group.project
-        )
+        integration_check = None
+        # This check is to skip using the GitHub integration for Autofix in s4s.
+        # As we only use the github integration to get the code mappings, we can skip this check if the repos are hardcoded.
+        if not settings.SEER_AUTOFIX_FORCE_USE_REPOS:
+            integration_check = get_autofix_integration_setup_problems(
+                organization=org, project=group.project
+            )
 
         repos = get_repos_and_access(group.project)
         write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)

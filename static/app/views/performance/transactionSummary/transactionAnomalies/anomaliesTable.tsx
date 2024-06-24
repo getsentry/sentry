@@ -48,7 +48,6 @@ export default function AnomaliesTable(props: Props) {
         renderHeadCell,
         renderBodyCell: renderBodyCellWithMeta(location, organization),
       }}
-      location={location}
     />
   );
 }

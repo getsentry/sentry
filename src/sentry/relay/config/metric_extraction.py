@@ -4,12 +4,12 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
 from django.utils import timezone
-from sentry_relay.processing import validate_sampling_condition
+from sentry_relay.processing import validate_rule_condition, validate_sampling_condition
 
 from sentry import features, options
 from sentry.api.endpoints.project_transaction_threshold import DEFAULT_THRESHOLD
@@ -33,6 +33,7 @@ from sentry.relay.config.experimental import TimeChecker
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.sentry_metrics.extraction_rules import MetricsExtractionRuleState
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     WIDGET_QUERY_CACHE_MAX_CHUNKS,
@@ -42,9 +43,12 @@ from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpecVersioning,
     RuleCondition,
     SpecVersion,
+    TagMapping,
+    TagSpec,
     are_specs_equal,
     should_use_on_demand_metrics,
 )
+from sentry.snuba.metrics.span_attribute_extraction import convert_to_spec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -57,7 +61,7 @@ logger = logging.getLogger(__name__)
 # GENERIC METRIC EXTRACTION
 
 # Version of the metric extraction config.
-_METRIC_EXTRACTION_VERSION = 3
+_METRIC_EXTRACTION_VERSION = 4
 
 # Maximum number of custom metrics that can be extracted for alerts and widgets with
 # advanced filter expressions.
@@ -117,9 +121,10 @@ def get_metric_extraction_config(
     with sentry_sdk.start_span(op="get_widget_metric_specs"):
         widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
     timeout.check()
-
+    with sentry_sdk.start_span(op="generate_span_attribute_specs"):
+        span_attr_specs = _generate_span_attribute_specs(project)
     with sentry_sdk.start_span(op="merge_metric_specs"):
-        metric_specs = _merge_metric_specs(alert_specs, widget_specs)
+        metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
     timeout.check()
 
     if not metric_specs:
@@ -399,12 +404,14 @@ def _update_state_with_spec_limit(
 
 @metrics.wraps("on_demand_metrics._merge_metric_specs")
 def _merge_metric_specs(
-    alert_specs: list[HashedMetricSpec], widget_specs: list[HashedMetricSpec]
+    alert_specs: list[HashedMetricSpec],
+    widget_specs: list[HashedMetricSpec],
+    span_attr_specs: list[HashedMetricSpec],
 ) -> list[MetricSpec]:
     # We use a dict so that we can deduplicate metrics with the same hash.
     specs: dict[str, MetricSpec] = {}
     duplicated_specs = 0
-    for query_hash, spec, _ in widget_specs + alert_specs:
+    for query_hash, spec, _ in widget_specs + alert_specs + span_attr_specs:
         already_present = specs.get(query_hash)
         if already_present and not are_specs_equal(already_present, spec):
             logger.warning(
@@ -802,6 +809,27 @@ def _convert_aggregate_and_query_to_metrics(
     return metric_specs_and_hashes
 
 
+def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
+    if not features.has(
+        "organizations:custom-metrics-extraction-rule", organization=project.organization
+    ):
+        return []
+
+    extraction_rules_state = MetricsExtractionRuleState.load_from_project(project)
+    version = SpecVersion(version=_METRIC_EXTRACTION_VERSION)
+
+    specs = []
+    for rule in extraction_rules_state.get_rules():
+        try:
+            spec = cast(MetricSpec, convert_to_spec(rule))
+            validate_rule_condition(json.dumps(spec["condition"]))
+            specs.append((spec["mri"], spec, version))
+        except ValueError:
+            logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
+
+    return specs
+
+
 # CONDITIONAL TAGGING
 
 
@@ -829,6 +857,12 @@ _HISTOGRAM_OUTLIERS_TARGET_METRICS = {
     "duration": "d:transactions/duration@millisecond",
     "lcp": "d:transactions/measurements.lcp@millisecond",
     "fcp": "d:transactions/measurements.fcp@millisecond",
+}
+
+_HISTOGRAM_OUTLIERS_SOURCE_FIELDS = {
+    "duration": "event.duration",
+    "lcp": "event.measurements.lcp.value",
+    "fcp": "event.measurements.fcp.value",
 }
 
 
@@ -875,8 +909,6 @@ def get_metric_conditional_tagging_rules(
         rules.extend(_threshold_to_rules(threshold, []))
     except ProjectTransactionThreshold.DoesNotExist:
         rules.extend(_threshold_to_rules(_DEFAULT_THRESHOLD, []))
-
-    rules.extend(HISTOGRAM_OUTLIER_RULES)
 
     return rules
 
@@ -1395,8 +1427,8 @@ def _parse_percentiles(value: tuple[()] | tuple[str, str, str, str, str]) -> tup
     return p25, p75
 
 
-def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditionalTaggingRule]:
-    rules: list[MetricConditionalTaggingRule] = []
+def _produce_histogram_outliers(query_results: Any) -> list[TagMapping]:
+    tags_by_metric: dict[str, list[TagSpec]] = {}
     for row in query_results:
         platform = row["platform"]
         op = row["op"]
@@ -1416,7 +1448,7 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
                 # default values from clickhouse if no data is present
                 continue
 
-            rules.append(
+            tags_by_metric.setdefault(_HISTOGRAM_OUTLIERS_TARGET_METRICS[metric], []).append(
                 {
                     "condition": {
                         "op": "and",
@@ -1427,37 +1459,48 @@ def _produce_histogram_outliers(query_results: Any) -> Sequence[MetricConditiona
                             # See also https://en.wikipedia.org/wiki/Outlier#Tukey's_fences
                             {
                                 "op": "gte",
-                                "name": "event.duration",
+                                "name": _HISTOGRAM_OUTLIERS_SOURCE_FIELDS[metric],
                                 "value": p75 + 3 * abs(p75 - p25),
                             },
                         ],
                     },
-                    "targetMetrics": [_HISTOGRAM_OUTLIERS_TARGET_METRICS[metric]],
-                    "targetTag": "histogram_outlier",
-                    "tagValue": "outlier",
+                    "key": "histogram_outlier",
+                    "value": "outlier",
                 }
             )
 
+    rules: list[TagMapping] = [
+        {"metrics": [metric], "tags": tags} for metric, tags in tags_by_metric.items()
+    ]
+
     rules.append(
         {
-            "condition": {
-                "op": "and",
-                "inner": [
-                    {"op": "gte", "name": "event.duration", "value": 0},
-                ],
-            },
-            "targetMetrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
-            "targetTag": "histogram_outlier",
-            "tagValue": "inlier",
+            "metrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
+            "tags": [
+                {
+                    "condition": {
+                        "op": "and",
+                        "inner": [
+                            {"op": "gte", "name": "event.duration", "value": 0},
+                        ],
+                    },
+                    "key": "histogram_outlier",
+                    "value": "inlier",
+                },
+            ],
         }
     )
 
     rules.append(
         {
-            "condition": {"op": "and", "inner": []},
-            "targetMetrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
-            "targetTag": "histogram_outlier",
-            "tagValue": "outlier",
+            "metrics": list(_HISTOGRAM_OUTLIERS_TARGET_METRICS.values()),
+            "tags": [
+                {
+                    "condition": {"op": "and", "inner": []},
+                    "key": "histogram_outlier",
+                    "value": "outlier",
+                }
+            ],
         }
     )
 
@@ -1473,7 +1516,8 @@ def get_current_widget_specs(organization: Organization) -> set[str]:
     ).values_list("spec_hashes", flat=True)
     current_widget_specs: set[str] = set()
     for spec_list in widget_specs:
-        current_widget_specs = current_widget_specs.union(spec_list)
+        if spec_list is not None:
+            current_widget_specs.update(spec_list)
     return current_widget_specs
 
 
@@ -1492,3 +1536,28 @@ def widget_exceeds_max_specs(
 
 
 HISTOGRAM_OUTLIER_RULES = _produce_histogram_outliers(_HISTOGRAM_OUTLIERS_QUERY_RESULTS)
+
+
+class MetricExtractionGroup(TypedDict):
+    #: Whether a group of globally defined metrics and/or tags is enabled by default for every project.
+    #: This can be overridden in project configs.
+    isEnabled: bool
+    #: List of metrics to extract.
+    metrics: NotRequired[list[MetricSpec]]
+    #: List of tags to apply to previously extracted metrics.
+    tags: NotRequired[list[TagMapping]]
+
+
+class MetricExtractionGroups(TypedDict):
+    groups: dict[str, MetricExtractionGroup]
+
+
+def global_metric_extraction_groups() -> MetricExtractionGroups:
+    return {
+        "groups": {
+            "histogram_outliers": {
+                "isEnabled": True,  # enabled by default
+                "tags": HISTOGRAM_OUTLIER_RULES,
+            }
+        }
+    }

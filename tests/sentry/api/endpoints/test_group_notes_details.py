@@ -115,7 +115,7 @@ class GroupNotesDetailsTest(APITestCase):
 
         activity = Activity.objects.filter(
             group=group, type=ActivityType.NOTE.value, user_id=self.user.id
-        ).first()
+        )[0]
 
         url = f"/api/0/issues/{group.id}/comments/{activity.id}/"
         response = self.client.delete(url, format="json")

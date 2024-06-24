@@ -22,13 +22,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    ParanoidManager,
-    ParanoidModel,
     control_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
@@ -190,7 +189,18 @@ class SentryApp(ParanoidModel, HasApiScopes, Model):
 
     def save(self, *args, **kwargs):
         self.date_updated = timezone.now()
-        return super().save(*args, **kwargs)
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
+            result = super().save(*args, **kwargs)
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return result
+
+    def update(self, *args, **kwargs):
+        with outbox_context(transaction.atomic(using=router.db_for_write(SentryApp)), flush=False):
+            result = super().update(*args, **kwargs)
+            for outbox in self.outboxes_for_update():
+                outbox.save()
+            return result
 
     def is_installed_on(self, organization):
         from sentry.models.integrations.sentry_app_installation import SentryAppInstallation

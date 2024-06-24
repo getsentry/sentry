@@ -140,7 +140,7 @@ const FooterHeader = styled(SectionHeading)`
   display: flex;
   align-items: center;
   margin: 0;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;
