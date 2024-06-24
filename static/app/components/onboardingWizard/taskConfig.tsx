@@ -358,7 +358,7 @@ export function getOnboardingTasks({
       task: OnboardingTaskKey.SOURCEMAPS,
       title: t('Upload source maps'),
       description: t(
-        "Deminify Javascript source code to debug with context. Seeing code in it's original form will help you debunk the ghosts of errors past."
+        'Deminify Javascript source code to debug with context. Seeing code in its original form will help you debunk the ghosts of errors past.'
       ),
       skippable: true,
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],

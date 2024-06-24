@@ -21,9 +21,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import AuthenticationSiloLimit, StandardAuthentication
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.hybridcloud.rpc.sig import SerializableFunctionValueException
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.rpc import RpcAuthenticationSetupException, RpcResolutionException
-from sentry.services.hybrid_cloud.sig import SerializableFunctionValueException
 from sentry.silo.base import SiloMode
 from sentry.utils.env import in_test_environment
 
@@ -151,8 +151,17 @@ def get_organization_slug(*, org_id: int) -> dict:
     return {"slug": org.slug}
 
 
+def get_organization_autofix_consent(*, org_id: int) -> dict:
+    org: Organization = Organization.objects.get(id=org_id)
+    consent = org.get_option("sentry:gen_ai_consent", False)
+    return {
+        "consent": consent,
+    }
+
+
 seer_method_registry = {
     "get_organization_slug": get_organization_slug,
+    "get_organization_autofix_consent": get_organization_autofix_consent,
 }
 
 

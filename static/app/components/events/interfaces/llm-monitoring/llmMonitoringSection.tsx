@@ -7,14 +7,14 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
-} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {useIndexedSpans} from 'sentry/views/starfish/queries/useIndexedSpans';
-import {type IndexedResponse, SpanIndexedField} from 'sentry/views/starfish/types';
+} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
+import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface Props {
   event: Event;
@@ -24,15 +24,17 @@ interface Props {
 export default function LLMMonitoringSection({event}: Props) {
   const traceId = event.contexts.trace?.trace_id;
   const spanId = event.contexts.trace?.span_id;
-  const {data, error, isLoading} = useIndexedSpans({
-    limit: 1,
-    fields: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP],
-    referrer: 'api.ai-pipelines.view',
-    search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
-  });
+  const {data, error, isLoading} = useSpansIndexed(
+    {
+      limit: 1,
+      fields: [SpanIndexedField.SPAN_AI_PIPELINE_GROUP],
+      search: new MutableSearch(`trace:${traceId} id:"${spanId}"`),
+    },
+    'api.ai-pipelines.view'
+  );
   const moduleUrl = useModuleURL('ai');
   const aiPipelineGroup =
-    data && (data[0] as IndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
+    data && (data[0] as SpanIndexedResponse)?.[SpanIndexedField.SPAN_AI_PIPELINE_GROUP];
 
   const actions = (
     <ButtonBar gap={1}>

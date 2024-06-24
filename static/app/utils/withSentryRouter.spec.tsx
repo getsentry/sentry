@@ -41,13 +41,13 @@ describe('withSentryRouter', function () {
       features: [],
     });
 
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
     });
 
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.getByText('Org slug: albertos-apples')).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe('withSentryRouter', function () {
     const params = {
       orgId: 'something-else',
     };
-    const {routerContext} = initializeOrg({
+    const {router} = initializeOrg({
       organization,
       router: {
         params,
@@ -74,7 +74,7 @@ describe('withSentryRouter', function () {
 
     const WrappedComponent = withSentryRouter(MyComponent);
     render(<WrappedComponent />, {
-      context: routerContext,
+      router,
     });
 
     expect(screen.getByText('Org slug: something-else')).toBeInTheDocument();

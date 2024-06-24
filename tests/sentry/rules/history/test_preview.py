@@ -702,42 +702,6 @@ class FrequencyConditionTest(
     def test_frequency_conditions(self):
         prev_hour = timezone.now() - timedelta(hours=1)
         prev_two_hour = timezone.now() - timedelta(hours=2)
-        group = None
-        for time in (prev_hour, prev_two_hour):
-            for i in range(5):
-                group = self.store_event(
-                    project_id=self.project.id, data={"timestamp": iso_format(time)}
-                ).group
-        assert group is not None
-
-        conditions = [
-            {
-                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                "value": 4,
-                "interval": "5m",
-            },
-            {
-                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-                "value": 9,
-                "interval": "1d",
-            },
-        ]
-        result = preview(self.project, conditions, [], *MATCH_ARGS)
-        assert result is not None
-        assert group.id in result
-
-        conditions[0]["value"] = 5
-        result = preview(self.project, conditions, [], *MATCH_ARGS)
-        assert result is not None
-        assert group.id not in result
-
-        result = preview(self.project, conditions, [], "any", "all", 0)
-        assert result is not None
-        assert group.id in result
-
-    def test_frequency_conditions_issue_platform(self):
-        prev_hour = timezone.now() - timedelta(hours=1)
-        prev_two_hour = timezone.now() - timedelta(hours=2)
         for time in (prev_hour, prev_two_hour):
             for i in range(5):
                 event = self.store_event(

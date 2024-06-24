@@ -109,7 +109,6 @@ class ClientConfigViewTest(TestCase):
             assert data["features"] == [
                 "organizations:create",
                 "auth:register",
-                "organizations:multi-region-selector",
             ]
 
         with self.options({"auth.allow-registration": False}):
@@ -119,7 +118,6 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
             assert data["features"] == [
                 "organizations:create",
-                "organizations:multi-region-selector",
             ]
 
     def test_org_create_feature(self):
@@ -130,7 +128,6 @@ class ClientConfigViewTest(TestCase):
             data = json.loads(resp.content)
             assert data["features"] == [
                 "organizations:create",
-                "organizations:multi-region-selector",
             ]
 
         with self.feature({"organizations:create": False}):
@@ -138,7 +135,7 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:multi-region-selector"]
+            assert data["features"] == []
 
     def test_customer_domain_feature(self):
         self.login_as(self.user)
@@ -150,7 +147,7 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
@@ -158,18 +155,16 @@ class ClientConfigViewTest(TestCase):
             assert data["lastOrganization"] == self.organization.slug
             assert data["features"] == [
                 "organizations:create",
-                "organizations:customer-domains",
-                "organizations:multi-region-selector",
+                "system:multi-region",
             ]
 
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
             assert data["features"] == [
                 "organizations:create",
-                "organizations:multi-region-selector",
             ]
 
             # Customer domain feature is injected if a customer domain is used.
@@ -177,11 +172,7 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == [
-                "organizations:create",
-                "organizations:customer-domains",
-                "organizations:multi-region-selector",
-            ]
+            assert data["features"] == ["organizations:create"]
 
     def test_unauthenticated(self):
         resp = self.client.get(self.path)
@@ -191,7 +182,7 @@ class ClientConfigViewTest(TestCase):
         data = json.loads(resp.content)
         assert not data["isAuthenticated"]
         assert data["user"] is None
-        assert data["features"] == ["organizations:create", "organizations:multi-region-selector"]
+        assert data["features"] == ["organizations:create"]
         assert data["customerDomain"] is None
 
     def test_authenticated(self):
@@ -206,7 +197,7 @@ class ClientConfigViewTest(TestCase):
         assert data["isAuthenticated"]
         assert data["user"]
         assert data["user"]["email"] == user.email
-        assert data["features"] == ["organizations:create", "organizations:multi-region-selector"]
+        assert data["features"] == ["organizations:create"]
         assert data["customerDomain"] is None
 
     def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool):
@@ -245,8 +236,7 @@ class ClientConfigViewTest(TestCase):
 
         # Induce last active organization
         with (
-            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
-            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            self.feature({"system:multi-region": [other_org.slug]}),
             assume_test_silo_mode(SiloMode.MONOLITH),
         ):
             response = self.client.get(

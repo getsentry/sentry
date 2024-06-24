@@ -6,10 +6,10 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Flex} from 'sentry/components/container/flex';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import Link from 'sentry/components/links/link';
-import {Flex} from 'sentry/components/profiling/flex';
 import {ExpandedContext} from 'sentry/components/sidebar/expandedContextProvider';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -157,6 +157,7 @@ function SidebarItem({
     !hasPanel && router && isItemActive({to, label: labelString}, exact);
 
   const isInFloatingAccordion = (isNested || isMainItem) && shouldAccordionFloat;
+  const hasLink = Boolean(to);
 
   const isActive = defined(active) ? active : isActiveRouter;
   const isTop = orientation === 'top' && !isInFloatingAccordion;
@@ -164,7 +165,8 @@ function SidebarItem({
 
   const seenSuffix = isNewSeenKeySuffix ?? '';
   const isNewSeenKey = `sidebar-new-seen:${id}${seenSuffix}`;
-  const showIsNew = isNew && !localStorage.getItem(isNewSeenKey);
+  const showIsNew =
+    isNew && !localStorage.getItem(isNewSeenKey) && !(isInFloatingAccordion && !hasLink);
 
   const organization = useOrganization({allowNull: true});
 
@@ -215,57 +217,66 @@ function SidebarItem({
       }
       position={placement}
     >
-      <StyledSidebarItem
-        {...props}
-        id={`sidebar-item-${id}`}
-        isInFloatingAccordion={isInFloatingAccordion}
-        active={isActive ? 'true' : undefined}
-        to={toProps}
-        className={className}
-        aria-current={isActive ? 'page' : undefined}
-        onClick={handleItemClick}
-      >
-        <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-        <SidebarItemWrapper collapsed={isInCollapsedState}>
-          {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
-          {!isInCollapsedState && !isTop && (
-            <SidebarItemLabel
+      <SidebarNavigationItemHook id={id}>
+        {({disabled, additionalContent, Wrapper}) => (
+          <Wrapper>
+            <StyledSidebarItem
+              {...props}
+              id={`sidebar-item-${id}`}
               isInFloatingAccordion={isInFloatingAccordion}
-              isNested={isNested}
+              active={isActive ? 'true' : undefined}
+              to={disabled ? '' : toProps}
+              disabled={!hasLink && isInFloatingAccordion}
+              className={className}
+              aria-current={isActive ? 'page' : undefined}
+              onClick={handleItemClick}
             >
-              <LabelHook id={id}>
-                <TruncatedLabel>{label}</TruncatedLabel>
-                {badges}
-              </LabelHook>
-            </SidebarItemLabel>
-          )}
-          {isInCollapsedState && showIsNew && (
-            <CollapsedFeatureBadge
-              type="new"
-              variant="indicator"
-              tooltipProps={tooltipDisabledProps}
-            />
-          )}
-          {isInCollapsedState && isBeta && (
-            <CollapsedFeatureBadge
-              type="beta"
-              variant="indicator"
-              tooltipProps={tooltipDisabledProps}
-            />
-          )}
-          {isInCollapsedState && isAlpha && (
-            <CollapsedFeatureBadge
-              type="alpha"
-              variant="indicator"
-              tooltipProps={tooltipDisabledProps}
-            />
-          )}
-          {badge !== undefined && badge > 0 && (
-            <SidebarItemBadge collapsed={isInCollapsedState}>{badge}</SidebarItemBadge>
-          )}
-          {trailingItems}
-        </SidebarItemWrapper>
-      </StyledSidebarItem>
+              <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+              <SidebarItemWrapper collapsed={isInCollapsedState}>
+                {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
+                {!isInCollapsedState && !isTop && (
+                  <SidebarItemLabel
+                    isInFloatingAccordion={isInFloatingAccordion}
+                    isNested={isNested}
+                  >
+                    <LabelHook id={id}>
+                      <TruncatedLabel>{label}</TruncatedLabel>
+                      {additionalContent ?? badges}
+                    </LabelHook>
+                  </SidebarItemLabel>
+                )}
+                {isInCollapsedState && showIsNew && (
+                  <CollapsedFeatureBadge
+                    type="new"
+                    variant="indicator"
+                    tooltipProps={tooltipDisabledProps}
+                  />
+                )}
+                {isInCollapsedState && isBeta && (
+                  <CollapsedFeatureBadge
+                    type="beta"
+                    variant="indicator"
+                    tooltipProps={tooltipDisabledProps}
+                  />
+                )}
+                {isInCollapsedState && isAlpha && (
+                  <CollapsedFeatureBadge
+                    type="alpha"
+                    variant="indicator"
+                    tooltipProps={tooltipDisabledProps}
+                  />
+                )}
+                {badge !== undefined && badge > 0 && (
+                  <SidebarItemBadge collapsed={isInCollapsedState}>
+                    {badge}
+                  </SidebarItemBadge>
+                )}
+                {trailingItems}
+              </SidebarItemWrapper>
+            </StyledSidebarItem>
+          </Wrapper>
+        )}
+      </SidebarNavigationItemHook>
     </Tooltip>
   );
 }
@@ -299,6 +310,16 @@ export function isItemActive(
   );
 }
 
+const SidebarNavigationItemHook = HookOrDefault({
+  hookName: 'sidebar:navigation-item',
+  defaultComponent: ({children}) =>
+    children({
+      disabled: false,
+      additionalContent: null,
+      Wrapper: Fragment,
+    }),
+});
+
 export default SidebarItem;
 
 const getActiveStyle = ({
@@ -315,8 +336,6 @@ const getActiveStyle = ({
   }
   if (isInFloatingAccordion) {
     return css`
-      background-color: ${theme?.hover};
-
       &:active,
       &:focus,
       &:hover {
@@ -440,7 +459,7 @@ const SidebarItemLabel = styled('span')<{
   opacity: 1;
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   overflow: hidden;
 `;
 

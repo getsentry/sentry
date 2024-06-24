@@ -30,7 +30,6 @@ urlpatterns = [
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
-    SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
 class End2EndTest(APITestCase):
     endpoint = "test-endpoint"

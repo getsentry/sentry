@@ -14,7 +14,6 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from google.cloud.kms import KeyManagementServiceClient as KeyManagementServiceClient
 from google_crc32c import value as crc32c
 
-from sentry.utils import json
 from sentry.utils.env import gcp_project_id
 
 
@@ -94,7 +93,7 @@ class GCPKMSEncryptor(Encryptor):
     def get_public_key_pem(self) -> bytes:
         if self.crypto_key_version is None:
             # Read the user supplied configuration into the proper format.
-            gcp_kms_config_json = json.load(self.__fp)
+            gcp_kms_config_json = orjson.loads(self.__fp.read())
             try:
                 self.crypto_key_version = CryptoKeyVersion(**gcp_kms_config_json)
             except TypeError:

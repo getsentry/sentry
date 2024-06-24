@@ -1,6 +1,7 @@
 from collections.abc import Iterable
 from unittest.mock import patch
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
@@ -28,7 +29,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
-from sentry.types.integrations import ExternalProviders
 
 
 class ProjectTest(APITestCase, TestCase):
@@ -362,7 +362,7 @@ class ProjectTest(APITestCase, TestCase):
             == f"http://testserver/organizations/{self.organization.slug}/issues/?q=all&project={self.project.id}"
         )
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_get_absolute_url_customer_domains(self):
         url = self.project.get_absolute_url()
         assert (

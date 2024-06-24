@@ -31,6 +31,7 @@ from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.types import ParamsType
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
@@ -310,13 +311,13 @@ _path_patterns: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\/?organizations\/(?!new)[^\/]+\/(.*)"), r"/\1"),
     # For /settings/:orgId/ -> /settings/organization/
     (
-        re.compile(r"\/settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/?$"),
+        re.compile(r"\/settings\/(?!account\/|!billing\/|projects\/|teams)[^\/]+\/?$"),
         "/settings/organization/",
     ),
     # Move /settings/:orgId/:section -> /settings/:section
     # but not /settings/organization or /settings/projects which is a new URL
     (
-        re.compile(r"^\/?settings\/(?!account)(?!billing)(?!projects)(?!teams)[^\/]+\/(.*)"),
+        re.compile(r"^\/?settings\/(?!account\/|billing\/|projects\/|teams)[^\/]+\/(.*)"),
         r"/settings/\1",
     ),
     (re.compile(r"^\/?join-request\/[^\/]+\/?.*"), r"/join-request/"),
@@ -466,33 +467,10 @@ def handle_query_errors() -> Generator[None, None, None]:
         raise APIException(detail=message)
 
 
-def id_or_slug_path_params_enabled(
-    convert_args_class: str | None = None, organization_id_or_slug: str | None = None
-) -> bool:
-    # GA option
-    if options.get("api.id-or-slug-enabled"):
-        return True
-
-    # Apigateway
-    if not convert_args_class and organization_id_or_slug:
-        # Return True if the organization is in the list of enabled organizations and the apigateway option is enabled
-        return organization_id_or_slug in options.get("api.id-or-slug-enabled-ea-org")
-
-    # EA option for endpoints where organization is available
-    if organization_id_or_slug and organization_id_or_slug not in options.get(
-        "api.id-or-slug-enabled-ea-org"
-    ):
-        return False
-
-    # EA option for endpoints where organization is not available
-    if convert_args_class:
-        return convert_args_class in options.get("api.id-or-slug-enabled-ea-endpoints")
-
-    return False
-
-
 def update_snuba_params_with_timestamp(
-    request: HttpRequest, params: MutableMapping[str, Any], timestamp_key: str = "timestamp"
+    request: HttpRequest,
+    params: MutableMapping[str, Any] | ParamsType,
+    timestamp_key: str = "timestamp",
 ) -> None:
     """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
     send the timestamp of something in that event or trace and we'll query data near that event only which should be

@@ -29,7 +29,7 @@ import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
-import {generateTracesRouteWithQuery} from 'sentry/views/performance/traces/utils';
+import {generateTracesRouteWithQuery} from 'sentry/views/traces/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -43,6 +43,7 @@ export function WidgetDetails() {
     focusArea,
     setHighlightedSampleId,
     setMetricsSamples,
+    hasPerformanceMetrics,
   } = useMetricsContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
@@ -69,6 +70,7 @@ export function WidgetDetails() {
       onRowHover={handleSampleRowHover}
       setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
+      hasPerformanceMetrics={hasPerformanceMetrics}
     />
   );
 }
@@ -76,6 +78,7 @@ export function WidgetDetails() {
 interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
+  hasPerformanceMetrics?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   op?: string;
@@ -93,6 +96,7 @@ export function MetricDetails({
   onRowHover,
   focusArea,
   setMetricsSamples,
+  hasPerformanceMetrics,
 }: MetricDetailsProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -160,7 +164,7 @@ export function MetricDetails({
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabsAndAction>
           <TabList>
-            <TabList.Item key={Tab.SAMPLES}>
+            <TabList.Item textValue={t('Span Samples')} key={Tab.SAMPLES}>
               <GuideAnchor target="metrics_table" position="top">
                 {t('Span Samples')}
               </GuideAnchor>
@@ -204,6 +208,7 @@ export function MetricDetails({
                     op={op}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 ) : (
                   <MetricSamplesTable
@@ -213,6 +218,7 @@ export function MetricDetails({
                     op={op}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 )}
               </MetricSampleTableWrapper>

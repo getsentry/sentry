@@ -24,7 +24,15 @@ logger = logging.getLogger(__name__)
 
 INTERNAL_SOURCE_NAME = "sentry:project"
 
-VALID_LAYOUTS = ("native", "symstore", "symstore_index2", "ssqp", "unified", "debuginfod")
+VALID_LAYOUTS = (
+    "native",
+    "symstore",
+    "symstore_index2",
+    "ssqp",
+    "unified",
+    "debuginfod",
+    "slashsymbols",
+)
 
 VALID_FILE_TYPES = ("pe", "pdb", "mach_debug", "mach_code", "elf_debug", "elf_code", "breakpad")
 
@@ -128,6 +136,19 @@ SOURCE_SCHEMA = {
 SOURCES_SCHEMA = {
     "type": "array",
     "items": SOURCE_SCHEMA,
+}
+
+# TODO(@anonrig): Remove this when AppStore connect integration is sunset.
+# Ref: https://github.com/getsentry/sentry/issues/51994
+SOURCES_WITHOUT_APPSTORE_CONNECT = {
+    "type": "array",
+    "items": {
+        "oneOf": [
+            HTTP_SOURCE_SCHEMA,
+            S3_SOURCE_SCHEMA,
+            GCS_SOURCE_SCHEMA,
+        ]
+    },
 }
 
 
@@ -347,13 +368,13 @@ def secret_fields(source_type):
     yield from []
 
 
-def validate_sources(sources):
+def validate_sources(sources, schema=SOURCES_SCHEMA):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
     """
     try:
-        jsonschema.validate(sources, SOURCES_SCHEMA)
+        jsonschema.validate(sources, schema)
     except jsonschema.ValidationError as e:
         raise InvalidSourcesError(f"{e}")
 

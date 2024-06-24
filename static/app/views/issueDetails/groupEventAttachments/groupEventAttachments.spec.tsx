@@ -14,7 +14,7 @@ import GroupEventAttachments, {MAX_SCREENSHOTS_PER_PAGE} from './groupEventAttac
 jest.mock('sentry/actionCreators/modal');
 
 describe('GroupEventAttachments > Screenshots', function () {
-  const {organization, routerContext} = initializeOrg({
+  const {organization, router} = initializeOrg({
     organization: OrganizationFixture(),
     router: {
       params: {orgId: 'org-slug', groupId: 'group-id'},
@@ -39,7 +39,7 @@ describe('GroupEventAttachments > Screenshots', function () {
 
   function renderGroupEventAttachments() {
     return render(<GroupEventAttachments project={project} />, {
-      context: routerContext,
+      router,
       organization,
     });
   }

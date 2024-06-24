@@ -36,7 +36,7 @@ const event = EventFixture({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   describe('Group', function () {
     it('renders with `type = error`', function () {
@@ -181,7 +181,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />,
         {
-          context: routerContext,
           router: {
             ...router,
             location: {
@@ -211,7 +210,6 @@ describe('EventOrGroupHeader', function () {
           }}
         />,
         {
-          context: routerContext,
           router: {
             ...router,
             location: {

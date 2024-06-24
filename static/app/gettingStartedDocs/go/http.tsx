@@ -178,7 +178,7 @@ const onboarding: OnboardingConfig = {
               {
                 sentryHttpCode: <code />,
                 sentryHubLink: (
-                  <ExternalLink href="https://godoc.org/github.com/getsentry/sentry-go#Hub" />
+                  <ExternalLink href="https://pkg.go.dev/github.com/getsentry/sentry-go#Hub" />
                 ),
                 getHubFromContextCode: <code />,
                 captureMessageCode: <code />,

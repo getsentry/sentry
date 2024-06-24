@@ -22,6 +22,12 @@ export enum DiscoverDatasets {
   SPANS_METRICS = 'spansMetrics',
 }
 
+export enum SavedQueryDatasets {
+  DISCOVER = 'discover',
+  ERRORS = 'error-events',
+  TRANSACTIONS = 'transaction-like',
+}
+
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];
 
 // The modes that support the interval selector

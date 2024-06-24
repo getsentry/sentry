@@ -71,7 +71,7 @@ export interface HybridFilterProps<Value extends SelectKey>
 /**
  * A special filter component with "hybrid" (both single and multiple) selection, made
  * specifically for page filters. Clicking on an option will select only that option
- * (single selection). Command/ctrl-clicking on an option or clicking on it's checkbox
+ * (single selection). Command/ctrl-clicking on an option or clicking on its checkbox
  * will add the option to the selection state (multiple selection).
  *
  * Note: this component is controlled only — changes must be handled via the `onChange`

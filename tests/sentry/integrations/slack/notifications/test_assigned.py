@@ -3,6 +3,7 @@ from urllib.parse import parse_qs
 
 import responses
 
+from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
@@ -10,7 +11,6 @@ from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_P
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviders
 
 pytestmark = [requires_snuba]
 

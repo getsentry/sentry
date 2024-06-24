@@ -45,7 +45,7 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     props.organization.features.includes('performance-new-trends') &&
     canUseMetricsData(props.organization)
   ) {
-    if (props.organization.features.includes('spans-first-ui')) {
+    if (props.organization.features.includes('insights-initial-modules')) {
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_RELATED_ISSUES);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_CHANGED);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);

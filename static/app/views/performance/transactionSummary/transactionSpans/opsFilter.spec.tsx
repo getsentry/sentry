@@ -1,6 +1,5 @@
 import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -10,10 +9,7 @@ import OpsFilter from 'sentry/views/performance/transactionSummary/transactionSp
 
 function initializeData({query} = {query: {}}) {
   const features = ['performance-view'];
-  const organization = OrganizationFixture({
-    features,
-    projects: [ProjectFixture()],
-  });
+  const organization = OrganizationFixture({features});
   const initialData = initializeOrg({
     organization,
     router: {
@@ -25,7 +21,6 @@ function initializeData({query} = {query: {}}) {
         },
       },
     },
-    project: {},
     projects: [],
   });
   return initialData;
@@ -61,7 +56,7 @@ describe('Performance > Transaction Spans', function () {
         handleOpChange={() => {}}
         transactionName="Test Transaction"
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(eventsSpanOpsMock).toHaveBeenCalledTimes(1);
@@ -89,7 +84,7 @@ describe('Performance > Transaction Spans', function () {
         handleOpChange={handleOpChange}
         transactionName="Test Transaction"
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(handleOpChange).not.toHaveBeenCalled();
@@ -119,7 +114,7 @@ describe('Performance > Transaction Spans', function () {
         handleOpChange={handleOpChange}
         transactionName="Test Transaction"
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByRole('button', {name: 'op1'})).toBeInTheDocument();

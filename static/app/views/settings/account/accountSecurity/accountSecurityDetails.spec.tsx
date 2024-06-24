@@ -51,7 +51,7 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, routerContext} = initializeOrg({
+      const {routerProps, router} = initializeOrg({
         router: {
           params,
         },
@@ -65,7 +65,7 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
@@ -84,7 +84,7 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, routerContext} = initializeOrg({
+      const {routerProps, router} = initializeOrg({
         router: {
           params,
         },
@@ -98,7 +98,7 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -124,7 +124,7 @@ describe('AccountSecurityDetails', function () {
       const params = {
         authId: '15',
       };
-      const {routerProps, routerContext} = initializeOrg({
+      const {routerProps, router} = initializeOrg({
         router: {
           params,
         },
@@ -138,7 +138,7 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Remove'}));
@@ -165,7 +165,7 @@ describe('AccountSecurityDetails', function () {
         authId: '15',
       };
 
-      const {routerContext, routerProps} = initializeOrg({
+      const {router, routerProps} = initializeOrg({
         router: {
           params,
         },
@@ -179,7 +179,7 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
@@ -214,7 +214,7 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, routerContext} = initializeOrg({
+      const {routerProps, router} = initializeOrg({
         router: {
           params,
         },
@@ -228,7 +228,7 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByTestId('auth-status-enabled')).toBeInTheDocument();
@@ -246,7 +246,7 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, routerContext} = initializeOrg({
+      const {routerProps, router} = initializeOrg({
         router: {
           params,
         },
@@ -260,7 +260,7 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       await userEvent.click(
@@ -285,7 +285,7 @@ describe('AccountSecurityDetails', function () {
         authId: '16',
       };
 
-      const {routerProps, routerContext} = initializeOrg({
+      const {routerProps, router} = initializeOrg({
         router: {
           params,
         },
@@ -303,7 +303,7 @@ describe('AccountSecurityDetails', function () {
             deleteDisabled={false}
           />
         </AccountSecurityWrapper>,
-        {context: routerContext}
+        {router}
       );
 
       expect(await screen.findByRole('button', {name: 'print'})).toBeInTheDocument();

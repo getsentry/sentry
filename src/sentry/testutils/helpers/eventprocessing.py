@@ -5,6 +5,7 @@ from sentry.eventstore.models import Event
 from sentry.eventstore.processing import event_processing_store
 from sentry.models.project import Project
 from sentry.testutils.helpers.task_runner import TaskRunner
+from sentry.testutils.outbox import outbox_runner
 
 
 def write_event_to_cache(event):
@@ -18,11 +19,15 @@ def save_new_event(event_data: dict[str, Any], project: Project) -> Event:
     """
     Save a new event with the given data, returning the Event object.
 
-    Note: Runs async tasks, like updating group metadata, synchronously, so the results can be
-    tested.
+    Note: Runs async tasks, like updating group metadata and synchronizing DB records between hybrid
+    cloud silos, synchronously, so the results can be tested.
     """
-    # This makes async tasks synchronous, by setting `CELERY_ALWAYS_EAGER = True`.
-    with TaskRunner():
+    with (
+        # This makes async tasks synchronous, by setting `CELERY_ALWAYS_EAGER = True`.
+        TaskRunner(),
+        # This does a similar thing for syncing the DB across silos
+        outbox_runner(),
+    ):
         event = EventManager(event_data).save(project.id)
 
     return event

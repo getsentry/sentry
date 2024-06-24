@@ -11,7 +11,7 @@ import ProjectLatestAlerts from './projectLatestAlerts';
 describe('ProjectDetail > ProjectLatestAlerts', function () {
   let endpointMock: jest.Mock;
   let rulesEndpointMock: jest.Mock;
-  const {organization, project, router, routerContext} = initializeOrg();
+  const {organization, project, router} = initializeOrg();
 
   beforeEach(function () {
     endpointMock = MockApiClient.addMockResponse({
@@ -40,7 +40,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(endpointMock).toHaveBeenCalledTimes(2); // one for closed, one for open
@@ -117,7 +117,7 @@ describe('ProjectDetail > ProjectLatestAlerts', function () {
         location={router.location}
         isProjectStabilized
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByRole('button', {name: 'Create Alert'})).toHaveAttribute(

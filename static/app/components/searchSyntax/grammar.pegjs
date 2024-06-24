@@ -180,7 +180,7 @@ aggregate_rel_date_filter
 
 // has filter for not null type checks
 has_filter
-  = negation:negation? &"has:" key:search_key sep value:(search_key / search_value) &{
+  = negation:negation? &"has:" key:search_key sep value:(search_value/search_key) &{
       return tc.predicateFilter(FilterType.HAS, key)
     } {
       return tc.tokenFilter(FilterType.HAS, key, value, opDefault, !!negation);

@@ -20,12 +20,12 @@ function renderMockRequests({}: {}) {
 
 describe('NotificationSettings', function () {
   it('should render', async function () {
-    const {routerContext, organization} = initializeOrg();
+    const {router, organization} = initializeOrg();
 
     renderMockRequests({});
 
     render(<NotificationSettings organizations={[organization]} />, {
-      context: routerContext,
+      router,
     });
 
     // There are 8 notification setting Selects/Toggles.
@@ -46,7 +46,7 @@ describe('NotificationSettings', function () {
   });
 
   it('renders quota section with feature flag', async function () {
-    const {routerContext, organization} = initializeOrg({
+    const {router, organization} = initializeOrg({
       organization: {
         features: ['user-spend-notifications-settings'],
       },
@@ -55,7 +55,7 @@ describe('NotificationSettings', function () {
     renderMockRequests({});
 
     render(<NotificationSettings organizations={[organization]} />, {
-      context: routerContext,
+      router,
     });
 
     // There are 9 notification setting Selects/Toggles.
@@ -78,7 +78,7 @@ describe('NotificationSettings', function () {
   });
 
   it('renders spend section instead of quota section with feature flag', async function () {
-    const {routerContext, organization} = initializeOrg({
+    const {router, organization} = initializeOrg({
       organization: {
         features: ['user-spend-notifications-settings', 'spend-visibility-notifications'],
       },
@@ -90,7 +90,7 @@ describe('NotificationSettings', function () {
     renderMockRequests({});
 
     render(<NotificationSettings organizations={[organization, organizationNoFlag]} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('Spend')).toBeInTheDocument();

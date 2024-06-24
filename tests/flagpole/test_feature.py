@@ -1,9 +1,17 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
+import orjson
 import pytest
+import yaml
 
 from flagpole import ContextBuilder, EvaluationContext, Feature, InvalidFeatureFlagConfiguration
 from flagpole.conditions import ConditionOperatorKind
+
+
+@dataclass
+class SimpleTestContextData:
+    pass
 
 
 class TestParseFeatureConfig:
@@ -34,6 +42,80 @@ class TestParseFeatureConfig:
         assert feature.segments == []
 
         assert not feature.match(EvaluationContext(dict()))
+
+    def test_feature_with_rollout_zero(self):
+        feature = Feature.from_feature_config_json(
+            "foobar",
+            """
+            {
+                "created_at": "2023-10-12T00:00:00.000Z",
+                "owner": "test-owner",
+                "segments": [
+                    {
+                        "name": "exclude",
+                        "rollout": 0,
+                        "conditions": [
+                            {
+                                "property": "user_email",
+                                "operator": "equals",
+                                "value": "nope@example.com"
+                            }
+                        ]
+                    },
+                    {
+                        "name": "friends",
+                        "rollout": 100,
+                        "conditions": [
+                            {
+                                "property": "organization_slug",
+                                "operator": "in",
+                                "value": ["acme", "sentry"]
+                            }
+                        ]
+                    }
+                ]
+            }
+            """,
+        )
+        exclude_user = {"user_email": "nope@example.com", "organization_slug": "acme"}
+        assert not feature.match(EvaluationContext(exclude_user))
+
+        match_user = {"user_email": "yes@example.com", "organization_slug": "acme"}
+        assert feature.match(EvaluationContext(match_user))
+
+    def test_all_conditions_in_segment(self):
+        feature = Feature.from_feature_config_json(
+            "foobar",
+            """
+            {
+                "created_at": "2023-10-12T00:00:00.000Z",
+                "owner": "test-owner",
+                "segments": [
+                    {
+                        "name": "multiple conditions",
+                        "rollout": 100,
+                        "conditions": [
+                            {
+                                "property": "user_email",
+                                "operator": "equals",
+                                "value": "yes@example.com"
+                            },
+                            {
+                                "property": "organization_slug",
+                                "operator": "in",
+                                "value": ["acme", "sentry"]
+                            }
+                        ]
+                    }
+                ]
+            }
+            """,
+        )
+        exclude_user = {"user_email": "yes@example.com"}
+        assert not feature.match(EvaluationContext(exclude_user))
+
+        match_user = {"user_email": "yes@example.com", "organization_slug": "acme"}
+        assert feature.match(EvaluationContext(match_user))
 
     def test_valid_with_all_nesting(self):
         feature = Feature.from_feature_config_json(
@@ -104,7 +186,7 @@ class TestParseFeatureConfig:
         )
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
-        assert feature.match(context_builder.build())
+        assert feature.match(context_builder.build(SimpleTestContextData()))
 
     def test_disabled_feature(self):
         feature = Feature.from_feature_config_json(
@@ -128,4 +210,34 @@ class TestParseFeatureConfig:
         )
 
         context_builder = self.get_is_true_context_builder(is_true_value=True)
-        assert not feature.match(context_builder.build())
+        assert not feature.match(context_builder.build(SimpleTestContextData()))
+
+    def test_dump_yaml(self):
+        feature = Feature.from_feature_config_json(
+            "foo",
+            """
+            {
+                "owner": "test-user",
+                "segments": [{
+                    "name": "always_pass_segment",
+                    "rollout": 100,
+                    "conditions": [{
+                        "name": "Always true",
+                        "property": "is_true",
+                        "operator": "equals",
+                        "value": true
+                    }]
+                }]
+            }
+            """,
+        )
+
+        parsed_json = orjson.loads(feature.json())
+        parsed_yaml = dict(yaml.safe_load(feature.to_yaml_str()))
+        assert "foo" in parsed_yaml
+        parsed_json.pop("name")
+
+        assert parsed_yaml["foo"] == parsed_json
+
+        features_from_yaml = Feature.from_bulk_yaml(feature.to_yaml_str())
+        assert features_from_yaml == [feature]

@@ -57,7 +57,7 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
   disableErrorReport = false;
 
   getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    return [['organizations', '/organizations/']];
+    return [['organizations', '/organizations/?include_feature_flags=1']];
   }
 
   getTitle() {
@@ -139,7 +139,11 @@ export default class IntegrationOrganizationLink extends DeprecatedAsyncView<
         Organization,
         {providers: IntegrationProvider[]},
       ] = await Promise.all([
-        this.api.requestPromise(`/organizations/${orgSlug}/`),
+        this.api.requestPromise(`/organizations/${orgSlug}/`, {
+          query: {
+            include_feature_flags: 1,
+          },
+        }),
         this.api.requestPromise(
           `/organizations/${orgSlug}/config/integrations/?provider_key=${this.integrationSlug}`
         ),

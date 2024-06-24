@@ -47,7 +47,7 @@ type InternalState = {
   orphanErrors?: TraceError[];
 };
 
-type ExternalState = {
+export type ExternalState = {
   didInit: boolean;
   errors: Error[];
   isFetching: boolean;
@@ -112,10 +112,17 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
   const singleTracePayload = useMemo(() => {
     const start = getUtcDateString(replayRecord?.started_at.getTime());
     const end = getUtcDateString(replayRecord?.finished_at.getTime());
+    const eventView = makeEventView({start, end});
 
-    const traceEventView = makeEventView({start, end});
-    return getTraceRequestPayload({eventView: traceEventView, location: {} as Location});
-  }, [replayRecord]);
+    if (organization.features.includes('replay-trace-view-v1')) {
+      return {
+        ...getTraceRequestPayload({eventView, location: {} as Location}),
+        useSpans: 1,
+      };
+    }
+
+    return getTraceRequestPayload({eventView, location: {} as Location});
+  }, [replayRecord, organization.features]);
 
   const fetchSingleTraceData = useCallback(
     async traceId => {

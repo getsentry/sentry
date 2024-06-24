@@ -14,13 +14,14 @@ type TracePreferencesAction =
   | {payload: boolean; type: 'minimize drawer'};
 
 type TraceDrawerPreferences = {
+  layoutOptions: TraceLayoutPreferences[];
   minimized: boolean;
   sizes: {
     [key in TraceLayoutPreferences]: number;
   };
 };
 
-type TracePreferencesState = {
+export type TracePreferencesState = {
   drawer: TraceDrawerPreferences;
   layout: TraceLayoutPreferences;
   list: {
@@ -34,7 +35,7 @@ export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer bottom': 0.5,
 };
 
-const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
+export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   drawer: {
     minimized: false,
     sizes: {
@@ -42,6 +43,7 @@ const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
       'drawer right': 0.33,
       'drawer bottom': 0.5,
     },
+    layoutOptions: ['drawer left', 'drawer right', 'drawer bottom'],
   },
   layout: 'drawer right',
   list: {
@@ -49,11 +51,14 @@ const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-export function storeTraceViewPreferences(state: TracePreferencesState): void {
+export function storeTraceViewPreferences(
+  key: string,
+  state: TracePreferencesState
+): void {
   // Make sure we dont fire this during a render phase
   window.requestAnimationFrame(() => {
     try {
-      localStorage.setItem('trace-view-preferences', JSON.stringify(state));
+      localStorage.setItem(key, JSON.stringify(state));
     } catch (e) {
       Sentry.captureException(e);
     }
@@ -63,17 +68,18 @@ export function storeTraceViewPreferences(state: TracePreferencesState): void {
 function isInt(value: any): value is number {
   return typeof value === 'number' && !isNaN(value);
 }
-export function loadTraceViewPreferences(): TracePreferencesState {
-  const stored = localStorage.getItem('trace-view-preferences');
+export function loadTraceViewPreferences(key: string): TracePreferencesState | null {
+  const stored = localStorage.getItem(key);
+
   if (stored) {
     try {
       const parsed = JSON.parse(stored);
-
       // We need a more robust way to validate the stored preferences.
       // Since we dont have a schema validation lib, just do it manually for now.
       if (
         parsed?.drawer &&
         typeof parsed.drawer.minimized === 'boolean' &&
+        Array.isArray(parsed.drawer.layoutOptions) &&
         parsed.drawer.sizes &&
         isInt(parsed.drawer.sizes['drawer left']) &&
         isInt(parsed.drawer.sizes['drawer right']) &&
@@ -90,7 +96,7 @@ export function loadTraceViewPreferences(): TracePreferencesState {
     }
   }
 
-  return DEFAULT_TRACE_VIEW_PREFERENCES;
+  return null;
 }
 
 export function tracePreferencesReducer(

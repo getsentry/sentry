@@ -1632,6 +1632,48 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
         assert str(err.value) == "The functions provided do not match the requested metric type"
 
+    def test_free_text_search(self):
+        query = MetricsQueryBuilder(
+            self.params,
+            dataset=None,
+            query="foo",
+            selected_columns=["count()"],
+        )
+
+        self.maxDiff = 100000
+
+        transaction_key = indexer.resolve(
+            UseCaseID.TRANSACTIONS, self.organization.id, "transaction"
+        )
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(
+                    Function(
+                        "positionCaseInsensitive",
+                        [
+                            Column(f"tags[{transaction_key}]"),
+                            "foo",
+                        ],
+                    ),
+                    Op.NEQ,
+                    0,
+                ),
+                Condition(
+                    Column("metric_id"),
+                    Op.IN,
+                    [
+                        indexer.resolve(
+                            UseCaseID.TRANSACTIONS,
+                            self.organization.id,
+                            "d:transactions/duration@millisecond",
+                        )
+                    ],
+                ),
+                *self.default_conditions,
+            ],
+        )
+
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
     def test_get_query(self):

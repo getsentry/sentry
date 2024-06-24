@@ -543,7 +543,6 @@ class _Table extends Component<Props, State> {
                             ) as any,
                             prependColumnWidths,
                           }}
-                          location={location}
                         />
                       </VisuallyCompleteWithData>
                       <Pagination

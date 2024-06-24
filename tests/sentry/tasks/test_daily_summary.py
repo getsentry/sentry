@@ -8,6 +8,7 @@ import responses
 from django.conf import settings
 
 from sentry.constants import DataCategory
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
@@ -33,7 +34,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
-from sentry.types.integrations import ExternalProviders
 from sentry.utils.outcomes import Outcome
 
 

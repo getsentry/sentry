@@ -1,6 +1,5 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -17,10 +16,7 @@ describe('Discover > ResultsChart', function () {
     pathname: '/',
   });
 
-  const organization = OrganizationFixture({
-    features,
-    projects: [ProjectFixture()],
-  });
+  const organization = OrganizationFixture({features});
 
   const initialData = initializeOrg({
     organization,
@@ -59,7 +55,7 @@ describe('Discover > ResultsChart', function () {
         yAxis={['count()', 'failure_count()']}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await userEvent.click(screen.getByText(/Display/));
@@ -93,7 +89,7 @@ describe('Discover > ResultsChart', function () {
         yAxis={[]}
         onTopEventsChange={() => {}}
       />,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(await screen.findByText(/No Y-Axis selected/)).toBeInTheDocument();

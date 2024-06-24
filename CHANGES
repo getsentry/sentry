@@ -1,3 +1,67 @@
+24.6.0
+------
+
+### Various fixes & improvements
+
+- ref: upgrade boto3 (#72935) by @asottile-sentry
+- feat(related_issues): Free tier support for trace timeline and related issues (#72933) by @armenzg
+- ref(keyvaluedata): Change names and exports for better autocomplete (#72939) by @leeandher
+- feat(issues): adds backend for "resolve in upcoming release" (#70990) by @roggenkemper
+- feat(breadcrumbs): Implement shared timeline component (#72874) by @leeandher
+- ref(slack): Refactor Link Identity View (#72792) by @iamrajjoshi
+- chore(rules): Remove metric alert ignore archived flag (#72833) by @ceorourke
+- feat(query-builder): Add loading state and improved menu styles/positioning (#72940) by @malwilley
+- fix: Improve trimming of Swift function names (#72335) by @Steelskin
+- fix(query-builder): Remove [me,my_teams,none] suggestion from assigned (#72915) by @malwilley
+- feat(query-builder): Make date filters more user friendly (#72911) by @malwilley
+- fix(compact-select): Prevent CompactSelect from stealing focus back to itself after clicking into another element (#72883) by @malwilley
+- fix(spans): Return all queried span tags (#72937) by @Zylphrex
+- chore(rrweb): bump rrweb ver to 2.23.0 (#72936) by @michellewzhang
+- fix(replay): Fix error state quickly flashing when loading replay (#72823) by @billyvg
+- feat(am2): Add project to the blended sample rate function (#72900) by @wmak
+- Revert "perf(trace-explorer): Service Entry spans always have group 0 (#72817)" (9ebd80d3) by @getsentry-bot
+- feat(insights): add has_insights_xx span project flags (#72904) by @KevinL10
+- chore(hybridcloud) Merge frontend-domains feature into multi-region (#72714) by @markstory
+- fix(ui) Fix broken redirect on org rename (#72906) by @markstory
+- ref: fix types for integrations tasks (#72898) by @asottile-sentry
+- ref: fix types for various tasks (#72899) by @asottile-sentry
+- ref: remove unused utils.canonical (#72774) by @asottile-sentry
+- ref: fix types in org provisioning (#72896) by @asottile-sentry
+
+_Plus 659 more_
+
+24.5.1
+------
+
+### Various fixes & improvements
+
+- ref(messaging): Removing Integration Namespace Imports (#72033) by @iamrajjoshi
+- ref(js): Fix a few biome warnings (#72048) by @evanpurkhiser
+- feat(insights): show update SDK banner cache module (#72015) by @DominikB2014
+- fix(spanMetrics): Don't mark avg as a percentile (#72046) by @wmak
+- fix(new-trace): Fixing scrollbar offset. (#72029) by @Abdkhan14
+- ref: fix types for sentry.utils.snowflake (#72019) by @asottile-sentry
+- fix(contexts): Fix casing for known context (#72045) by @leeandher
+- fix(related_issues): Prevent race condition (#72036) by @armenzg
+- fix(traceview): Allow raw text on additional data when set (#72038) by @leeandher
+- fix(insights): Fix flag name in Spans tab UI (#72039) by @0Calories
+- ref(test): Remove location from context (#72028) by @evanpurkhiser
+- feat(traces): Use new slice quantization from backend (#72034) by @k-fish
+- fix(context): Address a few small context bugs (#72013) by @leeandher
+- feat(self-hosted): Errors only self-hosted sidebar (#72012) by @hubertdeng123
+- fix(relocation): Clean up relocation serializer (#71930) by @azaslavsky
+- ref: remove wrapping RawEvent payload with CanonicalKeyView (#72010) by @asottile-sentry
+- feat(similarity): Add read only flag to NN endpoint (#72021) by @jangjodi
+- feat(remote-config): Add proxy endpoint for configurations (#71773) by @cmanallen
+- chore(login): update the login banners (#72027) by @pevensentry
+- fix(similarity): use get_primary_hash in backfill (#72022) by @JoshFerge
+- feat(empty-states): Update arcade for issue stream empty state (#72024) by @roggenkemper
+- Revert "ref(replays): update videoReplayer code to match new rrweb logic & bump rrweb version (#71875)" (7ed3a135) by @getsentry-bot
+- feat(profileHours): Add profile hours to org stats (#71882) by @scttcper
+- feat(contexts): Add laravel as known platform context (#72008) by @leeandher
+
+_Plus 786 more_
+
 24.5.0
 ------
 

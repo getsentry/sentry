@@ -118,8 +118,8 @@ class ProviderMixin:
             filter={"user_id": user.id, "provider": self.auth_provider}
         )
 
-    def handle_api_error(self, e):
-        context = {"error_type": "unknown"}
+    def handle_api_error(self, e: Exception) -> Response:
+        context: dict[str, object] = {"error_type": "unknown"}
         if isinstance(e, InvalidIdentity):
             if self.auth_provider is None:
                 context.update(

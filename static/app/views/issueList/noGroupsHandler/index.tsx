@@ -4,7 +4,7 @@ import type {Client} from 'sentry/api';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Placeholder from 'sentry/components/placeholder';
-import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -13,12 +13,16 @@ import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
 import NoUnresolvedIssues from './noUnresolvedIssues';
 
+const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
+const UpdatedEmptyState = lazy(() => import('sentry/components/updatedEmptyState'));
+
 const updatedEmptyStatePlatforms = [
   'python-django',
   'node',
   'javascript-nextjs',
   'android',
 ];
+
 type Props = {
   api: Client;
   groupIds: string[];
@@ -138,9 +142,6 @@ class NoGroupsHandler extends Component<Props, State> {
       project?.platform &&
       updatedEmptyStatePlatforms.includes(project.platform);
 
-    const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
-    const UpdatedEmptyState = lazy(() => import('sentry/components/updatedEmptyState'));
-
     return (
       <Suspense fallback={<Placeholder height="260px" />}>
         {!hasUpdatedEmptyState && (
@@ -177,7 +178,7 @@ class NoGroupsHandler extends Component<Props, State> {
     if (!sentFirstEvent) {
       return this.renderAwaitingEvents(firstEventProjects);
     }
-    if (query === DEFAULT_QUERY || query === NEW_DEFAULT_QUERY) {
+    if (query === DEFAULT_QUERY) {
       return (
         <NoUnresolvedIssues
           title={t("We couldn't find any issues that matched your filters.")}

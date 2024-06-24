@@ -39,6 +39,7 @@ from sentry.signals import org_setup_complete, terms_accepted
 class OrganizationPostSerializer(BaseOrganizationSerializer):
     defaultTeam = serializers.BooleanField(required=False)
     agreeTerms = serializers.BooleanField(required=True)
+    aggregatedDataConsent = serializers.BooleanField(required=False)
     idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def __init__(self, *args, **kwargs):
@@ -285,6 +286,14 @@ class OrganizationIndexEndpoint(Endpoint):
                     organization_id=org.id,
                     ip_address=request.META["REMOTE_ADDR"],
                     sender=type(self),
+                )
+
+            if result.get("aggregatedDataConsent"):
+                org.update_option("sentry:aggregated_data_consent", True)
+
+                analytics.record(
+                    "aggregated_data_consent.organization_created",
+                    organization_id=org.id,
                 )
 
             return Response(serialize(org, request.user), status=201)

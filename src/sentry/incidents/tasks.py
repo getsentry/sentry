@@ -7,7 +7,11 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from sentry.auth.access import from_user
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleStatus,
+    AlertRuleTriggerAction,
+    AlertRuleTriggerActionMethod,
+)
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
@@ -182,7 +186,7 @@ def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: str,
+    method: AlertRuleTriggerActionMethod,
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,

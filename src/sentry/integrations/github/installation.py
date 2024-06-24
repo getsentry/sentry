@@ -44,6 +44,7 @@ class GitHubIntegrationsInstallationEndpoint(Endpoint):
         if "sender" not in integration.metadata:
             return HttpResponse(status=404)
 
+        assert integration.date_added is not None
         time_elapsed_since_added = time.time() - integration.date_added.timestamp()
         if time_elapsed_since_added > INSTALLATION_EXPOSURE_MAX_TIME:
             return HttpResponse(status=404)

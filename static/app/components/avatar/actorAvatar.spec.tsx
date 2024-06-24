@@ -56,6 +56,20 @@ describe('ActorAvatar', function () {
     expect(screen.getByText('CT')).toBeInTheDocument();
   });
 
+  it('should show an avatar even if the user is not in the memberlist', function () {
+    render(
+      <ActorAvatar
+        actor={{
+          id: '2',
+          name: 'Jane Vloggs',
+          type: 'user',
+        }}
+      />
+    );
+
+    expect(screen.getByText('JV')).toBeInTheDocument();
+  });
+
   it('should return null when actor type is a unknown', function () {
     render(
       <ActorAvatar

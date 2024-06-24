@@ -1,10 +1,10 @@
-import {Fragment, lazy, Suspense} from 'react';
+import {Fragment, lazy, type ReactNode, Suspense} from 'react';
 import {css} from '@emotion/react';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {Button} from 'sentry/components/button';
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {Button, type ButtonProps} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {t} from 'sentry/locale';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -13,22 +13,26 @@ const LazyComparisonModal = lazy(
 );
 
 interface Props {
-  leftTimestamp: number;
+  children: ReactNode;
+  leftOffsetMs: number;
   replay: null | ReplayReader;
-  rightTimestamp: number;
+  rightOffsetMs: number;
+  size?: ButtonProps['size'];
 }
 
 export function OpenReplayComparisonButton({
-  leftTimestamp,
+  children,
+  leftOffsetMs,
   replay,
-  rightTimestamp,
+  rightOffsetMs,
+  size,
 }: Props) {
   const organization = useOrganization();
 
   return (
     <Button
       role="button"
-      size="xs"
+      size={size}
       analyticsEventKey="replay.details-hydration-modal-opened"
       analyticsEventName="Replay Details Hydration Modal Opened"
       onClick={event => {
@@ -39,7 +43,12 @@ export function OpenReplayComparisonButton({
               fallback={
                 <Fragment>
                   <deps.Header closeButton>
-                    <deps.Header>{t('Hydration Error')}</deps.Header>
+                    <deps.Header>
+                      <h4>
+                        Hydration Error
+                        <FeatureBadge type="beta" />
+                      </h4>
+                    </deps.Header>
                   </deps.Header>
                   <deps.Body>
                     <LoadingIndicator />
@@ -50,8 +59,8 @@ export function OpenReplayComparisonButton({
               <LazyComparisonModal
                 replay={replay}
                 organization={organization}
-                leftTimestamp={leftTimestamp}
-                rightTimestamp={rightTimestamp}
+                leftOffsetMs={leftOffsetMs}
+                rightOffsetMs={rightOffsetMs}
                 {...deps}
               />
             </Suspense>
@@ -60,7 +69,7 @@ export function OpenReplayComparisonButton({
         );
       }}
     >
-      {t('Open Hydration Diff')}
+      {children}
     </Button>
   );
 }

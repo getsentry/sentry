@@ -27,7 +27,6 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.utils.safe import safe_execute
 
 pytestmark = [requires_snuba]
 
@@ -117,42 +116,6 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
     @with_feature("organizations:process-slow-alerts")
     def test_delayed_rule_match_any_slow_conditions(self):
         """
-        Test that a rule with only 'slow' conditions and action match of 'any' gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
-        """
-        self.rule.update(
-            data={
-                "conditions": [self.user_count_condition, self.event_frequency_condition],
-                "action_match": "any",
-                "actions": [EMAIL_ACTION_DATA],
-            },
-        )
-        self.rule.save()
-        rp = RuleProcessor(
-            self.group_event,
-            is_new=True,
-            is_regression=True,
-            is_new_group_environment=True,
-            has_reappeared=True,
-        )
-        results = list(rp.apply())
-        assert len(results) == 0
-        project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, timezone.now().timestamp()
-        )
-        assert len(project_ids) == 1
-        assert project_ids[0][0] == self.project.id
-        rulegroup_to_events = buffer.backend.get_hash(
-            model=Project, field={"project_id": self.project.id}
-        )
-        assert rulegroup_to_events == {
-            f"{self.rule.id}:{self.group_event.group.id}": json.dumps(
-                {"event_id": self.group_event.event_id, "occurrence_id": None}
-            )
-        }
-
-    @with_feature("organizations:process-slow-alerts")
-    def test_delayed_rule_match_any_slow_conditions_issue_platform(self):
-        """
         Test that a rule with only 'slow' conditions and action match of 'any' for a performance issue gets added to the Redis buffer and does not immediately fire when the 'fast' condition fails to pass
         """
         self.rule.update(
@@ -164,13 +127,12 @@ class RuleProcessorTest(TestCase, PerformanceIssueTestCase):
         )
         tags = [["foo", "guux"], ["sentry:release", "releaseme"]]
         contexts = {"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}}
-        with self.feature("organizations:issue-platform"):
-            for i in range(3):
-                perf_event = self.create_performance_issue(
-                    tags=tags,
-                    fingerprint="group-5",
-                    contexts=contexts,
-                )
+        for i in range(3):
+            perf_event = self.create_performance_issue(
+                tags=tags,
+                fingerprint="group-5",
+                contexts=contexts,
+            )
 
         rp = RuleProcessor(
             perf_event,
@@ -896,7 +858,7 @@ class RuleProcessorTestFilters(TestCase):
         assert futures[0].rule == self.rule
         assert futures[0].kwargs == {}
 
-    @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
     def test_slack_title_link_notification_uuid(self, mock_post):
         """Test that the slack title link includes the notification uuid from apply function"""
         integration = install_slack(self.organization)
@@ -917,11 +879,11 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         for callback, futures in rp.apply():
-            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+            callback(self.group_event, futures)
         mock_post.assert_called_once()
         assert (
             "notification_uuid"
-            in json.loads(mock_post.call_args[1]["data"]["blocks"])[0]["text"]["text"]
+            in json.loads(mock_post.call_args.kwargs["blocks"])[0]["text"]["text"]
         )
 
     @patch("sentry.shared_integrations.client.base.BaseApiClient.post")
@@ -959,7 +921,7 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         for callback, futures in rp.apply():
-            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+            callback(self.group_event, futures)
         mock_post.assert_called_once()
         assert (
             "notification\\_uuid"
@@ -992,6 +954,6 @@ class RuleProcessorTestFilters(TestCase):
         )
 
         for callback, futures in rp.apply():
-            safe_execute(callback, self.group_event, futures, _with_transaction=False)
+            callback(self.group_event, futures)
         mock_build.assert_called_once()
         assert "notification_uuid" in mock_build.call_args[1]["embeds"][0].url

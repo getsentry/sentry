@@ -28,8 +28,9 @@ import type {
   Team,
   User,
 } from 'sentry/types';
-import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
+import {buildTeamId, buildUserId} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {valueIsEqual} from 'sentry/utils/object/valueIsEqual';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),

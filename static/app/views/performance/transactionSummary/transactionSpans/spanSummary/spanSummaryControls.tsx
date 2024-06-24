@@ -5,17 +5,12 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {space} from 'sentry/styles/space';
 
-import {SPAN_RELATIVE_PERIODS, SPAN_RETENTION_DAYS} from '../utils';
-
 export default function SpanDetailsControls() {
   return (
     <FilterActions>
       <PageFilterBar condensed>
         <EnvironmentPageFilter />
-        <DatePageFilter
-          relativeOptions={SPAN_RELATIVE_PERIODS}
-          maxPickableDays={SPAN_RETENTION_DAYS}
-        />
+        <DatePageFilter />
       </PageFilterBar>
     </FilterActions>
   );

@@ -5,12 +5,18 @@ import Alert from 'sentry/components/alert';
 import TransparentLoadingMask from 'sentry/components/charts/transparentLoadingMask';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {getIngestionSeriesId, MetricChart} from 'sentry/components/metrics/chart/chart';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
-import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
+import {parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  type FocusedMetricsSeries,
+  MetricExpressionType,
+  type SortState,
+} from 'sentry/utils/metrics/types';
 import {
   type MetricsQueryApiQueryParams,
   useMetricsQuery,
@@ -31,7 +37,6 @@ import {
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {displayTypes} from 'sentry/views/dashboards/widgetBuilder/utils';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import {getIngestionSeriesId, MetricChart} from 'sentry/views/metrics/chart/chart';
 import {SummaryTable} from 'sentry/views/metrics/summaryTable';
 import {useSeriesHover} from 'sentry/views/metrics/useSeriesHover';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
@@ -128,8 +133,18 @@ export function MetricVisualization({
   interval,
 }: MetricVisualizationProps) {
   const {selection} = usePageFilters();
+  const hasSetMetric = useMemo(
+    () =>
+      expressions.some(
+        expression =>
+          expression.type === MetricExpressionType.QUERY &&
+          parseMRI(expression.mri)!.type === 's'
+      ),
+    [expressions]
+  );
   const {interval: validatedInterval} = useMetricsIntervalOptions({
     interval,
+    hasSetMetric,
     datetime: selection.datetime,
     onIntervalChange: EMPTY_FN,
   });

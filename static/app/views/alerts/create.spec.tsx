@@ -81,7 +81,7 @@ describe('ProjectAlertsCreate', function () {
   });
 
   const createWrapper = (props = {}, location = {}) => {
-    const {organization, project, router, routerContext} = initializeOrg(props);
+    const {organization, project, router} = initializeOrg(props);
     ProjectsStore.loadInitialData([project]);
     const params = {orgId: organization.slug, projectId: project.slug};
     const wrapper = render(
@@ -108,7 +108,7 @@ describe('ProjectAlertsCreate', function () {
           />
         </AlertBuilderProjectProvider>
       </AlertsContainer>,
-      {organization, context: routerContext}
+      {organization, router}
     );
 
     return {
@@ -211,6 +211,15 @@ describe('ProjectAlertsCreate', function () {
 
       await waitFor(() => {
         expect(trackAnalytics).toHaveBeenCalledWith('edit_alert_rule.add_row', {
+          name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
+          organization,
+          project_id: '2',
+          type: 'conditions',
+        });
+      });
+
+      await waitFor(() => {
+        expect(trackAnalytics).toHaveBeenCalledWith('edit_alert_rule.delete_row', {
           name: 'sentry.rules.conditions.first_seen_event.FirstSeenEventCondition',
           organization,
           project_id: '2',

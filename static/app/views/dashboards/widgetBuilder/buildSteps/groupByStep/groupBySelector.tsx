@@ -123,7 +123,7 @@ export function GroupBySelector({
           <DndContext
             collisionDetection={closestCenter}
             onDragStart={({active}) => {
-              setActiveId(active.id);
+              setActiveId(active.id.toString());
             }}
             onDragEnd={({over, active}) => {
               setActiveId(null);

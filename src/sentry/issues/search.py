@@ -6,7 +6,6 @@ from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Optional, Protocol, TypedDict
 
-from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
@@ -237,9 +236,7 @@ def _query_params_for_generic(
     categories: Sequence[GroupCategory] | None = None,
 ) -> SnubaQueryParams | None:
     organization = Organization.objects.filter(id=organization_id).first()
-    if organization and features.has(
-        "organizations:issue-platform", organization=organization, actor=actor
-    ):
+    if organization:
         if categories is None:
             logging.error("Category is required in _query_params_for_generic")
             return None

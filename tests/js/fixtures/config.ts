@@ -25,6 +25,7 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     // Maintain isOnPremise key for backcompat (plugins?).
     isOnPremise: false,
     isSelfHosted: false,
+    isSelfHostedErrorsOnly: false,
     lastOrganization: null,
     gravatarBaseUrl: 'https://gravatar.com',
     initialTrace: {
@@ -55,15 +56,11 @@ export function ConfigFixture(params: Partial<Config> = {}): Config {
     disableU2FForSUForm: false,
     apmSampling: 1,
     demoMode: false,
-    customerDomain: {
-      subdomain: 'foobar',
-      organizationUrl: 'https://foobar.sentry.io',
-      sentryUrl: 'https://sentry.io',
-    },
+    customerDomain: null,
     links: {
-      sentryUrl: 'https://sentry.io',
-      organizationUrl: 'https://foobar.sentry.io',
-      regionUrl: 'https://us.sentry.io',
+      sentryUrl: "https://sentry.io",
+      organizationUrl: undefined,
+      regionUrl: undefined,
     },
     memberRegions: [{name: 'us', url: 'https://sentry.io'}],
     regions: [{name: 'us', url: 'https://sentry.io'}],

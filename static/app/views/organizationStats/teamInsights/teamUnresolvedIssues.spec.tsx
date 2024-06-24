@@ -10,7 +10,7 @@ describe('TeamUnresolvedIssues', () => {
   it('should render graph with table with % change', async () => {
     const team = TeamFixture();
     const project = ProjectFixture();
-    const organization = OrganizationFixture({projects: [project]});
+    const organization = OrganizationFixture();
     const issuesApi = MockApiClient.addMockResponse({
       url: `/teams/${organization.slug}/${team.slug}/all-unresolved-issues/`,
       body: {
@@ -35,7 +35,7 @@ describe('TeamUnresolvedIssues', () => {
     render(
       <TeamUnresolvedIssues
         organization={organization}
-        projects={organization.projects}
+        projects={[project]}
         teamSlug={team.slug}
         period="14d"
       />
