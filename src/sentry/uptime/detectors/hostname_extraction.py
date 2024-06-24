@@ -12,7 +12,10 @@ if TYPE_CHECKING:
 
 url_validator = URLValidator()
 
-# Configure TLDExtract to not make external calls and just use a local snapshot of tld data
+# Configure TLDExtract to not make external calls and just use a local snapshot of tld data.
+# Since this is instantiated at import time we don't want to make any external calls as
+# this could result in slow startup time or an error that prevents the server from starting.
+# We also don't want to be fetching this list from an unknown external source.
 extractor = TLDExtract(
     cache_dir=None,
     suffix_list_urls=(),
@@ -28,11 +31,11 @@ def extract_hostname_from_url(url: str | None) -> str | None:
     hostnames that might actually return a valid response.
     """
     if not url:
-        return
+        return None
     try:
         url_validator(url)
     except ValidationError:
-        return
+        return None
 
     split_url = urlsplit(url)
 
@@ -42,7 +45,7 @@ def extract_hostname_from_url(url: str | None) -> str | None:
     except ValidationError:
         pass
     else:
-        return
+        return None
 
     extracted_url = extractor.extract_urllib(split_url)
     fqdn = extracted_url.fqdn

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import random
 from datetime import timedelta
-from random import random
 from typing import TYPE_CHECKING
 
 from django.conf import settings
@@ -49,14 +49,14 @@ def add_hostname_to_rank(project: Project, hostname: str):
     larger than `RANKED_MAX_SIZE`. That shouldn't cause us problems, and is preferable to
     trimming it on every call.
     """
-    cluster: RedisCluster = _get_cluster()
+    cluster = _get_cluster()
     bucket_key = get_project_bucket_key(project)
     pipeline = cluster.pipeline()
     pipeline.hincrby(bucket_key, str(project.id), 1)
     rank_key = get_project_hostname_rank_key(project)
     pipeline.zincrby(rank_key, 1, hostname)
     if random.random() < RANKED_TRIM_CHANCE:
-        pipeline.zrembyrange(rank_key, 0, -(RANKED_MAX_SIZE + 1))
+        pipeline.zremrangebyrank(rank_key, 0, -(RANKED_MAX_SIZE + 1))
     project_incr_result = pipeline.execute()[0]
     if project_incr_result == 1:
         # We don't want to constantly set expire on these rows to avoid load on redis.

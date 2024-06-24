@@ -1514,8 +1514,8 @@ def detect_new_escalation(job: PostProcessJob):
 
 
 def detect_hostnames_for_uptime(job: PostProcessJob):
-    url = get_path(job.event.data, "request", "url")
-    detect_hostname_for_project(job.event.project, url)
+    url = get_path(job["event"].data, "request", "url")
+    detect_hostname_for_project(job["event"].project, url)
 
 
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
