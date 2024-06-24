@@ -4,7 +4,10 @@ import {createContext, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
-import type {Orientation} from '@react-types/shared';
+import type {Key, Orientation} from '@react-types/shared';
+
+import {DroppableTabList} from 'sentry/components/tabs_dndTabs/droppableTabList';
+import {DroppableTabPanels} from 'sentry/components/tabs_dndTabs/droppableTabPanels';
 
 import {tabsShouldForwardProp} from './utils';
 
@@ -72,6 +75,35 @@ export function DroppableTabs<T extends string | number>({
         {children}
       </TabsWrap>
     </TabsContext.Provider>
+  );
+}
+
+export interface Tab {
+  content: React.ReactNode;
+  key: Key;
+  label: string;
+}
+
+export interface DragAndDropTabBarProps {
+  tabs: Tab[];
+}
+
+export function DragAndDropTabBar(props: DragAndDropTabBarProps) {
+  const [tabs, setTabs] = useState<Tab[]>(props.tabs);
+
+  return (
+    <DroppableTabs>
+      <DroppableTabList tabs={tabs} setTabs={setTabs}>
+        {tabs.map(tab => (
+          <DroppableTabList.Item key={tab.key}>{tab.label}</DroppableTabList.Item>
+        ))}
+      </DroppableTabList>
+      <DroppableTabPanels>
+        {tabs.map(tab => (
+          <DroppableTabPanels.Item key={tab.key}>{tab.content}</DroppableTabPanels.Item>
+        ))}
+      </DroppableTabPanels>
+    </DroppableTabs>
   );
 }
 
