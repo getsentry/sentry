@@ -122,6 +122,7 @@ def serialize_organization_summary(org: Organization) -> RpcOrganizationSummary:
         slug=org.slug,
         id=org.id,
         name=org.name,
+        flags=_serialize_flags(org),
     )
 
 
