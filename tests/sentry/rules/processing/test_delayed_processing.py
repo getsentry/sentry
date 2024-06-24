@@ -1,5 +1,5 @@
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
@@ -560,53 +560,41 @@ class ProcessDelayedAlertConditionsTest(
         Test that a rule with a percent condition is querying backwards against
         the correct comparison interval, e.g. # events is ... compared to 1 hr ago
         """
-        project_three = self.create_project(organization=self.organization)
-        env3 = self.create_environment(project=project_three)
-        buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_three.id)
-        # percent_comparison_condition = self.create_event_frequency_condition(
-        #     interval="5m",
-        #     id="EventFrequencyCondition",
-        #     value=1.0,
-        #     comparison_type=ComparisonType.PERCENT,
-        # )
-        rule_1 = self.create_project_rule(
-            project=project_three,
-            condition_match=[self.event_frequency_condition],
-            filter_match=[self.tag_filter],
-            environment_id=env3.id,
+        percent_condition = self.create_event_frequency_condition(
+            interval="5m",
+            value=50,
+            comparison_type=ComparisonType.PERCENT,
+            comparison_interval="1h",
         )
-        rule_2 = self.create_project_rule(
-            project=project_three,
-            condition_match=[self.event_frequency_condition],
-            environment_id=env3.id,
+        percent_comparison_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[percent_condition],
         )
-        event1 = self.create_event(
-            project_three.id, self.now, "group-5", env3.name, tags=[["foo", "bar"]]
-        )
-        self.create_event(project_three.id, self.now, "group-5", env3.name, tags=[["foo", "bar"]])
-        group1 = event1.group
-        assert group1
+        incorrect_interval_time = self.now - timedelta(minutes=5)
+        correct_interval_time = self.now - timedelta(hours=1)
 
-        event2 = self.create_event(project_three.id, self.now, "group-6", env3.name)
-        self.create_event(project_three.id, self.now, "group-6", env3.name)
-        group2 = event2.group
-        assert group2
+        event5 = self.create_event(self.project.id, self.now, "group-5")
+        self.create_event(self.project.id, self.now, "group-5")
+        # Create events for the incorrect interval that will not trigger the rule
+        self.create_event(self.project.id, incorrect_interval_time, "group-5")
+        self.create_event(self.project.id, incorrect_interval_time, "group-5")
+        # Create an event for the correct interval that will trigger the rule
+        self.create_event(self.project.id, correct_interval_time, "group-5")
 
-        self.push_to_hash(project_three.id, rule_1.id, group1.id, event1.event_id)
-        self.push_to_hash(project_three.id, rule_2.id, group2.id, event2.event_id)
+        group5 = event5.group
+        assert group5
+        self.push_to_hash(self.project.id, percent_comparison_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
         )
-        assert project_three.id == project_ids[2][0]
-        apply_delayed(project_ids[2][0])
+        apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
-            rule__in=[rule_1, rule_2],
-            group__in=[group1, group2],
-            event_id__in=[event1.event_id, event2.event_id],
-            project=project_three,
+            rule__in=[percent_comparison_rule],
+            group__in=[group5],
+            event_id__in=[event5.event_id],
+            project=self.project,
         ).values_list("rule", "group")
-        assert len(rule_fire_histories) == 2
-        assert (rule_1.id, group1.id) in rule_fire_histories
-        assert (rule_2.id, group2.id) in rule_fire_histories
-        self.assert_buffer_cleared(project_id=project_three.id)
+        assert len(rule_fire_histories) == 1
+        assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
+        self.assert_buffer_cleared(project_id=self.project.id)
