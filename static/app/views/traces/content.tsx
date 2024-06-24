@@ -21,6 +21,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -91,6 +92,8 @@ function usePageParams(location) {
 export function Content() {
   const location = useLocation();
 
+  const organization = useOrganization();
+
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
   }, [location.query.perPage]);
@@ -153,9 +156,14 @@ export function Content() {
     [location, queries]
   );
 
+  const sortByTimestamp = organization.features.includes(
+    'performance-trace-explorer-sorting'
+  );
+
   const tracesQuery = useTraces({
     limit,
     query: queries,
+    sort: sortByTimestamp ? '-timestamp' : undefined,
     mri: hasMetric ? mri : undefined,
     metricsMax: hasMetric ? metricsMax : undefined,
     metricsMin: hasMetric ? metricsMin : undefined,
@@ -236,6 +244,7 @@ export function Content() {
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Timestamp')}
+            {sortByTimestamp ? <IconArrow size="xs" direction="down" /> : null}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Issues')}
@@ -589,7 +598,7 @@ interface UseTracesOptions {
   metricsQuery?: string;
   mri?: string;
   query?: string | string[];
-  sort?: string[];
+  sort?: '-timestamp';
 }
 
 function useTraces({
@@ -768,13 +777,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 85px 66px;
+  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 112px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 133px 85px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 160px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
