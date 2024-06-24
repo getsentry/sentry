@@ -92,7 +92,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
         <h6>{t('Metric Extraction Rules')}</h6>
         <FlexSpacer />
         <SearchBar
-          placeholder={t('Search Metrics')}
+          placeholder={t('Search Extraction Rules')}
           onChange={setQuery}
           query={query}
           size="sm"
