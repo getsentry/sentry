@@ -31,12 +31,12 @@ export default defineConfig({
   integrations: [
     sentry({
       dsn: "${params.dsn}",${
-        !params.isPerformanceSelected
+        params.isPerformanceSelected
           ? ''
           : `
       tracesSampleRate: 0,`
       }${
-        !params.isReplaySelected
+        params.isReplaySelected
           ? ''
           : `
       replaysSessionSampleRate: 0,
