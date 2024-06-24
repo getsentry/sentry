@@ -169,12 +169,15 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         except SlackRequestError as e:
             if e.status == status.HTTP_403_FORBIDDEN:
                 metrics.incr(
-                    self._METRICS_FAILURE_KEY + ".unlink_team.disconnected", sample_rate=1.0
+                    self._METRICS_FAILURE_KEY + ".slack-commands-endpoint.forbidden",
+                    sample_rate=1.0,
                 )
                 return self.respond(SlackDisconnectedMessageBuilder().build())
             metrics.incr(
-                self._METRICS_FAILURE_KEY + ".unlink_team.validation_error", sample_rate=1.0
+                self._METRICS_FAILURE_KEY + ".slack-commands-endpoint.validation_error",
+                sample_rate=1.0,
             )
             return self.respond(status=e.status)
 
+        metrics.incr(self._METRICS_SUCCESS_KEY + ".slack-commands-endpoint", sample_rate=1.0)
         return super().post_dispatcher(slack_request)
