@@ -48,7 +48,7 @@ from sentry.snuba.metrics.extraction import (
     are_specs_equal,
     should_use_on_demand_metrics,
 )
-from sentry.snuba.metrics.span_attribute_extraction import convert_to_spec
+from sentry.snuba.metrics.span_attribute_extraction import convert_to_metric_spec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -821,8 +821,11 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
     specs = []
     for rule in extraction_rules_state.get_rules():
         try:
-            spec = cast(MetricSpec, convert_to_spec(rule))
-            validate_rule_condition(json.dumps(spec["condition"]))
+            spec = cast(MetricSpec, convert_to_metric_spec(rule))
+
+            if condition := spec.get("condition"):
+                validate_rule_condition(json.dumps(condition))
+
             specs.append((spec["mri"], spec, version))
         except ValueError:
             logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())

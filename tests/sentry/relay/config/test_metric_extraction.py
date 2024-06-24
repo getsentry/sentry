@@ -2146,7 +2146,13 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
             "tags": ["foo"],
             "unit": "millisecond",
             "conditions": ["bar:baz", "abc:xyz"],
-        }
+        },
+        {
+            "spanAttribute": "span.duration",
+            "mri": "c:custom/span.duration@none",
+            "type": "c",
+            "unit": "none",
+        },
     ]
     default_project.update_option("sentry:metrics_extraction_rules", json.dumps(rules))
 
@@ -2174,5 +2180,12 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
                     {"field": "span.data.bar", "key": "bar"},
                     {"field": "span.data.foo", "key": "foo"},
                 ],
-            }
+            },
+            {
+                "category": "span",
+                "condition": None,
+                "field": None,
+                "mri": "c:custom/span.duration@none",
+                "tags": [],
+            },
         ]

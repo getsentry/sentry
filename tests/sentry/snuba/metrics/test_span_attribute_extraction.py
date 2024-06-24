@@ -1,5 +1,5 @@
 from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
-from sentry.snuba.metrics.span_attribute_extraction import convert_to_spec
+from sentry.snuba.metrics.span_attribute_extraction import convert_to_metric_spec
 
 
 def test_convert_to_spec():
@@ -10,7 +10,7 @@ def test_convert_to_spec():
         tags={"region", "http.status_code"},
         conditions=["region:[us, de] user_segment:vip", "foo:bar"],
     )
-    metric_spec = convert_to_spec(rule)
+    metric_spec = convert_to_metric_spec(rule)
 
     expected_spec = {
         "category": "span",
@@ -49,7 +49,7 @@ def test_span_data_attribute():
         span_attribute="foobar", type="d", unit="none", tags=set(), conditions=[]
     )
 
-    metric_spec = convert_to_spec(rule)
+    metric_spec = convert_to_metric_spec(rule)
 
     assert metric_spec["field"] == "span.data.foobar"
     assert metric_spec["mri"] == "d:custom/foobar@none"
@@ -61,7 +61,7 @@ def test_span_data_attribute_with_condition():
         span_attribute="foobar", type="d", unit="none", tags=set(), conditions=["foobar:baz"]
     )
 
-    metric_spec = convert_to_spec(rule)
+    metric_spec = convert_to_metric_spec(rule)
 
     assert metric_spec["field"] == "span.data.foobar"
     assert metric_spec["mri"] == "d:custom/foobar@none"
@@ -74,8 +74,18 @@ def test_counter():
         span_attribute="foobar", type="c", unit="none", tags=set(), conditions=[]
     )
 
-    metric_spec = convert_to_spec(rule)
+    metric_spec = convert_to_metric_spec(rule)
 
     assert not metric_spec["field"]
     assert metric_spec["mri"] == "c:custom/foobar@none"
     assert metric_spec["tags"] == []
+
+
+def test_empty_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="foobar", type="c", unit="none", tags=set(), conditions=[""]
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert not metric_spec["condition"]
