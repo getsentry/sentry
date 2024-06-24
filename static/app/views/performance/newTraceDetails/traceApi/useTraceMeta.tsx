@@ -77,6 +77,8 @@ async function fetchTraceMetaInBatches(
     transactions: 0,
   };
 
+  const apiErrors: Error[] = [];
+
   while (clonedTraceIds.length > 0) {
     const batch = clonedTraceIds.splice(0, 3);
     const results = await Promise.allSettled(
@@ -94,7 +96,7 @@ async function fetchTraceMetaInBatches(
           acc.projects = Math.max(acc.projects, projects);
           acc.transactions += transactions;
         } else {
-          throw new Error('Failed to fetch trace meta for all traces');
+          apiErrors.push(new Error(result.reason));
         }
         return acc;
       },
@@ -107,12 +109,12 @@ async function fetchTraceMetaInBatches(
     metaResults.transactions = updatedData.transactions;
   }
 
-  return metaResults;
+  return {metaResults, apiErrors};
 }
 
 export type TraceMetaQueryResults = {
   data: TraceMeta | undefined;
-  error: Error | null;
+  errors: Error[];
   isLoading: boolean;
 };
 
@@ -129,7 +131,13 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
 
   const mode = queryParams.demo ? 'demo' : undefined;
 
-  const {data, isLoading, error} = useQuery<TraceMeta, Error>(
+  const {data, isLoading} = useQuery<
+    {
+      apiErrors: Error[];
+      metaResults: TraceMeta;
+    },
+    Error
+  >(
     ['traceData', traceSlugs],
     () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
     {
@@ -152,13 +160,13 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
         transactions: 1,
       },
       isLoading: false,
-      error: null,
+      errors: [],
     };
   }
 
   return {
-    data,
+    data: data?.metaResults,
     isLoading,
-    error,
+    errors: data?.apiErrors || [],
   };
 }

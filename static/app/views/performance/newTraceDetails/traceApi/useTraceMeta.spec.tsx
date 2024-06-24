@@ -61,7 +61,7 @@ describe('useTraceMeta', () => {
 
     expect(result.current).toEqual({
       data: undefined,
-      error: null,
+      errors: [],
       isLoading: true,
     });
 
@@ -74,12 +74,12 @@ describe('useTraceMeta', () => {
         projects: 1,
         transactions: 3,
       },
-      error: null,
+      errors: [],
       isLoading: false,
     });
   });
 
-  it('captures errors from api call', async () => {
+  it('Collects errors from rejected api calls', async () => {
     const traceSlugs = ['slug1', 'slug2', 'slug3'];
 
     // Mock the API calls
@@ -107,15 +107,80 @@ describe('useTraceMeta', () => {
 
     expect(result.current).toEqual({
       data: undefined,
-      error: null,
+      errors: [],
       isLoading: true,
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     expect(result.current).toEqual({
+      data: {
+        errors: 0,
+        performance_issues: 0,
+        projects: 0,
+        transactions: 0,
+      },
+      errors: [expect.any(Error), expect.any(Error), expect.any(Error)],
+      isLoading: false,
+    });
+
+    expect(mockRequest1).toHaveBeenCalledTimes(1);
+    expect(mockRequest2).toHaveBeenCalledTimes(1);
+    expect(mockRequest3).toHaveBeenCalledTimes(1);
+  });
+
+  it('Accumulates metaResults and collects errors from rejected api calls', async () => {
+    const traceSlugs = ['slug1', 'slug2', 'slug3'];
+
+    // Mock the API calls
+    const mockRequest1 = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug1/',
+      statusCode: 400,
+    });
+    const mockRequest2 = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug2/',
+      body: {
+        errors: 1,
+        performance_issues: 1,
+        projects: 1,
+        transactions: 1,
+      },
+    });
+    const mockRequest3 = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/events-trace-meta/slug3/',
+      body: {
+        errors: 1,
+        performance_issues: 1,
+        projects: 1,
+        transactions: 1,
+      },
+    });
+
+    const wrapper = ({children}: {children: React.ReactNode}) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const {result} = renderHook(() => useTraceMeta(traceSlugs), {wrapper});
+
+    expect(result.current).toEqual({
       data: undefined,
-      error: expect.any(Error),
+      errors: [],
+      isLoading: true,
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current).toEqual({
+      data: {
+        errors: 2,
+        performance_issues: 2,
+        projects: 1,
+        transactions: 2,
+      },
+      errors: [expect.any(Error)],
       isLoading: false,
     });
 
