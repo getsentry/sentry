@@ -416,6 +416,12 @@ export function Provider({
           addHighlight(highlightArgs);
         });
       }
+      if (autoStart) {
+        setTimeout(() => {
+          replayerRef.current?.play(offsetMs);
+          setIsPlaying(true);
+        });
+      }
       didApplyInitialOffset.current = true;
     }
   }, [
@@ -425,6 +431,7 @@ export function Provider({
     initialTimeOffsetMs,
     privateSetCurrentTime,
     startTimeOffsetMs,
+    autoStart,
   ]);
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
@@ -483,10 +490,6 @@ export function Provider({
       replayerRef.current = inst;
 
       applyInitialOffset();
-      if (autoStart) {
-        inst.play(startTimeOffsetMs);
-        setIsPlaying(true);
-      }
     },
     [
       applyInitialOffset,
@@ -496,8 +499,6 @@ export function Provider({
       organization.features,
       setReplayFinished,
       theme.purple200,
-      startTimeOffsetMs,
-      autoStart,
       onFastForwardStart,
     ]
   );
@@ -550,15 +551,10 @@ export function Provider({
       // @ts-expect-error
       replayerRef.current = inst;
       applyInitialOffset();
-      if (autoStart) {
-        inst.play(startTimeOffsetMs);
-        setIsPlaying(true);
-      }
       return inst;
     },
     [
       applyInitialOffset,
-      autoStart,
       isFetching,
       isVideoReplay,
       videoEvents,
@@ -568,7 +564,6 @@ export function Provider({
       replay,
       setReplayFinished,
       startTimestampMs,
-      startTimeOffsetMs,
       clipWindow,
       durationMs,
       theme,
