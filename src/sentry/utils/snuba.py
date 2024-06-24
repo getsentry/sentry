@@ -897,7 +897,7 @@ def bulk_snuba_queries(
 
     params = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(
-        params, referrer=referrer, is_frontend=is_frontend, use_cache=use_cache
+        snuba_param_list=params, referrer=referrer, is_frontend=is_frontend, use_cache=use_cache
     )
 
 
@@ -943,7 +943,7 @@ def _apply_cache_and_build_results(
     if referrer:
         headers["referer"] = referrer
     if is_frontend is not None:
-        headers["is_frontend"] = is_frontend
+        headers["is_frontend"] = str(is_frontend)
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 

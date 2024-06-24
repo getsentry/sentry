@@ -144,7 +144,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
                 "organizations:insights-initial-modules", organization, actor=request.user
             )
         ):
-            add_comparison_to_event(event, average_columns, request)
+            add_comparison_to_event(event=event, average_columns=average_columns, request=request)
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:
