@@ -92,12 +92,10 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
     fcpScore: fcpScore !== undefined ? Math.round(fcpScore * 100) : undefined,
     ttfbScore: ttfbScore !== undefined ? Math.round(ttfbScore * 100) : undefined,
     clsScore: clsScore !== undefined ? Math.round(clsScore * 100) : undefined,
-    fidScore: fidScore !== undefined ? Math.round(fidScore * 100) : undefined,
     lcpWeight: PERFORMANCE_SCORE_WEIGHTS.lcp,
     fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
     ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
     clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
-    fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
     inpWeight: PERFORMANCE_SCORE_WEIGHTS.inp,
   };
 };
