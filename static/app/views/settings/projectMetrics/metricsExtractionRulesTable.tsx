@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -8,6 +8,7 @@ import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import {PanelTable} from 'sentry/components/panels/panelTable';
+import SearchBar from 'sentry/components/searchBar';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconEdit} from 'sentry/icons/iconEdit';
@@ -22,6 +23,7 @@ import {
   useDeleteMetricsExtractionRules,
   useMetricsExtractionRules,
 } from 'sentry/views/settings/projectMetrics/utils/api';
+import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
 
 type Props = {
   project: Project;
@@ -29,11 +31,22 @@ type Props = {
 
 export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
-  const extractionRulesQuery = useMetricsExtractionRules(organization.slug, project.slug);
+  const [query, setQuery] = useSearchQueryParam('query');
+
+  const {data: extractionRules, isLoading} = useMetricsExtractionRules(
+    organization.slug,
+    project.slug
+  );
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
     project.slug
   );
+
+  const filteredExtractionRules = useMemo(() => {
+    return (extractionRules || []).filter(rule =>
+      rule.spanAttribute.toLowerCase().includes(query.toLowerCase())
+    );
+  }, [extractionRules, query]);
 
   const handleDelete = useCallback(
     (rule: MetricsExtractionRule) => {
@@ -77,6 +90,13 @@ export function MetricsExtractionRulesTable({project}: Props) {
     <Fragment>
       <SearchWrapper>
         <h6>{t('Metric Extraction Rules')}</h6>
+        <FlexSpacer />
+        <SearchBar
+          placeholder={t('Search Metrics')}
+          onChange={setQuery}
+          query={query}
+          size="sm"
+        />
         <LinkButton
           to={`/settings/projects/${project.slug}/metrics/extract-metric`}
           priority="primary"
@@ -86,10 +106,11 @@ export function MetricsExtractionRulesTable({project}: Props) {
         </LinkButton>
       </SearchWrapper>
       <RulesTable
-        isLoading={extractionRulesQuery.isLoading}
+        isLoading={isLoading}
         onDelete={handleDelete}
         onEdit={handleEdit}
-        extractionRules={extractionRulesQuery.data ?? []}
+        extractionRules={filteredExtractionRules}
+        hasSearch={!!query}
       />
     </Fragment>
   );
@@ -97,12 +118,19 @@ export function MetricsExtractionRulesTable({project}: Props) {
 
 interface RulesTableProps {
   extractionRules: MetricsExtractionRule[];
+  hasSearch: boolean;
   isLoading: boolean;
   onDelete: (rule: MetricsExtractionRule) => void;
   onEdit: (rule: MetricsExtractionRule) => void;
 }
 
-function RulesTable({extractionRules, isLoading, onDelete, onEdit}: RulesTableProps) {
+function RulesTable({
+  extractionRules,
+  isLoading,
+  onDelete,
+  onEdit,
+  hasSearch,
+}: RulesTableProps) {
   return (
     <ExtractionRulesPanelTable
       headers={[
@@ -126,7 +154,11 @@ function RulesTable({extractionRules, isLoading, onDelete, onEdit}: RulesTablePr
           {t('Actions')}
         </Cell>,
       ]}
-      emptyMessage={t('You have not created any extraction rules yet.')}
+      emptyMessage={
+        hasSearch
+          ? t('No extraction rules match the query.')
+          : t('You have not created any extraction rules yet.')
+      }
       isEmpty={extractionRules.length === 0}
       isLoading={isLoading}
     >
@@ -183,14 +215,18 @@ function RulesTable({extractionRules, isLoading, onDelete, onEdit}: RulesTablePr
 
 const SearchWrapper = styled('div')`
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
   margin-top: ${space(4)};
   margin-bottom: ${space(1)};
+  gap: ${space(1)};
 
   & > h6 {
     margin: 0;
   }
+`;
+
+const FlexSpacer = styled('div')`
+  flex: 1;
 `;
 
 const ExtractionRulesPanelTable = styled(PanelTable)`
