@@ -1,3 +1,5 @@
+from unittest import mock
+
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.uptime.detectors.ranking import (
@@ -73,3 +75,23 @@ class AddBaseUrlToRankTest(TestCase):
         self.assert_url_count(self.project, url_2, 1, project_1_url_expiry)
         project_2_url_expiry = self.assert_url_count(project_2, url_1, None, None)
         self.assert_url_count(project_2, url_2, 1, project_2_url_expiry)
+
+    def test_trim(self):
+        with mock.patch("sentry.uptime.detectors.ranking.RANKED_TRIM_CHANCE", new=1), mock.patch(
+            "sentry.uptime.detectors.ranking.RANKED_MAX_SIZE", new=2
+        ):
+            key = get_project_hostname_rank_key(self.project)
+            url_1 = "https://sentry.io"
+            url_2 = "https://sentry.sentry.io"
+            url_3 = "https://santry.sentry.io"
+            cluster = _get_cluster()
+            add_base_url_to_rank(self.project, url_1)
+            add_base_url_to_rank(self.project, url_1)
+            add_base_url_to_rank(self.project, url_1)
+            assert cluster.zrange(key, 0, -1) == [url_1]
+            add_base_url_to_rank(self.project, url_2)
+            add_base_url_to_rank(self.project, url_2)
+            assert cluster.zrange(key, 0, -1) == [url_2, url_1]
+            # Since we're trimming immediately, this url will be immediately dropped since it's seen one time
+            add_base_url_to_rank(self.project, url_3)
+            assert cluster.zrange(key, 0, -1) == [url_2, url_1]
