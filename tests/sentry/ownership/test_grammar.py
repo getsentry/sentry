@@ -898,6 +898,21 @@ def test_parse_code_owners_with_line_of_spaces():
     )
 
 
+def test_parse_code_owners_rule_with_comments():
+    codeowners = """
+# regular comment
+/path # no owners comment
+/path @getsentry/frontend
+/path @getsentry/issues # inline comment
+/path #team
+    """
+    assert parse_code_owners(codeowners) == (
+        ["@getsentry/frontend", "@getsentry/issues"],
+        ["#team"],
+        [],
+    )
+
+
 def test_convert_codeowners_syntax():
     code_mapping = type("", (), {})()
     code_mapping.stack_root = "webpack://docs"
