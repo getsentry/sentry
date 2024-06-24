@@ -84,8 +84,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables custom metrics extraction rule endpoint
     manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Hides DDM sidebar item
-    manager.add("organizations:ddm-sidebar-item-hidden", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the default alert at project creation to be the high priority alert
     manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables automatically deriving of code mappings
