@@ -84,6 +84,7 @@ async function fetchTraceMetaInBatches(
         return fetchSingleTraceMetaNew(api, organization, slug, queryParams);
       })
     );
+
     const updatedData = results.reduce(
       (acc, result) => {
         if (result.status === 'fulfilled') {
@@ -133,7 +134,6 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
     {
       enabled: traceSlugs.length > 0,
-      retry: 3,
     }
   );
 
