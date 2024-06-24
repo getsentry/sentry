@@ -207,7 +207,9 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     slug: str = ""
     id: int = -1
     name: str = ""
-    flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
+    flags: RpcOrganizationMappingFlags = Field(
+        default_factory=lambda: RpcOrganizationMappingFlags()
+    )
 
     def __hash__(self) -> int:
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
@@ -241,6 +243,7 @@ class RpcOrganization(RpcOrganizationSummary):
     teams: list[RpcTeam] = Field(default_factory=list)
     projects: list[RpcProject] = Field(default_factory=list)
 
+    flags: RpcOrganizationFlags = Field(default_factory=lambda: RpcOrganizationFlags())
     status: int = Field(default_factory=_DefaultEnumHelpers.get_default_organization_status_value)
 
     default_role: str = ""
