@@ -44,7 +44,6 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
-import {CardinalityLimit} from 'sentry/views/settings/projectMetrics/cardinalityLimit';
 import {
   MetricsExtractionRuleEditModal,
   modalCss,
@@ -170,8 +169,6 @@ function ProjectMetrics({project, location}: Props) {
       </TextBlock>
 
       <PermissionAlert project={project} />
-
-      <CardinalityLimit project={project} />
 
       {hasExtractionRules && (
         <Fragment>
