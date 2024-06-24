@@ -6,7 +6,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {metric} from 'sentry/utils/analytics';
-import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
+import {MetricRulesEdit} from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
 
 jest.mock('sentry/utils/analytics', () => ({
@@ -95,7 +95,7 @@ describe('MetricRulesEdit', function () {
     );
 
     // has existing trigger
-    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(await screen.findByTestId('critical-threshold')).toHaveValue('70');
     expect(screen.getByTestId('resolve-threshold')).toHaveValue('36');
 
     expect(req).toHaveBeenCalled();
@@ -190,7 +190,7 @@ describe('MetricRulesEdit', function () {
     );
 
     // has existing trigger
-    expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
+    expect(await screen.findByTestId('critical-threshold')).toHaveValue('70');
     expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
     expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
 
@@ -226,7 +226,7 @@ describe('MetricRulesEdit', function () {
     );
   });
 
-  it('renders 404', function () {
+  it('renders 404', async function () {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/1234/`,
@@ -248,6 +248,8 @@ describe('MetricRulesEdit', function () {
       />
     );
 
-    expect(screen.getByText('This alert rule could not be found.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('This alert rule could not be found.')
+    ).toBeInTheDocument();
   });
 });
