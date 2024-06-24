@@ -6,22 +6,30 @@ import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
 import {mergeProps} from '@react-aria/utils';
 import {useCollection} from '@react-stately/collections';
-import {useDroppableCollectionState} from '@react-stately/dnd';
+import {
+  type DroppableCollectionStateOptions,
+  useDroppableCollectionState,
+} from '@react-stately/dnd';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {
+  DroppableCollectionInsertDropEvent,
+  Node,
+  Orientation,
+  TextDropItem,
+} from '@react-types/shared';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {type Tab, TabsContext} from 'sentry/components/tabs_dndTabs';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
 import {DroppableTab} from './droppableTab';
-import {TabsContext} from './index';
 import type {DroppableTabListItemProps} from './item';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
@@ -89,45 +97,16 @@ function useOverflowTabs({
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
 }
 
-export interface DroppableTabListProps
-  extends AriaTabListOptions<DroppableTabListItemProps>,
-    TabListStateOptions<DroppableTabListItemProps> {
-  className?: string;
-  hideBorder?: boolean;
-  outerWrapStyles?: React.CSSProperties;
-}
-
-interface BaseTabListProps extends DroppableTabListProps {
+interface BaseDroppableTabListProps extends DroppableTabListProps {
   items: DroppableTabListItemProps[];
 }
-
-// function DropIndicator(props) {
-//   const ref = useRef(null);
-//   const {dropIndicatorProps, isHidden, isDropTarget} = useDropIndicator(
-//     props,
-//     props.dropState,
-//     ref
-//   );
-//   if (isHidden) {
-//     return null;
-//   }
-
-//   return (
-//     <li
-//       {...dropIndicatorProps}
-//       role="option"
-//       ref={ref}
-//       className={`drop-indicator ${isDropTarget ? 'drop-target' : ''}`}
-//     />
-//   );
-// }
 
 function BaseDroppableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
   ...props
-}: BaseTabListProps) {
+}: BaseDroppableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -270,14 +249,47 @@ function BaseDroppableTabList({
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
+export interface DroppableTabListProps
+  extends AriaTabListOptions<DroppableTabListItemProps>,
+    TabListStateOptions<DroppableTabListItemProps>,
+    Omit<DroppableCollectionStateOptions, 'collection' | 'selectionManager'> {
+  setTabs: (tabs: Tab[]) => void;
+  tabs: Tab[];
+  className?: string;
+  hideBorder?: boolean;
+  outerWrapStyles?: React.CSSProperties;
+}
+
 /**
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function DroppableTabList({items, ...props}: DroppableTabListProps) {
-  /**
-   * Initial, unfiltered list of tab items.
-   */
+export function DroppableTabList({
+  items,
+  tabs,
+  setTabs,
+  ...props
+}: DroppableTabListProps) {
+  const onInsert = async (e: DroppableCollectionInsertDropEvent) => {
+    const dropItem = e.items[0] as TextDropItem;
+    const eventTab = JSON.parse(await dropItem.getText('tab'));
+    const draggedTab = tabs.find(tab => tab.key === eventTab.key);
+
+    if (draggedTab) {
+      const updatedTabs = tabs.filter(tab => tab.key !== draggedTab.key);
+      const targetTab = tabs.find(tab => tab.key === e.target.key);
+      if (targetTab) {
+        const targetIdx = updatedTabs.indexOf(targetTab);
+        if (targetTab && e.target.dropPosition === 'before') {
+          updatedTabs.splice(targetIdx, 0, draggedTab);
+        } else if (targetTab && e.target.dropPosition === 'after') {
+          updatedTabs.splice(targetIdx + 1, 0, draggedTab);
+        }
+        setTabs(updatedTabs);
+      }
+    }
+  };
+
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -295,7 +307,14 @@ export function DroppableTabList({items, ...props}: DroppableTabListProps) {
   );
 
   return (
-    <BaseDroppableTabList items={parsedItems} disabledKeys={disabledKeys} {...props}>
+    <BaseDroppableTabList
+      tabs={tabs}
+      onInsert={onInsert}
+      items={parsedItems}
+      disabledKeys={disabledKeys}
+      setTabs={setTabs}
+      {...props}
+    >
       {item => <Item {...item} />}
     </BaseDroppableTabList>
   );

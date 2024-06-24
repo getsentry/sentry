@@ -1,8 +1,8 @@
-import {forwardRef, useCallback, useRef} from 'react';
+import {forwardRef, Fragment, useCallback, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
-import {useDrag, useDroppableItem} from '@react-aria/dnd';
+import {useDrag, useDropIndicator, useDroppableItem} from '@react-aria/dnd';
 import {useFocusRing} from '@react-aria/focus';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -42,30 +42,24 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
-function Draggable({children}) {
-  const {dragProps, dragButtonProps, isDragging} = useDrag({
-    getAllowedDropOperations: () => ['copy'],
-    getItems() {
-      return [
-        {
-          'text/plain': children,
-          'my-app-custom-type': JSON.stringify({message: children}),
-        },
-      ];
-    },
-  });
-
+function DropIndicator(props) {
   const ref = useRef(null);
-  const {buttonProps} = useButton({...dragButtonProps, elementType: 'div'}, ref);
+  const {dropIndicatorProps, isHidden, isDropTarget} = useDropIndicator(
+    props,
+    props.dropState,
+    ref
+  );
+  if (isHidden) {
+    return null;
+  }
 
   return (
-    <div
-      {...mergeProps(dragProps, buttonProps)}
+    <li
+      {...dropIndicatorProps}
+      role="option"
       ref={ref}
-      className={`draggable ${isDragging ? 'dragging' : ''}`}
-    >
-      {children}
-    </div>
+      className={`drop-indicator ${isDropTarget ? 'drop-target' : ''}`}
+    />
   );
 }
 
@@ -115,27 +109,68 @@ function BaseDroppableTab(
     ref
   );
 
+  function Draggable({children}) {
+    const {dragProps, dragButtonProps, isDragging} = useDrag({
+      getAllowedDropOperations: () => ['move'],
+      getItems() {
+        return [
+          {
+            tab: JSON.stringify({key: item.key, value: children}),
+          },
+        ];
+      },
+    });
+
+    const draggableRef = useRef(null);
+    const {buttonProps} = useButton(
+      {...dragButtonProps, elementType: 'div'},
+      draggableRef
+    );
+
+    return (
+      <div
+        {...mergeProps(dragProps, buttonProps)}
+        ref={draggableRef}
+        className={`draggable ${isDragging ? 'dragging' : ''}`}
+      >
+        {children}
+      </div>
+    );
+  }
+
   return (
-    <TabWrap
-      {...mergeProps(tabProps, dropProps)}
-      hidden={hidden}
-      selected={isSelected}
-      overflowing={overflowing}
-      ref={ref}
-      className={`option ${isFocusVisible ? 'focus-visible' : ''} ${
-        isDropTarget ? 'drop-target' : ''
-      }`}
-    >
-      <InnerWrap>
-        <StyledInteractionStateLayer
-          orientation={orientation}
-          higherOpacity={isSelected}
+    <Fragment>
+      <DropIndicator
+        target={{type: 'item', key: item.key, dropPosition: 'before'}}
+        dropState={dropState}
+      />
+      <TabWrap
+        {...mergeProps(tabProps, dropProps)}
+        hidden={hidden}
+        selected={isSelected}
+        overflowing={overflowing}
+        ref={ref}
+        className={`option ${isFocusVisible ? 'focus-visible' : ''} ${
+          isDropTarget ? 'drop-target' : ''
+        }`}
+      >
+        <InnerWrap>
+          <StyledInteractionStateLayer
+            orientation={orientation}
+            higherOpacity={isSelected}
+          />
+          <FocusLayer orientation={orientation} />
+          <Draggable>{rendered}</Draggable>
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        </InnerWrap>
+      </TabWrap>
+      {state.collection.getKeyAfter(item.key) == null && (
+        <DropIndicator
+          target={{type: 'item', key: item.key, dropPosition: 'after'}}
+          dropState={dropState}
         />
-        <FocusLayer orientation={orientation} />
-        <Draggable>{rendered}</Draggable>
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-      </InnerWrap>
-    </TabWrap>
+      )}
+    </Fragment>
   );
 }
 
