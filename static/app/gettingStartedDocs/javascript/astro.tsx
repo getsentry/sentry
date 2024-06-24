@@ -31,12 +31,12 @@ export default defineConfig({
   integrations: [
     sentry({
       dsn: "${params.dsn}",${
-        params.isPerformanceSelected
+        !params.isPerformanceSelected
           ? ''
           : `
       tracesSampleRate: 0,`
       }${
-        params.isReplaySelected
+        !params.isReplaySelected
           ? ''
           : `
       replaysSessionSampleRate: 0,
@@ -53,9 +53,15 @@ export default defineConfig({
 
 const getVerifyAstroSnippet = () => `
 <!-- your-page.astro -->
-<button onclick="throw new Error('This is a test error')">
-  Throw test error
-</button>
+---
+---
+<button id="error-button">Throw test error</button>
+<script>
+  function handleClick () {
+    throw new Error('This is a test error');
+  }
+  document.querySelector("#error-button").addEventListener("click", handleClick);
+</script>
 `;
 
 const getInstallConfig = () => [
