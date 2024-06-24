@@ -36,7 +36,6 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "events-subscription-results",
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
-    "sessions-subscription-results",
     "metrics-subscription-results",
 ]
 
