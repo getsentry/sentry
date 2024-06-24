@@ -131,7 +131,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         )
 
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_returns_sorted_similarity_results(self, mock_seer_request: MagicMock):
+    def test_returns_sorted_results(self, mock_seer_request: MagicMock):
         less_similar_event = save_new_event({"message": "Charlie is goofy"}, self.project)
 
         raw_similar_issue_data: RawSeerSimilarIssueData = {
