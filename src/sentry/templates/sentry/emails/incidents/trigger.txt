@@ -12,12 +12,11 @@ Status: {{ status }}
 Project: {{ project_slug }}
 {% if monitor_type == 1 %}
     {% if condition_type == 0 %}
-        New Release: {{activator}}
+New Release: {{activator}}
     {% elif condition_type == 1 %}
-        New Deploy: {{activator}}
+New Deploy: {{activator}}
     {% endif %}
 {% endif %}
-
 Metric: {{ aggregate }}
 Environment: {{ environment }}
 Threshold: {{ threshold_direction_string }} {{ threshold }}
