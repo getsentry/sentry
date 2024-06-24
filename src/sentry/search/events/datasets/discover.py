@@ -2012,7 +2012,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                 "transaction",
                 ["transaction"],
             ]:
-                return Condition(Function("equals", [1, 1]), Op.EQ, 1)
+                return None
             raise InvalidSearchQuery(
                 "Invalid value for event.type condition. Allowed value is transaction."
             )
