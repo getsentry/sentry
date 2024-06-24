@@ -53,7 +53,7 @@ def get_similarity_data_from_seer(
         return []
 
     try:
-        response_data = json.loads(response.data.decode("utf-8"))
+        response_data = json.loads(response.data.decode("utf-8")).get("responses")
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
@@ -69,15 +69,17 @@ def get_similarity_data_from_seer(
         )
         return []
 
-    normalized = []
+    if not response_data:
+        return []
 
-    for raw_similar_issue_data in response_data.get("responses") or []:
+    normalized_results = []
+
+    for raw_similar_issue_data in response_data:
         try:
-            normalized.append(
-                SeerSimilarIssueData.from_raw(
-                    similar_issues_request["project_id"], raw_similar_issue_data
-                )
+            normalized = SeerSimilarIssueData.from_raw(
+                similar_issues_request["project_id"], raw_similar_issue_data
             )
+            normalized_results.append(normalized)
         except IncompleteSeerDataError as err:
             logger.exception(
                 str(err),
@@ -97,6 +99,6 @@ def get_similarity_data_from_seer(
             )
 
     return sorted(
-        normalized,
+        normalized_results,
         key=lambda issue_data: issue_data.stacktrace_distance,
     )
