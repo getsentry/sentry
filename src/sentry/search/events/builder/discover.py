@@ -1499,12 +1499,7 @@ class QueryBuilder(BaseQueryBuilder):
 
     def load_config(
         self,
-    ) -> tuple[
-        Mapping[str, Callable[[str], SelectType]],
-        Mapping[str, fields.SnQLFunction],
-        Mapping[str, Callable[[event_search.SearchFilter], WhereType | None]],
-        Mapping[str, Callable[[Direction], OrderBy]],
-    ]:
+    ) -> None:
         self.config: DatasetConfig
         if self.dataset in [
             Dataset.Discover,

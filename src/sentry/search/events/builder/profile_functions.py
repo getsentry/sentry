@@ -32,10 +32,6 @@ class ProfileFunctionsQueryBuilderProtocol(Protocol):
 
 
 class ProfileFunctionsQueryBuilderMixin:
-    def load_config(self):
-        self.config = ProfileFunctionsDatasetConfig(self)
-        self.parse_config(self.config)
-
     def resolve_column_name(self: ProfileFunctionsQueryBuilderProtocol, col: str) -> str:
         # giving resolved a type here convinces mypy that the type is str
         resolved: str = self.config.resolve_column(col)
@@ -50,11 +46,19 @@ class ProfileFunctionsQueryBuilderMixin:
 class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
     function_alias_prefix = "sentry_"
 
+    def load_config(self):
+        self.config = ProfileFunctionsDatasetConfig(self)
+        self.parse_config(self.config)
+
 
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
     function_alias_prefix = "sentry_"
+
+    def load_config(self):
+        self.config = ProfileFunctionsDatasetConfig(self)
+        self.parse_config(self.config)
 
     def strip_alias_prefix(self, result):
         alias_mappings = {
@@ -116,6 +120,10 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
             self.groupby.extend(
                 [column for column in self.columns if column not in self.aggregates]
             )
+
+    def load_config(self):
+        self.config = ProfileFunctionsDatasetConfig(self)
+        self.parse_config(self.config)
 
     @property
     def translated_groupby(self) -> list[str]:

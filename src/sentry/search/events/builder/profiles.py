@@ -24,10 +24,6 @@ class ProfilesQueryBuilderMixin:
     requires_organization_condition: bool = True
     organization_column: str = "organization.id"
 
-    def load_config(self):
-        self.config = ProfilesDatasetConfig(self)
-        self.parse_config(self.config)
-
     def resolve_column_name(self: ProfilesQueryBuilderProtocol, col: str) -> str:
         # giving resolved a type here convinces mypy that the type is str
         resolved: str = self.config.resolve_column(col)
@@ -40,8 +36,12 @@ class ProfilesQueryBuilderMixin:
 
 
 class ProfilesQueryBuilder(ProfilesQueryBuilderMixin, QueryBuilder):
-    pass
+    def load_config(self):
+        self.config = ProfilesDatasetConfig(self)
+        self.parse_config(self.config)
 
 
 class ProfilesTimeseriesQueryBuilder(ProfilesQueryBuilderMixin, TimeseriesQueryBuilder):
-    pass
+    def load_config(self):
+        self.config = ProfilesDatasetConfig(self)
+        self.parse_config(self.config)

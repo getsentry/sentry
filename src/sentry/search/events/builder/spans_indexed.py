@@ -11,10 +11,6 @@ from sentry.search.events.types import SelectType
 class SpansIndexedQueryBuilderMixin:
     meta_resolver_map: dict[str, str]
 
-    def load_config(self):
-        self.config = SpansIndexedDatasetConfig(self)
-        self.parse_config(self.config)
-
     def get_field_type(self, field: str) -> str | None:
         if field in self.meta_resolver_map:
             return self.meta_resolver_map[field]
@@ -28,6 +24,10 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, QueryBuilder):
     requires_organization_condition = False
     uuid_fields = {"transaction.id", "replay.id", "profile.id", "trace"}
 
+    def load_config(self):
+        self.config = SpansIndexedDatasetConfig(self)
+        self.parse_config(self.config)
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.value_resolver_map[
@@ -36,6 +36,10 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, QueryBuilder):
 
 
 class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):
+    def load_config(self):
+        self.config = SpansIndexedDatasetConfig(self)
+        self.parse_config(self.config)
+
     @property
     def time_column(self) -> SelectType:
         return custom_time_processor(
@@ -44,6 +48,10 @@ class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, Timeserie
 
 
 class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
+    def load_config(self):
+        self.config = SpansIndexedDatasetConfig(self)
+        self.parse_config(self.config)
+
     @property
     def time_column(self) -> SelectType:
         return custom_time_processor(
