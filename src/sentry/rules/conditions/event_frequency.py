@@ -50,6 +50,9 @@ COMPARISON_INTERVALS: dict[str, tuple[str, timedelta]] = {
 SNUBA_LIMIT = 10000
 
 
+DEFAULT_COMPARISON_INTERVAL = "5m"
+
+
 class ComparisonType(TextChoices):
     COUNT = "count"
     PERCENT = "percent"
@@ -165,7 +168,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
 
         comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
-        comparison_interval_option = self.get_option("comparisonInterval", "5m")
+        comparison_interval_option = self.get_option(
+            "comparisonInterval", DEFAULT_COMPARISON_INTERVAL
+        )
         if comparison_interval_option == "":
             return False
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
