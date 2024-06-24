@@ -22,7 +22,13 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import (
+    discover,
+    errors,
+    metrics_enhanced_performance,
+    metrics_performance,
+    transactions,
+)
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -454,14 +460,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                 try:
                     error_results = _data_fn(
-                        discover,
+                        errors,
                         offset,
                         limit,
-                        (
-                            f"({scoped_query}) AND !event.type:transaction"
-                            if scoped_query
-                            else "!event.type:transaction"
-                        ),
+                        scoped_query,
                     )
                     error_results["meta"][
                         "discoverSplitDecision"
@@ -473,13 +475,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     error_results = None
 
                 try:
-                    transactions_only_query = (
-                        f"({scoped_query}) AND event.type:transaction"
-                        if scoped_query
-                        else "event.type:transaction"
-                    )
-                    # TODO: Change this to transactions dataset once it's available
-                    transaction_results = _data_fn(discover, offset, limit, transactions_only_query)
+                    transaction_results = _data_fn(transactions, offset, limit, scoped_query)
                     transaction_results["meta"][
                         "discoverSplitDecision"
                     ] = DiscoverSavedQueryTypes.get_type_name(
