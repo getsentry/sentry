@@ -75,6 +75,7 @@ from sentry.search.events.types import (
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
+from sentry.utils import metrics
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
@@ -89,6 +90,8 @@ from sentry.utils.snuba import (
     resolve_column,
 )
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
+
+EVENTS_BUILDER_METRIC_NAME = "search.events.builder.load_config"
 
 
 class BaseQueryBuilder:
@@ -362,6 +365,7 @@ class BaseQueryBuilder:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
+            metrics.incr("search.events.builder.load_config", tags={"dataset": "session_metrics"})
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.spans_metrics_builder:
                 # For now, we won't support the metrics layer for spans since it needs some work,
@@ -369,12 +373,16 @@ class BaseQueryBuilder:
                 # if self.builder_config.use_metrics_layer:
                 #     self.config = SpansMetricsLayerDatasetConfig(self)
                 self.config = SpansMetricsDatasetConfig(self)
+                metrics.incr(EVENTS_BUILDER_METRIC_NAME, tags={"dataset": "span_metrics"})
             elif self.profile_functions_metrics_builder:
                 self.config = ProfileFunctionsMetricsDatasetConfig(self)
+                metrics.incr(EVENTS_BUILDER_METRIC_NAME, tags={"dataset": "profile_metrics"})
             elif self.builder_config.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
+                metrics.incr(EVENTS_BUILDER_METRIC_NAME, tags={"dataset": "metrics_layer"})
             else:
                 self.config = MetricsDatasetConfig(self)
+                metrics.incr(EVENTS_BUILDER_METRIC_NAME, tags={"dataset": "default"})
         elif self.dataset == Dataset.Profiles:
             self.config = ProfilesDatasetConfig(self)
         elif self.dataset == Dataset.Functions:
