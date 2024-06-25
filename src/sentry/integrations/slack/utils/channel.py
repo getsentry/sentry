@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import time
-from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any
 
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
@@ -11,6 +9,7 @@ from slack_sdk.errors import SlackApiError
 from sentry import features
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.utils.users import get_slack_user_data
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
@@ -121,31 +120,6 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
         )
 
 
-def get_users_sdk(
-    client: SlackSdkClient, integration: Integration | RpcIntegration
-) -> Iterable[Mapping[str, Any]]:
-    payload = {
-        "exclude_archived": False,
-        "exclude_members": True,
-        "types": "public_channel,private_channel",
-    }
-    try:
-        users_list = client.users_list(limit=SLACK_GET_CHANNEL_ID_PAGE_SIZE, kwargs=payload)
-        for page in users_list:
-            yield page.get("members")
-
-    except SlackApiError as e:
-        logger_params = {
-            "error": str(e),
-            "integration_id": integration.id,
-            "payload": payload,
-        }
-        logger.info(
-            "rule.slack.user_list_error",
-            extra=logger_params,
-        )
-
-
 def get_channel_id_with_timeout(
     integration: Integration | RpcIntegration,
     name: str | None,
@@ -182,19 +156,26 @@ def get_channel_id_with_timeout(
     if _channel_id is not None:
         return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
-    return check_user_with_timeout(client, integration, name, time_to_quit)
+    return check_user_with_timeout(integration, name, time_to_quit)
 
 
 def check_user_with_timeout(
-    client: SlackSdkClient, integration: Integration, name: str, time_to_quit: int
+    integration: Integration, name: str, time_to_quit: int
 ) -> SlackChannelIdData:
-    users = get_users_sdk(client, integration)
+    """
+    If the channel is not found, we check if the name is a user.
+    """
 
     _channel_id = None
     _prefix = ""
 
-    # We need to check for individual users if we don't have a channel
-    users = get_users_sdk(client, integration)
+    payload = {
+        "exclude_archived": False,
+        "exclude_members": True,
+        "types": "public_channel,private_channel",
+    }
+    users = get_slack_user_data(integration, organization=None, kwargs=payload)
+
     for user in users:
         # The "name" field is unique (this is the username for users)
         # so we return immediately if we find a match.
