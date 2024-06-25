@@ -11,6 +11,7 @@ from sentry.api.endpoints.group_similar_issues_embeddings import (
 from sentry.api.serializers.base import serialize
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.models.group import Group
+from sentry.seer.similarity.similar_issues import SIMILARITY_REQUEST_METRIC_SAMPLE_RATE
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsResponse
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
@@ -191,9 +192,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             ["Yes", "No"],
         )
 
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     @mock.patch("sentry.api.endpoints.group_similar_issues_embeddings.logger")
-    def test_simple(self, mock_logger, mock_seer_request):
+    def test_simple(self, mock_logger, mock_seer_request, mock_metrics_incr):
         seer_return_value: SimilarIssuesEmbeddingsResponse = {
             "responses": [
                 {
@@ -204,7 +206,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 }
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
 
         response = self.client.get(
             self.path,
@@ -236,6 +238,14 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         expected_seer_request_params["group_message"] = expected_seer_request_params.pop("message")
         mock_logger.info.assert_called_with(
             "Similar issues embeddings parameters", extra=expected_seer_request_params
+        )
+        mock_metrics_incr.assert_any_call(
+            "seer.similar_issues_request",
+            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            tags={
+                "response_status": 200,
+                "outcome": "matching_group_found",
+            },
         )
 
     @mock.patch("sentry.analytics.record")
@@ -294,9 +304,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             user_id=self.user.id,
         )
 
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_incomplete_return_data(self, mock_seer_request, mock_logger):
+    def test_incomplete_return_data(self, mock_seer_request, mock_logger, mock_metrics_incr):
         # Two suggested groups, one with valid data, one missing parent hash. We should log the
         # second and return the first.
         seer_return_value: Any = {
@@ -315,7 +326,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         response = self.client.get(self.path)
 
         mock_logger.exception.assert_called_with(
@@ -336,14 +347,24 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             },
         )
+        mock_metrics_incr.assert_any_call(
+            "seer.similar_issues_request",
+            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            tags={
+                "response_status": 200,
+                "outcome": "error",
+                "error": "IncompleteSeerDataError",
+            },
+        )
 
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
 
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
-    def test_nonexistent_group(self, mock_seer_request, mock_logger):
+    def test_nonexistent_group(self, mock_seer_request, mock_logger, mock_metrics_incr):
         """
         The seer API can return groups that do not exist if they have been deleted/merged.
         Test that these groups are not returned.
@@ -366,9 +387,18 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                 },
             ]
         }
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
         response = self.client.get(self.path)
 
+        mock_metrics_incr.assert_any_call(
+            "seer.similar_issues_request",
+            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            tags={
+                "response_status": 200,
+                "outcome": "error",
+                "error": "SimilarGroupNotFoundError",
+            },
+        )
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
@@ -384,7 +414,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
     @mock.patch("sentry.analytics.record")
     @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
     def test_empty_seer_return(self, mock_seer_request, mock_record):
-        mock_seer_request.return_value = HTTPResponse([])
+        mock_seer_request.return_value = HTTPResponse([], status=200)
         response = self.client.get(self.path)
         assert response.data == []
 
