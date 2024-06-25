@@ -64,6 +64,7 @@ function GroupReplays({group}: Props) {
   }, []);
 
   if (!eventView) {
+    // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding>
         <ReplayCountHeader>
