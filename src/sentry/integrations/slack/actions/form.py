@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import asdict
 from typing import Any
 
 from django import forms
@@ -107,9 +108,8 @@ class SlackNotifyServiceForm(forms.Form):
         # are assuming that they passed in the correct channel_id for the channel
         if not channel_id:
             try:
-                channel_prefix, channel_id, timed_out = self.channel_transformer(
-                    integration, channel
-                )
+                channel_data = self.channel_transformer(integration, channel)
+                channel_prefix, channel_id, timed_out = asdict(channel_data).values()
             except DuplicateDisplayNameError:
                 domain = integration.metadata["domain_name"]
 
