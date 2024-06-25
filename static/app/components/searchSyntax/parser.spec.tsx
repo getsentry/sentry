@@ -208,7 +208,7 @@ describe('searchSyntax/parser', function () {
     });
   });
 
-  it('applies dissallowNegation', () => {
+  it('applies disallowNegation', () => {
     const result = parseSearch('!foo:bar', {
       disallowNegation: true,
       invalidMessages: {
