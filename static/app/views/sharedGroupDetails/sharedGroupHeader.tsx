@@ -20,7 +20,7 @@ type Props = {
 
 function SharedGroupHeader({group}: Props) {
   const date = group.latestEvent?.dateReceived ?? group.latestEvent?.dateCreated;
-  const d = new Date(date as string);
+  const date_obj = new Date(date as string);
   const event = group.latestEvent as Event;
   return (
     <Wrapper>
@@ -55,7 +55,7 @@ function SharedGroupHeader({group}: Props) {
                       title={<EventCreatedTooltip event={event} />}
                       overlayStyle={{maxWidth: 300}}
                     >
-                      <DateTime date={d.toLocaleString()} />
+                      <DateTime date={date_obj.toLocaleString()} />
                     </Tooltip>
                   ),
                 })}
