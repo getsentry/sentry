@@ -214,14 +214,15 @@ def metric_alert_attachment_info(
         text = get_incident_status_text(alert_rule, metric_value)
 
     date_started = None
+    activation = None
     if selected_incident:
         date_started = selected_incident.date_started
+        activation = selected_incident.activation
 
     last_triggered_date = None
     if latest_incident:
         last_triggered_date = latest_incident.date_started
 
-    activation = selected_incident.activation
     # TODO: determine whether activated alert data is useful for integration messages
     return {
         "title": title,
