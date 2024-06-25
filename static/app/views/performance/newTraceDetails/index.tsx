@@ -66,7 +66,11 @@ import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
-import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
+import {
+  traceNodeAnalyticsName,
+  TraceTree,
+  type TraceTreeNode,
+} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -529,6 +533,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
+        type: traceNodeAnalyticsName(node),
         project_platform:
           projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
       });
