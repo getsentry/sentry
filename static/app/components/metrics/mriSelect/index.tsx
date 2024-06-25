@@ -65,10 +65,9 @@ export function getMetricsWithDuplicateNames(metrics: MetricMeta[]): Set<MRI> {
   const duplicateNames: string[] = [];
 
   for (const metric of metrics) {
-    const metricName = parseMRI(metric.mri)?.name;
-    if (!metricName) {
-      continue;
-    }
+    const parsedMri = parseMRI(metric.mri);
+    // Include the use case to avoid warning of conflicts between different use cases
+    const metricName = `${parsedMri.useCase}_${parsedMri.name}`;
 
     if (metricNameMap.has(metricName)) {
       const mapEntry = metricNameMap.get(metricName);
@@ -181,7 +180,7 @@ export const MRISelect = memo(function MRISelect({
 
     // Add the selected metric to the top of the list if it's not already there
     if (result[0]?.mri !== value) {
-      const parsedMri = parseMRI(value)!;
+      const parsedMri = parseMRI(value);
       return [
         {
           mri: value,
@@ -214,7 +213,7 @@ export const MRISelect = memo(function MRISelect({
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
         }
-        if (parseMRI(metric.mri)?.useCase === 'custom' && !mriMode) {
+        if (parseMRI(metric.mri).useCase === 'custom' && !mriMode) {
           trailingItems.push(
             <CustomMetricInfoText key="text">{t('Custom')}</CustomMetricInfoText>
           );
