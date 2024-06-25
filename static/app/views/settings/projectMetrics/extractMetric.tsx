@@ -88,7 +88,7 @@ function ExtractMetric({project}: {project: Project}) {
       <SentryDocumentTitle title={routeTitleGen(PAGE_TITLE, project.slug, false)} />
       <SettingsPageHeader title={PAGE_TITLE} />
       <TextBlock>
-        {t('Create a span-based custom metric from your tracing data.')}
+        {t('Configure tracking of span attributes as metrics.')}
       </TextBlock>
       <Panel>
         <PanelBody>
