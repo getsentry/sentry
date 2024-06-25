@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -9,12 +10,9 @@ import useKeyPress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/insights/common/components/slideOverPanel';
 
-interface DrawerPanelProps {
+export interface DrawerPanelProps extends DrawerOptions {
   children: React.ReactNode;
-  closeOnOutsideClick?: boolean;
   isOpen?: boolean;
-  onClose?: () => void;
-  onOpen?: () => void;
 }
 
 export function DrawerPanel({
@@ -23,6 +21,7 @@ export function DrawerPanel({
   onClose,
   onOpen,
   closeOnOutsideClick = true,
+  closeOnEscapeKeypress = true,
 }: DrawerPanelProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(isOpen);
   const escapeKeyPressed = useKeyPress('Escape');
@@ -36,43 +35,43 @@ export function DrawerPanel({
   });
 
   useEffect(() => {
-    if (escapeKeyPressed) {
-      if (isOpen) {
-        onClose?.();
-        setIsDrawerOpen(false);
-      }
+    if (isOpen && escapeKeyPressed && closeOnEscapeKeypress) {
+      onClose?.();
+      setIsDrawerOpen(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [escapeKeyPressed]);
+  }, [escapeKeyPressed, closeOnEscapeKeypress]);
 
   useEffect(() => {
     setIsDrawerOpen(isOpen);
   }, [isOpen]);
 
   return (
-    <SlideOverPanel
-      slidePosition="right"
-      collapsed={!isDrawerOpen}
-      ref={panelRef}
-      onOpen={onOpen}
-    >
-      <DrawerHeader>
-        <CloseButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Close Drawer')}
-          icon={<IconClose size="sm" />}
-          onClick={() => {
-            setIsDrawerOpen(false);
-            onClose?.();
-          }}
-        >
-          {t('Close')}
-        </CloseButton>
-      </DrawerHeader>
-      {children}
-    </SlideOverPanel>
+    <div role="complementary" aria-hidden={!isDrawerOpen}>
+      <SlideOverPanel
+        slidePosition="right"
+        collapsed={!isDrawerOpen}
+        ref={panelRef}
+        onOpen={onOpen}
+      >
+        <DrawerHeader>
+          <CloseButton
+            priority="link"
+            size="zero"
+            borderless
+            aria-label={t('Close Drawer')}
+            icon={<IconClose size="sm" />}
+            onClick={() => {
+              setIsDrawerOpen(false);
+              onClose?.();
+            }}
+          >
+            {t('Close')}
+          </CloseButton>
+        </DrawerHeader>
+        {children}
+      </SlideOverPanel>
+    </div>
   );
 }
 

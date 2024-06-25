@@ -1,18 +1,29 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {closeDrawer as closeDrawerAction} from 'sentry/actionCreators/drawer';
 import {DrawerBody, DrawerPanel} from 'sentry/components/globalDrawer/components';
 import DrawerStore from 'sentry/stores/drawerStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import useKeyPress from 'sentry/utils/useKeyPress';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import {useLocation} from 'sentry/utils/useLocation';
 
-export interface DrawerOptions {}
+export interface DrawerOptions {
+  /** If true (default), closes the drawer when an escape key is pressed */
+  closeOnEscapeKeypress?: boolean;
+  /** If true (default), closes the drawer when anywhere else is clicked */
+  closeOnOutsideClick?: boolean;
+  /** Callback for when the drawer closes */
+  onClose?: () => void;
+  /** Callback for when the drawer opens */
+  onOpen?: () => void;
+}
 
 export interface DrawerRenderProps {
+  /** Body container for the drawer */
   Body: typeof DrawerBody;
+  /** Close the drawer */
   closeDrawer: () => void;
-  drawerContainerRef?: React.RefObject<HTMLDivElement>;
 }
 
 interface GlobalDrawerProps {
@@ -20,33 +31,42 @@ interface GlobalDrawerProps {
 }
 
 export default function GlobalDrawer({onClose}: GlobalDrawerProps) {
-  const {renderer, options: _options} = useLegacyStore(DrawerStore);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const escapeKeyPressed = useKeyPress('Escape');
+  const location = useLocation();
+  const {renderer, options} = useLegacyStore(DrawerStore);
+  const {closeOnEscapeKeypress = true, closeOnOutsideClick = true} = options;
 
   const closeDrawer = useCallback(() => {
+    // Callsite callback when closing the drawer
+    options?.onClose?.();
+    // Actually close the drawer component
+    closeDrawerAction();
     // From GlobalDrawer usage, refocus main content
     onClose?.();
-    // Actually close the drawer
-    closeDrawerAction();
-  }, [onClose]);
+  }, [onClose, options]);
 
-  useEffect(() => {
-    if (escapeKeyPressed) {
-      closeDrawer();
-    }
-  }, [escapeKeyPressed, closeDrawer]);
+  // Close the drawer when the browser history changes.
+  //
+  // XXX: We're using useEffectAfterFirstRender primarily to support tests
+  // which render the GlobalDrawer after a drawer has already been registered in
+  // the drawer store, meaning it would be closed immediately.
+  useEffectAfterFirstRender(() => closeDrawerAction(), [location.pathname]);
 
   const isDrawerOpen = typeof renderer === 'function';
-  const renderedChild = renderer?.({
-    Body: DrawerBody,
-    drawerContainerRef: containerRef,
-    closeDrawer,
-  });
+  const renderedChild =
+    renderer?.({
+      Body: DrawerBody,
+      closeDrawer,
+    }) ?? null;
 
   return (
-    <DrawerContainer>
-      <DrawerPanel isOpen={isDrawerOpen} onClose={closeDrawer}>
+    <DrawerContainer data-test-id="drawer-container">
+      <DrawerPanel
+        isOpen={isDrawerOpen}
+        onClose={closeDrawer}
+        onOpen={options?.onOpen}
+        closeOnOutsideClick={closeOnOutsideClick}
+        closeOnEscapeKeypress={closeOnEscapeKeypress}
+      >
         {renderedChild}
       </DrawerPanel>
     </DrawerContainer>
