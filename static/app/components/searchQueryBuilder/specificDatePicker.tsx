@@ -188,7 +188,7 @@ function SpecificDatePicker({
                 icon={<IconArrow direction="left" />}
                 onClick={handleBack}
               >
-                Back
+                {t('Back')}
               </Button>
               <Button
                 size="xs"
@@ -198,7 +198,7 @@ function SpecificDatePicker({
                   handleSave?.(dateString!);
                 }}
               >
-                Save
+                {t('Save')}
               </Button>
             </ButtonBar>
           </ButtonsFooter>
