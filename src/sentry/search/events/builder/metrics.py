@@ -343,7 +343,7 @@ class MetricsQueryBuilder(QueryBuilder):
             offset=self.offset,
             granularity=self.granularity,
             interval=interval,
-            is_alerts_query=isinstance(self, AlertMetricsQueryBuilder),
+            is_alerts_query=True,
             org_id=self.params.organization.id,
             project_ids=[p.id for p in self.params.projects],
             include_series=include_series,
