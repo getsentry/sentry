@@ -12,7 +12,12 @@ from sentry.db.models import Model
 from sentry.eventstore.models import GroupEvent
 from sentry.integrations.issue_alert_image_builder import IssueAlertImageBuilder
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
-from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
+from sentry.issues.grouptype import (
+    GROUP_CATEGORIES_CUSTOM_EMAIL,
+    GroupCategory,
+    PerformanceP95EndpointRegressionGroupType,
+    ProfileFunctionRegressionType,
+)
 from sentry.models.group import Group
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
@@ -146,6 +151,14 @@ class AlertRuleNotification(ProjectNotification):
             return image_builder.get_image_url()
         return None
 
+    def is_new_design(self) -> bool:
+        return features.has(
+            "organizations:email-performance-regression-image", self.group.organization
+        ) and self.group.issue_type in [
+            PerformanceP95EndpointRegressionGroupType,
+            ProfileFunctionRegressionType,
+        ]
+
     def get_context(self) -> MutableMapping[str, Any]:
         environment = self.event.get_tag("environment")
         enhanced_privacy = self.organization.flags.enhanced_privacy
@@ -192,6 +205,7 @@ class AlertRuleNotification(ProjectNotification):
             "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
             "chart_image": self.get_image_url(),
+            "is_new_design": self.is_new_design(),
         }
 
         # if the organization has enabled enhanced privacy controls we don't send
@@ -220,9 +234,20 @@ class AlertRuleNotification(ProjectNotification):
             # This can't use data from the occurrence at the moment, so we'll keep fetching the event
             # and gathering span evidence.
 
+            # Regression issues don't have span evidence
+            if self.group.issue_type not in [
+                PerformanceP95EndpointRegressionGroupType,
+                ProfileFunctionRegressionType,
+            ]:
+                context.update(
+                    {
+                        "transaction_data": [
+                            ("Span Evidence", get_transaction_data(self.event), None)
+                        ],
+                    }
+                )
             context.update(
                 {
-                    "transaction_data": [("Span Evidence", get_transaction_data(self.event), None)],
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
