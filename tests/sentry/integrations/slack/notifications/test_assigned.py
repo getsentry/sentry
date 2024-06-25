@@ -167,7 +167,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    @with_feature({"organizations:slack-culprit-blocks": True})
     def test_assignment_performance_issue_block(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is assigned
@@ -181,6 +180,33 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         assert fallback_text == f"Issue assigned to {self.name} by themselves"
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks(
+            blocks,
+            event.organization,
+            event.project.slug,
+            event.group,
+            "assigned_activity-slack",
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @with_feature("organizations:slack-culprit-blocks")
+    def test_assignment_performance_issue_block_with_culprit_blocks(self, occurrence):
+        """
+        Test that a Slack message is sent with the expected payload when a performance issue is assigned
+        and block kit is enabled.
+        """
+        event = self.create_performance_issue()
+        with self.tasks():
+            self.create_notification(event.group, AssignedActivityNotification).send()
+
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == f"Issue assigned to {self.name} by themselves"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_performance_issue_blocks_with_culprit_blocks(
             blocks,
             event.organization,
             event.project.slug,

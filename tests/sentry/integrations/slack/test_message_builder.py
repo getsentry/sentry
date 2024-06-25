@@ -88,7 +88,6 @@ def build_test_message_blocks(
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
-
     if text:
         new_text = text.lstrip(" ")
         if new_text:

@@ -940,8 +940,42 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":white_circle:" in update_data["blocks"][0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-culprit-blocks")
     def test_resolve_perf_issue_block_kit_improvements(self):
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
+
+        event_data_2 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
+        event_data_2["timestamp"] = iso_format(before_now(seconds=20))
+        event_data_2["start_timestamp"] = iso_format(before_now(seconds=21))
+        event_data_2["event_id"] = "f" * 32
+
+        perf_issue = self.create_performance_issue(
+            event_data=event_data_2, fingerprint=group_fingerprint
+        )
+        self.group = perf_issue.group
+        assert self.group
+
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.resolve_issue_block_kit(original_message, "resolved")
+
+        self.group.refresh_from_db()
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
+
+        update_data = orjson.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert (
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
+            in update_data["blocks"][1]["text"]["text"]
+        )
+        assert update_data["blocks"][2]["text"]["text"] == expect_status
+        assert (
+            ":white_circle: :chart_with_upwards_trend:" in update_data["blocks"][0]["text"]["text"]
+        )
+
+    @responses.activate
+    @with_feature("organizations:slack-culprit-blocks")
+    def test_resolve_perf_issue_block_kit_improvements_with_culprit_blocks(self):
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
         event_data_2 = load_data("transaction-n-plus-one", fingerprint=[group_fingerprint])
