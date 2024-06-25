@@ -21,15 +21,6 @@ import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
 
-const {
-  lcp: LCP_WEIGHT,
-  fcp: FCP_WEIGHT,
-  fid: FID_WEIGHT,
-  cls: CLS_WEIGHT,
-  ttfb: TTFB_WEIGHT,
-  inp: INP_WEIGHT,
-} = PERFORMANCE_SCORE_WEIGHTS;
-
 type Coordinates = {
   x: number;
   y: number;
@@ -55,9 +46,6 @@ type Props = {
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
-  weights?: {
-    [key in WebVitals]: number;
-  };
   x?: number;
   y?: number;
 };
@@ -135,15 +123,6 @@ function PerformanceScoreRingWithTooltips({
   height,
   text,
   webVitalLabelCoordinates,
-  // TODO: This prop isn't really needed anymore since we should always get weights from projectScore
-  weights = {
-    lcp: LCP_WEIGHT,
-    fcp: FCP_WEIGHT,
-    fid: FID_WEIGHT,
-    cls: CLS_WEIGHT,
-    ttfb: TTFB_WEIGHT,
-    inp: INP_WEIGHT,
-  },
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,
@@ -182,6 +161,24 @@ function PerformanceScoreRingWithTooltips({
       return i === index ? color : `${theme.gray200}33`;
     });
   }
+
+  const weights = [
+    'lcpWeight',
+    'fcpWeight',
+    'inpWeight',
+    'fidWeight',
+    'clsWeight',
+    'ttfbWeight',
+  ].every(key => projectScore[key] === 0)
+    ? PERFORMANCE_SCORE_WEIGHTS
+    : {
+        lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        inp: projectScore.inpWeight,
+        fid: projectScore.fidWeight,
+        cls: projectScore.clsWeight,
+        ttfb: projectScore.ttfbWeight,
+      };
 
   const commonWebVitalLabelProps = {
     organization,

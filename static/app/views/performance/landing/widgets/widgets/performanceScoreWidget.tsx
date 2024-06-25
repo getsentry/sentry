@@ -34,17 +34,6 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  const weights = projectScore
-    ? {
-        lcp: projectScore.lcpWeight,
-        fcp: projectScore.fcpWeight,
-        inp: projectScore.inpWeight,
-        fid: 0,
-        cls: projectScore.clsWeight,
-        ttfb: projectScore.ttfbWeight,
-      }
-    : undefined;
-
   const moduleURL = useModuleURL('vital');
 
   return (
@@ -105,7 +94,6 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   ringSegmentColors={ringSegmentColors}
                   radiusPadding={10}
                   labelHeightPadding={0}
-                  weights={weights}
                 />
               ) : isLoading ? (
                 <StyledLoadingIndicator size={40} />
