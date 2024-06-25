@@ -68,7 +68,11 @@ function GroupReplays({group}: Props) {
       <StyledLayoutPage withPadding>
         <ReplayCountHeader>
           <IconUser size="sm" />
-          <Placeholder height="16px" width="400px" />
+          {isFetching ? (
+            <Placeholder height="18px" width="400px" />
+          ) : (
+            t('No replay data available.')
+          )}
         </ReplayCountHeader>
         <ReplayTable
           fetchError={fetchError}
