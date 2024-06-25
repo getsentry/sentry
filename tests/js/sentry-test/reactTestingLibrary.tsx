@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
+import GlobalDrawer from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types/organization';
@@ -125,6 +126,22 @@ function renderGlobalModal(options?: Options) {
   return {...result, waitForModalToHide};
 }
 
+function renderGlobalDrawer(options?: Options) {
+  const result = render(<GlobalDrawer />, options);
+
+  /**
+   * Helper that waits for the modal to be removed from the DOM. You may need to
+   * wait for the modal to be removed to avoid any act warnings.
+   */
+  function waitForDrawerToHide() {
+    return rtl.waitFor(() => {
+      expect(rtl.screen.queryByRole('complimentary')).not.toBeInTheDocument();
+    });
+  }
+
+  return {...result, waitForDrawerToHide};
+}
+
 /**
  * This cannot be implemented as a Sentry Integration because Jest creates an
  * isolated environment for each test suite. This means that if we were to apply
@@ -136,4 +153,4 @@ instrumentUserEvent();
 export * from '@testing-library/react';
 
 // eslint-disable-next-line import/export
-export {render, renderGlobalModal, userEvent, fireEvent};
+export {render, renderGlobalModal, userEvent, fireEvent, renderGlobalDrawer};
