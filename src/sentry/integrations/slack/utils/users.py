@@ -120,7 +120,11 @@ def get_slack_user_data(
 ) -> Iterable[dict[str, Any]]:
     sdk_client = SlackSdkClient(integration_id=integration.id)
     try:
-        users_list = sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE, **kwargs)
+        users_list = (
+            sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE, **kwargs)
+            if kwargs
+            else sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
+        )
 
         for page in users_list:
             users: dict[str, Any] = page.get("members")
