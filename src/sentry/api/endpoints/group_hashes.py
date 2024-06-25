@@ -66,7 +66,6 @@ class GroupHashesEndpoint(GroupEndpoint):
             .values_list("hash", flat=True)
         )
         if not hash_list:
-            # respond with an error that it's already being merged
             return Response({"detail": "Already being unmerged"}, status=409)
 
         metrics.incr(
