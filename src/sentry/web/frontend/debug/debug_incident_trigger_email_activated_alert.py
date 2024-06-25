@@ -39,7 +39,7 @@ class DebugIncidentActivatedAlertTriggerEmailView(MailPreviewView):
             organization=organization,
             name="My Alert",
             snuba_query=query,
-            monitor_type=AlertRuleMonitorType.ACTIVATED.value,
+            monitor_type=AlertRuleMonitorType.ACTIVATED,
         )
         activation = AlertRuleActivations(
             alert_rule=alert_rule,

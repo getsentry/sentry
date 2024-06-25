@@ -4,7 +4,7 @@ import logging
 from collections import namedtuple
 from collections.abc import Callable
 from datetime import timedelta
-from enum import Enum, StrEnum
+from enum import Enum, IntEnum, StrEnum
 from typing import Any, ClassVar, Protocol, Self
 
 from django.conf import settings
@@ -148,7 +148,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         try:
             project_alert_rules: QuerySet[AlertRule] = self.filter(
                 projects=project,
-                monitor_type=AlertRuleMonitorType.ACTIVATED.value,
+                monitor_type=AlertRuleMonitorType.ACTIVATED,
             )
             created_subscriptions = []
             for alert_rule in project_alert_rules:
@@ -225,7 +225,7 @@ class AlertRuleProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
-class AlertRuleMonitorType(Enum):
+class AlertRuleMonitorType(IntEnum):
     CONTINUOUS = 0
     ACTIVATED = 1
 
@@ -267,7 +267,7 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS.value)
+    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS)
     description = models.CharField(max_length=1000, null=True)
 
     class Meta:
@@ -339,7 +339,7 @@ class AlertRule(Model):
                 self.snuba_query,
                 query_extra=query_extra,
             )
-            if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
+            if self.monitor_type == AlertRuleMonitorType.ACTIVATED:
                 # NOTE: Activated Alert Rules are conditionally subscribed
                 # Meaning at time of subscription, the rule must have been activated
                 if not activator or activation_condition is None:

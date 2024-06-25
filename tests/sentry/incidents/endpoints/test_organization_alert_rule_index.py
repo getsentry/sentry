@@ -209,7 +209,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     def test_monitor_type_with_condition(self):
         data = {
             **self.alert_rule_dict,
-            "monitorType": AlertRuleMonitorType.ACTIVATED.value,
+            "monitorType": AlertRuleMonitorType.ACTIVATED,
             "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
         }
         with (

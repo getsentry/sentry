@@ -630,7 +630,7 @@ class SubscriptionProcessor:
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
                 activation: AlertRuleActivations | None = None
-                if self.alert_rule.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
+                if self.alert_rule.monitor_type == AlertRuleMonitorType.ACTIVATED:
                     activations = list(self.subscription.alertruleactivations_set.all())
                     if len(activations) != 1:
                         logger.error(
@@ -659,13 +659,13 @@ class SubscriptionProcessor:
             # NOTE: `incident_triggers` is derived from `self.active_incident`
             incident_trigger = self.incident_trigger_map.get(trigger.id)
             if incident_trigger:
-                incident_trigger.status = TriggerStatus.ACTIVE.value
+                incident_trigger.status = TriggerStatus.ACTIVE
                 incident_trigger.save()
             else:
                 incident_trigger = IncidentTrigger.objects.create(
                     incident=self.active_incident,
                     alert_rule_trigger=trigger,
-                    status=TriggerStatus.ACTIVE.value,
+                    status=TriggerStatus.ACTIVE,
                 )
             self.handle_incident_severity_update()
             self.incident_trigger_map[trigger.id] = incident_trigger

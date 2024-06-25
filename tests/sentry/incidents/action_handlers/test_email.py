@@ -330,7 +330,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
-            "monitor_type": AlertRuleMonitorType.ACTIVATED.value,
+            "monitor_type": AlertRuleMonitorType.ACTIVATED,
             "activator": "testing",
             "condition_type": AlertRuleActivationConditionType.DEPLOY_CREATION.value,
         }
