@@ -654,7 +654,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         "genAIConsent",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
-        "features",
         "quota",
     ]
 )

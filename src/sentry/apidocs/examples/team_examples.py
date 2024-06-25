@@ -419,6 +419,7 @@ class TeamExamples:
                     "require2FA": False,
                     "slug": "the-interstellar-jurisdiction",
                     "status": {"id": "active", "name": "active"},
+                    "features": ["session-replay-videos"],
                     "hasAuthProvider": True,
                     "links": {
                         "organizationUrl": "https://philosophers.sentry.io",

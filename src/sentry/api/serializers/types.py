@@ -24,7 +24,7 @@ class _Links(TypedDict):
 
 # Moved from serializers/models/organization.py to avoid a circular import between project and
 # organization serializers
-@extend_schema_serializer(exclude_fields=["features", "requireEmailVerification"])
+@extend_schema_serializer(exclude_fields=["requireEmailVerification"])
 class OrganizationSerializerResponse(TypedDict):
     id: str
     slug: str

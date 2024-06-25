@@ -8,6 +8,13 @@ class OrganizationExamples:
             value={
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
                 "dateCreated": "2018-11-06T21:19:55.101Z",
+                "features": [
+                    "session-replay-video",
+                    "onboarding",
+                    "advanced-search",
+                    "monitor-seat-billing",
+                    "issue-platform",
+                ],
                 "hasAuthProvider": False,
                 "id": "2",
                 "isEarlyAdopter": False,
@@ -41,6 +48,13 @@ class OrganizationExamples:
                     "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
                     "regionUrl": "https://us.sentry.io",
                 },
+                "features": [
+                    "session-replay-video",
+                    "onboarding",
+                    "advanced-search",
+                    "monitor-seat-billing",
+                    "issue-platform",
+                ],
                 "hasAuthProvider": False,
                 "access": [
                     "org:integrations",
@@ -410,6 +424,13 @@ class OrganizationExamples:
                 {
                     "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
                     "dateCreated": "2018-11-06T21:19:55.101Z",
+                    "features": [
+                        "session-replay-video",
+                        "onboarding",
+                        "advanced-search",
+                        "monitor-seat-billing",
+                        "issue-platform",
+                    ],
                     "hasAuthProvider": False,
                     "id": "2",
                     "isEarlyAdopter": False,
