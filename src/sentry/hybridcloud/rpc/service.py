@@ -22,7 +22,6 @@ from requests.adapters import HTTPAdapter, Retry
 from sentry import options
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
 from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
-from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
@@ -534,8 +533,7 @@ class _RemoteSiloCall:
             op="hybrid_cloud.dispatch_rpc",
             description=f"rpc to {self.service_name}.{self.method_name}",
         )
-        record = RpcMetricRecord.measure(self.service_name, self.method_name)
-        with span, timer, record:
+        with span, timer:
             yield
 
     def _remote_exception(self, message: str) -> RpcRemoteException:
