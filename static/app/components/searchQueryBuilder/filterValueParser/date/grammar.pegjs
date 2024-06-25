@@ -14,8 +14,8 @@ ms_format   = [0-9] [0-9]? [0-9]? [0-9]? [0-9]? [0-9]?
 tz_format   = [+-] num2 ":" num2
 
 iso_8601_date_format
-  = date:date_format time:time_format? tz:("Z" / tz_format)? {
-      return tc.tokenValueIso8601Date(text(), date, time, tz);
+  = date_format time_format? ("Z" / tz_format)? {
+      return tc.tokenValueIso8601Date(text());
     }
 
 rel_date_format
