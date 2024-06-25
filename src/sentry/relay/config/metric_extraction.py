@@ -127,7 +127,9 @@ def get_metric_extraction_config(
     }
 
 
-def get_on_demand_metric_specs(timeout: TimeChecker, project: Project):
+def get_on_demand_metric_specs(
+    timeout: TimeChecker, project: Project
+) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
     with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
         enabled_features = on_demand_metrics_feature_flags(project.organization)
     timeout.check()
