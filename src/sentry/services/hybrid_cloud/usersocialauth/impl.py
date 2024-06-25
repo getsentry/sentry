@@ -9,8 +9,8 @@ import sentry_sdk
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
+from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.services.hybrid_cloud.usersocialauth.model import (
     RpcUserSocialAuth,
