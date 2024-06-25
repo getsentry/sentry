@@ -55,7 +55,15 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
+    # TODO: Shouldn't this be a PUT rather than a DELETE?
     def delete(self, request: Request, group) -> Response:
+        """
+        Perform an unmerge by reassigning events with hash values corresponding to the given
+        grouphash ids from being part of the given group to being part of a new group.
+
+        Note that if multiple grouphash ids are given, all their corresponding events will end up in
+        a single new group together, rather than each hash's events ending in their own new group.
+        """
         grouphash_ids = request.GET.getlist("id")
         if not grouphash_ids:
             return Response()
