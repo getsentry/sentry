@@ -20,8 +20,6 @@ from sentry.snuba.dataset import Dataset
 
 
 class ProfileFunctionsQueryBuilderProtocol(Protocol):
-    config_class: type[DatasetConfig] = ProfileFunctionsDatasetConfig
-
     @property
     def config(self) -> ProfileFunctionsDatasetConfig:
         ...
