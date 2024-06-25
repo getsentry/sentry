@@ -70,13 +70,9 @@ jobs:
       #  if: steps.dependencies.outcome == 'success'
       #  run: yarn tsc -p config/tsconfig.ci.json
 
-      - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.11.8
-          cache-dependency-path: |
-            requirements-dev.txt
-            requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
+          python-version: '3.12'
 
       - name: Setup pre-commit
         # We don't use make setup-git because we're only interested in installing
@@ -84,6 +80,7 @@ jobs:
         # We don't need pre-commit install --install-hooks since we're just interested
         # in running the hooks.
         run: |
+          pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
           pre-commit install-hooks
 
       #- name: Setup tmate session
