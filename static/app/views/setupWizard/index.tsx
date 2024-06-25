@@ -103,7 +103,7 @@ const SuccessHeading = styled('h5')`
 const SuccessWrapper = styled('div')`
   display: flex;
   align-items: center;
-  gap: ${space(2)};
+  gap: ${space(3)};
 `;
 
 export default SetupWizard;
