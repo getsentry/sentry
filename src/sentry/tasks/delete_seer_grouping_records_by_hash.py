@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from sentry import features, options
@@ -6,6 +7,8 @@ from sentry.models.grouphash import GroupHash
 from sentry.seer.similarity.grouping_records import delete_grouping_records_by_hash
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -38,12 +41,20 @@ def delete_seer_grouping_records_by_hash(
 def call_delete_seer_grouping_records_by_hash(
     group_ids: list[int],
 ) -> None:
+    project = None
     if group_ids:
         group = Group.objects.get(id=group_ids[0])
         project = group.project if group else None
     if project and features.has("projects:similarity-embeddings-delete-by-hash", project):
         # TODO (jangjodi): once we store seer grouping info in GroupHash, we should filter by that here
-        group_hashes = GroupHash.objects.filter(project_id=project.id, group__id__in=group_ids)
+        group_hash_objects = GroupHash.objects.filter(
+            project_id=project.id, group__id__in=group_ids
+        )
+        group_hashes = [group_hash.hash for group_hash in group_hash_objects]
+        logger.info(
+            "calling seer record deletion by hash",
+            extra={"project_id": project.id, "hashes": group_hashes},
+        )
         delete_seer_grouping_records_by_hash.apply_async(
-            args=[project.id, [group_hash.hash for group_hash in group_hashes], 0]
+            args=[project.id, group_hashes, group_hashes, 0]
         )
