@@ -39,9 +39,6 @@ from sentry.search.events.builder.utils import (
     remove_hours,
     remove_minutes,
 )
-from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.metrics import MetricsDatasetConfig
-from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
@@ -142,17 +139,6 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
-
-    @property
-    def use_default_tags(self) -> bool:
-        if self._use_default_tags is None:
-            if self.params.organization is not None:
-                self._use_default_tags = features.has(
-                    "organizations:mep-use-default-tags", self.params.organization, actor=None
-                )
-            else:
-                self._use_default_tags = False
-        return self._use_default_tags
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
