@@ -18,8 +18,10 @@ export function isMRI(mri?: unknown): mri is MRI {
   }
 }
 
-type ParseResult<T extends MRI | string> = T extends MRI ? ParsedMRI : ParsedMRI | null;
-export function parseMRI<T extends MRI | string>(mri?: T): ParseResult<T> {
+type ParseResult<T extends MRI | string | null> = T extends MRI
+  ? ParsedMRI
+  : ParsedMRI | null;
+export function parseMRI<T extends MRI | string | null>(mri?: T): ParseResult<T> {
   if (!mri) {
     // TODO: How can this be done without casting?
     return null as ParseResult<T>;
