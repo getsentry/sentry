@@ -1482,10 +1482,12 @@ class BaseQueryBuilder:
                     for column, function_details in self.function_alias_map.items()
                 }
 
-                self.function_alias_map = {
-                    translated_columns.get(column, column): function_details
-                    for column, function_details in self.function_alias_map.items()
-                }
+                for column in list(self.function_alias_map):
+                    translated_column = translated_columns.get(column, column)
+                    if translated_column in self.function_alias_map:
+                        continue
+                    self.function_alias_map[translated_column] = self.function_alias_map.get(column)
+
                 if self.raw_equations:
                     for index, equation in enumerate(self.raw_equations):
                         translated_columns[f"equation[{index}]"] = f"equation|{equation}"

@@ -524,7 +524,7 @@ class TracesExecutor:
         builder, timestamp_column = self.get_traces_matching_span_conditions_query(
             params,
             snuba_params,
-            orderby=[self.sort],
+            sort=self.sort,
         )
 
         executor = OrderedTracesExecutor(
@@ -651,15 +651,24 @@ class TracesExecutor:
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
-        # The orderby is intentionally `None` here as this query is much faster
-        # if we let Clickhouse decide which order to return the results in.
-        # This also means we cannot order by any columns or paginate.
-        orderby: list[str] | None = None,
+        sort: str | None = None,
     ) -> tuple[QueryBuilder, str]:
+        if len(self.user_queries) < 2:
+            timestamp_column = "timestamp"
+        else:
+            timestamp_column = "min(timestamp)"
+
+        if sort == "-timestamp":
+            orderby = [f"-{timestamp_column}"]
+        else:
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby = None
+
         if len(self.user_queries) < 2:
             # Optimization: If there is only a condition for a single span,
             # we can take the fast path and query without using aggregates.
-            timestamp_column = "timestamp"
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params=params,
@@ -677,7 +686,6 @@ class TracesExecutor:
             for where in self.user_queries.values():
                 query.where.extend(where)
         else:
-            timestamp_column = "min(timestamp)"
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params=params,
