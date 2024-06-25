@@ -77,6 +77,7 @@ function MetricAlertActivity({organization, incident}: MetricAlertActivityProps)
               }/releases/${encodeURIComponent(activation.activator)}/`,
               query: {project: project},
             }}
+            style={{textOverflow: 'ellipsis', overflowX: 'inherit'}}
           >
             {activation.activator}
           </GlobalSelectionLink>
@@ -171,5 +172,4 @@ const Cell = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
   padding: ${space(1)};
   overflow-x: hidden;
-  text-overflow: ellipsis;
 `;

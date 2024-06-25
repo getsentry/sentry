@@ -17,6 +17,7 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.utils import build_query_extra
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
@@ -201,11 +202,7 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
-        extra = ""
-        if subscription.query_extra:
-            if snuba_query.query:
-                extra = " and "
-            extra += subscription.query_extra
+        extra = build_query_extra(subscription, snuba_query)
         snql_query = entity_subscription.build_query_builder(
             query=f"{snuba_query.query}{extra}",
             project_ids=[subscription.project_id],

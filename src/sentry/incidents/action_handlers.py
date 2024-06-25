@@ -35,6 +35,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.snuba.metrics import format_mri_field, is_mri_field
+from sentry.snuba.utils import build_query_extra
 from sentry.types.actor import Actor, ActorType
 from sentry.utils.email import MessageBuilder, get_email_addresses
 
@@ -403,11 +404,6 @@ def generate_incident_trigger_email_context(
     is_active = trigger_status == TriggerStatus.ACTIVE
     is_threshold_type_above = alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
     subscription = incident.subscription
-    query_extra = ""
-    if subscription and subscription.query_extra:
-        if snuba_query.query:
-            query_extra = " and "
-        query_extra += subscription.query_extra
 
     # if alert threshold and threshold type is above then show '>'
     # if resolve threshold and threshold type is *BELOW* then show '>'
@@ -437,8 +433,7 @@ def generate_incident_trigger_email_context(
                 alert_rule=incident.alert_rule,
                 selected_incident=incident,
                 size=ChartSize({"width": 600, "height": 200}),
-                query_extra=query_extra,
-                project_id=subscription.project_id if subscription else None,
+                subscription=subscription,
             )
         except Exception:
             logging.exception("Error while attempting to build_metric_alert_chart")
@@ -473,6 +468,7 @@ def generate_incident_trigger_email_context(
     snooze_alert = True
     snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 
+    extra = build_query_extra(subscription=subscription, snuba_query=snuba_query)
     return {
         "link": alert_link,
         "project_slug": project.slug,
@@ -481,7 +477,7 @@ def generate_incident_trigger_email_context(
         "time_window": format_duration(snuba_query.time_window / 60),
         "triggered_at": incident.date_added,
         "aggregate": aggregate,
-        "query": f"{snuba_query.query}{query_extra}",
+        "query": f"{snuba_query.query}{extra}",
         "threshold": threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'
