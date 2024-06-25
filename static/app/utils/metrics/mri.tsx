@@ -7,21 +7,28 @@ export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
-  return !!parseMRI(mri);
+  try {
+    _parseMRI(mri as string);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
-export function parseMRI(mri?: unknown): ParsedMRI | null {
+type ParseResult<T extends MRI | string> = T extends MRI ? ParsedMRI : ParsedMRI | null;
+export function parseMRI<T extends MRI | string>(mri?: T): ParseResult<T> {
   if (!mri) {
-    return null;
+    // TODO: How can this be done without casting?
+    return null as ParseResult<T>;
   }
   try {
-    return _parseMRI(mri as MRI);
+    return _parseMRI(mri) as ParseResult<T>;
   } catch (e) {
-    return null;
+    return null as ParseResult<T>;
   }
 }
 
-function _parseMRI(mri: MRI): ParsedMRI {
+function _parseMRI(mri: string): ParsedMRI {
   const mriArray = mri.split(new RegExp(/[:/@]/));
 
   if (mriArray.length !== 4) {
