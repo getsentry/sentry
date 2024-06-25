@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any
 
 from sentry.snuba import (
@@ -35,11 +36,24 @@ def get_dataset(dataset_label: str) -> Any | None:
     return DATASET_OPTIONS.get(dataset_label)
 
 
-def build_query_extra(subscription: QuerySubscription | None, snuba_query: SnubaQuery) -> str:
+@dataclass
+class QueryStrings:
+    query_string: str
+    query_extra: str
+    query: str
+
+
+def build_query_strings(
+    subscription: QuerySubscription | None, snuba_query: SnubaQuery
+) -> QueryStrings:
     query_extra = ""
     if subscription and subscription.query_extra:
         if snuba_query.query:
             query_extra = " and "
         query_extra += subscription.query_extra
 
-    return query_extra
+    return QueryStrings(
+        query=snuba_query.query,
+        query_extra=query_extra,
+        query_string=f"{snuba_query.query}{query_extra}",
+    )

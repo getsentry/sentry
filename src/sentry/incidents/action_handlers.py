@@ -35,7 +35,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.snuba.metrics import format_mri_field, is_mri_field
-from sentry.snuba.utils import build_query_extra
+from sentry.snuba.utils import build_query_strings
 from sentry.types.actor import Actor, ActorType
 from sentry.utils.email import MessageBuilder, get_email_addresses
 
@@ -468,7 +468,7 @@ def generate_incident_trigger_email_context(
     snooze_alert = True
     snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 
-    query_extra = build_query_extra(subscription=subscription, snuba_query=snuba_query)
+    query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     return {
         "link": alert_link,
         "project_slug": project.slug,
@@ -477,7 +477,7 @@ def generate_incident_trigger_email_context(
         "time_window": format_duration(snuba_query.time_window / 60),
         "triggered_at": incident.date_added,
         "aggregate": aggregate,
-        "query": f"{snuba_query.query}{query_extra}",
+        "query": query_str,
         "threshold": threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'

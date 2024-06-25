@@ -23,7 +23,7 @@ from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery
-from sentry.snuba.utils import build_query_extra
+from sentry.snuba.utils import build_query_strings
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
 CRASH_FREE_USERS = "percentage(users_crashed, users) AS _crash_rate_alert_aggregate"
@@ -215,8 +215,7 @@ def build_metric_alert_chart(
     project_id = subscription.project_id if subscription else first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
-    query_extra = build_query_extra(subscription=subscription, snuba_query=snuba_query)
-    query_str = f"{snuba_query.query}{query_extra}"
+    query_str = build_query_strings(subscription=subscription, snuba_query=snuba_query).query_string
     query = (
         query_str
         if is_crash_free_alert
