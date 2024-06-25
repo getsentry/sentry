@@ -192,7 +192,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
-      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid', 'inp'].includes(webVital)) {
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'inp'].includes(webVital)) {
         value = getFormattedDuration(value);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
@@ -279,8 +279,6 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
       return 'p75(measurements.cls)';
     case 'ttfb':
       return 'p75(measurements.ttfb)';
-    case 'fid':
-      return 'p75(measurements.fid)';
     case 'inp':
       return 'p75(measurements.inp)';
     default:

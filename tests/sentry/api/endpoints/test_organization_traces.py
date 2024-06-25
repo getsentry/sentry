@@ -793,31 +793,35 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             tags={"foo": "bar"},
         )
 
-        query = {
-            "query": "foo:bar",
-            "sort": "-timestamp",
-        }
+        for q in [
+            ["foo:bar"],
+            ["foo:bar", f"project:{self.project.slug}"],
+        ]:
+            query = {
+                "query": q,
+                "sort": "-timestamp",
+            }
 
-        response = self.do_request(
-            query,
-            features=[
-                "organizations:performance-trace-explorer",
-                "organizations:performance-trace-explorer-sorting",
-            ],
-        )
-        assert response.status_code == 200, response.data
+            response = self.do_request(
+                query,
+                features=[
+                    "organizations:performance-trace-explorer",
+                    "organizations:performance-trace-explorer-sorting",
+                ],
+            )
+            assert response.status_code == 200, response.data
 
-        assert response.data["meta"] == {
-            "dataset": "unknown",
-            "datasetReason": "unchanged",
-            "fields": {},
-            "isMetricsData": False,
-            "isMetricsExtractedData": False,
-            "tips": {},
-            "units": {},
-        }
+            assert response.data["meta"] == {
+                "dataset": "unknown",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {},
+            }
 
-        assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
+            assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
 
     def test_sorted_early_exit(self):
         (

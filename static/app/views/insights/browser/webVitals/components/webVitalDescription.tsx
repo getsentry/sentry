@@ -11,7 +11,7 @@ import {space} from 'sentry/styles/space';
 import type {Tag} from 'sentry/types';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
-import {ORDER_WITH_INP} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {Dot} from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
 import type {
   ProjectScore,
@@ -35,7 +35,6 @@ type Props = {
 const WEB_VITAL_FULL_NAME_MAP = {
   cls: t('Cumulative Layout Shift'),
   fcp: t('First Contentful Paint'),
-  fid: t('First Input Delay'),
   inp: t('Interaction to Next Paint'),
   lcp: t('Largest Contentful Paint'),
   ttfb: t('Time to First Byte'),
@@ -47,9 +46,6 @@ const VITAL_DESCRIPTIONS: Partial<Record<WebVital, string>> = {
   ),
   [WebVital.CLS]: t(
     'Cumulative Layout Shift (CLS) is the sum of individual layout shift scores for every unexpected element shift during the rendering process. Imagine navigating to an article and trying to click a link before the page finishes loading. Before your cursor even gets there, the link may have shifted down due to an image rendering. Rather than using duration for this Web Vital, the CLS score represents the degree of disruptive and visually unstable shifts.'
-  ),
-  [WebVital.FID]: t(
-    'First Input Delay (FID) measures the response time when the user tries to interact with the viewport. Actions maybe include clicking a button, link or other custom Javascript controller. It is key in helping the user determine if a page is usable or not.'
   ),
   [WebVital.LCP]: t(
     'Largest Contentful Paint (LCP) measures the render time for the largest content to appear in the viewport. This may be in any form from the document object model (DOM), such as images, SVGs, or text blocks. It’s the largest pixel area in the viewport, thus most visually defining. LCP helps developers understand how long it takes to see the main content on the page.'
@@ -72,7 +68,7 @@ type WebVitalDetailHeaderProps = {
 export function WebVitalDetailHeader({score, value, webVital}: Props) {
   const theme = useTheme();
   const colors = theme.charts.getColorPalette(3);
-  const dotColor = colors[ORDER_WITH_INP.indexOf(webVital)];
+  const dotColor = colors[ORDER.indexOf(webVital)];
   const status = score !== undefined ? scoreToStatus(score) : undefined;
 
   return (

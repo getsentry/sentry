@@ -17,6 +17,7 @@ from sentry.hybridcloud.rpc.resolvers import (
     ByRegionName,
     RequireSingleOrganization,
 )
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
@@ -33,7 +34,6 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo.base import SiloMode
 
