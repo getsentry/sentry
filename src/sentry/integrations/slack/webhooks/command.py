@@ -83,7 +83,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
     def link_team(self, slack_request: SlackDMRequest) -> Response:
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
-            return self.reply(LINK_FROM_CHANNEL_MESSAGE)
+            return self.reply(slack_request, LINK_FROM_CHANNEL_MESSAGE)
 
         logger_params = {
             "slack_request": slack_request,
@@ -92,7 +92,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         identity_user = slack_request.get_identity_user()
         if not identity_user:
             _logger.info("no-identity-user", extra=logger_params)
-            return self.reply(LINK_USER_FIRST_MESSAGE)
+            return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
 
         integration = slack_request.integration
         logger_params["integration_id"] = integration.id
@@ -103,7 +103,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         has_valid_role = False
         for organization_membership in organization_memberships:
             if is_team_linked_to_channel(organization_membership.organization, slack_request):
-                return self.reply(CHANNEL_ALREADY_LINKED_MESSAGE)
+                return self.reply(slack_request, CHANNEL_ALREADY_LINKED_MESSAGE)
 
             if is_valid_role(organization_membership) or is_team_admin(organization_membership):
                 has_valid_role = True
@@ -113,7 +113,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
             metrics.incr(
                 self._METRICS_FAILURE_KEY + ".link_team.insufficient_role", sample_rate=1.0
             )
-            return self.reply(INSUFFICIENT_ROLE_MESSAGE)
+            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_linking_url(
             integration=integration,
@@ -124,7 +124,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         )
 
         metrics.incr(self._METRICS_SUCCESS_KEY + ".link_team", sample_rate=1.0)
-        return self.reply(LINK_TEAM_MESSAGE.format(associate_url=associate_url))
+        return self.reply(slack_request, LINK_TEAM_MESSAGE.format(associate_url=associate_url))
 
     def unlink_team(self, slack_request: SlackDMRequest) -> Response:
         if slack_request.channel_name == DIRECT_MESSAGE_CHANNEL_NAME:
@@ -132,7 +132,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
 
         identity_user = slack_request.get_identity_user()
         if not identity_user:
-            return self.reply(LINK_USER_FIRST_MESSAGE)
+            return self.reply(slack_request, LINK_USER_FIRST_MESSAGE)
 
         integration = slack_request.integration
         organization_memberships = OrganizationMember.objects.get_for_integration(
@@ -145,10 +145,10 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
                 found = organization_membership
 
         if not found:
-            return self.reply(TEAM_NOT_LINKED_MESSAGE)
+            return self.reply(slack_request, TEAM_NOT_LINKED_MESSAGE)
 
         if not is_valid_role(found) and not is_team_admin(found):
-            return self.reply(INSUFFICIENT_ROLE_MESSAGE)
+            return self.reply(slack_request, INSUFFICIENT_ROLE_MESSAGE)
 
         associate_url = build_team_unlinking_url(
             integration=integration,
@@ -160,7 +160,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
         )
 
         metrics.incr(self._METRICS_SUCCESS_KEY + ".unlink_team", sample_rate=1.0)
-        return self.reply(UNLINK_TEAM_MESSAGE.format(associate_url=associate_url))
+        return self.reply(slack_request, UNLINK_TEAM_MESSAGE.format(associate_url=associate_url))
 
     def post(self, request: Request) -> Response:
         try:
