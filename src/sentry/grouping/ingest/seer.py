@@ -238,7 +238,7 @@ def get_seer_similar_issues(
             "event_id": event.event_id,
             "project_id": event.project.id,
             "hash": event_hash,
-            "results": similar_issues_metadata,
+            "results": similar_issues_metadata["results"],
             "group_returned": bool(parent_group),
         },
     )
