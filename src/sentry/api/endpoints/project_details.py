@@ -935,6 +935,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             # Tell seer to delete all the project's grouping records
             if features.has("projects:similarity-embeddings-delete-by-hash", project):
+                logger.info(
+                    "calling seer delete records by project", extra={"project_id": project.id}
+                )
                 delete_project_grouping_records(project.id)
 
             common_audit_data = {
