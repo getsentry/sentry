@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import type {ObjectStatus} from 'sentry/types/core';
 import {logException} from 'sentry/utils/logging';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import type {Monitor} from 'sentry/views/monitors/types';
+import type {Monitor, ProcessingErrorType} from 'sentry/views/monitors/types';
 
 export async function deleteMonitor(api: Client, orgId: string, monitor: Monitor) {
   addLoadingMessage(t('Deleting Monitor...'));
@@ -118,7 +118,7 @@ interface BulkEditResponse {
 export async function bulkEditMonitors(
   api: Client,
   orgId: string,
-  slugs: string[],
+  ids: string[],
   operation: BulkEditOperation
 ): Promise<BulkEditResponse | null> {
   addLoadingMessage();
@@ -128,7 +128,7 @@ export async function bulkEditMonitors(
       `/organizations/${orgId}/monitors/`,
       {
         method: 'PUT',
-        data: {...operation, slugs},
+        data: {...operation, ids},
       }
     );
     clearIndicators();
@@ -142,4 +142,56 @@ export async function bulkEditMonitors(
   }
 
   return null;
+}
+
+export async function deleteMonitorProcessingErrorByType(
+  api: Client,
+  orgId: string,
+  projectId: string,
+  monitorSlug: string,
+  errortype: ProcessingErrorType
+) {
+  addLoadingMessage();
+
+  try {
+    await api.requestPromise(
+      `/projects/${orgId}/${projectId}/monitors/${monitorSlug}/processing-errors/`,
+      {
+        method: 'DELETE',
+        query: {errortype},
+      }
+    );
+    clearIndicators();
+  } catch (err) {
+    logException(err);
+    if (err.status === 403) {
+      addErrorMessage(t('You do not have permission to dismiss these processing errors'));
+    } else {
+      addErrorMessage(t('Unable to dismiss the processing errors'));
+    }
+  }
+}
+
+export async function deleteProjectProcessingErrorByType(
+  api: Client,
+  orgId: string,
+  projectId: string,
+  errortype: ProcessingErrorType
+) {
+  addLoadingMessage();
+
+  try {
+    await api.requestPromise(`/projects/${orgId}/${projectId}/processing-errors/`, {
+      method: 'DELETE',
+      query: {errortype},
+    });
+    clearIndicators();
+  } catch (err) {
+    logException(err);
+    if (err.status === 403) {
+      addErrorMessage(t('You do not have permission to dismiss these processing errors'));
+    } else {
+      addErrorMessage(t('Unable to dismiss the processing errors'));
+    }
+  }
 }

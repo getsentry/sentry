@@ -8,6 +8,7 @@ import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {space} from 'sentry/styles/space';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
@@ -32,7 +33,15 @@ function ReplayView({toggleFullscreen, isLoading}: Props) {
       <PlayerBreadcrumbContainer>
         <PlayerContainer>
           <ContextContainer>
-            {isVideoReplay ? <ReplayCurrentScreen /> : <ReplayCurrentUrl />}
+            {isLoading ? (
+              <TextCopyInput size="sm" disabled>
+                {''}
+              </TextCopyInput>
+            ) : isVideoReplay ? (
+              <ReplayCurrentScreen />
+            ) : (
+              <ReplayCurrentUrl />
+            )}
             <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
             {isFullscreen ? (
               <ReplaySidebarToggleButton

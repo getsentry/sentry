@@ -11,15 +11,10 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    ParanoidManager,
-    ParanoidModel,
-    control_silo_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
 from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.project import RpcProject
@@ -200,7 +195,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import region_caching_service
         from sentry.services.hybrid_cloud.app.service import get_installation
 
         if self.api_token is not None:

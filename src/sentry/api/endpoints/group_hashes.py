@@ -55,18 +55,27 @@ class GroupHashesEndpoint(GroupEndpoint):
             paginator=GenericOffsetPaginator(data_fn=data_fn),
         )
 
+    # TODO: Shouldn't this be a PUT rather than a DELETE?
     def delete(self, request: Request, group) -> Response:
-        id_list = request.GET.getlist("id")
-        if not id_list:
+        """
+        Perform an unmerge by reassigning events with hash values corresponding to the given
+        grouphash ids from being part of the given group to being part of a new group.
+
+        Note that if multiple grouphash ids are given, all their corresponding events will end up in
+        a single new group together, rather than each hash's events ending in their own new group.
+        """
+        grouphash_ids = request.GET.getlist("id")
+        if not grouphash_ids:
             return Response()
 
-        hash_list = list(
-            GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
+        grouphashes = list(
+            GroupHash.objects.filter(
+                project_id=group.project_id, group=group.id, hash__in=grouphash_ids
+            )
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
             .values_list("hash", flat=True)
         )
-        if not hash_list:
-            # respond with an error that it's already being merged
+        if not grouphashes:
             return Response({"detail": "Already being unmerged"}, status=409)
 
         metrics.incr(
@@ -77,7 +86,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         )
 
         unmerge.delay(
-            group.project_id, group.id, None, hash_list, request.user.id if request.user else None
+            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
         )
 
         return Response(status=202)

@@ -21,6 +21,7 @@ const COMPACT_WIDTH_BREAKPOINT = 500;
 interface Props {
   toggleFullscreen: () => void;
   disableSettings?: boolean;
+  isLoading?: boolean;
   speedOptions?: number[];
 }
 
@@ -63,9 +64,11 @@ function ReplayPlayPauseBar() {
 function ReplayOptionsMenu({
   speedOptions,
   disableSettings,
+  isLoading,
 }: {
   disableSettings: boolean;
   speedOptions: number[];
+  isLoading?: boolean;
 }) {
   const {setSpeed, speed, isSkippingInactive, toggleSkipInactive} = useReplayContext();
   const SKIP_OPTION_VALUE = 'skip';
@@ -76,12 +79,14 @@ function ReplayOptionsMenu({
         <Button
           {...triggerProps}
           size="sm"
-          title={t('Settings')}
+          title={
+            disableSettings ? t('Playback settings are not available yet') : t('Settings')
+          }
           aria-label={t('Settings')}
           icon={<IconSettings size="sm" />}
         />
       )}
-      disabled={disableSettings}
+      disabled={isLoading || disableSettings}
     >
       <CompositeSelect.Region
         label={t('Playback Speed')}
@@ -114,6 +119,7 @@ function ReplayControls({
   toggleFullscreen,
   disableSettings = false,
   speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
+  isLoading,
 }: Props) {
   const barRef = useRef<HTMLDivElement>(null);
   const [isCompact, setIsCompact] = useState(false);
@@ -139,6 +145,7 @@ function ReplayControls({
       </Container>
       <ButtonBar gap={1}>
         <ReplayOptionsMenu
+          isLoading={isLoading}
           speedOptions={speedOptions}
           disableSettings={disableSettings}
         />

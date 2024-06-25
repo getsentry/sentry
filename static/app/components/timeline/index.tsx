@@ -1,11 +1,11 @@
-import {useRef} from 'react';
+import {type CSSProperties, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {getFormattedTimestamp} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/time/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {getFormattedTimestamp} from 'sentry/utils/date/getFormattedTimestamp';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
@@ -18,12 +18,18 @@ export interface TimelineItemProps {
   timeString: string;
   title: React.ReactNode;
   children?: React.ReactNode;
+  className?: string;
   colorConfig?: ColorConfig;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
+  renderTimestamp?: (
+    timeString: TimelineItemProps['timeString'],
+    startTimeString: TimelineItemProps['startTimeString']
+  ) => React.ReactNode;
   startTimeString?: string;
+  style?: CSSProperties;
 }
 
 export function Item({
@@ -31,12 +37,12 @@ export function Item({
   children,
   icon,
   timeString,
-  startTimeString,
   colorConfig = {primary: 'gray300', secondary: 'gray200'},
+  startTimeString,
+  renderTimestamp,
   isActive = false,
-  onClick,
-  onMouseEnter,
-  onMouseLeave,
+  style,
+  ...props
 }: TimelineItemProps) {
   const theme = useTheme();
   const placeholderTime = useRef(new Date().toTimeString()).current;
@@ -54,12 +60,11 @@ export function Item({
     <Row
       color={secondary}
       hasLowerBorder={isActive}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
       style={{
         borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
+        ...style,
       }}
+      {...props}
     >
       <IconWrapper
         style={{
@@ -72,7 +77,7 @@ export function Item({
       <Title style={{color: theme[primary]}}>{title}</Title>
       <Timestamp>
         <Tooltip title={`${preciseTime} - ${date}`} skipWrapper>
-          {displayTime}
+          {renderTimestamp ? renderTimestamp(timeString, startTimeString) : displayTime}
         </Tooltip>
       </Timestamp>
       <Spacer
@@ -120,7 +125,8 @@ const Row = styled('div')<{hasLowerBorder: boolean}>`
     margin-bottom: 0;
     background: ${p => p.theme.background};
   }
-  &:last-child > :last-child {
+  &:last-child > :last-child,
+  &:first-child > :last-child {
     margin-bottom: ${p => (p.hasLowerBorder ? space(1) : 0)};
   }
 `;
@@ -130,6 +136,7 @@ const IconWrapper = styled('div')`
   border-radius: 100%;
   border: 1px solid;
   background: ${p => p.theme.background};
+  z-index: 10;
   svg {
     display: block;
     margin: ${space(0.5)};
@@ -140,6 +147,7 @@ const Title = styled('p')`
   margin: 0;
   font-weight: bold;
   text-transform: capitalize;
+  text-align: left;
   grid-column: span 1;
 `;
 
@@ -157,12 +165,14 @@ const Spacer = styled('div')`
 `;
 
 const Content = styled('div')`
+  text-align: left;
   grid-column: span 2;
   color: ${p => p.theme.subText};
-  margin: ${space(0.25)} 0 ${space(2)};
+  margin: ${space(0.25)} 0 0;
 `;
 
 export const Text = styled('div')`
+  text-align: left;
   &:only-child {
     margin-top: 0;
   }
