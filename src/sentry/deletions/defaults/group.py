@@ -6,8 +6,8 @@ from collections import defaultdict
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.models.rulefirehistory import RuleFireHistory
-from tests.sentry.tasks.test_delete_seer_grouping_records_by_hash import (
-    test_delete_seer_grouping_records_by_hash_batches,
+from sentry.tasks.delete_seer_grouping_records_by_hash import (
+    call_delete_seer_grouping_records_by_hash,
 )
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
@@ -132,7 +132,7 @@ class GroupDeletionTask(ModelDeletionTask):
         group_ids = [group.id for group in instance_list]
 
         # Tell seer to delete grouping records with these group hashes
-        test_delete_seer_grouping_records_by_hash_batches(group_ids)
+        call_delete_seer_grouping_records_by_hash(group_ids)
 
         # Remove child relations for all groups first.
         child_relations: list[BaseRelation] = []
