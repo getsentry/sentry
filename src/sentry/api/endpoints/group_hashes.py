@@ -56,12 +56,14 @@ class GroupHashesEndpoint(GroupEndpoint):
         )
 
     def delete(self, request: Request, group) -> Response:
-        id_list = request.GET.getlist("id")
-        if not id_list:
+        grouphash_ids = request.GET.getlist("id")
+        if not grouphash_ids:
             return Response()
 
         grouphashes = list(
-            GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
+            GroupHash.objects.filter(
+                project_id=group.project_id, group=group.id, hash__in=grouphash_ids
+            )
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
             .values_list("hash", flat=True)
         )
