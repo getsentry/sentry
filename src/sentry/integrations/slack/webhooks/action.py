@@ -190,16 +190,14 @@ class SlackActionEndpoint(Endpoint):
         )
         channel_id = None
         response_url = None
-        view = None
-        if features.has("organizations:slack-block-kit", group.project.organization):
-            # the channel ID and response URL are in a different place if it's coming from a modal
-            view = slack_request.data.get("view")
-            if view:
-                private_metadata = view.get("private_metadata")
-                if private_metadata:
-                    data = orjson.loads(private_metadata)
-                    channel_id = data.get("channel_id")
-                    response_url = data.get("orig_response_url")
+        # the channel ID and response URL are in a different place if it's coming from a modal
+        view = slack_request.data.get("view")
+        if view:
+            private_metadata = view.get("private_metadata")
+            if private_metadata:
+                data = orjson.loads(private_metadata)
+                channel_id = data.get("channel_id")
+                response_url = data.get("orig_response_url")
 
         if error.status_code == 403:
             text = UNLINK_IDENTITY_MESSAGE.format(
@@ -389,13 +387,12 @@ class SlackActionEndpoint(Endpoint):
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
         org = group.project.organization
-        use_block_kit = features.has("organizations:slack-block-kit", org)
         callback_id = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
         }
-        if use_block_kit and slack_request.data.get("channel"):
+        if slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
             callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = orjson.dumps(callback_id).decode()
@@ -413,44 +410,30 @@ class SlackActionEndpoint(Endpoint):
         }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
 
-        if use_block_kit:
-            # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-            modal_payload = self.build_resolve_modal_payload(callback_id)
-            try:
-                payload = {
-                    "view": orjson.dumps(modal_payload).decode(),
+        # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
+        modal_payload = self.build_resolve_modal_payload(callback_id)
+        try:
+            payload = {
+                "view": orjson.dumps(modal_payload).decode(),
+                "trigger_id": slack_request.data["trigger_id"],
+            }
+            headers = {"content-type": "application/json; charset=utf-8"}
+            slack_client.post(
+                "/views.open",
+                data=orjson.dumps(payload).decode(),
+                headers=headers,
+            )
+        except ApiError as e:
+            logger.exception(
+                "slack.action.response-error",
+                extra={
+                    "error": str(e),
+                    "organization_id": org.id,
+                    "integration_id": slack_request.integration.id,
                     "trigger_id": slack_request.data["trigger_id"],
-                }
-                headers = {"content-type": "application/json; charset=utf-8"}
-                slack_client.post(
-                    "/views.open",
-                    data=orjson.dumps(payload).decode(),
-                    headers=headers,
-                )
-            except ApiError as e:
-                logger.exception(
-                    "slack.action.response-error",
-                    extra={
-                        "error": str(e),
-                        "organization_id": org.id,
-                        "integration_id": slack_request.integration.id,
-                        "trigger_id": slack_request.data["trigger_id"],
-                        "dialog": "resolve",
-                    },
-                )
-
-        else:
-            try:
-                slack_client.post("/dialog.open", data=payload)
-            except ApiError as e:
-                logger.exception(
-                    "slack.action.response-error",
-                    extra={
-                        "error": str(e),
-                        "organization_id": org.id,
-                        "integration_id": slack_request.integration.id,
-                    },
-                )
+                    "dialog": "resolve",
+                },
+            )
 
     def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         org = group.project.organization

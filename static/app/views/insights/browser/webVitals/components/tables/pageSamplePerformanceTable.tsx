@@ -183,7 +183,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         'measurements.fcp',
         'measurements.lcp',
         'measurements.ttfb',
-        'measurements.fid',
         'measurements.cls',
         'measurements.inp',
         'transaction.duration',
@@ -281,7 +280,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         'measurements.fcp',
         'measurements.lcp',
         'measurements.ttfb',
-        'measurements.fid',
         'measurements.inp',
         'transaction.duration',
       ].includes(key)

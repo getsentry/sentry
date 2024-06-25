@@ -5,10 +5,9 @@ import {getWebVitalsFromTableData} from 'sentry/views/insights/browser/webVitals
 export const PERFORMANCE_SCORE_WEIGHTS = {
   lcp: 30,
   fcp: 15,
+  inp: 30,
+  fid: 0,
   cls: 15,
-  fid: 30,
-  // INP is unused in FE score calculation but we need this here to satisfy TS
-  inp: 0,
   ttfb: 10,
 };
 
@@ -92,12 +91,10 @@ export const calculatePerformanceScore = (vitals: Vitals): ProjectScore => {
     fcpScore: fcpScore !== undefined ? Math.round(fcpScore * 100) : undefined,
     ttfbScore: ttfbScore !== undefined ? Math.round(ttfbScore * 100) : undefined,
     clsScore: clsScore !== undefined ? Math.round(clsScore * 100) : undefined,
-    fidScore: fidScore !== undefined ? Math.round(fidScore * 100) : undefined,
     lcpWeight: PERFORMANCE_SCORE_WEIGHTS.lcp,
     fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
     ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
     clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
-    fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
     inpWeight: PERFORMANCE_SCORE_WEIGHTS.inp,
   };
 };

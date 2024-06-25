@@ -10,7 +10,7 @@ from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 
-from sentry import features, onboarding_tasks, options, quotas, roles
+from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -245,7 +245,6 @@ class OrganizationSerializer(Serializer):
         from sentry import features
         from sentry.features.base import OrganizationFeature
 
-        logging_enabled = options.get("hybridcloud.endpoint_flag_logging")
         # Retrieve all registered organization features
         org_features = [
             feature
@@ -254,14 +253,6 @@ class OrganizationSerializer(Serializer):
         ]
         feature_set = set()
 
-        if logging_enabled:
-            logger.info(
-                "organization_serializer.begin_feature_check",
-                extra={
-                    "org_features": org_features,
-                    "user.id": user.id if not user.is_anonymous else None,
-                },
-            )
         with sentry_sdk.start_span(op="features.check", description="check batch features"):
             # Check features in batch using the entity handler
             batch_features = features.batch_has(org_features, actor=user, organization=obj)
@@ -277,16 +268,6 @@ class OrganizationSerializer(Serializer):
 
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
-
-        if logging_enabled:
-            logger.info(
-                "organization_serializer.batch_feature_result",
-                extra={
-                    "batch_feature_result": batch_features,
-                    "user.id": user.id if not user.is_anonymous else None,
-                    "remaining_features": org_features,
-                },
-            )
 
         with sentry_sdk.start_span(op="features.check", description="check individual features"):
             # Remaining features should not be checked via the entity handler
