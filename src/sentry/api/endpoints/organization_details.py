@@ -639,14 +639,14 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
     )
     debugFilesRole = serializers.ChoiceField(
         choices=roles.get_choices(),
-        help_text="The role required tto download debug information files, proguard mappings and source maps.",
+        help_text="The role required to download debug information files, ProGuard mappings and source maps.",
         required=False,
     )
 
     # avatar
     avatarType = serializers.ChoiceField(
         choices=(("letter_avatar", "Use initials"), ("upload", "Upload an image")),
-        help_text="The type of display picture for the organization",
+        help_text="The type of display picture for the organization.",
         required=False,
     )
     avatar = serializers.CharField(
@@ -692,11 +692,11 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
 
     # data scrubbing
     dataScrubber = serializers.BooleanField(
-        help_text="Specify `true` to require server-side data scrubbing be enabled for all projects.",
+        help_text="Specify `true` to require server-side data scrubbing for all projects.",
         required=False,
     )
     dataScrubberDefaults = serializers.BooleanField(
-        help_text="Specify `true` to require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.",
+        help_text="Specify `true` to applt the default scrubbers to prevent things like passwords and credit cards from being stored for all projects.",
         required=False,
     )
     sensitiveFields = serializers.ListField(
@@ -714,7 +714,7 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         required=False,
     )
     relayPiiConfig = serializers.CharField(
-        help_text="""Advanced data scrubbing rules that can be configured for each project as a JSON string. The new rules will only apply to upcoming events. For more details on advanced data scrubbing, see our [full documentation](/security-legal-pii/scrubbing/advanced-datascrubbing/).
+        help_text="""Advanced data scrubbing rules that can be configured for each project as a JSON string. The new rules will only apply to new incoming events. For more details on advanced data scrubbing, see our [full documentation](/security-legal-pii/scrubbing/advanced-datascrubbing/).
 
 > Warning: Calling this endpoint with this field fully overwrites the advanced data scrubbing rules.
 
@@ -769,7 +769,7 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
         required=False,
     )
     metricAlertsThreadFlag = serializers.BooleanField(
-        help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for an Metric Alert notification. Requires a Slack integration.",
+        help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for a Metric Alert notification. Requires a Slack integration.",
         required=False,
     )
 
@@ -826,8 +826,8 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization) -> Response:
         """
-        Return details on an individual organization including various details
-        such as membership access, and teams.
+        Return details on an individual organization, including various details
+        such as membership access and teams.
         """
         # This param will be used to determine if we should include feature flags in the response
         include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
