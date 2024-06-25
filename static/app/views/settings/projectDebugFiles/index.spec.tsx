@@ -36,19 +36,24 @@ describe('ProjectDebugFiles', function () {
       url: endpoint,
       body: [DebugFileFixture()],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(<ProjectDebugFiles {...props} />);
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
 
     // Uploaded debug files content
     expect(screen.getByText('Uploaded debug information files')).toBeInTheDocument();
-    expect(screen.getByText('libS.so')).toBeInTheDocument();
+    expect(await screen.findByText('libS.so')).toBeInTheDocument();
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -58,7 +63,7 @@ describe('ProjectDebugFiles', function () {
 
     // Uploaded debug files content
     expect(
-      screen.getByText('There are no debug symbols for this project.')
+      await screen.findByText('There are no debug symbols for this project.')
     ).toBeInTheDocument();
   });
 
@@ -74,7 +79,7 @@ describe('ProjectDebugFiles', function () {
     renderGlobalModal();
 
     // Delete button
-    await userEvent.click(screen.getByTestId('delete-dif'));
+    await userEvent.click(await screen.findByTestId('delete-dif'));
 
     // Confirm Modal
     await screen.findByRole('dialog');

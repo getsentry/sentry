@@ -1,20 +1,27 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Checkbox from 'sentry/components/checkbox';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useApiQuery, useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -27,211 +34,168 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
   project: Project;
 };
 
-type State = DeprecatedAsyncView['state'] & {
-  debugFiles: DebugFile[] | null;
-  project: Project;
-  showDetails: boolean;
-  builtinSymbolSources?: BuiltinSymbolSource[] | null;
-};
+function ProjectDebugSymbols({organization, project, location, router, params}: Props) {
+  const navigate = useNavigate();
+  const api = useApi();
 
-class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    const {projectId} = this.props.params;
+  const [showDetails, setShowDetails] = useState(false);
 
-    return routeTitleGen(t('Debug Files'), projectId, false);
-  }
-
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      project: this.props.project,
-      showDetails: false,
-    };
-  }
-
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, params, location} = this.props;
-    const {builtinSymbolSources} = this.state || {};
-    const {query} = location.query;
-
-    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
-      [
-        'debugFiles',
-        `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,
-        {
-          query: {query},
-        },
-      ],
-    ];
-
-    if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
-      endpoints.push([
-        'builtinSymbolSources',
-        `/organizations/${organization.slug}/builtin-symbol-sources/`,
-        {},
-      ]);
-    }
-
-    return endpoints;
-  }
-
-  handleDelete = (id: string) => {
-    const {organization, params} = this.props;
-
-    this.setState({
-      loading: true,
-    });
-
-    this.api.request(
-      `/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${id}`,
+  const {
+    data: debugFiles,
+    getResponseHeader: getDebugFilesResponseHeader,
+    isLoading: isLoadingDebugFiles,
+    refetch: refetchDebugFiles,
+  } = useApiQuery<DebugFile[] | null>(
+    [
+      `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,
       {
-        method: 'DELETE',
-        complete: () => this.fetchData(),
-      }
-    );
-  };
+        query: {query: location.query.query},
+      },
+    ],
+    {
+      staleTime: 0,
+    }
+  );
 
-  handleSearch = (query: string) => {
-    const {location, router} = this.props;
+  const {
+    data: builtinSymbolSources,
+    isLoading: isLoadingSymbolSources,
+    refetch: refetchBuiltinSymbolSources,
+  } = useApiQuery<BuiltinSymbolSource[] | null>(
+    [`/organizations/${organization.slug}/builtin-symbol-sources/`],
+    {
+      staleTime: 0,
+      enabled: organization.features.includes('symbol-sources'),
+    }
+  );
 
-    router.push({
-      ...location,
-      query: {...location.query, cursor: undefined, query},
-    });
-  };
+  const handleSearch = useCallback(
+    (query: string) => {
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, query},
+      });
+    },
+    [navigate, location]
+  );
 
-  async fetchProject() {
-    const {organization, params} = this.props;
-    try {
-      const updatedProject = await this.api.requestPromise(
-        `/projects/${organization.slug}/${params.projectId}/`
+  const query = useMemo(() => {
+    return typeof location.query === 'string' ? location.query : undefined;
+  }, [location.query]);
+
+  const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({
+    mutationFn: (id: string) => {
+      return api.requestPromise(
+        `/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${id}`,
+        {
+          method: 'DELETE',
+        }
       );
-      ProjectsStore.onUpdateSuccess(updatedProject);
-    } catch {
-      addErrorMessage(t('An error occurred while fetching project data'));
-    }
-  }
+    },
+    onMutate: () => {
+      addLoadingMessage('Deleting debug file');
+    },
+    onSuccess: () => {
+      addSuccessMessage('Successfully deleted debug file');
+      refetchDebugFiles();
+      refetchBuiltinSymbolSources();
+    },
+    onError: () => {
+      addErrorMessage('Failed to delete debug file');
+    },
+  });
 
-  getQuery() {
-    const {query} = this.props.location.query;
+  return (
+    <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), params.projectId, false)}>
+      <SettingsPageHeader title={t('Debug Information Files')} />
 
-    return typeof query === 'string' ? query : undefined;
-  }
+      <TextBlock>
+        {t(`
+          Debug information files are used to convert addresses and minified
+          function names from native crash reports into function names and
+          locations.
+        `)}
+      </TextBlock>
 
-  getEmptyMessage() {
-    if (this.getQuery()) {
-      return t('There are no debug symbols that match your search.');
-    }
+      {organization.features.includes('symbol-sources') && (
+        <Fragment>
+          <PermissionAlert project={project} />
 
-    return t('There are no debug symbols for this project.');
-  }
+          <Sources
+            api={api}
+            location={location}
+            router={router}
+            project={project}
+            organization={organization}
+            customRepositories={
+              (project.symbolSources
+                ? JSON.parse(project.symbolSources)
+                : []) as CustomRepo[]
+            }
+            builtinSymbolSources={project.builtinSymbolSources ?? []}
+            builtinSymbolSourceOptions={builtinSymbolSources ?? []}
+            isLoading={isLoadingSymbolSources}
+          />
+        </Fragment>
+      )}
 
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderDebugFiles() {
-    const {debugFiles, showDetails} = this.state;
-    const {organization, params, project} = this.props;
-
-    if (!debugFiles?.length) {
-      return null;
-    }
-
-    return debugFiles.map(debugFile => {
-      const downloadUrl = `${this.api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
-
-      return (
-        <DebugFileRow
-          debugFile={debugFile}
-          showDetails={showDetails}
-          downloadUrl={downloadUrl}
-          downloadRole={organization.debugFilesRole}
-          onDelete={this.handleDelete}
-          key={debugFile.id}
-          orgSlug={organization.slug}
-          project={project}
-        />
-      );
-    });
-  }
-
-  renderBody() {
-    const {organization, project, router, location} = this.props;
-    const {loading, showDetails, builtinSymbolSources, debugFiles, debugFilesPageLinks} =
-      this.state;
-
-    return (
-      <Fragment>
-        <SettingsPageHeader title={t('Debug Information Files')} />
-
-        <TextBlock>
-          {t(`
-            Debug information files are used to convert addresses and minified
-            function names from native crash reports into function names and
-            locations.
-          `)}
-        </TextBlock>
-
-        {organization.features.includes('symbol-sources') && (
-          <Fragment>
-            <PermissionAlert project={project} />
-
-            <Sources
-              api={this.api}
-              location={location}
-              router={router}
-              project={project}
-              organization={organization}
-              customRepositories={
-                (project.symbolSources
-                  ? JSON.parse(project.symbolSources)
-                  : []) as CustomRepo[]
-              }
-              builtinSymbolSources={project.builtinSymbolSources ?? []}
-              builtinSymbolSourceOptions={builtinSymbolSources ?? []}
-              isLoading={loading}
+      <Wrapper>
+        <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
+        <Filters>
+          <Label>
+            <Checkbox
+              checked={showDetails}
+              onChange={e => {
+                setShowDetails((e.target as HTMLInputElement).checked);
+              }}
             />
-          </Fragment>
-        )}
+            {t('show details')}
+          </Label>
 
-        <Wrapper>
-          <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
-          <Filters>
-            <Label>
-              <Checkbox
-                checked={showDetails}
-                onChange={e => {
-                  this.setState({showDetails: (e.target as HTMLInputElement).checked});
-                }}
-              />
-              {t('show details')}
-            </Label>
+          <SearchBar
+            placeholder={t('Search DIFs')}
+            onSearch={handleSearch}
+            query={query}
+          />
+        </Filters>
+      </Wrapper>
 
-            <SearchBar
-              placeholder={t('Search DIFs')}
-              onSearch={this.handleSearch}
-              query={this.getQuery()}
-            />
-          </Filters>
-        </Wrapper>
+      <StyledPanelTable
+        headers={[
+          t('Debug ID'),
+          t('Information'),
+          <Actions key="actions">{t('Actions')}</Actions>,
+        ]}
+        emptyMessage={
+          query
+            ? t('There are no debug symbols that match your search.')
+            : t('There are no debug symbols for this project.')
+        }
+        isEmpty={debugFiles?.length === 0}
+        isLoading={isLoadingDebugFiles}
+      >
+        {!debugFiles?.length
+          ? null
+          : debugFiles.map(debugFile => {
+              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
 
-        <StyledPanelTable
-          headers={[
-            t('Debug ID'),
-            t('Information'),
-            <Actions key="actions">{t('Actions')}</Actions>,
-          ]}
-          emptyMessage={this.getEmptyMessage()}
-          isEmpty={debugFiles?.length === 0}
-          isLoading={loading}
-        >
-          {this.renderDebugFiles()}
-        </StyledPanelTable>
-        <Pagination pageLinks={debugFilesPageLinks} />
-      </Fragment>
-    );
-  }
+              return (
+                <DebugFileRow
+                  debugFile={debugFile}
+                  showDetails={showDetails}
+                  downloadUrl={downloadUrl}
+                  downloadRole={organization.debugFilesRole}
+                  onDelete={handleDeleteDebugFile}
+                  key={debugFile.id}
+                  orgSlug={organization.slug}
+                  project={project}
+                />
+              );
+            })}
+      </StyledPanelTable>
+      <Pagination pageLinks={getDebugFilesResponseHeader?.('Link')} />
+    </SentryDocumentTitle>
+  );
 }
 
 const StyledPanelTable = styled(PanelTable)`
