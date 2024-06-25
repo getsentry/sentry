@@ -244,14 +244,13 @@ class MetricsQueryBuilder(QueryBuilder):
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
-        aggregate_columns = self.selected_columns
-        map = {
-            col: self._get_on_demand_metric_spec(col)
-            for col in aggregate_columns
-            # Replace with proper table code later
-            if fields.is_function(col) and self._get_on_demand_metric_spec(col)
-        }
-        return map
+        spec_map = {}
+        for col in self.selected_columns:
+            spec = self._get_on_demand_metric_spec(col)
+            if fields.is_function(col) and spec:
+                spec_map[col] = spec
+
+        return spec_map
 
     def convert_spec_to_metric_field(self, spec: OnDemandMetricSpec) -> MetricField:
         if isinstance(self, (TopMetricsQueryBuilder, TimeseriesMetricQueryBuilder)):
