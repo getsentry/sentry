@@ -1125,23 +1125,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         status_action = {"name": "status", "value": "ignored:archived_forever", "type": "button"}
 
-        with self.feature({"organizations:slack-block-kit": False}):
-            resp = self.post_webhook(
-                action_data=[status_action], slack_user={"id": user2_identity.external_id}
-            )
-            self.group = Group.objects.get(id=self.group.id)
-
-            associate_url = build_unlinking_url(
-                self.integration.id, "slack_id2", "C065W1189", self.response_url
-            )
-
-            assert resp.status_code == 200, resp.content
-            assert resp.data["response_type"] == "ephemeral"
-            assert not resp.data["replace_original"]
-            assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-                associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
-            )
-
+        associate_url = build_unlinking_url(
+            self.integration.id, "slack_id2", "C065W1189", self.response_url
+        )
         with self.feature("organizations:slack-block-kit"):
             # test backwards compatibility
             resp = self.post_webhook(

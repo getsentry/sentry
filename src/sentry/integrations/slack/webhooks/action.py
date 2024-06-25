@@ -36,7 +36,6 @@ from sentry.models.rule import Rule
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -715,11 +714,9 @@ class SlackActionEndpoint(Endpoint):
         return action_option
 
     @classmethod
-    def get_action_list(
-        cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> list[MessageAction]:
+    def get_action_list(cls, slack_request: SlackActionRequest) -> list[MessageAction]:
         action_data = slack_request.data.get("actions")
-        if use_block_kit and action_data:
+        if action_data:
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
             # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
             if action_data[0].get("action_id"):
@@ -803,30 +800,7 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
-        result = integration_service.organization_contexts(
-            integration_id=slack_request.integration.id
-        )
-        org_integrations = result.organization_integrations
-        use_block_kit = False
-        if len(org_integrations):
-            org_context = organization_service.get_organization_by_id(
-                id=org_integrations[0].organization_id, include_projects=False, include_teams=False
-            )
-            if org_context:
-                use_block_kit = any(
-                    [
-                        (
-                            True
-                            if features.has(
-                                "organizations:slack-block-kit", org_context.organization
-                            )
-                            else False
-                        )
-                        for oi in org_integrations
-                    ]
-                )
-
-        action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
+        action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
