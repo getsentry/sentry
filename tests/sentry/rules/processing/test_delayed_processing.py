@@ -4,6 +4,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -20,13 +21,12 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
-
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
 
 
-# @freeze_time("2024-06-25T00:59:00Z")
+@freeze_time((datetime.now(UTC) - timedelta(days=1)).replace(hour=00, minute=16, second=00))
 class ProcessDelayedAlertConditionsTest(
     TestCase, APITestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
 ):
@@ -619,7 +619,7 @@ class ProcessDelayedAlertConditionsTest(
         query, but the second percent query is separate.
         """
 
-        def ordered_callthrough(descending=False):
+        def mock_get_condition_group(descending=False):
             """
             Mocks get_condition_groups to run with the passed in alert_rules in
             a defined order.
@@ -686,7 +686,7 @@ class ProcessDelayedAlertConditionsTest(
         # Have the count condition be processed first.
         with patch(
             "sentry.rules.processing.delayed_processing.get_condition_query_groups",
-            side_effect=ordered_callthrough(descending=False),
+            side_effect=mock_get_condition_group(descending=False),
         ):
             apply_delayed(project_ids[0][0])
         assert_results()
@@ -694,7 +694,7 @@ class ProcessDelayedAlertConditionsTest(
         # Have the percent condition be processed first.
         with patch(
             "sentry.rules.processing.delayed_processing.get_condition_query_groups",
-            side_effect=ordered_callthrough(descending=True),
+            side_effect=mock_get_condition_group(descending=True),
         ):
             apply_delayed(project_ids[0][0])
         assert_results()
