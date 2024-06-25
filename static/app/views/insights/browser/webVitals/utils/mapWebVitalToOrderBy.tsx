@@ -20,5 +20,4 @@ const WEBVITAL_TO_KEY = {
   fcp: 'measurements.fcp',
   cls: 'measurements.cls',
   ttfb: 'measurements.ttfb',
-  fid: 'measurements.fid',
 };

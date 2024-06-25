@@ -19,8 +19,6 @@ export function Recommendations({
   switch (webVital) {
     case 'lcp':
       return null;
-    case 'fid':
-      return null;
     case 'cls':
       return null;
     case 'fcp':

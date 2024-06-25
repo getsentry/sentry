@@ -23,7 +23,6 @@ type Props = {
 export type UnweightedWebVitalsScoreBreakdown = {
   unweightedCls: SeriesDataUnit[];
   unweightedFcp: SeriesDataUnit[];
-  unweightedFid: SeriesDataUnit[];
   unweightedInp: SeriesDataUnit[];
   unweightedLcp: SeriesDataUnit[];
   unweightedTtfb: SeriesDataUnit[];
@@ -50,13 +49,11 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
         'weighted_performance_score(measurements.score.lcp)',
         'weighted_performance_score(measurements.score.fcp)',
         'weighted_performance_score(measurements.score.cls)',
-        'weighted_performance_score(measurements.score.fid)',
         'weighted_performance_score(measurements.score.inp)',
         'weighted_performance_score(measurements.score.ttfb)',
         'performance_score(measurements.score.lcp)',
         'performance_score(measurements.score.fcp)',
         'performance_score(measurements.score.cls)',
-        'performance_score(measurements.score.fid)',
         'performance_score(measurements.score.inp)',
         'performance_score(measurements.score.ttfb)',
         'count()',
@@ -103,12 +100,10 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
     fcp: [],
     cls: [],
     ttfb: [],
-    fid: [],
     inp: [],
     total: [],
     unweightedCls: [],
     unweightedFcp: [],
-    unweightedFid: [],
     unweightedInp: [],
     unweightedLcp: [],
     unweightedTtfb: [],
@@ -117,7 +112,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   result?.data?.['weighted_performance_score(measurements.score.lcp)']?.data.forEach(
     (interval, index) => {
       // Weighted data
-      ['lcp', 'fcp', 'cls', 'ttfb', 'fid', 'inp'].forEach(webVital => {
+      ['lcp', 'fcp', 'cls', 'ttfb', 'inp'].forEach(webVital => {
         data[webVital].push({
           value:
             result?.data?.[`weighted_performance_score(measurements.score.${webVital})`]
@@ -126,7 +121,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
         });
       });
       // Unweighted data
-      ['lcp', 'fcp', 'cls', 'ttfb', 'fid', 'inp'].forEach(webVital => {
+      ['lcp', 'fcp', 'cls', 'ttfb', 'inp'].forEach(webVital => {
         // Capitalize first letter of webVital
         const capitalizedWebVital = webVital.charAt(0).toUpperCase() + webVital.slice(1);
         data[`unweighted${capitalizedWebVital}`].push({

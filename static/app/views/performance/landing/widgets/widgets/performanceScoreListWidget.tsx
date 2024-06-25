@@ -12,7 +12,7 @@ import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
-import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
   Badge,
   PerformanceBadge,
@@ -60,7 +60,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const order = ORDER_WITH_INP_WITHOUT_FID;
+  const order = ORDER;
 
   const getAreaChart = _ => {
     const segmentColors = theme.charts.getColorPalette(3).slice(0, 5);

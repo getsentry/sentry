@@ -38,8 +38,8 @@ const WEB_VITALS_METERS_CONFIG = {
     name: t('First Contentful Paint'),
     formatter: (value: number) => getFormattedDuration(value / 1000),
   },
-  fid: {
-    name: t('First Input Delay'),
+  inp: {
+    name: t('Interaction to Next Paint'),
     formatter: (value: number) => getFormattedDuration(value / 1000),
   },
   cls: {
@@ -50,17 +50,6 @@ const WEB_VITALS_METERS_CONFIG = {
     name: t('Time To First Byte'),
     formatter: (value: number) => getFormattedDuration(value / 1000),
   },
-};
-
-const WEB_VITALS_METERS_CONFIG_WITH_INP = {
-  lcp: WEB_VITALS_METERS_CONFIG.lcp,
-  fcp: WEB_VITALS_METERS_CONFIG.fcp,
-  inp: {
-    name: t('Interaction to Next Paint'),
-    formatter: (value: number) => getFormattedDuration(value / 1000),
-  },
-  cls: WEB_VITALS_METERS_CONFIG.cls,
-  ttfb: WEB_VITALS_METERS_CONFIG.ttfb,
 };
 
 export default function WebVitalMeters({
@@ -75,7 +64,7 @@ export default function WebVitalMeters({
     return null;
   }
 
-  const webVitalsConfig = WEB_VITALS_METERS_CONFIG_WITH_INP;
+  const webVitalsConfig = WEB_VITALS_METERS_CONFIG;
 
   const webVitals = Object.keys(webVitalsConfig) as WebVitals[];
   const colors = theme.charts.getColorPalette(3);

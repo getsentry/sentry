@@ -21,7 +21,6 @@ type Props = {
 export type WebVitalsScoreBreakdown = {
   cls: SeriesDataUnit[];
   fcp: SeriesDataUnit[];
-  fid: SeriesDataUnit[];
   inp: SeriesDataUnit[];
   lcp: SeriesDataUnit[];
   total: SeriesDataUnit[];
@@ -50,7 +49,6 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
         'p75(measurements.fcp)',
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
         'count()',
       ],
       name: 'Web Vitals',
@@ -95,17 +93,14 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
     fcp: [],
     cls: [],
     ttfb: [],
-    fid: [],
     inp: [],
     total: [],
   };
 
   result?.data?.['p75(measurements.lcp)']?.data.forEach((interval, index) => {
-    const [lcp, fcp, cls, ttfb, fid] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'].map(
-      webVital => {
-        return result?.data?.[`p75(measurements.${webVital})`]?.data[index][1][0].count;
-      }
-    );
+    const [lcp, fcp, cls, ttfb] = ['lcp', 'fcp', 'cls', 'ttfb'].map(webVital => {
+      return result?.data?.[`p75(measurements.${webVital})`]?.data[index][1][0].count;
+    });
     // This is kinda jank, but since events-stats zero fills, we need to assume that 0 values mean no data.
     // 0 value for a webvital is low frequency, but not impossible. We may need to figure out a better way to handle this in the future.
     const scores = calculatePerformanceScore({
@@ -113,10 +108,9 @@ export const useProjectRawWebVitalsTimeseriesQuery = ({
       fcp: fcp === 0 ? Infinity : fcp,
       cls: cls === 0 ? Infinity : cls,
       ttfb: ttfb === 0 ? Infinity : ttfb,
-      fid: fid === 0 ? Infinity : fid,
     });
 
-    ['total', 'lcp', 'fcp', 'fid', 'cls', 'ttfb'].forEach(webVital => {
+    ['total', 'lcp', 'fcp', 'cls', 'ttfb'].forEach(webVital => {
       data[webVital].push({
         value: scores[`${webVital}Score`],
         name: interval[0] * 1000,

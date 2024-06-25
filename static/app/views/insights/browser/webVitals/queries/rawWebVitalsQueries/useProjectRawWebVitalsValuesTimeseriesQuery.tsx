@@ -35,7 +35,6 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
         'p75(measurements.fcp)',
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
         'p75(measurements.inp)',
         'count()',
         'count_scores(measurements.score.inp)',
@@ -84,7 +83,6 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     count: SeriesDataUnit[];
     countInp: SeriesDataUnit[];
     fcp: SeriesDataUnit[];
-    fid: SeriesDataUnit[];
     inp: SeriesDataUnit[];
     lcp: SeriesDataUnit[];
     ttfb: SeriesDataUnit[];
@@ -93,7 +91,6 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
     fcp: [],
     cls: [],
     ttfb: [],
-    fid: [],
     inp: [],
     count: [],
     countInp: [],
@@ -105,7 +102,6 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
       {key: 'p75(measurements.lcp)', series: data.lcp},
       {key: 'p75(measurements.fcp)', series: data.fcp},
       {key: 'p75(measurements.ttfb)', series: data.ttfb},
-      {key: 'p75(measurements.fid)', series: data.fid},
       {key: 'p75(measurements.inp)', series: data.inp},
       {key: 'count()', series: data.count},
       {key: 'count_scores(measurements.score.inp)', series: data.countInp},

@@ -10,7 +10,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ORDER_WITH_INP} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import PerformanceScoreRing from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {
@@ -150,7 +150,7 @@ function PerformanceScoreRingWithTooltips({
   const [webVitalTooltip, setWebVitalTooltip] = useState<WebVitals | null>(null);
   const [labelHovered, setLabelHovered] = useState<WebVitals | null>(null);
 
-  const ringSegmentOrder = ORDER_WITH_INP;
+  const ringSegmentOrder = ORDER;
 
   if (labelHovered && inPerformanceWidget) {
     const index = ringSegmentOrder.indexOf(labelHovered);
@@ -166,7 +166,6 @@ function PerformanceScoreRingWithTooltips({
     'lcpWeight',
     'fcpWeight',
     'inpWeight',
-    'fidWeight',
     'clsWeight',
     'ttfbWeight',
   ].every(key => projectScore[key] === 0)
@@ -175,7 +174,6 @@ function PerformanceScoreRingWithTooltips({
         lcp: projectScore.lcpWeight,
         fcp: projectScore.fcpWeight,
         inp: projectScore.inpWeight,
-        fid: projectScore.fidWeight,
         cls: projectScore.clsWeight,
         ttfb: projectScore.ttfbWeight,
       };

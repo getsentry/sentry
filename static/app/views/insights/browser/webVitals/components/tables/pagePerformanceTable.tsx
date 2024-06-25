@@ -74,11 +74,7 @@ export function PagePerformanceTable() {
     [projects, location.query.project]
   );
 
-  let sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
-  // Need to map fid back to inp for rendering
-  if (sort.field === 'p75(measurements.fid)') {
-    sort = {...sort, field: 'p75(measurements.inp)'};
-  }
+  const sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
@@ -245,7 +241,6 @@ export function PagePerformanceTable() {
         'p75(measurements.fcp)',
         'p75(measurements.lcp)',
         'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
         'p75(measurements.inp)',
       ].includes(key)
     ) {
