@@ -474,7 +474,7 @@ const storeConfig: GroupingStoreDefinition = {
   },
 
   onUnmerge({groupId, loadingMessage, orgSlug, successMessage, errorMessage}) {
-    const ids = Array.from(this.state.unmergeList.keys()) as Array<string>;
+    const grouphashIds = Array.from(this.state.unmergeList.keys()) as Array<string>;
 
     return new Promise((resolve, reject) => {
       if (this.isAllUnmergedSelected()) {
@@ -486,26 +486,26 @@ const storeConfig: GroupingStoreDefinition = {
       this.state = {...this.state, unmergeDisabled: true};
 
       // Disable rows
-      this.setStateForId('unmergeState', ids, {checked: false, busy: true});
+      this.setStateForId('unmergeState', grouphashIds, {checked: false, busy: true});
       this.triggerUnmergeState();
       addLoadingMessage(loadingMessage);
 
       this.api.request(`/organizations/${orgSlug}/issues/${groupId}/hashes/`, {
         method: 'DELETE',
         query: {
-          id: ids,
+          id: grouphashIds,
         },
         success: () => {
           addSuccessMessage(successMessage);
 
           // Busy rows after successful Unmerge
-          this.setStateForId('unmergeState', ids, {checked: false, busy: true});
+          this.setStateForId('unmergeState', grouphashIds, {checked: false, busy: true});
           this.state.unmergeList.clear();
         },
         error: error => {
           errorMessage = error?.responseJSON?.detail || errorMessage;
           addErrorMessage(errorMessage);
-          this.setStateForId('unmergeState', ids, {checked: true, busy: false});
+          this.setStateForId('unmergeState', grouphashIds, {checked: true, busy: false});
         },
         complete: () => {
           this.state = {...this.state, unmergeDisabled: false};

@@ -21,6 +21,7 @@ export type TracingEventParameters = {
   'trace.trace_layout.span_row_click': {
     num_children: number;
     project_platform: string;
+    type: string;
   };
   'trace.trace_layout.tab_pin': {};
   'trace.trace_layout.tab_view': {
@@ -58,6 +59,7 @@ export type TracingEventParameters = {
     has_data: boolean;
     num_missing_trace_root: number;
     num_traces: number;
+    project_platforms: string[];
     queries: string[];
   };
   'trace_explorer.toggle_trace_details': {

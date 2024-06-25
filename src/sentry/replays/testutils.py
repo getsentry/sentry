@@ -71,7 +71,7 @@ def assert_expected_response(response: dict[str, Any], expected_response: dict[s
 
 
 def mock_expected_response(
-    project_id: str,
+    project_id: int,
     replay_id: str,
     started_at: datetime.datetime,
     finished_at: datetime.datetime,
@@ -222,7 +222,7 @@ def mock_replay(
 
 def mock_replay_click(
     timestamp: datetime.datetime,
-    project_id: str,
+    project_id: int,
     replay_id: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
@@ -266,7 +266,7 @@ def mock_replay_click(
 
 def mock_replay_viewed(
     timestamp: float,
-    project_id: str,
+    project_id: int,
     replay_id: str,
     viewed_by_id: int,
     retention_days: int = 30,
