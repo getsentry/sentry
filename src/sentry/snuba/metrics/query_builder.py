@@ -13,7 +13,7 @@ __all__ = (
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 
 import sentry_sdk
 from snuba_sdk import (
@@ -134,7 +134,9 @@ def parse_public_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
-def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=None):
+def transform_null_transaction_to_unparameterized(
+    use_case_id, org_id, alias=None, use_metrics_v2=False
+):
     """
     This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
     as such in any query using that tag value.
@@ -144,14 +146,26 @@ def transform_null_transaction_to_unparameterized(use_case_id, org_id, alias=Non
 
     It is important to note that this transformation has to be applied ONLY on tag.transaction.
     """
-    return Function(
-        function="transform",
-        parameters=[
-            Column(resolve_tag_key(use_case_id, org_id, "transaction")),
-            [""],
-            [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
-        ],
-        alias=alias,
+    return (
+        Function(
+            function="transform",
+            parameters=[
+                Column(resolve_tag_key(use_case_id, org_id, "transaction")),
+                [""],
+                [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
+            ],
+            alias=alias,
+        )
+        if not use_metrics_v2
+        else Function(
+            function="transform",
+            parameters=[
+                Column('tags["transaction"]'),
+                [""],
+                ["<< unparameterized >>"],
+            ],
+            alias=alias,
+        )
     )
 
 
@@ -782,16 +796,18 @@ class SnubaQueryBuilder:
         projects: Sequence[Project],
         metrics_query: DeprecatingMetricsQuery,
         use_case_id: UseCaseID,
+        use_metrics_v2: bool | None = False,
     ):
         self._projects = projects
         self._metrics_query = metrics_query
         self._org_id = metrics_query.org_id
         self._use_case_id = use_case_id
+        self.use_metrics_v2 = use_metrics_v2
 
         self._alias_to_metric_field = {field.alias: field for field in self._metrics_query.select}
 
-    @staticmethod
     def generate_snql_for_action_by_fields(
+        self,
         metric_action_by_field: MetricActionByField,
         use_case_id: UseCaseID,
         org_id: int,
@@ -813,7 +829,7 @@ class SnubaQueryBuilder:
             # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
             if is_group_by and metric_action_by_field.field == "transaction":
                 return transform_null_transaction_to_unparameterized(
-                    use_case_id, org_id, metric_action_by_field.alias
+                    use_case_id, org_id, metric_action_by_field.alias, self.use_metrics_v2
                 )
 
             # Handles the case when we are trying to group or order by `project` for example, but we want

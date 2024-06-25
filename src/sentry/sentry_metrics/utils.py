@@ -1,5 +1,5 @@
 from collections.abc import Collection, Mapping, Sequence
-from typing import Union, cast
+from typing import Optional, Union, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
@@ -138,39 +138,74 @@ def resolve(
     return resolved
 
 
-def resolve_tag_key(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str:
-    use_case_id = to_use_case_id(use_case_id)
-    resolved = resolve(use_case_id, org_id, string)
-    assert isinstance(use_case_id, UseCaseID)
-    if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
-        return f"tags_raw[{resolved}]"
+def resolve_tag_key(
+    use_case_id: UseCaseID | UseCaseKey,
+    org_id: int,
+    string: str,
+    use_metrics_v2: bool | None = False,
+) -> str:
+    """
+    The V2 version of metrics stores the raw strings in the `tags` column, while the V1 version
+    stores them in the `tags_raw` or `tags` column based on use_case_id. The V1 version also stores
+    the indexed values.
+    """
+    if use_metrics_v2:
+        return f"tags[{string}]"
     else:
-        return f"tags[{resolved}]"
+        use_case_id = to_use_case_id(use_case_id)
+        resolved = resolve(use_case_id, org_id, string)
+        assert isinstance(use_case_id, UseCaseID)
+        if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
+            return f"tags_raw[{resolved}]"
+        else:
+            return f"tags[{resolved}]"
 
 
-def resolve_tag_value(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> str | int:
-    use_case_id = to_use_case_id(use_case_id)
-    assert isinstance(string, str)
-    assert isinstance(use_case_id, UseCaseID)
-    if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
+def resolve_tag_value(
+    use_case_id: UseCaseID | UseCaseKey,
+    org_id: int,
+    string: str,
+    use_metrics_v2: bool | None = False,
+) -> str | int:
+    """
+    The V2 version of metrics does not need any tag value resolution, as the raw strings are stored in the `tags` column.
+    """
+    if use_metrics_v2:
         return string
-    return resolve_weak(use_case_id, org_id, string)
+    else:
+        use_case_id = to_use_case_id(use_case_id)
+        assert isinstance(string, str)
+        assert isinstance(use_case_id, UseCaseID)
+        if METRIC_PATH_MAPPING[use_case_id] is UseCaseKey.PERFORMANCE:
+            return string
+        return resolve_weak(use_case_id, org_id, string)
 
 
 def resolve_tag_values(
-    use_case_id: UseCaseID | UseCaseKey, org_id: int, strings: Sequence[str]
+    use_case_id: UseCaseID | UseCaseKey,
+    org_id: int,
+    strings: Sequence[str],
+    use_metrics_v2: bool | None = False,
 ) -> Sequence[str | int]:
-    use_case_id = to_use_case_id(use_case_id)
-    rv = []
-    for string in strings:
-        resolved = resolve_tag_value(use_case_id, org_id, string)
-        if resolved != STRING_NOT_FOUND:
-            rv.append(resolved)
+    if use_metrics_v2:
+        return strings
+    else:
+        use_case_id = to_use_case_id(use_case_id)
+        rv = []
+        for string in strings:
+            resolved = resolve_tag_value(use_case_id, org_id, string)
+            if resolved != STRING_NOT_FOUND:
+                rv.append(resolved)
 
-    return rv
+        return rv
 
 
-def resolve_weak(use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str) -> int:
+def resolve_weak(
+    use_case_id: UseCaseID | UseCaseKey,
+    org_id: int,
+    string: str,
+    use_metrics_v2: bool | None = False,
+) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
 

@@ -301,11 +301,15 @@ class MetricObject(MetricObjectDefinition, ABC):
     """
 
     @abstractmethod
-    def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseID) -> Function:
+    def generate_filter_snql_conditions(
+        self, org_id: int, use_case_id: UseCaseID, use_metrics_v2: bool | None
+    ) -> Function:
         raise NotImplementedError
 
     @abstractmethod
-    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseID) -> set[int]:
+    def generate_metric_ids(
+        self, projects: Sequence[Project], use_case_id: UseCaseID, use_metrics_v2: bool | None
+    ) -> set[int | str]:
         raise NotImplementedError
 
 
@@ -315,13 +319,27 @@ class RawMetric(MetricObject):
     metric
     """
 
-    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseID) -> set[int]:
-        return {resolve_weak(use_case_id, org_id_from_projects(projects), self.metric_mri)}
+    def generate_metric_ids(
+        self, projects: Sequence[Project], use_case_id: UseCaseID, use_metrics_v2: bool | None
+    ) -> set[int | str]:
+        if use_metrics_v2:
+            return {self.metric_mri}
+        else:
+            return {resolve_weak(use_case_id, org_id_from_projects(projects), self.metric_mri)}
 
-    def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseID) -> Function:
-        return Function(
-            "equals",
-            [Column("metric_id"), resolve_weak(use_case_id, org_id, self.metric_mri)],
+    def generate_filter_snql_conditions(
+        self, org_id: int, use_case_id: UseCaseID, use_metrics_v2=False
+    ) -> Function:
+        return (
+            Function(
+                "equals",
+                [Column("metric_id"), resolve_weak(use_case_id, org_id, self.metric_mri)],
+            )
+            if not use_metrics_v2
+            else Function(
+                "equals",
+                [Column("metric_mri"), self.metric_mri],
+            )
         )
 
 
@@ -331,19 +349,39 @@ class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
     for a raw metric name
     """
 
-    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseID) -> set[int]:
-        return {resolve_weak(use_case_id, org_id_from_projects(projects), self.raw_metric_mri)}
+    def generate_metric_ids(
+        self, projects: Sequence[Project], use_case_id: UseCaseID, use_metrics_v2: bool | None
+    ) -> set[int | str]:
+        if use_metrics_v2:
+            return {self.raw_metric_mri}
+        else:
+            return {resolve_weak(use_case_id, org_id_from_projects(projects), self.raw_metric_mri)}
 
-    def generate_filter_snql_conditions(self, org_id: int, use_case_id: UseCaseID) -> Function:
-        conditions = [
-            Function(
-                "equals",
-                [
-                    Column("metric_id"),
-                    resolve_weak(use_case_id, org_id, self.raw_metric_mri),
-                ],
-            )
-        ]
+    def generate_filter_snql_conditions(
+        self, org_id: int, use_case_id: UseCaseID, use_metrics_v2: bool | None
+    ) -> Function:
+        conditions = (
+            [
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        resolve_weak(use_case_id, org_id, self.raw_metric_mri),
+                    ],
+                )
+            ]
+            if not use_metrics_v2
+            else [
+                Function(
+                    "equals",
+                    [
+                        Column("metric_mri"),
+                        self.raw_metric_mri,
+                    ],
+                )
+            ]
+        )
+
         if self.filters is not None:
             for filter_ in self.filters(org_id=org_id):
                 conditions.append(filter_)
