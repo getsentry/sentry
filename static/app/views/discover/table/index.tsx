@@ -34,7 +34,7 @@ type TableProps = {
   showTags: boolean;
   title: string;
   isHomepage?: boolean;
-  setSplitDecision?: (splitDecision: string) => void;
+  setSplitDecision?: (value: string) => void;
   setTips?: (tips: string[]) => void;
 };
 

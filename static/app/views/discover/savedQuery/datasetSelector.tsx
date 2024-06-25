@@ -29,7 +29,7 @@ export function DatasetSelector(props: Props) {
       return decodeScalar(location.query[DATASET_PARAM]);
     }
     if (savedQuery?.queryDataset === 'discover') {
-      return splitDecision ?? 'error-events';
+      return splitDecision ?? 'discover';
     }
     return savedQuery?.queryDataset ?? 'error-events';
   };

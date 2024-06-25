@@ -588,6 +588,7 @@ export class Results extends Component<Props, State> {
       showTags,
       confirmedQuery,
       savedQuery,
+      splitDecision,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
@@ -613,6 +614,7 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
+            splitDecision={splitDecision}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -673,9 +675,9 @@ export class Results extends Component<Props, State> {
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
                   setTips={this.setTips}
-                  setSplitDecision={(splitDecision?: string) =>
-                    this.setState({splitDecision})
-                  }
+                  setSplitDecision={(value?: string) => {
+                    this.setState({splitDecision: value});
+                  }}
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
