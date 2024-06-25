@@ -113,10 +113,6 @@ function SudoModal({
       }
     };
 
-    if (!organizationPromise) {
-      return;
-    }
-
     getAuthenticators();
   }, [api, organizationPromise]);
 
