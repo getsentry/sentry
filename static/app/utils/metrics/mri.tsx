@@ -7,10 +7,13 @@ export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
+  if (typeof mri !== 'string') {
+    return false;
+  }
   try {
-    _parseMRI(mri as string);
+    _parseMRI(mri);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -23,7 +26,7 @@ export function parseMRI<T extends MRI | string>(mri?: T): ParseResult<T> {
   }
   try {
     return _parseMRI(mri) as ParseResult<T>;
-  } catch (e) {
+  } catch {
     return null as ParseResult<T>;
   }
 }
