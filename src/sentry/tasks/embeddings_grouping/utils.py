@@ -212,12 +212,12 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
                     Condition(
                         Column("timestamp", entity=events_entity),
                         Op.GTE,
-                        group.last_seen - timedelta(minutes=5),
+                        group.last_seen - timedelta(minutes=1),
                     ),
                     Condition(
                         Column("timestamp", entity=events_entity),
                         Op.LT,
-                        group.last_seen + timedelta(minutes=5),
+                        group.last_seen + timedelta(minutes=1),
                     ),
                 ],
                 limit=Limit(1),
