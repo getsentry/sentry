@@ -59,7 +59,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord, isVideoReplay}: Props) {
               {labelTitle}
               <FeatureBadge
                 type="beta"
-                title="Session Replay for mobile apps is currently in beta. Beta features are still in progress and may have bugs."
+                title={t('Session Replay for mobile apps is currently in beta. Beta features are still in progress and may have bugs.')}
               />
             </span>
           ) : (
