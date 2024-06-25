@@ -872,6 +872,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
     symbolSources: str
+    extrapolateMetrics: bool
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1003,6 +1004,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },
+                "extrapolateMetrics": bool(
+                    attrs["options"].get("sentry:extrapolate_metrics", False)
+                ),
             }
         )
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
