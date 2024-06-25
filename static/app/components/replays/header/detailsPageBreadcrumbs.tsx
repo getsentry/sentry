@@ -1,10 +1,12 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import EventView from 'sentry/utils/discover/eventView';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -55,15 +57,15 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord, isVideoReplay}: Props) {
         },
         {
           label: isVideoReplay ? (
-            <span>
+            <StyledSpan>
               {labelTitle}
-              <FeatureBadge
+              <CenteredFeatureBadge
                 type="beta"
                 title={t(
                   'Session Replay for mobile apps is currently in beta. Beta features are still in progress and may have bugs.'
                 )}
               />
-            </span>
+            </StyledSpan>
           ) : (
             labelTitle
           ),
@@ -74,3 +76,11 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord, isVideoReplay}: Props) {
 }
 
 export default DetailsPageBreadcrumbs;
+
+const CenteredFeatureBadge = styled(FeatureBadge)`
+  height: ${space(2)};
+`;
+
+const StyledSpan = styled('span')`
+  display: flex;
+`;
