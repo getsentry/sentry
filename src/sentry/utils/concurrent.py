@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import collections
 import functools
 import logging
 import threading
@@ -10,7 +9,7 @@ from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, NamedTuple, TypeVar
 
 from sentry_sdk import Hub
 
@@ -46,7 +45,10 @@ def execute(function: Callable[..., T], daemon=True):
 
 
 @functools.total_ordering
-class PriorityTask(collections.namedtuple("PriorityTask", "priority item")):
+class PriorityTask(NamedTuple):
+    priority: int
+    item: tuple[Callable, Hub, FutureBase]
+
     def __eq__(self, b):
         return self.priority == b.priority
 
