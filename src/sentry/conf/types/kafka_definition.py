@@ -19,6 +19,7 @@ class Topic(Enum):
     TRANSACTIONS = "transactions"
     TRANSACTIONS_COMMIT_LOG = "snuba-transactions-commit-log"
     OUTCOMES = "outcomes"
+    OUTCOMES_DLQ = "outcomes-dlq"
     OUTCOMES_BILLING = "outcomes-billing"
     EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
