@@ -169,7 +169,6 @@ def build_metric_alert_chart(
     Builds the dataset required for metric alert chart the same way the frontend would
     """
     snuba_query: SnubaQuery = alert_rule.snuba_query
-    extra = build_query_extra(subscription=subscription, snuba_query=snuba_query)
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
     is_crash_free_alert = query_type == SnubaQuery.Type.CRASH_RATE
@@ -216,7 +215,8 @@ def build_metric_alert_chart(
     project_id = subscription.project_id if subscription else first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
-    query_str = f"{snuba_query.query}{extra}"
+    query_extra = build_query_extra(subscription=subscription, snuba_query=snuba_query)
+    query_str = f"{snuba_query.query}{query_extra}"
     query = (
         query_str
         if is_crash_free_alert

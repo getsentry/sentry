@@ -202,9 +202,9 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
-        extra = build_query_extra(subscription, snuba_query)
+        query_extra = build_query_extra(subscription, snuba_query)
         snql_query = entity_subscription.build_query_builder(
-            query=f"{snuba_query.query}{extra}",
+            query=f"{snuba_query.query}{query_extra}",
             project_ids=[subscription.project_id],
             environment=snuba_query.environment,
             params={

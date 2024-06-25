@@ -468,7 +468,7 @@ def generate_incident_trigger_email_context(
     snooze_alert = True
     snooze_alert_url = alert_link + "&" + urlencode({"mute": "1"})
 
-    extra = build_query_extra(subscription=subscription, snuba_query=snuba_query)
+    query_extra = build_query_extra(subscription=subscription, snuba_query=snuba_query)
     return {
         "link": alert_link,
         "project_slug": project.slug,
@@ -477,7 +477,7 @@ def generate_incident_trigger_email_context(
         "time_window": format_duration(snuba_query.time_window / 60),
         "triggered_at": incident.date_added,
         "aggregate": aggregate,
-        "query": f"{snuba_query.query}{extra}",
+        "query": f"{snuba_query.query}{query_extra}",
         "threshold": threshold,
         # if alert threshold and threshold type is above then show '>'
         # if resolve threshold and threshold type is *BELOW* then show '>'
