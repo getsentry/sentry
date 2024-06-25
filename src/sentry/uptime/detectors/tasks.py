@@ -15,8 +15,8 @@ from sentry.uptime.detectors.ranking import (
 )
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.utils import metrics
+from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
-from sentry_plugins.jira.client import md5
 
 LAST_PROCESSED_KEY = "uptime_detector_last_processed"
 SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
@@ -92,7 +92,7 @@ def process_project_url_ranking(project_id: int, project_url_count: int):
         return
 
     for url, url_count in get_candidate_urls_for_project(project)[:5]:
-        if check_url(project, project_url_count, url, url_count):
+        if process_candidate_url(project, project_url_count, url, url_count):
             # TODO: On success, we want to mark this project as not needing to be checked for a while
             break
     else:
@@ -103,7 +103,20 @@ def process_project_url_ranking(project_id: int, project_url_count: int):
     delete_candidate_urls_for_project(project)
 
 
-def check_url(project: Project, project_url_count: int, url: str, url_count: int) -> bool:
+def process_candidate_url(
+    project: Project, project_url_count: int, url: str, url_count: int
+) -> bool:
+    """
+    Takes a candidate url for a project and determines whether we should create an uptime subscription for it.
+    Checks that:
+     - URL has been seen at least `URL_MIN_TIMES_SEEN` times and is seen in at least `URL_MIN_PERCENT` of events with urls
+     - URL hasn't already been checked and failed recently
+     - Whether we already have a subscription for this url in the system - If so, just link this project to that subscription
+     - Whether the url's robots.txt will allow us to monitor this url
+
+    If the url passes, and we don't already have a subscription for it, then create a new remote subscription for the
+    url and delete any existing automated monitors.
+    """
     # The url has to be seen a minimum number of times, and make up at least
     # a certain percentage of all urls seen in this project
     if url_count < URL_MIN_TIMES_SEEN or url_count / project_url_count < URL_MIN_PERCENT:
@@ -154,7 +167,7 @@ def set_failed_url(url: str) -> None:
 
 
 def get_failed_url_key(url: str) -> str:
-    return f"f:u:{md5(url).hexdigest()}"
+    return f"f:u:{md5_text(url).hexdigest()}"
 
 
 def check_url_robots_txt(url: str) -> bool:

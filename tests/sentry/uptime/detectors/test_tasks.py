@@ -17,8 +17,8 @@ from sentry.uptime.detectors.ranking import (
 from sentry.uptime.detectors.tasks import (
     LAST_PROCESSED_KEY,
     SCHEDULER_LOCK_KEY,
-    check_url,
     is_failed_url,
+    process_candidate_url,
     process_detection_bucket,
     process_project_url_ranking,
     schedule_detections,
@@ -114,11 +114,11 @@ class ProcessProjectUrlRankingTest(TestCase):
         add_base_url_to_rank(self.project, url_1)
         add_base_url_to_rank(self.project, url_1)
         with mock.patch(
-            "sentry.uptime.detectors.tasks.check_url",
+            "sentry.uptime.detectors.tasks.process_candidate_url",
             return_value=False,
-        ) as mock_check_url:
+        ) as mock_process_candidate_url:
             process_project_url_ranking(self.project.id, 5)
-            mock_check_url.assert_has_calls(
+            mock_process_candidate_url.assert_has_calls(
                 [
                     call(self.project, 5, url_1, 2),
                     call(self.project, 5, url_2, 1),
@@ -138,9 +138,9 @@ class ProcessProjectUrlRankingTest(TestCase):
 
 
 @freeze_time()
-class CheckUrlTest(TestCase):
+class ProcessCandidateUrlTest(TestCase):
     def test_succeeds_new(self):
-        assert check_url(self.project, 100, "https://sentry.io", 50)
+        assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
 
     def test_succeeds_existing_subscription_other_project(self):
         other_project = self.create_project()
@@ -155,7 +155,7 @@ class CheckUrlTest(TestCase):
             ).count()
             == 0
         )
-        assert check_url(self.project, 100, url, 50)
+        assert process_candidate_url(self.project, 100, url, 50)
         assert (
             ProjectUptimeSubscription.objects.filter(
                 project=self.project, uptime_subscription=uptime_subscription
@@ -169,7 +169,7 @@ class CheckUrlTest(TestCase):
         self.create_project_uptime_subscription(
             project=self.project, uptime_subscription=uptime_subscription
         )
-        assert check_url(self.project, 100, url, 50)
+        assert process_candidate_url(self.project, 100, url, 50)
         assert (
             ProjectUptimeSubscription.objects.filter(
                 project=self.project, uptime_subscription=uptime_subscription
@@ -179,13 +179,13 @@ class CheckUrlTest(TestCase):
         # TODO: Check no other subscriptions or anything made once we finish the rest of this func
 
     def test_below_thresholds(self):
-        assert not check_url(self.project, 500, "https://sentry.io", 1)
-        assert not check_url(self.project, 500, "https://sentry.io", 10)
+        assert not process_candidate_url(self.project, 500, "https://sentry.io", 1)
+        assert not process_candidate_url(self.project, 500, "https://sentry.io", 10)
 
     def test_failed_url(self):
         url = "https://sentry.io"
         set_failed_url(url)
-        assert not check_url(self.project, 100, url, 50)
+        assert not process_candidate_url(self.project, 100, url, 50)
 
     def test_failed_robots_txt(self):
         url = "https://sentry.io"
@@ -194,7 +194,7 @@ class CheckUrlTest(TestCase):
             "sentry.uptime.detectors.tasks.check_url_robots_txt",
             return_value=False,
         ):
-            assert not check_url(self.project, 100, url, 50)
+            assert not process_candidate_url(self.project, 100, url, 50)
         assert is_failed_url(url)
 
 
