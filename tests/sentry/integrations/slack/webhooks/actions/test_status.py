@@ -29,7 +29,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -342,8 +341,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @responses.activate
     def test_archive_issue_forever(self):
-        original_message = self.get_original_message_block_kit(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+        original_message = self.get_original_message(self.group.id)
+        self.archive_issue(original_message, "ignored:archived_forever")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -358,9 +357,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     @patch("sentry.models.organization.Organization.has_access", return_value=False)
     def test_archive_issue_forever_error(self, mock_access):
-        original_message = self.get_original_message_block_kit(self.group.id)
+        original_message = self.get_original_message(self.group.id)
 
-        resp = self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+        resp = self.archive_issue(original_message, "ignored:archived_forever")
         expected_text = f"Looks like this Slack identity is linked to the Sentry user *{self.user.email}* who is not a member of organization *{self.organization.slug}* used with this Slack integration. "
         assert expected_text in resp.data["text"]
         assert resp.data["response_type"] == "ephemeral"
@@ -372,9 +371,9 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @responses.activate
     def test_archive_issue_forever_block_kit_through_unfurl(self):
-        original_message = self.get_original_message_block_kit(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(original_message, "ignored:archived_forever", payload_data)
+        original_message = self.get_original_message(self.group.id)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.archive_issue(original_message, "ignored:archived_forever", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -664,8 +663,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @responses.activate
     def test_resolve_issue_block_kit(self):
-        original_message = self.get_original_message_block_kit(self.group.id)
-        self.resolve_issue_block_kit(original_message, "resolved")
+        original_message = self.get_original_message(self.group.id)
+        self.resolve_issue(original_message, "resolved")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
@@ -736,8 +735,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         release.add_project(self.project)
 
-        original_message = self.get_original_message_block_kit(self.group.id)
-        self.resolve_issue_block_kit(original_message, "resolved:inCurrentRelease")
+        original_message = self.get_original_message(self.group.id)
+        self.resolve_issue(original_message, "resolved:inCurrentRelease")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
