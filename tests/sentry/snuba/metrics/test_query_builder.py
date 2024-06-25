@@ -40,8 +40,8 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
+    DeprecatingMetricsQuery,
     MetricOperationType,
-    MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
     get_date_range,
@@ -352,7 +352,7 @@ def test_timestamps():
 def test_build_snuba_query(mock_now, mock_now2):
     # Your typical release health query querying everything
     having = [Condition(Column("sum"), Op.GT, 1000)]
-    query_definition = MetricsQuery(
+    query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
         select=[
@@ -1378,7 +1378,7 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_):
 def test_only_can_groupby_operations_can_be_added_to_groupby(
     select, groupby, usecase, error_string
 ):
-    query_definition = MetricsQuery(
+    query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
         select=select,
@@ -1475,7 +1475,7 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
     ],
 )
 def test_only_can_filter_operations_can_be_added_to_where(select, where, usecase, error_string):
-    query_definition = MetricsQuery(
+    query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
         select=select,
@@ -1962,7 +1962,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
     Tests code generation for timestamp operators
     """
     org_id = 1
-    query_definition = MetricsQuery(
+    query_definition = DeprecatingMetricsQuery(
         org_id=org_id,
         project_ids=[1],
         select=[
@@ -2014,7 +2014,7 @@ def test_having_clause(include_totals, include_series):
     """
     having = [Condition(Column("sum"), Op.GT, 1000)]
 
-    query_definition = MetricsQuery(
+    query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
         select=[

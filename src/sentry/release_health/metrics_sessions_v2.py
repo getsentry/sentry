@@ -2,6 +2,7 @@
 from the `metrics` dataset instead of `sessions`.
 
 Do not call this module directly. Use the `release_health` service instead. """
+
 import logging
 from abc import ABC, abstractmethod
 from collections import defaultdict
@@ -40,10 +41,10 @@ from sentry.snuba.metrics import get_public_name_from_mri
 from sentry.snuba.metrics.datasource import get_series
 from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.utils import OrderByNotSupportedOverCompositeEntityException
 from sentry.snuba.sessions_v2 import (
@@ -526,7 +527,7 @@ def run_sessions_query(
     if orderby is not None:
         orderby_sequence = [orderby]
 
-    metrics_query = MetricsQuery(
+    metrics_query = DeprecatingMetricsQuery(
         org_id=org_id,
         project_ids=project_ids,
         select=list({column for field in fields.values() for column in field.metric_fields}),
