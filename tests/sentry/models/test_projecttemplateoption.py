@@ -3,6 +3,22 @@ from sentry.models.projecttemplate import ProjectTemplate
 from sentry.testutils.cases import TestCase
 
 
+class ProjectTemplateOptionManagerTest(TestCase):
+    def setUp(self):
+        self.org = self.create_organization()
+
+        self.project_template = ProjectTemplate.objects.create(
+            name="test_project_template", organization=self.org
+        )
+
+    def create_test_option(self, key="key", value="value"):
+        return ProjectTemplateOption.objects.create(
+            project_template=self.project_template,
+            key=key,
+            value=value,
+        )
+
+
 class ProjectTemplateOptionTest(TestCase):
     def setUp(self):
         self.org = self.create_organization()
