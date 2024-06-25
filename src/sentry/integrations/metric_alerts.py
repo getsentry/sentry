@@ -15,7 +15,6 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
 )
 from sentry.snuba.metrics import format_mri_field, format_mri_field_value, is_mri_field
-from sentry.snuba.utils import build_query_strings
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
 
@@ -177,12 +176,9 @@ def metric_alert_attachment_info(
     else:
         status = INCIDENT_STATUS[IncidentStatus.CLOSED]
 
-    query = None
+    url_query = None
     if selected_incident:
-        query_extra = build_query_strings(
-            subscription=selected_incident.subscription, snuba_query=alert_rule.snuba_query
-        ).query_extra
-        query = f'{parse.urlencode({"alert": str(selected_incident.identifier)})}{query_extra}'
+        url_query = parse.urlencode({"alert": str(selected_incident.identifier)})
     title = f"{status}: {alert_rule.name}"
     title_link = alert_rule.organization.absolute_url(
         reverse(
@@ -192,7 +188,7 @@ def metric_alert_attachment_info(
                 "alert_rule_id": alert_rule.id,
             },
         ),
-        query=query,
+        query=url_query,
     )
 
     if metric_value is None:
