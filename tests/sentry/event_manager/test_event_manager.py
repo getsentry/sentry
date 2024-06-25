@@ -155,32 +155,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         assert eventstream_insert.call_count == 2
 
-    def test_updates_group(self) -> None:
-        timestamp = time() - 300
-        manager = EventManager(
-            make_event(message="foo", event_id="a" * 32, checksum="a" * 32, timestamp=timestamp)
-        )
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        manager = EventManager(
-            make_event(
-                message="foo bar", event_id="b" * 32, checksum="a" * 32, timestamp=timestamp + 2.0
-            )
-        )
-        manager.normalize()
-
-        with self.tasks():
-            event2 = manager.save(self.project.id)
-
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-        assert group.message == event2.message
-        assert group.data["type"] == "default"
-        assert group.data["metadata"]["title"] == "foo bar"
-
     def test_materialze_metadata_simple(self) -> None:
         manager = EventManager(make_event(transaction="/dogs/are/great/"))
         event = manager.save(self.project.id)

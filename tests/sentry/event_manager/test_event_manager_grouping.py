@@ -110,6 +110,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 1
         assert group.last_seen == event1.datetime
         assert group.message == event1.message
+        assert group.data.get("metadata").get("title") == event1.title
 
         # Normally this should go into a different group, since the messages don't match, but the
         # fingerprint takes precedence. (We need to make the messages different in order to show
@@ -124,6 +125,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
+        assert group.data.get("metadata").get("title") == event2.title
 
 
 class PlaceholderTitleTest(TestCase):
