@@ -365,7 +365,7 @@ class BaseQueryBuilder:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
-            metrics.incr("search.events.builder.load_config", tags={"dataset": "session_metrics"})
+            metrics.incr(EVENTS_BUILDER_METRIC_NAME, tags={"dataset": "session_metrics"})
         elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.spans_metrics_builder:
                 # For now, we won't support the metrics layer for spans since it needs some work,
