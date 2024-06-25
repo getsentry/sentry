@@ -89,7 +89,7 @@ class SlackLinkTeamView(BaseView):
 
         try:
             converted = unsign(signed_params)
-            params = TeamLinkRequest(**converted)
+            link_team_request = TeamLinkRequest(**converted)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("handle.signature_error", exc_info=e)
             metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
@@ -99,14 +99,16 @@ class SlackLinkTeamView(BaseView):
                 request=request,
             )
 
-        logger_params = asdict(params)
+        logger_params = asdict(link_team_request)
         logger_params["user_id"] = request.user.id
 
-        integration = integration_service.get_integration(integration_id=params.integration_id)
+        integration = integration_service.get_integration(
+            integration_id=link_team_request.integration_id
+        )
         if integration is None:
             _logger.info("integration.not_found", extra=logger_params)
             metrics.incr(self._METRICS_FAILURE_KEY + ".get_integration", sample_rate=1.0)
-            raise render_error_page(
+            return render_error_page(
                 request, status=404, body_text="HTTP 404: Could not find the Slack integration."
             )
 
@@ -136,8 +138,8 @@ class SlackLinkTeamView(BaseView):
                 body_text="HTTP 404: No teams found in your organizations to link. You must be a Sentry organization admin/manager/owner or a team admin to link a team in your respective organization.",
             )
 
-        channel_name = params.channel_name
-        channel_id = params.channel_id
+        channel_name = link_team_request.channel_name
+        channel_id = link_team_request.channel_id
         form = SelectTeamForm(list(teams_by_id.values()), request.POST or None)
 
         if request.method == "GET":
@@ -181,7 +183,7 @@ class SlackLinkTeamView(BaseView):
             return render_error_page(request, status=403, body_text="HTTP 403: Invalid team ID")
 
         ident = identity_service.get_identity(
-            filter={"provider_id": idp.id, "identity_ext_id": params.slack_id}
+            filter={"provider_id": idp.id, "identity_ext_id": link_team_request.slack_id}
         )
         if not ident:
             _logger.info("identity.not_found", extra=logger_params)
@@ -210,7 +212,6 @@ class SlackLinkTeamView(BaseView):
 
         if not created:
             message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
-            _logger.info("team.already_linked", extra=logger_params)
             metrics.incr(self._METRICS_FAILURE_KEY + ".team_already_linked", sample_rate=1.0)
 
             integration_service.send_message(
@@ -255,7 +256,6 @@ class SlackLinkTeamView(BaseView):
             message=message,
         )
 
-        _logger.info("team.linked_success", extra=logger_params)
         metrics.incr(self._METRICS_SUCCESS_KEY + ".link_team", sample_rate=1.0)
 
         return render_to_response(
