@@ -142,8 +142,16 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             name="type"
             disabled={isEdit}
             options={TYPE_OPTIONS}
-            label={t('Aggregate')}
-            help={t('Select the aggregations you want to store.')}
+            label={t('Type')}
+            help={tct(
+              'The type of the metric determines which aggregation functions are available and what types of values it can store. For more information, read [link:our docs]',
+              {
+                // TODO(telemetry-experience): add the correct link here once we have it!!!
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
+                ),
+              }
+            )}
           />
           <SelectField
             name="tags"
