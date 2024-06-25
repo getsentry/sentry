@@ -647,6 +647,17 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         return context
 
 
+@extend_schema_serializer(
+    exclude_fields=[
+        "availableRoles",
+        "requireEmailVerification",
+        "genAIConsent",
+        "metricsActivatePercentiles",
+        "metricsActivateLastForGauges",
+        "features",
+        "quota",
+    ]
+)
 class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
     DetailedOrganizationSerializerResponse
 ):

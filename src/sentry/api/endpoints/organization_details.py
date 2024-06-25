@@ -585,16 +585,8 @@ def post_org_pending_deletion(
         "accountRateLimit",
         "projectRateLimit",
         "requireEmailVerification",
-        "relayPiiConfig",
-        "trustedRelays",
         "apdexThreshold",
-        "githubPRBot",
-        "githubOpenPRBot",
-        "githubNudgeInvite",
-        "aggregatedDataConsent",
         "genAIConsent",
-        "issueAlertsThreadFlag",
-        "metricAlertsThreadFlag",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
     ]
@@ -618,7 +610,7 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         required=False,
     )
     codecovAccess = serializers.BooleanField(
-        help_text="Specify `true` to enable Code Coverage Insights. Learn more about Codecov [here](/product/codecov/).",
+        help_text="Specify `true` to enable Code Coverage Insights. This feature is only available for organizations on the Team plan and above. Learn more about Codecov [here](/product/codecov/).",
         required=False,
     )
 
@@ -657,11 +649,9 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         help_text="The type of display picture for the organization",
         required=False,
     )
-    # avatar = AvatarField(help_text="The file to upload as the organization avatar. Required if `avatarType` is `upload`.", required=False)
-
-    # organization deletion TODO(isabella): check that customers can do this through UI
-    cancelDeletion = serializers.BooleanField(
-        help_text="Specify `true` to cancel the organization's pending deletion.", required=False
+    avatar = serializers.CharField(
+        help_text="The image to upload as the organization avatar, in base64. Required if `avatarType` is `upload`.",
+        required=False,
     )
 
     # security & privacy
@@ -692,6 +682,7 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
             (100, "100 per issue"),
             (-1, "Unlimited"),
         ),
+        help_text="How many native crash reports (such as Minidumps for improved processing and download in issue details) to store per issue.",
         required=False,
     )
     allowJoinRequests = serializers.BooleanField(
@@ -708,20 +699,94 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         help_text="Specify `true` to require the default scrubbers be applied to prevent things like passwords and credit cards from being stored for all projects.",
         required=False,
     )
-    sensitiveFields = serializers.CharField(
-        help_text="Additional global field names to match against when scrubbing data for all projects. Separate multiple entries with a newline.",
+    sensitiveFields = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="A list of additional global field names to match against when scrubbing data for all projects.",
         required=False,
     )
-    safeFields = serializers.CharField(
-        help_text="Global field names which data scrubbers should ignore. Separate multiple entries with a newline.",
+    safeFields = serializers.ListField(
+        child=serializers.CharField(),
+        help_text="A list of global field names which data scrubbers should ignore.",
         required=False,
     )
     scrubIPAddresses = serializers.BooleanField(
         help_text="Specify `true` to prevent IP addresses from being stored for new events on all projects.",
         required=False,
     )
+    relayPiiConfig = serializers.CharField(
+        help_text="""Advanced data scrubbing rules that can be configured for each project as a JSON string. The new rules will only apply to upcoming events. For more details on advanced data scrubbing, see our [full documentation](/security-legal-pii/scrubbing/advanced-datascrubbing/).
 
-    # private attributes  # TODO(isabella): confirm these are all inaccessible on the UI
+> Warning: Calling this endpoint with this field fully overwrites the advanced data scrubbing rules.
+
+Below is an example of a payload for a set of advanced data scrubbing rules for masking credit card numbers from the log message (equivalent to `[Mask] [Credit card numbers] from [$message]` in the Sentry app) and removing a specific key called `foo` (equivalent to `[Remove] [Anything] from [extra.foo]` in the Sentry app):
+```json
+{
+    relayPiiConfig: "{\\"rules\":{\\"0\\":{\\"type\\":\\"creditcard\\",\\"redaction\\":{\\"method\\":\\"mask\\"}},\\"1\\":{\\"type\\":\\"anything\\",\\"redaction\\":{\\"method\\":\\"remove\\"}}},\\"applications\\":{\\"$message\\":[\\"0\\"],\\"extra.foo\\":[\\"1\\"]}}"
+}
+```
+        """,
+        required=False,
+    )
+
+    # relay
+    trustedRelays = serializers.ListField(
+        child=serializers.JSONField(),
+        help_text="""A list of local Relays (the name, public key, and description as a JSON) registered for the organization. This feature is only available for organizations on the Business and Enterprise plans. Read more about Relay [here](/product/relay/).
+
+                                          Below is an example of a list containing a single local Relay registered for the organization:
+                                          ```json
+                                          {
+                                            trustedRelays: [
+                                                {
+                                                    name: "my-relay",
+                                                    publicKey: "eiwr9fdruw4erfh892qy4493reyf89ur34wefd90h",
+                                                    description: "Configuration for my-relay."
+                                                }
+                                            ]
+                                          }
+                                          ```
+                                          """,
+        required=False,
+    )
+
+    # github features
+    githubPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on recent pull requests suspected of causing issues. Requires a GitHub integration.",
+        required=False,
+    )
+    githubOpenPRBot = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to comment on open pull requests to show recent error issues for the code being changed. Requires a GitHub integration.",
+        required=False,
+    )
+    githubNudgeInvite = serializers.BooleanField(
+        help_text="Specify `true` to allow Sentry to detect users committing to your GitHub repositories that are not part of your Sentry organization. Requires a GitHub integration.",
+        required=False,
+    )
+
+    # slack features
+    issueAlertsThreadFlag = serializers.BooleanField(
+        help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for an Issue Alert notification. Requires a Slack integration.",
+        required=False,
+    )
+    metricAlertsThreadFlag = serializers.BooleanField(
+        help_text="Specify `true` to allow the Sentry Slack integration to post replies in threads for an Metric Alert notification. Requires a Slack integration.",
+        required=False,
+    )
+
+    # legal and compliance
+    aggregatedDataConsent = serializers.BooleanField(
+        help_text="Specify `true` to let Sentry use your error messages, stack traces, spans, and DOM interactions data for issue workflow and other product improvements.",
+        required=False,
+    )
+
+    # restore org
+    cancelDeletion = serializers.BooleanField(
+        help_text="Specify `true` to restore an organization that is pending deletion.",
+        required=False,
+    )
+
+    # private attributes
+    # legacy features
     accountRateLimit = serializers.IntegerField(
         min_value=ACCOUNT_RATE_LIMIT_DEFAULT, required=False
     )
@@ -729,16 +794,10 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         min_value=PROJECT_RATE_LIMIT_DEFAULT, required=False
     )
     requireEmailVerification = serializers.BooleanField(required=False)
-    relayPiiConfig = serializers.CharField(required=False)
-    trustedRelays = serializers.ListField(child=TrustedRelaySerializer(), required=False)
     apdexThreshold = serializers.IntegerField(required=False)
-    githubPRBot = serializers.BooleanField(required=False)
-    githubOpenPRBot = serializers.BooleanField(required=False)
-    githubNudgeInvite = serializers.BooleanField(required=False)
-    aggregatedDataConsent = serializers.BooleanField(required=False)
+
+    # TODO: publish when GA'd
     genAIConsent = serializers.BooleanField(required=False)
-    issueAlertsThreadFlag = serializers.BooleanField(required=False)
-    metricAlertsThreadFlag = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
 
@@ -762,7 +821,6 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
-            413: OpenApiResponse(description="Image too large."),
         },
         examples=OrganizationExamples.RETRIEVE_ORGANIZATION,
     )
@@ -805,6 +863,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
             409: RESPONSE_CONFLICT,
+            413: OpenApiResponse(description="Image too large."),
         },
         examples=OrganizationExamples.UPDATE_ORGANIZATION,
     )
