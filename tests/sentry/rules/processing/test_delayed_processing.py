@@ -4,7 +4,6 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -21,6 +20,7 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
+
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
@@ -38,8 +38,10 @@ class ProcessDelayedAlertConditionsTest(
         environment=None,
         user: bool = True,
         tags: list[list[str]] | None = None,
+        print_event: bool = False,
     ) -> Event:
-        print("event timestamp: ", iso_format(timestamp))
+        if print_event:
+            print("event timestamp: ", iso_format(timestamp))
         data = {
             "timestamp": iso_format(timestamp),
             "environment": environment,
@@ -641,11 +643,15 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[percent_condition],
             environment_id=self.environment.id,
         )
-        print("NOW: ", self.now)
-        print("BEFORE: ", self.now - timedelta(days=1, minutes=10))
+        print("NOW EVENT TIME: ", self.now)
+        print("OLD EVENT TIME: ", self.now - timedelta(days=1, minutes=10))
 
-        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(
+            self.project.id, self.now, "group-5", self.environment.name, print_event=True
+        )
+        self.create_event(
+            self.project.id, self.now, "group-5", self.environment.name, print_event=True
+        )
 
         # Create past event to trigger the percent condition
         event5 = self.create_event(
@@ -653,6 +659,7 @@ class ProcessDelayedAlertConditionsTest(
             self.now - timedelta(days=1, minutes=10),
             "group-5",
             self.environment.name,
+            print_event=True,
         )
 
         group5 = event5.group

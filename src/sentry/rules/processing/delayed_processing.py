@@ -227,7 +227,7 @@ def _passes_comparison(
         )
         return False
 
-    print("QUERY VALUES: ", query_values)
+    print(f'{condition_data["comparisonType"]} QUERY VALUES: ', query_values)
 
     calculated_value = query_values[0]
     # If there's a second query we must have a percent comparison condition.
@@ -247,16 +247,14 @@ def get_rules_to_fire(
     rules_to_fire = defaultdict(set)
 
     for key, value in condition_group_results.items():
-        print("CONDITION GROUP UNIQUES: ", key)
-        print("group to result dict: ", value)
+        print("\n************\nCONDITION GROUP RESULT UNIQUES: ", key)
+        print("\nGROUP TO RESULT DICT: ", value, "\n************\n")
 
     for alert_rule, slow_conditions in rules_to_slow_conditions.items():
         action_match = alert_rule.data.get("action_match", "any")
         for group_id in rules_to_groups[alert_rule.id]:
             conditions_matched = 0
             for slow_condition in slow_conditions:
-                print(slow_condition)
-                print("group_id: ", group_id)
                 if _passes_comparison(
                     condition_group_results, slow_condition, group_id, alert_rule.environment_id
                 ):
@@ -447,8 +445,8 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     )
 
     for key, value in condition_groups.items():
-        print("CONDITION GROUPS: \n", key)
-        print("DATA AND GROUPS: \n", value, "\n************")
+        print("\n************\nCONDITION GROUPS VALUE: \n", key)
+        print("\nDATA AND GROUPS KEY: \n", value, "\n************\n")
 
     # Step 5: Instantiate the condition that we can apply to each unique condition
     # query, and evaluate the relevant group_ids that apply for that query.
