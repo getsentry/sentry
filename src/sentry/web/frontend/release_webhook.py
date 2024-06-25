@@ -68,6 +68,8 @@ class ReleaseWebhookView(View):
     def post(self, request: HttpRequest, plugin_id, project_id, signature) -> HttpResponse:
         try:
             project = Project.objects.get_from_cache(id=project_id)
+        except ValueError:
+            return HttpResponse(status=404)
         except Project.DoesNotExist:
             logger.warning(
                 "release-webhook.invalid-project",

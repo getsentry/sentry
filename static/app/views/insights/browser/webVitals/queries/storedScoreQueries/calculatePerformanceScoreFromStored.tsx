@@ -75,6 +75,12 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
 }
 
 const calculateWeights = (data: TableDataRow) => {
+  const hasLcp = hasWebVitalScore(data, 'lcp');
+  const hasFcp = hasWebVitalScore(data, 'fcp');
+  const hasCls = hasWebVitalScore(data, 'cls');
+  const hasInp = hasWebVitalScore(data, 'inp');
+  const hasTtfb = hasWebVitalScore(data, 'ttfb');
+
   // We need to do this because INP and pageLoads are different score profiles
   const inpScoreCount = getWebVitalScoreCount(data, 'inp') || 0;
   const totalScoreCount = getWebVitalScoreCount(data, 'total');
@@ -94,10 +100,10 @@ const calculateWeights = (data: TableDataRow) => {
     }
   );
   return {
-    lcpWeight,
-    fcpWeight,
-    clsWeight,
-    ttfbWeight,
-    inpWeight: inpActualWeight,
+    lcpWeight: hasLcp ? lcpWeight : 0,
+    fcpWeight: hasFcp ? fcpWeight : 0,
+    clsWeight: hasCls ? clsWeight : 0,
+    ttfbWeight: hasTtfb ? ttfbWeight : 0,
+    inpWeight: hasInp ? inpActualWeight : 0,
   };
 };

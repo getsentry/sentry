@@ -115,17 +115,6 @@ export function PageOverviewSidebar({
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
-  // Gets weights to dynamically size the performance score ring segments
-  const weights = projectScore
-    ? {
-        lcp: projectScore.lcpWeight,
-        fcp: projectScore.fcpWeight,
-        inp: projectScore.inpWeight,
-        cls: projectScore.clsWeight,
-        ttfb: projectScore.ttfbWeight,
-      }
-    : undefined;
-
   return (
     <Fragment>
       <SectionHeading>
@@ -153,7 +142,6 @@ export function PageOverviewSidebar({
             height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
-            weights={weights}
           />
         )}
         {projectScoreIsLoading && <ProjectScoreEmptyLoadingElement />}

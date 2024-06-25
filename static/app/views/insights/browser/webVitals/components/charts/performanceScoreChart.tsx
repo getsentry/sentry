@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -56,17 +57,6 @@ export function PerformanceScoreChart({
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
 
-  // Gets weights to dynamically size the performance score ring segments
-  const weights = projectScore
-    ? {
-        lcp: projectScore.lcpWeight,
-        fcp: projectScore.fcpWeight,
-        inp: projectScore.inpWeight,
-        cls: projectScore.clsWeight,
-        ttfb: projectScore.ttfbWeight,
-      }
-    : undefined;
-
   return (
     <Flex>
       <PerformanceScoreLabelContainer>
@@ -87,6 +77,7 @@ export function PerformanceScoreChart({
           />
         </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
+        {isProjectScoreLoading && <StyledLoadingIndicator size={50} />}
         {!isProjectScoreLoading && projectScore && (
           <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
@@ -95,7 +86,6 @@ export function PerformanceScoreChart({
             height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
-            weights={weights}
           />
         )}
         {!isProjectScoreLoading && !projectScore && (
@@ -150,4 +140,8 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: relative;
   margin-left: ${space(0.5)};
   top: ${space(0.25)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 50px;
 `;
