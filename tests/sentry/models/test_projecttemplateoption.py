@@ -11,12 +11,40 @@ class ProjectTemplateOptionManagerTest(TestCase):
             name="test_project_template", organization=self.org
         )
 
-    def create_test_option(self, key="key", value="value"):
-        return ProjectTemplateOption.objects.create(
-            project_template=self.project_template,
-            key=key,
-            value=value,
+    def test_set_value(self):
+        ProjectTemplateOption.objects.set_value(self.project_template, "foo", "bar")
+        assert (
+            ProjectTemplateOption.objects.get(
+                project_template=self.project_template, key="foo"
+            ).value
+            == "bar"
         )
+
+    def test_get_value(self):
+        result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
+        assert result is None
+
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
+        result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
+        assert result == "bar"
+
+    def test_unset_value(self):
+        ProjectTemplateOption.objects.unset_value(self.project_template, "foo")
+        ProjectTemplateOption.objects.create(project=self.project_template, key="foo", value="bar")
+        ProjectTemplateOption.objects.unset_value(self.project_template, "foo")
+        assert not ProjectTemplateOption.objects.filter(
+            project=self.project_template, key="foo"
+        ).exists()
+
+    def test_get_value_bulk(self):
+        result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
+        assert result == {self.project_template: None}
+
+        ProjectTemplateOption.objects.create(project=self.project_template, key="foo", value="bar")
+        result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
+        assert result == {self.project_template: "bar"}
 
 
 class ProjectTemplateOptionTest(TestCase):

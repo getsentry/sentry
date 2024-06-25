@@ -1,31 +1,45 @@
-from typing import TYPE_CHECKING
+import logging
+from collections.abc import Callable, Mapping, Sequence
+from typing import Any, ClassVar
 
 from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
-from sentry.db.models.manager import OptionManager, ValidateFunction, Value
+from sentry.db.models.manager.option import OptionManager
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.utils.cache import cache
 
-if TYPE_CHECKING:
-    from .project_template_option import ProjectTemplateOption
+Value = Any | None
+logger = logging.getLogger(__name__)
 
 
 class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
+    def get_value_bulk(
+        self, instance: Sequence[ProjectTemplate], key: str
+    ) -> Mapping[ProjectTemplate, Value]:
+        result = cache.get_many([self._make_key(i.id) for i in instance])
+
+        if not result:
+            return {}
+
+        return {i: result.get(self._make_key(i.id), {}).get(key) for i in instance}
+
     def get_value(
         self,
         project_template: ProjectTemplate | int,
         key: str,
         default: Value = None,
-        validate: ValidateFunction | None = None,
+        validate: Callable[[object], bool] | None = None,
     ) -> Value:
         result = self.get_all_values(project_template)
 
         if key in result:
             if validate is None or validate(result[key]):
                 return result[key]
+
+        return default
 
     def unset_value(self, project_template: ProjectTemplate, key: str, value: Value) -> None:
         self.filter(project_template=project_template, key=key).delete()
@@ -43,19 +57,15 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
         self.update_value(project_template_id=project_template_id, key=key, value=value)
         self.reload_cache(project_template_id, "projecttemplateoption.update_value")
 
-    def get_all_values(
-        self, project_template: ProjectTemplate | int
-    ) -> list[ProjectTemplateOption]:
+    def get_all_values(self, project_template: ProjectTemplate | int) -> Mapping[str, Value]:
         if isinstance(project_template, models.Model):
             project_template_id = project_template.id
         else:
             project_template_id = project_template
-
         cache_key = self._make_key(project_template_id)
 
         if cache_key not in self._option_cache:
             result = cache.get(cache_key)
-
             if result is None:
                 self.reload_cache(project_template_id, "projecttemplateoption.get_all_values")
             else:
@@ -66,6 +76,10 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
     def reload_cache(self, project_template_id: int, update_reason: str) -> None:
         cache_key = self._make_key(project_template_id)
 
+        logger.info(
+            "projecttemplateoption.reload_cache",
+            extra={"cache_key": cache_key, "reason": update_reason},
+        )
         result = {i.key: i.value for i in self.filter(project_template=project_template_id)}
 
         cache.set(cache_key, result)
@@ -86,6 +100,8 @@ class ProjectTemplateOption(Model):
     project_template = FlexibleForeignKey("sentry.ProjectTemplate", related_name="options")
     key = models.CharField(max_length=64)
     value = PickledObjectField()
+
+    objects: ClassVar[ProjectTemplateOptionManager] = ProjectTemplateOptionManager()
 
     class Meta:
         app_label = "sentry"
