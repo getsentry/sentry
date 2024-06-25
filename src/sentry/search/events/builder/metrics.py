@@ -40,6 +40,7 @@ from sentry.search.events.builder.utils import (
     remove_hours,
     remove_minutes,
 )
+from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.fields import get_function_alias
@@ -143,20 +144,17 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
 
-    def load_config(self):
+    def load_config(self) -> DatasetConfig:
         if hasattr(self, "config_class") and self.config_class is not None:
-            super().load_config()
-            return
+            return super().load_config()
 
         if self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.builder_config.use_metrics_layer:
-                self.config = MetricsLayerDatasetConfig(self)
+                return MetricsLayerDatasetConfig(self)
             else:
-                self.config = MetricsDatasetConfig(self)
+                return MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
-
-        self.parse_config()
 
     @property
     def use_default_tags(self) -> bool:

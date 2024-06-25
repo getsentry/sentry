@@ -264,10 +264,8 @@ class BaseQueryBuilder:
         self.turbo = turbo
         self.sample_rate = sample_rate
 
-        self.config_parsed: bool = False
-        self.load_config()
-        if not self.config_parsed:
-            raise Exception("Setup failed, dataset config was not parsed")
+        self.config = self.load_config()
+        self.parse_config()
 
         self.start: datetime | None = None
         self.end: datetime | None = None
@@ -333,15 +331,15 @@ class BaseQueryBuilder:
                 self.groupby = self.resolve_groupby(groupby_columns)
 
     def parse_config(self) -> None:
+        if not hasattr(self, "config") or self.config is None:
+            raise Exception("Setup failed, dataset config was not loaded")
         self.field_alias_converter = self.config.field_alias_converter
         self.function_converter = self.config.function_converter
         self.search_filter_converter = self.config.search_filter_converter
         self.orderby_converter = self.config.orderby_converter
-        self.config_parsed = True
 
-    def load_config(self) -> None:
-        self.config = self.config_class(self)
-        self.parse_config()
+    def load_config(self) -> DatasetConfig:
+        return self.config_class(self)
 
     def resolve_limit(self, limit: int | None) -> Limit | None:
         return None if limit is None else Limit(limit)
@@ -1499,11 +1497,10 @@ class QueryBuilder(BaseQueryBuilder):
 
     def load_config(
         self,
-    ) -> None:
+    ) -> DatasetConfig:
         # Necessary until more classes inherit from BaseQueryBuilder instead
         if hasattr(self, "config_class") and self.config_class is not None:
-            super().load_config()
-            return
+            return super().load_config()
 
         self.config: DatasetConfig
         if self.dataset in [
@@ -1512,11 +1509,9 @@ class QueryBuilder(BaseQueryBuilder):
             Dataset.Events,
             Dataset.IssuePlatform,
         ]:
-            self.config = DiscoverDatasetConfig(self)
+            return DiscoverDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
-
-        self.parse_config()
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         tag_match = constants.TAG_KEY_RE.search(raw_field)
