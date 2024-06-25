@@ -78,27 +78,36 @@ export function AutofixInputField({groupId, runId}: {groupId: string; runId: str
   return (
     <Card>
       <Title>{t("Doesn't look right? Tell Autofix what needs to be changed")}</Title>
-      <FormRow>
-        <TextArea
-          aria-label={t('Provide context')}
-          placeholder={t('Rename the function foo_bar to fooBar')}
-          value={instruction}
-          onChange={e => setInstruction(e.target.value)}
-          disabled={isSubmitting}
-          onKeyDown={e => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-              sendInstruction();
+      <form
+        onSubmit={e => {
+          e.preventDefault();
+          sendInstruction();
+        }}
+      >
+        <FormRow>
+          <TextArea
+            aria-label={t('Provide context')}
+            placeholder={t('Rename the function foo_bar to fooBar')}
+            value={instruction}
+            onChange={e => setInstruction(e.target.value)}
+            disabled={isSubmitting}
+            onKeyDown={e => {
+              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                sendInstruction();
+              }
+            }}
+          />
+          <Button
+            type="submit"
+            icon={
+              isSubmitting && <ProcessingStatusIndicator size={18} mini hideMessage />
             }
-          }}
-        />
-        <Button
-          onClick={sendInstruction}
-          icon={isSubmitting && <ProcessingStatusIndicator size={18} mini hideMessage />}
-          disabled={isSubmitting || !instruction}
-        >
-          {t('Send')}
-        </Button>
-      </FormRow>
+            disabled={isSubmitting || !instruction}
+          >
+            {t('Send')}
+          </Button>
+        </FormRow>
+      </form>
     </Card>
   );
 }
