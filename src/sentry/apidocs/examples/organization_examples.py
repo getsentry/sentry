@@ -27,7 +27,7 @@ class OrganizationExamples:
 
     UPDATE_ORGANIZATION = [
         OpenApiExample(
-            "Update an organdization",
+            "Update an organization",
             value={
                 "id": "2",
                 "slug": "the-interstellar-jurisdiction",
@@ -379,6 +379,7 @@ class OrganizationExamples:
                         "dateCreated": "2019-06-17T18:56:25.777769Z",
                         "environments": [],
                         "eventProcessing": {"symbolicationDegraded": False},
+                        "features": ["releases"],
                         "firstEvent": None,
                         "firstTransactionEvent": False,
                         "hasSessions": False,
@@ -464,6 +465,8 @@ class OrganizationExamples:
                     "hasReplays": True,
                     "hasMinifiedStackTrace": False,
                     "hasMonitors": True,
+                    "hasFeedbacks": False,
+                    "hasNewFeedbacks": False,
                     "hasCustomMetrics": False,
                     "hasUserReports": False,
                     "latestRelease": None,
@@ -608,6 +611,7 @@ class OrganizationExamples:
                         "isRetired": False,
                         "is_global": False,
                         "isGlobal": False,
+                        "isTeamRolesAllowed": False,
                         "minimumTeamRole": "contributor",
                     },
                     {
@@ -631,6 +635,7 @@ class OrganizationExamples:
                         "isRetired": False,
                         "is_global": False,
                         "isGlobal": False,
+                        "isTeamRolesAllowed": True,
                         "minimumTeamRole": "contributor",
                     },
                     {
@@ -659,6 +664,7 @@ class OrganizationExamples:
                         "isRetired": True,
                         "is_global": False,
                         "isGlobal": False,
+                        "isTeamRolesAllowed": True,
                         "minimumTeamRole": "admin",
                     },
                     {
@@ -690,6 +696,7 @@ class OrganizationExamples:
                         "isRetired": False,
                         "is_global": True,
                         "isGlobal": True,
+                        "isTeamRolesAllowed": True,
                         "minimumTeamRole": "admin",
                     },
                     {
@@ -723,6 +730,7 @@ class OrganizationExamples:
                         "isRetired": False,
                         "is_global": True,
                         "isGlobal": True,
+                        "isTeamRolesAllowed": True,
                         "minimumTeamRole": "admin",
                     },
                 ],
@@ -745,6 +753,7 @@ class OrganizationExamples:
                         "isAllowed": False,
                         "isRetired": False,
                         "isMinimumRoleFor": None,
+                        "isTeamRolesAllowed": True,
                     },
                     {
                         "id": "admin",
@@ -771,6 +780,7 @@ class OrganizationExamples:
                         "isAllowed": False,
                         "isRetired": False,
                         "isMinimumRoleFor": "admin",
+                        "isTeamRolesAllowed": True,
                     },
                 ],
             },

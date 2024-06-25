@@ -14,7 +14,7 @@ from sentry_relay.exceptions import RelayError
 from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.api.serializers.models.project import ProjectSerializerResponse
+from sentry.api.serializers.models.project import OrganizationProjectResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializer,
     OrganizationRoleSerializerResponse,
@@ -393,7 +393,7 @@ class OnboardingTasksSerializerResponse(TypedDict):
     task: str  # TODO: literal/enum
     status: str  # TODO: literal/enum
     user: UserSerializerResponse | UserSerializerResponseSelf | None
-    completionSeen: datetime
+    completionSeen: datetime | None
     dateCompleted: datetime
     data: Any  # JSON object
 
@@ -436,7 +436,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     experiments: Any
     quota: Any
     isDefault: bool
-    defaultRole: bool
+    defaultRole: str  # TODO: replace with enum/literal
     availableRoles: list[Any]  # TODO: deprecated, use orgRoleList
     orgRoleList: list[OrganizationRoleSerializerResponse]
     teamRoleList: list[TeamRoleSerializerResponse]
@@ -459,7 +459,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     trustedRelays: list[TrustedRelaySerializerResponse]
     access: frozenset[str]
     pendingAccessRequests: int
-    onboardingTasks: OnboardingTasksSerializerResponse
+    onboardingTasks: list[OnboardingTasksSerializerResponse]
     codecovAccess: bool
     aiSuggestedSolution: bool
     githubPRBot: bool
@@ -662,7 +662,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsResponse(
     DetailedOrganizationSerializerResponse
 ):
     teams: list[TeamSerializerResponse]
-    projects: list[ProjectSerializerResponse]
+    projects: list[OrganizationProjectResponse]
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSerializer):
