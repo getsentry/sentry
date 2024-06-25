@@ -76,12 +76,7 @@ jobs:
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-          install-cmd: python3 -m tools.hack_pip && pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
-
-      - uses: actions/cache@13aacd865c20de90d75de3b17ebe84f7a17d57d2 # v4.0.0
-        with:
-          path: ~/.cache/pre-commit
-          key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
+          install-cmd: python3 -m tools.hack_pip && pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
 
       - name: Setup pre-commit
         # We don't use make setup-git because we're only interested in installing
