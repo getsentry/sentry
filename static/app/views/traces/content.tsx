@@ -174,9 +174,8 @@ export function Content() {
   const isLoading = tracesQuery.isFetching;
   const isError = !isLoading && tracesQuery.isError;
   const isEmpty = !isLoading && !isError && (tracesQuery?.data?.data?.length ?? 0) === 0;
-  const data = normalizeTraces(
-    !isLoading && !isError ? tracesQuery?.data?.data : undefined
-  );
+  const rawData = !isLoading && !isError ? tracesQuery?.data?.data : undefined;
+  const data = sortByTimestamp ? rawData : normalizeTraces(rawData);
 
   return (
     <LayoutMain fullWidth>
