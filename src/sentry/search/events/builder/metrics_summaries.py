@@ -7,10 +7,7 @@ from sentry.snuba.dataset import Dataset
 
 class MetricsSummariesQueryBuilder(QueryBuilder):
     requires_organization_condition = False
-
-    def load_config(self):
-        self.config = MetricsSummariesDatasetConfig(self)
-        self.parse_config(self.config)
+    config_class = MetricsSummariesDatasetConfig
 
     def get_field_type(self, field: str) -> str | None:
         if field in ["min_metric", "max_metric", "sum_metric", "count_metric"]:

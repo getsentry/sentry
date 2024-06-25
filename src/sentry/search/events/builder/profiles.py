@@ -36,12 +36,8 @@ class ProfilesQueryBuilderMixin:
 
 
 class ProfilesQueryBuilder(ProfilesQueryBuilderMixin, QueryBuilder):
-    def load_config(self):
-        self.config = ProfilesDatasetConfig(self)
-        self.parse_config(self.config)
+    pass
 
 
 class ProfilesTimeseriesQueryBuilder(ProfilesQueryBuilderMixin, TimeseriesQueryBuilder):
-    def load_config(self):
-        self.config = ProfilesDatasetConfig(self)
-        self.parse_config(self.config)
+    pass

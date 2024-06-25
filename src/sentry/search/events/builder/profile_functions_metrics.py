@@ -12,6 +12,7 @@ from sentry.search.events.types import SelectType
 class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     profile_functions_metrics_builder = True
+    config_class = ProfileFunctionsMetricsDatasetConfig
 
     column_remapping = {
         # We want to remap `message` to `name` for the free
@@ -32,10 +33,6 @@ class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
         "os_name",
         "os_version",
     }
-
-    def load_config(self):
-        self.config = ProfileFunctionsMetricsDatasetConfig(self)
-        self.parse_config(self.config)
 
     @property
     def use_default_tags(self) -> bool:

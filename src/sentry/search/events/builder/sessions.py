@@ -14,6 +14,7 @@ class SessionsV2QueryBuilder(QueryBuilder):
     filter_allowlist_fields = {"project", "project_id", "environment", "release"}
     requires_organization_condition = True
     organization_column: str = "org_id"
+    config_class = SessionsDatasetConfig
 
     def __init__(
         self,
@@ -25,10 +26,6 @@ class SessionsV2QueryBuilder(QueryBuilder):
         self._extra_filter_allowlist_fields = extra_filter_allowlist_fields or []
         self.granularity = Granularity(granularity) if granularity is not None else None
         super().__init__(*args, **kwargs)
-
-    def load_config(self):
-        self.config = SessionsDatasetConfig(self)
-        self.parse_config(self.config)
 
     def resolve_groupby(self, groupby_columns: list[str] | None = None) -> list[SelectType]:
         """

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import abc
 import math
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
@@ -89,6 +88,7 @@ class BaseQueryBuilder:
     spans_metrics_builder = False
     profile_functions_metrics_builder = False
     entity: Entity | None = None
+    config_class: type[DatasetConfig] | None
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -332,16 +332,16 @@ class BaseQueryBuilder:
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
-    def parse_config(self, config: DatasetConfig) -> None:
+    def parse_config(self) -> None:
         self.field_alias_converter = self.config.field_alias_converter
         self.function_converter = self.config.function_converter
         self.search_filter_converter = self.config.search_filter_converter
         self.orderby_converter = self.config.orderby_converter
         self.config_parsed = True
 
-    @abc.abstractmethod
     def load_config(self) -> None:
-        pass
+        self.config = self.config_class(self)
+        self.parse_config()
 
     def resolve_limit(self, limit: int | None) -> Limit | None:
         return None if limit is None else Limit(limit)
@@ -1500,6 +1500,11 @@ class QueryBuilder(BaseQueryBuilder):
     def load_config(
         self,
     ) -> None:
+        # Necessary until more classes inherit from BaseQueryBuilder instead
+        if hasattr(self, "config_class") and self.config_class is not None:
+            super().load_config()
+            return
+
         self.config: DatasetConfig
         if self.dataset in [
             Dataset.Discover,
@@ -1511,7 +1516,7 @@ class QueryBuilder(BaseQueryBuilder):
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
-        self.parse_config(self.config)
+        self.parse_config()
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         tag_match = constants.TAG_KEY_RE.search(raw_field)

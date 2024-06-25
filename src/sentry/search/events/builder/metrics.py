@@ -143,6 +143,10 @@ class MetricsQueryBuilder(QueryBuilder):
         self.organization_id: int = org_id
 
     def load_config(self):
+        if hasattr(self, "config_class") and self.config_class is not None:
+            super().load_config()
+            return
+
         if self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
             if self.builder_config.use_metrics_layer:
                 self.config = MetricsLayerDatasetConfig(self)
@@ -151,7 +155,7 @@ class MetricsQueryBuilder(QueryBuilder):
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
-        self.parse_config(self.config)
+        self.parse_config()
 
     @property
     def use_default_tags(self) -> bool:

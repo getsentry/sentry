@@ -470,11 +470,7 @@ def parse_conditions(
 
 
 class ReleaseHealthQueryBuilder(UnresolvedQuery):
-    def load_config(
-        self,
-    ) -> None:
-        self.config = SessionsDatasetConfig(self)
-        self.parse_config(self.config)
+    config_class = SessionsDatasetConfig
 
     def _contains_wildcard_in_query(self, query: str | None) -> bool:
         parsed_terms = self.parse_query(query)

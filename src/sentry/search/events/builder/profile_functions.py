@@ -6,6 +6,7 @@ from snuba_sdk.function import Function
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.fields import custom_time_processor, get_function_alias
 from sentry.search.events.types import (
@@ -19,6 +20,8 @@ from sentry.snuba.dataset import Dataset
 
 
 class ProfileFunctionsQueryBuilderProtocol(Protocol):
+    config_class: type[DatasetConfig] = ProfileFunctionsDatasetConfig
+
     @property
     def config(self) -> ProfileFunctionsDatasetConfig:
         ...
@@ -46,19 +49,11 @@ class ProfileFunctionsQueryBuilderMixin:
 class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
     function_alias_prefix = "sentry_"
 
-    def load_config(self):
-        self.config = ProfileFunctionsDatasetConfig(self)
-        self.parse_config(self.config)
-
 
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
     function_alias_prefix = "sentry_"
-
-    def load_config(self):
-        self.config = ProfileFunctionsDatasetConfig(self)
-        self.parse_config(self.config)
 
     def strip_alias_prefix(self, result):
         alias_mappings = {
@@ -120,10 +115,6 @@ class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryB
             self.groupby.extend(
                 [column for column in self.columns if column not in self.aggregates]
             )
-
-    def load_config(self):
-        self.config = ProfileFunctionsDatasetConfig(self)
-        self.parse_config(self.config)
 
     @property
     def translated_groupby(self) -> list[str]:

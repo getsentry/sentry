@@ -23,10 +23,7 @@ class SpansIndexedQueryBuilderMixin:
 class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, QueryBuilder):
     requires_organization_condition = False
     uuid_fields = {"transaction.id", "replay.id", "profile.id", "trace"}
-
-    def load_config(self):
-        self.config = SpansIndexedDatasetConfig(self)
-        self.parse_config(self.config)
+    config_class = SpansIndexedDatasetConfig
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -36,9 +33,7 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, QueryBuilder):
 
 
 class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):
-    def load_config(self):
-        self.config = SpansIndexedDatasetConfig(self)
-        self.parse_config(self.config)
+    config_class = SpansIndexedDatasetConfig
 
     @property
     def time_column(self) -> SelectType:
@@ -48,9 +43,7 @@ class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, Timeserie
 
 
 class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
-    def load_config(self):
-        self.config = SpansIndexedDatasetConfig(self)
-        self.parse_config(self.config)
+    config_class = SpansIndexedDatasetConfig
 
     @property
     def time_column(self) -> SelectType:

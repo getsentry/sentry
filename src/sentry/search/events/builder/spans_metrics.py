@@ -14,6 +14,7 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
+    config_class = type[SpansMetricsDatasetConfig]
 
     column_remapping = {
         # We want to remap `message` to `span.description` for the free
@@ -21,10 +22,6 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
         # when the user performs a free text search
         "message": "span.description",
     }
-
-    def load_config(self):
-        self.config = SpansMetricsDatasetConfig(self)
-        return self.parse_config(self.config)
 
     @property
     def use_default_tags(self) -> bool:
