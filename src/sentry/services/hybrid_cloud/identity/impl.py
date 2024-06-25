@@ -6,9 +6,9 @@ from typing import Any
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
+from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.identity import Identity
-from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 from sentry.services.hybrid_cloud.identity.model import (
     IdentityFilterArgs,
     RpcIdentity,

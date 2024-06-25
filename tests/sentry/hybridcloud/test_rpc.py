@@ -9,6 +9,12 @@ from django.conf import settings
 from django.db import router
 from django.test import override_settings
 
+from sentry.hybridcloud.rpc.service import (
+    RpcAuthenticationSetupException,
+    RpcDisabledException,
+    dispatch_remote_call,
+    dispatch_to_local_service,
+)
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
@@ -17,12 +23,6 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
 )
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.services.hybrid_cloud.rpc import (
-    RpcAuthenticationSetupException,
-    RpcDisabledException,
-    dispatch_remote_call,
-    dispatch_to_local_service,
-)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.silo.base import SiloMode
@@ -42,7 +42,7 @@ _REGIONS = [
 
 @no_silo_test
 class RpcServiceTest(TestCase):
-    @mock.patch("sentry.services.hybrid_cloud.rpc.dispatch_remote_call")
+    @mock.patch("sentry.hybridcloud.rpc.service.dispatch_remote_call")
     def test_remote_service(self, mock_dispatch_remote_call: mock.MagicMock) -> None:
         target_region = _REGIONS[0]
 

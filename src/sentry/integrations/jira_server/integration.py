@@ -36,7 +36,6 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -44,6 +43,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
     IntegrationFormError,
 )
+from sentry.silo.base import all_silo_function
 from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.utils.hashlib import sha1_text
 from sentry.utils.http import absolute_uri

@@ -22,6 +22,7 @@ from sentry_relay.exceptions import UnpackError
 from sentry import options
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
+from sentry.hybridcloud.rpc.service import compare_signature
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
@@ -36,7 +37,6 @@ from sentry.models.relay import Relay
 from sentry.models.user import User
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.rpc import compare_signature
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloLimit, SiloMode

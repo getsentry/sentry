@@ -6,12 +6,9 @@ from typing import Any
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
+from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.models.options.user_option import UserOption
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import (
-    FilterQueryDatabaseImpl,
-    OpaqueSerializedResponse,
-)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import (
     RpcUserOption,

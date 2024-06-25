@@ -4,10 +4,10 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
 
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.hybridcloud.rpc_services.control_organization_provisioning.model import (
     RpcOrganizationSlugReservation,
 )
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
 

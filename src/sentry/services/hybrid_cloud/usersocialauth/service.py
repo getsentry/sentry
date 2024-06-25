@@ -5,8 +5,8 @@
 
 from abc import abstractmethod
 
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.usersocialauth.model import (
     RpcUserSocialAuth,
     UserSocialAuthFilterArgs,
