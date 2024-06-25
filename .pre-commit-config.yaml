@@ -21,6 +21,6 @@ repos:
         language: node
         language_version: 20.13.1
         # This version needs to be synced with package.json.
-        additional_dependencies: ['eslint@8.57.0', 'eslint-config-sentry-app@2.7.0', 'eslint-plugin-jest@28.6.0']
+        additional_dependencies: ['eslint@8.57.0', 'eslint-config-sentry-app@2.7.0']
         files: \.[jt]sx?$
         types: [file]
