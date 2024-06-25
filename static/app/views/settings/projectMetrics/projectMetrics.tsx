@@ -17,6 +17,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import {CustomMetricsTable} from 'sentry/views/settings/projectMetrics/customMetricsTable';
+import {ExtrapolationField} from 'sentry/views/settings/projectMetrics/extrapolationField';
 import {MetricsExtractionRulesTable} from 'sentry/views/settings/projectMetrics/metricsExtractionRulesTable';
 
 type Props = {
@@ -64,6 +65,8 @@ function ProjectMetrics({project}: Props) {
       </TextBlock>
 
       <PermissionAlert project={project} />
+
+      <ExtrapolationField project={project} />
 
       {hasExtractionRules && <MetricsExtractionRulesTable project={project} />}
 
