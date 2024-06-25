@@ -701,7 +701,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 ),
                 "title": "title",
                 "timestamp": iso_format(before_now(seconds=10)),
-                "title": "title",
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
