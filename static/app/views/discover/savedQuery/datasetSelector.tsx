@@ -15,17 +15,26 @@ export const DATASET_PARAM = 'queryDataset';
 type Props = {
   isHomepage: boolean | undefined;
   savedQuery: SavedQuery | undefined;
+  splitDecision?: string;
 };
 
 export function DatasetSelector(props: Props) {
-  const {savedQuery, isHomepage} = props;
+  const {savedQuery, isHomepage, splitDecision} = props;
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const value =
-    decodeScalar(location.query[DATASET_PARAM]) ??
-    savedQuery?.queryDataset ??
-    'error-events';
+
+  const getDataset = () => {
+    if (decodeScalar(location.query[DATASET_PARAM])) {
+      return decodeScalar(location.query[DATASET_PARAM]);
+    }
+    if (savedQuery?.queryDataset === 'discover') {
+      return splitDecision ?? 'error-events';
+    }
+    return savedQuery?.queryDataset ?? 'error-events';
+  };
+
+  const value = getDataset();
 
   const options = [
     {value: 'error-events', label: t('Errors')},

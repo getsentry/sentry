@@ -34,6 +34,7 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
+  splitDecision?: string;
 };
 
 type State = {
@@ -138,6 +139,7 @@ class ResultsHeader extends Component<Props, State> {
       router,
       setSavedQuery,
       isHomepage,
+      splitDecision,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
 
@@ -189,6 +191,7 @@ class ResultsHeader extends Component<Props, State> {
             yAxis={yAxis}
             router={router}
             isHomepage={isHomepage}
+            splitDecision={splitDecision}
             setHomepageQuery={updatedHomepageQuery => {
               this.setState({homepageQuery: updatedHomepageQuery});
               if (isHomepage) {

@@ -143,6 +143,7 @@ type Props = DefaultProps & {
   yAxis: string[];
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
+  splitDecision?: string;
 };
 
 type State = {
@@ -522,8 +523,16 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
-      this.props;
+    const {
+      organization,
+      eventView,
+      savedQuery,
+      yAxis,
+      router,
+      location,
+      isHomepage,
+      splitDecision,
+    } = this.props;
 
     const contextMenuItems: MenuItemProps[] = [];
 
@@ -582,7 +591,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         >
           {({hasFeature}) =>
             hasFeature && (
-              <DatasetSelector isHomepage={isHomepage} savedQuery={savedQuery} />
+              <DatasetSelector
+                isHomepage={isHomepage}
+                savedQuery={savedQuery}
+                splitDecision={splitDecision}
+              />
             )
           }
         </Feature>

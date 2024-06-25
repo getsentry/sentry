@@ -89,6 +89,7 @@ type State = {
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
   showUnparameterizedBanner?: boolean;
+  splitDecision?: string;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
@@ -672,6 +673,9 @@ export class Results extends Component<Props, State> {
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
                   setTips={this.setTips}
+                  setSplitDecision={(splitDecision?: string) =>
+                    this.setState({splitDecision})
+                  }
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
