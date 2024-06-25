@@ -577,5 +577,4 @@ def map_device_class_tags(tags):
         if tag["key"] == "device.class":
             if device_class := map_device_class_level(tag["value"]):
                 tag["value"] = device_class
-            continue
     return tags
