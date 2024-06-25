@@ -30,8 +30,16 @@ CHANNEL_PREFIX = "#"
 strip_channel_chars = "".join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 
-@dataclass
+@dataclass(frozen=True)
 class SlackChannelIdData:
+    """
+    Dataclass to hold the results of a channel id lookup.
+    Attributes:
+        prefix: str: The prefix of the channel name, either "@", "#", or "" (only if the channel_name is None)
+        channel_id: str | None: The channel id, if found
+        timed_out: bool: Whether the lookup timed out
+    """
+
     prefix: str
     channel_id: str | None
     timed_out: bool
@@ -61,10 +69,7 @@ def get_channel_id(
     :param integration: The slack integration
     :param channel_name: The name of the channel
     :param use_async_lookup: Give the function some extra time?
-    :return: a tuple of three values
-        1. prefix: string (`"#"` or `"@"`)
-        2. channel_id: string or `None`
-        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    :return: a SlackChannelIdData object
     """
 
     channel_name = strip_channel_name(channel_name)
@@ -151,14 +156,14 @@ def get_channel_id_with_timeout(
     :param integration: The slack integration
     :param name: The name of the channel
     :param timeout: Our self-imposed time limit.
-    :return: a tuple of three values
-        1. prefix: string (`"#"` or `"@"`)
-        2. channel_id: string or `None`
-        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    :return: a SlackChannelIdData object
     """
-    id_data = SlackChannelIdData(prefix="", channel_id=None, timed_out=False)
+
     if name is None:
-        return id_data
+        return SlackChannelIdData(prefix="", channel_id=None, timed_out=False)
+
+    _prefix = ""
+    _channel_id = None
 
     time_to_quit = time.time() + timeout
     client = SlackSdkClient(integration_id=integration.id)
@@ -168,14 +173,25 @@ def get_channel_id_with_timeout(
         "name": name,
     }
     try:  # Check for channel
-        id_data.channel_id = check_for_channel(client, name)
-        id_data.prefix = "#"
+        _channel_id = check_for_channel(client, name)
+        _prefix = "#"
     except SlackApiError:
         logger.exception("rule.slack.channel_check_error", extra=logger_params)
-        return id_data
+        return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=False)
 
-    if id_data.channel_id is not None:
-        return id_data
+    if _channel_id is not None:
+        return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
+
+    return check_user_with_timeout(client, integration, name, time_to_quit)
+
+
+def check_user_with_timeout(
+    client: SlackSdkClient, integration: Integration, name: str, time_to_quit: int
+) -> SlackChannelIdData:
+    users = get_users_sdk(client, integration)
+
+    _channel_id = None
+    _prefix = ""
 
     # We need to check for individual users if we don't have a channel
     users = get_users_sdk(client, integration)
@@ -183,23 +199,24 @@ def get_channel_id_with_timeout(
         # The "name" field is unique (this is the username for users)
         # so we return immediately if we find a match.
         # convert to lower case since all names in Slack are lowercase
-        if name and str(user["name"]).lower() == name.lower():
+        if name and str(user["name"]).casefold() == name.casefold():
             return SlackChannelIdData(prefix="@", channel_id=user["id"], timed_out=False)
 
         # If we don't get a match on a unique identifier, we look through
         # the users' display names, and error if there is a repeat.
         profile = user.get("profile")
         if profile and profile.get("display_name") == name:
-            if id_data.channel_id is not None:
+            if _channel_id is not None:
                 raise DuplicateDisplayNameError(name)
             else:
-                id_data = SlackChannelIdData("@", user["id"], False)
+                _prefix = "@"
+                _channel_id = user["id"]
 
         # TODO: This is a problem if we don't go through all the users and eventually run in to someone with duplicate display name
         if time.time() > time_to_quit:
-            break
+            return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
 
-    return id_data
+    return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
 
 def check_for_channel(
@@ -260,10 +277,7 @@ def get_channel_id_with_timeout_deprecated(
     :param integration: The slack integration
     :param name: The name of the channel
     :param timeout: Our self-imposed time limit.
-    :return: a tuple of three values
-        1. prefix: string (`"#"` or `"@"`)
-        2. channel_id: string or `None`
-        3. timed_out: boolean (whether we hit our self-imposed time limit)
+    :return: a SlackChannelIdData object
     """
 
     payload = {
