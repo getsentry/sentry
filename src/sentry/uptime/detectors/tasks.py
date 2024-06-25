@@ -1,4 +1,7 @@
-from datetime import datetime, timedelta
+import datetime
+from datetime import timedelta
+
+from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.models.project import Project
@@ -43,12 +46,14 @@ def schedule_detections():
             cluster = _get_cluster()
             last_processed = cluster.get(LAST_PROCESSED_KEY)
             if last_processed is None:
-                last_processed = datetime.now().replace(second=0, microsecond=0)
+                last_processed = timezone.now().replace(second=0, microsecond=0)
             else:
-                last_processed = datetime.fromtimestamp(int(last_processed))
+                last_processed = datetime.datetime.fromtimestamp(
+                    int(last_processed), tz=datetime.UTC
+                )
 
             minutes_since_last_processed = int(
-                (datetime.now() - last_processed) / timedelta(minutes=1)
+                (timezone.now() - last_processed) / timedelta(minutes=1)
             )
             for _ in range(minutes_since_last_processed):
                 last_processed = last_processed + timedelta(minutes=1)
@@ -65,7 +70,7 @@ def schedule_detections():
     name="sentry.uptime.detectors.tasks.process_detection_bucket",
     queue="uptime",
 )
-def process_detection_bucket(bucket: datetime):
+def process_detection_bucket(bucket: datetime.datetime):
     """
     Schedules url detection for all projects in this time bucket that saw promising urls.
     """

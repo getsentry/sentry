@@ -1,6 +1,8 @@
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest import mock
 from unittest.mock import call
+
+from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.models.project import Project
@@ -40,12 +42,12 @@ class ScheduleDetectionsTest(TestCase):
         last_processed = cluster.get(LAST_PROCESSED_KEY)
         assert last_processed is not None
         assert int(last_processed) == int(
-            datetime.now().replace(second=0, microsecond=0).timestamp()
+            timezone.now().replace(second=0, microsecond=0).timestamp()
         )
 
     def test_processes(self):
         cluster = _get_cluster()
-        current_bucket = datetime.now().replace(second=0, microsecond=0)
+        current_bucket = timezone.now().replace(second=0, microsecond=0)
         last_processed_bucket = current_bucket - timedelta(minutes=10)
         cluster.set(LAST_PROCESSED_KEY, int(last_processed_bucket.timestamp()))
         with mock.patch(
@@ -58,7 +60,7 @@ class ScheduleDetectionsTest(TestCase):
         last_processed = cluster.get(LAST_PROCESSED_KEY)
         assert last_processed is not None
         assert int(last_processed) == int(
-            datetime.now().replace(second=0, microsecond=0).timestamp()
+            timezone.now().replace(second=0, microsecond=0).timestamp()
         )
 
     def test_lock(self):
@@ -80,11 +82,11 @@ class ProcessDetectionBucketTest(TestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.process_project_url_ranking"
         ) as mock_process_project_url_ranking:
-            process_detection_bucket(datetime.now().replace(second=0, microsecond=0))
+            process_detection_bucket(timezone.now().replace(second=0, microsecond=0))
             mock_process_project_url_ranking.delay.assert_not_called()
 
     def test_bucket(self):
-        bucket = datetime.now().replace(second=0, microsecond=0)
+        bucket = timezone.now().replace(second=0, microsecond=0)
         dummy_project_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
         self.project.id = dummy_project_id
         other_project = Project(dummy_project_id + NUMBER_OF_BUCKETS)
