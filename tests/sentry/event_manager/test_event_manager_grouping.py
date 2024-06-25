@@ -3,17 +3,23 @@ from __future__ import annotations
 from time import time
 from typing import Any
 from unittest import mock
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 import pytest
+from django.test import override_settings
 
+from sentry import audit_log
+from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
 from sentry.grouping.result import CalculatedHashes
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
+from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -54,6 +60,14 @@ class EventManagerGroupingTest(TestCase):
         )
 
         assert event.group_id != event2.group_id
+
+    def test_puts_events_with_only_partial_message_match_in_different_groups(self):
+        # We had a regression which caused the default hash to just be 'event.message' instead of
+        # '[event.message]' which caused it to generate a hash per letter
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        event2 = save_new_event({"message": "Dogs are really great!"}, self.project)
+
+        assert event1.group_id != event2.group_id
 
     def test_adds_default_fingerprint_if_none_in_event(self):
         event = save_new_event({"message": "Dogs are great!"}, self.project)
@@ -102,6 +116,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 1
         assert group.last_seen == event1.datetime
         assert group.message == event1.message
+        assert group.data.get("metadata").get("title") == event1.title
 
         # Normally this should go into a different group, since the messages don't match, but the
         # fingerprint takes precedence. (We need to make the messages different in order to show
@@ -116,6 +131,45 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
+        assert group.data.get("metadata").get("title") == event2.title
+
+    def test_auto_updates_grouping_config(self):
+        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
+
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
+            save_new_event({"message": "Dogs are great!"}, self.project)
+            assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
+
+        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
+            save_new_event({"message": "Adopt don't shop"}, self.project)
+            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+
+            with assume_test_silo_mode_of(AuditLogEntry):
+                audit_log_entry = AuditLogEntry.objects.first()
+
+            assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
+            assert audit_log_entry.actor_label == "Sentry"
+
+            assert audit_log_entry.data == {
+                "sentry:grouping_config": DEFAULT_GROUPING_CONFIG,
+                "sentry:secondary_grouping_config": LEGACY_CONFIG,
+                "sentry:secondary_grouping_expiry": ANY,  # tested separately below
+                "id": self.project.id,
+                "slug": self.project.slug,
+                "name": self.project.name,
+                "status": 0,
+                "public": False,
+            }
+
+            # When the config upgrade is actually happening, the expiry value is set before the
+            # audit log entry is created, which means the expiry is based on a timestamp
+            # ever-so-slightly before the audit log entry's timestamp, making a one-second tolerance
+            # necessary.
+            actual_expiry = audit_log_entry.data["sentry:secondary_grouping_expiry"]
+            expected_expiry = (
+                int(audit_log_entry.datetime.timestamp()) + SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
+            )
+            assert actual_expiry == expected_expiry or actual_expiry == expected_expiry - 1
 
 
 class PlaceholderTitleTest(TestCase):
