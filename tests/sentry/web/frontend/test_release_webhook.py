@@ -71,6 +71,13 @@ class ReleaseWebhookTest(ReleaseWebhookTestBase):
         resp = self.client.post(path)
         assert resp.status_code == 404
 
+        path = reverse(
+            "sentry-release-hook",
+            kwargs={"project_id": "dummy", "plugin_id": "dummy", "signature": self.signature},
+        )
+        resp = self.client.post(path)
+        assert resp.status_code == 404
+
     @patch("sentry.plugins.base.plugins.get")
     def test_valid_signature(self, mock_plugin_get):
         MockPlugin = mock_plugin_get.return_value

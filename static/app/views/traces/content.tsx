@@ -3,6 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
+import moment from 'moment';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
@@ -21,6 +22,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -31,6 +33,7 @@ import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {getFormattedMQL} from 'sentry/utils/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
@@ -66,6 +69,7 @@ import {
 const DEFAULT_PER_PAGE = 50;
 const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
+const ONE_MINUTE = 60 * 1000; // in milliseconds
 
 function usePageParams(location) {
   const queries = useMemo(() => {
@@ -90,6 +94,8 @@ function usePageParams(location) {
 
 export function Content() {
   const location = useLocation();
+
+  const organization = useOrganization();
 
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
@@ -153,9 +159,14 @@ export function Content() {
     [location, queries]
   );
 
+  const sortByTimestamp = organization.features.includes(
+    'performance-trace-explorer-sorting'
+  );
+
   const tracesQuery = useTraces({
     limit,
     query: queries,
+    sort: sortByTimestamp ? '-timestamp' : undefined,
     mri: hasMetric ? mri : undefined,
     metricsMax: hasMetric ? metricsMax : undefined,
     metricsMin: hasMetric ? metricsMin : undefined,
@@ -240,6 +251,7 @@ export function Content() {
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Timestamp')}
+            {sortByTimestamp ? <IconArrow size="xs" direction="down" /> : null}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Issues')}
@@ -407,6 +419,13 @@ function SpanTable({
         field.startsWith('-') ? (field.substring(1) as Field) : (field as Field)
       ),
     ],
+    datetime: {
+      // give a 1 minute buffer on each side so that start != end
+      start: getUtcDateString(moment(trace.start - ONE_MINUTE)),
+      end: getUtcDateString(moment(trace.end + ONE_MINUTE)),
+      period: null,
+      utc: true,
+    },
     limit: 10,
     query: queries,
     sort: SORTS,
@@ -593,7 +612,7 @@ interface UseTracesOptions {
   metricsQuery?: string;
   mri?: string;
   query?: string | string[];
-  sort?: string[];
+  sort?: '-timestamp';
 }
 
 function useTraces({
@@ -732,7 +751,6 @@ function useTraceSpans<F extends string>({
 
   const endpointOptions = {
     query: {
-      project: selection.projects,
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       field: fields,
@@ -772,13 +790,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 85px 66px;
+  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 112px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 133px 85px;
+  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 160px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
