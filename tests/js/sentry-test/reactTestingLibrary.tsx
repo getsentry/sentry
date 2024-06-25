@@ -130,8 +130,8 @@ function renderGlobalDrawer(options?: Options) {
   const result = render(<GlobalDrawer />, options);
 
   /**
-   * Helper that waits for the modal to be removed from the DOM. You may need to
-   * wait for the modal to be removed to avoid any act warnings.
+   * Helper that waits for the drawer to be hidden from the DOM. You may need to
+   * wait for the drawer to be removed to avoid any act warnings.
    */
   function waitForDrawerToHide() {
     return rtl.waitFor(() => {

@@ -80,7 +80,6 @@ const CloseButton = styled(Button)`
   &:hover {
     color: ${p => p.theme.textColor};
   }
-  z-index: 100;
 `;
 
 export const DrawerHeader = styled('header')`
