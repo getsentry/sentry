@@ -7,7 +7,6 @@ from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info_from_variants
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
-from sentry.models.grouphash import GroupHash
 from sentry.models.project import Project
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssuesMetadata, SimilarIssuesEmbeddingsRequest
@@ -220,26 +219,6 @@ def get_seer_similar_issues(
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
-    logger.info(
-        "get_seer_similar_issues.request",
-        extra={"event_id": event.event_id, "payload": request_data},
-    )
-    # TODO: This is temporary, to debug Seer being called on existing hashes
-    existing_grouphash = GroupHash.objects.filter(
-        hash=event_hash, project_id=event.project.id
-    ).first()
-    if existing_grouphash and existing_grouphash.group_id:
-        logger.warning(
-            "get_seer_similar_issues.hash_exists",
-            extra={
-                "event_id": event.event_id,
-                "project_id": event.project.id,
-                "hash": event_hash,
-                "grouphash_id": existing_grouphash.id,
-                "group_id": existing_grouphash.group_id,
-            },
-        )
-
     similar_issues_metadata = asdict(
         SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
     )

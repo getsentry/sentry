@@ -3,6 +3,7 @@ import logging
 from django.conf import settings
 
 from sentry.conf.server import SEER_MAX_GROUPING_DISTANCE, SEER_SIMILAR_ISSUES_URL
+from sentry.models.grouphash import GroupHash
 from sentry.net.http import connection_from_url
 from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.seer.similarity.types import (
@@ -35,6 +36,26 @@ def get_similarity_data_from_seer(
     Request similar issues data from seer and normalize the results. Returns similar groups
     sorted in order of descending similarity.
     """
+    logger.info(
+        "get_seer_similar_issues.request",
+        extra={"payload": similar_issues_request},
+    )
+    # TODO: This is temporary, to debug Seer being called on existing hashes
+    existing_grouphash = GroupHash.objects.filter(
+        hash=similar_issues_request["hash"], project_id=similar_issues_request["project_id"]
+    ).first()
+    if existing_grouphash and existing_grouphash.group_id:
+        logger.warning(
+            "get_seer_similar_issues.hash_exists",
+            extra={
+                "event_id": similar_issues_request["event_id"],
+                "project_id": similar_issues_request["project_id"],
+                "hash": similar_issues_request["hash"],
+                "grouphash_id": existing_grouphash.id,
+                "group_id": existing_grouphash.group_id,
+                "referrer": similar_issues_request.get("referrer"),
+            },
+        )
 
     response = make_signed_seer_api_request(
         seer_grouping_connection_pool,
