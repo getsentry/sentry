@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
@@ -65,6 +66,8 @@ from sentry.services.hybrid_cloud.user.service import user_service
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
+logger = logging.getLogger(__name__)
+
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
 
@@ -81,7 +84,6 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     ],
     "quotas:new-spike-protection": [
         ("spike-projections", lambda opt: bool(opt.value)),
-        ("project-stats", lambda opt: bool(opt.value)),
     ],
 }
 

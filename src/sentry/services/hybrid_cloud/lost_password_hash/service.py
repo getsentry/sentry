@@ -5,8 +5,8 @@
 
 from abc import abstractmethod
 
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 
 

@@ -36,7 +36,7 @@ def rpcschema(diagnose: bool, partial: bool) -> None:
         )
         return
 
-    from sentry.services.hybrid_cloud.rpc import (
+    from sentry.hybridcloud.rpc.service import (
         RpcMethodSignature,
         list_all_service_method_signatures,
     )

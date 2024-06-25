@@ -12,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, Literal, Union
+from typing import Any, Literal, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -42,6 +42,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -154,11 +155,11 @@ from sentry.utils.snuba import _snuba_pool
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
@@ -684,7 +685,7 @@ class PerformanceIssueTestCase(BaseTestCase):
             return event
 
 
-class APITestCase(BaseTestCase, BaseAPITestCase):
+class APITestCaseMixin:
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -694,11 +695,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     The class must set the string `endpoint`.
     If your endpoint requires kwargs implement the `reverse_url` method.
     """
-
-    # We need Django to flush all databases.
-    databases: set[str] | str = "__all__"
-
-    method = "get"
 
     @property
     def endpoint(self):
@@ -851,6 +847,20 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
         ):
             yield
+
+
+class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
+
+
+class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -2028,7 +2038,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             {"statsPeriod": before_now, "interval": granularity}
         )
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
             select=select,
@@ -2460,10 +2470,10 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def store_replay_segments(
         self,
         replay_id: str,
-        project_id: str,
+        project_id: int,
         segment_id: int,
         segment,
-    ):
+    ) -> None:
         f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
         f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
         ReplayRecordingSegment.objects.create(
@@ -2584,6 +2594,15 @@ class SetRefsTestCase(APITestCase):
         assert commit.key == key
 
 
+class _QueryDict(TypedDict):
+    name: str
+    fields: list[str]
+    aggregates: list[str]
+    columns: list[str]
+    fieldAliases: list[str]
+    conditions: str
+
+
 class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -2591,7 +2610,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
-        self.anon_users_query = {
+        self.anon_users_query: _QueryDict = {
             "name": "Anonymous Users",
             "fields": ["count()"],
             "aggregates": ["count()"],
@@ -2599,7 +2618,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
-        self.known_users_query = {
+        self.known_users_query: _QueryDict = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
@@ -2607,7 +2626,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": [],
             "conditions": "has:user.email",
         }
-        self.geo_errors_query = {
+        self.geo_errors_query: _QueryDict = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
@@ -3220,10 +3239,12 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 
 class UptimeTestCase(TestCase):
-    def create_uptime_result(self) -> CheckResult:
+    def create_uptime_result(self, subscription_id: str | None = None) -> CheckResult:
+        if subscription_id is None:
+            subscription_id = uuid.uuid4().hex
         return {
             "guid": uuid.uuid4().hex,
-            "subscription_id": uuid.uuid4().hex,
+            "subscription_id": subscription_id,
             "status": CHECKSTATUS_FAILURE,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
             "trace_id": uuid.uuid4().hex,

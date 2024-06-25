@@ -17,7 +17,6 @@ export function getWebVitalsFromTableData(data: TableDataRow): Vitals {
   const hasLcp = hasWebVital(data, 'lcp');
   const hasFcp = hasWebVital(data, 'fcp');
   const hasCls = hasWebVital(data, 'cls');
-  const hasFid = hasWebVital(data, 'fid');
   const hasTtfb = hasWebVital(data, 'ttfb');
 
   return {
@@ -25,6 +24,5 @@ export function getWebVitalsFromTableData(data: TableDataRow): Vitals {
     fcp: hasFcp ? getWebVital(data, 'fcp') : undefined,
     cls: hasCls ? getWebVital(data, 'cls') : undefined,
     ttfb: hasTtfb ? getWebVital(data, 'ttfb') : undefined,
-    fid: hasFid ? getWebVital(data, 'fid') : undefined,
   };
 }

@@ -1165,7 +1165,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         groupowner = GroupOwner.objects.create(
             group_id=self.event.group_id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user_id="1",
+            user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
             context={"commitId": self.commit.id},
@@ -1200,7 +1200,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         groupowner = GroupOwner.objects.create(
             group_id=self.event.group_id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user_id="1",
+            user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
             context={"commitId": self.commit.id},
