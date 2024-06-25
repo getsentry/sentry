@@ -247,7 +247,7 @@ def enable_single_lambda(lambda_client, function, sentry_project_dsn, retries_le
         else:
             env_variables.update(
                 {
-                    "NODE_OPTIONS": "-r @sentry/aws-serverless/cjs/awslambda-auto",
+                    "NODE_OPTIONS": "-r @sentry/aws-serverless/awslambda-auto",
                     **sentry_env_variables,
                 }
             )
