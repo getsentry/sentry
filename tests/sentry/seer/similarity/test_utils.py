@@ -655,6 +655,8 @@ class EventContentIsSeerEligibleTest(TestCase):
         assert event_content_is_seer_eligible(good_event) is True
         assert event_content_is_seer_eligible(bad_event) is False
 
+
+class SeerUtilsTest(TestCase):
     def test_filter_null_from_event_title(self):
         title_with_null = 'Title with null \x00, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00" is null'
         assert filter_null_from_event_title(title_with_null) == 'Title with null , "" is null'

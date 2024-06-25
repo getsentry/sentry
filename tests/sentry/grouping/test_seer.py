@@ -15,7 +15,6 @@ from sentry.utils.types import NonNone
 
 
 class ShouldCallSeerTest(TestCase):
-    # TODO: Add tests for rate limits, killswitches, etc once those are in place
     def setUp(self):
         self.event_data = {
             "title": "FailedToFetchError('Charlie didn't bring the ball back')",

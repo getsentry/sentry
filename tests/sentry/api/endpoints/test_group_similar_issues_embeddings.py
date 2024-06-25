@@ -527,7 +527,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
 
         # Include no optional parameters
-        response = self.client.get(self.path)
+        response = self.client.get(
+            self.path,
+            # optional params would be here
+        )
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
