@@ -71,7 +71,10 @@ class OrganizationMemberSerializer(Serializer):
         for item in item_list:
             user_dct = users_by_id.get(str(item.user_id), None)
             user_id = user_dct["id"] if user_dct else ""
-            inviter = inviters_by_id.get(item.inviter_id, None)
+            if item.inviter_id is not None:
+                inviter = inviters_by_id.get(item.inviter_id, None)
+            else:
+                inviter = None
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
                 "user": user_dct,

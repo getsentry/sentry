@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from collections.abc import Container
-from typing import TYPE_CHECKING, Any, Generic, Self, TypeVar, overload
+from typing import TYPE_CHECKING, Any, Generic, Self, overload
 from uuid import uuid4
 
 from django.db.models import Field, Model
 from django.utils.crypto import get_random_string
 from django.utils.text import slugify
+
+from sentry.db.models.fields.types import FieldGetType, FieldSetType
 
 if TYPE_CHECKING:
     from sentry.db.models.base import Model as SentryModel
@@ -81,19 +83,14 @@ def slugify_instance(
     return unique_db_instance(inst, value, reserved, max_length, field_name, *args, **kwargs)
 
 
-# matches django-stubs for Field
-_ST = TypeVar("_ST", contravariant=True)
-_GT = TypeVar("_GT", covariant=True)
-
-
-class Creator(Generic[_ST, _GT]):
+class Creator(Generic[FieldSetType, FieldGetType]):
     """
     A descriptor that invokes `to_python` when attributes are set.
     This provides backwards compatibility for fields that used to use
     SubfieldBase which will be removed in Django1.10
     """
 
-    def __init__(self, field: Field[_ST, _GT]) -> None:
+    def __init__(self, field: Field[FieldSetType, FieldGetType]) -> None:
         self.field = field
 
     @overload

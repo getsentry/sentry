@@ -156,7 +156,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
                 return
 
         destination = ApiTokenReplica(
-            application_id=api_token.application_id,  # type: ignore[misc]
+            application_id=api_token.application_id,
             organization=organization,
             application_is_active=api_token.application_is_active,
             token=api_token.token,
@@ -183,7 +183,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             token_hashed=token.token_hashed,
             name=token.name,
             scope_list=token.scope_list,
-            created_by_id=token.created_by_id,  # type: ignore[misc]
+            created_by_id=token.created_by_id,
             date_deactivated=token.date_deactivated,
         )
         handle_replication(OrgAuthToken, destination)
@@ -300,7 +300,7 @@ class DatabaseBackedControlReplicaService(ControlReplicaService):
             organization_id=external_actor.organization_id,
             user_id=external_actor.user_id,
             provider=external_actor.provider,
-            team_id=external_actor.team_id,  # type: ignore[misc]
+            team_id=external_actor.team_id,
             integration_id=integration.id,
         )
         handle_replication(ExternalActor, destination, "externalactor_id")

@@ -54,7 +54,10 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             )
         else:
             inviter_name = ""
-            inviter = user_service.get_user(user_id=self.pending_member.inviter_id)
+            if self.pending_member.inviter_id is not None:
+                inviter = user_service.get_user(user_id=self.pending_member.inviter_id)
+            else:
+                inviter = None
             if inviter:
                 context["inviter_name"] = inviter.get_salutation_name()
             context["inviter_name"] = inviter_name

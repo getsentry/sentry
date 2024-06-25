@@ -157,7 +157,10 @@ def send_incident_alert_notification(
         org_integration_id = org_integration.id
     else:
         org_integrations = None
-        org_integration_id = infer_org_integration(integration_id=integration_id, ctx_logger=logger)
+        if integration_id is not None:
+            org_integration_id = infer_org_integration(
+                integration_id=integration_id, ctx_logger=logger
+            )
         if org_integration_id:
             org_integrations = integration_service.get_organization_integrations(
                 org_integration_ids=[org_integration_id]
