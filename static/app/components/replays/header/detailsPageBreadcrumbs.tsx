@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Placeholder from 'sentry/components/placeholder';
@@ -12,11 +13,12 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
+  isVideoReplay: boolean | undefined;
   orgSlug: string;
   replayRecord: ReplayRecord | undefined;
 };
 
-function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
+function DetailsPageBreadcrumbs({orgSlug, replayRecord, isVideoReplay}: Props) {
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
 
@@ -52,7 +54,17 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
           ) : null,
         },
         {
-          label: labelTitle,
+          label: isVideoReplay ? (
+            <span>
+              {labelTitle}
+              <FeatureBadge
+                type="beta"
+                title="Session Replay for mobile apps is currently in beta. Beta features are still in progress and may have bugs."
+              />
+            </span>
+          ) : (
+            labelTitle
+          ),
         },
       ]}
     />
