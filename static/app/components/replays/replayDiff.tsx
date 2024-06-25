@@ -20,9 +20,9 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 const MAX_CLAMP_TO_START = 2000;
 
 interface Props {
-  leftTimestamp: number;
+  leftOffsetMs: number;
   replay: null | ReplayReader;
-  rightTimestamp: number;
+  rightOffsetMs: number;
   defaultTab?: DiffType;
 }
 
@@ -33,16 +33,16 @@ export enum DiffType {
 
 export default function ReplayDiff({
   defaultTab = DiffType.VISUAL,
-  leftTimestamp,
+  leftOffsetMs,
   replay,
-  rightTimestamp,
+  rightOffsetMs,
 }: Props) {
   const fetching = false;
 
   const [leftBody, setLeftBody] = useState(null);
   const [rightBody, setRightBody] = useState(null);
 
-  let startOffset = leftTimestamp - 1;
+  let startOffset = leftOffsetMs - 1;
   // If the error occurs close to the start of the replay, clamp the start offset to 1
   // to help compare with the html provided by the server, This helps with some errors on localhost.
   if (startOffset < MAX_CLAMP_TO_START) {
@@ -96,16 +96,16 @@ export default function ReplayDiff({
                 </ReplayContextProvider>
                 <ReplayContextProvider
                   analyticsContext="replay_comparison_modal_right"
-                  initialTimeOffsetMs={{offsetMs: rightTimestamp + 1}}
+                  initialTimeOffsetMs={{offsetMs: rightOffsetMs + 1}}
                   isFetching={fetching}
                   prefsStrategy={StaticReplayPreferences}
                   replay={replay}
                 >
                   <ComparisonSideWrapper id="rightSide">
-                    {rightTimestamp > 0 ? (
+                    {rightOffsetMs > 0 ? (
                       <ReplaySide
                         selector="#rightSide iframe"
-                        expectedTime={rightTimestamp + 1}
+                        expectedTime={rightOffsetMs + 1}
                         onLoad={setRightBody}
                       />
                     ) : (

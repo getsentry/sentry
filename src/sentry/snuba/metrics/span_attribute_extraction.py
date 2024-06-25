@@ -7,8 +7,8 @@ from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, TagSpec
 
 # Matches the top level span attributes defined in Relay
-# https://github.com/getsentry/relay/blob/e59f21d92252c3dc9d350133c634d5a5fd6a3499/relay-event-schema/src/protocol/span.rs#L119
-_TOP_LEVEL_SPAN_ATTRIBUTES = [
+# https://github.com/getsentry/relay/blob/e59f21d9/relay-event-schema/src/protocol/span.rs#L119
+_TOP_LEVEL_SPAN_ATTRIBUTES = {
     "span.exclusive_time",
     "span.description",
     "span.op",
@@ -18,7 +18,54 @@ _TOP_LEVEL_SPAN_ATTRIBUTES = [
     "span.status",
     "span.origin",
     "span.duration",
-]
+}
+
+# Matches the keys stored in span.sentry_tags
+# https://github.com/getsentry/relay/blob/e59f21d9/relay-event-normalization/src/normalize/span/tag_extraction.rs#L90
+_SENTRY_TAGS = {
+    "release",
+    "user",
+    "user.id",
+    "user.username",
+    "user.email",
+    "environment",
+    "transaction",
+    "transaction.method",
+    "transaction.op",
+    "mobile",
+    "device.class",
+    "browser.name",
+    "sdk.name",
+    "sdk.version",
+    "platform",
+    "action",
+    "ai_pipeline_group",
+    "category",
+    "description",
+    "domain",
+    "raw_domain",
+    "group",
+    "http.decoded_response_content_length",
+    "http.response_content_length",
+    "http.response_transfer_size",
+    "resource.render_blocking_status",
+    "op",
+    "status",
+    "status_code",
+    "system",
+    "ttfd",
+    "ttid",
+    "file_extension",
+    "main_thread",
+    "cache.hit",
+    "cache.key",
+    "os.name",
+    "app_start_type",
+    "replay_id",
+    "trace.status",
+    "messaging.destination.name",
+    "messaging.message.id",
+}
 
 
 class SpanAttributeMetricSpec(TypedDict):
@@ -29,7 +76,7 @@ class SpanAttributeMetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
-def convert_to_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
+def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
 
     field = _get_field(extraction_rule)
     parsed_conditions = _parse_conditions(extraction_rule.conditions)
@@ -39,7 +86,7 @@ def convert_to_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetr
         "mri": extraction_rule.generate_mri(),
         "field": field,
         "tags": _get_tags(extraction_rule.tags, parsed_conditions),
-        "condition": _get_condition(parsed_conditions),
+        "condition": _get_rule_condition(parsed_conditions),
     }
 
 
@@ -72,8 +119,6 @@ def _flatten_query_tokens(conditions: Sequence[QueryToken]) -> list[SearchFilter
             query_tokens.append(token)
         elif isinstance(token, ParenExpression):
             query_tokens = query_tokens + _flatten_query_tokens(token.children)
-        else:
-            pass
 
     return query_tokens
 
@@ -82,13 +127,13 @@ def _parse_conditions(conditions: Sequence[str] | None) -> Sequence[QueryToken]:
     if not conditions:
         return []
 
-    search_query = " or ".join([f"({condition})" for condition in conditions])
-    parsed_search_query = event_search.parse_search_query(search_query)
+    non_empty_conditions = [condition for condition in conditions if condition]
 
-    return parsed_search_query
+    search_query = " or ".join([f"({condition})" for condition in non_empty_conditions])
+    return event_search.parse_search_query(search_query)
 
 
-def _get_condition(parsed_search_query: Sequence[Any] | None) -> RuleCondition | None:
+def _get_rule_condition(parsed_search_query: Sequence[Any] | None) -> RuleCondition | None:
     if not parsed_search_query:
         return None
 
@@ -101,6 +146,11 @@ def _map_span_attribute_name(span_attribute: str) -> str:
     if span_attribute in _TOP_LEVEL_SPAN_ATTRIBUTES:
         return span_attribute
 
+    if span_attribute in _SENTRY_TAGS:
+        prefix = "span.sentry_tags"
+    else:
+        prefix = "span.data"
+
     sanitized_span_attr = span_attribute.replace(".", "\\.")
 
-    return f"span.data.{sanitized_span_attr}"
+    return f"{prefix}.{sanitized_span_attr}"

@@ -133,6 +133,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
             self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
         )
         recipient = self.create_user()
+        assert activity.user_id is not None
         user = user_service.get_user(user_id=activity.user_id)
         assert user is not None
         self.run_test(
@@ -145,6 +146,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
         activity.type = IncidentActivityType.STATUS_CHANGE
         activity.value = str(IncidentStatus.CLOSED.value)
         activity.previous_value = str(IncidentStatus.WARNING.value)
+        assert activity.user_id is not None
         user = user_service.get_user(user_id=activity.user_id)
         assert user is not None
         self.run_test(

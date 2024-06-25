@@ -1,14 +1,12 @@
 import {Fragment, useMemo, useState} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import Tag from 'sentry/components/badge/tag';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
-import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
@@ -21,12 +19,10 @@ import {formatMRI} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
+import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
 
 type Props = {
   project: Project;
@@ -40,10 +36,8 @@ enum BlockingStatusTab {
 type MetricWithCardinality = MetricMeta & {cardinality: number};
 
 export function CustomMetricsTable({project}: Props) {
-  const location = useLocation();
-  const navigate = useNavigate();
-
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
+  const [query, setQuery] = useSearchQueryParam('metricsQuery');
 
   const metricsMeta = useMetricsMeta(
     {projects: [parseInt(project.id, 10)]},
@@ -54,6 +48,8 @@ export function CustomMetricsTable({project}: Props) {
   const metricsCardinality = useMetricsCardinality({
     project,
   });
+
+  const isLoading = metricsMeta.isLoading || metricsCardinality.isLoading;
 
   const sortedMeta = useMemo(() => {
     if (!metricsMeta.data) {
@@ -77,8 +73,6 @@ export function CustomMetricsTable({project}: Props) {
       }) as MetricWithCardinality[];
   }, [metricsCardinality.data, metricsMeta.data]);
 
-  const query = decodeScalar(location.query.query, '').trim();
-
   const metrics = sortedMeta.filter(
     ({mri, type, unit}) =>
       mri.includes(query) ||
@@ -86,28 +80,16 @@ export function CustomMetricsTable({project}: Props) {
       unit.includes(query)
   );
 
-  const isLoading = metricsMeta.isLoading || metricsCardinality.isLoading;
-
-  const debouncedSearch = useMemo(
-    () =>
-      debounce(
-        (searchQuery: string) =>
-          navigate({
-            pathname: location.pathname,
-            query: {...location.query, query: searchQuery},
-          }),
-        DEFAULT_DEBOUNCE_DURATION
-      ),
-    [location.pathname, location.query, navigate]
-  );
-
   return (
     <Fragment>
       <SearchWrapper>
-        <h6>{t('Emitted Metrics')}</h6>
+        <Title>
+          <h6>{t('Emitted Metrics')}</h6>
+          <Tag type="warning">{t('deprecated')}</Tag>
+        </Title>
         <SearchBar
           placeholder={t('Search Metrics')}
-          onChange={debouncedSearch}
+          onChange={setQuery}
           query={query}
           size="sm"
         />
@@ -242,6 +224,7 @@ const SearchWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: ${space(1)};
   margin-top: ${space(4)};
   margin-bottom: ${space(0)};
 
@@ -267,5 +250,16 @@ const StyledIconWarning = styled(IconWarning)`
   margin-top: ${space(0.5)};
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: ${space(0.5)};
+  margin-bottom: ${space(3)};
+  & > h6 {
+    margin: 0;
   }
 `;
