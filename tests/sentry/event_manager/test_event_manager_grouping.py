@@ -379,7 +379,6 @@ class EventManagerGroupingMetricsTest(TestCase):
                 with self.feature(
                     {"organizations:grouping-suppress-unnecessary-secondary-hash": has_flag}
                 ):
-
                     mock_metrics_incr.reset_mock()
 
                     project.update_option("sentry:grouping_config", primary_config)
