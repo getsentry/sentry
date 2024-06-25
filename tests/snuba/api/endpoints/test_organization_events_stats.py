@@ -90,6 +90,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         with self.feature(features):
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
+    @pytest.mark.querybuilder
     def test_simple(self):
         response = self.do_request(
             {

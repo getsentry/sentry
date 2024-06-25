@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -23,6 +25,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             "organizations:starfish-view": True,
         }
 
+    @pytest.mark.querybuilder
     def test_simple(self):
         self.store_spans(
             [

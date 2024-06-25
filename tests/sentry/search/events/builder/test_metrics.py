@@ -170,6 +170,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_default_conditions(self):
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=[]
@@ -1676,6 +1677,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_get_query(self):
         orig_query = TimeseriesMetricQueryBuilder(
             self.params,

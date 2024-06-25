@@ -59,6 +59,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50()"] == 0
         assert meta["dataset"] == "spansMetrics"
 
+    @pytest.mark.querybuilder
     def test_count(self):
         self.store_span_metric(
             1,

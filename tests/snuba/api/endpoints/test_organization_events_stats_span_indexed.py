@@ -31,6 +31,7 @@ class OrganizationEventsStatsSpansMetricsEndpointTest(OrganizationEventsEndpoint
             return self.client.get(self.url if url is None else url, data=data, format="json")
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
+    @pytest.mark.querybuilder
     def test_throughput_epm_hour_rollup(self):
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]

@@ -44,6 +44,7 @@ def create_condition(left_boundary, right_boundary, base_granularity, core_granu
 
 
 class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
+    @pytest.mark.querybuilder
     def test_granularity(self):
         # Need to pick granularity based on the period
         def get_granularity(start, end):

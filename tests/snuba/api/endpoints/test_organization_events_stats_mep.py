@@ -46,6 +46,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         self.additional_params = dict()
 
     # These throughput tests should roughly match the ones in OrganizationEventsStatsEndpointTest
+    @pytest.mark.querybuilder
     def test_throughput_epm_hour_rollup(self):
         # Each of these denotes how many events to create in each hour
         event_counts = [6, 0, 6, 3, 0, 3]

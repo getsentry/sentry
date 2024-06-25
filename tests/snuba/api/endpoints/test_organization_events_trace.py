@@ -1433,6 +1433,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
             assert perf_issue["start"] == expected["start_timestamp"]
             assert perf_issue["end"] == expected["timestamp"]
 
+    @pytest.mark.querybuilder
     def test_simple(self):
         self.load_trace()
         with self.feature(self.FEATURES):

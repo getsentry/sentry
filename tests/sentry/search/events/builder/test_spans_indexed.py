@@ -76,7 +76,10 @@ def test_field_alias(params, field, expected):
     ["condition", "expected"],
     [
         pytest.param(
-            "span.duration:1s", Condition(span_duration, Op.EQ, 1000), id="span.duration:1s"
+            "span.duration:1s",
+            Condition(span_duration, Op.EQ, 1000),
+            id="span.duration:1s",
+            marks=pytest.mark.querybuilder,
         ),
         pytest.param(
             "span.duration:>1s", Condition(span_duration, Op.GT, 1000), id="span.duration:>1s"

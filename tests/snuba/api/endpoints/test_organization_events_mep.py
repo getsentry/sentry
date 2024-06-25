@@ -412,6 +412,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    @pytest.mark.querybuilder
     def test_performance_homepage_query(self):
         self.store_transaction_metric(
             1,
