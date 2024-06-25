@@ -1,8 +1,14 @@
+import type React from 'react';
 import {forwardRef, Fragment, useCallback, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
-import {useDrag, useDropIndicator, useDroppableItem} from '@react-aria/dnd';
+import {
+  type DropIndicatorProps,
+  useDrag,
+  useDropIndicator,
+  useDroppableItem,
+} from '@react-aria/dnd';
 import {useFocusRing} from '@react-aria/focus';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
@@ -30,6 +36,11 @@ interface DraggableTabProps extends AriaTabProps {
   state: TabListState<any>;
 }
 
+interface BaseDropIndicatorProps {
+  dropState: DroppableCollectionState;
+  target: DropIndicatorProps['target'];
+}
+
 /**
  * Stops event propagation if the command/ctrl/shift key is pressed, in effect
  * preventing any state change. This is useful because when a user
@@ -42,7 +53,7 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
   }
 }
 
-function DropIndicator(props) {
+function TabDropIndicator(props: BaseDropIndicatorProps) {
   const ref = useRef(null);
   const {dropIndicatorProps, isHidden, isDropTarget} = useDropIndicator(
     props,
@@ -54,7 +65,7 @@ function DropIndicator(props) {
   }
 
   return (
-    <li
+    <TabSeparator
       {...dropIndicatorProps}
       role="option"
       ref={ref}
@@ -140,7 +151,7 @@ function BaseDraggableTab(
 
   return (
     <Fragment>
-      <DropIndicator
+      <TabDropIndicator
         target={{type: 'item', key: item.key, dropPosition: 'before'}}
         dropState={dropState}
       />
@@ -165,7 +176,7 @@ function BaseDraggableTab(
         </InnerWrap>
       </TabWrap>
       {state.collection.getKeyAfter(item.key) == null && (
-        <DropIndicator
+        <TabDropIndicator
           target={{type: 'item', key: item.key, dropPosition: 'after'}}
           dropState={dropState}
         />
@@ -205,6 +216,12 @@ const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
       opacity: 0;
       pointer-events: none;
     `}
+`;
+
+const TabSeparator = styled('li')`
+  height: 80%;
+  width: 2px;
+  background-color: ${p => p.theme.gray200};
 `;
 
 const innerWrapStyles = ({
