@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+from __future__ import annotations
+
+import json
+from io import TextIOWrapper
+
+import click
+
+
+@click.command()
+@click.argument("old", type=click.File("rb"))
+@click.argument("new", type=click.File("rb"))
+@click.argument("out", type=click.File("wb"))
+def combine_json(old, new, out):
+    old_data = json.load(old)
+    new_data = json.load(new)
+
+    combined_data = {}
+
+    for key in old_data:
+        if key in new_data:
+            inner_combined = {}
+            for inner_key in old_data[key]:
+                if inner_key in new_data[key]:
+                    inner_combined[inner_key] = {
+                        "old": old_data[key][inner_key],
+                        "new": new_data[key][inner_key],
+                    }
+            if inner_combined:
+                combined_data[key] = inner_combined
+
+    dest = TextIOWrapper(out, encoding="utf-8", newline="")
+    json.dump(combined_data, dest, indent=2)
+    dest.detach()
+
+
+if __name__ == "__main__":
+    combine_json()

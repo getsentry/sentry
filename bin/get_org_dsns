@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+from __future__ import annotations
+
+from gzip import GzipFile
+from http.client import HTTPResponse, HTTPSConnection
+from io import BytesIO
+from time import time
+from typing import Any
+from urllib.parse import urlencode
+
+import click
+
+from sentry.utils import json
+
+
+@click.command(
+    help="Gets all of the DSNs for an organization, grouped by project. 'Secret' DSNs are omitted."
+)
+@click.option(
+    "--slug",
+    required=True,
+    help="The org slug for which we are pulling all of the DSNs.",
+)
+@click.option(
+    "--api",
+    required=True,
+    help="The Sentry instance (DE, US, or single-tenant) to hit for the api. Ex: `de.sentry.io`.",
+)
+@click.option(
+    "--cookie",
+    required=True,
+    help="The superadmin cookie, copied verbatim.",
+)
+def get_all_project_dsns_for_org(slug, api, cookie):
+    # Setup the connection.
+    conn = HTTPSConnection(api)
+    headers = make_headers(cookie)
+    heartbeat = int(time())
+
+    # Get all of the project slugs, then get keys for each slug.
+    keys_by_slug: dict[str, list[str]] = {}
+    proj_slugs = sorted(get_all_projects_for_org(conn, slug, api, cookie))
+    for proj_slug in proj_slugs:
+        t = int(time())
+        if t - heartbeat > 5:
+            heartbeat = t
+            print(f"{len(keys_by_slug)} of {len(proj_slugs)} DSN sets downloaded...")
+
+        endpoint = f"/api/0/projects/{slug}/{proj_slug}/keys/"
+        conn.request("GET", f"https://{api}{endpoint}", headers=headers)
+        response = conn.getresponse()
+        if response.code != 200:
+            raise Exception(f"keys endpoint returned a non-2XX response: {response.reason}")
+
+        json_data = maybe_unzip(response)
+        if not isinstance(json_data, list):
+            raise Exception("Hmmm, the response from the call to the keys endpoint wasn't a list?")
+
+        keys_by_slug[proj_slug] = {
+            v["label"]: v["dsn"]["public"] for v in json_data if v["isActive"]
+        }
+
+    print("\n\n\n")
+    print(keys_by_slug)
+
+
+def make_headers(cookie: str) -> dict[str, str]:
+    return {
+        "Accept": "application/json; charset=utf-8",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Cache-Control": "no-cache",
+        "Content-Type": "application/json",
+        "Cookie": cookie,
+        "Pragma": "no-cache",
+        "Priority": "u=1, i",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+    }
+
+
+def maybe_unzip(response: HTTPResponse) -> Any:
+    data = response.read()
+    if response.getheader("Content-Encoding") == "gzip":
+        with GzipFile(fileobj=BytesIO(data)) as gz:
+            decompressed_data = gz.read()
+            return json.loads(decompressed_data.decode("utf-8"))
+
+    return json.loads(data.decode("utf-8"))
+
+
+def get_all_projects_for_org(conn: HTTPSConnection, slug: str, api: str, cookie: str) -> list[str]:
+    """
+    Paginate through the entire list of projects for the org, pulling down the project slugs.
+    """
+
+    # Set inputs
+    base_url = f"https://{api}"
+    endpoint = f"/api/0/organizations/{slug}/projects/"
+    query_params = {"all_projects": 1}
+    full_url = f"{base_url}{endpoint}?{urlencode(query_params)}"
+
+    # Make the underlying request, and load it into JSON.
+    conn.request("GET", full_url, headers=make_headers(cookie))
+    response = conn.getresponse()
+    if response.code != 200:
+        raise Exception(f"projects endpoint returned a non-2XX response: {response.reason}")
+
+    json_data = maybe_unzip(response)
+    if not isinstance(json_data, list):
+        raise Exception("Hmmm, the response from the call to the projects endpoint wasn't a list?")
+
+    return [proj["slug"] for proj in json_data]
+
+
+if __name__ == "__main__":
+    get_all_project_dsns_for_org()
