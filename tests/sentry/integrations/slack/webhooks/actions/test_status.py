@@ -382,6 +382,22 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
+    @with_feature("organizations:slack-sdk-webhook-handling")
+    def test_archive_issue_forever_with_sdk(self):
+        original_message = self.get_original_message_block_kit(self.group.id)
+        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        updated_blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert self.notification_text in updated_blocks[1]["text"]["text"]
+        assert updated_blocks[2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
     @patch("sentry.models.organization.Organization.has_access", return_value=False)
     def test_archive_issue_forever_error(self, mock_access):
         original_message = self.get_original_message(self.group.id)
@@ -689,6 +705,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     @responses.activate
+    @with_feature("organizations:slack-sdk-webhook-handling")
     def test_resolve_issue(self):
         original_message = self.get_original_message(self.group.id)
         self.resolve_issue_block_kit(original_message, "resolved")
