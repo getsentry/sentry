@@ -83,7 +83,10 @@ export function CustomMetricsTable({project}: Props) {
   return (
     <Fragment>
       <SearchWrapper>
-        <h6>{t('Emitted Metrics')}</h6>
+        <Title>
+          <h6>{t('Emitted Metrics')}</h6>
+          <Tag type="warning">{t('deprecated')}</Tag>
+        </Title>
         <SearchBar
           placeholder={t('Search Metrics')}
           onChange={setQuery}
@@ -221,6 +224,7 @@ const SearchWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: ${space(1)};
   margin-top: ${space(4)};
   margin-bottom: ${space(0)};
 
@@ -246,5 +250,16 @@ const StyledIconWarning = styled(IconWarning)`
   margin-top: ${space(0.5)};
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: ${space(0.5)};
+  margin-bottom: ${space(3)};
+  & > h6 {
+    margin: 0;
   }
 `;

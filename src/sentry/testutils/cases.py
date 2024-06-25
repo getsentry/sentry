@@ -42,6 +42,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -684,7 +685,7 @@ class PerformanceIssueTestCase(BaseTestCase):
             return event
 
 
-class APITestCase(BaseTestCase, BaseAPITestCase):
+class APITestCaseMixin:
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -694,11 +695,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     The class must set the string `endpoint`.
     If your endpoint requires kwargs implement the `reverse_url` method.
     """
-
-    # We need Django to flush all databases.
-    databases: set[str] | str = "__all__"
-
-    method = "get"
 
     @property
     def endpoint(self):
@@ -851,6 +847,20 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
         ):
             yield
+
+
+class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
+
+
+class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
 
 
 class TwoFactorAPITestCase(APITestCase):
