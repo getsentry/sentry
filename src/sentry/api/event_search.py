@@ -315,8 +315,8 @@ def get_operator_value(operator):
 
 
 class SearchBoolean(namedtuple("SearchBoolean", "left_term operator right_term")):
-    BOOLEAN_AND = "AND"
-    BOOLEAN_OR = "OR"
+    BOOLEAN_AND: Literal["AND"] = "AND"
+    BOOLEAN_OR: Literal["OR"] = "OR"
 
     @staticmethod
     def is_or_operator(value):

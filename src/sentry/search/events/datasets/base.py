@@ -1,6 +1,9 @@
 import abc
 from collections.abc import Callable, Mapping
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from sentry.search.events.builder.base import BaseQueryBuilder
 
 from snuba_sdk import OrderBy
 
@@ -14,6 +17,10 @@ class DatasetConfig(abc.ABC):
     custom_threshold_columns: set[str] = set()
     non_nullable_keys: set[str] = set()
     missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
+
+    @abc.abstractmethod
+    def __init__(self, builder: "BaseQueryBuilder"):
+        pass
 
     @property
     @abc.abstractmethod

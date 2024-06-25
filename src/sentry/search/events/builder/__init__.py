@@ -1,5 +1,5 @@
+from .base import BaseQueryBuilder  # NOQA
 from .discover import (  # NOQA
-    BaseQueryBuilder,
     HistogramQueryBuilder,
     QueryBuilder,
     TimeseriesQueryBuilder,

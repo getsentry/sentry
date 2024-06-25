@@ -111,14 +111,17 @@ class BaseQueryBuilder:
     def _dataclass_params(
         self, snuba_params: SnubaParams | None, params: ParamsType
     ) -> SnubaParams:
-        """Shim so the query builder can start using the dataclass"""
+        """Shim so the query builder can start using the dataclass
+
+        need a lot of type: ignore since the params being passed can't be trusted from files that are probably still in the type ignorelist
+        """
         if snuba_params is not None:
             return snuba_params
 
         if "project_objects" in params:
             projects = cast(Sequence[Project], params["project_objects"])
         elif "project_id" in params and (
-            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)
+            isinstance(params["project_id"], list) or isinstance(params["project_id"], tuple)  # type: ignore[unreachable]
         ):
             projects = Project.objects.filter(id__in=params["project_id"])
         else:
@@ -149,13 +152,13 @@ class BaseQueryBuilder:
                     )
                 )
             else:
-                environments = []
+                environments = []  # type: ignore[unreachable]
 
         user_id = params.get("user_id")
-        user = user_service.get_user(user_id=user_id) if user_id is not None else None
+        user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
         teams = (
-            Team.objects.filter(id__in=params["team_id"])
-            if "team_id" in params and isinstance(params["team_id"], list)
+            Team.objects.filter(id__in=params["team_id"])  # type: ignore[typeddict-item]
+            if "team_id" in params and isinstance(params["team_id"], list)  # type: ignore[typeddict-item]
             else None
         )
         return SnubaParams(
@@ -218,12 +221,11 @@ class BaseQueryBuilder:
         org_id = self.organization_id or (
             self.params.organization.id if self.params.organization else None
         )
-        self.tenant_ids = dict()
+        self.tenant_ids: dict[str, str | None | int] | None = dict()
         if org_id is not None:
             self.tenant_ids["organization_id"] = org_id
-        use_case_id = params.get("use_case_id")
-        if use_case_id is not None:
-            self.tenant_ids["use_case_id"] = use_case_id
+        if "use_case_id" in params:
+            self.tenant_ids["use_case_id"] = params.get("use_case_id")
         if not self.tenant_ids:
             self.tenant_ids = None
 
@@ -274,7 +276,7 @@ class BaseQueryBuilder:
         self.array_join = None if array_join is None else [self.resolve_column(array_join)]
 
     def are_columns_resolved(self) -> bool:
-        return self.columns and isinstance(self.columns[0], Function)
+        return len(self.columns) > 0 and isinstance(self.columns[0], Function)
 
     def resolve_time_conditions(self) -> None:
         if self.builder_config.skip_time_conditions:
@@ -331,6 +333,8 @@ class BaseQueryBuilder:
         self.orderby_converter = self.config.orderby_converter
 
     def load_config(self) -> DatasetConfig:
+        if self.config_class is None:
+            raise NotImplementedError("config_class was not set on this QueryBuilder")
         return self.config_class(self)
 
     def resolve_limit(self, limit: int | None) -> Limit | None:
@@ -362,7 +366,8 @@ class BaseQueryBuilder:
         where_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.SearchFilter):
-                condition = self.format_search_filter(term)
+                # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
+                condition = self.format_search_filter(cast(event_search.SearchFilter, term))
                 if condition:
                     where_conditions.append(condition)
 
@@ -378,7 +383,10 @@ class BaseQueryBuilder:
         having_conditions: list[WhereType] = []
         for term in parsed_terms:
             if isinstance(term, event_search.AggregateFilter):
-                condition = self.convert_aggregate_filter_to_condition(term)
+                # I have no idea why but mypy thinks this is AggregateFilter | AggregateFilter, which is incompatible with AggregateFilter...
+                condition = self.convert_aggregate_filter_to_condition(
+                    cast(event_search.AggregateFilter, term)
+                )
                 if condition:
                     having_conditions.append(condition)
 
@@ -423,16 +431,16 @@ class BaseQueryBuilder:
         # Filter out any ANDs since we can assume anything without an OR is an AND. Also do some
         # basic sanitization of the query: can't have two operators next to each other, and can't
         # start or end a query with an operator.
-        prev: event_filter.ParsedTerm | None = None
+        previous_term: event_filter.ParsedTerm | None = None
         new_terms = []
-        term = None
+        term: event_filter.ParsedTerm | None = None
         for term in terms:
-            if prev:
+            if previous_term:
                 if event_search.SearchBoolean.is_operator(
-                    prev
+                    previous_term
                 ) and event_search.SearchBoolean.is_operator(term):
                     raise InvalidSearchQuery(
-                        f"Missing condition in between two condition operators: '{prev} {term}'"
+                        f"Missing condition in between two condition operators: '{previous_term} {term}'"
                     )
             else:
                 if event_search.SearchBoolean.is_operator(term):
@@ -443,7 +451,7 @@ class BaseQueryBuilder:
             if term != event_search.SearchBoolean.BOOLEAN_AND:
                 new_terms.append(term)
 
-            prev = term
+            previous_term = term
 
         if term is not None and event_search.SearchBoolean.is_operator(term):
             raise InvalidSearchQuery(f"Condition is missing on the right side of '{term}' operator")
@@ -507,10 +515,11 @@ class BaseQueryBuilder:
 
         where, having = [], []
 
+        # I have no idea why but mypy thinks this is SearchFilter | SearchFilter, which is incompatible with SearchFilter...
         if isinstance(term, event_search.SearchFilter):
-            where = self.resolve_where([term])
+            where = self.resolve_where([cast(event_search.SearchFilter, term)])
         elif isinstance(term, event_search.AggregateFilter):
-            having = self.resolve_having([term])
+            having = self.resolve_having([cast(event_search.AggregateFilter, term)])
 
         return where, having
 
@@ -866,7 +875,7 @@ class BaseQueryBuilder:
         # for now so we're consistent with the existing functionality
         raise InvalidSearchQuery("Cannot sort by a field that is not selected.")
 
-    def resolve_column(self, field: str, alias: bool = False) -> SelectType:
+    def resolve_column(self, field: NormalizedArg, alias: bool = False) -> SelectType:
         """Given a public field, construct the corresponding Snql, this
         function will determine the type of the field alias, whether its a
         column, field alias or function and call the corresponding resolver
@@ -877,6 +886,8 @@ class BaseQueryBuilder:
                       original name. If false, it may still have an alias
                       but is not guaranteed.
         """
+        if not isinstance(field, str):
+            raise InvalidSearchQuery(f"{field} cannot be used as a column")
         match = fields.is_function(field)
         if match:
             return self.resolve_function(field, match)
@@ -933,7 +944,7 @@ class BaseQueryBuilder:
         return flattened
 
     @cached_property
-    def custom_measurement_map(self) -> list[MetricMeta]:
+    def custom_measurement_map(self) -> Sequence[MetricMeta]:
         # Both projects & org are required, but might be missing for the search parser
         if self.organization_id is None or not self.builder_config.has_metrics:
             return []
@@ -941,7 +952,7 @@ class BaseQueryBuilder:
         from sentry.snuba.metrics.datasource import get_custom_measurements
 
         try:
-            result: list[MetricMeta] = get_custom_measurements(
+            result: Sequence[MetricMeta] = get_custom_measurements(
                 project_ids=self.params.project_ids,
                 organization_id=self.organization_id,
                 start=datetime.today() - timedelta(days=90),
@@ -956,13 +967,13 @@ class BaseQueryBuilder:
     def get_custom_measurement_names_set(self) -> set[str]:
         return {measurement["name"] for measurement in self.custom_measurement_map}
 
-    def get_measument_by_name(self, name: str) -> MetricMeta | None:
+    def get_measurement_by_name(self, name: str) -> MetricMeta | None:
         # Skip the iteration if its not a measurement, which can save a custom measurement query entirely
         if not is_measurement(name):
             return None
 
         for measurement in self.custom_measurement_map:
-            if measurement["name"] == name and measurement["metric_id"] is not None:
+            if measurement["name"] == name:
                 return measurement
         return None
 
@@ -974,15 +985,15 @@ class BaseQueryBuilder:
         elif is_numeric_measurement(field):
             return "number"
 
-        measurement = self.get_measument_by_name(field)
+        measurement = self.get_measurement_by_name(field)
         # let the caller decide what to do
         if measurement is None:
             return None
 
-        unit: str = measurement["unit"]
+        unit = measurement["unit"]
         if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
             return unit
-        elif unit == "none":
+        elif unit is None:
             return "integer"
         elif unit in constants.PERCENT_UNITS:
             return "percentage"
@@ -1103,7 +1114,10 @@ class BaseQueryBuilder:
                 config_overrides=self.builder_config.parser_config_overrides,
             )
         except ParseError as e:
-            raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+            if e.expr is not None:
+                raise InvalidSearchQuery(f"Parse error: {e.expr.name} (column {e.column():d})")
+            else:
+                raise InvalidSearchQuery(f"Parse error for: {query}")
 
         if not parsed_terms:
             return []
@@ -1200,7 +1214,8 @@ class BaseQueryBuilder:
                     Op.LIKE if operator == "=" else Op.NOT_LIKE,
                     # Slashes have to be double escaped so they are
                     # interpreted as a string literal.
-                    search_filter.value.raw_value.replace("\\", "\\\\")
+                    str(search_filter.value.raw_value)
+                    .replace("\\", "\\\\")
                     .replace("%", "\\%")
                     .replace("_", "\\_")
                     .replace("*", "%"),
@@ -1262,7 +1277,7 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            raw_value = search_filter.value.raw_value
+            raw_value = str(search_filter.value.raw_value)
             new_value = event_search.SearchValue(raw_value[1:-1])
             if (
                 raw_value.startswith("*")
@@ -1323,7 +1338,7 @@ class BaseQueryBuilder:
             return env_conditions[0]
 
     # Query Fields helper methods
-    def _resolve_equation_operand(self, operand: OperandType) -> SelectType | float:
+    def _resolve_equation_operand(self, operand: OperandType | None) -> SelectType | float:
         if isinstance(operand, Operation):
             return self.resolve_equation(operand)
         elif isinstance(operand, float):
@@ -1426,7 +1441,9 @@ class BaseQueryBuilder:
                     translated_column = translated_columns.get(column, column)
                     if translated_column in self.function_alias_map:
                         continue
-                    self.function_alias_map[translated_column] = self.function_alias_map.get(column)
+                    function_alias = self.function_alias_map.get(column)
+                    if function_alias is not None:
+                        self.function_alias_map[translated_column] = function_alias
 
                 if self.raw_equations:
                     for index, equation in enumerate(self.raw_equations):
