@@ -324,14 +324,14 @@ class AlertRule(Model):
             "Subscribing projects to alert rule",
             extra={
                 "alert_rule.monitor_type": self.monitor_type,
-                "conditional_monitor_type": monitor_type.value,
+                "conditional_monitor_type": monitor_type,
                 "query_extra": query_extra,
             },
         )
         # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
         created_subscriptions = []
-        if self.monitor_type == monitor_type.value:
+        if self.monitor_type == monitor_type:
             # NOTE: QuerySubscriptions hold reference to Projects which should match the AlertRule's project reference
             created_subscriptions = bulk_create_snuba_subscriptions(
                 projects,

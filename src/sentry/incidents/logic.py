@@ -581,7 +581,7 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             comparison_delta=comparison_delta,
             owner=owner,
-            monitor_type=monitor_type.value,
+            monitor_type=monitor_type,
             description=description,
         )
 
