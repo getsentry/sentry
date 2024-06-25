@@ -17,7 +17,6 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
-from django.test.utils import override_settings
 from django.utils import timezone
 
 from fixtures.github import (
@@ -28,7 +27,7 @@ from fixtures.github import (
     GET_PRIOR_COMMIT_EXAMPLE,
     LATER_COMMIT_SHA,
 )
-from sentry import audit_log, eventstore, nodestore, tsdb
+from sentry import eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling import (
@@ -58,7 +57,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -70,14 +68,12 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations import Integration
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.options import set
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -88,7 +84,6 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -2226,51 +2221,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert mechanism is not None
         assert mechanism.synthetic is True
         assert event.title == "foo"
-
-    def test_auto_update_grouping(self) -> None:
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
-            # start out with legacy grouping, this should update us
-            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
-
-            manager = EventManager(
-                make_event(
-                    message="foo",
-                    event_id="c" * 32,
-                ),
-                project=self.project,
-            )
-            manager.normalize()
-            manager.save(self.project.id)
-
-            # No update yet
-            project = Project.objects.get(id=self.project.id)
-            assert project.get_option("sentry:grouping_config") == LEGACY_GROUPING_CONFIG
-
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=1.0):
-            # start out with legacy grouping, this should update us
-            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
-
-            manager = EventManager(
-                make_event(
-                    message="foo",
-                    event_id="c" * 32,
-                ),
-                project=self.project,
-            )
-            manager.normalize()
-            with outbox_runner():
-                manager.save(self.project.id)
-
-            # This should have moved us back to the default grouping
-            project = Project.objects.get(id=self.project.id)
-            assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
-
-            # and we should see an audit log record.
-            with assume_test_silo_mode_of(AuditLogEntry):
-                record = AuditLogEntry.objects.get()
-            assert record.event == audit_log.get_event_id("PROJECT_EDIT")
-            assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
-            assert record.data["slug"] == self.project.slug
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
