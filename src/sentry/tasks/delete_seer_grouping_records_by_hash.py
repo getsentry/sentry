@@ -55,6 +55,4 @@ def call_delete_seer_grouping_records_by_hash(
             "calling seer record deletion by hash",
             extra={"project_id": project.id, "hashes": group_hashes},
         )
-        delete_seer_grouping_records_by_hash.apply_async(
-            args=[project.id, group_hashes, group_hashes, 0]
-        )
+        delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
