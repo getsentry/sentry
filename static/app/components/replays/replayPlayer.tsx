@@ -123,6 +123,8 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
+      // We use 1.5 here because we want to scale up mobile replays
+      // (or other replays that have height > width)
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
         windowDimensions.height / videoDimensions.height,
