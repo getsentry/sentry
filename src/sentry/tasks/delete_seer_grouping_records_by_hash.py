@@ -16,6 +16,8 @@ def delete_seer_grouping_records_by_hash(
     project_id: int,
     hashes: list[str],
     last_deleted_index: int = 0,
+    soft_time_limit=60 * 15,
+    time_limit=60 * (15 + 5),
     *args: Any,
     **kwargs: Any,
 ) -> None:
