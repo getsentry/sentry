@@ -35,6 +35,7 @@ class RegionResolutionStrategy(ABC):
         return get_region_by_name(mapping.region_name)
 
 
+# TODO(hybridcloud) This looks unused - remove it.
 @dataclass(frozen=True)
 class ByOrganizationObject(RegionResolutionStrategy):
     """Resolve from a parameter representing an organization object."""

@@ -303,6 +303,7 @@ class ProjectOwnershipTestCase(TestCase):
             data=self.python_event_data(),
             project_id=self.project.id,
         )
+        assert self.event.group is not None
 
         GroupOwner.objects.create(
             group=self.event.group,
@@ -352,6 +353,7 @@ class ProjectOwnershipTestCase(TestCase):
             data=self.python_event_data(),
             project_id=self.project2.id,
         )
+        assert self.event.group is not None
 
         GroupOwner.objects.create(
             group=self.event.group,
@@ -384,6 +386,7 @@ class ProjectOwnershipTestCase(TestCase):
             data=self.python_event_data(),
             project_id=self.project.id,
         )
+        assert self.event.group is not None
 
         GroupOwner.objects.create(
             group=self.event.group,
@@ -427,6 +430,7 @@ class ProjectOwnershipTestCase(TestCase):
             data=self.python_event_data(),
             project_id=self.project.id,
         )
+        assert self.event.group is not None
 
         GroupOwner.objects.create(
             group=self.event.group,
@@ -466,6 +470,7 @@ class ProjectOwnershipTestCase(TestCase):
             data=self.python_event_data(),
             project_id=self.project2.id,
         )
+        assert self.event.group is not None
 
         GroupOwner.objects.create(
             group=self.event.group,
@@ -549,6 +554,7 @@ class ProjectOwnershipTestCase(TestCase):
             data=self.python_event_data(),
             project_id=self.project2.id,
         )
+        assert self.event.group is not None
 
         GroupOwner.objects.create(
             group=self.event.group,

@@ -1,10 +1,14 @@
-import type {MetricMeta} from 'sentry/types/metrics';
+import type {MetricMeta, UseCase} from 'sentry/types/metrics';
 
 import {getMetricsWithDuplicateNames} from '.';
 
-function createMetricMeta(name: string, unit: string): MetricMeta {
+function createMetricMeta(
+  name: string,
+  unit: string,
+  useCase: UseCase = 'custom'
+): MetricMeta {
   return {
-    mri: `d:custom/${name}@${unit}`,
+    mri: `d:${useCase}/${name}@${unit}`,
     blockingStatus: [],
     operations: [],
     projectIds: [],
@@ -55,5 +59,17 @@ describe('getMetricsWithDuplicateNames', () => {
     ];
     const result = getMetricsWithDuplicateNames(metrics);
     expect(result).toEqual(new Set());
+  });
+
+  it('should return empty set for duplicates across use cases', () => {
+    const metrics: MetricMeta[] = [
+      createMetricMeta('metric1', 'none', 'custom'),
+      createMetricMeta('metric1', 'seconds', 'metric_stats'),
+      createMetricMeta('metric1', 'milliseconds', 'sessions'),
+      createMetricMeta('metric1', 'bytes', 'spans'),
+      createMetricMeta('metric1', 'bits', 'transactions'),
+    ];
+    const result = getMetricsWithDuplicateNames(metrics);
+    expect(result).toEqual(new Set([]));
   });
 });

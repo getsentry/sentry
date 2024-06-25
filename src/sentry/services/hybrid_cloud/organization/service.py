@@ -9,6 +9,14 @@ from typing import Any
 
 from django.dispatch import Signal
 
+from sentry.hybridcloud.rpc.resolvers import (
+    ByOrganizationId,
+    ByOrganizationIdAttribute,
+    ByOrganizationSlug,
+    ByRegionName,
+    RequireSingleOrganization,
+)
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud import OptionValue, silo_mode_delegation
 from sentry.services.hybrid_cloud.organization.model import (
     OrganizationMemberUpdateArgs,
@@ -26,14 +34,6 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.region import (
-    ByOrganizationId,
-    ByOrganizationIdAttribute,
-    ByOrganizationSlug,
-    ByRegionName,
-    RequireSingleOrganization,
-)
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo.base import SiloMode
 

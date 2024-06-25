@@ -11,7 +11,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationSerializer
-from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
@@ -74,12 +74,20 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             feature=IntegrationFeatures.ISSUE_BASIC
         ) or integration.has_feature(feature=IntegrationFeatures.ISSUE_SYNC)
 
-    def create_issue_activity(self, request: Request, group, installation, external_issue):
+    def create_issue_activity(
+        self,
+        request: Request,
+        group: Group,
+        installation: IntegrationInstallation,
+        external_issue: ExternalIssue,
+        new: bool,
+    ):
         issue_information = {
             "title": external_issue.title,
             "provider": installation.model.get_provider().name,
             "location": installation.get_issue_url(external_issue.key),
             "label": installation.get_issue_display_name(external_issue) or external_issue.key,
+            "new": new,
         }
         Activity.objects.create(
             project=group.project,
@@ -211,7 +219,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
         except IntegrityError:
             return Response({"non_field_errors": ["That issue is already linked"]}, status=400)
 
-        self.create_issue_activity(request, group, installation, external_issue)
+        self.create_issue_activity(request, group, installation, external_issue, new=False)
 
         # TODO(jess): would be helpful to return serialized external issue
         # once we have description, title, etc
@@ -284,7 +292,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             )
         installation.store_issue_last_defaults(group.project, request.user, request.data)
 
-        self.create_issue_activity(request, group, installation, external_issue)
+        self.create_issue_activity(request, group, installation, external_issue, new=True)
 
         # TODO(jess): return serialized issue
         url = data.get("url") or installation.get_issue_url(external_issue.key)

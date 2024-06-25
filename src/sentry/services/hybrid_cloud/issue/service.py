@@ -6,9 +6,9 @@
 
 from abc import abstractmethod
 
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationSlug, ByRegionName
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.issue.model import RpcGroupShareMetadata
-from sentry.services.hybrid_cloud.region import ByOrganizationId, ByOrganizationSlug, ByRegionName
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.silo.base import SiloMode
 
 

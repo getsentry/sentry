@@ -8,7 +8,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.silo.base import region_silo_function
 from sentry.types.actor import Actor
 
 

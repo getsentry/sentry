@@ -343,7 +343,7 @@ def bulk_record_group_history(
                 project=group.project,
                 release=release,
                 team_id=team_id,
-                user_id=user_id,  # type:ignore[misc]
+                user_id=user_id,
                 status=status,
                 prev_history=get_prev_history(group, status),
                 prev_history_date=get_prev_history_date(group, status),

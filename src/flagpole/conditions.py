@@ -204,6 +204,14 @@ class Segment(BaseModel):
             match_condition = condition.match(context, segment_name=self.name)
             if not match_condition:
                 return False
+        return True
+
+    def in_rollout(self, context: EvaluationContext) -> bool:
+        # Rollout = 0 allows segments to match and disable a feature
+        # even if other segments would match
+        if self.rollout == 0:
+            return False
+
         # Apply incremental rollout if available.
         if self.rollout is not None and self.rollout < 100:
             return context.id % 100 <= self.rollout

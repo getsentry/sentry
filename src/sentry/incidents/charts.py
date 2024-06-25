@@ -162,8 +162,12 @@ def build_metric_alert_chart(
     end: str | None = None,
     user: Optional["User"] = None,
     size: ChartSize | None = None,
+    query_extra: str | None = None,
+    project_id: int | None = None,
 ) -> str | None:
-    """Builds the dataset required for metric alert chart the same way the frontend would"""
+    """
+    Builds the dataset required for metric alert chart the same way the frontend would
+    """
     snuba_query: SnubaQuery = alert_rule.snuba_query
     dataset = Dataset(snuba_query.dataset)
     query_type = SnubaQuery.Type(snuba_query.type)
@@ -203,19 +207,21 @@ def build_metric_alert_chart(
     )
     aggregate = translate_aggregate_field(snuba_query.aggregate, reverse=True, allow_mri=allow_mri)
     # If we allow alerts to be across multiple orgs this will break
+    # TODO: determine whether this validation is necessary
     first_subscription_or_none = snuba_query.subscriptions.first()
     if first_subscription_or_none is None:
         return None
 
-    project_id = first_subscription_or_none.project_id
+    project_id = project_id or first_subscription_or_none.project_id
     time_window_minutes = snuba_query.time_window // 60
     env_params = {"environment": snuba_query.environment.name} if snuba_query.environment else {}
+    query_str = f"{snuba_query.query}{query_extra if query_extra else ''}"
     query = (
-        snuba_query.query
+        query_str
         if is_crash_free_alert
         else apply_dataset_query_conditions(
             SnubaQuery.Type(snuba_query.type),
-            snuba_query.query,
+            query_str,
             snuba_query.event_types,
             discover=True,
         )

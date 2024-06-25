@@ -88,9 +88,10 @@ class ExportedData(Model):
         from sentry.utils.email import MessageBuilder
 
         user_email = None
-        user = user_service.get_user(user_id=self.user_id)
-        if user:
-            user_email = user.email
+        if self.user_id is not None:
+            user = user_service.get_user(user_id=self.user_id)
+            if user:
+                user_email = user.email
 
         # The following condition should never be true, but it's a safeguard in case someone manually calls this method
         if self.date_finished is None or self.date_expired is None or self._get_file() is None:
@@ -115,6 +116,8 @@ class ExportedData(Model):
     def email_failure(self, message: str) -> None:
         from sentry.utils.email import MessageBuilder
 
+        if self.user_id is None:
+            return
         user = user_service.get_user(user_id=self.user_id)
         if user is None:
             return

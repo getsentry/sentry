@@ -7,6 +7,8 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
+from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.user import RpcUser
 
@@ -18,7 +20,9 @@ class InvalidContextDataException(Exception):
 @dataclass()
 class SentryContextData:
     actor: User | RpcUser | AnonymousUser | None = None
-    organization: Organization | RpcOrganization | None = None
+    organization: Organization | RpcOrganization | RpcOrganizationSummary | RpcOrganizationMapping | None = (
+        None
+    )
     project: Project | RpcProject | None = None
 
 
@@ -40,6 +44,14 @@ def organization_context_transformer(data: SentryContextData) -> EvaluationConte
         context_data["organization_name"] = org.name
         context_data["organization_id"] = org.id
         context_data["organization_is-early-adopter"] = org.flags.early_adopter
+
+    elif isinstance(org, RpcOrganizationSummary):
+        context_data["organization_slug"] = org.slug
+        context_data["organization_name"] = org.name
+        context_data["organization_id"] = org.id
+        # TODO(hybridcloud) Remove this guard once org.flags has been deployed to all regions
+        if hasattr(org, "flags"):
+            context_data["organization_is-early-adopter"] = bool(org.flags.early_adopter)
     else:
         raise InvalidContextDataException("Invalid organization object provided")
 

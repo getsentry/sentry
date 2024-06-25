@@ -92,7 +92,6 @@ class OrganizationSerializerTest(TestCase):
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
-            "project-stats",
             "relay",
             "shared-issues",
             "slack-block-kit",

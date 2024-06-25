@@ -45,7 +45,7 @@ python-rapidjson>=1.4
 psutil>=5.9.2
 psycopg2-binary>=2.9.9
 PyJWT>=2.4.0
-pydantic>=1.10.9
+pydantic>=1.10.17,<2
 python-dateutil>=2.9.0
 pymemcache
 python-u2flib-server>=5.0.0
@@ -75,6 +75,7 @@ statsd>=3.3
 structlog>=22
 symbolic==12.8.0
 tiktoken>=0.6.0
+tldextract>=5.1.2
 toronado>=0.1.0
 typing-extensions>=4.9.0
 ua-parser>=0.10.0
