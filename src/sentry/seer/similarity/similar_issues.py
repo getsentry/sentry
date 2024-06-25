@@ -36,6 +36,9 @@ def get_similarity_data_from_seer(
     Request similar issues data from seer and normalize the results. Returns similar groups
     sorted in order of descending similarity.
     """
+    referrer = similar_issues_request.get("referrer")
+    metric_tags: dict[str, str | int] = {"referrer": referrer} if referrer else {}
+
     logger.info(
         "get_seer_similar_issues.request",
         extra=apply_key_filter(
@@ -68,7 +71,7 @@ def get_similarity_data_from_seer(
         ),
     )
 
-    metric_tags: dict[str, str | int] = {"response_status": response.status}
+    metric_tags["response_status"] = response.status
 
     if response.status > 200:
         redirect = response.get_redirect_location()
