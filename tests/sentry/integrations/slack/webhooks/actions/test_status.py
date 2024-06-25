@@ -1,10 +1,10 @@
 from unittest.mock import patch
-from urllib.parse import parse_qs
 
 import orjson
 import responses
 from django.db import router
 from django.urls import reverse
+from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
@@ -883,63 +883,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     @responses.activate
-    def test_resolve_issue_backwards_compat_block_kit(self):
-        """Test backwards compatibility of resolving an issue from a legacy Slack notification
-        with the block kit feature flag enabled"""
-        status_action = {"name": "resolve_dialog", "value": "dialog"}
-
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        with self.feature({"organizations:slack-block-kit": False}):
-            resp = self.post_webhook(action_data=[status_action])
-            assert resp.status_code == 200, resp.content
-
-            # Opening dialog should *not* cause the current message to be updated
-            assert resp.content == b""
-
-            data = parse_qs(responses.calls[0].request.body)
-            assert data["trigger_id"][0] == self.trigger_id
-            assert "dialog" in data
-
-            dialog = orjson.loads(data["dialog"][0])
-            callback_data = orjson.loads(dialog["callback_id"])
-            assert int(callback_data["issue"]) == self.group.id
-            assert callback_data["orig_response_url"] == self.response_url
-
-            # Completing the dialog will update the message
-            responses.add(
-                method=responses.POST,
-                url=self.response_url,
-                body='{"ok": true}',
-                status=200,
-                content_type="application/json",
-            )
-
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook(
-                type="dialog_submission",
-                callback_id=dialog["callback_id"],
-                data={"submission": {"resolve_type": "resolved"}},
-            )
-        self.group = Group.objects.get(id=self.group.id)
-
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.RESOLVED
-
-        update_data = orjson.loads(responses.calls[1].request.body)
-
-        expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
-
-    @responses.activate
     def test_resolve_issue_block_kit(self):
         original_message = self.get_original_message_block_kit(self.group.id)
         self.resolve_issue_block_kit(original_message, "resolved")
@@ -1004,68 +947,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert self.notification_text in update_data["blocks"][1]["text"]["text"]
         assert update_data["blocks"][2]["text"]["text"] == expect_status
-
-    @responses.activate
-    def test_resolve_issue_in_next_release_backwards_compat_block_kit(self):
-        """Test backwards compatibility of resolving a legacy formatted Slack notification
-        with the block kit feature flag enabled"""
-        status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
-
-        release = Release.objects.create(
-            organization_id=self.organization.id,
-            version="1.0",
-        )
-        release.add_project(self.project)
-
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        with self.feature({"organizations:slack-block-kit": False}):
-            resp = self.post_webhook(action_data=[status_action])
-            assert resp.status_code == 200, resp.content
-
-            # Opening dialog should *not* cause the current message to be updated
-            assert resp.content == b""
-
-            data = parse_qs(responses.calls[0].request.body)
-            assert data["trigger_id"][0] == self.trigger_id
-            assert "dialog" in data
-
-            dialog = orjson.loads(data["dialog"][0])
-            callback_data = orjson.loads(dialog["callback_id"])
-            assert int(callback_data["issue"]) == self.group.id
-            assert callback_data["orig_response_url"] == self.response_url
-
-            # Completing the dialog will update the message
-            responses.add(
-                method=responses.POST,
-                url=self.response_url,
-                body='{"ok": true}',
-                status=200,
-                content_type="application/json",
-            )
-
-        with self.feature("organizations:slack-block-kit"):
-            resp = self.post_webhook(
-                type="dialog_submission",
-                callback_id=dialog["callback_id"],
-                data={"submission": {"resolve_type": "resolved:inNextRelease"}},
-            )
-            self.group = Group.objects.get(id=self.group.id)
-
-            assert resp.status_code == 200, resp.content
-            assert self.group.get_status() == GroupStatus.RESOLVED
-
-            update_data = orjson.loads(responses.calls[1].request.body)
-            expect_status = f"*Issue resolved by <@{self.external_id}>*"
-            assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-            assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     def test_resolve_issue_in_current_release_block_kit(self):
@@ -1416,92 +1297,20 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @freeze_time("2021-01-14T12:27:28.303Z")
+    @patch(
+        "slack_sdk.web.WebClient.views_open",
+        return_value=SlackResponse(
+            client=None,
+            http_verb="POST",
+            api_url="https://slack.com/api/views.open",
+            req_args={},
+            data={"ok": False},
+            headers={},
+            status_code=200,
+        ),
+    )
     @responses.activate
-    def test_handle_submission_fail(self):
-        status_action = {"name": "resolve_dialog", "value": "resolve_dialog"}
-
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/dialog.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        with self.feature({"organizations:slack-block-kit": False}):
-            resp = self.post_webhook(action_data=[status_action])
-            assert resp.status_code == 200, resp.content
-
-            # Opening dialog should *not* cause the current message to be updated
-            assert resp.content == b""
-
-            data = parse_qs(responses.calls[0].request.body)
-            assert data["trigger_id"][0] == self.trigger_id
-            assert "dialog" in data
-
-            dialog = orjson.loads(data["dialog"][0])
-            callback_data = orjson.loads(dialog["callback_id"])
-            assert int(callback_data["issue"]) == self.group.id
-            assert callback_data["orig_response_url"] == self.response_url
-
-            # Completing the dialog will update the message
-            responses.add(
-                method=responses.POST,
-                url=self.response_url,
-                body='{"ok": true}',
-                status=200,
-                content_type="application/json",
-            )
-
-            # Remove the user from the organization.
-            member = OrganizationMember.objects.get(
-                user_id=self.user.id, organization=self.organization
-            )
-            member.remove_user()
-            member.save()
-
-            response = self.post_webhook(
-                type="dialog_submission",
-                callback_id=dialog["callback_id"],
-                data={"submission": {"resolve_type": "resolved"}},
-            )
-
-            assert response.status_code == 200, response.content
-            assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-                associate_url=build_unlinking_url(
-                    integration_id=self.integration.id,
-                    slack_id=self.external_id,
-                    channel_id="C065W1189",
-                    response_url=self.response_url,
-                ),
-                user_email=self.user.email,
-                org_name=self.organization.name,
-            )
-
-        with self.feature("organizations:slack-block-kit"):
-            # test backwards compatibility
-            response = self.post_webhook(
-                type="dialog_submission",
-                callback_id=dialog["callback_id"],
-                data={"submission": {"resolve_type": "resolved"}},
-            )
-
-            assert response.status_code == 200, response.content
-            assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-                associate_url=build_unlinking_url(
-                    integration_id=self.integration.id,
-                    slack_id=self.external_id,
-                    channel_id="C065W1189",
-                    response_url=self.response_url,
-                ),
-                user_email=self.user.email,
-                org_name=self.organization.name,
-            )
-
-    @freeze_time("2021-01-14T12:27:28.303Z")
-    @responses.activate
-    def test_handle_submission_fail_block_kit(self):
+    def test_handle_submission_fail_block_kit(self, mock_open_view):
         status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
         # Expect request to open dialog on slack
@@ -1545,12 +1354,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         member.remove_user()
         member.save()
-        with self.feature("organizations:slack-block-kit"):
-            response = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=orjson.dumps(private_metadata).decode(),
-                selected_option="resolved",
-            )
+        response = self.post_webhook_block_kit(
+            type="view_submission",
+            private_metadata=orjson.dumps(private_metadata).decode(),
+            selected_option="resolved",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
@@ -1565,8 +1373,20 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @freeze_time("2021-01-14T12:27:28.303Z")
+    @patch(
+        "slack_sdk.web.WebClient.views_open",
+        return_value=SlackResponse(
+            client=None,
+            http_verb="POST",
+            api_url="https://slack.com/api/views.open",
+            req_args={},
+            data={"ok": False},
+            headers={},
+            status_code=200,
+        ),
+    )
     @responses.activate
-    def test_handle_submission_fail_block_kit_through_unfurl(self):
+    def test_handle_submission_fail_through_unfurl(self, mock_open_view):
         status_action = self.get_resolve_status_action()
         original_message = self.get_original_message_block_kit(self.group.id)
         payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
@@ -1609,12 +1429,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         member.remove_user()
         member.save()
-        with self.feature("organizations:slack-block-kit"):
-            response = self.post_webhook_block_kit(
-                type="view_submission",
-                private_metadata=orjson.dumps(private_metadata).decode(),
-                selected_option="resolved",
-            )
+        response = self.post_webhook_block_kit(
+            type="view_submission",
+            private_metadata=orjson.dumps(private_metadata).decode(),
+            selected_option="resolved",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
