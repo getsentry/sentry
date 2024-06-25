@@ -448,8 +448,8 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     sensitiveFields: list[str]
     safeFields: list[str]
     storeCrashReports: int
-    attachmentsRole: Any  # TODO
-    debugFilesRole: str
+    attachmentsRole: str  # TODO: replace with enum/literal
+    debugFilesRole: str  # TODO: replace with enum/literal
     eventsMemberAdmin: bool
     alertsMemberWrite: bool
     scrubIPAddresses: bool
