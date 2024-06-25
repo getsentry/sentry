@@ -60,12 +60,12 @@ class GroupHashesEndpoint(GroupEndpoint):
         if not id_list:
             return Response()
 
-        hash_list = list(
+        grouphashes = list(
             GroupHash.objects.filter(project_id=group.project_id, group=group.id, hash__in=id_list)
             .exclude(state=GroupHash.State.LOCKED_IN_MIGRATION)
             .values_list("hash", flat=True)
         )
-        if not hash_list:
+        if not grouphashes:
             return Response({"detail": "Already being unmerged"}, status=409)
 
         metrics.incr(
@@ -76,7 +76,7 @@ class GroupHashesEndpoint(GroupEndpoint):
         )
 
         unmerge.delay(
-            group.project_id, group.id, None, hash_list, request.user.id if request.user else None
+            group.project_id, group.id, None, grouphashes, request.user.id if request.user else None
         )
 
         return Response(status=202)
