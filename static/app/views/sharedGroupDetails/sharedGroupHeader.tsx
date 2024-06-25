@@ -42,7 +42,7 @@ function SharedGroupHeader({group}: Props) {
             )}
           </ShortIdWrapper>
 
-          <TimeStamp>
+          <TimeStamp data-test-id="sgh-timestamp">
             {'Last seen '}
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
@@ -56,7 +56,6 @@ function SharedGroupHeader({group}: Props) {
                       overlayStyle={{maxWidth: 300}}
                     >
                       <DateTime date={d.toLocaleString()} />
-                      {/* {d.toLocaleString('default', {month: 'long'})} */}
                     </Tooltip>
                   ),
                 })}
