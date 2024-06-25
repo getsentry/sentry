@@ -111,6 +111,7 @@ def unfurl_metric_alerts(
                     start=link.args["start"],
                     end=link.args["end"],
                     user=user,
+                    subscription=selected_incident.subscription if selected_incident else None,
                 )
             except Exception as e:
                 sentry_sdk.capture_exception(e)

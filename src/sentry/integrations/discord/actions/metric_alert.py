@@ -27,6 +27,7 @@ def send_incident_alert_notification(
                 organization=incident.organization,
                 alert_rule=incident.alert_rule,
                 selected_incident=incident,
+                subscription=incident.subscription,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
