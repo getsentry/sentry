@@ -42,6 +42,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -684,7 +685,7 @@ class PerformanceIssueTestCase(BaseTestCase):
             return event
 
 
-class APITestCase(BaseTestCase, BaseAPITestCase):
+class APITestCaseMixin:
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -851,6 +852,180 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
         ):
             yield
+
+
+class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
+    pass
+
+
+class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCaseMixin):
+    pass
+    # """
+    # Extend APITestCase to inherit access to `client`, an object with methods
+    # that simulate API calls to Sentry, and the helper `get_response`, which
+    # combines and simplifies a lot of tedious parts of making API calls in tests.
+    # When creating API tests, use a new class per endpoint-method pair.
+
+    # The class must set the string `endpoint`.
+    # If your endpoint requires kwargs implement the `reverse_url` method.
+    # """
+
+    # # We need Django to flush all databases.
+    # databases: set[str] | str = "__all__"
+
+    # method = "get"
+
+    # @property
+    # def endpoint(self):
+    #     raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    # def get_response(self, *args, **params):
+    #     """
+    #     Simulate an API call to the test case's URI and method.
+
+    #     :param params:
+    #         Note: These names are intentionally a little funny to prevent name
+    #          collisions with real API arguments.
+    #         * extra_headers: (Optional) Dict mapping keys to values that will be
+    #          passed as request headers.
+    #         * qs_params: (Optional) Dict mapping keys to values that will be
+    #          url-encoded into a API call's query string.
+    #         * raw_data: (Optional) Sometimes we want to precompute the JSON body.
+    #     :returns Response object
+    #     """
+    #     url = (
+    #         self.reverse_url()
+    #         if hasattr(self, "reverse_url")
+    #         else reverse(self.endpoint, args=args)
+    #     )
+    #     # In some cases we want to pass querystring params to put/post, handle this here.
+    #     if "qs_params" in params:
+    #         query_string = urlencode(params.pop("qs_params"), doseq=True)
+    #         url = f"{url}?{query_string}"
+
+    #     headers = params.pop("extra_headers", {})
+    #     format = params.pop("format", "json")
+    #     raw_data = params.pop("raw_data", None)
+    #     if raw_data and isinstance(raw_data, bytes):
+    #         raw_data = raw_data.decode("utf-8")
+    #     if raw_data and isinstance(raw_data, str):
+    #         raw_data = json.loads(raw_data)
+    #     data = raw_data or params
+    #     method = params.pop("method", self.method).lower()
+
+    #     return getattr(self.client, method)(url, format=format, data=data, **headers)
+
+    # def get_success_response(self, *args, **params):
+    #     """
+    #     Call `get_response` (see above) and assert the response's status code.
+
+    #     :param params:
+    #         * status_code: (Optional) Assert that the response's status code is
+    #         a specific code. Omit to assert any successful status_code.
+    #     :returns Response object
+    #     """
+    #     status_code = params.pop("status_code", None)
+
+    #     if status_code and status_code >= 400:
+    #         raise Exception("status_code must be < 400")
+
+    #     method = params.pop("method", self.method).lower()
+
+    #     response = self.get_response(*args, method=method, **params)
+
+    #     if status_code:
+    #         assert_status_code(response, status_code)
+    #     elif method == "get":
+    #         assert_status_code(response, status.HTTP_200_OK)
+    #     # TODO(mgaeta): Add the other methods.
+    #     # elif method == "post":
+    #     #     assert_status_code(response, status.HTTP_201_CREATED)
+    #     elif method == "put":
+    #         assert_status_code(response, status.HTTP_200_OK)
+    #     elif method == "delete":
+    #         assert_status_code(response, status.HTTP_204_NO_CONTENT)
+    #     else:
+    #         # TODO(mgaeta): Add other methods.
+    #         assert_status_code(response, 200, 300)
+
+    #     return response
+
+    # def get_error_response(self, *args, **params):
+    #     """
+    #     Call `get_response` (see above) and assert that the response's status
+    #     code is an error code. Basically it's syntactic sugar.
+
+    #     :param params:
+    #         * status_code: (Optional) Assert that the response's status code is
+    #         a specific error code. Omit to assert any error status_code.
+    #     :returns Response object
+    #     """
+    #     status_code = params.pop("status_code", None)
+
+    #     if status_code and status_code < 400:
+    #         raise Exception("status_code must be >= 400 (an error status code)")
+
+    #     response = self.get_response(*args, **params)
+
+    #     if status_code:
+    #         assert_status_code(response, status_code)
+    #     else:
+    #         assert_status_code(response, 400, 600)
+
+    #     return response
+
+    # def get_cursor_headers(self, response):
+    #     return [
+    #         link["cursor"]
+    #         for link in requests.utils.parse_header_links(
+    #             response.get("link").rstrip(">").replace(">,<", ",<")
+    #         )
+    #     ]
+
+    # # The analytics event `name` was called with `kwargs` being a subset of its properties
+    # def analytics_called_with_args(self, fn, name, **kwargs):
+    #     for call_args, call_kwargs in fn.call_args_list:
+    #         event_name = call_args[0]
+    #         if event_name == name:
+    #             assert all(call_kwargs.get(key, None) == val for key, val in kwargs.items())
+    #             return True
+    #     return False
+
+    # @contextmanager
+    # def api_gateway_proxy_stubbed(self):
+    #     """Mocks a fake api gateway proxy that redirects via Client objects"""
+
+    #     def proxy_raw_request(
+    #         method: str,
+    #         url: str,
+    #         headers: Mapping[str, str],
+    #         params: Mapping[str, str] | None,
+    #         data: Any,
+    #         **kwds: Any,
+    #     ) -> requests.Response:
+    #         from django.test.client import Client
+
+    #         client = Client()
+    #         extra: Mapping[str, Any] = {
+    #             f"HTTP_{k.replace('-', '_').upper()}": v for k, v in headers.items()
+    #         }
+    #         if params:
+    #             url += "?" + urlencode(params)
+    #         with assume_test_silo_mode(SiloMode.REGION):
+    #             resp = getattr(client, method.lower())(
+    #                 url, b"".join(data), headers["Content-Type"], **extra
+    #             )
+    #         response = requests.Response()
+    #         response.status_code = resp.status_code
+    #         response.headers = CaseInsensitiveDict(resp.headers)
+    #         response.encoding = get_encoding_from_headers(response.headers)
+    #         response.raw = BytesIO(resp.content)
+    #         return response
+
+    #     with mock.patch(
+    #         "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
+    #     ):
+    #         yield
 
 
 class TwoFactorAPITestCase(APITestCase):

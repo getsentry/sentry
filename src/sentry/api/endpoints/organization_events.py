@@ -1,5 +1,6 @@
 import logging
 from collections.abc import Mapping
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 import sentry_sdk
@@ -22,15 +23,10 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.snuba import (
-    discover,
-    errors,
-    metrics_enhanced_performance,
-    metrics_performance,
-    transactions,
-)
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.utils import get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.snuba import SnubaError
 
@@ -460,40 +456,56 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if does_widget_have_split:
                     return _data_fn(scopedDataset, offset, limit, scoped_query)
 
+                map = {}
+                with ThreadPoolExecutor(max_workers=3) as exe:
+                    futures = {
+                        exe.submit(
+                            _data_fn, get_dataset(dataset_), offset, limit, scoped_query
+                        ): dataset_
+                        for dataset_ in [
+                            "discover",
+                            "errors",
+                            "transactions",
+                        ]
+                    }
+
+                    for future in as_completed(futures):
+                        dataset_ = futures[future]
+                        try:
+                            result = future.result()
+                            map[dataset_] = result
+                        except SnubaError:
+                            pass
+
                 try:
-                    error_results = _data_fn(
-                        errors,
-                        offset,
-                        limit,
-                        scoped_query,
-                    )
+                    error_results = map["errors"]
                     error_results["meta"][
                         "discoverSplitDecision"
                     ] = DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.ERROR_EVENTS)
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
                     has_errors = len(error_results["data"]) > 0
-                except SnubaError:
+                except KeyError:
                     has_errors = False
                     error_results = None
 
                 try:
-                    transaction_results = _data_fn(transactions, offset, limit, scoped_query)
+                    transaction_results = map["transactions"]
                     transaction_results["meta"][
                         "discoverSplitDecision"
                     ] = DiscoverSavedQueryTypes.get_type_name(
                         DiscoverSavedQueryTypes.TRANSACTION_LIKE
                     )
                     has_transactions = len(transaction_results["data"]) > 0
-                except SnubaError:
+                except KeyError:
                     has_transactions = False
                     transaction_results = None
 
                 # Evaluate discover query if it's actually on the discover dataset or if for
                 # some reason both transactions and errors queries error out.
+                discover_results = map["discover"]
                 if (has_errors and has_transactions) or (
                     not has_transactions and not has_transactions
                 ):
-                    discover_results = _data_fn(scopedDataset, offset, limit, scoped_query)
                     discover_results["meta"][
                         "discoverSplitDecision"
                     ] = DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.DISCOVER)
