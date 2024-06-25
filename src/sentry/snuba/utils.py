@@ -46,6 +46,12 @@ class QueryStrings:
 def build_query_strings(
     subscription: QuerySubscription | None, snuba_query: SnubaQuery
 ) -> QueryStrings:
+    """
+    Constructs a QueryStrings dataclass given a QuerySubscription and SnubaQuery.
+    query_string value is derived from the snuba_query.query and the subscription.query_extra.
+
+    TODO: determine whether this is necessary in all places where `snuba_query.query` is used.
+    """
     query_extra = ""
     if subscription and subscription.query_extra:
         if snuba_query.query:
