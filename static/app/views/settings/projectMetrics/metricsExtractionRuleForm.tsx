@@ -129,7 +129,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                 ),
               }
             )}
-            placeholder={t('Select a measure')}
+            placeholder={t('Select a span attribute')}
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
