@@ -36,7 +36,7 @@ export function ReplayDiffSection({event, group, replayId}: Props) {
           LazyComponent={ReplayDiffContent}
           loadingFallback={
             <EventDataSection type="hydration-diff" title={t('Hydration Error Diff')}>
-              <StyledNegativeSpaceContainer testId="replay-diff-loading-placeholder">
+              <StyledNegativeSpaceContainer data-test-id="replay-diff-loading-placeholder">
                 <LoadingIndicator />
               </StyledNegativeSpaceContainer>
             </EventDataSection>

@@ -93,7 +93,7 @@ function ReplayPreview({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+      <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );
