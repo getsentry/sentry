@@ -41,7 +41,7 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
-SNUBA_QUERY_RATELIMIT = 4
+SNUBA_QUERY_RATELIMIT = 20
 
 logger = logging.getLogger(__name__)
 

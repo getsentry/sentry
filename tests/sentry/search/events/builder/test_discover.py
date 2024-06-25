@@ -43,6 +43,7 @@ class QueryBuilderTest(TestCase):
             Condition(Column("project_id"), Op.IN, self.projects),
         ]
 
+    @pytest.mark.querybuilder
     def test_simple_query(self):
         query = QueryBuilder(
             Dataset.Discover,
