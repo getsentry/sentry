@@ -4,7 +4,6 @@ import clamp from 'sentry/utils/number/clamp';
 
 // Computes the transformation matrix that is used to render scaled
 // elements to the DOM and draw the view.
-
 export class TraceView {
   // Represents the space of the entire trace, for example
   // a trace starting at 0 and ending at 1000 would have a space of [0, 1000]
@@ -20,38 +19,25 @@ export class TraceView {
   trace_physical_space: DOMView = DOMView.Empty();
   // the encapsulating container that the entire view is rendered to
   trace_container_physical_space: DOMView = DOMView.Empty();
+  public readonly MAX_ZOOM_PRECISION_MS = 1;
 
-  span_to_px: mat3 = mat3.create();
-
-  private readonly MAX_ZOOM_PRECISION_MS = 1;
-  private readonly span_matrix: [number, number, number, number, number, number] = [
-    1, 0, 0, 1, 0, 0,
-  ];
-
-  initConfigSpace() {
-    this.trace_space = new DOMView(0, 0, this.to_origin, 1);
-  }
-
-  // @todo: both init methods should recompute intervals
-  initTraceSpace(space: [x: number, y: number, width: number, height: number]) {
-    this.to_origin = space[0];
-
-    this.trace_space = new DOMView(0, 0, space[2], space[3]);
-    this.trace_view = new DOMView(0, 0, space[2], space[3]);
-
-    this.recomputeSpanToPxMatrix();
-  }
-
-  initPhysicalSpace(container_width: number, container_height: number) {
+  setTracePhysicalSpace(
+    container_space: [x: number, y: number, width: number, height: number],
+    space: [x: number, y: number, width: number, height: number]
+  ) {
     this.trace_container_physical_space = new DOMView(
       0,
       0,
-      container_width,
-      container_height
+      container_space[2],
+      container_space[3]
     );
-    this.trace_physical_space = new DOMView(0, 0, container_width, container_height);
+    this.trace_physical_space = new DOMView(0, 0, space[2], space[3]);
+  }
 
-    this.recomputeSpanToPxMatrix();
+  setTraceSpace(space: [x: number, y: number, width: number, height: number]) {
+    this.to_origin = space[0];
+    this.trace_space = new DOMView(0, 0, space[2], space[3]);
+    this.trace_view = new DOMView(0, 0, space[2], space[3]);
   }
 
   setTraceView(view: {width?: number; x?: number}) {
@@ -73,53 +59,6 @@ export class TraceView {
       0,
       Math.max(this.trace_space.width - width, this.MAX_ZOOM_PRECISION_MS)
     );
-
-    this.recomputeSpanToPxMatrix();
-  }
-
-  updateTraceSpace(start: number, width: number) {
-    if (this.trace_space.width === width && this.to_origin === start) {
-      return;
-    }
-
-    this.to_origin = start;
-
-    // If view is scaled all the way out, then lets update it to match the new space, else
-    // we are implicitly zooming in, which may be even more confusing.
-    const preventImplicitZoom = this.trace_view.width === this.trace_space.width;
-    this.trace_space = new DOMView(0, 0, width, 1);
-    if (preventImplicitZoom) {
-      this.setTraceView({x: 0, width});
-    }
-
-    this.recomputeSpanToPxMatrix();
-  }
-
-  recomputeSpanToPxMatrix() {
-    const traceViewToSpace = this.trace_space.between(this.trace_view);
-    const tracePhysicalToView = this.trace_physical_space.between(this.trace_space);
-
-    this.span_to_px = mat3.multiply(
-      this.span_to_px,
-      traceViewToSpace,
-      tracePhysicalToView
-    );
-  }
-
-  computeSpanCSSMatrixTransform(
-    space: [number, number]
-  ): [number, number, number, number, number, number] {
-    const scale = space[1] / this.trace_view.width;
-    this.span_matrix[0] = Math.max(scale, this.span_to_px[0] / this.trace_view.width);
-    this.span_matrix[4] =
-      (space[0] - this.to_origin) / this.span_to_px[0] -
-      this.trace_view.x / this.span_to_px[0];
-
-    return this.span_matrix;
-  }
-
-  transformXFromTimestamp(timestamp: number): number {
-    return (timestamp - this.to_origin - this.trace_view.x) / this.span_to_px[0];
   }
 
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
@@ -149,6 +88,7 @@ class DOMView {
   static From(view: DOMView): DOMView {
     return new DOMView(view.x, view.y, view.width, view.height);
   }
+
   static Empty(): DOMView {
     return new DOMView(0, 0, 1000, 1);
   }

@@ -44,7 +44,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+import {
+  TraceEventPriority,
+  type TraceEvents,
+  TraceScheduler,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {TraceView as TraceViewModel} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {
   type ViewManagerScrollAnchor,
@@ -360,6 +364,49 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useLayoutEffect(() => {
+    const onTraceViewChange: TraceEvents['set trace view'] = view => {
+      traceView.setTraceView(view);
+    };
+
+    const onPhysicalSpaceChange: TraceEvents['set container physical space'] =
+      container => {
+        traceView.setTracePhysicalSpace(container, [
+          0,
+          0,
+          container[2] * viewManager.columns.span_list.width,
+          container[3],
+        ]);
+      };
+
+    const onTraceSpaceChange: TraceEvents['initialize trace space'] = view => {
+      traceView.setTraceSpace(view);
+    };
+
+    // These handlers have high priority because they are responsible for
+    // updating the view coordinates. If we update them first, then any components downstream
+    // that rely on the view coordinates will be in sync with the view.
+    traceScheduler.on('set trace view', onTraceViewChange, TraceEventPriority.HIGH);
+    traceScheduler.on('set trace space', onTraceSpaceChange, TraceEventPriority.HIGH);
+    traceScheduler.on(
+      'set container physical space',
+      onPhysicalSpaceChange,
+      TraceEventPriority.HIGH
+    );
+    traceScheduler.on(
+      'initialize trace space',
+      onTraceSpaceChange,
+      TraceEventPriority.HIGH
+    );
+
+    return () => {
+      traceScheduler.off('set trace view', onTraceViewChange);
+      traceScheduler.off('set trace space', onTraceSpaceChange);
+      traceScheduler.off('set container physical space', onPhysicalSpaceChange);
+      traceScheduler.off('initialize trace space', onTraceSpaceChange);
+    };
+  }, [traceScheduler, traceView, viewManager]);
+
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
     return traceDispatch({
@@ -581,24 +628,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       // Always scroll to the row vertically
       viewManager.scrollToRow(index, anchor);
-      previouslyScrolledToNodeRef.current = node;
-
-      // If the row had not yet been measured, then enqueue a listener for when
-      // the row is rendered and measured. This ensures that horizontal scroll
-      // accurately narrows zooms to the start of the node as the new width will be updated
-      if (!viewManager.row_measurer.cache.has(node)) {
-        viewManager.row_measurer.once('row measure end', () => {
-          if (!viewManager.isOutsideOfViewOnKeyDown(node)) {
-            return;
-          }
-          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
-        });
-      } else {
-        if (!viewManager.isOutsideOfViewOnKeyDown(node)) {
-          return;
-        }
+      if (viewManager.isOutsideOfView(node)) {
         viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
       }
+      previouslyScrolledToNodeRef.current = node;
     },
     [viewManager]
   );
@@ -709,23 +742,26 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       }
 
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
-        viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
+        // At load time, we want to scroll the row into view, but we need to wait for the view
+        // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
+        // to the row in the view.
+        traceScheduler.once('initialize virtualized list', () => {
+          viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
+          viewManager.scrollRowIntoViewHorizontally(nodeToScrollTo, 600, 48, 'exact');
+          previouslyScrolledToNodeRef.current = nodeToScrollTo;
 
-        // At load time, we want to scroll the row into view, but we need to ensure
-        // that the row had been measured first, else we can exceed the bounds of the container.
-        scrollRowIntoView(nodeToScrollTo, indexOfNodeToScrollTo, 'center');
-
-        setRowAsFocused(
-          nodeToScrollTo,
-          null,
-          traceStateRef.current.search.resultsLookup,
-          indexOfNodeToScrollTo
-        );
-        traceDispatch({
-          type: 'set roving index',
-          node: nodeToScrollTo,
-          index: indexOfNodeToScrollTo,
-          action_source: 'load',
+          setRowAsFocused(
+            nodeToScrollTo,
+            null,
+            traceStateRef.current.search.resultsLookup,
+            indexOfNodeToScrollTo
+          );
+          traceDispatch({
+            type: 'set roving index',
+            node: nodeToScrollTo,
+            index: indexOfNodeToScrollTo,
+            action_source: 'load',
+          });
         });
       }
 
@@ -733,7 +769,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo, 'persist');
       }
     },
-    [setRowAsFocused, traceDispatch, onTraceSearch, scrollRowIntoView, viewManager]
+    [setRowAsFocused, traceDispatch, onTraceSearch, viewManager, traceScheduler]
   );
 
   // Setup the middleware for the trace reducer
@@ -843,10 +879,16 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return undefined;
     }
 
-    viewManager.view.initTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
-    // Whenever the timeline changes, update the trace space
+    traceScheduler.dispatch('initialize trace space', [
+      tree.root.space[0],
+      0,
+      tree.root.space[1],
+      1,
+    ]);
+
+    // Whenever the timeline changes, update the trace space and trigger a redraw
     const onTraceTimelineChange = (s: [number, number]) => {
-      viewManager.view.updateTraceSpace(s[0], s[1]);
+      traceScheduler.dispatch('set trace space', [s[0], 0, s[1], 1]);
     };
 
     tree.on('trace timeline change', onTraceTimelineChange);
@@ -854,7 +896,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     return () => {
       tree.off('trace timeline change', onTraceTimelineChange);
     };
-  }, [viewManager, tree]);
+  }, [viewManager, traceScheduler, tree]);
 
   return (
     <Fragment>
@@ -878,6 +920,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           onTraceSearch={onTraceSearch}
           previouslyFocusedNodeRef={previouslyFocusedNodeRef}
           manager={viewManager}
+          scheduler={traceScheduler}
           forceRerender={forceRender}
         />
 
@@ -898,6 +941,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceGridRef={traceGridRef}
           traces={props.trace}
           manager={viewManager}
+          scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
           rootEventResults={props.rootEvent}

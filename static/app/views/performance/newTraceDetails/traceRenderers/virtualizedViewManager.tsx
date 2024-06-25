@@ -96,10 +96,13 @@ export class VirtualizedViewManager {
 
   row_depth_padding: number = 22;
 
-  // Smallest of time that can be displayed across the entire view.
-  private readonly MAX_ZOOM_PRECISION = 1;
-  private readonly ROW_PADDING_PX = 16;
   private scrollbar_width: number = 0;
+  // the transformation matrix that is used to render scaled elements to the DOM
+  private span_to_px: mat3 = mat3.create();
+  private readonly ROW_PADDING_PX = 16;
+  private readonly span_matrix: [number, number, number, number, number, number] = [
+    1, 0, 0, 1, 0, 0,
+  ];
 
   timers: {
     onFovChange: {id: number} | null;
@@ -222,21 +225,17 @@ export class VirtualizedViewManager {
     const config_distance_pct = physical_distance / this.view.trace_physical_space.width;
     const config_distance = this.view.trace_view.width * config_distance_pct;
 
-    if (this.dividerScale) {
-      // just recompute the draw matrix and let the view scale itself
-      this.view.recomputeSpanToPxMatrix();
-    } else {
-      this.view.setTraceView({
+    if (!this.dividerScale) {
+      this.scheduler.dispatch('set trace view', {
         x: this.view.trace_view.x - config_distance,
         width: this.view.trace_view.width + config_distance,
       });
     }
-    this.recomputeTimelineIntervals();
-    this.draw({
+
+    this.scheduler.dispatch('divider resize', {
       list: this.columns.list.width + distancePercentage,
       span_list: this.columns.span_list.width - distancePercentage,
     });
-
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
@@ -336,7 +335,7 @@ export class VirtualizedViewManager {
     if (ref) {
       this.invisible_bars[index] = ref ? {ref, space} : undefined;
 
-      const span_transform = this.view.computeSpanCSSMatrixTransform(space);
+      const span_transform = this.computeSpanCSSMatrixTransform(space);
       ref.style.transform = `matrix(${span_transform.join(',')}`;
       const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
       ref.style.setProperty(
@@ -394,7 +393,7 @@ export class VirtualizedViewManager {
       }
 
       ref.addEventListener('wheel', this.onWheel, {passive: false});
-      ref.style.transform = `translateX(${this.view.transformXFromTimestamp(
+      ref.style.transform = `translateX(${this.transformXFromTimestamp(
         indicator.start
       )}px)`;
     }
@@ -468,8 +467,11 @@ export class VirtualizedViewManager {
       // When users zoom in, the matrix will compute a width value that is lower than the min,
       // which results in the value of x being incorrectly set and the view moving to the right.
       // To prevent this, we will only update the x position if the new width is greater than the min zoom precision.
-      this.view.setTraceView({
-        x: newView[2] < this.MAX_ZOOM_PRECISION ? this.view.trace_view.x : newView[0],
+      this.scheduler.dispatch('set trace view', {
+        x:
+          newView[2] < this.view.MAX_ZOOM_PRECISION_MS
+            ? this.view.trace_view.x
+            : newView[0],
         width: newView[2],
       });
     } else {
@@ -493,7 +495,7 @@ export class VirtualizedViewManager {
       const physical_delta_pct = distance / this.view.trace_physical_space.width;
       const view_delta = physical_delta_pct * this.view.trace_view.width;
 
-      this.view.setTraceView({
+      this.scheduler.dispatch('set trace view', {
         x: this.view.trace_view.x + view_delta,
       });
     }
@@ -523,7 +525,7 @@ export class VirtualizedViewManager {
     const width = node_space[1] > 0 ? node_space[1] : this.view.trace_view.width;
     const margin = 0.2 * width;
 
-    this.view.setTraceView({
+    this.scheduler.dispatch('set trace view', {
       x: start - margin - this.view.to_origin,
       width: width + margin * 2,
     });
@@ -535,10 +537,10 @@ export class VirtualizedViewManager {
     let final_width = space[1];
     const distance_width = this.view.trace_view.width - space[1];
 
-    if (space[1] < this.MAX_ZOOM_PRECISION) {
-      distance_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
-      final_x -= this.MAX_ZOOM_PRECISION / 2 - space[1] / 2;
-      final_width = this.MAX_ZOOM_PRECISION;
+    if (space[1] < this.view.MAX_ZOOM_PRECISION_MS) {
+      distance_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
+      final_x -= this.view.MAX_ZOOM_PRECISION_MS / 2 - space[1] / 2;
+      final_width = this.view.MAX_ZOOM_PRECISION_MS;
     }
 
     const start_x = this.view.trace_view.x;
@@ -560,13 +562,19 @@ export class VirtualizedViewManager {
       const x = start_x + distance_x * eased;
       const width = start_width - distance_width * eased;
 
-      this.view.setTraceView({x, width});
+      this.scheduler.dispatch('set trace view', {
+        x,
+        width,
+      });
 
       if (progress < 1) {
         this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
         this.timers.onZoomIntoSpace = null;
-        this.view.setTraceView({x: final_x, width: final_width});
+        this.scheduler.dispatch('set trace view', {
+          x: final_x,
+          width: final_width,
+        });
       }
     };
 
@@ -650,7 +658,8 @@ export class VirtualizedViewManager {
     if (x < 0 || x > this.view.trace_space.width) {
       return;
     }
-    this.view.setTraceView({x, width});
+
+    this.scheduler.dispatch('set trace view', {x, width});
   }
 
   enqueueFOVQueryParamSync() {
@@ -698,7 +707,7 @@ export class VirtualizedViewManager {
     }
 
     const timestamp = indicator.timestamp - this.view.to_origin;
-    this.view.setTraceView({
+    this.scheduler.dispatch('set trace view', {
       x: timestamp - this.view.trace_view.width / 2,
       width: this.view.trace_view.width,
     });
@@ -804,6 +813,40 @@ export class VirtualizedViewManager {
     return transform;
   }
 
+  recomputeSpanToPXMatrix() {
+    const traceViewToSpace = this.view.trace_space.between(this.view.trace_view);
+    const tracePhysicalToView = this.view.trace_physical_space.between(
+      this.view.trace_space
+    );
+
+    this.span_to_px = mat3.multiply(
+      this.span_to_px,
+      traceViewToSpace,
+      tracePhysicalToView
+    );
+  }
+
+  computeSpanCSSMatrixTransform(
+    space: [number, number]
+  ): [number, number, number, number, number, number] {
+    const scale = space[1] / this.view.trace_view.width;
+    this.span_matrix[0] = Math.max(
+      scale,
+      this.span_to_px[0] / this.view.trace_view.width
+    );
+    this.span_matrix[4] =
+      (space[0] - this.view.to_origin) / this.span_to_px[0] -
+      this.view.trace_view.x / this.span_to_px[0];
+
+    return this.span_matrix;
+  }
+
+  transformXFromTimestamp(timestamp: number): number {
+    return (
+      (timestamp - this.view.to_origin - this.view.trace_view.x) / this.span_to_px[0]
+    );
+  }
+
   enqueueOnScrollEndOutOfBoundsCheck() {
     if (this.timers.onRowIntoView !== null) {
       // Dont enqueue updates while view is scrolling
@@ -853,10 +896,10 @@ export class VirtualizedViewManager {
     }
   }
 
-  isOutsideOfViewOnKeyDown(node: TraceTreeNode<any>): boolean {
+  isOutsideOfView(node: TraceTreeNode<any>): boolean {
     const width = this.row_measurer.cache.get(node);
+
     if (width === undefined) {
-      // this is unlikely to happen, but we should trigger a sync measure event if it does
       return false;
     }
 
@@ -956,7 +999,12 @@ export class VirtualizedViewManager {
         throw new Error('ResizeObserver entry is undefined');
       }
 
-      this.view.initPhysicalSpace(entry.contentRect.width, entry.contentRect.height);
+      this.scheduler.dispatch('set container physical space', [
+        0,
+        0,
+        entry.contentRect.width,
+        entry.contentRect.height,
+      ]);
     });
 
     this.resize_observer.observe(container);
@@ -1003,7 +1051,7 @@ export class VirtualizedViewManager {
   ): [number, number] {
     const TEXT_PADDING = 2;
 
-    const icon_width_config_space = (18 * this.view.span_to_px[0]) / 2;
+    const icon_width_config_space = (18 * this.span_to_px[0]) / 2;
     const text_anchor_left =
       span_space[0] > this.view.to_origin + this.view.trace_space.width * 0.8;
     const text_width = this.text_measurer.measure(text);
@@ -1014,27 +1062,27 @@ export class VirtualizedViewManager {
 
     // precompute all anchor points aot, so we make the control flow more readable.
     /// |---| text
-    const right_outside = this.view.transformXFromTimestamp(text_right) + TEXT_PADDING;
+    const right_outside = this.transformXFromTimestamp(text_right) + TEXT_PADDING;
     // |---text|
     const right_inside =
-      this.view.transformXFromTimestamp(span_space[0] + span_space[1]) -
+      this.transformXFromTimestamp(span_space[0] + span_space[1]) -
       text_width -
       TEXT_PADDING;
     // |text---|
-    const left_inside = this.view.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
+    const left_inside = this.transformXFromTimestamp(span_space[0]) + TEXT_PADDING;
     /// text |---|
     const left_outside =
-      this.view.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
+      this.transformXFromTimestamp(text_left) - TEXT_PADDING - text_width;
 
     // Right edge of the window (when span extends beyond the view)
     const window_right =
-      this.view.transformXFromTimestamp(
+      this.transformXFromTimestamp(
         this.view.to_origin + this.view.trace_view.left + this.view.trace_view.width
       ) -
       text_width -
       TEXT_PADDING;
     const window_left =
-      this.view.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
+      this.transformXFromTimestamp(this.view.to_origin + this.view.trace_view.left) +
       TEXT_PADDING;
 
     const view_left = this.view.trace_view.x;
@@ -1061,7 +1109,7 @@ export class VirtualizedViewManager {
       return text_anchor_left ? [1, window_left] : [1, window_right];
     }
 
-    const full_span_px_width = span_space[1] / this.view.span_to_px[0];
+    const full_span_px_width = span_space[1] / this.span_to_px[0];
 
     if (text_anchor_left) {
       // While we have space on the left, place the text there
@@ -1070,7 +1118,7 @@ export class VirtualizedViewManager {
       }
 
       const distance = span_right - this.view.trace_view.left;
-      const visible_width = distance / this.view.span_to_px[0] - TEXT_PADDING;
+      const visible_width = distance / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the left
       // side of the window so that it is visible while the user pans the view
@@ -1096,7 +1144,7 @@ export class VirtualizedViewManager {
         // origin and check if it fits into the distance of space right edge - span right edge. In practice
         // however, it seems that a magical number works just fine.
         span_right > this.view.trace_space.right * 0.9 &&
-        space_right / this.view.span_to_px[0] < text_width
+        space_right / this.span_to_px[0] < text_width
       ) {
         return [1, right_inside];
       }
@@ -1107,7 +1155,7 @@ export class VirtualizedViewManager {
     if (full_span_px_width > text_width) {
       const distance = span_right - this.view.trace_view.right;
       const visible_width =
-        (span_space[1] - distance) / this.view.span_to_px[0] - TEXT_PADDING;
+        (span_space[1] - distance) / this.span_to_px[0] - TEXT_PADDING;
 
       // If the text fits inside the visible portion of the span, anchor it to the right
       // side of the window so that it is visible while the user pans the view
@@ -1125,6 +1173,9 @@ export class VirtualizedViewManager {
 
   last_indicator_width = 0;
   draw(options: {list?: number; span_list?: number} = {}) {
+    this.recomputeTimelineIntervals();
+    this.recomputeSpanToPXMatrix();
+
     const list_width = options.list ?? this.columns.list.width;
     const span_list_width = options.span_list ?? this.columns.span_list.width;
 
@@ -1134,7 +1185,7 @@ export class VirtualizedViewManager {
     });
 
     // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
-    const error_margin = 60 * this.view.span_to_px[0];
+    const error_margin = 60 * this.span_to_px[0];
 
     for (let i = 0; i < this.columns.list.column_refs.length; i++) {
       const span = this.span_bars[i];
@@ -1210,7 +1261,7 @@ export class VirtualizedViewManager {
         continue;
       }
 
-      const transform = this.view.transformXFromTimestamp(entry.indicator.start);
+      const transform = this.transformXFromTimestamp(entry.indicator.start);
       const label = entry.ref.children[0] as HTMLElement | undefined;
 
       const indicator_max = this.view.trace_physical_space.width + 1;
@@ -1275,7 +1326,7 @@ export class VirtualizedViewManager {
   drawSpanBar(span_bar: this['span_bars'][0]) {
     if (!span_bar) return;
 
-    const span_transform = this.view.computeSpanCSSMatrixTransform(span_bar?.space);
+    const span_transform = this.computeSpanCSSMatrixTransform(span_bar?.space);
     span_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
     const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
     span_bar.ref.style.setProperty(
@@ -1333,7 +1384,7 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const placement = this.view.transformXFromTimestamp(indicator.timestamp);
+    const placement = this.transformXFromTimestamp(indicator.timestamp);
     indicator.ref.style.opacity = '1';
     indicator.ref.style.transform = `translateX(${placement}px)`;
   }
@@ -1349,7 +1400,7 @@ export class VirtualizedViewManager {
       return;
     }
 
-    const placement = this.view.transformXFromTimestamp(this.view.to_origin + interval);
+    const placement = this.transformXFromTimestamp(this.view.to_origin + interval);
 
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
@@ -1463,18 +1514,16 @@ export class VirtualizedViewManager {
         ${dividerPosition}px, 0)`;
     }
   }
+
   last_list_column_width = 0;
   last_span_column_width = 0;
-
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];
       const text = this.span_text[i];
 
       if (invisible_bar) {
-        const span_transform = this.view.computeSpanCSSMatrixTransform(
-          invisible_bar?.space
-        );
+        const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
         invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
         const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
         invisible_bar.ref.style.setProperty(
