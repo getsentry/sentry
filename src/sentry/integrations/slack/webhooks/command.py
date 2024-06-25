@@ -72,7 +72,7 @@ class SlackCommandsEndpoint(SlackDMEndpoint):
     _METRICS_SUCCESS_KEY = SLACK_COMMANDS_ENDPOINT_SUCCESS_DATADOG_METRIC
     _METRICS_FAILURE_KEY = SLACK_COMMANDS_ENDPOINT_FAILURE_DATADOG_METRIC
 
-    def reply(self, message: str) -> Response:
+    def reply(self, slack_request: SlackDMRequest, message: str) -> Response:
         return self.respond(
             {
                 "response_type": "ephemeral",
