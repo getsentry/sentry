@@ -143,7 +143,7 @@ def expose_fingerprint_dict(values, info=None):
 
 
 class CustomFingerprintVariant(BaseVariant):
-    """A user defined custom fingerprint."""
+    """A user-defined custom fingerprint."""
 
     type = "custom-fingerprint"
 

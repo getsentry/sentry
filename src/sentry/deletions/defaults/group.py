@@ -13,6 +13,7 @@ from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelat
 # be safe to delete/mutate within a single transaction for user-triggered
 # actions (delete/reprocess/merge/unmerge)
 DIRECT_GROUP_RELATED_MODELS = (
+    # prioritize GroupHash
     models.GroupHash,
     models.GroupAssignee,
     models.GroupCommitResolution,
@@ -37,7 +38,6 @@ DIRECT_GROUP_RELATED_MODELS = (
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
-    # prioritize GroupHash
     models.UserReport,
     models.EventAttachment,
 )
