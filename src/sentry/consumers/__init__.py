@@ -68,7 +68,7 @@ def issue_occurrence_options() -> list[click.Option]:
         click.Option(
             ["--mode", "mode"],
             type=click.Choice(["batched-parallel", "parallel"]),
-            default="parallel",
+            default="batched-parallel",
             help="The mode to process occurrences in. Batched-parallel uses batched in parallel to guarantee messages are processed in order per group, parallel uses multi-processing.",
         ),
     ]
