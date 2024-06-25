@@ -89,7 +89,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
   return (
     <Fragment>
       <SearchWrapper>
-        <h6>{t('Metric Extraction Rules')}</h6>
+        <h6>{t('Span-based Metrics')}</h6>
         <FlexSpacer />
         <SearchBar
           placeholder={t('Search Extraction Rules')}
@@ -102,7 +102,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
           priority="primary"
           size="sm"
         >
-          {t('Add Extraction Rule')}
+          {t('Add Metric')}
         </LinkButton>
       </SearchWrapper>
       <RulesTable

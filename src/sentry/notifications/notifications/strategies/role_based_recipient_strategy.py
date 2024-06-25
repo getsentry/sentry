@@ -41,7 +41,8 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         """
         A way to set a member in a cache to avoid a query.
         """
-        self.member_by_user_id[member.user_id] = member
+        if member.user_id is not None:
+            self.member_by_user_id[member.user_id] = member
 
     def determine_recipients(
         self,

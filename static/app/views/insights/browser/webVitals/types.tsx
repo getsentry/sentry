@@ -5,7 +5,6 @@ export type Row = {
   'count()': number;
   'p75(measurements.cls)': number;
   'p75(measurements.fcp)': number;
-  'p75(measurements.fid)': number;
   'p75(measurements.inp)': number;
   'p75(measurements.lcp)': number;
   'p75(measurements.ttfb)': number;
@@ -23,7 +22,6 @@ export type TransactionSampleRow = {
   'user.display': string;
   'measurements.cls'?: number;
   'measurements.fcp'?: number;
-  'measurements.fid'?: number;
   'measurements.lcp'?: number;
   'measurements.ttfb'?: number;
   'transaction.duration'?: number;
@@ -34,7 +32,6 @@ export type TransactionSampleRowWithScore = TransactionSampleRow & Score;
 type Score = {
   clsScore: number;
   fcpScore: number;
-  fidScore: number;
   inpScore: number;
   lcpScore: number;
   totalScore: number;
@@ -62,7 +59,6 @@ export type InteractionSpanSampleRowWithScore = InteractionSpanSampleRow & {
 export type Weight = {
   clsWeight: number;
   fcpWeight: number;
-  fidWeight: number;
   inpWeight: number;
   lcpWeight: number;
   ttfbWeight: number;
@@ -78,7 +74,7 @@ export type RowWithScoreAndOpportunity = Row & Score & Opportunity;
 
 export type RowWithScore = Row & Score;
 
-export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'fid' | 'inp';
+export type WebVitals = 'lcp' | 'fcp' | 'cls' | 'ttfb' | 'inp';
 
 // TODO: Refactor once stored scores are GA'd
 export const SORTABLE_SCORE_FIELDS = [
@@ -92,7 +88,6 @@ export const SORTABLE_FIELDS = [
   'count()',
   'p75(measurements.cls)',
   'p75(measurements.fcp)',
-  'p75(measurements.fid)',
   'p75(measurements.inp)',
   'p75(measurements.lcp)',
   'p75(measurements.ttfb)',
@@ -111,7 +106,6 @@ export const SORTABLE_INDEXED_FIELDS = [
   'measurements.fcp',
   'measurements.cls',
   'measurements.ttfb',
-  'measurements.fid',
   'measurements.inp',
   ...SORTABLE_INDEXED_SCORE_FIELDS,
 ] as const;

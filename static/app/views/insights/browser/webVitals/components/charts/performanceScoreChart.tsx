@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import ExternalLink from 'sentry/components/links/externalLink';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -23,9 +24,7 @@ type Props = {
   webVital?: WebVitals | null;
 };
 
-export const ORDER = ['lcp', 'fcp', 'fid', 'cls', 'ttfb'];
-export const ORDER_WITH_INP = ['lcp', 'fcp', 'inp', 'cls', 'ttfb', 'fid'];
-export const ORDER_WITH_INP_WITHOUT_FID = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
+export const ORDER = ['lcp', 'fcp', 'inp', 'cls', 'ttfb'];
 
 export function PerformanceScoreChart({
   projectScore,
@@ -35,7 +34,6 @@ export function PerformanceScoreChart({
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
-  const order = ORDER_WITH_INP;
 
   const score = projectScore
     ? webVital
@@ -47,7 +45,7 @@ export function PerformanceScoreChart({
   let ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
 
   if (webVital) {
-    const index = order.indexOf(webVital);
+    const index = ORDER.indexOf(webVital);
     ringSegmentColors = ringSegmentColors.map((color, i) => {
       return i === index ? color : theme.gray200;
     });
@@ -58,18 +56,6 @@ export function PerformanceScoreChart({
 
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
-
-  // Gets weights to dynamically size the performance score ring segments
-  const weights = projectScore
-    ? {
-        lcp: projectScore.lcpWeight,
-        fcp: projectScore.fcpWeight,
-        fid: 0,
-        inp: projectScore.inpWeight,
-        cls: projectScore.clsWeight,
-        ttfb: projectScore.ttfbWeight,
-      }
-    : undefined;
 
   return (
     <Flex>
@@ -91,6 +77,7 @@ export function PerformanceScoreChart({
           />
         </PerformanceScoreLabel>
         <PerformanceScoreSubtext>{performanceScoreSubtext}</PerformanceScoreSubtext>
+        {isProjectScoreLoading && <StyledLoadingIndicator size={50} />}
         {!isProjectScoreLoading && projectScore && (
           <PerformanceScoreRingWithTooltips
             projectScore={projectScore}
@@ -99,7 +86,6 @@ export function PerformanceScoreChart({
             height={200}
             ringBackgroundColors={ringBackgroundColors}
             ringSegmentColors={ringSegmentColors}
-            weights={weights}
           />
         )}
         {!isProjectScoreLoading && !projectScore && (
@@ -154,4 +140,8 @@ const StyledQuestionTooltip = styled(QuestionTooltip)`
   position: relative;
   margin-left: ${space(0.5)};
   top: ${space(0.25)};
+`;
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 50px;
 `;

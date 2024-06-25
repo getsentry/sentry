@@ -536,13 +536,16 @@ if (
     headers: {
       'Document-Policy': 'js-profiling',
     },
-    // Cover the various environments we use (vercel, getsentry-dev, localhost)
+    // Cover the various environments we use (vercel, getsentry-dev, localhost, ngrok)
     allowedHosts: [
       '.sentry.dev',
       '.dev.getsentry.net',
       '.localhost',
       '127.0.0.1',
       '.docker.internal',
+      '.ngrok.dev',
+      '.ngrok.io',
+      '.ngrok.app',
     ],
     static: {
       directory: './src/sentry/static/sentry',

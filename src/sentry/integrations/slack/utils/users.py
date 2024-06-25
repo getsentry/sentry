@@ -89,18 +89,6 @@ def get_slack_data_by_user(
 # USING SDK CLIENT
 
 
-def format_slack_data_by_user(
-    emails_by_user: Mapping[User, Sequence[str]], slack_info_by_email: dict[str, SlackUserData]
-) -> Mapping[User, SlackUserData]:
-    slack_data_by_user: MutableMapping[User, SlackUserData] = {}
-    for user, emails in emails_by_user.items():
-        # get overlap between user emails and emails in slack
-        user_slack_emails = set(emails) & set(slack_info_by_email.keys())
-        if user_slack_emails:
-            slack_data_by_user[user] = slack_info_by_email[list(user_slack_emails)[0]]
-    return slack_data_by_user
-
-
 def format_slack_info_by_email(users: dict[str, Any]) -> dict[str, SlackUserData]:
     return {
         member["profile"]["email"]: SlackUserData(
@@ -111,27 +99,52 @@ def format_slack_info_by_email(users: dict[str, Any]) -> dict[str, SlackUserData
     }
 
 
-def get_slack_data_by_user_via_sdk(
+def format_slack_data_by_user(
+    emails_by_user: Mapping[User, Sequence[str]], users: dict[str, Any]
+) -> Mapping[User, SlackUserData]:
+    slack_info_by_email = format_slack_info_by_email(users)
+
+    slack_data_by_user: MutableMapping[User, SlackUserData] = {}
+    for user, emails in emails_by_user.items():
+        # get overlap between user emails and emails in slack
+        user_slack_emails = set(emails) & set(slack_info_by_email.keys())
+        if user_slack_emails:
+            slack_data_by_user[user] = slack_info_by_email[list(user_slack_emails)[0]]
+    return slack_data_by_user
+
+
+def get_slack_user_data(
     integration: Integration | RpcIntegration,
-    organization: Organization | RpcOrganization,
-    emails_by_user: Mapping[User, Sequence[str]],
-) -> Iterable[Mapping[User, SlackUserData]]:
+    organization: Organization | RpcOrganization | None = None,
+    kwargs: dict[str, Any] | None = None,
+) -> Iterable[dict[str, Any]]:
     sdk_client = SlackSdkClient(integration_id=integration.id)
     try:
-        users_list = sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
+        users_list = (
+            sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE, **kwargs)
+            if kwargs
+            else sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
+        )
 
         for page in users_list:
             users: dict[str, Any] = page.get("members")
-            slack_info_by_email = format_slack_info_by_email(users)
-            slack_data_by_user = format_slack_data_by_user(emails_by_user, slack_info_by_email)
 
-            yield slack_data_by_user
+            yield users
     except SlackApiError as e:
         logger.info(
             "slack.post_install.get_users.error",
             extra={
                 "error": str(e),
-                "organization": organization.slug,
+                "organization": organization.slug if organization else None,
                 "integration_id": integration.id,
             },
         )
+
+
+def get_slack_data_by_user_via_sdk(
+    integration: Integration | RpcIntegration,
+    organization: Organization | RpcOrganization,
+    emails_by_user: Mapping[User, Sequence[str]],
+) -> Iterable[Mapping[User, SlackUserData]]:
+    all_users = get_slack_user_data(integration, organization)
+    yield from (format_slack_data_by_user(emails_by_user, users) for users in all_users)
