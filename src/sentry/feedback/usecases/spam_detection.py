@@ -6,7 +6,7 @@ from sentry.utils import metrics
 logger = logging.getLogger(__name__)
 
 
-def make_input_prompt(input):
+def make_input_prompt(message: str):
     return f"""**Classification Task**
 **Instructions: Please analyze the following input and output `spam` if the input is not coherent, and `notspam` if it is coherent. If the user is frustrated but describing a problem, that is notspam**
 **Label Options:** spam, notspam
@@ -24,13 +24,13 @@ def make_input_prompt(input):
 * **Example 9:** "MY GAME GLITCHED GRRRR!!!!" -> notspam
 * **Example 10:** "THIS PIECE OF JUNK DOES NOT WORK!!!" -> notspam
 
-**Input Text:** "{input}"
+**Input Text:** "{message.lower()}"
 
 **Classify:** """
 
 
 @metrics.wraps("feedback.spam_detection", sample_rate=1.0)
-def is_spam(message):
+def is_spam(message: str):
     is_spam = False
     trimmed_response = ""
     response = complete_prompt(
