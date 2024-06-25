@@ -34,7 +34,7 @@ class Error(Operation):
 
 @pytest.fixture
 def delegator_fixture() -> tuple[Delegator, Mock, Mock]:
-    executor = SynchronousExecutor()
+    executor: SynchronousExecutor[object] = SynchronousExecutor()
     selector = Mock()
     callback = Mock()
     delegator = Delegator(
