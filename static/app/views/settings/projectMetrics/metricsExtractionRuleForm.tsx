@@ -163,7 +163,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
           <FormField
             label={t('Queries')}
             help={t(
-              'Define the queries to narrow down the metric extraction to a specific set of spans.'
+              'Define queries to narrow down the metric extraction to a specific set of spans.'
             )}
             name="conditions"
             inline={false}
