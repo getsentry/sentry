@@ -152,6 +152,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'id',
     'transaction',
     'title',
+    'trace',
     'timestamp',
     'release',
     'environment',
