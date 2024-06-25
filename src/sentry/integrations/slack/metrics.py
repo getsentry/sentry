@@ -30,3 +30,13 @@ SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC = (
 # Webhooks
 SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.success"
 SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.failure"
+SLACK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.event_endpoint.success"
+SLACK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.event_endpoint.failure"
+
+# Slack Commands
+SLACK_COMMANDS_ENDPOINT_SUCCESS_DATADOG_METRIC = (
+    "sentry.integrations.slack.commands_endpoint.success"
+)
+SLACK_COMMANDS_ENDPOINT_FAILURE_DATADOG_METRIC = (
+    "sentry.integrations.slack.commands_endpoint.failure"
+)
