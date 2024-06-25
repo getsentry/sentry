@@ -696,7 +696,7 @@ class OrganizationDetailsPutSerializer(serializers.Serializer):
         required=False,
     )
     dataScrubberDefaults = serializers.BooleanField(
-        help_text="Specify `true` to applt the default scrubbers to prevent things like passwords and credit cards from being stored for all projects.",
+        help_text="Specify `true` to apply the default scrubbers to prevent things like passwords and credit cards from being stored for all projects.",
         required=False,
     )
     sensitiveFields = serializers.ListField(
