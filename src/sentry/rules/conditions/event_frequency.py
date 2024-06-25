@@ -410,7 +410,6 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
-        breakpoint()
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
         error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]

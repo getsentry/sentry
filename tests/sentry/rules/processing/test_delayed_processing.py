@@ -4,6 +4,7 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -20,7 +21,6 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
-
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
@@ -182,10 +182,10 @@ class ProcessDelayedAlertConditionsTest(
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
 
-        # self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
-        # self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
-        # self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
-        # self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
+        self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
+        self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
+        self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
+        self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
 
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
