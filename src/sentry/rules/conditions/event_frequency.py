@@ -261,16 +261,24 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return option_override_cm
 
     def get_comparison_start_end(
-        self, end: datetime, duration: timedelta, interval: timedelta | None = None
+        self, end: datetime, duration: timedelta, comparison_interval: timedelta | None = None
     ) -> tuple[datetime, datetime]:
         """
-        Calculate the start and end times for the query. `interval` is only used for EventFrequencyPercentCondition
-        as the '5 minutes' in The issue affects more than 100 percent of sessions in 5 minutes, otherwise it's the current time.
-        `duration` is the time frame in which the condition is measuring counts, e.g. the '10 minutes' in
-        "The issue is seen more than 100 times in 10 minutes"
+        Calculate the start and end times for the query.
+        Take these example conditions that generate queries:
+            '# of issues in 1 day is {}'
+            "# of issues is {}% higher in 1 day compared to 12 hours ago"
+
+        "duration" is the period of time we're querying over, in this case 1 day
+        for both queries.
+        "comparison_interval" only applies for percent comparison queries (the
+        second condition) and is the time diff between the two queries we derive a
+        percentage from, in this case 12 hours. The two queries would be:
+            1. now -> 24 hours ago
+            2. 12 hours ago -> 36 hours ago
         """
-        if interval:
-            end = end - interval
+        if comparison_interval:
+            end = end - comparison_interval
         start = end - duration
         return (start, end)
 
@@ -303,14 +311,22 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         duration: timedelta,
         group_ids: set[int],
         environment_id: int,
-        comparison_type: str,
         current_time: datetime,
-        comparison_interval: timedelta | None = None,
+        comparison_interval: timedelta | None,
     ) -> dict[int, int]:
-        if comparison_type == ComparisonType.COUNT:
-            start, end = self.get_comparison_start_end(current_time, duration)
-        elif comparison_type == ComparisonType.PERCENT:
-            start, end = self.get_comparison_start_end(current_time, duration, comparison_interval)
+        """
+        Make a batch query for multiple groups. The return value is a dictionary
+        of group_id to the result for that group.
+        """
+        # If comparison_interval is not None, we're making the second query in a
+        # percent comparison condition. For example, if the condition is:
+        #   - num of issues is 50% higher in 5 minutes compared to 1 hour ago
+        # The second query would be querying for num of events from 1 hour ago
+        # to 1 hour 5 min ago.
+
+        start, end = self.get_comparison_start_end(current_time, duration, comparison_interval)
+        print("START: ", start)
+        print("END: ", end)
 
         with self.disable_consistent_snuba_mode(duration):
             result = self.batch_query(
@@ -394,6 +410,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     def batch_query_hook(
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
+        breakpoint()
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids)
         error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]

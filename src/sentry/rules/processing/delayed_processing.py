@@ -52,8 +52,8 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparisonInterval: str | None = None
 
-    def __repr__(self):
-        return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id}"
+    # def __repr__(self):
+    #     return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id}\ncomp interval: {self.comparisonInterval}"
 
 
 class DataAndGroups(NamedTuple):
@@ -110,13 +110,19 @@ def _generate_unique_queries(
     comparison conditions will have two unique queries.
     """
     unique_queries = [
-        UniqueConditionQuery(condition_data["id"], condition_data["interval"], environment_id)
+        UniqueConditionQuery(
+            cls_id=condition_data["id"],
+            interval=condition_data["interval"],
+            environment_id=environment_id,
+        )
     ]
     if condition_data.get("comparisonType") == ComparisonType.PERCENT:
         # We will later compare the first query results against the second query to calculate
         # a percentage for percentage comparison conditions.
-        comparison_interval = condition_data.get("comparisonInterval", "5")
-        unique_queries.append(unique_queries[0]._replace(comparisonInterval=comparison_interval))
+        comparison_interval = condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
+        second_comparison_query = unique_queries[0]._replace(comparisonInterval=comparison_interval)
+        unique_queries.append(second_comparison_query)
+
     return unique_queries
 
 
@@ -135,6 +141,16 @@ def get_condition_query_groups(
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
             for unique_cond in _generate_unique_queries(condition_data, rule.environment_id):
+                # NOTE: If percent and count comparison conditions are sharing
+                # the same UniqueConditionQuery, the condition JSON in
+                # DataAndGroups will be incorrect for one of those condition
+                # types. The JSON will either have or be missing a
+                # comparisonInterval which only applies to percent
+                # conditions, and have the incorrect comparisonType for one of
+                # tht types. This is not a concern because when we instantiate
+                # the exact condition class with the JSON, the class ignores
+                # both fields when calling get_rate_bulk.
+
                 # Add to set of group_ids if there are already group_ids
                 # that apply to the unique condition query.
                 if data_and_groups := condition_groups.get(unique_cond):
@@ -170,20 +186,19 @@ def get_condition_group_results(
 
         _, duration = condition_inst.intervals[unique_condition.interval]
 
-        comparison_type = condition_data.get("comparisonType", ComparisonType.COUNT)
-        if comparison_type == ComparisonType.PERCENT:
-            comparison_interval = condition_inst.intervals[
-                condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
-            ][1]
-        else:
-            comparison_interval = None
+        # The comparison interval is only set for the second query of a percent
+        # comparison condition.
+        comparison_interval = (
+            condition_inst.intervals[unique_condition.comparisonInterval][1]
+            if unique_condition.comparisonInterval
+            else None
+        )
 
         result = safe_execute(
             condition_inst.get_rate_bulk,
             duration=duration,
             group_ids=group_ids,
             environment_id=unique_condition.environment_id,
-            comparison_type=comparison_type,
             current_time=current_time,
             comparison_interval=comparison_interval,
         )
@@ -198,7 +213,8 @@ def _passes_comparison(
     environment_id: int,
 ) -> bool:
     """
-    Checks if a specific condition instance has passed.
+    Checks if a specific condition instance has passed. Handles both the count
+    and percent comparison type conditions.
     """
     unique_queries = _generate_unique_queries(condition_data, environment_id)
     try:
@@ -210,6 +226,8 @@ def _passes_comparison(
             "delayed_processing.missing_query_results", extra={"exception": e, "group_id": group_id}
         )
         return False
+
+    print("QUERY VALUES: ", query_values)
 
     calculated_value = query_values[0]
     # If there's a second query we must have a percent comparison condition.
@@ -227,11 +245,18 @@ def get_rules_to_fire(
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
+
+    for key, value in condition_group_results.items():
+        print("CONDITION GROUP UNIQUES: ", key)
+        print("group to result dict: ", value)
+
     for alert_rule, slow_conditions in rules_to_slow_conditions.items():
         action_match = alert_rule.data.get("action_match", "any")
         for group_id in rules_to_groups[alert_rule.id]:
             conditions_matched = 0
             for slow_condition in slow_conditions:
+                print(slow_condition)
+                print("group_id: ", group_id)
                 if _passes_comparison(
                     condition_group_results, slow_condition, group_id, alert_rule.environment_id
                 ):
@@ -420,6 +445,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         "delayed_processing.condition_groups",
         extra={"condition_groups": condition_groups, "project_id": project_id},
     )
+
+    for key, value in condition_groups.items():
+        print("CONDITION GROUPS: \n", key)
+        print("DATA AND GROUPS: \n", value, "\n************")
 
     # Step 5: Instantiate the condition that we can apply to each unique condition
     # query, and evaluate the relevant group_ids that apply for that query.
