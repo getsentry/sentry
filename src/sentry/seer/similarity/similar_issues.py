@@ -13,7 +13,7 @@ from sentry.seer.similarity.types import (
     SimilarIssuesEmbeddingsRequest,
 )
 from sentry.utils import json, metrics
-from sentry.utils.json import JSONDecodeError
+from sentry.utils.json import JSONDecodeError, apply_key_filter
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +38,10 @@ def get_similarity_data_from_seer(
     """
     logger.info(
         "get_seer_similar_issues.request",
-        extra={"payload": similar_issues_request},
+        extra=apply_key_filter(
+            similar_issues_request,
+            keep_keys=["event_id", "project_id", "message", "hash", "referrer"],
+        ),
     )
     # TODO: This is temporary, to debug Seer being called on existing hashes
     existing_grouphash = GroupHash.objects.filter(
