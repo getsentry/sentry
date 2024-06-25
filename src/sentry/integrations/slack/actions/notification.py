@@ -27,6 +27,7 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.utils import get_channel_id
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.integrations.integration import Integration
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
@@ -317,5 +318,5 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             self.data, integrations=self.get_integrations(), channel_transformer=self.get_channel_id
         )
 
-    def get_channel_id(self, integration: Integration, name: str) -> tuple[str, str | None, bool]:
+    def get_channel_id(self, integration: Integration, name: str) -> SlackChannelIdData:
         return get_channel_id(self.project.organization, integration, name)
