@@ -126,7 +126,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
         windowDimensions.height / videoDimensions.height,
-        1
+        1.5
       );
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';

@@ -1,6 +1,5 @@
 import {
   createContext,
-  memo,
   useCallback,
   useContext,
   useEffect,
@@ -273,7 +272,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-function ProviderNonMemo({
+export function Provider({
   analyticsContext,
   children,
   initialTimeOffsetMs,
@@ -417,6 +416,12 @@ function ProviderNonMemo({
           addHighlight(highlightArgs);
         });
       }
+      if (autoStart) {
+        setTimeout(() => {
+          replayerRef.current?.play(offsetMs);
+          setIsPlaying(true);
+        });
+      }
       didApplyInitialOffset.current = true;
     }
   }, [
@@ -426,6 +431,7 @@ function ProviderNonMemo({
     initialTimeOffsetMs,
     privateSetCurrentTime,
     startTimeOffsetMs,
+    autoStart,
   ]);
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
@@ -484,10 +490,6 @@ function ProviderNonMemo({
       replayerRef.current = inst;
 
       applyInitialOffset();
-      if (autoStart) {
-        inst.play(startTimeOffsetMs);
-        setIsPlaying(true);
-      }
     },
     [
       applyInitialOffset,
@@ -497,8 +499,6 @@ function ProviderNonMemo({
       organization.features,
       setReplayFinished,
       theme.purple200,
-      startTimeOffsetMs,
-      autoStart,
       onFastForwardStart,
     ]
   );
@@ -541,7 +541,6 @@ function ProviderNonMemo({
         durationMs,
         // rrweb specific
         theme,
-        dimensions,
         events: events ?? [],
         // common to both
         root,
@@ -552,15 +551,10 @@ function ProviderNonMemo({
       // @ts-expect-error
       replayerRef.current = inst;
       applyInitialOffset();
-      if (autoStart) {
-        inst.play(startTimeOffsetMs);
-        setIsPlaying(true);
-      }
       return inst;
     },
     [
       applyInitialOffset,
-      autoStart,
       isFetching,
       isVideoReplay,
       videoEvents,
@@ -570,11 +564,9 @@ function ProviderNonMemo({
       replay,
       setReplayFinished,
       startTimestampMs,
-      startTimeOffsetMs,
       clipWindow,
       durationMs,
       theme,
-      dimensions,
     ]
   );
 
@@ -775,5 +767,3 @@ function ProviderNonMemo({
 }
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);
-
-export const Provider = memo(ProviderNonMemo);
