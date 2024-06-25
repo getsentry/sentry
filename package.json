@@ -27,6 +27,7 @@
     "@popperjs/core": "^2.11.5",
     "@react-aria/button": "^3.9.1",
     "@react-aria/combobox": "^3.8.4",
+    "@react-aria/dnd": "^3.6.1",
     "@react-aria/focus": "^3.16.0",
     "@react-aria/gridlist": "^3.7.3",
     "@react-aria/i18n": "^3.10.0",
@@ -43,6 +44,7 @@
     "@react-aria/visually-hidden": "^3.8.8",
     "@react-stately/collections": "^3.10.7",
     "@react-stately/combobox": "^3.8.2",
+    "@react-stately/dnd": "^3.3.1",
     "@react-stately/menu": "^3.6.0",
     "@react-stately/numberfield": "^3.8.0",
     "@react-stately/radio": "^3.10.1",
@@ -53,9 +55,9 @@
     "@rsdoctor/webpack-plugin": "^0.2.5",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry-internal/react-inspector": "6.0.1-4",
-    "@sentry-internal/rrweb": "2.24.0",
-    "@sentry-internal/rrweb-player": "2.24.0",
-    "@sentry-internal/rrweb-snapshot": "2.24.0",
+    "@sentry-internal/rrweb": "2.25.0",
+    "@sentry-internal/rrweb-player": "2.25.0",
+    "@sentry-internal/rrweb-snapshot": "2.25.0",
     "@sentry/babel-plugin-component-annotate": "^2.16.1",
     "@sentry/core": "^8.9.2",
     "@sentry/node": "^8.9.2",
@@ -262,7 +264,9 @@
       "last 3 iOS major versions",
       "Firefox ESR"
     ],
-    "test": ["current node"]
+    "test": [
+      "current node"
+    ]
   },
   "volta": {
     "extends": ".volta.json"
