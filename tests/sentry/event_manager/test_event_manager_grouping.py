@@ -55,6 +55,14 @@ class EventManagerGroupingTest(TestCase):
 
         assert event.group_id != event2.group_id
 
+    def test_puts_events_with_only_partial_message_match_in_different_groups(self):
+        # We had a regression which caused the default hash to just be 'event.message' instead of
+        # '[event.message]' which caused it to generate a hash per letter
+        event1 = save_new_event({"message": "Dogs are great!"}, self.project)
+        event2 = save_new_event({"message": "Dogs are really great!"}, self.project)
+
+        assert event1.group_id != event2.group_id
+
     def test_adds_default_fingerprint_if_none_in_event(self):
         event = save_new_event({"message": "Dogs are great!"}, self.project)
 

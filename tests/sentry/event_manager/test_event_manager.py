@@ -126,20 +126,6 @@ class EventManagerTestMixin:
 
 
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
-    def test_similar_message_prefix_doesnt_group(self) -> None:
-        # we had a regression which caused the default hash to just be
-        # 'event.message' instead of '[event.message]' which caused it to
-        # generate a hash per letter
-        manager = EventManager(make_event(event_id="a", message="foo bar"))
-        manager.normalize()
-        event1 = manager.save(self.project.id)
-
-        manager = EventManager(make_event(event_id="b", message="foo baz"))
-        manager.normalize()
-        event2 = manager.save(self.project.id)
-
-        assert event1.group_id != event2.group_id
-
     def test_ephemeral_interfaces_removed_on_save(self) -> None:
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
