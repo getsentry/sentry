@@ -66,10 +66,10 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
@@ -270,7 +270,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # Where normally isn't accepted for on-demand since it should only encoded into the metric
         # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
         additional_where: Sequence[Condition] | None = None,
-    ) -> MetricsQuery:
+    ) -> DeprecatingMetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
 
@@ -336,7 +336,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if additional_where:
             where.extend(additional_where)
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             select=[self.convert_spec_to_metric_field(spec)],
             where=where,
             limit=limit,
@@ -1028,7 +1028,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return metric_layer_result
 
-    def use_case_id_from_metrics_query(self, metrics_query: MetricsQuery) -> UseCaseID:
+    def use_case_id_from_metrics_query(self, metrics_query: DeprecatingMetricsQuery) -> UseCaseID:
         """
         Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
 
