@@ -210,12 +210,14 @@ class GetSeerSimilarIssuesTest(TestCase):
 
             mock_get_similarity_data.assert_called_with(
                 {
+                    "event_id": "12312012112120120908201304152013",
                     "hash": "20130809201315042012311220122111",
                     "project_id": self.project.id,
                     "stacktrace": "<stacktrace string>",
                     "message": "FailedToFetchError('Charlie didn't bring the ball back')",
                     "exception_type": "FailedToFetchError",
                     "k": 1,
+                    "referrer": "ingest",
                 }
             )
 

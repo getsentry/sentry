@@ -75,12 +75,14 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             return Response([])  # No exception, stacktrace or in-app frames, or event
 
         similar_issues_params: SimilarIssuesEmbeddingsRequest = {
+            "event_id": latest_event.event_id,
             "hash": latest_event.get_primary_hash(),
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
             "message": group.message,
             "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
             "read_only": True,
+            "referrer": "similar_issues",
         }
         # Add optional parameters
         if request.GET.get("k"):
