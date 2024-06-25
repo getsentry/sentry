@@ -739,6 +739,86 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
 
             assert [row["trace"] for row in response.data["data"]] == trace_ids
 
+    def test_sorted_by_trace_last_seen(self):
+        """
+        trace 1
+        [ span 1 - 70s       ]
+                          [ span 2 - 60s    ]
+
+        trace 2
+                 [ span 3 - 60s       ]
+
+        The query will match spans 1 and 3 using `foo:bar`, but the ordering
+        of the traces should be determined by spans 2 and 3. And since span 2
+        ends after span 3, trace 1 should come before trace 2 in the results.
+        """
+
+        trace_id_1 = uuid4().hex
+        trace_id_2 = uuid4().hex
+
+        span_ids = ["1" + uuid4().hex[:15] for _ in range(3)]
+
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        self.double_write_segment(
+            project_id=self.project.id,
+            trace_id=trace_id_1,
+            transaction_id=uuid4().hex,
+            span_id=span_ids[0],
+            timestamp=now - timedelta(days=1, minutes=1),
+            duration=70_000,
+            exclusive_time=70_000,
+            tags={"foo": "bar"},
+        )
+
+        self.double_write_segment(
+            project_id=self.project.id,
+            trace_id=trace_id_1,
+            transaction_id=uuid4().hex,
+            span_id=span_ids[1],
+            parent_span_id=span_ids[0],
+            timestamp=now - timedelta(days=1),
+            duration=60_000,
+            exclusive_time=60_000,
+        )
+
+        self.double_write_segment(
+            project_id=self.project.id,
+            trace_id=trace_id_2,
+            transaction_id=uuid4().hex,
+            span_id=span_ids[2],
+            timestamp=now - timedelta(days=1, seconds=30),
+            duration=60_000,
+            exclusive_time=60_000,
+            tags={"foo": "bar"},
+        )
+
+        query = {
+            "query": "foo:bar",
+            "sort": "-timestamp",
+        }
+
+        response = self.do_request(
+            query,
+            features=[
+                "organizations:performance-trace-explorer",
+                "organizations:performance-trace-explorer-sorting",
+            ],
+        )
+        assert response.status_code == 200, response.data
+
+        assert response.data["meta"] == {
+            "dataset": "unknown",
+            "datasetReason": "unchanged",
+            "fields": {},
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {},
+        }
+
+        assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
+
     def test_sorted_early_exit(self):
         (
             _,

@@ -410,12 +410,6 @@ class TracesExecutor:
                 traces_breakdown_projects_results=traces_breakdown_projects_results,
             )
 
-            # Ensure that the order of the data is in the same order as the trace ids.
-            # This guarantees that if the trace ids are sorted, the final result will
-            # be sorted the same way.
-            trace_id_order = {trace_id: i for i, trace_id in enumerate(trace_ids)}
-            data.sort(key=lambda row: trace_id_order[row["trace"]])
-
         return data
 
     def refine_params(self, min_timestamp: datetime, max_timestamp: datetime):
@@ -770,6 +764,12 @@ class TracesExecutor:
         traces_occurrences_results,
         traces_breakdown_projects_results,
     ) -> list[TraceResult]:
+        if self.sort == "-timestamp":
+            traces_metas_results["data"].sort(
+                key=lambda row: row["last_seen()"],
+                reverse=True,
+            )
+
         # mapping of trace id to a tuple of start/finish times
         traces_range = {
             row["trace"]: {
