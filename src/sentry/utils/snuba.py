@@ -1025,6 +1025,14 @@ def _bulk_snuba_query(
                 raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
+        if "quota_allowance" in body and body["quota_allowance"]:
+            quota_allowance_summary = body["quota_allowance"]["summary"]
+            span.set_tag("threads_used", quota_allowance_summary["threads_used"])
+            for k, v in quota_allowance_summary["throttled_by"].items():
+                span.set_tag(k, v)
+            for k, v in quota_allowance_summary["rejected_by"].items():
+                span.set_tag(k, v)
+
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
             metrics.incr(
