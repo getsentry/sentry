@@ -190,14 +190,13 @@
                 <td>{{ environment }}</td>
               </tr>
             {% endif %}
-            {% if not is_new_design %}
+            {% if is_new_design %}
               <tr>
-                <th>Level</th>
-                <td>{{ group.get_level_display }}</td>
-              </tr>
-            {% else %}
-              <tr>
-                <th>Transaction</th>
+                {% if issue_type == "Endpoint Regression" %}
+                  <th>Endpoint</th>
+                {% elif issue_type == "Function Regression" %}
+                  <th>Function</th>
+                {% endif %}
                 <td>{{ event.transaction }}</td>
               </tr>
               <tr>
@@ -213,6 +212,11 @@
                     {{ event.datetime|date:"N j, Y, g:i:s a e"}}
                   {% endif %}
                 </td>
+              </tr>
+            {% else %}
+              <tr>
+                <th>Level</th>
+                <td>{{ group.get_level_display }}</td>
               </tr>
             {% endif %}
           </tbody>
