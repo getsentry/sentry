@@ -6,7 +6,6 @@ from snuba_sdk.function import Function
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
-from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.fields import custom_time_processor, get_function_alias
 from sentry.search.events.types import (
@@ -46,14 +45,14 @@ class ProfileFunctionsQueryBuilderMixin:
 
 class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
     function_alias_prefix = "sentry_"
-    config_class: type[DatasetConfig] = ProfileFunctionsDatasetConfig
+    config_class = ProfileFunctionsDatasetConfig
 
 
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
     function_alias_prefix = "sentry_"
-    config_class: type[DatasetConfig] = ProfileFunctionsDatasetConfig
+    config_class = ProfileFunctionsDatasetConfig
 
     def strip_alias_prefix(self, result):
         alias_mappings = {
@@ -78,7 +77,7 @@ class ProfileFunctionsTimeseriesQueryBuilder(
 
 
 class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryBuilder):
-    config_class: type[DatasetConfig] = ProfileFunctionsDatasetConfig
+    config_class = ProfileFunctionsDatasetConfig
 
     def __init__(
         self,
