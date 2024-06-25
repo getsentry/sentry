@@ -648,6 +648,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
             code_mapping=None,  # type: ignore[arg-type]
         )
 
+    @pytest.mark.skip("Feature is temporarily disabled")
     @mock.patch("sentry.integrations.github.client.get_jwt", return_value=ApiError)
     @responses.activate
     def test_fatal_and_disable_integration(self, get_jwt):
@@ -751,6 +752,7 @@ class GitHubClientFileBlameIntegrationDisableTest(TestCase):
         self.integration.refresh_from_db()
         assert self.integration.status == ObjectStatus.ACTIVE
 
+    @pytest.mark.skip("Feature is temporarily disabled")
     @responses.activate
     @freeze_time("2022-01-01 03:30:00")
     def test_a_slow_integration_is_broken(self):
