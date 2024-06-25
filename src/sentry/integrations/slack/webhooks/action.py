@@ -615,15 +615,12 @@ class SlackActionEndpoint(Endpoint):
             try:
                 if action.name in (
                     "status",
-                    "ignored:forever",
-                    "ignored:until_escalating",
                     "unresolved:ongoing",
                 ):
-                    # check to see which action names are in use
-                    logger.info("slack.action.name", extra={"name": action.name})
-
                     self.on_status(request, identity_user, group, action)
-                elif action.name == "assign":
+                elif (
+                    action.name == "assign"
+                ):  # TODO: remove this as it is replaced by the options-load endpoint
                     self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
