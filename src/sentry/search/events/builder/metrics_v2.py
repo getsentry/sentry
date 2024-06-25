@@ -40,6 +40,11 @@ from sentry.search.events.builder.utils import (
     remove_hours,
     remove_minutes,
 )
+from sentry.search.events.datasets.base import (
+    DatasetConfig,
+    MetricsDatasetConfigV2,
+    MetricsLayerDatasetConfigV2,
+)
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
@@ -51,7 +56,6 @@ from sentry.search.events.types import (
     SelectType,
     WhereType,
 )
-from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import create_result_key
@@ -66,10 +70,10 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
@@ -139,6 +143,18 @@ class MetricsQueryBuilderV2(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
+
+    def load_config(self) -> DatasetConfig:
+        if hasattr(self, "config_class") and self.config_class is not None:
+            return super().load_config()
+
+        if self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
+            if self.builder_config.use_metrics_layer:
+                return MetricsLayerDatasetConfigV2(self)
+            else:
+                return MetricsDatasetConfigV2(self)
+        else:
+            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
     @property
     def use_default_tags(self) -> bool:
@@ -270,7 +286,7 @@ class MetricsQueryBuilderV2(QueryBuilder):
         # Where normally isn't accepted for on-demand since it should only encoded into the metric
         # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
         additional_where: Sequence[Condition] | None = None,
-    ) -> MetricsQuery:
+    ) -> DeprecatingMetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
 
@@ -336,7 +352,7 @@ class MetricsQueryBuilderV2(QueryBuilder):
         if additional_where:
             where.extend(additional_where)
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             select=[self.convert_spec_to_metric_field(spec)],
             where=where,
             limit=limit,
@@ -666,7 +682,7 @@ class MetricsQueryBuilderV2(QueryBuilder):
                     raise IncompatibleMetricsQuery("!has isn't compatible with metrics queries")
             else:
                 return Condition(
-                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
+                    Function("has", [Column("tags.key"), name]),
                     Op.EQ if search_filter.operator == "!=" else Op.NEQ,
                     1,
                 )
@@ -971,11 +987,11 @@ class MetricsQueryBuilderV2(QueryBuilder):
 
         return metric_layer_result
 
-    def use_case_id_from_metrics_query(self, metrics_query: MetricsQuery) -> UseCaseID:
+    def use_case_id_from_metrics_query(self, metrics_query: DeprecatingMetricsQuery) -> UseCaseID:
         """
-        Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
+        Extracts the use case from the `DeprecatingMetricsQuery` which has to be executed in the metrics layer.
 
-        This function could be moved entirely in the `MetricsQuery` object but the metrics layer wasn't designed to
+        This function could be moved entirely in the `DeprecatingMetricsQuery` object but the metrics layer wasn't designed to
         infer the use case id but rather it expects to have it specified from the outside.
 
         Note that this is an alternative way to compute the use case id, which overrides the `use_case_id()` method
@@ -1007,7 +1023,7 @@ class MetricsQueryBuilderV2(QueryBuilder):
           - This is problematic though, because for historical reasons (ie. we used to do it and we've kept it
             instead of introducing additional risk by removing it) orderbys in the QB and MetricLayer both verify
             that the orderby is in the selected fields
-          - This is why we pass skip_orderby_validation to the MetricsQuery
+          - This is why we pass skip_orderby_validation to the DeprecatingMetricsQuery
         """
         result = []
         raw_orderby = self.raw_orderby
@@ -1348,7 +1364,7 @@ class MetricsQueryBuilderV2(QueryBuilder):
         return prefix
 
 
-class AlertMetricsQueryBuilder(MetricsQueryBuilder):
+class AlertMetricsQueryBuilder(MetricsQueryBuilderV2):
     is_alerts_query = True
 
     def __init__(
@@ -1373,8 +1389,8 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         be removed as soon as snuba subscriptions will be supported by the layer.
         The logic behind this method is that MetricsQueryBuilder will generate a dialect of snql via the
         "get_metrics_layer_snql_query()" method, which will be fed into the transformer that will generate
-        the MetricsQuery which is the DSL of querying that the metrics layer understands. Once this is generated,
-        we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes a MetricsQuery
+        the DeprecatingMetricsQuery which is the DSL of querying that the metrics layer understands. Once this is generated,
+        we are going to import the purposfully hidden SnubaQueryBuilder which is a component that takes DeprecatingMetricsQuery
         and returns one or more equivalent snql query(ies).
         """
         if self.use_metrics_layer or self.use_on_demand:
@@ -1427,7 +1443,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         return [], self.granularity
 
 
-class HistogramMetricQueryBuilder(MetricsQueryBuilder):
+class HistogramMetricQueryBuilder(MetricsQueryBuilderV2):
     base_function_acl = ["histogram"]
 
     def __init__(
@@ -1471,7 +1487,7 @@ class HistogramMetricQueryBuilder(MetricsQueryBuilder):
         return [], self.granularity
 
 
-class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
+class TimeseriesMetricQueryBuilder(MetricsQueryBuilderV2):
     time_alias = "time"
 
     def __init__(
