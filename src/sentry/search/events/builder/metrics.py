@@ -39,6 +39,9 @@ from sentry.search.events.builder.utils import (
     remove_hours,
     remove_minutes,
 )
+from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.metrics import MetricsDatasetConfig
+from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
@@ -65,10 +68,10 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
@@ -139,6 +142,17 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
+
+    @property
+    def use_default_tags(self) -> bool:
+        if self._use_default_tags is None:
+            if self.params.organization is not None:
+                self._use_default_tags = features.has(
+                    "organizations:mep-use-default-tags", self.params.organization, actor=None
+                )
+            else:
+                self._use_default_tags = False
+        return self._use_default_tags
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
@@ -232,14 +246,13 @@ class MetricsQueryBuilder(QueryBuilder):
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
-        aggregate_columns = self.selected_columns
-        map = {
-            col: self._get_on_demand_metric_spec(col)
-            for col in aggregate_columns
-            # Replace with proper table code later
-            if fields.is_function(col) and self._get_on_demand_metric_spec(col)
-        }
-        return map
+        spec_map = {}
+        for col in self.selected_columns:
+            spec = self._get_on_demand_metric_spec(col)
+            if fields.is_function(col) and spec:
+                spec_map[col] = spec
+
+        return spec_map
 
     def convert_spec_to_metric_field(self, spec: OnDemandMetricSpec) -> MetricField:
         if isinstance(self, (TopMetricsQueryBuilder, TimeseriesMetricQueryBuilder)):
@@ -259,7 +272,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # Where normally isn't accepted for on-demand since it should only encoded into the metric
         # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
         additional_where: Sequence[Condition] | None = None,
-    ) -> MetricsQuery:
+    ) -> DeprecatingMetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
 
@@ -325,7 +338,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if additional_where:
             where.extend(additional_where)
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             select=[self.convert_spec_to_metric_field(spec)],
             where=where,
             limit=limit,
@@ -1021,7 +1034,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return metric_layer_result
 
-    def use_case_id_from_metrics_query(self, metrics_query: MetricsQuery) -> UseCaseID:
+    def use_case_id_from_metrics_query(self, metrics_query: DeprecatingMetricsQuery) -> UseCaseID:
         """
         Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
 
