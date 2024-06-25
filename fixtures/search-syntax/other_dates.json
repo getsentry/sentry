@@ -13,7 +13,10 @@
         "value": {
           "type": "valueIso8601Date",
           "value": "2015-05-18",
-          "parsed": {"value": "2015-05-18T00:00:00.000Z"}
+          "parsed": {"value": "2015-05-18T00:00:00.000Z"},
+          "date": "2015-05-18",
+          "time": null,
+          "tz": null
         }
       },
       {"type": "spaces", "value": ""}
@@ -32,7 +35,10 @@
         "value": {
           "type": "valueIso8601Date",
           "value": "2018-01-01T05:06:07+00:00",
-          "parsed": {"value": "2018-01-01T05:06:07.000Z"}
+          "parsed": {"value": "2018-01-01T05:06:07.000Z"},
+          "date": "2018-01-01",
+          "time": "05:06:07",
+          "tz": "+00:00"
         }
       },
       {"type": "spaces", "value": ""}
