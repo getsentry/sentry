@@ -5,12 +5,12 @@
 
 from abc import abstractmethod
 
+from sentry.hybridcloud.rpc import OptionValue
 from sentry.hybridcloud.rpc.resolvers import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
     ByRegionName,
 )
-from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.project import (
