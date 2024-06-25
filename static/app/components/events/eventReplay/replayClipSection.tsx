@@ -101,7 +101,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
                 },
               }}
               loadingFallback={
-                <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+                <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
                   <LoadingIndicator />
                 </StyledNegativeSpaceContainer>
               }

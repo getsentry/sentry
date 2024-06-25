@@ -264,12 +264,11 @@ def download_segments(segments: list[RecordingSegmentStorageMeta]) -> Iterator[b
             download_segment,
             span=span,
         )
-        current_hub = sentry_sdk.Hub.current
 
         yield b"["
         # Map all of the segments to a worker process for download.
         with ThreadPoolExecutor(max_workers=10) as exe:
-            with sentry_sdk.Hub(current_hub):
+            with sentry_sdk.isolation_scope():
                 results = exe.map(download_segment_with_fixed_args, segments)
 
             for i, result in enumerate(results):

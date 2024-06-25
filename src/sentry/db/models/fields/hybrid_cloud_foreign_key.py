@@ -45,14 +45,14 @@ the expected cascade behavior in your field.
 from __future__ import annotations
 
 from enum import IntEnum
-
-from django.db import models
-
-__all__ = ("HybridCloudForeignKey",)
-
-from typing import Any
+from typing import Any, Literal, overload
 
 from django.apps import apps
+from django.db import models
+
+from sentry.db.models.fields.types import FieldGetType, FieldSetType
+
+__all__ = ("HybridCloudForeignKey",)
 
 
 class HybridCloudForeignKeyCascadeBehavior(IntEnum):
@@ -61,10 +61,7 @@ class HybridCloudForeignKeyCascadeBehavior(IntEnum):
     DO_NOTHING = 3
 
 
-class HybridCloudForeignKey(models.BigIntegerField):
-    on_delete: str
-    foreign_model_name: str
-
+class HybridCloudForeignKey(models.BigIntegerField[FieldSetType, FieldGetType]):
     @property
     def foreign_model(self) -> Any:
         parts = self.foreign_model_name.split(".")
@@ -74,8 +71,33 @@ class HybridCloudForeignKey(models.BigIntegerField):
     def foreign_table_name(self) -> str:
         return self.foreign_model._meta.db_table
 
+    @overload
     def __init__(
-        self, foreign_model: str, *, on_delete: HybridCloudForeignKeyCascadeBehavior | str, **kwds
+        self: HybridCloudForeignKey[int | None, int | None],
+        foreign_model: str,
+        *,
+        on_delete: HybridCloudForeignKeyCascadeBehavior | str,
+        null: Literal[True],
+        **kwds: Any,
+    ) -> None:
+        ...
+
+    @overload
+    def __init__(
+        self: HybridCloudForeignKey[int, int],
+        foreign_model: str,
+        *,
+        on_delete: HybridCloudForeignKeyCascadeBehavior | str,
+        **kwds: Any,
+    ) -> None:
+        ...
+
+    def __init__(
+        self,
+        foreign_model: str,
+        *,
+        on_delete: HybridCloudForeignKeyCascadeBehavior | str,
+        **kwds: Any,
     ):
         self.on_delete = (
             on_delete
