@@ -696,11 +696,6 @@ class APITestCaseMixin:
     If your endpoint requires kwargs implement the `reverse_url` method.
     """
 
-    # We need Django to flush all databases.
-    databases: set[str] | str = "__all__"
-
-    method = "get"
-
     @property
     def endpoint(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
@@ -855,11 +850,17 @@ class APITestCaseMixin:
 
 
 class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
-    pass
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
 
 
 class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCaseMixin):
-    pass
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
 
 
 class TwoFactorAPITestCase(APITestCase):
