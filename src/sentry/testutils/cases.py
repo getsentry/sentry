@@ -2904,7 +2904,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}&notification_uuid={notification_uuid}|Notification Settings>"
         )
 
-    @with_feature({"organizations:slack-culprit-blocks": True})
+    @with_feature("organizations:slack-culprit-blocks")
     def assert_performance_issue_blocks(
         self,
         blocks,
