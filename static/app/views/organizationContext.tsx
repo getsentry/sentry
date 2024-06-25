@@ -99,6 +99,8 @@ export function OrganizationContextProvider({children}: Props) {
       return;
     }
 
+    metric.mark({name: 'organization-details-fetch-start'});
+
     setOrganizationPromise(fetchOrganizationDetails(api, orgSlug, false, true));
   }, [api, orgSlug, organization]);
 
