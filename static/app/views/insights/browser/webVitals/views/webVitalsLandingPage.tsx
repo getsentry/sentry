@@ -55,10 +55,8 @@ export function WebVitalsLandingPage() {
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
-  const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
-
   const projectScore =
-    isProjectScoresLoading || isLoading || noTransactions
+    isProjectScoresLoading || isLoading
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 

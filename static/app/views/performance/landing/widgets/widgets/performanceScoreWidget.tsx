@@ -25,10 +25,8 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
-  const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
-
   const projectScore =
-    isProjectScoresLoading || isLoading || noTransactions
+    isProjectScoresLoading || isLoading
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
@@ -77,7 +75,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
         {
           component: () => (
             <Wrapper>
-              {projectScore && !noTransactions ? (
+              {projectScore ? (
                 <PerformanceScoreRingWithTooltips
                   inPerformanceWidget
                   projectScore={projectScore}
