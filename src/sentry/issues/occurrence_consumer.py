@@ -276,6 +276,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         raise InvalidEventPayloadError(e)
 
 
+@metrics.wraps("occurrence_consumer.process_occurrence_message")
 def process_occurrence_message(
     message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
 ) -> tuple[IssueOccurrence, GroupInfo | None] | None:
@@ -330,6 +331,7 @@ def process_occurrence_message(
             return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 
 
+@metrics.wraps("occurrence_consumer.process_message")
 def _process_message(
     message: Mapping[str, Any]
 ) -> tuple[IssueOccurrence | None, GroupInfo | None] | None:
@@ -365,6 +367,7 @@ def _process_message(
     return None
 
 
+@metrics.wraps("occurrence_consumer.process_batch")
 def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]) -> None:
     """
     Receives batches of occurrences. This function will take the batch
@@ -406,6 +409,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
         wait(futures)
 
 
+@metrics.wraps("occurrence_consumer.process_occurrence_group")
 def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     """
     Process a group of related occurrences (all part of the same group)

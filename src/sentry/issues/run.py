@@ -93,24 +93,19 @@ class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
-
     from sentry.issues.occurrence_consumer import _process_message
-    from sentry.utils import metrics
 
     try:
-        with metrics.timer("occurrence_consumer.process_message"):
-            payload = orjson.loads(message.payload.value)
-            _process_message(payload)
+        payload = orjson.loads(message.payload.value)
+        _process_message(payload)
     except Exception:
         logger.exception("failed to process message payload")
 
 
 def process_batch(worker: ThreadPoolExecutor, messages: Message[ValuesBatch[KafkaPayload]]) -> None:
     from sentry.issues.occurrence_consumer import _process_batch
-    from sentry.utils import metrics
 
     try:
-        with metrics.timer("occurrence_consumer.process_batch"):
-            _process_batch(worker, messages)
+        _process_batch(worker, messages)
     except Exception:
         logger.exception("failed to process batch payload")
