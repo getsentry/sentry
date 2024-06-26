@@ -2,6 +2,8 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -34,12 +36,28 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         )
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
+    def mock_webhook_send(self):
         with patch(
             "slack_sdk.webhook.WebhookClient.send",
             return_value=WebhookResponse(
                 url="",
                 body='{"ok": true}',
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_webhook:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with patch(
+            "slack_sdk.web.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
                 headers={},
                 status_code=200,
             ),
@@ -95,7 +113,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
     @with_feature("organizations:slack-sdk-link-commands")
     @responses.activate
-    def test_basic_flow_with_sdk(self):
+    def test_basic_flow_with_webhook_client(self):
         """Do the auth flow and assert that the identity was created."""
         linking_url = build_linking_url(
             self.integration, self.external_id, self.channel_id, self.response_url
@@ -114,7 +132,76 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         assert len(identity) == 1
         assert identity[0].idp == self.idp
         assert identity[0].status == IdentityStatus.VALID
+        assert self.mock_webhook.call_count == 1
+
+    @with_feature("organizations:slack-sdk-link-commands")
+    @patch("sentry.integrations.slack.utils.notifications.logger")
+    @responses.activate
+    def test_basic_flow_with_webhook_client_error(self, mock_logger):
+        """Do the auth flow and assert that the identity was created."""
+        self.mock_webhook.side_effect = SlackApiError("", response={"ok": False})
+
+        linking_url = build_linking_url(
+            self.integration, self.external_id, self.channel_id, self.response_url
+        )
+
+        # Load page.
+        response = self.client.get(linking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/auth-link-identity.html")
+
+        # Link identity of user
+        self.client.post(linking_url)
+
+        identity = Identity.objects.filter(external_id="new-slack-id", user=self.user)
+
+        assert len(identity) == 1
+        assert mock_logger.exception.call_count == 1
+        assert mock_logger.exception.call_args.args[0] == "slack.link-identity.error"
+
+    @with_feature("organizations:slack-sdk-link-commands")
+    @responses.activate
+    def test_basic_flow_with_web_client(self):
+        """No response URL is provided, so we use WebClient."""
+        linking_url = build_linking_url(self.integration, self.external_id, self.channel_id, "")
+
+        # Load page.
+        response = self.client.get(linking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/auth-link-identity.html")
+
+        # Link identity of user
+        self.client.post(linking_url)
+
+        identity = Identity.objects.filter(external_id="new-slack-id", user=self.user)
+
+        assert len(identity) == 1
+        assert identity[0].idp == self.idp
+        assert identity[0].status == IdentityStatus.VALID
         assert self.mock_post.call_count == 1
+
+    @with_feature("organizations:slack-sdk-link-commands")
+    @patch("sentry.integrations.slack.utils.notifications.logger")
+    @responses.activate
+    def test_basic_flow_with_web_client_error(self, mock_logger):
+        """No response URL is provided, so we use WebClient."""
+        self.mock_post.side_effect = SlackApiError("", response={"ok": False})
+
+        linking_url = build_linking_url(self.integration, self.external_id, self.channel_id, "")
+
+        # Load page.
+        response = self.client.get(linking_url)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/auth-link-identity.html")
+
+        # Link identity of user
+        self.client.post(linking_url)
+
+        identity = Identity.objects.filter(external_id="new-slack-id", user=self.user)
+
+        assert len(identity) == 1
+        assert mock_logger.exception.call_count == 1
+        assert mock_logger.exception.call_args.args[0] == "slack.link-identity.error"
 
     @with_feature("organizations:slack-sdk-link-commands")
     @responses.activate
@@ -182,7 +269,7 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
     @with_feature("organizations:slack-sdk-link-commands")
     @responses.activate
-    def test_basic_flow_with_sdk(self):
+    def test_basic_flow_with_webhook_client(self):
         # Load page.
         response = self.client.get(self.unlinking_url)
         assert response.status_code == 200
@@ -194,7 +281,7 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         self.assertTemplateUsed(response, "sentry/integrations/slack/unlinked.html")
 
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
-        assert self.mock_post.call_count == 1
+        assert self.mock_webhook.call_count == 1
 
     @with_feature("organizations:slack-sdk-link-commands")
     @responses.activate

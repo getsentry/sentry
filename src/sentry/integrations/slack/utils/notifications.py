@@ -175,9 +175,7 @@ def respond_to_slack_command(
         try:
             webhook_client = WebhookClient(params.response_url)
             webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
-        except SlackApiError as e:
-            logger.exception(log + "error", extra={"error": str(e)})
-        except SlackRequestError as e:
+        except (SlackApiError, SlackRequestError) as e:
             logger.exception(log + "error", extra={"error": str(e)})
     else:
         logger.info(log + "respond-ephemeral")
