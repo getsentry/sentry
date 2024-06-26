@@ -185,11 +185,7 @@ export function ScreensView({yAxes, additionalFilters, chartHeight}: Props) {
     referrer: 'api.starfish.mobile-screen-bar-chart',
   });
 
-  useHasDataTrackAnalytics(
-    new MutableSearch('transaction.op:ui.load'),
-    'api.performance.mobile.screen-load-landing',
-    'insight.page_loads.screen_load'
-  );
+  useHasDataTrackAnalytics(ModuleName.SCREEN_LOAD, 'insight.page_loads.screen_load');
 
   if (isReleasesLoading) {
     return (

@@ -27,17 +27,14 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
 
-  useHasDataTrackAnalytics(
-    new MutableSearch('span.category:"ai"'),
-    'api.performance.ai.llm-monitoring-landing',
-    'insight.page_loads.ai'
-  );
+  useHasDataTrackAnalytics(ModuleName.AI, 'insight.page_loads.ai');
 
   return (
     <Layout.Page>
