@@ -52,7 +52,6 @@ class ProjectTemplateOptionManagerTest(TestCase):
         assert result is None
 
     def test_unset_value(self):
-        ProjectTemplateOption.objects.unset_value(self.project_template, "foo")
         ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
         )
