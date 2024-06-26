@@ -724,6 +724,7 @@ class SnubaTSDB(BaseTSDB):
             aggregate_function = "sum"
         else:
             aggregate_function = "count()"
+        print("THIS RANGE?", start, end)
 
         result = self.get_data(
             model,

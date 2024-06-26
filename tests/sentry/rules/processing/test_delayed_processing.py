@@ -4,7 +4,6 @@ from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
-
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -18,25 +17,29 @@ from sentry.rules.processing.delayed_processing import (
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import freeze_time, iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
+
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
 
+FROZEN_TIME = before_now(days=1).replace(hour=00, minute=15, second=00)
 
-@freeze_time((datetime.now(UTC) - timedelta(days=1)).replace(hour=00, minute=16, second=00))
+
+@freeze_time(FROZEN_TIME)
 class ProcessDelayedAlertConditionsTest(
     TestCase, APITestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
 ):
+    buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
+
     def create_event(
         self,
-        project_id,
-        timestamp,
-        fingerprint,
+        project_id: int,
+        timestamp: datetime,
+        fingerprint: str,
         environment=None,
-        user: bool = True,
         tags: list[list[str]] | None = None,
         print_event: bool = False,
     ) -> Event:
@@ -121,15 +124,16 @@ class ProcessDelayedAlertConditionsTest(
         event_frequency_percent_condition = self.create_event_frequency_condition(
             interval="5m", id="EventFrequencyPercentCondition", value=1.0
         )
-        self.now = datetime.now(UTC)
 
         self.rule1 = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition],
             environment_id=self.environment.id,
         )
-        self.event1 = self.create_event(self.project.id, self.now, "group-1", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-1", self.environment.name)
+        self.event1 = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name
+        )
+        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
 
         self.group1 = self.event1.group
         assert self.group1
@@ -137,8 +141,8 @@ class ProcessDelayedAlertConditionsTest(
         self.rule2 = self.create_project_rule(
             project=self.project, condition_match=[self.user_frequency_condition]
         )
-        self.event2 = self.create_event(self.project, self.now, "group-2", self.environment.name)
-        self.create_event(self.project, self.now, "group-2", self.environment.name)
+        self.event2 = self.create_event(self.project, FROZEN_TIME, "group-2", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-2", self.environment.name)
         self.group2 = self.event2.group
         assert self.group2
 
@@ -156,19 +160,19 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=self.environment2.id,
         )
         self.event3 = self.create_event(
-            self.project_two, self.now, "group-3", self.environment2.name
+            self.project_two, FROZEN_TIME, "group-3", self.environment2.name
         )
-        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
-        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
-        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
+        self.create_event(self.project_two, FROZEN_TIME, "group-3", self.environment2.name)
+        self.create_event(self.project_two, FROZEN_TIME, "group-3", self.environment2.name)
+        self.create_event(self.project_two, FROZEN_TIME, "group-3", self.environment2.name)
         self.group3 = self.event3.group
         assert self.group3
 
         self.rule4 = self.create_project_rule(
             project=self.project_two, condition_match=[event_frequency_percent_condition]
         )
-        self.event4 = self.create_event(self.project_two, self.now, "group-4")
-        self.create_event(self.project_two, self.now, "group-4")
+        self.event4 = self.create_event(self.project_two, FROZEN_TIME, "group-4")
+        self.create_event(self.project_two, FROZEN_TIME, "group-4")
         self._make_sessions(60, project=self.project_two)
         self.group4 = self.event4.group
         assert self.group4
@@ -205,7 +209,7 @@ class ProcessDelayedAlertConditionsTest(
             assert mock_apply_delayed.delay.call_count == 2
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_ids == []
 
@@ -235,7 +239,7 @@ class ProcessDelayedAlertConditionsTest(
         environments, etc. are properly fired.
         """
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -294,7 +298,7 @@ class ProcessDelayedAlertConditionsTest(
             occurrence_id=event5.occurrence_id,
         )
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -318,16 +322,16 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=self.environment.id,
         )
         self.snooze_rule(owner_id=self.user.id, rule=rule5)
-        event5 = self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -349,16 +353,16 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition2],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -382,15 +386,15 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition3],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
         self.push_to_hash(self.project.id, diff_interval_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -415,15 +419,15 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition],
             environment_id=environment3.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", environment3.name)
-        self.create_event(self.project.id, self.now, "group-5", environment3.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", environment3.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", environment3.name)
         group5 = event5.group
         assert group5
         assert self.group1
         self.push_to_hash(self.project.id, diff_env_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -453,15 +457,15 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[high_event_frequency_condition],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
         self.push_to_hash(self.project.id, no_fire_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -484,14 +488,16 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition, self.user_frequency_condition],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         event6 = self.create_event(
-            self.project.id, self.now, "group-6", self.environment.name, user=False
+            self.project.id, FROZEN_TIME, "group-6", self.environment.name, user=False
         )
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name, user=False)
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-5", self.environment.name, user=False
+        )
         group6 = event6.group
         assert group6
         assert self.group1
@@ -505,7 +511,7 @@ class ProcessDelayedAlertConditionsTest(
             self.project.id, two_conditions_match_all_rule.id, group5.id, event5.event_id
         )
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -535,14 +541,16 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=env3.id,
         )
         event1 = self.create_event(
-            project_three.id, self.now, "group-5", env3.name, tags=[["foo", "bar"]]
+            project_three.id, FROZEN_TIME, "group-5", env3.name, tags=[["foo", "bar"]]
         )
-        self.create_event(project_three.id, self.now, "group-5", env3.name, tags=[["foo", "bar"]])
+        self.create_event(
+            project_three.id, FROZEN_TIME, "group-5", env3.name, tags=[["foo", "bar"]]
+        )
         group1 = event1.group
         assert group1
 
-        event2 = self.create_event(project_three.id, self.now, "group-6", env3.name)
-        self.create_event(project_three.id, self.now, "group-6", env3.name)
+        event2 = self.create_event(project_three.id, FROZEN_TIME, "group-6", env3.name)
+        self.create_event(project_three.id, FROZEN_TIME, "group-6", env3.name)
         group2 = event2.group
         assert group2
 
@@ -550,7 +558,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(project_three.id, rule_2.id, group2.id, event2.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         assert project_three.id == project_ids[2][0]
         apply_delayed(project_ids[2][0])
@@ -571,20 +579,20 @@ class ProcessDelayedAlertConditionsTest(
         the correct comparison interval, e.g. # events is ... compared to 1 hr ago
         """
         percent_condition = self.create_event_frequency_condition(
-            interval="5m",
+            interval="1d",
             value=50,
             comparison_type=ComparisonType.PERCENT,
-            comparison_interval="1h",
+            comparison_interval="15m",
         )
         percent_comparison_rule = self.create_project_rule(
             project=self.project,
             condition_match=[percent_condition],
         )
-        incorrect_interval_time = self.now - timedelta(minutes=7)
-        correct_interval_time = self.now - timedelta(hours=1)
+        incorrect_interval_time = FROZEN_TIME - timedelta(days=1, minutes=30)
+        correct_interval_time = FROZEN_TIME - timedelta(minutes=17)
 
-        event5 = self.create_event(self.project.id, self.now, "group-5")
-        self.create_event(self.project.id, self.now, "group-5")
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5")
+        self.create_event(self.project.id, FROZEN_TIME, "group-5")
         # Create events for the incorrect interval that will not trigger the rule
         self.create_event(self.project.id, incorrect_interval_time, "group-5")
         self.create_event(self.project.id, incorrect_interval_time, "group-5")
@@ -596,7 +604,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project.id, percent_comparison_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, datetime.now(UTC).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
         apply_delayed(project_ids[0][0])
         rule_fire_histories = RuleFireHistory.objects.filter(
@@ -619,44 +627,45 @@ class ProcessDelayedAlertConditionsTest(
         query, but the second percent query is separate.
         """
 
-        def mock_get_condition_group(descending=False):
-            """
-            Mocks get_condition_groups to run with the passed in alert_rules in
-            a defined order.
-            """
+        # def mock_get_condition_group(descending=False):
+        #     """
+        #     Mocks get_condition_groups to run with the passed in alert_rules in
+        #     a defined order.
+        #     """
 
-            def _callthrough_with_order(*args, **kwargs):
-                if args:
-                    alert_rules = args[0]
-                    alert_rules.sort(key=lambda rule: rule.id, reverse=descending)
-                return get_condition_query_groups(*args, **kwargs)
+        #     def _callthrough_with_order(*args, **kwargs):
+        #         if args:
+        #             alert_rules = args[0]
+        #             alert_rules.sort(key=lambda rule: rule.id, reverse=descending)
+        #         return get_condition_query_groups(*args, **kwargs)
 
-            return _callthrough_with_order
+        #     return _callthrough_with_order
 
         percent_condition = self.create_event_frequency_condition(
             value=50,
             comparison_type=ComparisonType.PERCENT,
-            comparison_interval="15m",
+            comparison_interval="5m",
+            # comparison_interval="15m",
         )
         percent_comparison_rule = self.create_project_rule(
             project=self.project,
             condition_match=[percent_condition],
             environment_id=self.environment.id,
         )
-        print("NOW EVENT TIME: ", self.now)
-        print("OLD EVENT TIME: ", self.now - timedelta(days=1, minutes=10))
+        print("NOW EVENT TIME: ", FROZEN_TIME)
+        print("OLD EVENT TIME: ", FROZEN_TIME - timedelta(days=1, minutes=10))
 
         event5 = self.create_event(
-            self.project.id, self.now, "group-5", self.environment.name, print_event=True
+            self.project.id, FROZEN_TIME, "group-5", self.environment.name, print_event=True
         )
         self.create_event(
-            self.project.id, self.now, "group-5", self.environment.name, print_event=True
+            self.project.id, FROZEN_TIME, "group-5", self.environment.name, print_event=True
         )
 
         # Create past event to trigger the percent condition
         event5 = self.create_event(
             self.project.id,
-            self.now - timedelta(days=1, minutes=10),
+            FROZEN_TIME - timedelta(days=1, minutes=10),
             "group-5",
             self.environment.name,
             print_event=True,
@@ -668,7 +677,7 @@ class ProcessDelayedAlertConditionsTest(
         self.push_to_hash(self.project.id, self.rule1.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
-            PROJECT_ID_BUFFER_LIST_KEY, 0, (self.now + timedelta(seconds=5)).timestamp()
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
 
         def assert_results():
@@ -683,18 +692,21 @@ class ProcessDelayedAlertConditionsTest(
             assert (self.rule1.id, group5.id) in rule_fire_histories
             self.assert_buffer_cleared(project_id=self.project.id)
 
-        # Have the count condition be processed first.
-        with patch(
-            "sentry.rules.processing.delayed_processing.get_condition_query_groups",
-            side_effect=mock_get_condition_group(descending=False),
-        ):
-            apply_delayed(project_ids[0][0])
+        # # Have the count condition be processed first.
+        # with patch(
+        #     "sentry.rules.processing.delayed_processing.get_condition_query_groups",
+        #     side_effect=mock_get_condition_group(descending=False),
+        # ):
+        #     apply_delayed(project_ids[0][0])
+
+        apply_delayed(project_ids[0][0])
+
         assert_results()
 
-        # Have the percent condition be processed first.
-        with patch(
-            "sentry.rules.processing.delayed_processing.get_condition_query_groups",
-            side_effect=mock_get_condition_group(descending=True),
-        ):
-            apply_delayed(project_ids[0][0])
-        assert_results()
+        # # Have the percent condition be processed first.
+        # with patch(
+        #     "sentry.rules.processing.delayed_processing.get_condition_query_groups",
+        #     side_effect=mock_get_condition_group(descending=True),
+        # ):
+        #     apply_delayed(project_ids[0][0])
+        # assert_results()

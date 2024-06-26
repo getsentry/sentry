@@ -325,6 +325,12 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         The second query would be querying for num of events from 1 hour ago
         to 1 hour 5 min ago.
         """
+        print("@@@@@@@@@@")
+        print("duration: ", duration)
+        print("environment_id: ", environment_id)
+        print("current_time: ", current_time)
+        print("comparison_interval: ", comparison_interval)
+        print("@@@@@@@@@@")
 
         start, end = self.get_comparison_start_end(
             end=current_time, duration=duration, comparison_offset=comparison_interval
@@ -418,6 +424,10 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         groups = Group.objects.filter(id__in=group_ids)
         error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
         generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
+
+        print("ERROR ISSUES: ", error_issues)
+        print("start: ", start)
+        print("end: ", end)
 
         if error_issues:
             error_sums = self.get_chunked_result(

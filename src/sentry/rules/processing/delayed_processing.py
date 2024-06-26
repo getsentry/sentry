@@ -227,7 +227,7 @@ def _passes_comparison(
         )
         return False
 
-    print(f'{condition_data["comparisonType"]} QUERY VALUES: ', query_values)
+    print(f'{condition_data.get("comparisonType", "count")} QUERY VALUES: ', query_values)
 
     calculated_value = query_values[0]
     # If there's a second query we must have a percent comparison condition.
