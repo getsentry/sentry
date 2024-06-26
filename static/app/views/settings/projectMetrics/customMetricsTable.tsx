@@ -14,12 +14,14 @@ import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
@@ -36,6 +38,7 @@ enum BlockingStatusTab {
 type MetricWithCardinality = MetricMeta & {cardinality: number};
 
 export function CustomMetricsTable({project}: Props) {
+  const organiztion = useOrganization();
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
   const [query, setQuery] = useSearchQueryParam('metricsQuery');
 
@@ -79,6 +82,12 @@ export function CustomMetricsTable({project}: Props) {
       getReadableMetricType(type).includes(query) ||
       unit.includes(query)
   );
+
+  // If we have custom metrics extraction rules,
+  // we only show the custom metrics table if the project has custom metrics
+  if (hasCustomMetricsExtractionRules(organiztion) && metricsMeta.data.length === 0) {
+    return null;
+  }
 
   return (
     <Fragment>
