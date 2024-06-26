@@ -2336,6 +2336,11 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
                         else "loc_config.xml"
                     ),
                 ): {"bind": "/etc/clickhouse-server/config.d/sentry.xml"},
+                os.path.join(
+                    settings.DEVSERVICES_CONFIG_DIR,
+                    "clickhouse",
+                    "users.xml",
+                ): {"bind": "/etc/clickhouse-server/users.d/sentry.xml"},
             },
         }
     ),

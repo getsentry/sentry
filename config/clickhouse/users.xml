@@ -1,0 +1,14 @@
+<clickhouse>
+    <profiles>
+      <default>
+	<!-- artificially low value to induce query failures -->
+        <!-- <max_memory_usage>1048576</max_memory_usage> -->
+      </default>
+    </profiles>
+    <users>
+        <default>
+            <!-- let the default user do everything -->
+            <access_management>1</access_management>
+        </default>
+    </users>
+</clickhouse>
