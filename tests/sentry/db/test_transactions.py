@@ -10,10 +10,10 @@ from sentry.db.postgres.transactions import (
     in_test_assert_no_transaction,
     in_test_hide_transaction_boundary,
 )
+from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.models.organization import Organization
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
@@ -199,7 +199,7 @@ class TestDelegatedByOpenTransaction(TestCase):
 
 @no_silo_test
 class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
-    @patch("sentry.services.hybrid_cloud.in_test_environment", return_value=False)
+    @patch("sentry.hybridcloud.rpc.in_test_environment", return_value=False)
     def test_selects_mode_in_transaction_or_default(self, patch):
         service: Any = silo_mode_delegation(
             {

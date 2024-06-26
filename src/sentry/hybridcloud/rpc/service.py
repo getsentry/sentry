@@ -7,7 +7,15 @@ import inspect
 import logging
 import pkgutil
 from abc import abstractmethod
-from collections.abc import Callable, Iterable, Iterator, Mapping, MutableMapping, Sequence
+from collections.abc import (
+    Callable,
+    Generator,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, NoReturn, Self, TypeVar, cast
@@ -20,8 +28,8 @@ from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
 
 from sentry import options
+from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
-from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
@@ -141,7 +149,7 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
     def local_mode(self) -> SiloMode:
         return self._base_service_cls.local_mode
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{type(self).__name__}({self._base_service_cls.__name__})"
 
     def deserialize_rpc_arguments(
@@ -560,7 +568,7 @@ class _RemoteSiloCall:
             self._raise_from_response_status_error(response)
 
     @contextmanager
-    def _open_request_context(self):
+    def _open_request_context(self) -> Generator[None, None, None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
         span = sentry_sdk.start_span(
             op="hybrid_cloud.dispatch_rpc",

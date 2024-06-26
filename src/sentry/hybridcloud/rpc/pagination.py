@@ -10,7 +10,7 @@ import sentry_sdk
 from pydantic.fields import Field
 from rest_framework.request import Request
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.pagination_factory import (
     PaginatorLike,

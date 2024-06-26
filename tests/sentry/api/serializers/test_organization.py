@@ -94,7 +94,6 @@ class OrganizationSerializerTest(TestCase):
             "open-membership",
             "relay",
             "shared-issues",
-            "slack-block-kit",
             "session-replay-video",
             "session-replay-ui",
             "sso-basic",
