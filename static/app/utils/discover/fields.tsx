@@ -713,7 +713,23 @@ export const TRACING_FIELDS = [
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
-export const ERROR_ONLY_FIELDS = [
+export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  FieldKey.PROFILE_ID,
+  SpanOpBreakdown.SPANS_BROWSER,
+  SpanOpBreakdown.SPANS_DB,
+  SpanOpBreakdown.SPANS_HTTP,
+  SpanOpBreakdown.SPANS_RESOURCE,
+  SpanOpBreakdown.SPANS_UI,
+];
+
+export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
+  f => !TRANSACTION_ONLY_FIELDS.includes(f)
+);
+
+export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
   FieldKey.LOCATION,
   FieldKey.EVENT_TYPE,
   FieldKey.ERROR_TYPE,
@@ -735,17 +751,9 @@ export const ERROR_ONLY_FIELDS = [
   FieldKey.STACK_STACK_LEVEL,
 ];
 
-export const TRANSACTION_ONLY_FIELDS = [
-  FieldKey.TRANSACTION_DURATION,
-  FieldKey.TRANSACTION_OP,
-  FieldKey.TRANSACTION_STATUS,
-  FieldKey.PROFILE_ID,
-  SpanOpBreakdown.SPANS_BROWSER,
-  SpanOpBreakdown.SPANS_DB,
-  SpanOpBreakdown.SPANS_HTTP,
-  SpanOpBreakdown.SPANS_RESOURCE,
-  SpanOpBreakdown.SPANS_UI,
-];
+export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
+  f => !ERROR_ONLY_FIELDS.includes(f)
+);
 
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];

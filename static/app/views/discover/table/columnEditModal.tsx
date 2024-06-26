@@ -12,9 +12,13 @@ import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import type {Column} from 'sentry/utils/discover/fields';
+import {
+  type Column,
+  ERROR_FIELDS,
+  TRANSACTION_FIELDS,
+} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {ERROR_FIELDS, FieldKey, TRANSACTION_FIELDS} from 'sentry/utils/fields';
+import {FieldKey} from 'sentry/utils/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';

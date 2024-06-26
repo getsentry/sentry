@@ -1224,62 +1224,25 @@ export const DISCOVER_FIELDS = [
   SpanOpBreakdown.SPANS_UI,
 ];
 
-export const ERROR_FIELDS = [
-  FieldKey.ID,
-  // issue.id and project.id are omitted on purpose.
-  // Customers should use `issue` and `project` instead.
-  FieldKey.TIMESTAMP,
-  // time is omitted on purpose.
-  // Customers should use `timestamp` or `timestamp.to_hour`.
-  FieldKey.TIMESTAMP_TO_HOUR,
-  FieldKey.TIMESTAMP_TO_DAY,
+export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  FieldKey.PROFILE_ID,
+  SpanOpBreakdown.SPANS_BROWSER,
+  SpanOpBreakdown.SPANS_DB,
+  SpanOpBreakdown.SPANS_HTTP,
+  SpanOpBreakdown.SPANS_RESOURCE,
+  SpanOpBreakdown.SPANS_UI,
+];
 
-  FieldKey.CULPRIT,
+export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
+  f => !TRANSACTION_ONLY_FIELDS.includes(f)
+);
+
+export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
   FieldKey.LOCATION,
-  FieldKey.MESSAGE,
-  FieldKey.PLATFORM_NAME,
-  FieldKey.ENVIRONMENT,
-  FieldKey.RELEASE,
-  FieldKey.DIST,
-  FieldKey.TITLE,
   FieldKey.EVENT_TYPE,
-  // tags.key and tags.value are omitted on purpose as well.
-
-  FieldKey.TRANSACTION,
-  FieldKey.UNREAL_CRASH_TYPE,
-  FieldKey.USER,
-  FieldKey.USER_ID,
-  FieldKey.USER_EMAIL,
-  FieldKey.USER_USERNAME,
-  FieldKey.USER_IP,
-  FieldKey.SDK_NAME,
-  FieldKey.SDK_VERSION,
-  FieldKey.HTTP_METHOD,
-  FieldKey.HTTP_REFERER,
-  FieldKey.HTTP_STATUS_CODE,
-  FieldKey.HTTP_URL,
-  FieldKey.OS_BUILD,
-  FieldKey.OS_KERNEL_VERSION,
-  FieldKey.DEVICE_NAME,
-  FieldKey.DEVICE_BRAND,
-  FieldKey.DEVICE_LOCALE,
-  FieldKey.DEVICE_UUID,
-  FieldKey.DEVICE_ARCH,
-  FieldKey.DEVICE_FAMILY,
-  FieldKey.DEVICE_BATTERY_LEVEL,
-  FieldKey.DEVICE_ORIENTATION,
-  FieldKey.DEVICE_SCREEN_DENSITY,
-  FieldKey.DEVICE_SCREEN_DPI,
-  FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
-  FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
-  FieldKey.DEVICE_SIMULATOR,
-  FieldKey.DEVICE_ONLINE,
-  FieldKey.DEVICE_CHARGING,
-  FieldKey.DEVICE_CLASS,
-  FieldKey.GEO_COUNTRY_CODE,
-  FieldKey.GEO_REGION,
-  FieldKey.GEO_CITY,
-  FieldKey.GEO_SUBDIVISION,
   FieldKey.ERROR_TYPE,
   FieldKey.ERROR_VALUE,
   FieldKey.ERROR_MECHANISM,
@@ -1297,108 +1260,11 @@ export const ERROR_FIELDS = [
   FieldKey.STACK_COLNO,
   FieldKey.STACK_LINENO,
   FieldKey.STACK_STACK_LEVEL,
-  // contexts.key and contexts.value omitted on purpose.
-
-  // App context fields
-  FieldKey.APP_IN_FOREGROUND,
-
-  FieldKey.TRACE,
-  FieldKey.TRACE_SPAN,
-  FieldKey.TRACE_PARENT_SPAN,
-
-  // Meta field that returns total count, usually for equations
-  FieldKey.TOTAL_COUNT,
-
-  // Field alises defined in src/sentry/api/event_search.py
-  FieldKey.PROJECT,
-  FieldKey.ISSUE,
-  FieldKey.USER_DISPLAY,
 ];
 
-export const TRANSACTION_FIELDS = [
-  FieldKey.ID,
-  // issue.id and project.id are omitted on purpose.
-  // Customers should use `issue` and `project` instead.
-  FieldKey.TIMESTAMP,
-  // time is omitted on purpose.
-  // Customers should use `timestamp` or `timestamp.to_hour`.
-  FieldKey.TIMESTAMP_TO_HOUR,
-  FieldKey.TIMESTAMP_TO_DAY,
-
-  FieldKey.CULPRIT,
-  FieldKey.PLATFORM_NAME,
-  FieldKey.ENVIRONMENT,
-  FieldKey.RELEASE,
-  FieldKey.DIST,
-  FieldKey.TITLE,
-  // tags.key and tags.value are omitted on purpose as well.
-
-  FieldKey.TRANSACTION,
-  FieldKey.UNREAL_CRASH_TYPE,
-  FieldKey.USER,
-  FieldKey.USER_ID,
-  FieldKey.USER_EMAIL,
-  FieldKey.USER_USERNAME,
-  FieldKey.USER_IP,
-  FieldKey.SDK_NAME,
-  FieldKey.SDK_VERSION,
-  FieldKey.HTTP_METHOD,
-  FieldKey.HTTP_REFERER,
-  FieldKey.HTTP_STATUS_CODE,
-  FieldKey.HTTP_URL,
-  FieldKey.OS_BUILD,
-  FieldKey.OS_KERNEL_VERSION,
-  FieldKey.DEVICE_NAME,
-  FieldKey.DEVICE_BRAND,
-  FieldKey.DEVICE_LOCALE,
-  FieldKey.DEVICE_UUID,
-  FieldKey.DEVICE_ARCH,
-  FieldKey.DEVICE_FAMILY,
-  FieldKey.DEVICE_BATTERY_LEVEL,
-  FieldKey.DEVICE_ORIENTATION,
-  FieldKey.DEVICE_SCREEN_DENSITY,
-  FieldKey.DEVICE_SCREEN_DPI,
-  FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS,
-  FieldKey.DEVICE_SCREEN_WIDTH_PIXELS,
-  FieldKey.DEVICE_SIMULATOR,
-  FieldKey.DEVICE_ONLINE,
-  FieldKey.DEVICE_CHARGING,
-  FieldKey.DEVICE_CLASS,
-  FieldKey.GEO_COUNTRY_CODE,
-  FieldKey.GEO_REGION,
-  FieldKey.GEO_CITY,
-  FieldKey.GEO_SUBDIVISION,
-  // contexts.key and contexts.value omitted on purpose.
-
-  // App context fields
-  FieldKey.APP_IN_FOREGROUND,
-
-  // Transaction event fields.
-  FieldKey.TRANSACTION_DURATION,
-  FieldKey.TRANSACTION_OP,
-  FieldKey.TRANSACTION_STATUS,
-
-  FieldKey.TRACE,
-  FieldKey.TRACE_SPAN,
-  FieldKey.TRACE_PARENT_SPAN,
-
-  FieldKey.PROFILE_ID,
-
-  // Meta field that returns total count, usually for equations
-  FieldKey.TOTAL_COUNT,
-
-  // Field alises defined in src/sentry/api/event_search.py
-  FieldKey.PROJECT,
-  FieldKey.ISSUE,
-  FieldKey.USER_DISPLAY,
-
-  // Span Op fields
-  SpanOpBreakdown.SPANS_BROWSER,
-  SpanOpBreakdown.SPANS_DB,
-  SpanOpBreakdown.SPANS_HTTP,
-  SpanOpBreakdown.SPANS_RESOURCE,
-  SpanOpBreakdown.SPANS_UI,
-];
+export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
+  f => !ERROR_ONLY_FIELDS.includes(f)
+);
 
 export enum ReplayFieldKey {
   ACTIVITY = 'activity',
