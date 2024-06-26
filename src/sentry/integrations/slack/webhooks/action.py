@@ -14,7 +14,7 @@ from slack_sdk import WebhookClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
