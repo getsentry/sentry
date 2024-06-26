@@ -198,17 +198,16 @@ export default function MetricDetailsBody({
             />
             {selectedIncident && (
               <Tooltip
-                title={`click to clear filters`}
+                title={`Click to clear filters`}
                 isHoverable
                 containerDisplayMode="inline-flex"
               >
-                {/* <div>filtering on {selectedIncident.identifier}</div> */}
                 <Link
                   to={{
                     pathname: alertDetailsLink(organization, selectedIncident),
                   }}
                 >
-                  filtering on alert: #{selectedIncident.identifier}
+                  Filtering on alert: #{selectedIncident.identifier}
                 </Link>
               </Tooltip>
             )}

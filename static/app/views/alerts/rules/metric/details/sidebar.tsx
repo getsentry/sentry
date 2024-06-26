@@ -142,11 +142,11 @@ export function MetricDetailsSidebar({
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
   let conditionType;
-  switch (
+  const activationCondition =
     rule.monitorType === MonitorType.ACTIVATED &&
     typeof rule.activationCondition !== 'undefined' &&
-    rule.activationCondition
-  ) {
+    rule.activationCondition;
+  switch (activationCondition) {
     case ActivationConditionType.DEPLOY_CREATION:
       conditionType = t('New Deploy');
       break;
@@ -222,7 +222,7 @@ export function MetricDetailsSidebar({
             value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
           />
           {rule.monitorType === MonitorType.ACTIVATED &&
-            typeof rule.activationCondition !== 'undefined' && (
+            rule.activationCondition !== undefined && (
               <KeyValueTableRow
                 keyName={t('Activated By')}
                 value={<OverflowTableValue>{conditionType}</OverflowTableValue>}

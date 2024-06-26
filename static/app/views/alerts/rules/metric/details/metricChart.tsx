@@ -544,9 +544,8 @@ class MetricChart extends PureComponent<Props, State> {
       selectedIncident &&
       selectedIncident.activation
     ) {
-      const activation = selectedIncident.activation;
-      const activator = activation.activator;
-      const conditionType = activation.conditionType;
+      const {activation} = selectedIncident;
+      const {activator, conditionType} = activation;
       switch (conditionType) {
         case String(ActivationConditionType.RELEASE_CREATION):
           activationFilter = ` AND (release:${activator})`;

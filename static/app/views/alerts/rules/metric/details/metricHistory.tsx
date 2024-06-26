@@ -27,7 +27,9 @@ function MetricHistory({incidents}: Props) {
       incident => incident.activities?.length
     );
     const activationTriggers: ActivationTriggerActivity[] = [];
-    // NOTE: disabling start/finish trigger rows for now
+    // NOTE: disabling start/finish trigger rows for now until we've determined whether its
+    // valuable during EA
+
     // activations?.forEach(activation => {
     //   activationTriggers.push({
     //     type: ActivationTrigger.ACTIVATED,

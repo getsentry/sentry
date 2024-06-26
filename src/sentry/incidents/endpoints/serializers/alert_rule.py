@@ -273,10 +273,7 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
-        condition_type = None
-        if obj.activation_condition.exists():
-            activation_condition = obj.activation_condition.first()
-            condition_type = activation_condition.condition_type if activation_condition else None
+        condition_type = obj.activation_condition.values_list("condition_type", flat=True).first()
 
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
