@@ -175,6 +175,47 @@ class MetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "count_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allowed_columns=constants.METRIC_DURATION_COLUMNS,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    calculated_args=[resolve_metric_id],
+                    snql_distribution=lambda args, alias: Function(
+                        "countIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "and",
+                                [
+                                    Function(
+                                        "equals",
+                                        [
+                                            Column("metric_id"),
+                                            args["metric_id"],
+                                        ],
+                                    ),
+                                    Function(
+                                        "equals",
+                                        [self.builder.column(args["if_col"]), args["if_val"]],
+                                    ),
+                                ],
+                            ),
+                        ],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "count_miserable",
                     required_args=[
                         fields.MetricArg(
@@ -593,6 +634,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.fid",
                                 "measurements.cls",
                                 "measurements.ttfb",
+                                "measurements.inp",
                             ],
                             allow_custom_measurements=False,
                         ),
@@ -641,12 +683,14 @@ class MetricsDatasetConfig(DatasetConfig):
                         )
                     ],
                     calculated_args=[resolve_metric_id],
-                    snql_distribution=self._resolve_weighted_web_vital_score_with_computed_total_count_function
-                    if features.has(
-                        "organizations:starfish-browser-webvitals-score-computed-total",
-                        self.builder.params.organization,
-                    )
-                    else self._resolve_weighted_web_vital_score_function,
+                    snql_distribution=(
+                        self._resolve_weighted_web_vital_score_with_computed_total_count_function
+                        if features.has(
+                            "organizations:starfish-browser-webvitals-score-computed-total",
+                            self.builder.params.organization,
+                        )
+                        else self._resolve_weighted_web_vital_score_function
+                    ),
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
@@ -1359,6 +1403,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.fid",
             "measurements.cls",
             "measurements.ttfb",
+            "measurements.inp",
         ]:
             raise InvalidSearchQuery("count_web_vitals only supports measurements")
 

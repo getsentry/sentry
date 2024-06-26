@@ -234,7 +234,7 @@ describe('GroupHeader', () => {
       render(
         <GroupHeader
           baseUrl=""
-          organization={OrganizationFixture({features: ['issue-priority-ui']})}
+          organization={OrganizationFixture()}
           group={GroupFixture({priority: PriorityLevel.MEDIUM})}
           project={ProjectFixture()}
           groupReprocessingStatus={ReprocessingStatus.NO_STATUS}

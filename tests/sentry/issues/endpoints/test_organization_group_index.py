@@ -32,6 +32,7 @@ from sentry.models.groupinbox import (
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import GROUP_OWNER_TYPE, GroupOwner, GroupOwnerType
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupshare import GroupShare
 from sentry.models.groupsnooze import GroupSnooze
@@ -2314,6 +2315,114 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event.group.id
+
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_user_default_custom_view_query(self) -> None:
+        SavedSearch.objects.create(
+            name="Saved Search",
+            query="TypeError",
+            organization=self.organization,
+            owner_id=self.user.id,
+            visibility=Visibility.OWNER_PINNED,
+        )
+        GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=0,
+            name="Default View",
+            query="ZeroDivisionError",
+            query_sort="date",
+        )
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-2"],
+                "message": "TypeError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_non_default_custom_view_query(self) -> None:
+        GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=0,
+            name="Default View",
+            query="TypeError",
+            query_sort="date",
+        )
+
+        view = GroupSearchView.objects.create(
+            organization=self.organization,
+            user_id=self.user.id,
+            position=1,
+            name="Custom View",
+            query="ZeroDivisionError",
+            query_sort="date",
+        )
+
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+        response = self.get_response(
+            sort_by="date",
+            limit=10,
+            collapse=["unhandled"],
+            searchId=view.id,
+            savedSearch=0,
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event.group.id
+
+    @with_feature("organizations:issue-stream-custom-views")
+    def test_global_default_custom_view_query(self) -> None:
+        event = self.store_event(
+            data={
+                "timestamp": iso_format(before_now(seconds=500)),
+                "fingerprint": ["group-1"],
+                "message": "ZeroDivisionError",
+            },
+            project_id=self.project.id,
+        )
+        event.group.update(priority=PriorityLevel.LOW)
+
+        self.login_as(user=self.user)
+        response = self.get_response(sort_by="date", limit=10, collapse=["unhandled"])
+
+        # The request is not populated with a query, or a searchId to extract a query from, so the
+        # query used should be the global default, the Prioritized query. Since the only event is a low priority event,
+        # we should expect no results here.
+        assert response.status_code == 200
+        assert len(response.data) == 0
 
     def test_query_status_and_substatus_overlapping(self) -> None:
         event = self.store_event(
@@ -5027,7 +5136,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             group=group2, status=GroupHistoryStatus.UNRESOLVED
         ).exists()
 
-    @with_feature("projects:issue-priority")
     def test_update_priority(self) -> None:
         """
         Bulk-setting priority successfully changes the priority of the groups
@@ -5052,7 +5160,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group=group, type=ActivityType.SET_PRIORITY.value, user_id=self.user.id
             ).exists()
 
-    @with_feature("projects:issue-priority")
     def test_update_priority_no_change(self) -> None:
         """
         When the priority is the same as the current priority, no changes are made
