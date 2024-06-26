@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime
-from typing import Any
+from typing import Any, Self
 
 from django.db import models
 from django.http import HttpRequest
@@ -79,7 +79,7 @@ class WebhookPayload(Model):
         identifier: int | str,
         request: HttpRequest,
         integration_id: int | None = None,
-    ) -> WebhookPayload:
+    ) -> Self:
         metrics.incr("hybridcloud.deliver_webhooks.saved")
         return cls.objects.create(
             mailbox_name=f"{provider}:{identifier}",
@@ -88,7 +88,7 @@ class WebhookPayload(Model):
             **cls.get_attributes_from_request(request),
         )
 
-    def schedule_next_attempt(self):
+    def schedule_next_attempt(self) -> None:
         attempts = self.attempts + 1
         backoff = BACKOFF_INTERVAL * BACKOFF_RATE**attempts
         backoff_delta = datetime.timedelta(minutes=min(backoff, 60))

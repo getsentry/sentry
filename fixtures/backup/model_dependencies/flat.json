@@ -856,5 +856,10 @@
   ],
   "social_auth.usersocialauth": [
     "sentry.user"
-  ]
+  ],
+  "uptime.projectuptimesubscription": [
+    "sentry.project",
+    "uptime.uptimesubscription"
+  ],
+  "uptime.uptimesubscription": []
 }

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
@@ -22,7 +23,6 @@ from sentry.api.serializers.models.role import (
 from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.types import OrganizationSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
-from sentry.app import env
 from sentry.auth.access import Access
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -32,6 +32,7 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -63,9 +64,10 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.utils.http import is_using_customer_domain
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
@@ -83,7 +85,6 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     ],
     "quotas:new-spike-protection": [
         ("spike-projections", lambda opt: bool(opt.value)),
-        ("project-stats", lambda opt: bool(opt.value)),
     ],
 }
 
@@ -300,11 +301,6 @@ class OrganizationSerializer(Serializer):
             feature_set.add("open-membership")
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_set.add("shared-issues")
-        request = env.request
-        if request and is_using_customer_domain(request):
-            # If the current request is using a customer domain, then we activate the feature for this organization.
-            feature_set.add("customer-domains")
-
         if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
             feature_set.remove("mep-rollout-flag")
 
@@ -448,6 +444,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricAlertsThreadFlag: bool
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
+    extrapolateMetrics: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -588,6 +585,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
             }
         )
+
+        if features.has("organizations:metrics-extrapolation", obj):
+            context["extrapolateMetrics"] = bool(
+                obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
+            )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
         # serialize trusted relays info into their external form

@@ -88,7 +88,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             teams=[self.team],
             date_added=self.now - timedelta(days=90),
         )
-        member_set = set(project.teams.first().member_set.all())
+        member_set = set(project.teams.get().member_set.all())
         with self.options({"issues.group_attributes.send_kafka": True}):
             self.store_event(
                 data={
@@ -115,7 +115,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             self.store_event(
                 data={"timestamp": iso_format(before_now(days=1))}, project_id=project.id
             )
-        member_set = set(project.teams.first().member_set.all())
+        member_set = set(project.teams.get().member_set.all())
         for member in member_set:
             # some users have an empty string value set for this key, presumably cleared.
             user_option_service.set_option(
@@ -129,7 +129,7 @@ class WeeklyReportsTest(OutcomesSnubaTest, SnubaTestCase, PerformanceIssueTestCa
             message = mail.outbox[0]
             assert self.organization.name in message.subject
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     @freeze_time(before_now(days=2).replace(hour=0, minute=0, second=0, microsecond=0))
     def test_message_links_customer_domains(self):
         with unguarded_write(using=router.db_for_write(Project)):

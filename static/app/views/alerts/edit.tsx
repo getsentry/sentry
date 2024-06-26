@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import Teams from 'sentry/utils/teams';
 import BuilderBreadCrumbs from 'sentry/views/alerts/builder/builderBreadCrumbs';
 import IssueEditor from 'sentry/views/alerts/rules/issue';
-import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
+import {MetricRulesEdit} from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleType} from 'sentry/views/alerts/types';
 
 type RouteParams = {

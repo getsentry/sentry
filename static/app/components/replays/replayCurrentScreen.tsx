@@ -10,15 +10,16 @@ import getCurrentScreenName from 'sentry/utils/replays/getCurrentScreenName';
 function ReplayCurrentScreen() {
   const {currentTime, replay} = useReplayContext();
   const frames = replay?.getMobileNavigationFrames();
+  const replayRecord = replay?.getReplay();
 
   const screenName = useMemo(() => {
     try {
-      return getCurrentScreenName(frames, currentTime);
+      return getCurrentScreenName(replayRecord, frames, currentTime);
     } catch (err) {
       Sentry.captureException(err);
       return '';
     }
-  }, [frames, currentTime]);
+  }, [frames, currentTime, replayRecord]);
 
   if (!replay || !screenName) {
     return (

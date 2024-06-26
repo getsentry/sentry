@@ -1,6 +1,8 @@
 export type TracingEventParameters = {
   'trace.metadata': {
+    num_nodes: number;
     num_root_children: number;
+    project_platforms: string[];
     shape: string;
     trace_duration_seconds: number;
   };
@@ -19,6 +21,7 @@ export type TracingEventParameters = {
   'trace.trace_layout.span_row_click': {
     num_children: number;
     project_platform: string;
+    type: string;
   };
   'trace.trace_layout.tab_pin': {};
   'trace.trace_layout.tab_view': {
@@ -54,6 +57,7 @@ export type TracingEventParameters = {
   };
   'trace_explorer.search_success': {
     has_data: boolean;
+    num_missing_trace_root: number;
     num_traces: number;
     project_platforms: string[];
     queries: string[];
@@ -84,11 +88,11 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.view_similar_spans': 'View Similar Spans in Trace',
   'trace.trace_layout.view_span_summary': 'View Span Summary in Trace',
   'trace.trace_layout.span_row_click': 'Clicked Span Row in Trace',
-  'trace_explorer.add_span_condition': 'Trace Explorer: Add Span Condition',
+  'trace_explorer.add_span_condition': 'Trace Explorer: Add Another Span',
   'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
   'trace_explorer.open_trace': 'Trace Explorer: Open Trace in Trace Viewer',
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
-  'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span Condition',
+  'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span',
   'trace_explorer.toggle_trace_details': 'Trace Explorer: Toggle Trace Details in Table',
   'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
   'trace_explorer.search_request': 'Trace Explorer: Search Request',

@@ -25,7 +25,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useProjects from 'sentry/utils/useProjects';
 import SpanMetricsTable from 'sentry/views/performance/transactionSummary/transactionSpans/spanMetricsTable';
-import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {useSpanMetricsFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 import type {SetStateAction} from '../types';
 
@@ -192,9 +192,9 @@ function SpansContent(props: Props) {
 // TODO: Temporary component while we make the switch to spans only. Will fully replace the old Spans tab when GA'd
 function SpansContentV2(props: Props) {
   const {location, organization, eventView, projectId, transactionName} = props;
+  const supportedTags = useSpanMetricsFieldSupportedTags();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === projectId);
-
   const spansQuery = decodeScalar(location.query.spansQuery);
 
   function handleChange(key: string) {
@@ -219,8 +219,6 @@ function SpansContentV2(props: Props) {
       });
     };
   }
-
-  const supportedTags = useSpanFieldSupportedTags();
 
   return (
     <Layout.Main fullWidth>

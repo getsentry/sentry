@@ -19,6 +19,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleTriggerAction,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
@@ -256,7 +257,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:metric-alert-ignore-archived",
                 ]
             ),
         ):
@@ -734,8 +734,12 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        side_effect=[
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "20", False),
+        ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):

@@ -9,9 +9,12 @@ import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
+import SpecificDatePicker from 'sentry/components/searchQueryBuilder/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
+  isDateToken,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -25,6 +28,7 @@ import {
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/smartSearchBar/types';
+import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
@@ -35,11 +39,13 @@ import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
   token: TokenResult<Token.FILTER>;
+  wrapperRef: React.RefObject<HTMLDivElement>;
 };
 
 type SuggestionItem = {
   value: string;
   description?: ReactNode;
+  label?: ReactNode;
 };
 
 type SuggestionSection = {
@@ -53,9 +59,10 @@ type SuggestionSectionItem = {
 };
 
 const NUMERIC_REGEX = /^-?\d+(\.\d+)?$/;
-const RELATIVE_DATE_REGEX = /^([+-]?)(\d+)([mhdw]?)$/;
 const FILTER_VALUE_NUMERIC = /^-?\d+(\.\d+)?[kmb]?$/i;
 const FILTER_VALUE_INT = /^-?\d+[kmb]?$/i;
+
+const RELATIVE_DATE_INPUT_REGEX = /^(\d+)\s*([mhdw]?)/;
 
 function isNumeric(value: string) {
   return NUMERIC_REGEX.test(value);
@@ -69,7 +76,6 @@ function isStringFilterValues(
 
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
 const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;
-const RELATIVE_DATE_SIGNS = ['-', '+'] as const;
 const DURATION_UNITS = ['ms', 's', 'm', 'h', 'd', 'w'] as const;
 
 const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
@@ -93,53 +99,62 @@ const DEFAULT_BOOLEAN_SUGGESTIONS: SuggestionSection[] = [
   },
 ];
 
-const DEFAULT_DATE_SUGGESTIONS: SuggestionSection[] = [
-  {
-    sectionText: '',
-    suggestions: [
-      {value: '-1h', description: t('Last hour')},
-      {value: '-24h', description: t('Last 24 hours')},
-      {value: '-7d', description: t('Last 7 days')},
-      {value: '-14d', description: t('Last 14 days')},
-      {value: '-30d', description: t('Last 30 days')},
-      {value: '+1d', description: t('More than 1 day ago')},
-    ],
-  },
-];
-
-const makeRelativeDateDescription = (sign: '+' | '-', value: number, unit: string) => {
-  if (sign === '-') {
-    switch (unit) {
-      case 's':
-        return tn('Last %s second', 'Last %s seconds', value);
-      case 'm':
-        return tn('Last %s minute', 'Last %s minutes', value);
-      case 'h':
-        return tn('Last %s hour', 'Last %s hours', value);
-      case 'd':
-        return tn('Last %s day', 'Last %s days', value);
-      case 'w':
-        return tn('Last %s week', 'Last %s weeks', value);
-      default:
-        return '';
-    }
+function getDefaultAbsoluteDateValue(token: TokenResult<Token.FILTER>) {
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    return token.value.text;
   }
 
+  return '';
+}
+
+function getRelativeDateSign(token: TokenResult<Token.FILTER>) {
+  return token.value.type === Token.VALUE_RELATIVE_DATE ? token.value.sign : '-';
+}
+
+function makeRelativeDateDescription(value: number, unit: string) {
   switch (unit) {
     case 's':
-      return tn('More than %s second ago', 'More than %s seconds ago', value);
+      return tn('%s second ago', '%s seconds ago', value);
     case 'm':
-      return tn('More than %s minute ago', 'More than %s minutes ago', value);
+      return tn('%s minute ago', '%s minutes ago', value);
     case 'h':
-      return tn('More than %s hour ago', 'More than %s hours ago', value);
+      return tn('%s hour ago', '%s hours ago', value);
     case 'd':
-      return tn('More than %s day ago', 'More than %s days ago', value);
+      return tn('%s day ago', '%s days ago', value);
     case 'w':
-      return tn('More than %s week ago', 'More than %s weeks ago', value);
+      return tn('%s week ago', '%s weeks ago', value);
     default:
       return '';
   }
-};
+}
+
+function makeDefaultDateSuggestions(
+  token: TokenResult<Token.FILTER>
+): SuggestionSection[] {
+  const sign = getRelativeDateSign(token);
+
+  return [
+    {
+      sectionText: '',
+      suggestions: [
+        {value: `${sign}1h`, label: makeRelativeDateDescription(1, 'h')},
+        {value: `${sign}24h`, label: makeRelativeDateDescription(24, 'h')},
+        {value: `${sign}7d`, label: makeRelativeDateDescription(7, 'd')},
+        {value: `${sign}14d`, label: makeRelativeDateDescription(14, 'd')},
+        {value: `${sign}30d`, label: makeRelativeDateDescription(30, 'd')},
+        {
+          value: 'absolute_date',
+          label: (
+            <AbsoluteDateOption>
+              {t('Absolute date')}
+              <IconArrow direction="right" size="xs" />
+            </AbsoluteDateOption>
+          ),
+        },
+      ],
+    },
+  ];
+}
 
 function getNumericSuggestions(inputValue: string): SuggestionSection[] {
   if (!inputValue) {
@@ -181,33 +196,34 @@ function getDurationSuggestions(inputValue: string): SuggestionSection[] {
   return [];
 }
 
-function getRelativeDateSuggestions(inputValue: string): SuggestionSection[] {
-  const match = inputValue.match(RELATIVE_DATE_REGEX);
+function getRelativeDateSuggestions(
+  inputValue: string,
+  token: TokenResult<Token.FILTER>
+): SuggestionSection[] {
+  const match = inputValue.match(RELATIVE_DATE_INPUT_REGEX);
 
   if (!match) {
-    return DEFAULT_DATE_SUGGESTIONS;
+    return makeDefaultDateSuggestions(token);
   }
 
-  const [, , value] = match;
+  const [, value] = match;
   const intValue = parseInt(value, 10);
 
   if (isNaN(intValue)) {
-    return DEFAULT_DATE_SUGGESTIONS;
+    return makeDefaultDateSuggestions(token);
   }
+
+  const sign = token.value.type === Token.VALUE_RELATIVE_DATE ? token.value.sign : '-';
 
   return [
     {
       sectionText: '',
-      suggestions: [
-        ...RELATIVE_DATE_SIGNS.flatMap(sign =>
-          RELATIVE_DATE_UNITS.map(unit => {
-            return {
-              value: `${sign}${intValue}${unit}`,
-              description: makeRelativeDateDescription(sign, intValue, unit),
-            };
-          })
-        ),
-      ],
+      suggestions: RELATIVE_DATE_UNITS.map(unit => {
+        return {
+          value: `${sign}${intValue}${unit}`,
+          label: makeRelativeDateDescription(intValue, unit),
+        };
+      }),
     },
   ];
 }
@@ -225,8 +241,10 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
 function getPredefinedValues({
   key,
   inputValue,
+  token,
 }: {
   inputValue: string;
+  token: TokenResult<Token.FILTER>;
   key?: Tag;
 }): SuggestionSection[] {
   if (!key) {
@@ -245,7 +263,7 @@ function getPredefinedValues({
         return DEFAULT_BOOLEAN_SUGGESTIONS;
       // TODO(malwilley): Better date suggestions
       case FieldValueType.DATE:
-        return getRelativeDateSuggestions(inputValue);
+        return getRelativeDateSuggestions(inputValue, token);
       default:
         return [];
     }
@@ -351,6 +369,13 @@ function cleanFilterValue(key: string, value: string): string {
         return value;
       }
       return '';
+    case FieldValueType.DATE:
+      const parsed = parseFilterValueDate(value);
+
+      if (!parsed) {
+        return '';
+      }
+      return value;
     default:
       return escapeTagValue(value);
   }
@@ -368,14 +393,14 @@ function useFilterSuggestions({
   const {getTagValues, keys} = useSearchQueryBuilder();
   const key = keys[token.key.text];
   const predefinedValues = useMemo(
-    () => getPredefinedValues({key, inputValue}),
-    [key, inputValue]
+    () => getPredefinedValues({key, inputValue, token}),
+    [key, inputValue, token]
   );
   const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
 
   // TODO(malwilley): Display error states
-  const {data} = useQuery<string[]>({
+  const {data, isFetching} = useQuery<string[]>({
     queryKey: ['search-query-builder', token.key, inputValue] as QueryKey,
     queryFn: () => getTagValues(key, inputValue),
     keepPreviousData: true,
@@ -385,7 +410,7 @@ function useFilterSuggestions({
   const createItem = useCallback(
     (suggestion: SuggestionItem, selected = false) => {
       return {
-        label: suggestion.value,
+        label: suggestion.label ?? suggestion.value,
         value: suggestion.value,
         details: suggestion.description,
         textValue: suggestion.value,
@@ -452,6 +477,7 @@ function useFilterSuggestions({
   return {
     items,
     suggestionSectionItems,
+    isFetching,
   };
 }
 
@@ -495,10 +521,22 @@ function ItemCheckbox({
 export function SearchQueryBuilderValueCombobox({
   token,
   onCommit,
+  wrapperRef,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(() => {
+    if (isDateToken(token)) {
+      return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
+    }
+    return '';
+  });
+  const [showDatePicker, setShowDatePicker] = useState(() => {
+    if (isDateToken(token)) {
+      return token.value.type === Token.VALUE_ISO_8601_DATE;
+    }
+    return false;
+  });
 
   const {keys, dispatch} = useSearchQueryBuilder();
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
@@ -509,7 +547,7 @@ export function SearchQueryBuilderValueCombobox({
         : [],
     [canSelectMultipleValues, token]
   );
-  const {items, suggestionSectionItems} = useFilterSuggestions({
+  const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     inputValue,
     selectedValues,
@@ -517,6 +555,12 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleSelectValue = useCallback(
     (value: string) => {
+      if (isDateToken(token) && value === 'absolute_date') {
+        setShowDatePicker(true);
+        setInputValue('');
+        return;
+      }
+
       const cleanedValue = cleanFilterValue(token.key.text, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
@@ -538,7 +582,7 @@ export function SearchQueryBuilderValueCombobox({
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
-          token: token.value,
+          token: token,
           value: cleanedValue,
         });
         onCommit();
@@ -579,6 +623,48 @@ export function SearchQueryBuilderValueCombobox({
     }
   }, []);
 
+  // Ensure that the menu stays open when clicking on the selected items
+  const shouldCloseOnInteractOutside = useCallback(
+    (el: Element) => {
+      if (wrapperRef.current?.contains(el)) {
+        return false;
+      }
+      return true;
+    },
+    [wrapperRef]
+  );
+
+  const customMenu = useMemo(() => {
+    if (!showDatePicker) return undefined;
+
+    return function ({popoverRef, isOpen}) {
+      return (
+        <SpecificDatePicker
+          popoverRef={popoverRef}
+          dateString={inputValue || getDefaultAbsoluteDateValue(token)}
+          handleSelectDateTime={newDateTimeValue => {
+            setInputValue(newDateTimeValue);
+            inputRef.current?.focus();
+          }}
+          handleBack={() => {
+            setShowDatePicker(false);
+            setInputValue('');
+            inputRef.current?.focus();
+          }}
+          handleSave={newDateTimeValue => {
+            dispatch({
+              type: 'UPDATE_TOKEN_VALUE',
+              token: token,
+              value: newDateTimeValue,
+            });
+            onCommit();
+          }}
+          isOpen={isOpen}
+        />
+      );
+    };
+  }, [dispatch, inputValue, onCommit, showDatePicker, token]);
+
   return (
     <ValueEditing ref={ref} onClick={onClick} data-test-id="filter-value-editing">
       {selectedValues.map(value => (
@@ -600,8 +686,9 @@ export function SearchQueryBuilderValueCombobox({
         autoFocus
         maxOptions={50}
         openOnFocus
-        // Ensure that the menu stays open when clicking on the selected items
-        shouldCloseOnInteractOutside={el => el !== ref.current}
+        isLoading={isFetching}
+        customMenu={customMenu}
+        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>
@@ -642,4 +729,14 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
   padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+`;
+
+const AbsoluteDateOption = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+
+  svg {
+    color: ${p => p.theme.gray300};
+  }
 `;

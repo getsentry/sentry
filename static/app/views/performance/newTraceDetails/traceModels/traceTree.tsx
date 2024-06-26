@@ -274,6 +274,9 @@ export function makeTraceNodeBarColor(
     return pickBarColor(node.value.op);
   }
   if (isAutogroupedNode(node)) {
+    if (node.errors.size > 0) {
+      return theme.red300;
+    }
     return theme.blue300;
   }
   if (isMissingInstrumentationNode(node)) {
@@ -2424,6 +2427,20 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
 
   return 'unknown node';
+}
+
+export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>): string {
+  if (isAutogroupedNode(node)) {
+    return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
+  }
+  if (isSpanNode(node)) return 'span';
+  if (isTransactionNode(node)) return 'transaction';
+  if (isMissingInstrumentationNode(node)) return 'missing instrumentation';
+  if (isRootNode(node)) return 'root';
+  if (isTraceNode(node)) return 'trace';
+  if (isNoDataNode(node)) return 'no data';
+  if (isTraceErrorNode(node)) return 'error';
+  return 'unknown';
 }
 
 // Creates an example trace response that we use to render the loading placeholder
