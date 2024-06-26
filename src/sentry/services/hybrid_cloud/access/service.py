@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.auth import find_providers_requiring_refresh
-from sentry.services.hybrid_cloud import silo_mode_delegation
+from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthIdentity,
     RpcAuthProvider,
@@ -99,7 +99,7 @@ class AccessService(abc.ABC):
     def get_user_auth_state(
         self,
         *,
-        user_id: int,
+        user_id: int | None,
         is_superuser: bool,
         is_staff: bool,
         organization_id: int | None,
@@ -111,7 +111,7 @@ class AccessService(abc.ABC):
 
         # Unfortunately we are unable to combine the is_superuser and is_staff
         # into a single argument b/c query_sso_state specifically needs is_superuser
-        if is_superuser or is_staff:
+        if (is_superuser or is_staff) and user_id is not None:
             # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
             # have them, you can only use them when you are acting, as a superuser or staff.  This is intentional.
             permissions = list(self.get_permissions_for_user(user_id))

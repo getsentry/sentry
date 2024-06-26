@@ -9,22 +9,19 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  ORDER,
-  ORDER_WITH_INP,
-  ORDER_WITH_INP_WITHOUT_FID,
-} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
 import {useProjectRawWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import type {UnweightedWebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/useProjectWebVitalsTimeseriesQuery';
+import {
+  type UnweightedWebVitalsScoreBreakdown,
+  useProjectWebVitalsScoresTimeseriesQuery,
+} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
-export const FID_DEPRECATION_DATE = 1710259200000;
 
 type Props = {
   transaction?: string;
@@ -54,7 +51,7 @@ export const formatTimeSeriesResultsToChartData = (
 
 export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const theme = useTheme();
-  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5), theme.gray200];
+  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
 
   const pageFilters = usePageFilters();
 
@@ -77,7 +74,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
     });
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsTimeseriesQuery({transaction});
+    useProjectWebVitalsScoresTimeseriesQuery({transaction});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({transaction});
 
@@ -87,12 +84,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
 
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
-
-  const hasFid =
-    timeseriesData?.fid?.find(({value}) => value > 0) !== undefined ||
-    preMigrationTimeseriesData?.fid?.find(({value}) => value > 0) !== undefined;
-
-  const chartSeriesOrder = hasFid ? ORDER_WITH_INP : ORDER_WITH_INP_WITHOUT_FID;
+  const chartSeriesOrder = ORDER;
 
   const preMigrationWeightedTimeseries = formatTimeSeriesResultsToChartData(
     preMigrationTimeseriesData,
@@ -157,7 +149,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
     {
       lcp: storedScores.unweightedLcp,
       fcp: storedScores.unweightedFcp,
-      fid: storedScores.unweightedFid,
       cls: storedScores.unweightedCls,
       ttfb: storedScores.unweightedTtfb,
       inp: storedScores.unweightedInp,
@@ -192,7 +183,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
           ? {
               lcp: projectScore.lcpWeight,
               fcp: projectScore.fcpWeight,
-              fid: projectScore.fidWeight,
               inp: projectScore.inpWeight,
               cls: projectScore.clsWeight,
               ttfb: projectScore.ttfbWeight,
@@ -232,9 +222,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         chartColors={segmentColors}
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
-            if (name === 'FID') {
-              return `${name} Score </strong>(${t('Deprecated')})</strong>`;
-            }
             const timestamp = seriesParams?.data[0];
             const weights = weightsSeries.find(
               series => series.name === timestamp

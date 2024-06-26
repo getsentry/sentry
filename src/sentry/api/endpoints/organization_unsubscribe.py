@@ -22,6 +22,7 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.types.actor import Actor, ActorType
+from sentry.utils import auth
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -49,7 +50,7 @@ class OrganizationUnsubscribeBase(Endpoint, Generic[T]):
     def get(
         self, request: Request, organization_id_or_slug: int | str, id: int, **kwargs
     ) -> Response:
-        if not request.user_from_signed_request:
+        if not auth.is_user_signed_request(request):
             raise NotFound()
         instance = self.fetch_instance(request, organization_id_or_slug, id)
         view_url = ""

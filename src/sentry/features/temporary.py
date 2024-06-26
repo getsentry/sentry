@@ -79,13 +79,15 @@ def register_temporary_features(manager: FeatureManager):
     # Enable release health widget in dashboards
     manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    # Enable the dev toolbar PoC code for employees
+    manager.add("organizations:devtoolbar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables custom metrics extraction rule endpoint
     manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Hides DDM sidebar item
-    manager.add("organizations:ddm-sidebar-item-hidden", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enables metrics extrapolation feature
+    manager.add("organizations:metrics-extrapolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the default alert at project creation to be the high priority alert
     manager.add("organizations:default-high-priority-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables automatically deriving of code mappings
@@ -259,8 +261,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-span-histogram-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable trace details page with embedded spans
     manager.add("organizations:performance-trace-details", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable trace explorer features in performance
+    # Enable trace explorer features
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable trace explorer sorting by newest
+    manager.add("organizations:performance-trace-explorer-sorting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable linking to trace explorer from metrics
     manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable FE/BE for tracing without performance
@@ -380,8 +384,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-web-vitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable Slack messages using Block Kit
-    manager.add("organizations:slack-block-kit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
+    # Enable Culprit Blocks in Slack Notifications
+    manager.add("organizations:slack-culprit-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable description field in Slack metric alerts
     manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable improvements to Slack notifications
@@ -391,6 +395,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:slack-sdk-get-users", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in _notify_recipient
     manager.add("organizations:slack-sdk-notify-recipient", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    # Use new Slack SDK Client in get_channel_id_with_timeout
+    manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
@@ -458,6 +464,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:transaction-name-normalize", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Sanitize transaction names in the ingestion pipeline. # Deprecated
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enables automatic hostname detection in uptime
+    manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable User Feedback v2 ingest
     manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

@@ -172,12 +172,7 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection
-        event={event}
-        group={group}
-        project={project}
-        viewAllRef={tagsRef}
-      />
+      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}

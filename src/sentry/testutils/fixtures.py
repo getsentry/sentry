@@ -160,7 +160,7 @@ class Fixtures:
             project = self.project
         return Factories.create_environment(project=project, **kwargs)
 
-    def create_project(self, **kwargs):
+    def create_project(self, **kwargs) -> Project:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
@@ -176,7 +176,13 @@ class Fixtures:
         return Factories.create_project_key(project=project, *args, **kwargs)
 
     def create_project_rule(
-        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+        self,
+        project=None,
+        action_match=None,
+        condition_match=None,
+        comparison_interval=None,
+        *args,
+        **kwargs,
     ):
         if project is None:
             project = self.project

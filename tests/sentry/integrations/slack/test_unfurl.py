@@ -18,7 +18,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
@@ -216,7 +215,6 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    @with_feature("organizations:slack-block-kit")
     def test_unfurl_issues_block_kit(self):
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
@@ -246,7 +244,6 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    @with_feature({"organizations:slack-block-kit": False})
     def test_escape_issue(self):
         # wraps text in markdown code block
         escape_text = "<https://example.com/|*Click Here*>"
