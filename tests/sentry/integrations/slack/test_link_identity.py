@@ -295,4 +295,4 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         # Unlink identity of user.
         self.client.post(self.unlinking_url)
         assert not Identity.objects.filter(external_id="new-slack-id", user=self.user).exists()
-        assert self.mock_post.call_count == 1
+        assert self.mock_webhook.call_count == 1
