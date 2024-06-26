@@ -28,7 +28,7 @@ export function DrawerPanel({
 
   useOnClickOutside(panelRef, () => {
     if (isOpen && closeOnOutsideClick) {
-      onClose?.();
+      onClose();
       setIsDrawerOpen(false);
     }
   });
@@ -36,7 +36,7 @@ export function DrawerPanel({
   const handleEscapePress = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen && closeOnEscapeKeypress) {
-        onClose?.();
+        onClose();
         setIsDrawerOpen(false);
       }
     },
