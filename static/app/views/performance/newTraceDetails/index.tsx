@@ -332,11 +332,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         treeRef.current = newTree;
         return newTree;
       }
-      
+
       treeRef.current.appendTree(TraceTree.FromTrace(traceResults, props.replayRecord));
       return treeRef.current;
     }
-  
+
     throw new Error('Invalid trace state');
   }, [props.traceQueryParams, traceResults, projects, props.replayRecord, isIncrementallyFetching, isLoading]);
 

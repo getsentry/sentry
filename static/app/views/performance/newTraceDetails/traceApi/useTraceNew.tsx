@@ -111,20 +111,20 @@ function parseDemoEventSlug(
     if (!demoEventSlug) {
       return null;
     }
-  
+
     const [project_slug, event_id] = demoEventSlug.split(':');
     return {project_slug, event_id};
   }
-  
+
   function makeTraceFromTransaction(
     event: EventTransaction | undefined
   ): TraceSplitResults<TraceFullDetailed> | undefined {
     if (!event) {
       return undefined;
     }
-  
+
     const traceContext = event.contexts?.trace;
-  
+
     const transaction = {
       event_id: event.eventID,
       generation: 0,
@@ -146,16 +146,16 @@ function parseDemoEventSlug(
       measurements: event.measurements ?? {},
       tags: [],
     };
-  
+
     return {transactions: [transaction], orphan_errors: []};
   }
-  
+
   function useDemoTrace(
     demo: string | undefined,
     organization: {slug: string}
   ): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
     const demoEventSlug = parseDemoEventSlug(demo);
-  
+
     // When projects don't have performance set up, we allow them to view a demo transaction.
     // The backend creates the demo transaction, however the trace is created async, so when the
     // page loads, we cannot guarantee that querying the trace will succeed as it may not have been stored yet.
@@ -175,13 +175,13 @@ function parseDemoEventSlug(
         enabled: !!demoEventSlug,
       }
     );
-  
+
     // Without the useMemo, the trace from the transformed response  will be re-created on every render,
     // causing the trace view to re-render as we interact with it.
     const data = useMemo(() => {
       return makeTraceFromTransaction(demoEventQuery.data);
     }, [demoEventQuery.data]);
-  
+
     // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
     // from EventTransaction to TraceSplitResults<TraceFullDetailed>
     return {...demoEventQuery, data} as UseApiQueryResult<
@@ -242,7 +242,7 @@ export function useTraceNew(
 
         const clonedTraceIds = [...traceQueryParams];
         const apiErrors: Error[] = [];
-        
+
         while (clonedTraceIds.length > 0) {
           const batch = clonedTraceIds.splice(0, 3);
           const results = await Promise.allSettled(
@@ -250,7 +250,7 @@ export function useTraceNew(
               return fetchTrace(api, {orgSlug: organization.slug, query: qs.stringify(getTraceQueryParams(qs.parse(location.search), filters.selection, options, traceParams)), traceId: traceParams.trace});
             })
           );
-            
+
           const updatedData = results.reduce(
             (acc, result) => {
               if (result.status === 'fulfilled') {
@@ -264,7 +264,7 @@ export function useTraceNew(
             },
             {transactions: [], orphan_errors: []} as TraceSplitResults<TraceTree.Transaction>
           );
-          
+
          setTraceData(prev => {
             return {
                 ...prev,
@@ -286,9 +286,9 @@ export function useTraceNew(
 
     if(mode !== 'demo') {
         fetchTracesInBatches(options.traceQueryParams, api, organization);
-    } 
+    }
   }, [])
-  
+
   return mode === 'demo' ? {
     traceResults: demoTrace.data ?? {
         transactions: [],

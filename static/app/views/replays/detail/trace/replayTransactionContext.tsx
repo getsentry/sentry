@@ -240,7 +240,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
             trace: row.trace,
             timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
           }));
-        
+
         (async function () {
           await fetchTracesInBatches(parsedData);
         })();
