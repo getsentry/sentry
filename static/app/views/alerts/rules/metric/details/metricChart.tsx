@@ -38,6 +38,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DateString, Organization, Project} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import toArray from 'sentry/utils/array/toArray';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -507,6 +508,7 @@ class MetricChart extends PureComponent<Props, State> {
       query,
       location,
       isOnDemandAlert,
+      selectedIncident,
     } = this.props;
     const {aggregate, timeWindow, environment, dataset} = rule;
 
@@ -536,6 +538,27 @@ class MetricChart extends PureComponent<Props, State> {
       moment.utc(timePeriod.end).add(timeWindow, 'minutes')
     );
 
+    let activationFilter = '';
+    if (
+      rule.monitorType === MonitorType.ACTIVATED &&
+      selectedIncident &&
+      selectedIncident.activation
+    ) {
+      const activation = selectedIncident.activation;
+      const activator = activation.activator;
+      const conditionType = activation.conditionType;
+      switch (conditionType) {
+        case String(ActivationConditionType.RELEASE_CREATION):
+          activationFilter = ` AND (release:${activator})`;
+          break;
+        case String(ActivationConditionType.DEPLOY_CREATION):
+          activationFilter = ` AND (deploy:${activator})`;
+          break;
+        default:
+          break;
+      }
+    }
+
     const queryExtras: Record<string, string> = {
       ...getMetricDatasetQueryExtras({
         organization,
@@ -559,7 +582,7 @@ class MetricChart extends PureComponent<Props, State> {
         environment={environment ? [environment] : undefined}
         start={viableStartDate}
         end={viableEndDate}
-        query={query}
+        query={query + activationFilter}
         interval={interval}
         field={SESSION_AGGREGATE_TO_FIELD[aggregate]}
         groupBy={['session.status']}
@@ -576,7 +599,7 @@ class MetricChart extends PureComponent<Props, State> {
       <EventsRequest
         api={api}
         organization={organization}
-        query={query}
+        query={query + activationFilter}
         environment={environment ? [environment] : undefined}
         project={project.id ? [Number(project.id)] : []}
         interval={interval}
