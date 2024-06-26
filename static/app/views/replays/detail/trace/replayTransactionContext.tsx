@@ -29,7 +29,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-import { useApiQuery } from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 
 type Options = {
   children: ReactNode;
@@ -142,7 +142,9 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           return {
             ...prev,
             traces: sortBy(
-              (prev.traces || []).concat(sortBy(transactions ?? (trace as TraceFullDetailed[]), 'start_timestamp')),
+              (prev.traces || []).concat(
+                sortBy(transactions ?? (trace as TraceFullDetailed[]), 'start_timestamp')
+              ),
               'start_timestamp'
             ),
             orphanErrors: sortBy(
@@ -291,12 +293,10 @@ function internalToExternalState({
   };
 }
 
-export function useReplayTraceQueryParams(
-  replayRecord: ReplayRecord | undefined
-): {
+export function useReplayTraceQueryParams(replayRecord: ReplayRecord | undefined): {
   trace: string;
   timestamp: number | undefined;
-}[]{
+}[] {
   const organization = useOrganization();
 
   // EventView that is used to fetch the list of events for the replay
@@ -349,11 +349,12 @@ export function useReplayTraceQueryParams(
   );
 
   const traceQueryParams = useMemo(() => {
-    return (eventsData?.data ?? []).filter(row => row.trace) // Filter out items where trace is not truthy
-    .map(row => ({
-      trace: String(row.trace),
-      timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
-    }));
+    return (eventsData?.data ?? [])
+      .filter(row => row.trace) // Filter out items where trace is not truthy
+      .map(row => ({
+        trace: String(row.trace),
+        timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+      }));
   }, [eventsData]);
 
   return traceQueryParams;

@@ -74,8 +74,8 @@ import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import { useTraceNew } from './traceApi/useTraceNew';
-import { getTimeStampFromTableDateField } from 'sentry/utils/dates';
+import {useTraceNew} from './traceApi/useTraceNew';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {
@@ -202,7 +202,12 @@ export function TraceView() {
             />
             <TraceInnerLayout>
               <TraceViewWaterfall
-                traceQueryParams={[{trace: traceSlug, timestamp: getTimeStampFromTableDateField(queryParams.timestamp)}]}
+                traceQueryParams={[
+                  {
+                    trace: traceSlug,
+                    timestamp: getTimeStampFromTableDateField(queryParams.timestamp),
+                  },
+                ]}
                 traceLabel={traceSlug}
                 organization={organization}
                 traceEventView={traceEventView}
@@ -235,7 +240,7 @@ type TraceViewWaterfallProps = {
   source: string;
   traceEventView: EventView;
   traceLabel: string;
-  traceQueryParams: { trace: string; timestamp: number | undefined; }[];
+  traceQueryParams: {trace: string; timestamp: number | undefined}[];
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
@@ -244,7 +249,9 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const {traceResults, isLoading, isIncrementallyFetching, errors} = useTraceNew({traceQueryParams: props.traceQueryParams});
+  const {traceResults, isLoading, isIncrementallyFetching, errors} = useTraceNew({
+    traceQueryParams: props.traceQueryParams,
+  });
   const rootEvent = useTraceEvent(traceResults);
 
   const traceState = useTraceState();
@@ -302,8 +309,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (
-      isLoading || (isIncrementallyFetching && treeRef.current && treeRef.current.type === 'trace'
-      && treeRef.current.list.length <= 1)
+      isLoading ||
+      (isIncrementallyFetching &&
+        treeRef.current &&
+        treeRef.current.type === 'trace' &&
+        treeRef.current.list.length <= 1)
     ) {
       const loadingTrace =
         loadingTraceRef.current ??
@@ -320,14 +330,16 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (
-      !isIncrementallyFetching && treeRef.current && treeRef.current.type === 'trace'
-      && treeRef.current.list.length <= 1
+      !isIncrementallyFetching &&
+      treeRef.current &&
+      treeRef.current.type === 'trace' &&
+      treeRef.current.list.length <= 1
     ) {
       return TraceTree.Empty();
     }
 
     if (traceResults) {
-      if (!treeRef.current ) {
+      if (!treeRef.current) {
         const newTree = TraceTree.FromTrace(traceResults, props.replayRecord);
         treeRef.current = newTree;
         return newTree;
@@ -338,7 +350,14 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     throw new Error('Invalid trace state');
-  }, [props.traceQueryParams, traceResults, projects, props.replayRecord, isIncrementallyFetching, isLoading]);
+  }, [
+    props.traceQueryParams,
+    traceResults,
+    projects,
+    props.replayRecord,
+    isIncrementallyFetching,
+    isLoading,
+  ]);
 
   console.log(treeRef.current?.list.length);
   // Assign the trace state to a ref so we can access it without re-rendering

@@ -104,9 +104,7 @@ async function fetchTraceMetaInBatches(
       {...metaResults}
     );
 
-    console.log(
-      'Meta', batchNum, updatedData.transactions - metaResults.transactions
-    );
+    console.log('Meta', batchNum, updatedData.transactions - metaResults.transactions);
 
     batchNum++;
     metaResults.errors = updatedData.errors;
@@ -147,7 +145,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     ['traceData', traceSlugs],
     () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
     {
-      enabled: traceSlugs.length > 0 ,
+      enabled: traceSlugs.length > 0,
     }
   );
 

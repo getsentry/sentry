@@ -14,7 +14,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TraceTree} from '../traceModels/traceTree';
 import useApi from 'sentry/utils/useApi';
-import { UseApiQueryResult, useApiQuery } from 'sentry/utils/queryClient';
+import {type UseApiQueryResult, useApiQuery} from 'sentry/utils/queryClient';
 
 export function fetchTrace(
   api: Client,
@@ -33,22 +33,22 @@ const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
 
 type QueryParams = {
-    eventId: string | undefined;
-    limit: number;
-    timestamp: string | undefined;
-    useSpans: number;
-    demo?: string | undefined;
-    pageEnd?: string | undefined;
-    pageStart?: string | undefined;
-    statsPeriod?: string | undefined;
+  eventId: string | undefined;
+  limit: number;
+  timestamp: string | undefined;
+  useSpans: number;
+  demo?: string | undefined;
+  pageEnd?: string | undefined;
+  pageStart?: string | undefined;
+  statsPeriod?: string | undefined;
 };
 
 export function getTraceQueryParams(
   query: Location['query'],
   filters: Partial<PageFilters> = {},
   options: {limit?: number} = {},
-  traceParams: { trace: string; timestamp: number | undefined; },
-): QueryParams{
+  traceParams: {trace: string; timestamp: number | undefined}
+): QueryParams {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
@@ -104,106 +104,105 @@ export function getTraceQueryParams(
   return queryParams;
 }
 
-
 function parseDemoEventSlug(
-    demoEventSlug: string | undefined
-  ): {event_id: string; project_slug: string} | null {
-    if (!demoEventSlug) {
-      return null;
-    }
-
-    const [project_slug, event_id] = demoEventSlug.split(':');
-    return {project_slug, event_id};
+  demoEventSlug: string | undefined
+): {event_id: string; project_slug: string} | null {
+  if (!demoEventSlug) {
+    return null;
   }
 
-  function makeTraceFromTransaction(
-    event: EventTransaction | undefined
-  ): TraceSplitResults<TraceFullDetailed> | undefined {
-    if (!event) {
-      return undefined;
-    }
+  const [project_slug, event_id] = demoEventSlug.split(':');
+  return {project_slug, event_id};
+}
 
-    const traceContext = event.contexts?.trace;
-
-    const transaction = {
-      event_id: event.eventID,
-      generation: 0,
-      parent_event_id: '',
-      parent_span_id: traceContext?.parent_span_id ?? '',
-      performance_issues: [],
-      project_id: Number(event.projectID),
-      project_slug: event.projectSlug ?? '',
-      span_id: traceContext?.span_id ?? '',
-      timestamp: event.endTimestamp,
-      transaction: event.title,
-      'transaction.duration': (event.endTimestamp - event.startTimestamp) * 1000,
-      errors: [],
-      sdk_name: event.sdk?.name ?? '',
-      children: [],
-      start_timestamp: event.startTimestamp,
-      'transaction.op': traceContext?.op ?? '',
-      'transaction.status': traceContext?.status ?? '',
-      measurements: event.measurements ?? {},
-      tags: [],
-    };
-
-    return {transactions: [transaction], orphan_errors: []};
+function makeTraceFromTransaction(
+  event: EventTransaction | undefined
+): TraceSplitResults<TraceFullDetailed> | undefined {
+  if (!event) {
+    return undefined;
   }
 
-  function useDemoTrace(
-    demo: string | undefined,
-    organization: {slug: string}
-  ): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
-    const demoEventSlug = parseDemoEventSlug(demo);
+  const traceContext = event.contexts?.trace;
 
-    // When projects don't have performance set up, we allow them to view a demo transaction.
-    // The backend creates the demo transaction, however the trace is created async, so when the
-    // page loads, we cannot guarantee that querying the trace will succeed as it may not have been stored yet.
-    // When this happens, we assemble a fake trace response to only include the transaction that had already been
-    // created and stored already so that the users can visualize in the context of a trace.
-    const demoEventQuery = useApiQuery<EventTransaction>(
-      [
-        `/organizations/${organization.slug}/events/${demoEventSlug?.project_slug}:${demoEventSlug?.event_id}/`,
-        {
-          query: {
-            referrer: 'trace-view',
-          },
-        },
-      ],
+  const transaction = {
+    event_id: event.eventID,
+    generation: 0,
+    parent_event_id: '',
+    parent_span_id: traceContext?.parent_span_id ?? '',
+    performance_issues: [],
+    project_id: Number(event.projectID),
+    project_slug: event.projectSlug ?? '',
+    span_id: traceContext?.span_id ?? '',
+    timestamp: event.endTimestamp,
+    transaction: event.title,
+    'transaction.duration': (event.endTimestamp - event.startTimestamp) * 1000,
+    errors: [],
+    sdk_name: event.sdk?.name ?? '',
+    children: [],
+    start_timestamp: event.startTimestamp,
+    'transaction.op': traceContext?.op ?? '',
+    'transaction.status': traceContext?.status ?? '',
+    measurements: event.measurements ?? {},
+    tags: [],
+  };
+
+  return {transactions: [transaction], orphan_errors: []};
+}
+
+function useDemoTrace(
+  demo: string | undefined,
+  organization: {slug: string}
+): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
+  const demoEventSlug = parseDemoEventSlug(demo);
+
+  // When projects don't have performance set up, we allow them to view a demo transaction.
+  // The backend creates the demo transaction, however the trace is created async, so when the
+  // page loads, we cannot guarantee that querying the trace will succeed as it may not have been stored yet.
+  // When this happens, we assemble a fake trace response to only include the transaction that had already been
+  // created and stored already so that the users can visualize in the context of a trace.
+  const demoEventQuery = useApiQuery<EventTransaction>(
+    [
+      `/organizations/${organization.slug}/events/${demoEventSlug?.project_slug}:${demoEventSlug?.event_id}/`,
       {
-        staleTime: Infinity,
-        enabled: !!demoEventSlug,
-      }
-    );
+        query: {
+          referrer: 'trace-view',
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: !!demoEventSlug,
+    }
+  );
 
-    // Without the useMemo, the trace from the transformed response  will be re-created on every render,
-    // causing the trace view to re-render as we interact with it.
-    const data = useMemo(() => {
-      return makeTraceFromTransaction(demoEventQuery.data);
-    }, [demoEventQuery.data]);
+  // Without the useMemo, the trace from the transformed response  will be re-created on every render,
+  // causing the trace view to re-render as we interact with it.
+  const data = useMemo(() => {
+    return makeTraceFromTransaction(demoEventQuery.data);
+  }, [demoEventQuery.data]);
 
-    // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
-    // from EventTransaction to TraceSplitResults<TraceFullDetailed>
-    return {...demoEventQuery, data} as UseApiQueryResult<
-      TraceSplitResults<TraceTree.Transaction> | undefined,
-      any
-    >;
-  }
+  // Casting here since the 'select' option is not available in the useApiQuery hook to transform the data
+  // from EventTransaction to TraceSplitResults<TraceFullDetailed>
+  return {...demoEventQuery, data} as UseApiQueryResult<
+    TraceSplitResults<TraceTree.Transaction> | undefined,
+    any
+  >;
+}
 
 type UseTraceParams = {
   limit?: number;
-  traceQueryParams: { trace: string; timestamp: number | undefined; }[];
+  traceQueryParams: {trace: string; timestamp: number | undefined}[];
 };
 
 type TraceQueryResults = {
-    traceResults: TraceSplitResults<TraceTree.Transaction>;
-    isLoading: boolean;
-    isIncrementallyFetching: boolean;
-    errors: Error[];
-}
+  traceResults: TraceSplitResults<TraceTree.Transaction>;
+  isLoading: boolean;
+  isIncrementallyFetching: boolean;
+  errors: Error[];
+};
 
 const DEFAULT_OPTIONS = {
-    traceQueryParams: [],
+  traceQueryParams: [],
 };
 export function useTraceNew(
   options: UseTraceParams = DEFAULT_OPTIONS
@@ -213,7 +212,10 @@ export function useTraceNew(
   const organization = useOrganization();
 
   const mode = decodeScalar(qs.parse(location.search).demo);
-  const demoTrace = useDemoTrace(decodeScalar(qs.parse(location.search).demo), organization);
+  const demoTrace = useDemoTrace(
+    decodeScalar(qs.parse(location.search).demo),
+    organization
+  );
 
   const [traceData, setTraceData] = useState<{
     traceResults: TraceSplitResults<TraceTree.Transaction>;
@@ -222,80 +224,96 @@ export function useTraceNew(
     errors: Error[];
   }>({
     traceResults: {
-        transactions: [],
-        orphan_errors: [],
+      transactions: [],
+      orphan_errors: [],
     },
     isLoading: true,
     isIncrementallyFetching: false,
     errors: [],
-  })
+  });
 
   useEffect(() => {
     async function fetchTracesInBatches(
-        traceQueryParams: { trace: string; timestamp: number | undefined; }[],
-        api: Client,
-        organization: Organization,
-      ) {
-        if (!traceQueryParams || traceQueryParams.length === 0) {
-            return;
-        }
+      traceQueryParams: {trace: string; timestamp: number | undefined}[],
+      api: Client,
+      organization: Organization
+    ) {
+      if (!traceQueryParams || traceQueryParams.length === 0) {
+        return;
+      }
 
-        const clonedTraceIds = [...traceQueryParams];
-        const apiErrors: Error[] = [];
+      const clonedTraceIds = [...traceQueryParams];
+      const apiErrors: Error[] = [];
 
-        while (clonedTraceIds.length > 0) {
-          const batch = clonedTraceIds.splice(0, 3);
-          const results = await Promise.allSettled(
-            batch.map(traceParams => {
-              return fetchTrace(api, {orgSlug: organization.slug, query: qs.stringify(getTraceQueryParams(qs.parse(location.search), filters.selection, options, traceParams)), traceId: traceParams.trace});
-            })
-          );
+      while (clonedTraceIds.length > 0) {
+        const batch = clonedTraceIds.splice(0, 3);
+        const results = await Promise.allSettled(
+          batch.map(traceParams => {
+            return fetchTrace(api, {
+              orgSlug: organization.slug,
+              query: qs.stringify(
+                getTraceQueryParams(
+                  qs.parse(location.search),
+                  filters.selection,
+                  options,
+                  traceParams
+                )
+              ),
+              traceId: traceParams.trace,
+            });
+          })
+        );
 
-          const updatedData = results.reduce(
-            (acc, result) => {
-              if (result.status === 'fulfilled') {
-                const {transactions, orphan_errors} = result.value;
-                acc.transactions.push(...transactions);
-                acc.orphan_errors.push(...orphan_errors);
-              } else {
-                apiErrors.push(new Error(result.reason));
-              }
-              return acc;
-            },
-            {transactions: [], orphan_errors: []} as TraceSplitResults<TraceTree.Transaction>
-          );
-
-         setTraceData(prev => {
-            return {
-                ...prev,
-                traceResults: updatedData,
-                isLoading: false,
-                isIncrementallyFetching: traceQueryParams.length > 1,
+        const updatedData = results.reduce(
+          (acc, result) => {
+            if (result.status === 'fulfilled') {
+              const {transactions, orphan_errors} = result.value;
+              acc.transactions.push(...transactions);
+              acc.orphan_errors.push(...orphan_errors);
+            } else {
+              apiErrors.push(new Error(result.reason));
             }
-         });
-        }
+            return acc;
+          },
+          {
+            transactions: [],
+            orphan_errors: [],
+          } as TraceSplitResults<TraceTree.Transaction>
+        );
 
         setTraceData(prev => {
-            return {
-                ...prev,
-                isIncrementallyFetching: false,
-                errors: apiErrors,
-            }
+          return {
+            ...prev,
+            traceResults: updatedData,
+            isLoading: false,
+            isIncrementallyFetching: traceQueryParams.length > 1,
+          };
         });
       }
 
-    if(mode !== 'demo') {
-        fetchTracesInBatches(options.traceQueryParams, api, organization);
+      setTraceData(prev => {
+        return {
+          ...prev,
+          isIncrementallyFetching: false,
+          errors: apiErrors,
+        };
+      });
     }
-  }, [])
 
-  return mode === 'demo' ? {
-    traceResults: demoTrace.data ?? {
-        transactions: [],
-        orphan_errors: [],
-    },
-    isLoading: demoTrace.isLoading,
-    isIncrementallyFetching: false,
-    errors: demoTrace.error ? [demoTrace.error] : [],
-  } : traceData;
+    if (mode !== 'demo') {
+      fetchTracesInBatches(options.traceQueryParams, api, organization);
+    }
+  }, []);
+
+  return mode === 'demo'
+    ? {
+        traceResults: demoTrace.data ?? {
+          transactions: [],
+          orphan_errors: [],
+        },
+        isLoading: demoTrace.isLoading,
+        isIncrementallyFetching: false,
+        errors: demoTrace.error ? [demoTrace.error] : [],
+      }
+    : traceData;
 }

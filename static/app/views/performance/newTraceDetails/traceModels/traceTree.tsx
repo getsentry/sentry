@@ -596,7 +596,11 @@ export class TraceTree {
     return tree.build();
   }
 
-  static FromTraceNew(tree: TraceTree, trace: TraceTree.Trace, replayRecord: ReplayRecord | null): void {
+  static FromTraceNew(
+    tree: TraceTree,
+    trace: TraceTree.Trace,
+    replayRecord: ReplayRecord | null
+  ): void {
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
 
@@ -738,7 +742,7 @@ export class TraceTree {
     tree.build();
   }
 
-  appendTree(tree: TraceTree){
+  appendTree(tree: TraceTree) {
     const traceNode1 = this.root.children[0];
     const traceNode2 = tree.root.children[0];
 
@@ -769,7 +773,13 @@ export class TraceTree {
 
     for (const [node, _] of tree.vitals) {
       //Collect all measurements
-      if(traceNode1.space && traceNode1.space[0] && node.value && 'start_timestamp' in node.value && 'measurements' in node.value){
+      if (
+        traceNode1.space &&
+        traceNode1.space[0] &&
+        node.value &&
+        'start_timestamp' in node.value &&
+        'measurements' in node.value
+      ) {
         this.collectMeasurements(
           node,
           traceNode1.space[0],
