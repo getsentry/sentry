@@ -99,6 +99,16 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_all_values(self.project_template.id)
         assert result == {"foo": "bar"}
 
+    def test_get_all_values_without_cache(self):
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
+
+        ProjectTemplateOption.objects._option_cache.clear()
+
+        result = ProjectTemplateOption.objects.get_all_values(self.project_template.id)
+        assert result == {"foo": "bar"}
+
 
 class ProjectTemplateOptionTest(TestCase):
     def setUp(self):
