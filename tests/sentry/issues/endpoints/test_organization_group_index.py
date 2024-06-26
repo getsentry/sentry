@@ -5350,8 +5350,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        # if query is '' it defaults to is:unresolved
-        response = self.get_response(query="")
+        response = self.get_success_response(qs_params={"query": ""})
         assert response.status_code == 204
 
         for group in groups:
@@ -5363,7 +5362,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         )
 
         with self.tasks():
-            response = self.get_response(query="")
+            response = self.get_success_response(qs_params={"query": ""})
 
         assert response.status_code == 204
 
@@ -5391,7 +5390,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        response = self.get_response(query="")
+        response = self.get_response(qs_params={"query": ""})
         assert response.status_code == 400
 
         for group in groups:
