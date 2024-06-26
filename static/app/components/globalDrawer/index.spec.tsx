@@ -37,14 +37,14 @@ describe('GlobalDrawer', function () {
     );
 
     expect(
-      screen.queryByRole('complementary', {name: 'slide-out-drawer'})
+      screen.queryByRole('complementary', {name: 'slide out drawer'})
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
     expect(
-      screen.getByRole('complementary', {name: 'slide-out-drawer'})
+      screen.getByRole('complementary', {name: 'slide out drawer'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
@@ -52,7 +52,7 @@ describe('GlobalDrawer', function () {
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', {name: 'slide-out-drawer'})
+      screen.queryByRole('complementary', {name: 'slide out drawer'})
     ).not.toBeInTheDocument();
   });
 

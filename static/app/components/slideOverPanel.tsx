@@ -61,7 +61,7 @@ function SlideOverPanel(
           }}
           role="complementary"
           aria-hidden={collapsed}
-          aria-label="slide-out-drawer"
+          aria-label="slide out drawer"
         >
           {children}
         </_SlideOverPanel>

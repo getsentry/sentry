@@ -46,7 +46,7 @@ export function GlobalDrawer({children}) {
 
   // Close the drawer when the browser history changes.
   useEffect(() => closeDrawer(), [location.pathname, closeDrawer]);
-  const isDrawerOpen = typeof renderer === 'function';
+  const isDrawerOpen = renderer !== null;
   const renderedChild =
     renderer?.({
       Body: DrawerBody,
@@ -55,9 +55,8 @@ export function GlobalDrawer({children}) {
 
   return (
     <DrawerContext.Provider value={drawerContextValue}>
-      {renderer !== null && (
+      {isDrawerOpen && (
         <DrawerPanel
-          isOpen={isDrawerOpen}
           onClose={handleClose}
           onOpen={options?.onOpen}
           closeOnOutsideClick={closeOnOutsideClick}

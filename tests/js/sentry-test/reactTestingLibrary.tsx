@@ -133,7 +133,7 @@ function renderGlobalModal(options?: Options) {
 function waitForDrawerToHide() {
   return rtl.waitFor(() => {
     expect(
-      rtl.screen.queryByRole('complementary', {name: 'slide-out-drawer'})
+      rtl.screen.queryByRole('complementary', {name: 'slide out drawer'})
     ).not.toBeInTheDocument();
   });
 }

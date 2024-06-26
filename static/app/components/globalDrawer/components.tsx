@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -11,35 +11,30 @@ import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
 export interface DrawerPanelProps extends Required<Omit<DrawerOptions, 'onOpen'>> {
   children: React.ReactNode;
-  isOpen?: boolean;
   onOpen?: () => void;
 }
 
 export function DrawerPanel({
   children,
-  isOpen = false,
   onClose,
   onOpen,
   closeOnOutsideClick = true,
   closeOnEscapeKeypress = true,
 }: DrawerPanelProps) {
-  const [isDrawerOpen, setIsDrawerOpen] = useState(isOpen);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const handleClickOutside = useCallback(() => {
-    if (isOpen && closeOnOutsideClick) {
+    if (closeOnOutsideClick) {
       onClose();
-      setIsDrawerOpen(false);
     }
-  }, [isOpen, closeOnOutsideClick, onClose]);
+  }, [closeOnOutsideClick, onClose]);
   const handleEscapePress = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen && closeOnEscapeKeypress) {
+      if (e.key === 'Escape' && closeOnEscapeKeypress) {
         onClose();
-        setIsDrawerOpen(false);
       }
     },
-    [isOpen, closeOnEscapeKeypress, onClose]
+    [closeOnEscapeKeypress, onClose]
   );
 
   useOnClickOutside(panelRef, handleClickOutside);
@@ -47,15 +42,12 @@ export function DrawerPanel({
     document.addEventListener('keydown', handleEscapePress);
     return () => document.removeEventListener('keydown', handleEscapePress);
   }, [handleEscapePress]);
-  useEffect(() => {
-    setIsDrawerOpen(isOpen);
-  }, [isOpen]);
 
   return (
     <DrawerContainer>
       <SlideOverPanel
         slidePosition="right"
-        collapsed={!isDrawerOpen}
+        collapsed={false}
         ref={panelRef}
         onOpen={onOpen}
       >
@@ -66,10 +58,7 @@ export function DrawerPanel({
             borderless
             aria-label={t('Close Drawer')}
             icon={<IconClose />}
-            onClick={() => {
-              setIsDrawerOpen(false);
-              onClose?.();
-            }}
+            onClick={onClose}
           >
             {t('Close')}
           </CloseButton>
