@@ -9,7 +9,6 @@ class BaseRemoteSubscription(Model):
     class Status(Enum):
         ACTIVE = 0
         CREATING = 1
-        UPDATING = 2
         DELETING = 3
         DISABLED = 4
 

@@ -57,7 +57,6 @@ class BaseUptimeSubscriptionTaskTest(ProducerTestMixin, TestCase, metaclass=abc.
 
     status_translations = {
         UptimeSubscription.Status.CREATING: "create",
-        UptimeSubscription.Status.UPDATING: "update",
         UptimeSubscription.Status.DELETING: "delete",
     }
 

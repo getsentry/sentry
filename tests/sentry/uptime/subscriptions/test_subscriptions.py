@@ -2,7 +2,11 @@ import pytest
 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
 from sentry.uptime.subscriptions.subscriptions import (
     UPTIME_SUBSCRIPTION_TYPE,
     create_project_uptime_subscription,
@@ -64,15 +68,21 @@ class DeleteUptimeSubscriptionTest(TestCase):
 class CreateProjectUptimeSubscriptionTest(TestCase):
     def test(self):
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        create_project_uptime_subscription(self.project, uptime_sub)
+        create_project_uptime_subscription(
+            self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
         assert ProjectUptimeSubscription.objects.filter(
             project=self.project, uptime_subscription=uptime_sub
         ).exists()
 
     def test_already_exists(self):
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        create_project_uptime_subscription(self.project, uptime_sub)
-        create_project_uptime_subscription(self.project, uptime_sub)
+        create_project_uptime_subscription(
+            self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
+        create_project_uptime_subscription(
+            self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
         assert (
             ProjectUptimeSubscription.objects.filter(
                 project=self.project, uptime_subscription=uptime_sub
@@ -85,8 +95,12 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
     def test_other_subscriptions(self):
         other_project = self.create_project()
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        proj_sub = create_project_uptime_subscription(self.project, uptime_sub)
-        create_project_uptime_subscription(other_project, uptime_sub)
+        proj_sub = create_project_uptime_subscription(
+            self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
+        create_project_uptime_subscription(
+            other_project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
         with self.tasks():
             delete_project_uptime_subscription(self.project, uptime_sub)
 
@@ -97,7 +111,9 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
 
     def test_single_subscriptions(self):
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        proj_sub = create_project_uptime_subscription(self.project, uptime_sub)
+        proj_sub = create_project_uptime_subscription(
+            self.project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
         with self.tasks():
             delete_project_uptime_subscription(self.project, uptime_sub)
 
@@ -118,7 +134,9 @@ class DeleteProjectUptimeSubscriptionTest(TestCase):
     def test_does_not_exist_other_subs(self):
         other_project = self.create_project()
         uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        create_project_uptime_subscription(other_project, uptime_sub)
+        create_project_uptime_subscription(
+            other_project, uptime_sub, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE
+        )
         with self.tasks():
             delete_project_uptime_subscription(self.project, uptime_sub)
 

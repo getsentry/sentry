@@ -13,7 +13,14 @@ from sentry.uptime.detectors.ranking import (
     get_candidate_urls_for_project,
     get_project_bucket,
 )
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscriptionMode
+from sentry.uptime.subscriptions.subscriptions import (
+    create_project_uptime_subscription,
+    create_uptime_subscription,
+    delete_project_uptime_subscription,
+    get_auto_monitored_subscriptions_for_project,
+    is_url_auto_monitored_for_project,
+)
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
@@ -23,6 +30,8 @@ SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
 FAILED_URL_RETRY_FREQ = timedelta(days=7)
 URL_MIN_TIMES_SEEN = 5
 URL_MIN_PERCENT = 0.05
+ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=60).total_seconds())
+ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 1000
 
 
 @instrumented_task(
@@ -111,7 +120,7 @@ def process_candidate_url(
     Checks that:
      - URL has been seen at least `URL_MIN_TIMES_SEEN` times and is seen in at least `URL_MIN_PERCENT` of events with urls
      - URL hasn't already been checked and failed recently
-     - Whether we already have a subscription for this url in the system - If so, just link this project to that subscription
+     - Whether we are already monitoring this url for this project
      - Whether the url's robots.txt will allow us to monitor this url
 
     If the url passes, and we don't already have a subscription for it, then create a new remote subscription for the
@@ -122,25 +131,15 @@ def process_candidate_url(
     if url_count < URL_MIN_TIMES_SEEN or url_count / project_url_count < URL_MIN_PERCENT:
         return False
 
+    # See if we're already auto monitoring this url on this project
+    if is_url_auto_monitored_for_project(project, url):
+        # Just mark this successful so `process_project_url_ranking` will choose to not process urls for this project
+        # for a week
+        return True
+
     # Check whether we've recently attempted to monitor this url recently and failed.
     if is_failed_url(url):
         return False
-
-    # See if we're monitoring this url at all
-    try:
-        # TODO: We should have a column that lets us filter to detected urls
-        existing_subscription = UptimeSubscription.objects.get(url=url, interval_seconds=300)
-    except UptimeSubscription.DoesNotExist:
-        existing_subscription = None
-
-    if existing_subscription:
-        # Since we already have an existing subscription to this url, we don't need to perform any other checks
-        # The subscription will have already been created in the rust checker, so we can just link to the
-        # subscription here if we aren't already monitoring it in this project.
-        ProjectUptimeSubscription.objects.get_or_create(
-            project=project, uptime_subscription=existing_subscription
-        )
-        return True
 
     # Check robots.txt to see if it's ok for us to attempt to monitor this url
     if not check_url_robots_txt(url):
@@ -149,12 +148,26 @@ def process_candidate_url(
 
     # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
     # Also check if there's already an existing auto detected monitor for this project. If so, delete it.
-    # TODO: Implement subscriptions
+    monitor_url_for_project(project, url)
     return True
 
 
+def monitor_url_for_project(project: Project, url: str):
+    """
+    Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
+    it. Also deletes any other auto detected monitors since this one should replace them.
+    """
+    for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
+        delete_project_uptime_subscription(project, monitored_subscription.uptime_subscription)
+    subscription = create_uptime_subscription(
+        url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS, ONBOARDING_SUBSCRIPTION_TIMEOUT_MS
+    )
+    create_project_uptime_subscription(
+        project, subscription, ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING
+    )
+
+
 def is_failed_url(url: str) -> bool:
-    # TODO: Hash this
     key = get_failed_url_key(url)
     return _get_cluster().exists(key) == 1
 
@@ -164,7 +177,7 @@ def set_failed_url(url: str) -> None:
     If we failed to monitor a url for some reason, skip processing it for FAILED_URL_RETRY_FREQ
     """
     key = get_failed_url_key(url)
-    # TODO: Jitter
+    # TODO: Jitter the expiry here so we don't retry all at the same time.
     _get_cluster().set(key, 1, ex=FAILED_URL_RETRY_FREQ)
 
 

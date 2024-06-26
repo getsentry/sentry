@@ -16,6 +16,7 @@ from sentry.uptime.detectors.ranking import (
 )
 from sentry.uptime.detectors.tasks import (
     LAST_PROCESSED_KEY,
+    ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
     SCHEDULER_LOCK_KEY,
     is_failed_url,
     process_candidate_url,
@@ -145,7 +146,9 @@ class ProcessCandidateUrlTest(TestCase):
     def test_succeeds_existing_subscription_other_project(self):
         other_project = self.create_project()
         url = "https://sentry.io"
-        uptime_subscription = self.create_uptime_subscription(url=url, interval_seconds=300)
+        uptime_subscription = self.create_uptime_subscription(
+            url=url, interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS
+        )
         self.create_project_uptime_subscription(
             project=other_project, uptime_subscription=uptime_subscription
         )

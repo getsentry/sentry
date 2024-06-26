@@ -12,4 +12,4 @@ remote_subscriptions: 0002_remove_separate_remote_subscription
 replays: 0004_index_together
 sentry: 0731_add_insight_project_flags
 social_auth: 0002_default_auto_field
-uptime: 0002_remove_separate_remote_subscription
+uptime: 0003_projectuptimesubscription_mode
