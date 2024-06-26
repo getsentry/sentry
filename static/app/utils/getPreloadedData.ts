@@ -12,7 +12,9 @@ export async function getPreloadedDataPromise(
   const wrappedFallback = () => {
     const fallbackAttribute = `${name}_fallback`;
     const promise = fallback();
-    data[fallbackAttribute] = promise;
+    if (data) {
+      data[fallbackAttribute] = promise;
+    }
     return promise;
   };
 
