@@ -9,7 +9,6 @@ import {
   useDropIndicator,
   useDroppableItem,
 } from '@react-aria/dnd';
-import {useFocusRing} from '@react-aria/focus';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
 import {mergeProps, useObjectRef} from '@react-aria/utils';
@@ -74,6 +73,37 @@ function TabDropIndicator(props: BaseDropIndicatorProps) {
   );
 }
 
+interface DraggableProps {
+  children: React.ReactNode;
+  item: Node<any>;
+}
+
+function Draggable({item, children}: DraggableProps) {
+  const {dragProps, dragButtonProps, isDragging} = useDrag({
+    getAllowedDropOperations: () => ['move'],
+    getItems() {
+      return [
+        {
+          tab: JSON.stringify({key: item.key, value: children}),
+        },
+      ];
+    },
+  });
+
+  const draggableRef = useRef(null);
+  const {buttonProps} = useButton({...dragButtonProps, elementType: 'div'}, draggableRef);
+
+  return (
+    <div
+      {...mergeProps(dragProps, buttonProps)}
+      ref={draggableRef}
+      className={`draggable ${isDragging ? 'dragging' : ''}`}
+    >
+      {children}
+    </div>
+  );
+}
+
 /**
  * Renders a single tab item. This should not be imported directly into any
  * page/view – it's only meant to be used by <TabsList />. See the correct
@@ -84,8 +114,6 @@ function BaseDraggableTab(
   forwardedRef: React.ForwardedRef<HTMLLIElement>
 ) {
   const ref = useObjectRef(forwardedRef);
-
-  const {isFocusVisible} = useFocusRing();
 
   const {
     key,
@@ -112,42 +140,13 @@ function BaseDraggableTab(
     [to, orientation]
   );
 
-  const {dropProps, isDropTarget} = useDroppableItem(
+  const {dropProps} = useDroppableItem(
     {
       target: {type: 'item', key: item.key, dropPosition: 'on'},
     },
     dropState,
     ref
   );
-
-  function Draggable({children}) {
-    const {dragProps, dragButtonProps, isDragging} = useDrag({
-      getAllowedDropOperations: () => ['move'],
-      getItems() {
-        return [
-          {
-            tab: JSON.stringify({key: item.key, value: children}),
-          },
-        ];
-      },
-    });
-
-    const draggableRef = useRef(null);
-    const {buttonProps} = useButton(
-      {...dragButtonProps, elementType: 'div'},
-      draggableRef
-    );
-
-    return (
-      <div
-        {...mergeProps(dragProps, buttonProps)}
-        ref={draggableRef}
-        className={`draggable ${isDragging ? 'dragging' : ''}`}
-      >
-        {children}
-      </div>
-    );
-  }
 
   return (
     <Fragment>
@@ -161,9 +160,6 @@ function BaseDraggableTab(
         selected={isSelected}
         overflowing={overflowing}
         ref={ref}
-        className={`option ${isFocusVisible ? 'focus-visible' : ''} ${
-          isDropTarget ? 'drop-target' : ''
-        }`}
       >
         <InnerWrap>
           <StyledInteractionStateLayer
@@ -171,7 +167,7 @@ function BaseDraggableTab(
             higherOpacity={isSelected}
           />
           <FocusLayer orientation={orientation} />
-          <Draggable>{rendered}</Draggable>
+          <Draggable item={item}>{rendered}</Draggable>
           <TabSelectionIndicator orientation={orientation} selected={isSelected} />
         </InnerWrap>
       </TabWrap>
