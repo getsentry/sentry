@@ -655,18 +655,12 @@ def rate_snql_factory(
     alias: str | None = None,
 ) -> Function:
     return Function(
-        "max",
+        "divide",
         [
-            0.0,
-            Function(
-                "divide",
-                [
-                    Function("countIf", [Column("value"), aggregate_filter]),
-                    Function("divide", [numerator, denominator]),
-                ],
-                alias=alias,
-            ),
+            Function("countIf", [Column("value"), aggregate_filter]),
+            Function("divide", [numerator, denominator]),
         ],
+        alias=alias,
     )
 
 
