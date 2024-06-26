@@ -12,6 +12,7 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalDrawer from 'sentry/components/globalDrawer';
+import {DrawerContextProvider} from 'sentry/components/globalDrawer/context';
 import GlobalModal from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
@@ -235,13 +236,15 @@ function App({children, params}: Props) {
     <Profiler id="App" onRender={onRenderCallback}>
       <OrganizationContextProvider>
         <AsyncSDKIntegrationContextProvider>
-          <MainContainer tabIndex={-1} ref={mainContainerRef}>
-            <GlobalModal onClose={focusMainContainer} />
-            <GlobalDrawer onClose={focusMainContainer} />
-            <SystemAlerts className="messages-container" />
-            <Indicators className="indicators-container" />
-            <ErrorBoundary>{renderBody()}</ErrorBoundary>
-          </MainContainer>
+          <DrawerContextProvider>
+            <MainContainer tabIndex={-1} ref={mainContainerRef}>
+              <GlobalModal onClose={focusMainContainer} />
+              <GlobalDrawer onClose={focusMainContainer} />
+              <SystemAlerts className="messages-container" />
+              <Indicators className="indicators-container" />
+              <ErrorBoundary>{renderBody()}</ErrorBoundary>
+            </MainContainer>
+          </DrawerContextProvider>
         </AsyncSDKIntegrationContextProvider>
       </OrganizationContextProvider>
     </Profiler>

@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -6,13 +6,13 @@ import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useKeyPress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 import SlideOverPanel from 'sentry/views/insights/common/components/slideOverPanel';
 
-export interface DrawerPanelProps extends DrawerOptions {
+export interface DrawerPanelProps extends Required<Omit<DrawerOptions, 'onOpen'>> {
   children: React.ReactNode;
   isOpen?: boolean;
+  onOpen?: () => void;
 }
 
 export function DrawerPanel({
@@ -24,7 +24,6 @@ export function DrawerPanel({
   closeOnEscapeKeypress = true,
 }: DrawerPanelProps) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(isOpen);
-  const escapeKeyPressed = useKeyPress('Escape');
   const panelRef = useRef<HTMLDivElement>(null);
 
   useOnClickOutside(panelRef, () => {
@@ -34,13 +33,20 @@ export function DrawerPanel({
     }
   });
 
+  const handleEscapePress = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && closeOnEscapeKeypress) {
+        onClose?.();
+        setIsDrawerOpen(false);
+      }
+    },
+    [isOpen, closeOnEscapeKeypress, onClose]
+  );
+
   useEffect(() => {
-    if (isOpen && escapeKeyPressed && closeOnEscapeKeypress) {
-      onClose?.();
-      setIsDrawerOpen(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [escapeKeyPressed, closeOnEscapeKeypress]);
+    document.addEventListener('keydown', handleEscapePress);
+    return () => document.removeEventListener('keydown', handleEscapePress);
+  }, [handleEscapePress]);
 
   useEffect(() => {
     setIsDrawerOpen(isOpen);
