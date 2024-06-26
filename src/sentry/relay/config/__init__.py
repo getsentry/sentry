@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
-from sentry_sdk import Hub, capture_exception
+from sentry_sdk import capture_exception
 
 from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
@@ -743,7 +743,7 @@ def _get_project_config(
 
     public_keys = get_public_key_configs(project_keys=project_keys)
 
-    with Hub.current.start_span(op="get_public_config"):
+    with sentry_sdk.start_span(op="get_public_config"):
         now = datetime.now(timezone.utc)
         cfg = {
             "disabled": False,
@@ -822,18 +822,18 @@ def _get_project_config(
     if performance_score_profiles:
         config["performanceScore"] = {"profiles": performance_score_profiles}
 
-    with Hub.current.start_span(op="get_filter_settings"):
+    with sentry_sdk.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings
-    with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
+    with sentry_sdk.start_span(op="get_grouping_config_dict_for_project"):
         grouping_config = get_grouping_config_dict_for_project(project)
         if grouping_config is not None:
             config["groupingConfig"] = grouping_config
-    with Hub.current.start_span(op="get_event_retention"):
+    with sentry_sdk.start_span(op="get_event_retention"):
         event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
-    with Hub.current.start_span(op="get_all_quotas"):
+    with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
 
