@@ -199,7 +199,7 @@ class TestDelegatedByOpenTransaction(TestCase):
 
 @no_silo_test
 class TestDelegatedByOpenTransactionProduction(TransactionTestCase):
-    @patch("sentry.services.hybrid_cloud.in_test_environment", return_value=False)
+    @patch("sentry.hybridcloud.rpc.in_test_environment", return_value=False)
     def test_selects_mode_in_transaction_or_default(self, patch):
         service: Any = silo_mode_delegation(
             {
