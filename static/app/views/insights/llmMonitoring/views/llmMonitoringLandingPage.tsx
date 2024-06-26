@@ -1,5 +1,7 @@
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -54,6 +56,11 @@ export function LLMMonitoringPage() {
               <FeatureBadge type={RELEASE_LEVEL} />
             </Layout.Title>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>
