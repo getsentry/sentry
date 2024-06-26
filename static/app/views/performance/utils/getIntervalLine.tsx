@@ -161,8 +161,7 @@ export function getIntervalLine(
       formatter: `Baseline ${getPerformanceDuration(
         transformedTransaction.aggregate_range_1
       )}`,
-      // NOTE: Position is changed from insideStartBottom to insideStartTop to check if chartcuterie deployments are working
-      position: 'insideStartTop',
+      position: 'insideStartBottom',
     };
 
     periodDividingLine.markLine.lineStyle = {
