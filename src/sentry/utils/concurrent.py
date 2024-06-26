@@ -11,7 +11,8 @@ from queue import Full, PriorityQueue
 from time import time
 from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
 
-from sentry_sdk import Hub
+import sentry_sdk
+import sentry_sdk.scope
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ def execute(function: Callable[..., T], daemon=True):
 @functools.total_ordering
 class PriorityTask(NamedTuple, Generic[T]):
     priority: int
-    item: tuple[Callable[[], T], Hub, FutureBase[T]]
+    item: tuple[Callable[[], T], sentry_sdk.Scope, FutureBase[T]]
 
     def __eq__(self, b):
         return self.priority == b.priority
@@ -200,8 +201,8 @@ class ThreadedExecutor(Executor[T]):
     def __worker(self):
         queue = self.__queue
         while True:
-            priority, (function, hub, future) = queue.get(True)
-            with Hub(hub):
+            priority, (function, isolation_scope, future) = queue.get(True)
+            with sentry_sdk.scope.use_isolation_scope(isolation_scope.fork()):
                 if not future.set_running_or_notify_cancel():
                     continue
                 try:
@@ -240,7 +241,7 @@ class ThreadedExecutor(Executor[T]):
             self.start()
 
         future: FutureBase[T] = self.Future()
-        task = PriorityTask(priority, (callable, Hub.current, future))
+        task = PriorityTask(priority, (callable, sentry_sdk.Scope.get_isolation_scope(), future))
         try:
             self.__queue.put(task, block=block, timeout=timeout)
         except Full as error:
