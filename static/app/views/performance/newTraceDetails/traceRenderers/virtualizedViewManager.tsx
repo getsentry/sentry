@@ -662,7 +662,7 @@ export class VirtualizedViewManager {
     this.scheduler.dispatch('set trace view', {x, width});
   }
 
-  enqueueFOVQueryParamSync() {
+  enqueueFOVQueryParamSync(view: TraceView) {
     if (this.timers.onFovChange !== null) {
       window.cancelAnimationFrame(this.timers.onFovChange.id);
     }
@@ -672,7 +672,7 @@ export class VirtualizedViewManager {
         pathname: location.pathname,
         query: {
           ...qs.parse(location.search),
-          fov: `${this.view.trace_view.x},${this.view.trace_view.width}`,
+          fov: `${view.trace_view.x},${view.trace_view.width}`,
         },
       });
       this.timers.onFovChange = null;
@@ -926,12 +926,9 @@ export class VirtualizedViewManager {
   }
 
   animateScrollColumnTo(x: number, duration: number) {
-    const start = performance.now();
-
-    const startPosition = this.columns.list.translate[0];
-    const distance = x - startPosition;
-
     if (duration === 0) {
+      this.columns.list.translate[0] = x;
+
       const rows = Array.from(
         document.querySelectorAll('.TraceRow .TraceLeftColumn > div')
       ) as HTMLElement[];
@@ -940,13 +937,16 @@ export class VirtualizedViewManager {
         row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
       }
 
-      this.columns.list.translate[0] = x;
       if (this.horizontal_scrollbar_container) {
         this.horizontal_scrollbar_container.scrollLeft = -x;
       }
       dispatchJestScrollUpdate(this.horizontal_scrollbar_container!);
       return;
     }
+
+    const start = performance.now();
+    const startPosition = this.columns.list.translate[0];
+    const distance = x - startPosition;
 
     const animate = (now: number) => {
       const elapsed = now - start;

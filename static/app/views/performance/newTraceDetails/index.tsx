@@ -367,6 +367,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   useLayoutEffect(() => {
     const onTraceViewChange: TraceEvents['set trace view'] = view => {
       traceView.setTraceView(view);
+      viewManager.enqueueFOVQueryParamSync(traceView);
     };
 
     const onPhysicalSpaceChange: TraceEvents['set container physical space'] =
@@ -746,8 +747,22 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
         // to the row in the view.
         traceScheduler.once('initialize virtualized list', () => {
+          function onTargetRowMeasure() {
+            if (!nodeToScrollTo || !viewManager.row_measurer.cache.has(nodeToScrollTo)) {
+              return;
+            }
+            viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
+            if (viewManager.isOutsideOfView(nodeToScrollTo)) {
+              viewManager.scrollRowIntoViewHorizontally(
+                nodeToScrollTo!,
+                0,
+                48,
+                'measured'
+              );
+            }
+          }
           viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
-          viewManager.scrollRowIntoViewHorizontally(nodeToScrollTo, 600, 48, 'exact');
+          viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
           previouslyScrolledToNodeRef.current = nodeToScrollTo;
 
           setRowAsFocused(
