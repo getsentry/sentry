@@ -857,10 +857,10 @@ ResultSet = list[Mapping[str, Any]]
 def raw_snql_query(
     request: Request,
     referrer: str | None = None,
+    use_cache: bool = False,
     query_source: (
         QuerySource | None
     ) = None,  # TODO: @athena Make this field required after updated all the callsites
-    use_cache: bool = False,
 ) -> Mapping[str, Any]:
     """
     Alias for `bulk_snuba_queries`, kept for backwards compatibility.
@@ -876,10 +876,10 @@ def raw_snql_query(
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
+    use_cache: bool = False,
     query_source: (
         QuerySource | None
     ) = None,  # TODO: @athena Make this field required after updated all the callsites
-    use_cache: bool = False,
 ) -> ResultSet:
     """
     The main entrypoint to running queries in Snuba. This function accepts

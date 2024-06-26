@@ -1112,7 +1112,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return result
 
     def run_query(
-        self, referrer: str, query_source: QuerySource | None = None, use_cache: bool = False
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
     ) -> Any:
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
