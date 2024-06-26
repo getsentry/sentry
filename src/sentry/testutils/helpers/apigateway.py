@@ -128,8 +128,8 @@ def verify_file_body(file_body, headers):
 
 def provision_middleware():
     middleware = list(settings.MIDDLEWARE)
-    if "sentry.middleware.api_gateway.ApiGatewayMiddleware" not in middleware:
-        middleware = ["sentry.middleware.api_gateway.ApiGatewayMiddleware"] + middleware
+    if "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware" not in middleware:
+        middleware = ["sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"] + middleware
     return middleware
 
 
