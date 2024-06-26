@@ -20,6 +20,7 @@ import {
   IconCode,
   IconFatal,
   IconQuestion,
+  IconSad,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -31,6 +32,9 @@ function StepIcon({step}: {step: AutofixStep}) {
   }
 
   if (step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
+    if (step.causes?.length === 0) {
+      return <IconSad size="sm" color="gray300" />;
+    }
     return step.selection ? (
       <IconCheckmark size="sm" color="green300" isCircled />
     ) : (
