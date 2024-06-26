@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, ClassVar
 
@@ -14,7 +13,6 @@ from sentry.models.projecttemplate import ProjectTemplate
 from sentry.utils.cache import cache
 
 Value = Any | None
-logger = logging.getLogger(__name__)
 
 
 class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
@@ -80,11 +78,6 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
 
     def reload_cache(self, project_template_id: int, update_reason: str) -> None:
         cache_key = self._make_key(project_template_id)
-
-        logger.info(
-            "projecttemplateoption.reload_cache",
-            extra={"cache_key": cache_key, "reason": update_reason},
-        )
 
         result = {i.key: i.value for i in self.filter(project_template=project_template_id)}
 
