@@ -8,6 +8,8 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry.hybridcloud.rpc.caching.service import back_with_silo_cache
+from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
     RpcSentryApp,
@@ -19,8 +21,6 @@ from sentry.services.hybrid_cloud.app import (
 )
 from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponentContext
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
 

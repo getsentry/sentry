@@ -10,7 +10,7 @@ import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {ORDER_WITH_INP} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import PerformanceScoreRing from 'sentry/views/insights/browser/webVitals/components/performanceScoreRing';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {
@@ -20,15 +20,6 @@ import type {
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
-
-const {
-  lcp: LCP_WEIGHT,
-  fcp: FCP_WEIGHT,
-  fid: FID_WEIGHT,
-  cls: CLS_WEIGHT,
-  ttfb: TTFB_WEIGHT,
-  inp: INP_WEIGHT,
-} = PERFORMANCE_SCORE_WEIGHTS;
 
 type Coordinates = {
   x: number;
@@ -55,9 +46,6 @@ type Props = {
   radiusPadding?: number;
   size?: number;
   webVitalLabelCoordinates?: WebVitalsLabelCoordinates;
-  weights?: {
-    [key in WebVitals]: number;
-  };
   x?: number;
   y?: number;
 };
@@ -135,15 +123,6 @@ function PerformanceScoreRingWithTooltips({
   height,
   text,
   webVitalLabelCoordinates,
-  // TODO: This prop isn't really needed anymore since we should always get weights from projectScore
-  weights = {
-    lcp: LCP_WEIGHT,
-    fcp: FCP_WEIGHT,
-    fid: FID_WEIGHT,
-    cls: CLS_WEIGHT,
-    ttfb: TTFB_WEIGHT,
-    inp: INP_WEIGHT,
-  },
   barWidth = 16,
   hideWebVitalLabels = false,
   inPerformanceWidget = false,
@@ -171,7 +150,7 @@ function PerformanceScoreRingWithTooltips({
   const [webVitalTooltip, setWebVitalTooltip] = useState<WebVitals | null>(null);
   const [labelHovered, setLabelHovered] = useState<WebVitals | null>(null);
 
-  const ringSegmentOrder = ORDER_WITH_INP;
+  const ringSegmentOrder = ORDER;
 
   if (labelHovered && inPerformanceWidget) {
     const index = ringSegmentOrder.indexOf(labelHovered);
@@ -182,6 +161,22 @@ function PerformanceScoreRingWithTooltips({
       return i === index ? color : `${theme.gray200}33`;
     });
   }
+
+  const weights = [
+    'lcpWeight',
+    'fcpWeight',
+    'inpWeight',
+    'clsWeight',
+    'ttfbWeight',
+  ].every(key => projectScore[key] === 0)
+    ? PERFORMANCE_SCORE_WEIGHTS
+    : {
+        lcp: projectScore.lcpWeight,
+        fcp: projectScore.fcpWeight,
+        inp: projectScore.inpWeight,
+        cls: projectScore.clsWeight,
+        ttfb: projectScore.ttfbWeight,
+      };
 
   const commonWebVitalLabelProps = {
     organization,

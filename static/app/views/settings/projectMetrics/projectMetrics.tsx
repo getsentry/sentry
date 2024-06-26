@@ -56,7 +56,7 @@ function ProjectMetrics({project}: Props) {
 
       <TextBlock>
         {tct(
-          `Metrics are numerical values that can track anything about your environment over time, from latency to error rates to user signups. To learn more about metrics, [link:read the docs].`,
+          `Metrics are numerical values extracted from span attributes that can help you track anything about your environment over time. To learn more about metrics, [link:read the docs].`,
           {
             link: <ExternalLink href={METRICS_DOCS_URL} />,
           }
@@ -65,9 +65,11 @@ function ProjectMetrics({project}: Props) {
 
       <PermissionAlert project={project} />
 
-      {hasExtractionRules && <MetricsExtractionRulesTable project={project} />}
+      {hasExtractionRules ? <MetricsExtractionRulesTable project={project} /> : null}
 
-      <CustomMetricsTable project={project} />
+      {!hasExtractionRules || project.hasCustomMetrics ? (
+        <CustomMetricsTable project={project} />
+      ) : null}
     </Fragment>
   );
 }

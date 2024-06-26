@@ -56,7 +56,6 @@ export const useTransactionWebVitalsScoresQuery = ({
         'p75(measurements.fcp)',
         'p75(measurements.cls)',
         'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
         'p75(measurements.inp)',
         ...(webVital !== 'total'
           ? [`performance_score(measurements.score.${webVital})`]
@@ -67,7 +66,6 @@ export const useTransactionWebVitalsScoresQuery = ({
         `count_scores(measurements.score.lcp)`,
         `count_scores(measurements.score.fcp)`,
         `count_scores(measurements.score.cls)`,
-        `count_scores(measurements.score.fid)`,
         `count_scores(measurements.score.inp)`,
         `count_scores(measurements.score.ttfb)`,
       ],
@@ -96,22 +94,14 @@ export const useTransactionWebVitalsScoresQuery = ({
   const tableData: RowWithScoreAndOpportunity[] =
     !isLoading && data?.data.length
       ? data.data.map(row => {
-          const {
-            totalScore,
-            clsScore,
-            fcpScore,
-            lcpScore,
-            ttfbScore,
-            fidScore,
-            inpScore,
-          } = calculatePerformanceScoreFromStoredTableDataRow(row);
+          const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
+            calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
             transaction: row.transaction?.toString(),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
             'p75(measurements.ttfb)': row['p75(measurements.ttfb)'] as number,
-            'p75(measurements.fid)': row['p75(measurements.fid)'] as number,
             'p75(measurements.inp)': row['p75(measurements.inp)'] as number,
             'count()': row['count()'] as number,
             'count_scores(measurements.score.lcp)': row[
@@ -122,9 +112,6 @@ export const useTransactionWebVitalsScoresQuery = ({
             ] as number,
             'count_scores(measurements.score.cls)': row[
               'count_scores(measurements.score.cls)'
-            ] as number,
-            'count_scores(measurements.score.fid)': row[
-              'count_scores(measurements.score.fid)'
             ] as number,
             'count_scores(measurements.score.inp)': row[
               'count_scores(measurements.score.inp)'
@@ -137,7 +124,6 @@ export const useTransactionWebVitalsScoresQuery = ({
             fcpScore: fcpScore ?? 0,
             lcpScore: lcpScore ?? 0,
             ttfbScore: ttfbScore ?? 0,
-            fidScore: fidScore ?? 0,
             inpScore: inpScore ?? 0,
             opportunity: row[
               `opportunity_score(measurements.score.${webVital})`

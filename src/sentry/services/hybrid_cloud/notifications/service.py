@@ -5,6 +5,7 @@
 from abc import abstractmethod
 from collections.abc import Mapping, MutableMapping
 
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.notifications.types import (
     NotificationScopeEnum,
@@ -12,7 +13,6 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 from sentry.types.actor import Actor, ActorType
 

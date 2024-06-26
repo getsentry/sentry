@@ -27,6 +27,8 @@ class SimilarIssuesEmbeddingsRequest(TypedDict):
     k: NotRequired[int]  # how many neighbors to find
     threshold: NotRequired[float]
     read_only: NotRequired[bool]
+    event_id: NotRequired[str]
+    referrer: NotRequired[str]
 
 
 class RawSeerSimilarIssueData(TypedDict):

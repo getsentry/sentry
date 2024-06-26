@@ -36,7 +36,6 @@ from sentry.models.rule import Rule
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -387,13 +386,12 @@ class SlackActionEndpoint(Endpoint):
         #
         # [1]: https://stackoverflow.com/questions/46629852/update-a-bot-message-after-responding-to-a-slack-dialog#comment80795670_46629852
         org = group.project.organization
-        use_block_kit = features.has("organizations:slack-block-kit", org)
         callback_id = {
             "issue": group.id,
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
         }
-        if use_block_kit and slack_request.data.get("channel"):
+        if slack_request.data.get("channel"):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
             callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = orjson.dumps(callback_id).decode()
@@ -411,44 +409,30 @@ class SlackActionEndpoint(Endpoint):
         }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
 
-        if use_block_kit:
-            # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-            modal_payload = self.build_resolve_modal_payload(callback_id)
-            try:
-                payload = {
-                    "view": orjson.dumps(modal_payload).decode(),
+        # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
+        modal_payload = self.build_resolve_modal_payload(callback_id)
+        try:
+            payload = {
+                "view": orjson.dumps(modal_payload).decode(),
+                "trigger_id": slack_request.data["trigger_id"],
+            }
+            headers = {"content-type": "application/json; charset=utf-8"}
+            slack_client.post(
+                "/views.open",
+                data=orjson.dumps(payload).decode(),
+                headers=headers,
+            )
+        except ApiError as e:
+            logger.exception(
+                "slack.action.response-error",
+                extra={
+                    "error": str(e),
+                    "organization_id": org.id,
+                    "integration_id": slack_request.integration.id,
                     "trigger_id": slack_request.data["trigger_id"],
-                }
-                headers = {"content-type": "application/json; charset=utf-8"}
-                slack_client.post(
-                    "/views.open",
-                    data=orjson.dumps(payload).decode(),
-                    headers=headers,
-                )
-            except ApiError as e:
-                logger.exception(
-                    "slack.action.response-error",
-                    extra={
-                        "error": str(e),
-                        "organization_id": org.id,
-                        "integration_id": slack_request.integration.id,
-                        "trigger_id": slack_request.data["trigger_id"],
-                        "dialog": "resolve",
-                    },
-                )
-
-        else:
-            try:
-                slack_client.post("/dialog.open", data=payload)
-            except ApiError as e:
-                logger.exception(
-                    "slack.action.response-error",
-                    extra={
-                        "error": str(e),
-                        "organization_id": org.id,
-                        "integration_id": slack_request.integration.id,
-                    },
-                )
+                    "dialog": "resolve",
+                },
+            )
 
     def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         org = group.project.organization
@@ -730,11 +714,9 @@ class SlackActionEndpoint(Endpoint):
         return action_option
 
     @classmethod
-    def get_action_list(
-        cls, slack_request: SlackActionRequest, use_block_kit: bool
-    ) -> list[MessageAction]:
+    def get_action_list(cls, slack_request: SlackActionRequest) -> list[MessageAction]:
         action_data = slack_request.data.get("actions")
-        if use_block_kit and action_data:
+        if action_data:
             # XXX(CEO): this is here for backwards compatibility - if a user performs an action with an "older"
             # style issue alert but the block kit flag is enabled, we don't want to fall into this code path
             if action_data[0].get("action_id"):
@@ -818,30 +800,7 @@ class SlackActionEndpoint(Endpoint):
         if action_option in NOTIFICATION_SETTINGS_ACTION_OPTIONS:
             return self.handle_enable_notifications(slack_request)
 
-        result = integration_service.organization_contexts(
-            integration_id=slack_request.integration.id
-        )
-        org_integrations = result.organization_integrations
-        use_block_kit = False
-        if len(org_integrations):
-            org_context = organization_service.get_organization_by_id(
-                id=org_integrations[0].organization_id, include_projects=False, include_teams=False
-            )
-            if org_context:
-                use_block_kit = any(
-                    [
-                        (
-                            True
-                            if features.has(
-                                "organizations:slack-block-kit", org_context.organization
-                            )
-                            else False
-                        )
-                        for oi in org_integrations
-                    ]
-                )
-
-        action_list = self.get_action_list(slack_request=slack_request, use_block_kit=use_block_kit)
+        action_list = self.get_action_list(slack_request=slack_request)
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:

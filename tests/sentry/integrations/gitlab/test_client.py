@@ -607,6 +607,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
 
 @control_silo_test
 class GitLabUnhappyPathTest(GitLabClientTest):
+    @pytest.mark.skip("Feature is temporarily disabled")
     @responses.activate
     @patch.object(IntegrationRequestBuffer, "is_integration_broken", return_value=True)
     def test_unreachable_host(self, mock_is_integration_broken):
