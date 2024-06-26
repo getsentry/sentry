@@ -131,7 +131,8 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    ConfigStore.set('features', new Set(['organizations:customer-domains']));
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const org = OrganizationFixture();
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,

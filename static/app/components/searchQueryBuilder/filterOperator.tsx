@@ -43,6 +43,7 @@ const DATE_OP_LABELS = {
   [TermOperator.LESS_THAN]: 'is before',
   [TermOperator.LESS_THAN_EQUAL]: 'is on or before',
   [TermOperator.EQUAL]: 'is',
+  [TermOperator.DEFAULT]: 'is',
 };
 
 const DATE_OPTIONS: TermOperator[] = [

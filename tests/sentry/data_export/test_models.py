@@ -120,7 +120,7 @@ class ExportedDataTest(TestCase):
             self.data_export.email_success()
         assert len(mail.outbox) == 1
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_email_success_customer_domains(self):
         self.data_export.finalize_upload(file=self.file1)
         with self.tasks():

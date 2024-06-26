@@ -161,7 +161,7 @@ function BaseGroupRow({
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
   const sharedAnalytics = useMemo(() => {
-    const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
+    const tab = getTabs().find(([tabQuery]) => tabQuery === query)?.[1];
     const owners = group?.owners ?? [];
     return {
       organization,
@@ -532,8 +532,7 @@ function BaseGroupRow({
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
-          {organization.features.includes('issue-priority-ui') &&
-          withColumns.includes('priority') ? (
+          {withColumns.includes('priority') ? (
             <PriorityWrapper narrowGroups={narrowGroups}>
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />

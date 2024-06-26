@@ -31,6 +31,15 @@ export type Project = {
   hasAccess: boolean;
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
+  hasInsightsAppStart: boolean;
+  hasInsightsAssets: boolean;
+  hasInsightsCaches: boolean;
+  hasInsightsDb: boolean;
+  hasInsightsHttp: boolean;
+  hasInsightsLlmMonitoring: boolean;
+  hasInsightsQueues: boolean;
+  hasInsightsScreenLoad: boolean;
+  hasInsightsVitals: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
