@@ -258,6 +258,15 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasProfiles: bool
     hasReplays: bool
     hasSessions: bool
+    hasInsightsHttp: bool
+    hasInsightsDb: bool
+    hasInsightsAssets: bool
+    hasInsightsAppStart: bool
+    hasInsightsScreenLoad: bool
+    hasInsightsVitals: bool
+    hasInsightsCaches: bool
+    hasInsightsQueues: bool
+    hasInsightsLlmMonitoring: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -508,6 +517,16 @@ class ProjectSerializer(Serializer):
             "hasFeedbacks": bool(obj.flags.has_feedbacks),
             "hasNewFeedbacks": bool(obj.flags.has_new_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
+            # whether first span has been sent for each insight module
+            "hasInsightsHttp": bool(obj.flags.has_insights_http),
+            "hasInsightsDb": bool(obj.flags.has_insights_db),
+            "hasInsightsAssets": bool(obj.flags.has_insights_assets),
+            "hasInsightsAppStart": bool(obj.flags.has_insights_app_start),
+            "hasInsightsScreenLoad": bool(obj.flags.has_insights_screen_load),
+            "hasInsightsVitals": bool(obj.flags.has_insights_vitals),
+            "hasInsightsCaches": bool(obj.flags.has_insights_caches),
+            "hasInsightsQueues": bool(obj.flags.has_insights_queues),
+            "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -727,6 +746,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
+            # whether first span has been sent for each insight module
+            hasInsightsHttp=bool(obj.flags.has_insights_http),
+            hasInsightsDb=bool(obj.flags.has_insights_db),
+            hasInsightsAssets=bool(obj.flags.has_insights_assets),
+            hasInsightsAppStart=bool(obj.flags.has_insights_app_start),
+            hasInsightsScreenLoad=bool(obj.flags.has_insights_screen_load),
+            hasInsightsVitals=bool(obj.flags.has_insights_vitals),
+            hasInsightsCaches=bool(obj.flags.has_insights_caches),
+            hasInsightsQueues=bool(obj.flags.has_insights_queues),
+            hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
