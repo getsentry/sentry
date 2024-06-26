@@ -605,8 +605,8 @@ function RenderRow(props: {
     [props.index, props.node, onKeyDownProp]
   );
 
-  const onSpanRowDoubleClick = useCallback(
-    e => {
+  const onRowDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
       trackAnalytics('trace.trace_layout.zoom_to_fill', {
         organization: props.organization,
       });
@@ -617,7 +617,7 @@ function RenderRow(props: {
   );
 
   const onSpanRowArrowClick = useCallback(
-    _e => {
+    (_e: React.MouseEvent) => {
       props.manager.onBringRowIntoView(props.node.space!);
     },
     [props.node.space, props.manager]
@@ -625,9 +625,15 @@ function RenderRow(props: {
 
   const onExpandProp = props.onExpand;
   const onExpandClick = useCallback(
-    e => onExpandProp(e, props.node, !props.node.expanded),
+    (e: React.MouseEvent) => {
+      onExpandProp(e, props.node, !props.node.expanded);
+    },
     [props.node, onExpandProp]
   );
+
+  const onExpandDoubleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+  }, []);
 
   const spanColumnClassName =
     props.index % 2 === 1 ? RIGHT_COLUMN_ODD_CLASSNAME : RIGHT_COLUMN_EVEN_CLASSNAME;
@@ -656,7 +662,11 @@ function RenderRow(props: {
         style={props.style}
       >
         <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div className={`TraceLeftColumnInner`} style={listColumnStyle}>
+          <div
+            className="TraceLeftColumnInner"
+            style={listColumnStyle}
+            onDoubleClick={onRowDoubleClick}
+          >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />
               <ChildrenButton
@@ -666,6 +676,7 @@ function RenderRow(props: {
                 status={props.node.fetchStatus}
                 expanded={!props.node.expanded}
                 onClick={onExpandClick}
+                onDoubleClick={onExpandDoubleClick}
               >
                 {COUNT_FORMATTER.format(props.node.groupCount)}
               </ChildrenButton>
@@ -679,7 +690,7 @@ function RenderRow(props: {
         <div
           className={spanColumnClassName}
           ref={registerSpanColumnRef}
-          onDoubleClick={onSpanRowDoubleClick}
+          onDoubleClick={onRowDoubleClick}
         >
           <AutogroupedTraceBar
             manager={props.manager}
@@ -719,7 +730,11 @@ function RenderRow(props: {
         style={props.style}
       >
         <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div className={`TraceLeftColumnInner`} style={listColumnStyle}>
+          <div
+            className="TraceLeftColumnInner"
+            style={listColumnStyle}
+            onDoubleClick={onRowDoubleClick}
+          >
             <div className={listColumnClassName}>
               <Connectors node={props.node} manager={props.manager} />
               {props.node.children.length > 0 || props.node.canFetch ? (
@@ -735,6 +750,7 @@ function RenderRow(props: {
                   }
                   status={props.node.fetchStatus}
                   expanded={props.node.expanded || props.node.zoomedIn}
+                  onDoubleClick={onExpandDoubleClick}
                   onClick={e => {
                     props.node.canFetch
                       ? props.onZoomIn(e, props.node, !props.node.zoomedIn)
@@ -758,7 +774,7 @@ function RenderRow(props: {
         <div
           ref={registerSpanColumnRef}
           className={spanColumnClassName}
-          onDoubleClick={onSpanRowDoubleClick}
+          onDoubleClick={onRowDoubleClick}
         >
           <TraceBar
             virtualized_index={virtualized_index}
@@ -797,7 +813,11 @@ function RenderRow(props: {
         style={props.style}
       >
         <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div className={`TraceLeftColumnInner`} style={listColumnStyle}>
+          <div
+            className="TraceLeftColumnInner"
+            style={listColumnStyle}
+            onDoubleClick={onRowDoubleClick}
+          >
             <div className={listColumnClassName}>
               <Connectors node={props.node} manager={props.manager} />
               {props.node.children.length > 0 || props.node.canFetch ? (
@@ -813,6 +833,7 @@ function RenderRow(props: {
                   }
                   status={props.node.fetchStatus}
                   expanded={props.node.expanded || props.node.zoomedIn}
+                  onDoubleClick={onExpandDoubleClick}
                   onClick={e =>
                     props.node.canFetch
                       ? props.onZoomIn(e, props.node, !props.node.zoomedIn)
@@ -839,7 +860,7 @@ function RenderRow(props: {
         <div
           ref={registerSpanColumnRef}
           className={spanColumnClassName}
-          onDoubleClick={onSpanRowDoubleClick}
+          onDoubleClick={onRowDoubleClick}
         >
           <TraceBar
             virtualized_index={virtualized_index}
@@ -878,7 +899,11 @@ function RenderRow(props: {
         style={props.style}
       >
         <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div className="TraceLeftColumnInner" style={listColumnStyle}>
+          <div
+            className="TraceLeftColumnInner"
+            style={listColumnStyle}
+            onDoubleClick={onRowDoubleClick}
+          >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />
             </div>
@@ -888,7 +913,7 @@ function RenderRow(props: {
         <div
           ref={registerSpanColumnRef}
           className={spanColumnClassName}
-          onDoubleClick={onSpanRowDoubleClick}
+          onDoubleClick={onRowDoubleClick}
         >
           <MissingInstrumentationTraceBar
             virtualized_index={virtualized_index}
@@ -924,12 +949,22 @@ function RenderRow(props: {
         style={props.style}
       >
         <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div className="TraceLeftColumnInner" style={listColumnStyle}>
+          <div
+            className="TraceLeftColumnInner"
+            style={listColumnStyle}
+            onDoubleClick={onRowDoubleClick}
+          >
             {' '}
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} manager={props.manager} />
               {props.node.children.length > 0 || props.node.canFetch ? (
-                <ChildrenButton icon={''} status={'idle'} expanded onClick={() => void 0}>
+                <ChildrenButton
+                  icon={''}
+                  status={'idle'}
+                  expanded
+                  onClick={() => void 0}
+                  onDoubleClick={onExpandDoubleClick}
+                >
                   {props.node.children.length > 0
                     ? COUNT_FORMATTER.format(props.node.children.length)
                     : null}
@@ -944,7 +979,7 @@ function RenderRow(props: {
         <div
           ref={registerSpanColumnRef}
           className={spanColumnClassName}
-          onDoubleClick={onSpanRowDoubleClick}
+          onDoubleClick={onRowDoubleClick}
         >
           <TraceBar
             virtualized_index={virtualized_index}
@@ -983,7 +1018,11 @@ function RenderRow(props: {
         style={props.style}
       >
         <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div className="TraceLeftColumnInner" style={listColumnStyle}>
+          <div
+            className="TraceLeftColumnInner"
+            style={listColumnStyle}
+            onDoubleClick={onRowDoubleClick}
+          >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />{' '}
             </div>
@@ -1002,7 +1041,7 @@ function RenderRow(props: {
         <div
           ref={registerSpanColumnRef}
           className={spanColumnClassName}
-          onDoubleClick={onSpanRowDoubleClick}
+          onDoubleClick={onRowDoubleClick}
         >
           <InvisibleTraceBar
             node_space={props.node.space}
@@ -1036,7 +1075,11 @@ function RenderRow(props: {
         style={props.style}
       >
         <div className="TraceLeftColumn" ref={registerListColumnRef}>
-          <div className="TraceLeftColumnInner" style={listColumnStyle}>
+          <div
+            className="TraceLeftColumnInner"
+            style={listColumnStyle}
+            onDoubleClick={onRowDoubleClick}
+          >
             <div className="TraceChildrenCountWrapper">
               <Connectors node={props.node} manager={props.manager} />
             </div>
@@ -1102,6 +1145,7 @@ function RenderPlaceholderRow(props: {
                 status={props.node.fetchStatus}
                 expanded={props.node.expanded || props.node.zoomedIn}
                 onClick={() => void 0}
+                onDoubleClick={() => void 0}
               >
                 {props.node.children.length > 0
                   ? COUNT_FORMATTER.format(props.node.children.length)
@@ -1196,10 +1240,15 @@ function ChildrenButton(props: {
   expanded: boolean;
   icon: React.ReactNode;
   onClick: (e: React.MouseEvent) => void;
+  onDoubleClick: (e: React.MouseEvent) => void;
   status: TraceTreeNode<any>['fetchStatus'] | undefined;
 }) {
   return (
-    <button className={`TraceChildrenCount`} onClick={props.onClick}>
+    <button
+      className={`TraceChildrenCount`}
+      onClick={props.onClick}
+      onDoubleClick={props.onDoubleClick}
+    >
       <div className="TraceChildrenCountContent">{props.children}</div>
       <div className="TraceChildrenCountAction">
         {props.icon}
