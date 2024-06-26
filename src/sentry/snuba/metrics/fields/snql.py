@@ -589,13 +589,6 @@ def miserable_users(org_id: int, metric_ids: Sequence[int], alias: str | None = 
     )
 
 
-def non_negative_crash_free_rate(crash_rate, alias: str | None = None) -> Function:
-    # prevents crash_free_rate value to be negative when crash_rate > 1
-    # (this can happen due to a bug in other parts of the system)
-    # for more info see: https://github.com/getsentry/sentry/issues/73172
-    return Function("max2", [0, Function("minus", [1, crash_rate])], alias)
-
-
 def subtraction(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
     return Function("minus", [arg1_snql, arg2_snql], alias)
 
