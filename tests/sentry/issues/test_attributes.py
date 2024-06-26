@@ -2,8 +2,8 @@ from collections.abc import Sequence
 from datetime import timedelta
 from unittest.mock import patch
 
+import sentry_sdk
 from django.utils import timezone
-from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.issues.attributes import (
@@ -238,7 +238,8 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
             request = json_to_snql(json_body, "group_attributes")
             request.validate()
             identity = lambda x: x
-            resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
+            forked_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+            resp = _snuba_query(((request, identity, identity), forked_scope, {}, "test_api"))
             assert resp[0].status == 200
             stuff = json.loads(resp[0].data)
             assert stuff["data"] == [

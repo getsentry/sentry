@@ -19,10 +19,10 @@ from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.seer.similarity.backfill import (
+from sentry.seer.similarity.grouping_records import (
     CreateGroupingRecordData,
     CreateGroupingRecordsRequest,
-    delete_grouping_records,
+    delete_project_grouping_records,
     post_bulk_grouping_records,
 )
 from sentry.seer.similarity.types import (
@@ -378,6 +378,7 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
 
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)
+@sentry_sdk.tracing.trace
 def lookup_group_data_stacktrace_bulk(
     project: Project, rows: list[GroupEventRow]
 ) -> dict[int, Event]:
@@ -494,7 +495,7 @@ def delete_seer_grouping_records(
         "backfill_seer_grouping_records.delete_all_seer_records",
         extra={"project_id": project_id},
     )
-    delete_grouping_records(project_id)
+    delete_project_grouping_records(project_id)
     redis_client.delete(make_backfill_grouping_index_redis_key(project_id))
 
     for groups in chunked(
