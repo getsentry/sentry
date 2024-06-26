@@ -2,7 +2,7 @@ import abc
 
 from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
-from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.services.hybrid_cloud.auth import (
