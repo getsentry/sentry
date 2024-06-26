@@ -83,6 +83,22 @@ class ProjectTemplateOptionManagerTest(TestCase):
         )
         assert result.value == "baz"
 
+    def test_get_all_values(self):
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
+
+        result = ProjectTemplateOption.objects.get_all_values(self.project_template)
+        assert result == {"foo": "bar"}
+
+    def test_get_all_values_id(self):
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
+
+        result = ProjectTemplateOption.objects.get_all_values(self.project_template.id)
+        assert result == {"foo": "bar"}
+
 
 class ProjectTemplateOptionTest(TestCase):
     def setUp(self):
