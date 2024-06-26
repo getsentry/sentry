@@ -27,22 +27,27 @@ class ProjectTemplateOptionManagerTest(TestCase):
         ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
         )
+
         result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
         assert result == "bar"
 
     def test_unset_value(self):
         ProjectTemplateOption.objects.unset_value(self.project_template, "foo")
-        ProjectTemplateOption.objects.create(project=self.project_template, key="foo", value="bar")
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
         ProjectTemplateOption.objects.unset_value(self.project_template, "foo")
         assert not ProjectTemplateOption.objects.filter(
-            project=self.project_template, key="foo"
+            project_template=self.project_template, key="foo"
         ).exists()
 
     def test_get_value_bulk(self):
         result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
-        assert result == {self.project_template: None}
+        assert result == {}
 
-        ProjectTemplateOption.objects.create(project=self.project_template, key="foo", value="bar")
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
         result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
         assert result == {self.project_template: "bar"}
 

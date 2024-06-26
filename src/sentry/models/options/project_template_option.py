@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any, ClassVar
@@ -41,15 +43,17 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
 
         return default
 
-    def unset_value(self, project_template: ProjectTemplate, key: str, value: Value) -> None:
+    def unset_value(self, project_template: ProjectTemplate, key: str) -> None:
         self.filter(project_template=project_template, key=key).delete()
         self.reload_cache(project_template.id, "projecttemplateoption.unset_value")
 
     def set_value(self, project_template: ProjectTemplate, key: str, value: Value) -> bool:
-        inst, created = self.get_or_create(
-            project_template=project_template, key=key, values={"value": value}
+        project_template_id = project_template.id
+
+        inst, created = self.create_or_update(
+            project_template_id=project_template_id, key=key, values={"value": value}
         )
-        self.reload_cache(project_template.id, "projecttemplateoption.set_value")
+        self.reload_cache(project_template_id, "projectoption.set_value")
 
         return created or inst > 0
 
@@ -66,6 +70,7 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
 
         if cache_key not in self._option_cache:
             result = cache.get(cache_key)
+
             if result is None:
                 self.reload_cache(project_template_id, "projecttemplateoption.get_all_values")
             else:
@@ -80,10 +85,17 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
             "projecttemplateoption.reload_cache",
             extra={"cache_key": cache_key, "reason": update_reason},
         )
+
         result = {i.key: i.value for i in self.filter(project_template=project_template_id)}
 
         cache.set(cache_key, result)
         self._option_cache[cache_key] = result
+
+    def post_save(self, instance: ProjectTemplateOption, **kwargs: Any) -> None:
+        self.reload_cache(instance.project_template_id, "projecttemplateoption.post_save")
+
+    def post_delete(self, instance: ProjectTemplateOption, **kwargs: Any) -> None:
+        self.reload_cache(instance.project_template_id, "projecttemplateoption.post_delete")
 
 
 @region_silo_model
