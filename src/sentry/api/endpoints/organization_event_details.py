@@ -94,6 +94,7 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def convert_args(
         self,
