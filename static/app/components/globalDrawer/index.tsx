@@ -77,10 +77,7 @@ export default function GlobalDrawer(_props: GlobalDrawerProps) {
 
 const DrawerContainer = styled('div')`
   position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
 `;
