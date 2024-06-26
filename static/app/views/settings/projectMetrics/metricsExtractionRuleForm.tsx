@@ -180,10 +180,10 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             name="aggregates"
             required
             options={AGGREGATE_OPTIONS}
-            label={t('Aggregation Functions')}
+            label={t('Aggregate')}
             multiple
             help={tct(
-              'The aggregation functions you want to apply to the metric. For more information, read [link:our docs]',
+              'Select the aggregations you want to store. For more information, read [link:our docs]',
               {
                 // TODO(telemetry-experience): add the correct link here once we have it!!!
                 link: (
