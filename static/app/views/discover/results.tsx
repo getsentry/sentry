@@ -41,6 +41,7 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
+  DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
 } from 'sentry/utils/discover/types';
@@ -52,7 +53,10 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {getDataset} from 'sentry/views/discover/savedQuery/utils';
+import {
+  getDatasetFromSavedQueryDataset,
+  getSavedQueryDataset,
+} from 'sentry/views/discover/savedQuery/utils';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -305,7 +309,7 @@ export class Results extends Component<Props, State> {
     const hasDatasetSelector = organization.features.includes(
       'performance-discover-dataset-selector'
     );
-    const value = getDataset(location, savedQuery, splitDecision);
+    const value = getSavedQueryDataset(location, savedQuery, splitDecision);
     const defaultEventView = hasDatasetSelector
       ? DEFAULT_EVENT_VIEW_MAP[value]
       : DEFAULT_EVENT_VIEW;
@@ -595,6 +599,9 @@ export class Results extends Component<Props, State> {
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
 
+    const queryDataset = getSavedQueryDataset(location, savedQuery, splitDecision);
+    const dataset = getDatasetFromSavedQueryDataset(queryDataset);
+
     if (!eventView.isValid()) {
       return <LoadingIndicator />;
     }
@@ -635,6 +642,7 @@ export class Results extends Component<Props, State> {
                       onSearch={this.handleSearch}
                       maxQueryLength={MAX_QUERY_LENGTH}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
+                      dataset={dataset}
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
@@ -675,6 +683,13 @@ export class Results extends Component<Props, State> {
                   setSplitDecision={(value?: string) => {
                     this.setState({splitDecision: value});
                   }}
+                  dataset={
+                    organization.features.includes(
+                      'performance-discover-dataset-selector'
+                    )
+                      ? dataset
+                      : DiscoverDatasets.DISCOVER
+                  }
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}

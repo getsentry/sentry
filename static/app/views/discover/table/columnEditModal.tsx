@@ -13,7 +13,8 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Column} from 'sentry/utils/discover/fields';
-import {FieldKey} from 'sentry/utils/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {ERROR_FIELDS, FieldKey, TRANSACTION_FIELDS} from 'sentry/utils/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -27,6 +28,7 @@ type Props = {
   onApply: (columns: Column[]) => void;
   organization: Organization;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   spanOperationBreakdownKeys?: string[];
 } & ModalRenderProps;
 
@@ -41,6 +43,7 @@ function ColumnEditModal(props: Props) {
     onApply,
     closeModal,
     customMeasurements,
+    dataset,
   } = props;
 
   // Only run once for each organization.id.
@@ -58,18 +61,43 @@ function ColumnEditModal(props: Props) {
     closeModal();
   }
 
-  const fieldOptions = generateFieldOptions({
-    organization,
-    tagKeys,
-    measurementKeys,
-    spanOperationBreakdownKeys,
-    customMeasurements: Object.values(customMeasurements ?? {}).map(
-      ({key, functions}) => ({
-        key,
-        functions,
-      })
-    ),
-  });
+  let fieldOptions: ReturnType<typeof generateFieldOptions>;
+
+  if (dataset === DiscoverDatasets.ERRORS) {
+    fieldOptions = generateFieldOptions({
+      organization,
+      tagKeys,
+      fieldKeys: ERROR_FIELDS,
+    });
+  } else if (dataset === DiscoverDatasets.TRANSACTIONS) {
+    fieldOptions = generateFieldOptions({
+      organization,
+      tagKeys,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+      customMeasurements: Object.values(customMeasurements ?? {}).map(
+        ({key, functions}) => ({
+          key,
+          functions,
+        })
+      ),
+      fieldKeys: TRANSACTION_FIELDS,
+    });
+  } else {
+    fieldOptions = generateFieldOptions({
+      organization,
+      tagKeys,
+      measurementKeys,
+      spanOperationBreakdownKeys,
+      customMeasurements: Object.values(customMeasurements ?? {}).map(
+        ({key, functions}) => ({
+          key,
+          functions,
+        })
+      ),
+    });
+  }
+
   return (
     <Fragment>
       <Header closeButton>

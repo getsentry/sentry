@@ -15,6 +15,7 @@ import type {LocationQuery} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -33,6 +34,7 @@ type TableProps = {
   setError: (msg: string, code: number) => void;
   showTags: boolean;
   title: string;
+  dataset?: DiscoverDatasets;
   isHomepage?: boolean;
   setSplitDecision?: (value: string) => void;
   setTips?: (tips: string[]) => void;
@@ -251,7 +253,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, onCursor} = this.props;
+    const {eventView, onCursor, dataset} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -282,6 +284,7 @@ class Table extends PureComponent<TableProps, TableState> {
                       measurementKeys={measurementKeys}
                       spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
+                      dataset={dataset}
                     />
                   </VisuallyCompleteWithData>
                 )}

@@ -16,7 +16,11 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
@@ -247,7 +251,7 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
   }
 }
 
-export function getDataset(
+export function getSavedQueryDataset(
   location: Location,
   savedQuery: SavedQuery | undefined,
   splitDecision?: string
@@ -260,4 +264,17 @@ export function getDataset(
     return splitDecision as SavedQueryDatasets;
   }
   return (savedQuery?.queryDataset ?? 'error-events') as SavedQueryDatasets;
+}
+
+export function getDatasetFromSavedQueryDataset(
+  queryDataset: SavedQueryDatasets
+): DiscoverDatasets {
+  switch (queryDataset) {
+    case SavedQueryDatasets.ERRORS:
+      return DiscoverDatasets.ERRORS;
+    case SavedQueryDatasets.TRANSACTIONS:
+      return DiscoverDatasets.TRANSACTIONS;
+    default:
+      return DiscoverDatasets.DISCOVER;
+  }
 }

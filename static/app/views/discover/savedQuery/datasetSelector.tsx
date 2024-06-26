@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
-import {getDataset} from 'sentry/views/discover/savedQuery/utils';
+import {getSavedQueryDataset} from 'sentry/views/discover/savedQuery/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
@@ -24,7 +24,7 @@ export function DatasetSelector(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
 
-  const value = getDataset(location, savedQuery, splitDecision);
+  const value = getSavedQueryDataset(location, savedQuery, splitDecision);
 
   const options = [
     {value: 'error-events', label: t('Errors')},
