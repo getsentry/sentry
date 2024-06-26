@@ -75,35 +75,6 @@ def create_remote_uptime_subscription(uptime_subscription_id, **kwargs):
 
 
 @instrumented_task(
-    name="sentry.uptime.subscriptions.tasks.update_uptime_subscription",
-    queue="uptime",
-    default_retry_delay=5,
-    max_retries=5,
-)
-def update_remote_uptime_subscription(uptime_subscription_id, **kwargs):
-    try:
-        subscription = UptimeSubscription.objects.get(id=uptime_subscription_id)
-    except UptimeSubscription.DoesNotExist:
-        metrics.incr("uptime.subscriptions.update.subscription_does_not_exist")
-        return
-    if subscription.status != UptimeSubscription.Status.UPDATING.value:
-        metrics.incr("uptime.subscriptions.update.incorrect_status")
-        return
-
-    old_subscription_id = subscription.subscription_id
-    new_subscription_id = send_uptime_subscription_config(subscription)
-    # TODO: Ideally this should actually be `PENDING_FIRST_UPDATE` so we can validate it's really working as expected
-    subscription.update(
-        status=QuerySubscription.Status.ACTIVE.value, subscription_id=new_subscription_id
-    )
-
-    if old_subscription_id is not None:
-        # If we crash before we do this we don't really care - this subscription will be detected as unused in the
-        # result consumer and we'll remove it then.
-        send_uptime_config_deletion(old_subscription_id)
-
-
-@instrumented_task(
     name="sentry.uptime.subscriptions.tasks.delete_uptime_subscription",
     queue="uptime",
     default_retry_delay=5,

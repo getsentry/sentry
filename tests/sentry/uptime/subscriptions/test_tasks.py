@@ -16,7 +16,6 @@ from sentry.uptime.subscriptions.tasks import (
     delete_remote_uptime_subscription,
     send_uptime_config_deletion,
     send_uptime_config_message,
-    update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
 from sentry.utils.hashlib import md5_text
@@ -121,33 +120,6 @@ class CreateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
         assert sub.status == UptimeSubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
         self.assert_producer_calls(sub)
-
-
-class UpdateUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):
-    expected_status = UptimeSubscription.Status.UPDATING
-    task = update_remote_uptime_subscription
-
-    def test(self):
-        subscription_id = uuid4().hex
-        sub = self.create_subscription(
-            UptimeSubscription.Status.UPDATING, subscription_id=subscription_id
-        )
-
-        update_remote_uptime_subscription(sub.id)
-        sub.refresh_from_db()
-        assert sub.status == UptimeSubscription.Status.ACTIVE.value
-        assert sub.subscription_id is not None
-        assert sub.subscription_id != subscription_id
-        self.assert_producer_calls(sub, subscription_id)
-
-    def test_no_subscription_id(self):
-        sub = self.create_subscription(UptimeSubscription.Status.UPDATING)
-        assert sub.subscription_id is None
-        update_remote_uptime_subscription(sub.id)
-        sub.refresh_from_db()
-        assert sub.status == UptimeSubscription.Status.ACTIVE.value
-        assert sub.subscription_id is not None
-        self.assert_producer_calls(sub)  # type: ignore[unreachable]
 
 
 class DeleteUptimeSubscriptionTaskTest(BaseUptimeSubscriptionTaskTest):

@@ -6,7 +6,6 @@ from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
-    update_remote_uptime_subscription,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,26 +30,6 @@ def create_uptime_subscription(
     )
     create_remote_uptime_subscription.delay(subscription.id)
     return subscription
-
-
-def update_uptime_subscription(
-    uptime_subscription: UptimeSubscription,
-    url: str,
-    interval_seconds: int,
-    timeout_ms: int,
-) -> UptimeSubscription:
-    """
-    Updates an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
-    config update to the uptime check system.
-    """
-    uptime_subscription.update(
-        status=UptimeSubscription.Status.UPDATING.value,
-        url=url,
-        interval_seconds=interval_seconds,
-        timeout_ms=timeout_ms,
-    )
-    update_remote_uptime_subscription.delay(uptime_subscription.id)
-    return uptime_subscription
 
 
 def delete_uptime_subscription(uptime_subscription: UptimeSubscription):

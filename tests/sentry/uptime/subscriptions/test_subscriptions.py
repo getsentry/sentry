@@ -9,7 +9,6 @@ from sentry.uptime.subscriptions.subscriptions import (
     create_uptime_subscription,
     delete_project_uptime_subscription,
     delete_uptime_subscription,
-    update_uptime_subscription,
 )
 
 pytestmark = [requires_kafka]
@@ -40,51 +39,6 @@ class CreateUptimeSubscriptionTest(TestCase):
         assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
         assert uptime_sub.url == url
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
-        assert uptime_sub.timeout_ms == timeout_ms
-
-
-class UpdateUptimeSubscriptionTest(TestCase):
-    def test_task(self):
-        with self.tasks():
-            uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        uptime_sub.refresh_from_db()
-        original_sub_id = uptime_sub.subscription_id
-        url = "https://sentry.sentry.io"
-        interval_seconds = 300
-        timeout_ms = 500
-        with self.tasks():
-            update_uptime_subscription(
-                uptime_sub,
-                url,
-                interval_seconds,
-                timeout_ms,
-            )
-        uptime_sub.refresh_from_db()
-        assert uptime_sub.subscription_id != original_sub_id
-        assert uptime_sub.status == UptimeSubscription.Status.ACTIVE.value
-        assert uptime_sub.url == url
-        assert uptime_sub.interval_seconds == interval_seconds
-        assert uptime_sub.timeout_ms == timeout_ms
-
-    def test_without_task(self):
-        with self.tasks():
-            uptime_sub = create_uptime_subscription("https://sentry.io", 3600, 1000)
-        uptime_sub.refresh_from_db()
-        original_sub_id = uptime_sub.subscription_id
-        url = "https://sentry.sentry.io"
-        interval_seconds = 300
-        timeout_ms = 500
-        update_uptime_subscription(
-            uptime_sub,
-            url,
-            interval_seconds,
-            timeout_ms,
-        )
-        uptime_sub.refresh_from_db()
-        assert uptime_sub.subscription_id == original_sub_id
-        assert uptime_sub.status == UptimeSubscription.Status.UPDATING.value
-        assert uptime_sub.url == url
-        assert uptime_sub.interval_seconds == interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
 
 
