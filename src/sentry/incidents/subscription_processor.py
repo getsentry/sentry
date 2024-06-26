@@ -219,6 +219,7 @@ class SubscriptionProcessor:
         )
         try:
             project_ids = [self.subscription.project_id]
+            # TODO: determine whether we need to include the subscription query_extra here
             query_builder = entity_subscription.build_query_builder(
                 query=snuba_query.query,
                 project_ids=project_ids,

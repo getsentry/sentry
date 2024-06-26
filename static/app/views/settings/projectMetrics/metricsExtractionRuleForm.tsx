@@ -15,6 +15,7 @@ import type {MetricType} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export interface FormData {
@@ -44,6 +45,20 @@ const ListItemDetails = styled('span')`
   line-height: 1.2;
 `;
 
+const KNOWN_NUMERIC_FIELDS = new Set([
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.PROJECT_ID,
+  SpanIndexedField.INP,
+  SpanIndexedField.INP_SCORE,
+  SpanIndexedField.INP_SCORE_WEIGHT,
+  SpanIndexedField.TOTAL_SCORE,
+  SpanIndexedField.CACHE_ITEM_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+  SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+]);
+
 const TYPE_OPTIONS = [
   {
     label: t('Counter'),
@@ -67,6 +82,20 @@ const TYPE_OPTIONS = [
     ],
   },
 ];
+
+const EMPTY_SET = new Set<never>();
+const SPAN_SEARCH_CONFIG = {
+  booleanKeys: EMPTY_SET,
+  dateKeys: EMPTY_SET,
+  durationKeys: EMPTY_SET,
+  numericKeys: EMPTY_SET,
+  percentageKeys: EMPTY_SET,
+  sizeKeys: EMPTY_SET,
+  textOperatorKeys: EMPTY_SET,
+  disallowFreeText: true,
+  disallowWildcard: true,
+  disallowNegation: true,
+};
 
 export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
@@ -97,6 +126,13 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [customAttributes, supportedTags]);
+
+  const tagOptions = useMemo(() => {
+    return attributeOptions.filter(
+      // We don't want to suggest numeric fields as tags as they would explode cardinality
+      option => !KNOWN_NUMERIC_FIELDS.has(option.value as SpanIndexedField)
+    );
+  }, [attributeOptions]);
 
   const handleSubmit = useCallback(
     (
@@ -155,7 +191,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
           />
           <SelectField
             name="tags"
-            options={attributeOptions}
+            options={tagOptions}
             label={t('Group and filter by')}
             multiple
             placeholder={t('Select tags')}
@@ -188,6 +224,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                         <SearchWrapper hasPrefix={index !== 0}>
                           {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
                           <SearchBar
+                            {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
                             query={query}
                             onSearch={(queryString: string) =>
