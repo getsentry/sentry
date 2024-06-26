@@ -90,7 +90,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
         <h6>{t('Span-based Metrics')}</h6>
         <FlexSpacer />
         <SearchBar
-          placeholder={t('Search Extraction Rules')}
+          placeholder={t('Search Metrics')}
           onChange={setQuery}
           query={query}
           size="sm"
@@ -145,8 +145,8 @@ function RulesTable({
       ]}
       emptyMessage={
         hasSearch
-          ? t('No extraction rules match the query.')
-          : t('You have not created any extraction rules yet.')
+          ? t('No metrics match the query.')
+          : t('You have not created any span-based metrics yet.')
       }
       isEmpty={extractionRules.length === 0}
       isLoading={isLoading}
@@ -167,14 +167,14 @@ function RulesTable({
             </Cell>
             <Cell right>
               <Button
-                aria-label={t('Delete rule')}
+                aria-label={t('Delete metric')}
                 size="xs"
                 icon={<IconDelete />}
                 borderless
                 onClick={() => onDelete(rule)}
               />
               <Button
-                aria-label={t('Edit rule')}
+                aria-label={t('Edit metric')}
                 size="xs"
                 icon={<IconEdit />}
                 borderless
