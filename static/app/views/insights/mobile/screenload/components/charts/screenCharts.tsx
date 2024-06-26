@@ -145,7 +145,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
 
           const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
           transformedReleaseSeries[yAxis][release] = {
-            seriesName: formatVersion(label),
+            seriesName: formatVersion(label, true),
             color,
             data,
           };
