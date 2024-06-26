@@ -31,6 +31,26 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
         assert result == "bar"
 
+    def test_get_value_validated(self):
+        result = ProjectTemplateOption.objects.get_value(self.project_template, "foo")
+        assert result is None
+
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
+
+        # Test validator true
+        result = ProjectTemplateOption.objects.get_value(
+            self.project_template, "foo", None, lambda x: x == "bar"
+        )
+        assert result == "bar"
+
+        # Test validator false
+        result = ProjectTemplateOption.objects.get_value(
+            self.project_template, "foo", None, lambda x: x != "bar"
+        )
+        assert result is None
+
     def test_unset_value(self):
         ProjectTemplateOption.objects.unset_value(self.project_template, "foo")
         ProjectTemplateOption.objects.create(
