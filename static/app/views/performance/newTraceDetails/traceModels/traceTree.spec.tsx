@@ -1300,6 +1300,39 @@ describe('TraceTree', () => {
     expect(tree.list[3].value.start_timestamp).toBe(2);
   });
 
+  it.only('appends a tree to another tree', () => {
+    const tree1 = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'txn 1',
+            start_timestamp: 0,
+            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+          }),
+        ],
+      }),
+      null
+    );
+
+    const tree2 = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'txn 3',
+            start_timestamp: 2,
+            children: [makeTransaction({start_timestamp: 3, transaction: 'txn 4'})],
+          }),
+        ],
+      }),
+      null
+    );
+
+    tree1.appendTree(tree2);
+    tree1.print();
+
+    expect(tree1.list.length).toBe(5);
+  });
+
   it('preserves input order', () => {
     const firstChild = makeTransaction({
       start_timestamp: 0,

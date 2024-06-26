@@ -78,6 +78,7 @@ async function fetchTraceMetaInBatches(
   };
 
   const apiErrors: Error[] = [];
+  let batchNum = 1;
 
   while (clonedTraceIds.length > 0) {
     const batch = clonedTraceIds.splice(0, 3);
@@ -103,6 +104,11 @@ async function fetchTraceMetaInBatches(
       {...metaResults}
     );
 
+    console.log(
+      'Meta', batchNum, updatedData.transactions - metaResults.transactions
+    );
+
+    batchNum++;
     metaResults.errors = updatedData.errors;
     metaResults.performance_issues = updatedData.performance_issues;
     metaResults.projects = Math.max(updatedData.projects, metaResults.projects);
@@ -141,7 +147,7 @@ export function useTraceMeta(traceSlugs: string[]): TraceMetaQueryResults {
     ['traceData', traceSlugs],
     () => fetchTraceMetaInBatches(traceSlugs, api, organization, queryParams),
     {
-      enabled: traceSlugs.length > 0,
+      enabled: traceSlugs.length > 0 ,
     }
   );
 

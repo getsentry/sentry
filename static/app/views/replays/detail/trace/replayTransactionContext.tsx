@@ -11,7 +11,7 @@ import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
 import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
-import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
@@ -29,6 +29,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+import { useApiQuery } from 'sentry/utils/queryClient';
 
 type Options = {
   children: ReactNode;
@@ -141,7 +142,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           return {
             ...prev,
             traces: sortBy(
-              (prev.traces || []).concat(transactions ?? (trace as TraceFullDetailed[])),
+              (prev.traces || []).concat(sortBy(transactions ?? (trace as TraceFullDetailed[]), 'start_timestamp')),
               'start_timestamp'
             ),
             orphanErrors: sortBy(
@@ -239,7 +240,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
             trace: row.trace,
             timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
           }));
-
+        
         (async function () {
           await fetchTracesInBatches(parsedData);
         })();
@@ -288,6 +289,74 @@ function internalToExternalState({
     traces,
     orphanErrors,
   };
+}
+
+export function useReplayTraceQueryParams(
+  replayRecord: ReplayRecord | undefined
+): {
+  trace: string;
+  timestamp: number | undefined;
+}[]{
+  const organization = useOrganization();
+
+  // EventView that is used to fetch the list of events for the replay
+  const eventView = useMemo(() => {
+    if (!replayRecord) {
+      return null;
+    }
+    const replayId = replayRecord?.id;
+    const projectId = replayRecord?.project_id;
+    const start = getUtcDateString(replayRecord?.started_at.getTime());
+    const end = getUtcDateString(replayRecord?.finished_at.getTime());
+
+    return EventView.fromSavedQuery({
+      id: undefined,
+      name: `Traces in replay ${replayId}`,
+      fields: ['trace', 'count(trace)', 'min(timestamp)'],
+      orderby: 'min_timestamp',
+      query: `replayId:${replayId}`,
+      projects: [Number(projectId)],
+      version: 2,
+      start,
+      end,
+    });
+  }, [replayRecord]);
+
+  const start = getUtcDateString(replayRecord?.started_at.getTime());
+  const end = getUtcDateString(replayRecord?.finished_at.getTime());
+
+  const {data: eventsData} = useApiQuery<{
+    data: TableDataRow[];
+  }>(
+    [
+      `/organizations/${organization.slug}/events/`,
+      {
+        query: eventView
+          ? {
+              ...eventView.getEventsAPIPayload({
+                start,
+                end,
+              } as unknown as Location),
+              sort: ['min_timestamp', 'trace'],
+            }
+          : {},
+      },
+    ],
+    {
+      staleTime: Infinity,
+      enabled: !!eventView && !!replayRecord,
+    }
+  );
+
+  const traceQueryParams = useMemo(() => {
+    return (eventsData?.data ?? []).filter(row => row.trace) // Filter out items where trace is not truthy
+    .map(row => ({
+      trace: String(row.trace),
+      timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+    }));
+  }, [eventsData]);
+
+  return traceQueryParams;
 }
 
 export default ReplayTransactionContext;

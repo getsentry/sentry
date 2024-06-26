@@ -23,20 +23,16 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
@@ -62,9 +58,8 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
-import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
+import {useTraceEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
@@ -79,6 +74,8 @@ import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
+import { useTraceNew } from './traceApi/useTraceNew';
+import { getTimeStampFromTableDateField } from 'sentry/utils/dates';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {
@@ -177,9 +174,7 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const trace = useTrace();
   const meta = useTraceMeta([traceSlug]);
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
 
   const preferences = useMemo(
     () =>
@@ -202,20 +197,16 @@ export function TraceView() {
             <TraceUXChangeAlert />
             <TraceMetadataHeader
               organization={organization}
-              projectID={rootEvent?.data?.projectID ?? ''}
-              title={rootEvent?.data?.title ?? ''}
               traceSlug={traceSlug}
               traceEventView={traceEventView}
             />
             <TraceInnerLayout>
               <TraceViewWaterfall
-                status={trace.status}
-                trace={trace.data ?? null}
-                traceSlug={traceSlug}
+                traceQueryParams={[{trace: traceSlug, timestamp: getTimeStampFromTableDateField(queryParams.timestamp)}]}
+                traceLabel={traceSlug}
                 organization={organization}
                 traceEventView={traceEventView}
                 metaResults={meta}
-                rootEvent={rootEvent}
                 replayRecord={null}
                 source="performance"
               />
@@ -241,12 +232,10 @@ type TraceViewWaterfallProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   replayRecord: ReplayRecord | null;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
-  status: UseApiQueryResult<any, any>['status'];
-  trace: TraceSplitResults<TraceTree.Transaction> | null;
   traceEventView: EventView;
-  traceSlug: string;
+  traceLabel: string;
+  traceQueryParams: { trace: string; timestamp: number | undefined; }[];
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
@@ -255,6 +244,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
+  const {traceResults, isLoading, isIncrementallyFetching, errors} = useTraceNew({traceQueryParams: props.traceQueryParams});
+  const rootEvent = useTraceEvent(traceResults);
 
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
@@ -297,12 +288,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     null
   );
 
+  const treeRef = useRef<TraceTree | null>(null);
   const tree = useMemo(() => {
-    if (props.status === 'error') {
+    if (errors.length > 0) {
       const errorTree = TraceTree.Error(
         {
           project_slug: projects?.[0]?.slug ?? '',
-          event_id: props.traceSlug,
+          event_id: props.traceQueryParams[0].trace,
         },
         loadingTraceRef.current
       );
@@ -310,29 +302,15 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (
-      props.trace?.transactions.length === 0 &&
-      props.trace?.orphan_errors.length === 0
-    ) {
-      return TraceTree.Empty();
-    }
-
-    // Display the loading state if the trace is still loading and the Trace View has less than 10 transactions.
-    // This allows us to display part of the trace while the rest is incrementally loading, for the multiple traces scenario.
-    // Note: The check for transactions count will only impact cases where we are querying multiple traces, like in replays detail trace tab as for a
-    // single trace scenario, the status will be 'loading' till all the transactions of the trace finish loading.
-    if (
-      props.status === 'loading' &&
-      !(
-        props.trace &&
-        props.trace.transactions.length + props.trace.orphan_errors.length > 10
-      )
+      isLoading || (isIncrementallyFetching && treeRef.current && treeRef.current.type === 'trace'
+      && treeRef.current.list.length <= 1)
     ) {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(
           {
             project_slug: projects?.[0]?.slug ?? '',
-            event_id: props.traceSlug,
+            event_id: props.traceQueryParams[0].trace,
           },
           loadingTraceRef.current
         );
@@ -341,13 +319,28 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return loadingTrace;
     }
 
-    if (props.trace) {
-      return TraceTree.FromTrace(props.trace, props.replayRecord);
+    if (
+      !isIncrementallyFetching && treeRef.current && treeRef.current.type === 'trace'
+      && treeRef.current.list.length <= 1
+    ) {
+      return TraceTree.Empty();
     }
 
+    if (traceResults) {
+      if (!treeRef.current ) {
+        const newTree = TraceTree.FromTrace(traceResults, props.replayRecord);
+        treeRef.current = newTree;
+        return newTree;
+      }
+      
+      treeRef.current.appendTree(TraceTree.FromTrace(traceResults, props.replayRecord));
+      return treeRef.current;
+    }
+  
     throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
+  }, [props.traceQueryParams, traceResults, projects, props.replayRecord, isIncrementallyFetching, isLoading]);
 
+  console.log(treeRef.current?.list.length);
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
@@ -873,7 +866,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         <Trace
           trace={tree}
           rerender={rerender}
-          trace_id={props.traceSlug}
+          traceLabel={props.traceLabel}
           scrollQueueRef={scrollQueueRef}
           initializedRef={initializedRef}
           onRowClick={onRowClick}
@@ -889,8 +882,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         ) : tree.type === 'empty' ? (
           <TraceEmpty />
         ) : tree.type === 'loading' ||
-          (scrollQueueRef.current && tree.type !== 'trace') ||
-          (props.status === 'loading' && tree.type === 'trace') ? ( // This condition is for when the Trace View is incrementally loading
+          (scrollQueueRef.current && tree.type !== 'trace') ? ( // This condition is for when the Trace View is incrementally loading
           <TraceLoading />
         ) : null}
 
@@ -900,11 +892,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceType={shape}
           trace={tree}
           traceGridRef={traceGridRef}
-          traces={props.trace}
+          traces={traceResults}
           manager={viewManager}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
-          rootEventResults={props.rootEvent}
+          rootEventResults={rootEvent}
           traceEventView={props.traceEventView}
         />
       </TraceGrid>

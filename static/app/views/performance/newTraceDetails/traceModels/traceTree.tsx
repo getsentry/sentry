@@ -596,6 +596,196 @@ export class TraceTree {
     return tree.build();
   }
 
+  static FromTraceNew(tree: TraceTree, trace: TraceTree.Trace, replayRecord: ReplayRecord | null): void {
+    let traceStart = Number.POSITIVE_INFINITY;
+    let traceEnd = Number.NEGATIVE_INFINITY;
+
+    const traceNode = tree.root.children[0];
+
+    function visit(
+      parent: TraceTreeNode<TraceTree.NodeValue | null>,
+      value: TraceTree.Transaction | TraceTree.TraceError
+    ) {
+      const node = new TraceTreeNode(parent, value, {
+        project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
+        event_id: value && 'event_id' in value ? value.event_id : undefined,
+      });
+      node.canFetch = true;
+      tree.eventsCount += 1;
+
+      if (node.profiles.length > 0) {
+        tree.profiled_events.add(node);
+      }
+
+      if (isTraceTransaction(value)) {
+        for (const error of value.errors) {
+          traceNode.errors.add(error);
+        }
+
+        for (const performanceIssue of value.performance_issues) {
+          traceNode.performance_issues.add(performanceIssue);
+        }
+      } else {
+        traceNode.errors.add(value);
+      }
+
+      if (parent) {
+        parent.children.push(node as TraceTreeNode<TraceTree.NodeValue>);
+      }
+
+      if ('start_timestamp' in value && value.start_timestamp < traceStart) {
+        traceStart = value.start_timestamp;
+      }
+      if ('timestamp' in value && typeof value.timestamp === 'number') {
+        // Errors don't have 'start_timestamp', so we adjust traceStart
+        // with an errors 'timestamp'
+        if (isTraceError(value)) {
+          traceStart = Math.min(value.timestamp, traceStart);
+        }
+
+        traceEnd = Math.max(value.timestamp, traceEnd);
+      }
+
+      if (value && 'measurements' in value) {
+        tree.collectMeasurements(
+          node,
+          traceStart,
+          value.measurements as Record<string, Measurement>,
+          tree.vitals,
+          tree.vital_types,
+          tree.indicators
+        );
+      }
+
+      if (value && 'children' in value) {
+        for (const child of value.children) {
+          visit(node, child);
+        }
+      }
+
+      return node;
+    }
+
+    const transactionQueue = trace.transactions ?? [];
+    const orphanErrorsQueue = trace.orphan_errors ?? [];
+
+    let tIdx = 0;
+    let oIdx = 0;
+    const tLen = transactionQueue.length;
+    const oLen = orphanErrorsQueue.length;
+
+    // Items in each queue are sorted by timestamp, so we just take
+    // from the queue with the earliest timestamp which means the final list will be ordered.
+    while (tIdx < tLen || oIdx < oLen) {
+      const transaction = transactionQueue[tIdx];
+      const orphan = orphanErrorsQueue[oIdx];
+
+      if (transaction && orphan) {
+        if (
+          typeof orphan.timestamp === 'number' &&
+          transaction.start_timestamp <= orphan.timestamp
+        ) {
+          visit(traceNode, transaction);
+          tIdx++;
+        } else {
+          visit(traceNode, orphan);
+          oIdx++;
+        }
+      } else if (transaction) {
+        visit(traceNode, transaction);
+        tIdx++;
+      } else if (orphan) {
+        visit(traceNode, orphan);
+        oIdx++;
+      }
+    }
+
+    if (tree.indicators.length > 0) {
+      tree.indicators.sort((a, b) => a.start - b.start);
+
+      for (const indicator of tree.indicators) {
+        if (indicator.start > traceEnd) {
+          traceEnd = indicator.start;
+        }
+
+        indicator.start *= traceNode.multiplier;
+      }
+    }
+
+    // The sum of all durations of traces that exist under a replay is not always
+    // equal to the duration of the replay. We need to adjust the traceview bounds
+    // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
+    // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
+    if (replayRecord) {
+      const replayStart = replayRecord.started_at.getTime() / 1000;
+      const replayEnd = replayRecord.finished_at.getTime() / 1000;
+
+      traceStart = Math.min(traceStart, replayStart);
+      traceEnd = Math.max(traceEnd, replayEnd);
+    }
+
+    traceNode.space = [
+      traceStart * traceNode.multiplier,
+      (traceEnd - traceStart) * traceNode.multiplier,
+    ];
+
+    tree.root.space = [
+      traceStart * traceNode.multiplier,
+      (traceEnd - traceStart) * traceNode.multiplier,
+    ];
+
+    traceNode.children.sort(chronologicalSort);
+    tree.build();
+  }
+
+  appendTree(tree: TraceTree){
+    const traceNode1 = this.root.children[0];
+    const traceNode2 = tree.root.children[0];
+
+    if (!traceNode1 || !traceNode2) {
+      throw new Error('No trace node found in tree');
+    }
+
+    for (const child of traceNode2.children) {
+      child.parent = traceNode1;
+      traceNode1.children.push(child);
+    }
+
+    for (const error of traceNode2.errors) {
+      traceNode1.errors.add(error);
+    }
+
+    for (const performanceIssue of traceNode2.performance_issues) {
+      traceNode1.performance_issues.add(performanceIssue);
+    }
+
+    for (const profile of traceNode2.profiles) {
+      traceNode1.profiles.push(profile);
+    }
+
+    for (const [node, vitals] of tree.vitals) {
+      this.vitals.set(node, vitals);
+    }
+
+    for (const [node, _] of tree.vitals) {
+      //Collect all measurements
+      if(traceNode1.space && traceNode1.space[0] && node.value && 'start_timestamp' in node.value && 'measurements' in node.value){
+        this.collectMeasurements(
+          node,
+          traceNode1.space[0],
+          node.value.measurements as Record<string, Measurement>,
+          this.vitals,
+          this.vital_types,
+          this.indicators
+        );
+      }
+    }
+
+    traceNode1.children.sort(chronologicalSort);
+    traceNode1.invalidate(traceNode1);
+    this.build();
+  }
+
   get shape(): TraceType {
     const trace = this.root.children[0];
     if (!trace) {

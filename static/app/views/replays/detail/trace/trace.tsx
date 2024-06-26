@@ -17,7 +17,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
-import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import TraceView, {
@@ -28,6 +27,7 @@ import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
   useFetchTransactions,
+  useReplayTraceQueryParams,
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
@@ -107,6 +107,7 @@ function Trace({replayRecord}: Props) {
     state: {didInit, errors, isFetching, traces, orphanErrors},
     eventView,
   } = useTransactionData();
+  const traceSlugs = useReplayTraceQueryParams(replayRecord);
 
   const metaResults = useReplayTraceMeta(replayRecord);
 
@@ -117,14 +118,6 @@ function Trace({replayRecord}: Props) {
     []
   );
 
-  const traceSplitResults = useMemo(() => {
-    return {
-      transactions: traces ?? [],
-      orphan_errors: orphanErrors ?? [],
-    };
-  }, [traces, orphanErrors]);
-
-  const rootEvent = useTraceRootEvent(traceSplitResults);
   useFetchTransactions();
 
   if (errors.length) {
@@ -165,13 +158,11 @@ function Trace({replayRecord}: Props) {
       >
         <TraceViewWaterfallWrapper>
           <TraceViewWaterfall
-            traceSlug="Replay"
-            status={errors.length > 0 ? 'error' : isFetching ? 'loading' : 'success'}
-            trace={traceSplitResults}
+            traceQueryParams={traceSlugs}
+            traceLabel="Replay"
             organization={organization}
             traceEventView={eventView}
             metaResults={metaResults}
-            rootEvent={rootEvent}
             source="replay"
             replayRecord={replayRecord}
           />
