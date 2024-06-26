@@ -126,9 +126,8 @@ function QueuesLandingPage() {
               </PageFilterBar>
             </ModuleLayout.Full>
             <ModulesOnboarding
-              moduleQueryFilter={new MutableSearch(DEFAULT_QUERY_FILTER)}
+              moduleName={ModuleName.QUEUE}
               onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
-              referrer={'api.performance.queues.landing-onboarding'}
             >
               <ModuleLayout.Half>
                 <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />

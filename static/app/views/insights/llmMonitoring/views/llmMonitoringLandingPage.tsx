@@ -29,6 +29,7 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
@@ -73,7 +74,7 @@ export function LLMMonitoringPage() {
                 </PageFilterBar>
               </ModuleLayout.Full>
               <ModulesOnboarding
-                moduleQueryFilter={new MutableSearch('span.op:ai.pipeline*')}
+                moduleName={ModuleName.AI}
                 onboardingContent={
                   <OnboardingContent
                     title={t('Get actionable insights about your LLMs')}
@@ -81,7 +82,6 @@ export function LLMMonitoringPage() {
                     link={MODULE_DOC_LINK}
                   />
                 }
-                referrer="api.ai-pipelines.view"
               >
                 <ModuleLayout.Third>
                   <TotalTokensUsedChart />

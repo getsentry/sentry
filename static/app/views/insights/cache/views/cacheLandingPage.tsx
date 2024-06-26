@@ -46,13 +46,13 @@ import {
   useSpanMetrics,
 } from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {useHasData} from 'sentry/views/insights/common/queries/useHasData';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -144,10 +144,7 @@ export function CacheLandingPage() {
   );
 
   const onboardingProject = useOnboardingProject();
-  const {hasData, isLoading: isHasDataLoading} = useHasData(
-    MutableSearch.fromQueryObject(BASE_FILTERS),
-    Referrer.LANDING_CACHE_ONBOARDING
-  );
+  const hasData = useHasFirstSpan(ModuleName.CACHE);
 
   useHasDataTrackAnalytics(
     MutableSearch.fromQueryObject(BASE_FILTERS),
@@ -160,12 +157,12 @@ export function CacheLandingPage() {
       cacheMissRateError?.message === CACHE_ERROR_MESSAGE ||
       transactionsListError?.message === CACHE_ERROR_MESSAGE;
 
-    if (onboardingProject || isHasDataLoading || !hasData) {
+    if (onboardingProject || !hasData) {
       setPageInfo(undefined);
       return;
     }
     if (pageAlert?.message !== SDK_UPDATE_ALERT) {
-      if (hasMissingDataError && hasData && !isHasDataLoading) {
+      if (hasMissingDataError && hasData) {
         setPageInfo(SDK_UPDATE_ALERT, {dismissId: DismissId.CACHE_SDK_UPDATE_ALERT});
       }
     }
@@ -174,7 +171,6 @@ export function CacheLandingPage() {
     transactionsListError?.message,
     setPageInfo,
     hasData,
-    isHasDataLoading,
     pageAlert?.message,
     onboardingProject,
   ]);
@@ -227,9 +223,8 @@ export function CacheLandingPage() {
               </PageFilterBar>
             </ModuleLayout.Full>
             <ModulesOnboarding
-              moduleQueryFilter={MutableSearch.fromQueryObject(BASE_FILTERS)}
+              moduleName={ModuleName.CACHE}
               onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
-              referrer={Referrer.LANDING_CACHE_ONBOARDING}
             >
               <ModuleLayout.Half>
                 <CacheHitMissChart
