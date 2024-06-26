@@ -36,8 +36,8 @@ class ProfilesQueryBuilderMixin:
 
 
 class ProfilesQueryBuilder(ProfilesQueryBuilderMixin, QueryBuilder):
-    pass
+    config_class = ProfilesDatasetConfig
 
 
 class ProfilesTimeseriesQueryBuilder(ProfilesQueryBuilderMixin, TimeseriesQueryBuilder):
-    pass
+    config_class = ProfilesDatasetConfig

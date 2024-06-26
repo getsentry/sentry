@@ -97,14 +97,14 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             if removed == 1:
                 audit_log_state = audit_log.get_event_id("PROJECT_DISABLE")
 
-        if isinstance(returned_state, Iterable):
+        if isinstance(returned_state, Iterable) and not isinstance(returned_state, str):
             returned_state = list(returned_state)
         self.create_audit_entry(
             request=request,
             organization=project.organization,
             target_object=project.id,
             event=audit_log_state,
-            data={"state": returned_state},
+            data={"state": returned_state, "slug": project.slug},
         )
 
         return Response(status=204)

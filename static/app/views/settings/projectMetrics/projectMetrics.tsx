@@ -66,11 +66,17 @@ function ProjectMetrics({project}: Props) {
 
       <PermissionAlert project={project} />
 
+<<<<<<< priscila/feat/settings/metrics/add-extrapolate-metrics-field-frontend
       <ExtrapolationField project={project} />
 
       {hasExtractionRules && <MetricsExtractionRulesTable project={project} />}
+=======
+      {hasExtractionRules ? <MetricsExtractionRulesTable project={project} /> : null}
+>>>>>>> master
 
-      <CustomMetricsTable project={project} />
+      {!hasExtractionRules || project.hasCustomMetrics ? (
+        <CustomMetricsTable project={project} />
+      ) : null}
     </Fragment>
   );
 }

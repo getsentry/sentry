@@ -268,9 +268,11 @@ class EventSerializer(Serializer):
             "platform": obj.platform,
             "dateReceived": received,
             "errors": errors,
-            "occurrence": convert_dict_key_case(occurrence.to_dict(), snake_to_camel_case)
-            if occurrence
-            else None,
+            "occurrence": (
+                convert_dict_key_case(occurrence.to_dict(), snake_to_camel_case)
+                if occurrence
+                else None
+            ),
             "_meta": {
                 "entries": attrs["_meta"]["entries"],
                 "message": message_meta,
@@ -577,5 +579,4 @@ def map_device_class_tags(tags):
         if tag["key"] == "device.class":
             if device_class := map_device_class_level(tag["value"]):
                 tag["value"] = device_class
-            continue
     return tags

@@ -12,6 +12,7 @@ from django.test import override_settings
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
@@ -701,7 +702,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     @patch(
         "sentry.integrations.slack.actions.notification.get_channel_id",
-        return_value=("#", None, True),
+        return_value=SlackChannelIdData("#", None, True),
     )
     @patch.object(find_channel_id_for_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")

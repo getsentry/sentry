@@ -95,7 +95,7 @@ def timestamp(t):
 
 
 def test_timed_future_success():
-    future = TimedFuture()
+    future: TimedFuture[object] = TimedFuture()
     assert future.get_timing() == (None, None)
 
     expected_result = mock.sentinel.RESULT_VALUE
@@ -121,7 +121,7 @@ def test_timed_future_success():
 
 
 def test_time_is_not_overwritten_if_fail_to_set_result():
-    future = TimedFuture()
+    future: TimedFuture[int] = TimedFuture()
 
     with timestamp(1.0):
         future.set_running_or_notify_cancel()
@@ -140,7 +140,7 @@ def test_time_is_not_overwritten_if_fail_to_set_result():
 
 
 def test_timed_future_error():
-    future = TimedFuture()
+    future: TimedFuture[None] = TimedFuture()
     assert future.get_timing() == (None, None)
 
     start_time, finish_time = expected_timing = (1.0, 2.0)
@@ -165,7 +165,7 @@ def test_timed_future_error():
 
 
 def test_timed_future_cancel():
-    future = TimedFuture()
+    future: TimedFuture[None] = TimedFuture()
     assert future.get_timing() == (None, None)
 
     with timestamp(1.0):
@@ -187,7 +187,7 @@ def test_timed_future_cancel():
 
 
 def test_synchronous_executor():
-    executor = SynchronousExecutor()
+    executor: SynchronousExecutor[object] = SynchronousExecutor()
 
     assert executor.submit(lambda: mock.sentinel.RESULT).result() is mock.sentinel.RESULT
 
@@ -204,7 +204,7 @@ def test_synchronous_executor():
 
 
 def test_threaded_same_priority_Tasks():
-    executor = ThreadedExecutor(worker_count=1)
+    executor: ThreadedExecutor[None] = ThreadedExecutor(worker_count=1)
 
     def callable():
         pass
@@ -215,7 +215,7 @@ def test_threaded_same_priority_Tasks():
 
 
 def test_threaded_executor():
-    executor = ThreadedExecutor(worker_count=1, maxsize=3)
+    executor: ThreadedExecutor[int] = ThreadedExecutor(worker_count=1, maxsize=3)
 
     def waiter(ready, waiting, result):
         ready.set()
