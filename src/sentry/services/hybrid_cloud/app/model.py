@@ -12,7 +12,7 @@ from typing import Any, Protocol, TypedDict
 from pydantic.fields import Field
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.services.hybrid_cloud import RpcModel, RpcModelProtocolMeta
+from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta
 
 
 class RpcApiApplication(RpcModel):

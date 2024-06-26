@@ -2,7 +2,7 @@ import datetime
 
 from pydantic import Field
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 
 
 class RpcOrgAuthToken(RpcModel):

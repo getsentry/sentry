@@ -19,7 +19,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.findings import Finding, InstanceID
 from sentry.backup.helpers import Filter, ImportFlags
 from sentry.backup.scopes import ExportScope, ImportScope
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 
 
 class RpcFilter(RpcModel):

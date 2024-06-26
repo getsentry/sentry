@@ -1,6 +1,6 @@
 from enum import Enum
 
-from sentry.services.hybrid_cloud import ValueEqualityEnum
+from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 
 class ExternalProviders(ValueEqualityEnum):

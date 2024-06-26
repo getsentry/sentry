@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 from typing import TYPE_CHECKING, Any, TypedDict
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider

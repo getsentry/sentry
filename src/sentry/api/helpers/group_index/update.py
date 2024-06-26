@@ -20,6 +20,7 @@ from sentry import analytics, features, options
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
+from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
@@ -45,7 +46,6 @@ from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
 from sentry.models.user import User
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
-from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service

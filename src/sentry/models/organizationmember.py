@@ -36,11 +36,11 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,

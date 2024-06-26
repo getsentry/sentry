@@ -12,9 +12,9 @@ from django.utils import timezone
 from pydantic import Field
 
 from sentry import roles
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
-from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.signals import sso_enabled

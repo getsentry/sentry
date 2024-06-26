@@ -53,6 +53,7 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -64,7 +65,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import (

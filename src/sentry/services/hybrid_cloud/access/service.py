@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.auth import find_providers_requiring_refresh
-from sentry.services.hybrid_cloud import silo_mode_delegation
+from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.services.hybrid_cloud.auth import (
     RpcAuthIdentity,
     RpcAuthProvider,

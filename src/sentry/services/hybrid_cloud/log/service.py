@@ -5,8 +5,8 @@
 
 import abc
 
+from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.silo.base import SiloMode
 
 from .model import AuditLogEvent, UserIpEvent

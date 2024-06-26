@@ -8,7 +8,7 @@ from typing import Any
 import pydantic
 from django.utils.functional import LazyObject
 
-from sentry.services.hybrid_cloud import ArgumentDict
+from sentry.hybridcloud.rpc import ArgumentDict
 
 
 class _SerializableFunctionSignatureException(Exception):

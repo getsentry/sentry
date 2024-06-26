@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Protocol, Union, overload
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:

@@ -8,7 +8,7 @@ from typing import Any
 
 from pydantic.fields import Field
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 
 
 class RpcServiceHook(RpcModel):

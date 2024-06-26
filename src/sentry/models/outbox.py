@@ -35,7 +35,7 @@ from sentry.db.postgres.transactions import (
     enforce_constraints,
     in_test_assert_no_transaction,
 )
-from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
+from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
