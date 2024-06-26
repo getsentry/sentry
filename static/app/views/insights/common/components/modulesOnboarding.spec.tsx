@@ -12,8 +12,6 @@ jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('ModulesOnboarding', () => {
-  beforeEach(function () {});
-
   afterEach(() => {
     jest.resetAllMocks();
   });
