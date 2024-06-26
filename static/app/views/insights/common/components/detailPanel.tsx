@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -9,7 +10,6 @@ import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import SlideOverPanel from 'sentry/views/insights/common/components/slideOverPanel';
 
 type DetailProps = {
   children: React.ReactNode;

@@ -35,7 +35,8 @@ describe('GlobalDrawer', function () {
         config={{
           renderer: ({Body}) => <Body data-test-id="drawer-test">useDrawer hook</Body>,
         }}
-      />
+      />,
+      {includeDrawer: true}
     );
 
     // It is present, but ignored when `aria-hidden` is set to True
@@ -61,7 +62,8 @@ describe('GlobalDrawer', function () {
           renderer: ({Body}) => <Body data-test-id="drawer-test">onClose button</Body>,
           options: {onClose: closeSpy},
         }}
-      />
+      />,
+      {includeDrawer: true}
     );
 
     await userEvent.click(screen.getByTestId('test-open-drawer'));
@@ -85,7 +87,8 @@ describe('GlobalDrawer', function () {
           ),
           options: {onClose: closeSpy},
         }}
-      />
+      />,
+      {includeDrawer: true}
     );
 
     await userEvent.click(screen.getByTestId('test-open-drawer'));
@@ -107,7 +110,8 @@ describe('GlobalDrawer', function () {
           renderer: ({Body}) => <Body data-test-id="drawer-test">onClose escape</Body>,
           options: {onClose: closeSpy},
         }}
-      />
+      />,
+      {includeDrawer: true}
     );
 
     await userEvent.click(screen.getByTestId('test-open-drawer'));
@@ -134,7 +138,8 @@ describe('GlobalDrawer', function () {
           ),
           options: {onClose: closeSpy},
         }}
-      />
+      />,
+      {includeDrawer: true}
     );
 
     await userEvent.click(screen.getByTestId('test-open-drawer'));
@@ -163,7 +168,8 @@ describe('GlobalDrawer', function () {
             closeOnOutsideClick: false,
           },
         }}
-      />
+      />,
+      {includeDrawer: true}
     );
 
     await userEvent.click(screen.getByTestId('test-open-drawer'));

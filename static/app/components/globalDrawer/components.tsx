@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
+import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import SlideOverPanel from 'sentry/views/insights/common/components/slideOverPanel';
 
 export interface DrawerPanelProps extends Required<Omit<DrawerOptions, 'onOpen'>> {
   children: React.ReactNode;

@@ -22,6 +22,11 @@ import {initializeOrg} from './initializeOrg';
 
 interface ProviderOptions {
   /**
+   * Mounts the GlobalDrawer, and its provider.
+   * Must be specified excplitly since .toBeEmptyDOMElement assertions will fail otherwise
+   */
+  includeDrawer?: boolean;
+  /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
   organization?: Partial<Organization> | null;
@@ -71,7 +76,11 @@ function makeAllTheProviders(providers: ProviderOptions) {
                 }}
               >
                 <OrganizationContext.Provider value={optionalOrganization}>
-                  <DrawerContextProvider>{children}</DrawerContextProvider>
+                  {providers?.includeDrawer ? (
+                    <DrawerContextProvider>{children}</DrawerContextProvider>
+                  ) : (
+                    children
+                  )}
                 </OrganizationContext.Provider>
               </RouteContext.Provider>
             </QueryClientProvider>
@@ -93,11 +102,12 @@ function makeAllTheProviders(providers: ProviderOptions) {
  */
 function render(
   ui: React.ReactElement,
-  {router, organization, ...rtlOptions}: Options = {}
+  {router, organization, includeDrawer, ...rtlOptions}: Options = {}
 ) {
   const AllTheProviders = makeAllTheProviders({
     organization,
     router,
+    includeDrawer,
   });
 
   return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
