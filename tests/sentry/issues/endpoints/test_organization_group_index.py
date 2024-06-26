@@ -3836,7 +3836,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.get_success_response(
-            qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
+            qs_params={
+                "status": "unresolved",
+                "project": self.project.id,
+                "query": "is:unresolved",
+            },
+            status="resolved",
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
@@ -3890,7 +3895,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=member)
         response = self.get_success_response(
-            qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
+            qs_params={
+                "status": "unresolved",
+                "project": self.project.id,
+                "query": "is:unresolved",
+            },
+            status="resolved",
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         assert response.status_code == 200
