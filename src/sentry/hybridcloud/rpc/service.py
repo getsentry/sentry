@@ -22,7 +22,6 @@ from requests.adapters import HTTPAdapter, Retry
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
 from sentry.hybridcloud.rpc.sig import SerializableFunctionSignature
-from sentry.services.hybrid_cloud.rpcmetrics import RpcMetricRecord
 from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.region import Region, RegionMappingNotFound
 from sentry.utils import json, metrics
@@ -500,6 +499,39 @@ class _RemoteSiloCall:
             **additional_tags,
         )
 
+    def get_method_retry_count(self) -> int:
+        retry_key = f"{self.service_name}.{self.method_name}"
+        try:
+            retry_counts_map = options.get("hybridcloud.rpc.method_retry_overrides")
+            assert isinstance(
+                retry_counts_map, dict
+            ), "An invalid RPC retry override option was set"
+            if retry_key in retry_counts_map:
+                return int(retry_counts_map[retry_key])
+        except Exception:
+            # Either we don't have an override option set correctly, or the
+            # value set for the override is invalid
+            sentry_sdk.capture_exception()
+
+        return options.get("hybridcloud.rpc.retries")
+
+    def get_method_timeout(self) -> float:
+        timeout_key = f"{self.service_name}.{self.method_name}"
+        try:
+            timeout_overrides_map = options.get("hybridcloud.rpc.method_timeout_overrides")
+            assert isinstance(
+                timeout_overrides_map, dict
+            ), "An invalid RPC timeout override option was set"
+
+            if timeout_key in timeout_overrides_map:
+                return float(timeout_overrides_map[timeout_key])
+        except Exception:
+            # Either we don't have an override option set correctly, or the
+            # value set for the override is invalid
+            sentry_sdk.capture_exception()
+
+        return settings.RPC_TIMEOUT
+
     def _send_to_remote_silo(self, use_test_client: bool) -> Any:
         request_body = {
             "meta": {},  # reserved for future use
@@ -534,8 +566,7 @@ class _RemoteSiloCall:
             op="hybrid_cloud.dispatch_rpc",
             description=f"rpc to {self.service_name}.{self.method_name}",
         )
-        record = RpcMetricRecord.measure(self.service_name, self.method_name)
-        with span, timer, record:
+        with span, timer:
             yield
 
     def _remote_exception(self, message: str) -> RpcRemoteException:
@@ -594,9 +625,10 @@ class _RemoteSiloCall:
             return Client().post(self.path, data, headers["Content-Type"], **extra)
 
     def _fire_request(self, headers: MutableMapping[str, str], data: bytes) -> requests.Response:
+        retry_count = self.get_method_retry_count()
         retry_adapter = HTTPAdapter(
             max_retries=Retry(
-                total=options.get("hybridcloud.rpc.retries"),
+                total=retry_count,
                 backoff_factor=0.1,
                 status_forcelist=[503],
                 allowed_methods=["POST"],
@@ -609,8 +641,9 @@ class _RemoteSiloCall:
         # TODO: Performance considerations (persistent connections, pooling, etc.)?
         url = self.address + self.path
 
+        timeout = self.get_method_timeout()
         try:
-            return http.post(url, headers=headers, data=data, timeout=settings.RPC_TIMEOUT)
+            return http.post(url, headers=headers, data=data, timeout=timeout)
         except requests.exceptions.ConnectionError as e:
             raise self._remote_exception("RPC Connection failed") from e
         except requests.exceptions.RetryError as e:
