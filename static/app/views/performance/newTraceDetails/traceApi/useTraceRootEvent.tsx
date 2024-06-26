@@ -6,7 +6,7 @@ import type {
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function useTraceRootEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
+export function useTraceEvent(trace: TraceSplitResults<TraceFullDetailed> | null) {
   const root = trace?.transactions?.[0] || trace?.orphan_errors?.[0];
   const organization = useOrganization();
 

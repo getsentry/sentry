@@ -167,12 +167,12 @@ interface TraceProps {
     | undefined
   >;
   trace: TraceTree;
-  trace_id: string;
+  traceLabel: string;
 }
 
 export function Trace({
   trace,
-  trace_id,
+  traceLabel,
   onRowClick,
   manager,
   scrollQueueRef,
@@ -258,7 +258,7 @@ export function Trace({
   }, [
     api,
     trace,
-    trace_id,
+    traceLabel,
     manager,
     onTraceLoad,
     traceDispatch,
@@ -397,7 +397,7 @@ export function Trace({
           isSearchResult={traceState.search.resultsLookup.has(n.item)}
           searchResultsIteratorIndex={traceState.search.resultIndex}
           style={n.style}
-          trace_id={trace_id}
+          traceLabel={traceLabel}
           projects={projectLookup}
           node={n.item}
           manager={manager}
@@ -426,7 +426,7 @@ export function Trace({
       traceState.search.resultsLookup,
       traceState.search.resultIndex,
       theme,
-      trace_id,
+      traceLabel,
       trace.type,
       forceRerender,
     ]
@@ -565,7 +565,7 @@ function RenderRow(props: {
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
-  trace_id: string;
+  traceLabel: string;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
@@ -938,7 +938,7 @@ function RenderRow(props: {
             </div>
             <span className="TraceOperation">{t('Trace')}</span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.trace_id}</span>
+            <span className="TraceDescription">{props.traceLabel}</span>
           </div>
         </div>
         <div
