@@ -34,13 +34,13 @@ from sentry.models.outbox import OutboxCategory
 from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.models.user import User
+from sentry.notifications.services import RpcExternalActor
 from sentry.services.hybrid_cloud.auth import (
     RpcApiKey,
     RpcApiToken,
     RpcAuthIdentity,
     RpcAuthProvider,
 )
-from sentry.services.hybrid_cloud.notifications import RpcExternalActor
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService

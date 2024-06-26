@@ -9,13 +9,13 @@ from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.user import User
 from sentry.notifications.notificationcontroller import NotificationController
+from sentry.notifications.services import NotificationsService
+from sentry.notifications.services.model import RpcSubscriptionStatus
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.notifications import NotificationsService
-from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor, ActorType
 
