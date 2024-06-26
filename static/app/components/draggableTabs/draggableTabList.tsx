@@ -272,7 +272,9 @@ export function DraggableTabList({
 }: DraggableTabListProps) {
   const onInsert = async (e: DroppableCollectionInsertDropEvent) => {
     const dropItem = e.items[0] as TextDropItem;
-    const eventTab = JSON.parse(await dropItem.getText('tab'));
+    const eventTab: {key: string; value: string} = JSON.parse(
+      await dropItem.getText('tab')
+    );
     const draggedTab = tabs.find(tab => tab.key === eventTab.key);
     if (draggedTab) {
       const updatedTabs = tabs.filter(tab => tab.key !== draggedTab.key);
