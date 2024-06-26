@@ -4,7 +4,7 @@ from typing import Any
 
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import Hub, set_tag, start_span
+from sentry_sdk import set_tag, start_span
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -207,7 +207,7 @@ class RelayProjectConfigsEndpoint(Endpoint):
             # Prevent organization from being fetched again in quotas.
             project.set_cached_field_value("organization", organization)
 
-            with Hub.current.start_span(op="get_config"):
+            with start_span(op="get_config"):
                 with metrics.timer("relay_project_configs.get_config.duration"):
                     project_config = config.get_project_config(
                         project,
