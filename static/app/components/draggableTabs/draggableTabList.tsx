@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useContext, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {ListDropTargetDelegate, useDroppableCollection} from '@react-aria/dnd';
 import {ListKeyboardDelegate} from '@react-aria/selection';
@@ -22,8 +22,10 @@ import type {
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import {type Tab, TabsContext} from 'sentry/components/draggableTabs';
+import type {Tab} from 'sentry/components/draggableTabs';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {TabsContext} from 'sentry/components/tabs';
+import {useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,69 +35,6 @@ import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
-
-/**
- * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
- * containing of keys of overflowing tabs.
- */
-function useOverflowTabs({
-  tabListRef,
-  tabItemsRef,
-  tabItems,
-}: {
-  tabItems: DraggableTabListItemProps[];
-  tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
-  tabListRef: React.RefObject<HTMLUListElement>;
-}) {
-  const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
-
-  useEffect(() => {
-    const options = {
-      root: tabListRef.current,
-      // Nagative right margin to account for overflow menu's trigger button
-      rootMargin: `0px -42px 1px ${space(1)}`,
-      // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the intersection
-      // ratio may unexpectedly drop to slightly below 1 (0.999…) on page scroll.
-      threshold: 0.95,
-    };
-
-    const callback: IntersectionObserverCallback = entries => {
-      entries.forEach(entry => {
-        const {target} = entry;
-        const {key} = (target as HTMLElement).dataset;
-        if (!key) {
-          return;
-        }
-
-        if (!entry.isIntersecting) {
-          setOverflowTabs(prev => prev.concat([key]));
-          return;
-        }
-
-        setOverflowTabs(prev => prev.filter(k => k !== key));
-      });
-    };
-
-    const observer = new IntersectionObserver(callback, options);
-    Object.values(tabItemsRef.current ?? {}).forEach(
-      element => element && observer.observe(element)
-    );
-
-    return () => observer.disconnect();
-  }, [tabListRef, tabItemsRef]);
-
-  const tabItemKeyToHiddenMap = tabItems.reduce(
-    (acc, next) => ({
-      ...acc,
-      [next.key]: next.hidden,
-    }),
-    {}
-  );
-
-  // Tabs that are hidden will be rendered with display: none so won't intersect,
-  // but we don't want to show them in the overflow menu
-  return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
-}
 
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
@@ -140,6 +79,7 @@ function BaseDraggableTabList({
   };
 
   const state = useTabListState(ariaProps);
+
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
   useEffect(() => {
     setTabListState(state);

@@ -26,7 +26,7 @@ import {tabsShouldForwardProp} from './utils';
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
  * containing of keys of overflowing tabs.
  */
-function useOverflowTabs({
+export function useOverflowTabs({
   tabListRef,
   tabItemsRef,
   tabItems,

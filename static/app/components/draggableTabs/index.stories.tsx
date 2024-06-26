@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
 
-import {DraggableTabBar, DraggableTabs} from 'sentry/components/draggableTabs';
+import {DraggableTabBar} from 'sentry/components/draggableTabs';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
-export default storyBook(DraggableTabs, story => {
+export default storyBook(DraggableTabBar, story => {
   const TABS = [
     {key: 'one', label: 'Tab One', content: 'This is the first Panel.'},
     {key: 'two', label: 'Tab Two', content: 'This is the second panel'},
