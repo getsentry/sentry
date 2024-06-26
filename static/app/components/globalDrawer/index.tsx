@@ -46,7 +46,7 @@ export function GlobalDrawer({children}) {
   }, [options, closeDrawer]);
 
   // Close the drawer when the browser history changes.
-  useEffect(() => handleClose(), [location?.pathname, handleClose]);
+  useEffect(() => closeDrawer(), [location?.pathname, closeDrawer]);
 
   // Close the drawer when clicking outside the panel and options allow it.
   const panelRef = useRef<HTMLDivElement>(null);
