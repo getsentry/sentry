@@ -30,13 +30,13 @@ DEFAULT_DATE = datetime.datetime(2000, 1, 1, tzinfo=datetime.UTC)
 
 
 class ValueEqualityEnum(Enum):
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         value = other
         if isinstance(other, Enum):
             value = other.value
         return self.value == value
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.value)
 
 
