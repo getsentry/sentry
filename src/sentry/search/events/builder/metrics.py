@@ -75,6 +75,7 @@ from sentry.snuba.metrics.query import (
     MetricOrderByField,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 
@@ -1111,7 +1112,7 @@ class MetricsQueryBuilder(QueryBuilder):
         return result
 
     def run_query(
-        self, referrer: str, is_frontend: bool | None = None, use_cache: bool = False
+        self, referrer: str, query_source: QuerySource | None = None, use_cache: bool = False
     ) -> Any:
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
@@ -1319,7 +1320,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 current_result = raw_snql_query(
                     request=request,
                     referrer=f"{referrer}.{referrer_suffix}",
-                    is_frontend=is_frontend,
+                    query_source=query_source,
                     use_cache=use_cache,
                 )
                 for meta in current_result["meta"]:

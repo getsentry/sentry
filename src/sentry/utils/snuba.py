@@ -35,6 +35,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
@@ -856,8 +857,8 @@ ResultSet = list[Mapping[str, Any]]
 def raw_snql_query(
     request: Request,
     referrer: str | None = None,
-    is_frontend: (
-        bool | None
+    query_source: (
+        QuerySource | None
     ) = None,  # TODO: @athena Make this field required after updated all the callsites
     use_cache: bool = False,
 ) -> Mapping[str, Any]:
@@ -868,15 +869,15 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     return bulk_snuba_queries(
-        requests=[request], referrer=referrer, is_frontend=is_frontend, use_cache=use_cache
+        requests=[request], referrer=referrer, query_source=query_source, use_cache=use_cache
     )[0]
 
 
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
-    is_frontend: (
-        bool | None
+    query_source: (
+        QuerySource | None
     ) = None,  # TODO: @athena Make this field required after updated all the callsites
     use_cache: bool = False,
 ) -> ResultSet:
@@ -891,13 +892,16 @@ def bulk_snuba_queries(
             request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
 
     for request in requests:
-        if referrer:
+        if referrer or query_source:
             request.tenant_ids = request.tenant_ids or dict()
-            request.tenant_ids["referrer"] = referrer
+            if referrer:
+                request.tenant_ids["referrer"] = referrer
+            if query_source:
+                request.tenant_ids["query_source"] = query_source
 
     params = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(
-        snuba_param_list=params, referrer=referrer, is_frontend=is_frontend, use_cache=use_cache
+        snuba_param_list=params, referrer=referrer, use_cache=use_cache
     )
 
 
@@ -933,17 +937,13 @@ def get_cache_key(query: SnubaQuery) -> str:
 def _apply_cache_and_build_results(
     snuba_param_list: Sequence[RequestQueryBody],
     referrer: str | None = None,
-    is_frontend: (
-        bool | None
-    ) = None,  # TODO: @athena Make this field required after updated all the callsites
     use_cache: bool | None = False,
 ) -> ResultSet:
     headers = {}
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
-    if is_frontend is not None:
-        headers["is_frontend"] = str(is_frontend)
+
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 

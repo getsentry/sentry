@@ -21,6 +21,7 @@ from sentry.models.project import Project
 from sentry.search.events.builder import SpansMetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
@@ -71,7 +72,9 @@ def add_comparison_to_event(event, average_columns, request: Request):
         result = builder.process_results(
             builder.run_query(
                 referrer=Referrer.API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN.value,
-                is_frontend=is_frontend_request(request),
+                query_source=(
+                    QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+                ),
             )
         )
         sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
