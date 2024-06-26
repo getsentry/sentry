@@ -1,5 +1,5 @@
 ---
-created: '2024-05-24T11:29:34.942206+00:00'
+created: '2024-06-26T15:19:54.439402+00:00'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -305,6 +305,171 @@ config:
         op: eq
         value: Opera
       name: Opera INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Chrome Mobile
+      name: Chrome Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: false
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Firefox Mobile
+      name: Firefox Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: false
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Mobile Safari
+      name: Safari Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.0
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.0
+      - measurement: ttfb
+        optional: false
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge Mobile
+      name: Edge Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: false
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera Mobile
+      name: Opera Mobile
+      scoreComponents:
+      - measurement: fcp
+        optional: false
+        p10: 1800.0
+        p50: 3000.0
+        weight: 0.15
+      - measurement: lcp
+        optional: false
+        p10: 2500.0
+        p50: 4000.0
+        weight: 0.3
+      - measurement: cls
+        optional: false
+        p10: 0.1
+        p50: 0.25
+        weight: 0.15
+      - measurement: ttfb
+        optional: false
+        p10: 800.0
+        p50: 1800.0
+        weight: 0.1
+    - condition:
+        inner:
+        - name: event.contexts.browser.name
+          op: eq
+          value: Chrome Mobile
+        op: or
+      name: Chrome Mobile INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Edge Mobile
+      name: Edge Mobile INP
+      scoreComponents:
+      - measurement: inp
+        optional: false
+        p10: 200.0
+        p50: 500.0
+        weight: 1.0
+    - condition:
+        name: event.contexts.browser.name
+        op: eq
+        value: Opera Mobile
+      name: Opera Mobile INP
       scoreComponents:
       - measurement: inp
         optional: false

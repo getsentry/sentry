@@ -422,7 +422,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
-def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+def _get_desktop_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
     return [
         {
             "name": "Chrome",
@@ -678,6 +678,257 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
     ]
 
 
+def _get_mobile_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "Chrome Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Chrome Mobile",
+            },
+        },
+        {
+            "name": "Firefox Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Firefox Mobile",
+            },
+        },
+        {
+            "name": "Safari Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Mobile Safari",
+            },
+        },
+        {
+            "name": "Edge Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge Mobile",
+            },
+        },
+        {
+            "name": "Opera Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera Mobile",
+            },
+        },
+        {
+            "name": "Chrome Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome Mobile",
+                    },
+                ],
+            },
+        },
+        {
+            "name": "Edge Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge Mobile",
+            },
+        },
+        {
+            "name": "Opera Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera Mobile",
+            },
+        },
+    ]
+
+
 def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
     if not features.has(
         "organizations:performance-calculate-mobile-perf-score-relay", organization
@@ -816,7 +1067,8 @@ def _get_project_config(
     }
 
     performance_score_profiles = [
-        *_get_browser_performance_profiles(project.organization),
+        *_get_desktop_browser_performance_profiles(project.organization),
+        *_get_mobile_browser_performance_profiles(project.organization),
         *_get_mobile_performance_profiles(project.organization),
     ]
     if performance_score_profiles:
