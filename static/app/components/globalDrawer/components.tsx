@@ -1,4 +1,3 @@
-import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,50 +6,16 @@ import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
 export interface DrawerPanelProps extends Required<Omit<DrawerOptions, 'onOpen'>> {
   children: React.ReactNode;
   onOpen?: () => void;
 }
 
-export function DrawerPanel({
-  children,
-  onClose,
-  onOpen,
-  closeOnOutsideClick = true,
-  closeOnEscapeKeypress = true,
-}: DrawerPanelProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
-
-  const handleClickOutside = useCallback(() => {
-    if (closeOnOutsideClick) {
-      onClose();
-    }
-  }, [closeOnOutsideClick, onClose]);
-  const handleEscapePress = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && closeOnEscapeKeypress) {
-        onClose();
-      }
-    },
-    [closeOnEscapeKeypress, onClose]
-  );
-
-  useOnClickOutside(panelRef, handleClickOutside);
-  useEffect(() => {
-    document.addEventListener('keydown', handleEscapePress);
-    return () => document.removeEventListener('keydown', handleEscapePress);
-  }, [handleEscapePress]);
-
+export function DrawerPanel({children, onClose, onOpen}: DrawerPanelProps) {
   return (
     <DrawerContainer>
-      <SlideOverPanel
-        slidePosition="right"
-        collapsed={false}
-        ref={panelRef}
-        onOpen={onOpen}
-      >
+      <SlideOverPanel slidePosition="right" collapsed={false} onOpen={onOpen}>
         <DrawerHeader>
           <CloseButton
             priority="link"

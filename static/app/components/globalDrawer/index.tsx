@@ -1,11 +1,13 @@
-import {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 
 import {DrawerBody, DrawerPanel} from 'sentry/components/globalDrawer/components';
 import type {
   DrawerConfig,
   DrawerContext as TDrawerContext,
 } from 'sentry/components/globalDrawer/types';
+import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
 const DEFAULT_DRAWER_CONFIG: DrawerConfig = {
   renderer: null,
@@ -46,6 +48,24 @@ export function GlobalDrawer({children}) {
 
   // Close the drawer when the browser history changes.
   useEffect(() => closeDrawer(), [location.pathname, closeDrawer]);
+
+  // Close the drawer when clicking outside the panel and options allow it.
+  const panelRef = useRef<HTMLDivElement>(null);
+  const handleClickOutside = useCallback(() => {
+    if (closeOnOutsideClick) {
+      handleClose();
+    }
+  }, [closeOnOutsideClick, handleClose]);
+  useOnClickOutside(panelRef, handleClickOutside);
+
+  // Close the drawer when escape is pressed and options allow it.
+  const handleEscapePress = useCallback(() => {
+    if (closeOnEscapeKeypress) {
+      handleClose();
+    }
+  }, [closeOnEscapeKeypress, handleClose]);
+  useHotkeys([{match: 'Escape', callback: handleEscapePress}], [handleEscapePress]);
+
   const isDrawerOpen = renderer !== null;
   const renderedChild =
     renderer?.({
