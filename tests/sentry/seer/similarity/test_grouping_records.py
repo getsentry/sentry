@@ -8,9 +8,10 @@ from urllib3.connectionpool import ConnectionPool
 from urllib3.exceptions import ReadTimeoutError
 from urllib3.response import HTTPResponse
 
+from sentry import options
 from sentry.conf.server import SEER_HASH_GROUPING_RECORDS_DELETE_URL
 from sentry.seer.similarity.grouping_records import (
-    POST_BULK_GROUPING_RECORDS_TIMEOUT,
+    DELETE_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
     delete_grouping_records_by_hash,
     post_bulk_grouping_records,
@@ -81,7 +82,7 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
             "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
             "project_id": 1,
             "reason": "ReadTimeoutError",
-            "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            "timeout": options.get("embeddings-grouping.seer.embeddings-record-delete-timeout"),
             "stacktrace_length_sum": 24,
         },
     )
@@ -163,7 +164,7 @@ def test_delete_grouping_records_by_hash_timeout(
             "hashes": hashes,
             "project_id": project_id,
             "reason": "ReadTimeoutError",
-            "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            "timeout": DELETE_BULK_GROUPING_RECORDS_TIMEOUT,
         },
     )
 
