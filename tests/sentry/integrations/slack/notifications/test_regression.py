@@ -5,6 +5,7 @@ import responses
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.regression import RegressionActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
@@ -97,6 +98,33 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
     @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @with_feature("organizations:slack-culprit-blocks")
+    def test_regression_performance_issue_block_with_culprit_blocks(self, occurrence):
+        """
+        Test that a Slack message is sent with the expected payload when a performance issue regresses
+        and block kit is enabled.
+        """
+        event = self.create_performance_issue()
+        with self.tasks():
+            self.create_notification(event.group).send()
+
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == "Issue marked as regression"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_performance_issue_blocks_with_culprit_blocks(
+            blocks,
+            event.organization,
+            event.project.slug,
+            event.group,
+            "regression_activity-slack",
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
@@ -106,7 +134,12 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
         and block kit is enabled.
         """
         event = self.store_event(
-            data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
+            data={
+                "message": "Hellboy's world",
+                "level": "error",
+                "culprit": "raven.tasks.run_a_test",
+            },
+            project_id=self.project.id,
         )
         group_event = event.for_group(event.groups[0])
 
@@ -122,4 +155,42 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             group_event.project.slug,
             group_event.group,
             "regression_activity-slack",
+            with_culprit=False,
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @with_feature("organizations:slack-culprit-blocks")
+    def test_regression_generic_issue_block_with_culprit_blocks(self, occurrence):
+        """
+        Test that a Slack message is sent with the expected payload when a generic issue type regresses
+        and block kit is enabled.
+        """
+        event = self.store_event(
+            data={
+                "message": "Hellboy's world",
+                "level": "error",
+                "culprit": "raven.tasks.run_a_test",
+            },
+            project_id=self.project.id,
+        )
+        group_event = event.for_group(event.groups[0])
+
+        with self.tasks():
+            self.create_notification(group_event.group).send()
+
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        assert fallback_text == "Issue marked as regression"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_generic_issue_blocks(
+            blocks,
+            group_event.organization,
+            group_event.project.slug,
+            group_event.group,
+            "regression_activity-slack",
+            with_culprit=True,
         )

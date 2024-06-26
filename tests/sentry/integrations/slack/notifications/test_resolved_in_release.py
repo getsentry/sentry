@@ -7,6 +7,7 @@ from sentry.notifications.notifications.activity.resolved_in_release import (
     ResolvedInReleaseActivityNotification,
 )
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
@@ -70,6 +71,35 @@ class SlackResolvedInReleaseNotificationTest(
         assert fallback_text == f"Issue marked as resolved in {release_name} by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_performance_issue_blocks(
+            blocks,
+            event.organization,
+            event.project.slug,
+            event.group,
+            "resolved_in_release_activity-slack",
+        )
+
+    @responses.activate
+    @mock.patch(
+        "sentry.eventstore.models.GroupEvent.occurrence",
+        return_value=TEST_PERF_ISSUE_OCCURRENCE,
+        new_callable=mock.PropertyMock,
+    )
+    @with_feature("organizations:slack-culprit-blocks")
+    def test_resolved_in_release_performance_issue_block_with_culprit_blocks(self, occurrence):
+        """
+        Test that a Slack message is sent with the expected payload when a performance issue is resolved in a release
+        and block kit is enabled.
+        """
+        event = self.create_performance_issue()
+        notification = self.create_notification(event.group)
+        with self.tasks():
+            notification.send()
+
+        blocks, fallback_text = get_blocks_and_fallback_text()
+        release_name = notification.activity.data["version"]
+        assert fallback_text == f"Issue marked as resolved in {release_name} by {self.name}"
+        assert blocks[0]["text"]["text"] == fallback_text
+        self.assert_performance_issue_blocks_with_culprit_blocks(
             blocks,
             event.organization,
             event.project.slug,
