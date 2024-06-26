@@ -43,7 +43,7 @@ function SharedGroupHeader({group}: Props) {
           </ShortIdWrapper>
 
           <TimeStamp data-test-id="sgh-timestamp">
-            {'Last seen '}
+            {t('Last seen ')}
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
                 {getDynamicText({
