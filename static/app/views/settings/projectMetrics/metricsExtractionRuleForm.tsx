@@ -68,6 +68,20 @@ const TYPE_OPTIONS = [
   },
 ];
 
+const EMPTY_SET = new Set<never>();
+const SPAN_SEARCH_CONFIG = {
+  booleanKeys: EMPTY_SET,
+  dateKeys: EMPTY_SET,
+  durationKeys: EMPTY_SET,
+  numericKeys: EMPTY_SET,
+  percentageKeys: EMPTY_SET,
+  sizeKeys: EMPTY_SET,
+  textOperatorKeys: EMPTY_SET,
+  disallowFreeText: true,
+  disallowWildcard: true,
+  disallowNegation: true,
+};
+
 export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
     const {spanAttribute, tags} = props.initialData;
@@ -188,6 +202,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                         <SearchWrapper hasPrefix={index !== 0}>
                           {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
                           <SearchBar
+                            {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
                             query={query}
                             onSearch={(queryString: string) =>
