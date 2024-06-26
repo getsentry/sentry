@@ -311,7 +311,7 @@ function ProvideYourOwn({
   );
 }
 
-export function AutofixRootCause({
+function AutofixRootCauseDisplay({
   causes,
   groupId,
   runId,
@@ -403,6 +403,24 @@ export function AutofixRootCause({
     </CausesContainer>
   );
 }
+
+export function AutofixRootCause(props: AutofixRootCauseProps) {
+  if (props.causes.length === 0) {
+    return (
+      <NoCausesPadding>
+        <Alert type="warning">
+          {t('Autofix was not able to find a root cause. Maybe try again?')}
+        </Alert>
+      </NoCausesPadding>
+    );
+  }
+
+  return <AutofixRootCauseDisplay {...props} />;
+}
+
+const NoCausesPadding = styled('div')`
+  padding: 0 ${space(2)};
+`;
 
 const CausesContainer = styled('div')``;
 
