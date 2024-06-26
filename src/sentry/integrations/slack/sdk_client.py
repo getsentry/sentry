@@ -18,7 +18,7 @@ SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
 logger = logging.getLogger(__name__)
 
-SLACK_SDK_WRAP_METHODS = {"chat_postMessage"}
+SLACK_SDK_WRAP_METHODS = {"api_call"}
 
 
 def track_response_data(response: SlackResponse, method: str, error: str | None = None) -> None:
@@ -67,9 +67,6 @@ def record_response_for_disabling_integration(response: SlackResponse, integrati
 def wrapper(method: FunctionType):
     @wraps(method)
     def wrapped(*args, **kwargs):
-        if method.__name__ not in SLACK_SDK_WRAP_METHODS:
-            return method(*args, **kwargs)
-
         try:
             response = method(*args, **kwargs)
             track_response_data(response=response, method=method.__name__)
@@ -85,19 +82,19 @@ def wrapper(method: FunctionType):
     return wrapped
 
 
-def wrap_methods_in_class(cls):
+def wrap_api_call(cls):
     for name, attribute in vars(cls).items():
-        if isinstance(attribute, FunctionType):
+        if isinstance(attribute, FunctionType) and attribute.__name__ in SLACK_SDK_WRAP_METHODS:
             setattr(cls, name, wrapper(attribute))
-
-    for base in cls.__bases__:
-        wrap_methods_in_class(base)
 
 
 class MetaClass(type):
     def __new__(meta, name, bases, dct):
         cls = super().__new__(meta, name, bases, dct)
-        wrap_methods_in_class(cls)
+        for parent in cls.__bases__:
+            for base in parent.__bases__:
+                # this wraps the api_call function in the slack_sdk BaseClient class
+                wrap_api_call(base)
         return cls
 
 

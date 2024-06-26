@@ -4,7 +4,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Alert from 'sentry/components/alert';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -31,7 +30,7 @@ const INITIAL_DATA: FormData = {
   conditions: [''],
 };
 
-const PAGE_TITLE = t('Extract Metric');
+const PAGE_TITLE = t('Configure Metric');
 
 function ExtractMetric({project}: {project: Project}) {
   const navigate = useNavigate();
@@ -89,18 +88,8 @@ function ExtractMetric({project}: {project: Project}) {
     <Fragment>
       <SentryDocumentTitle title={routeTitleGen(PAGE_TITLE, project.slug, false)} />
       <SettingsPageHeader title={PAGE_TITLE} />
-      <TextBlock>
-        {t(
-          'Metric Extraction Rules enable you to derive meaningful metrics from the attributes present on spans within your application.'
-        )}
-      </TextBlock>
-      <TextBlock>
-        {t(
-          "By defining these rules, you can specify how and which attributes should be processed to generate useful metrics that provide detailed insights into your application's performance and behavior."
-        )}
-      </TextBlock>
+      <TextBlock>{t('Configure tracking of span attributes as metrics.')}</TextBlock>
       <Panel>
-        <PanelHeader>{t('Create Extraction Rule')}</PanelHeader>
         <PanelBody>
           <MetricsExtractionRuleForm
             project={project}

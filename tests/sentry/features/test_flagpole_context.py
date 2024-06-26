@@ -10,6 +10,8 @@ from sentry.features.flagpole_context import (
     user_context_transformer,
 )
 from sentry.models.useremail import UserEmail
+from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -40,7 +42,7 @@ class TestSentryOrganizationContextTransformer(TestCase):
             organization_context_transformer(SentryContextData(organization=1234))  # type: ignore[arg-type]
 
         with pytest.raises(InvalidContextDataException):
-            organization_context_transformer(SentryContextData(organization=self.create_project()))
+            organization_context_transformer(SentryContextData(organization=self.create_project()))  # type: ignore[arg-type]
 
     def test_with_valid_organization(self):
         org = self.create_organization(slug="foobar", name="Foo Bar")
@@ -55,6 +57,44 @@ class TestSentryOrganizationContextTransformer(TestCase):
             "organization_id": org.id,
             "organization_name": "Foo Bar",
             "organization_is-early-adopter": True,
+        }
+
+    def test_with_rpc_organization_summary(self):
+        org = self.create_organization(slug="foobar", name="Foo Bar")
+        rpc_org_summary = organization_service.get_org_by_id(id=org.id)
+
+        context_data = organization_context_transformer(
+            SentryContextData(organization=rpc_org_summary)
+        )
+        assert context_data == {
+            "organization_slug": "foobar",
+            "organization_id": org.id,
+            "organization_name": "Foo Bar",
+            "organization_is-early-adopter": False,
+        }
+
+    def test_with_rpc_organization(self):
+        org = self.create_organization(slug="foobar", name="Foo Bar")
+        rpc_org = organization_service.get(id=org.id)
+
+        context_data = organization_context_transformer(SentryContextData(organization=rpc_org))
+        assert context_data == {
+            "organization_slug": "foobar",
+            "organization_id": org.id,
+            "organization_name": "Foo Bar",
+            "organization_is-early-adopter": False,
+        }
+
+    def test_with_rpc_organization_mapping(self):
+        org = self.create_organization(slug="foobar", name="Foo Bar")
+        org_mapping = organization_mapping_service.get(organization_id=org.id)
+
+        context_data = organization_context_transformer(SentryContextData(organization=org_mapping))
+        assert context_data == {
+            "organization_slug": "foobar",
+            "organization_id": org.id,
+            "organization_name": "Foo Bar",
+            "organization_is-early-adopter": False,
         }
 
 

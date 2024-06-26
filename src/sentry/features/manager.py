@@ -26,6 +26,9 @@ if TYPE_CHECKING:
     from sentry.models.user import User
 
 
+logger = logging.getLogger(__name__)
+
+
 class RegisteredFeatureManager:
     """
     Feature functions that are built around the need to register feature
@@ -290,7 +293,7 @@ class FeatureManager(RegisteredFeatureManager):
 
                 return False
         except Exception:
-            logging.exception("Failed to run feature check")
+            logger.exception("Failed to run feature check")
             return False
 
     def batch_has(

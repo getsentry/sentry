@@ -261,22 +261,6 @@
     "table_name": "nodestore_node",
     "uniques": []
   },
-  "remote_subscriptions.remotesubscription": {
-    "dangling": false,
-    "foreign_keys": {},
-    "model": "remote_subscriptions.remotesubscription",
-    "relocation_dependencies": [],
-    "relocation_scope": "Excluded",
-    "silos": [
-      "Region"
-    ],
-    "table_name": "sentry_remotesubscription",
-    "uniques": [
-      [
-        "subscription_id"
-      ]
-    ]
-  },
   "replays.replayrecordingsegment": {
     "dangling": false,
     "foreign_keys": {
@@ -6279,13 +6263,7 @@
   },
   "uptime.uptimesubscription": {
     "dangling": false,
-    "foreign_keys": {
-      "remote_subscription": {
-        "kind": "FlexibleForeignKey",
-        "model": "remote_subscriptions.remotesubscription",
-        "nullable": false
-      }
-    },
+    "foreign_keys": {},
     "model": "uptime.uptimesubscription",
     "relocation_dependencies": [],
     "relocation_scope": "Excluded",
@@ -6299,7 +6277,7 @@
         "url"
       ],
       [
-        "remote_subscription"
+        "subscription_id"
       ]
     ]
   }

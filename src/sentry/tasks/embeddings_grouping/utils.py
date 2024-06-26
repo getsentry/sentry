@@ -41,7 +41,7 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
-SNUBA_QUERY_RATELIMIT = 4
+SNUBA_QUERY_RATELIMIT = 20
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +69,7 @@ def filter_snuba_results(snuba_results, groups_to_backfill_with_no_embedding, pr
                 "group_id_batch": json.dumps(groups_to_backfill_with_no_embedding),
             },
         )
-        return
+        return [], []
     filtered_snuba_results: list[GroupEventRow] = [
         snuba_result["data"][0] for snuba_result in snuba_results if snuba_result["data"]
     ]
@@ -378,6 +378,7 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
 
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)
+@sentry_sdk.tracing.trace
 def lookup_group_data_stacktrace_bulk(
     project: Project, rows: list[GroupEventRow]
 ) -> dict[int, Event]:
@@ -514,10 +515,10 @@ def delete_seer_grouping_records(
         Group.objects.bulk_update(groups_with_seer_metadata, ["data"])
 
 
-def get_project_for_batch(last_processed_project_index, cohort_list, cohort_name):
-    next_cohort_index = last_processed_project_index + 1
-    if next_cohort_index >= len(cohort_list):
+def get_project_for_batch(last_processed_project_index, cohort_projects):
+    next_project_index = last_processed_project_index + 1
+    if next_project_index >= len(cohort_projects):
         return None, None
-    project_id = cohort_list[next_cohort_index]
-    last_processed_project_index = next_cohort_index
+    project_id = cohort_projects[next_project_index]
+    last_processed_project_index = next_project_index
     return project_id, last_processed_project_index

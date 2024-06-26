@@ -14,8 +14,8 @@ from sentry.integrations.client import ApiClient
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import control_silo_function
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
 

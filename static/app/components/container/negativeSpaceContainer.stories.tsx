@@ -19,7 +19,7 @@ export default storyBook(NegativeSpaceContainer, story => {
       <p>Here's one with nothing inside it:</p>
       <NegativeSpaceContainer
         style={{width: '100%', height: '100px'}}
-        testId="empty-container"
+        data-test-id="empty-container"
       />
     </Fragment>
   ));

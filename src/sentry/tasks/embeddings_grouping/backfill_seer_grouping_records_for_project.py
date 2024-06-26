@@ -25,7 +25,6 @@ from sentry.tasks.embeddings_grouping.utils import (
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
-SNUBA_QUERY_RATELIMIT = 4
 REDIS_KEY_EXPIRY = 60 * 60 * 24  # 1 day
 
 logger = logging.getLogger(__name__)
@@ -85,11 +84,15 @@ def backfill_seer_grouping_records_for_project(
         # TODO: let's just delete this branch since feature is on
         return
 
+    if options.get("seer.similarity-backfill-killswitch.enabled"):
+        logger.info("backfill_seer_grouping_records.killswitch_enabled")
+        return
+
     if only_delete:
-        delete_seer_grouping_records(project.id, redis_client)
+        delete_seer_grouping_records(current_project_id, redis_client)
         logger.info(
             "backfill_seer_grouping_records.deleted_all_records",
-            extra={"current_project_id": project.id},
+            extra={"current_project_id": current_project_id},
         )
         call_next_backfill(
             last_processed_group_index=None,
@@ -174,7 +177,7 @@ def backfill_seer_grouping_records_for_project(
         logger.info(
             "backfill_seer_grouping_records.seer_down",
             extra={
-                "current_project_id": project.id,
+                "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
             },
         )
@@ -242,20 +245,25 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )
     else:
         # TODO: delete project redis key here if needed?
         # call the backfill on next project
         if not cohort:
+            logger.info(
+                "backfill finished, no cohort",
+                extra={"project_id": project_id},
+            )
             return
 
         if isinstance(cohort, str):
-            cohort_list = settings.SIMILARITY_BACKFILL_COHORT_MAP.get(cohort, [])
+            cohort_projects = settings.SIMILARITY_BACKFILL_COHORT_MAP.get(cohort, [])
         else:
-            cohort_list = cohort
+            cohort_projects = cohort
 
         batch_project_id, last_processed_project_index = get_project_for_batch(
-            last_processed_project_index, cohort_list, cohort
+            last_processed_project_index, cohort_projects
         )
 
         if batch_project_id is None:
@@ -283,4 +291,5 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )

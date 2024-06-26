@@ -34,6 +34,7 @@ from sentry.tasks.embeddings_grouping.utils import (
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
@@ -97,7 +98,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows, events = [], []
         function_names = [f"function_{str(i)}" for i in range(num)]
         type_names = [f"Error{str(i)}" for i in range(num)]
-        value_names = ["error with value" for i in range(num)]
+        value_names = ["error with value" for _ in range(num)]
         for i in range(num):
             data = {
                 "exception": self.create_exception_values(
@@ -120,7 +121,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             GroupHash.objects.create(
                 project_id=event.group.project.id,
                 group_id=event.group.id,
-                hash="".join(choice(ascii_uppercase) for i in range(32)),
+                hash="".join(choice(ascii_uppercase) for _ in range(32)),
             )
 
         return {"rows": rows, "events": events}
@@ -171,7 +172,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     def test_lookup_group_data_stacktrace_bulk_success(self, mock_metrics):
         """Test successful bulk group data and stacktrace lookup"""
         rows, events = self.bulk_rows, self.bulk_events
-        nodestore_results, group_hashes_dict = get_events_from_nodestore(
+        nodestore_results, _ = get_events_from_nodestore(
             self.project, rows, self.group_hashes.keys()
         )
 
@@ -244,9 +245,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
-        nodestore_results, group_hashes_dict = get_events_from_nodestore(
-            self.project, rows, group_ids
-        )
+        nodestore_results, _ = get_events_from_nodestore(self.project, rows, group_ids)
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -281,9 +280,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         rows.append({"event_id": event.event_id, "group_id": event.group_id})
         hashes.update({event.group_id: GroupHash.objects.get(group_id=event.group.id).hash})
 
-        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
-            self.project, rows, group_ids
-        )
+        bulk_group_data_stacktraces, _ = get_events_from_nodestore(self.project, rows, group_ids)
         expected_group_data = [
             CreateGroupingRecordData(
                 group_id=event.group.id,
@@ -308,7 +305,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             self.bulk_events,
             self.group_hashes,
         )
-        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+        bulk_group_data_stacktraces, _ = get_events_from_nodestore(
             self.project, rows, self.group_hashes.keys()
         )
 
@@ -345,7 +342,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         }
 
         rows, hashes = self.bulk_rows, self.group_hashes
-        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+        bulk_group_data_stacktraces, _ = get_events_from_nodestore(
             self.project, rows, self.group_hashes.keys()
         )
 
@@ -380,7 +377,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # Purposely change the event id of the last row to one that does not exist
         rows[-1]["event_id"] = 10000
 
-        bulk_group_data_stacktraces, group_hashes_dict = get_events_from_nodestore(
+        bulk_group_data_stacktraces, _ = get_events_from_nodestore(
             self.project, rows, self.group_hashes.keys()
         )
 
@@ -644,7 +641,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         function_names = [f"new_function_{str(i)}" for i in range(5)]
         type_names = [f"NewError{str(i)}" for i in range(5)]
-        value_names = ["error with value" for i in range(5)]
+        value_names = ["error with value" for _ in range(5)]
         groups_seen_once = []
         for i in range(5):
             data = {
@@ -695,7 +692,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         # The groups that will be similar to these groups, have times_seen = 5
         function_names = [f"another_function_{str(i)}" for i in range(5)]
         type_names = [f"AnotherError{str(i)}" for i in range(5)]
-        value_names = ["error with value" for i in range(5)]
+        value_names = ["error with value" for _ in range(5)]
         groups_with_neighbor = {}
         for i in range(5):
             data = {
@@ -704,7 +701,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 ),
                 "title": "title",
                 "timestamp": iso_format(before_now(seconds=10)),
-                "title": "title",
             }
             event = self.store_event(data=data, project_id=self.project.id, assert_no_errors=False)
             event.group.times_seen = 2
@@ -1208,3 +1204,20 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
 
         group_no_grouping_stacktrace = Group.objects.get(id=event.group.id)
         assert group_no_grouping_stacktrace.data["metadata"].get("seer_similarity") is None
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @override_options({"seer.similarity-backfill-killswitch.enabled": True})
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    def test_backfill_seer_grouping_records_killswitch_enabled(self, mock_logger):
+        """
+        Test that the metadata is not set for groups when the backfill killswitch is true.
+        """
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(self.project.id, None)
+
+        groups = Group.objects.filter(project_id=self.project.id)
+        for group in groups:
+            assert not group.data["metadata"].get("seer_similarity")
+        mock_logger.info.assert_called_with(
+            "backfill_seer_grouping_records.killswitch_enabled",
+        )
