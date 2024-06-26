@@ -26,7 +26,8 @@ const performanceChartDefaults = {
 
 function modifyOptionsForSlack(options: Omit<LineChartProps, 'series'>) {
   options.legend = options.legend || {};
-  options.legend.icon = 'none';
+  // NOTE: This is commented to check if chartcuterie deployments are working
+  // options.legend.icon = 'none';
   options.legend.left = '25';
   options.legend.top = '20';
   options.grid = slackChartDefaults.grid;
