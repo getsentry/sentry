@@ -185,28 +185,34 @@ export default function MetricDetailsBody({
                   )}
             </Alert>
           )}
-          <StyledTimeRangeSelector
-            relative={timePeriod.period ?? ''}
-            start={(timePeriod.custom && timePeriod.start) || null}
-            end={(timePeriod.custom && timePeriod.end) || null}
-            onChange={handleTimePeriodChange}
-            relativeOptions={relativeOptions}
-            showAbsolute={false}
-            disallowArbitraryRelativeRanges
-            triggerLabel={relativeOptions[timePeriod.period ?? '']}
-          />
-          {selectedIncident && (
-            <Tooltip title={`click to clear filters`} isHoverable skipWrapper>
-              <div>filtering on {selectedIncident.identifier}</div>
-              <Link
-                to={{
-                  pathname: alertDetailsLink(organization, selectedIncident),
-                }}
+          <StyledSubHeader>
+            <StyledTimeRangeSelector
+              relative={timePeriod.period ?? ''}
+              start={(timePeriod.custom && timePeriod.start) || null}
+              end={(timePeriod.custom && timePeriod.end) || null}
+              onChange={handleTimePeriodChange}
+              relativeOptions={relativeOptions}
+              showAbsolute={false}
+              disallowArbitraryRelativeRanges
+              triggerLabel={relativeOptions[timePeriod.period ?? '']}
+            />
+            {selectedIncident && (
+              <Tooltip
+                title={`click to clear filters`}
+                isHoverable
+                containerDisplayMode="inline-flex"
               >
-                filtering on alert: #{selectedIncident.identifier}
-              </Link>
-            </Tooltip>
-          )}
+                {/* <div>filtering on {selectedIncident.identifier}</div> */}
+                <Link
+                  to={{
+                    pathname: alertDetailsLink(organization, selectedIncident),
+                  }}
+                >
+                  filtering on alert: #{selectedIncident.identifier}
+                </Link>
+              </Tooltip>
+            )}
+          </StyledSubHeader>
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
@@ -299,6 +305,12 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const StyledTimeRangeSelector = styled(TimeRangeSelector)`
+const StyledSubHeader = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  align-items: center;
+`;
+
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
+  margin-right: ${space(1)};
 `;
