@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {
   deleteHomepageQuery,
   updateHomepageQuery,
@@ -14,8 +16,10 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 export function handleCreateQuery(
   api: Client,
@@ -241,4 +245,19 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
     default:
       return DisplayType.LINE;
   }
+}
+
+export function getDataset(
+  location: Location,
+  savedQuery: SavedQuery | undefined,
+  splitDecision?: string
+): SavedQueryDatasets {
+  const dataset = decodeScalar(location.query[DATASET_PARAM]);
+  if (dataset) {
+    return dataset as SavedQueryDatasets;
+  }
+  if (savedQuery?.queryDataset === 'discover' && splitDecision) {
+    return splitDecision as SavedQueryDatasets;
+  }
+  return (savedQuery?.queryDataset ?? 'error-events') as SavedQueryDatasets;
 }
