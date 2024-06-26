@@ -94,7 +94,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
             logger.exception(
                 "slack.options_load.request-error",
                 extra={
-                    "group_id": group.id if group else None,
+                    "group_id": slack_request.group_id,
                     "organization_id": group.project.organization.id if group else None,
                     "request_data": orjson.dumps(slack_request.data).decode(),
                 },
