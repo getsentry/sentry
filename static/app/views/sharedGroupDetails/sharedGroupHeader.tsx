@@ -56,7 +56,6 @@ function SharedGroupHeader({group}: Props) {
                 </Tooltip>
               </EventTimeLabel>
               {'Last seen '}
-
               <EventTimeLabel>
                 <Tooltip
                   isHoverable
