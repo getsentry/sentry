@@ -9,7 +9,10 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {METRICS_DOCS_URL} from 'sentry/utils/metrics/constants';
-import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetricsExtractionRules,
+  hasMetricsExtrapolationFeature,
+} from 'sentry/utils/metrics/features';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useMetricsOnboardingSidebar} from 'sentry/views/metrics/ddmOnboarding/useMetricsOnboardingSidebar';
@@ -66,13 +69,11 @@ function ProjectMetrics({project}: Props) {
 
       <PermissionAlert project={project} />
 
-<<<<<<< priscila/feat/settings/metrics/add-extrapolate-metrics-field-frontend
-      <ExtrapolationField project={project} />
+      {hasMetricsExtrapolationFeature(organization) ? (
+        <ExtrapolationField project={project} />
+      ) : null}
 
-      {hasExtractionRules && <MetricsExtractionRulesTable project={project} />}
-=======
       {hasExtractionRules ? <MetricsExtractionRulesTable project={project} /> : null}
->>>>>>> master
 
       {!hasExtractionRules || project.hasCustomMetrics ? (
         <CustomMetricsTable project={project} />
