@@ -88,7 +88,7 @@ class WebhookPayload(Model):
             **cls.get_attributes_from_request(request),
         )
 
-    def schedule_next_attempt(self):
+    def schedule_next_attempt(self) -> None:
         attempts = self.attempts + 1
         backoff = BACKOFF_INTERVAL * BACKOFF_RATE**attempts
         backoff_delta = datetime.timedelta(minutes=min(backoff, 60))
