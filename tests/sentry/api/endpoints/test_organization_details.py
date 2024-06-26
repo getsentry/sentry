@@ -451,6 +451,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "metricAlertsThreadFlag": False,
             "metricsActivatePercentiles": True,
             "metricsActivateLastForGauges": True,
+            "extrapolateMetrics": True,
         }
 
         # needed to set require2FA
@@ -526,6 +527,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "to {}".format(data["metricsActivateLastForGauges"])
             in log.data["metricsActivateLastForGauges"]
         )
+        assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
 
     @responses.activate
     @patch(

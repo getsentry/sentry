@@ -1325,6 +1325,11 @@ class ProjectUpdateTest(APITestCase):
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
 
+    def test_extrapolate_metrics(self):
+        resp = self.get_success_response(self.org_slug, self.proj_slug, extrapolateMetrics=False)
+        assert self.project.get_option("sentry:extrapolate_metrics") is False
+        assert resp.data["extrapolateMetrics"] is False
+
 
 class CopyProjectSettingsTest(APITestCase):
     endpoint = "sentry-api-0-project-details"
