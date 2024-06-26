@@ -987,6 +987,11 @@ describe('SearchQueryBuilder', function () {
     });
 
     describe('date', function () {
+      // Transpile the lazy-loaded datepicker up front so tests don't flake
+      beforeAll(async function () {
+        await import('sentry/components/calendar/datePicker');
+      });
+
       it('new date filters start with a value', async function () {
         render(<SearchQueryBuilder {...defaultProps} />);
         await userEvent.click(screen.getByRole('grid'));
@@ -1064,6 +1069,8 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: age'})
         );
+        // Go back to relative date suggestions
+        await userEvent.click(await screen.findByRole('button', {name: 'Back'}));
         await userEvent.click(await screen.findByRole('option', {name: '1 hour ago'}));
 
         // Because relative dates only work with ":", should change the operator to "is after"
@@ -1073,6 +1080,106 @@ describe('SearchQueryBuilder', function () {
           ).getByText('is after')
         ).toBeInTheDocument();
         expect(await screen.findByRole('row', {name: 'age:-1h'})).toBeInTheDocument();
+      });
+
+      it('can set an absolute date', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="age:-24h"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: 'Absolute date'}));
+        const dateInput = await screen.findByTestId('date-picker');
+        await userEvent.type(dateInput, '2017-10-17');
+        await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17');
+        });
+      });
+
+      it('can set an absolute date with time (UTC)', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="age:>2017-10-17"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Include time'})
+        );
+
+        await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17T00:00:00Z');
+        });
+      });
+
+      it('can set an absolute date with time (local)', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="age:>2017-10-17"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Include time'})
+        );
+        await userEvent.click(await screen.findByRole('checkbox', {name: 'UTC'}));
+
+        await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('age:>2017-10-17T00:00:00+00:00');
+        });
+      });
+
+      it('displays absolute date value correctly (just date)', function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:>=2017-10-17" />);
+
+        expect(screen.getByText('is on or after')).toBeInTheDocument();
+        expect(screen.getByText('Oct 17')).toBeInTheDocument();
+      });
+
+      it('displays absolute date value correctly (with local time)', function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="age:>=2017-10-17T14:00:00-00:00"
+          />
+        );
+
+        expect(screen.getByText('is on or after')).toBeInTheDocument();
+        expect(screen.getByText('Oct 17, 2:00 PM')).toBeInTheDocument();
+      });
+
+      it('displays absolute date value correctly (with UTC time)', function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="age:>=2017-10-17T14:00:00Z"
+          />
+        );
+
+        expect(screen.getByText('is on or after')).toBeInTheDocument();
+        expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
       });
     });
   });
