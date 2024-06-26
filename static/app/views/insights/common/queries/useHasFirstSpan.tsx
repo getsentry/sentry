@@ -3,13 +3,13 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {ModuleName} from 'sentry/views/insights/types';
 
-const unsupportModuleNames = [
+const excludedModuleNames = [
   ModuleName.ALL,
   ModuleName.OTHER,
   ModuleName.MOBILE_UI,
 ] as const;
 
-type ExcludedModuleNames = (typeof unsupportModuleNames)[number];
+type ExcludedModuleNames = (typeof excludedModuleNames)[number];
 
 const modulePropertyMap: Record<
   Exclude<ModuleName, ExcludedModuleNames>,
@@ -33,7 +33,7 @@ export function useHasFirstSpan(module: ModuleName): boolean {
   const pageFilters = usePageFilters();
 
   // Unsupported modules. Remove MOBILE_UI from this list once released.
-  if ((unsupportModuleNames as readonly ModuleName[]).includes(module)) return false;
+  if ((excludedModuleNames as readonly ModuleName[]).includes(module)) return false;
 
   let selectedProjects: Project[] = [];
   // There are three cases for the selected pageFilter projects:
