@@ -65,9 +65,11 @@ function ProjectMetrics({project}: Props) {
 
       <PermissionAlert project={project} />
 
-      {hasExtractionRules && <MetricsExtractionRulesTable project={project} />}
+      {hasExtractionRules ? <MetricsExtractionRulesTable project={project} /> : null}
 
-      <CustomMetricsTable project={project} />
+      {!hasExtractionRules || project.hasCustomMetrics ? (
+        <CustomMetricsTable project={project} />
+      ) : null}
     </Fragment>
   );
 }
