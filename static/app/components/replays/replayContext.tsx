@@ -539,6 +539,7 @@ export function Provider({
         },
         clipWindow,
         durationMs,
+        speed: savedReplayConfigRef.current.playbackSpeed,
         // rrweb specific
         theme,
         events: events ?? [],
