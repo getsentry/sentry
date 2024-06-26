@@ -12,6 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {setApiQueryData, useMutation, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
@@ -92,7 +93,7 @@ export function AutofixInputField({groupId, runId}: {groupId: string; runId: str
             onChange={e => setInstruction(e.target.value)}
             disabled={isSubmitting}
             onKeyDown={e => {
-              if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+              if (isCtrlKeyPressed(e) && e.key === 'Enter') {
                 sendInstruction();
               }
             }}
