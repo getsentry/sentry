@@ -14,7 +14,7 @@ def run_test(expected_groups):
         "selected_columns": [
             "group_id",
             "group_priority",
-            "group_first_release_id",
+            "group_first_release",
         ],
         "offset": 0,
         "limit": 100,
@@ -36,7 +36,7 @@ def run_test(expected_groups):
 
     assert {g.id for g in expected_groups} == {d["group_id"] for d in data}
     assert {g.priority for g in expected_groups} == {d["group_priority"] for d in data}
-    assert {g.first_release for g in expected_groups} == {d["group_first_release_id"] for d in data}
+    assert {g.first_release for g in expected_groups} == {d["group_first_release"] for d in data}
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
