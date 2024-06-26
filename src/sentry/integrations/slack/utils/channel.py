@@ -9,7 +9,7 @@ from slack_sdk.errors import SlackApiError
 from sentry import features
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.utils.users import get_slack_user_data
+from sentry.integrations.slack.utils.users import get_slack_user_list
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
@@ -178,7 +178,7 @@ def check_user_with_timeout(
     # Get each user from a page from the Slack API
     page_generator = (
         user
-        for page in get_slack_user_data(integration, organization=None, kwargs=payload)
+        for page in get_slack_user_list(integration, organization=None, kwargs=payload)
         for user in page
     )
     for user in page_generator:
