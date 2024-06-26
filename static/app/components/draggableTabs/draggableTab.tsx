@@ -65,9 +65,11 @@ function TabDropIndicator(props: BaseDropIndicatorProps) {
 interface DraggableProps {
   children: React.ReactNode;
   item: Node<any>;
+  onTabClick: () => void;
 }
 
-function Draggable({item, children}: DraggableProps) {
+function Draggable({item, children, onTabClick}: DraggableProps) {
+  // TODO(msun): Implement the "preview" parameter in this useDrag hook
   const {dragProps, dragButtonProps} = useDrag({
     getAllowedDropOperations: () => ['move'],
     getItems() {
@@ -79,11 +81,11 @@ function Draggable({item, children}: DraggableProps) {
     },
   });
 
-  const draggableRef = useRef(null);
-  const {buttonProps} = useButton({...dragButtonProps, elementType: 'div'}, draggableRef);
+  const ref = useRef(null);
+  const {buttonProps} = useButton({...dragButtonProps, elementType: 'div'}, ref);
 
   return (
-    <div {...mergeProps(dragProps, buttonProps)} ref={draggableRef}>
+    <div {...mergeProps(buttonProps, dragProps)} ref={ref} onClick={onTabClick}>
       {children}
     </div>
   );
@@ -106,7 +108,6 @@ function BaseDraggableTab(
     props: {to, hidden},
   } = item;
   const {tabProps, isSelected} = useTab({key, isDisabled: hidden}, state, ref);
-
   const InnerWrap = useCallback(
     ({children}) =>
       to ? (
@@ -152,7 +153,9 @@ function BaseDraggableTab(
             higherOpacity={isSelected}
           />
           <FocusLayer orientation={orientation} />
-          <Draggable item={item}>{rendered}</Draggable>
+          <Draggable onTabClick={() => state.setSelectedKey(item.key)} item={item}>
+            {rendered}
+          </Draggable>
           <TabSelectionIndicator orientation={orientation} selected={isSelected} />
         </InnerWrap>
       </TabWrap>
