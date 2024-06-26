@@ -34,6 +34,9 @@ export class Timer extends EventTarget {
    */
   start(seconds?: number) {
     this._pausedAt = 0;
+    // we're dividing by the speed here because we mutiply
+    // by the same factor up in step(). doing the math,
+    // you'll see that this._time turns out to be just `seconds`.
     this._start = window.performance.now() - (seconds ?? 0) / this._speed;
     this.resume();
     this.step();
