@@ -144,7 +144,7 @@ export const SummaryTable = memo(function SummaryTable({
     .map(s => {
       return {
         ...s,
-        ...getValues(s.data),
+        ...getValues(s),
       };
     })
     // Filter series with no data
@@ -186,7 +186,9 @@ export const SummaryTable = memo(function SummaryTable({
         {t('Sum')}
       </SortableHeaderCell>
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="total" right>
-        {t('Total')}
+        <Tooltip title={t('Selected aggregation over the whole time period')}>
+          {t('Value')}
+        </Tooltip>
       </SortableHeaderCell>
       {hasActions && <HeaderCell disabled right />}
       <HeaderCell disabled />
@@ -436,11 +438,12 @@ function SortableHeaderCell({
   );
 }
 
-function getValues(seriesData: Series['data']) {
-  if (!seriesData) {
+function getValues(series: Series) {
+  const {data, total, aggregate} = series;
+  if (!data) {
     return {min: null, max: null, avg: null, sum: null};
   }
-  const res = seriesData.reduce(
+  const res = data.reduce(
     (acc, {value}) => {
       if (value === null) {
         return acc;
@@ -456,7 +459,18 @@ function getValues(seriesData: Series['data']) {
     {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
+  const values = {
+    min: res.min,
+    max: res.max,
+    sum: res.sum,
+    avg: res.sum / res.definedDatapoints,
+  };
+
+  if (aggregate in values) {
+    values[aggregate] = total;
+  }
+
+  return values;
 }
 
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`

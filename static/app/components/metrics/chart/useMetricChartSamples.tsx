@@ -168,8 +168,10 @@ export function useMetricChartSamples({
           return {
             seriesName: sample.id,
             id: `${index}_${sample.id}`,
+            // TODO: fix type so we do not need to pass all these props
             operation: '',
             unit: '',
+            aggregate: 'count',
             symbolSize: isHighlighted ? 20 : 11,
             animation: false,
             symbol: yPosition === yValue ? 'circle' : 'arrow',
