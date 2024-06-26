@@ -19,7 +19,7 @@ export function DrawerPanel({children, onClose, onOpen}: DrawerPanelProps) {
         <DrawerHeader>
           <CloseButton
             priority="link"
-            size="zero"
+            size="xs"
             borderless
             aria-label={t('Close Drawer')}
             icon={<IconClose />}
