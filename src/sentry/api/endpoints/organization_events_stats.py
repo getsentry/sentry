@@ -111,6 +111,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
+    sunba_methods = ["GET"]
 
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [

@@ -194,6 +194,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
+    snuba_methods = ["GET"]
 
     enforce_rate_limit = True
 
