@@ -13,6 +13,7 @@ import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -140,6 +141,21 @@ export function MetricDetailsSidebar({
 
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
+  let conditionType;
+  switch (
+    rule.monitorType === MonitorType.ACTIVATED &&
+    typeof rule.activationCondition !== 'undefined' &&
+    rule.activationCondition
+  ) {
+    case ActivationConditionType.DEPLOY_CREATION:
+      conditionType = t('New Deploy');
+      break;
+    case ActivationConditionType.RELEASE_CREATION:
+      conditionType = t('New Release');
+      break;
+    default:
+      break;
+  }
 
   return (
     <Fragment>
@@ -205,6 +221,13 @@ export function MetricDetailsSidebar({
             keyName={t('Environment')}
             value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
           />
+          {rule.monitorType === MonitorType.ACTIVATED &&
+            typeof rule.activationCondition !== 'undefined' && (
+              <KeyValueTableRow
+                keyName={t('Activated By')}
+                value={<OverflowTableValue>{conditionType}</OverflowTableValue>}
+              />
+            )}
           <KeyValueTableRow
             keyName={t('Date created')}
             value={

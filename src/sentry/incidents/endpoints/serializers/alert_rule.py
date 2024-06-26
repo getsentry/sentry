@@ -300,6 +300,11 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
+            "activationCondition": (
+                obj.activation_condition.first().condition_type
+                if obj.activation_condition.exists()
+                else None
+            ),
             "activations": attrs.get("activations", None),
             "description": obj.description if obj.description is not None else "",
         }
