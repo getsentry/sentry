@@ -34,7 +34,7 @@ export class Timer extends EventTarget {
    */
   start(seconds?: number) {
     this._pausedAt = 0;
-    this._start = window.performance.now() - (seconds ?? 0);
+    this._start = window.performance.now() - (seconds ?? 0) / this._speed;
     this.resume();
     this.step();
   }
