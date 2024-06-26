@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
-import {DrawerContextProvider} from 'sentry/components/globalDrawer/context';
+import {DrawerContextProvider} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types/organization';

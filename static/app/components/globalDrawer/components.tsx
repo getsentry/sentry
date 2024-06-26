@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import type {DrawerOptions} from 'sentry/components/globalDrawer';
+import type {DrawerOptions} from 'sentry/components/globalDrawer/types';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -100,4 +100,11 @@ export const DrawerHeader = styled('header')`
 export const DrawerBody = styled('section')`
   padding: ${space(2)} 24px;
   font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+export const DrawerContainer = styled('div')`
+  position: fixed;
+  inset: 0;
+  z-index: ${p => p.theme.zIndex.drawer};
+  pointer-events: none;
 `;

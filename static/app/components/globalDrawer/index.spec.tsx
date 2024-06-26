@@ -5,7 +5,8 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import useDrawer, {type DrawerConfig} from 'sentry/components/globalDrawer/context';
+import useDrawer from 'sentry/components/globalDrawer';
+import type {DrawerConfig} from 'sentry/components/globalDrawer/types';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();

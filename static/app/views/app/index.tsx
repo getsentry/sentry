@@ -11,7 +11,7 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {DrawerContextProvider} from 'sentry/components/globalDrawer/context';
+import {DrawerContextProvider} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';

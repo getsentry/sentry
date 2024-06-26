@@ -1,83 +1,87 @@
-import {useCallback, useContext, useEffect} from 'react';
-import styled from '@emotion/styled';
+import {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
-import {DrawerBody, DrawerPanel} from 'sentry/components/globalDrawer/components';
-import {DrawerContext} from 'sentry/components/globalDrawer/context';
+import {
+  DrawerBody,
+  DrawerContainer,
+  DrawerPanel,
+} from 'sentry/components/globalDrawer/components';
+import type {
+  DrawerConfig,
+  DrawerContext as DrawerUsageContext,
+  DrawerContextProps,
+} from 'sentry/components/globalDrawer/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export interface DrawerOptions {
-  //
-  // If true (default), closes the drawer when an escape key is pressed
-  //
-  closeOnEscapeKeypress?: boolean;
-  //
-  // If true (default), closes the drawer when anywhere else is clicked
-  //
-  closeOnOutsideClick?: boolean;
-  //
-  // Callback for when the drawer closes
-  //
-  onClose?: () => void;
-  //
-  // Callback for when the drawer opens
-  //
-  onOpen?: () => void;
-}
+const DEFAULT_DRAWER_CONTEXT: DrawerContextProps = {
+  config: {
+    renderer: null,
+    options: {
+      closeOnEscapeKeypress: true,
+      closeOnOutsideClick: true,
+    },
+  },
+  openDrawer: () => {},
+  closeDrawer: () => {},
+};
 
-export interface DrawerRenderProps {
-  //
-  // Body container for the drawer
-  //
-  Body: typeof DrawerBody;
-  //
-  // Close the drawer
-  //
-  closeDrawer: () => void;
-}
+const DrawerContext = createContext<DrawerContextProps>(DEFAULT_DRAWER_CONTEXT);
 
-interface GlobalDrawerProps {}
-
-export default function GlobalDrawer(_props: GlobalDrawerProps) {
+export function DrawerContextProvider({children}) {
   const location = useLocation();
-  const {config, closeDrawer: ctxCloseDrawer} = useContext(DrawerContext);
-  const {renderer, options = {}} = config;
+  const [drawerConfig, setDrawerConfig] = useState<DrawerConfig>(
+    DEFAULT_DRAWER_CONTEXT.config
+  );
+  const openDrawer = useCallback(
+    (renderer, options = {}) => setDrawerConfig({renderer, options}),
+    [setDrawerConfig]
+  );
+  const closeDrawer = useCallback(
+    () => setDrawerConfig(DEFAULT_DRAWER_CONTEXT.config),
+    [setDrawerConfig]
+  );
+  const drawerContextValue: DrawerContextProps = {
+    config: drawerConfig,
+    closeDrawer,
+    openDrawer,
+  };
+  const {renderer, options = {}} = drawerConfig;
   const {closeOnEscapeKeypress = true, closeOnOutsideClick = true} = options;
 
-  const closeDrawer = useCallback(() => {
+  const handleClose = useCallback(() => {
     // Callsite callback when closing the drawer
     options?.onClose?.();
     // Actually close the drawer component
-    ctxCloseDrawer();
-  }, [options, ctxCloseDrawer]);
+    closeDrawer();
+  }, [options, closeDrawer]);
 
   // Close the drawer when the browser history changes.
-  useEffect(() => ctxCloseDrawer(), [location.pathname, ctxCloseDrawer]);
-
+  useEffect(() => closeDrawer(), [location.pathname, closeDrawer]);
   const isDrawerOpen = typeof renderer === 'function';
   const renderedChild =
     renderer?.({
       Body: DrawerBody,
-      closeDrawer,
+      closeDrawer: handleClose,
     }) ?? null;
 
   return (
-    <DrawerContainer data-test-id="drawer-container">
-      <DrawerPanel
-        isOpen={isDrawerOpen}
-        onClose={closeDrawer}
-        onOpen={options?.onOpen}
-        closeOnOutsideClick={closeOnOutsideClick}
-        closeOnEscapeKeypress={closeOnEscapeKeypress}
-      >
-        {renderedChild}
-      </DrawerPanel>
-    </DrawerContainer>
+    <DrawerContext.Provider value={drawerContextValue}>
+      <DrawerContainer data-test-id="drawer-container">
+        <DrawerPanel
+          isOpen={isDrawerOpen}
+          onClose={handleClose}
+          onOpen={options?.onOpen}
+          closeOnOutsideClick={closeOnOutsideClick}
+          closeOnEscapeKeypress={closeOnEscapeKeypress}
+        >
+          {renderedChild}
+        </DrawerPanel>
+      </DrawerContainer>
+      {children}
+    </DrawerContext.Provider>
   );
 }
 
-const DrawerContainer = styled('div')`
-  position: fixed;
-  inset: 0;
-  z-index: ${p => p.theme.zIndex.drawer};
-  pointer-events: none;
-`;
+export default function useDrawer(): DrawerUsageContext {
+  const {openDrawer, closeDrawer} = useContext(DrawerContext);
+  return {openDrawer, closeDrawer};
+}
