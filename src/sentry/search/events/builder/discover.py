@@ -35,7 +35,7 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown, raw_snql_query
+from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
@@ -248,9 +248,6 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             ),
             tenant_ids=self.tenant_ids,
         )
-
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
 
 class TopEventsQueryBuilder(TimeseriesQueryBuilder):
