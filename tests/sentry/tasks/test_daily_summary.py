@@ -625,7 +625,6 @@ class DailySummaryTest(
         assert list(top_projects_context_map.keys()) == [self.project.id, self.project2.id]
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_slack_notification_contents(self):
         self.populate_event_data()
         ctx = build_summary_data(
@@ -688,7 +687,6 @@ class DailySummaryTest(
         )
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     @with_feature("organizations:discover")
     def test_slack_notification_contents_discover_link(self):
         self.populate_event_data()
@@ -733,7 +731,6 @@ class DailySummaryTest(
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_slack_notification_contents_newline(self):
         type_string = '"""\nTraceback (most recent call last):\nFile /\'/usr/hb/meow/\''
         data = {
@@ -785,7 +782,6 @@ class DailySummaryTest(
         assert '""" Traceback (most recent call las...' in blocks[4]["fields"][0]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_slack_notification_contents_newline_no_attachment_text(self):
         data = {
             "timestamp": iso_format(self.now),
@@ -836,7 +832,6 @@ class DailySummaryTest(
         assert "" in blocks[4]["fields"][0]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_slack_notification_contents_truncate_text(self):
         data = {
             "timestamp": iso_format(self.now),
@@ -888,7 +883,6 @@ class DailySummaryTest(
         assert "QueryCanceled('canceling statement ..." in blocks[4]["fields"][0]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_limit_to_two_projects(self):
         """Test that if we have data for more than 2 projects that we only show data for the top 2"""
         self.populate_event_data()
@@ -921,7 +915,6 @@ class DailySummaryTest(
         assert len(blocks) == 13
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_no_release_data(self):
         """
         Test that the notification formats as expected when we don't have release data
@@ -949,7 +942,6 @@ class DailySummaryTest(
         assert "higher than last 14d avg" in blocks[3]["fields"][1]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_no_performance_issues(self):
         """
         Test that the notification formats as expected when we don't have performance issues
@@ -998,7 +990,6 @@ class DailySummaryTest(
         assert "Getting this at a funky time?" in blocks[12]["elements"][0]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     def test_no_escalated_regressed_issues(self):
         """
         Test that the notification formats as expected when we don't have escalated and/or regressed issues

@@ -6,7 +6,6 @@ import orjson
 import responses
 
 from sentry.integrations.slack.unfurl import Handler, make_type_coercer
-from sentry.testutils.helpers.features import with_feature
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 
@@ -49,7 +48,6 @@ class LinkSharedEventTest(BaseEventTest):
         assert unfurls["link2"] == "unfurl"
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     @patch(
         "sentry.integrations.slack.webhooks.event.match_link",
         # match_link will be called twice, for each our links. Resolve into
