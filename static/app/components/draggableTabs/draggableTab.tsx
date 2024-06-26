@@ -54,23 +54,12 @@ function handleLinkClick(e: React.PointerEvent<HTMLAnchorElement>) {
 
 function TabDropIndicator(props: BaseDropIndicatorProps) {
   const ref = useRef(null);
-  const {dropIndicatorProps, isHidden, isDropTarget} = useDropIndicator(
-    props,
-    props.dropState,
-    ref
-  );
+  const {dropIndicatorProps, isHidden} = useDropIndicator(props, props.dropState, ref);
   if (isHidden) {
     return null;
   }
 
-  return (
-    <TabSeparator
-      {...dropIndicatorProps}
-      role="option"
-      ref={ref}
-      className={`drop-indicator ${isDropTarget ? 'drop-target' : ''}`}
-    />
-  );
+  return <TabSeparator {...dropIndicatorProps} role="option" ref={ref} />;
 }
 
 interface DraggableProps {
@@ -79,7 +68,7 @@ interface DraggableProps {
 }
 
 function Draggable({item, children}: DraggableProps) {
-  const {dragProps, dragButtonProps, isDragging} = useDrag({
+  const {dragProps, dragButtonProps} = useDrag({
     getAllowedDropOperations: () => ['move'],
     getItems() {
       return [
@@ -94,11 +83,7 @@ function Draggable({item, children}: DraggableProps) {
   const {buttonProps} = useButton({...dragButtonProps, elementType: 'div'}, draggableRef);
 
   return (
-    <div
-      {...mergeProps(dragProps, buttonProps)}
-      ref={draggableRef}
-      className={`draggable ${isDragging ? 'dragging' : ''}`}
-    >
+    <div {...mergeProps(dragProps, buttonProps)} ref={draggableRef}>
       {children}
     </div>
   );
