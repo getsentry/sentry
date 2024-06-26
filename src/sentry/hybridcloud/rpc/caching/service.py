@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 import abc
 from collections.abc import Callable, Generator, Mapping
-from typing import TYPE_CHECKING, Generic, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 import pydantic
 
@@ -35,7 +35,6 @@ class RegionCachingService(RpcService):
 
 
 _R = TypeVar("_R", bound=pydantic.BaseModel)
-_OptionalR = Union[_R, None]
 
 
 class SiloCacheBackedCallable(Generic[_R]):
@@ -56,7 +55,7 @@ class SiloCacheBackedCallable(Generic[_R]):
         self,
         base_key: str,
         silo_mode: SiloMode,
-        cb: Callable[[int], _OptionalR],
+        cb: Callable[[int], _R | None],
         t: type[_R],
         timeout: int | None = None,
     ):
@@ -66,7 +65,7 @@ class SiloCacheBackedCallable(Generic[_R]):
         self.type_ = t
         self.timeout = timeout
 
-    def __call__(self, object_id: int) -> _OptionalR:
+    def __call__(self, object_id: int) -> _R | None:
         if (
             SiloMode.get_current_mode() != self.silo_mode
             and SiloMode.get_current_mode() != SiloMode.MONOLITH
@@ -79,7 +78,7 @@ class SiloCacheBackedCallable(Generic[_R]):
 
     def resolve_from(
         self, i: int, values: Mapping[str, int | str]
-    ) -> Generator[None, None, _OptionalR]:
+    ) -> Generator[None, None, _R | None]:
         from .impl import _consume_generator, _delete_cache, _set_cache
 
         key = self.key_from(i)
@@ -100,7 +99,7 @@ class SiloCacheBackedCallable(Generic[_R]):
             _consume_generator(_set_cache(key, r.json(), version, self.timeout))
         return r
 
-    def get_one(self, object_id: int) -> _OptionalR:
+    def get_one(self, object_id: int) -> _R | None:
         from .impl import _consume_generator, _get_cache
 
         key = self.key_from(object_id)
@@ -199,7 +198,7 @@ class SiloCacheManyBackedCallable(Generic[_R]):
 
 def back_with_silo_cache(
     base_key: str, silo_mode: SiloMode, t: type[_R], timeout: int | None = None
-) -> Callable[[Callable[[int], _OptionalR]], "SiloCacheBackedCallable[_R]"]:
+) -> Callable[[Callable[[int], _R | None]], "SiloCacheBackedCallable[_R]"]:
     """
     Decorator for adding local caching to RPC operations on a single record.
 
@@ -212,7 +211,7 @@ def back_with_silo_cache(
     See user_service.get_user() for an example usage.
     """
 
-    def wrapper(cb: Callable[[int], _OptionalR]) -> "SiloCacheBackedCallable[_R]":
+    def wrapper(cb: Callable[[int], _R | None]) -> "SiloCacheBackedCallable[_R]":
         return SiloCacheBackedCallable(base_key, silo_mode, cb, t, timeout)
 
     return wrapper
