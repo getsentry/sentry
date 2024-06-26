@@ -89,7 +89,7 @@ function useReplaysFromTransaction({
       version: 2,
       fields: REPLAY_LIST_FIELDS,
       projects: [],
-      query: `id:[${String(response.replayIds)}]`,
+      query: response.replayIds.length ? `id:[${String(response.replayIds)}]` : undefined,
       orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
     });
   }, [location.query.sort, response.replayIds]);
