@@ -86,6 +86,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     }),
     {
       staleTime: 0,
+      retry: false,
     }
   );
 
@@ -99,6 +100,7 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
     {
       staleTime: 0,
       enabled: hasSymbolSourcesFeatureFlag,
+      retry: 0,
     }
   );
 
@@ -164,55 +166,62 @@ function ProjectDebugSymbols({organization, project, location, router, params}: 
         <Fragment>
           <PermissionAlert project={project} />
 
-          <Sources
-            api={api}
-            location={location}
-            router={router}
-            project={project}
-            organization={organization}
-            customRepositories={
-              (project.symbolSources
-                ? JSON.parse(project.symbolSources)
-                : []) as CustomRepo[]
-            }
-            builtinSymbolSources={project.builtinSymbolSources ?? []}
-            builtinSymbolSourceOptions={builtinSymbolSources ?? []}
-            isLoading={isLoadingSymbolSources}
-            onErrorRetry={refetchSymbolSources}
-            isError={isErrorSymbolSources}
-          />
+          {isLoadingSymbolSources ? (
+            <LoadingIndicator />
+          ) : isErrorSymbolSources ? (
+            <LoadingError
+              onRetry={refetchSymbolSources}
+              message={t('There was an error loading repositories.')}
+            />
+          ) : (
+            <Sources
+              api={api}
+              location={location}
+              router={router}
+              project={project}
+              organization={organization}
+              customRepositories={
+                (project.symbolSources
+                  ? JSON.parse(project.symbolSources)
+                  : []) as CustomRepo[]
+              }
+              builtinSymbolSources={project.builtinSymbolSources ?? []}
+              builtinSymbolSourceOptions={builtinSymbolSources ?? []}
+            />
+          )}
         </Fragment>
       )}
-
-      <Wrapper>
-        <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
-        <Filters>
-          <Label>
-            <Checkbox
-              checked={showDetails}
-              onChange={e => {
-                setShowDetails((e.target as HTMLInputElement).checked);
-              }}
-              disabled={isLoadingDebugFiles || isLoadingErrorDebugFiles}
-            />
-            {t('show details')}
-          </Label>
-
-          <SearchBar
-            placeholder={t('Search DIFs')}
-            onSearch={handleSearch}
-            query={query}
-            disabled={isLoadingDebugFiles || isLoadingErrorDebugFiles}
-          />
-        </Filters>
-      </Wrapper>
 
       {isLoadingDebugFiles ? (
         <LoadingIndicator />
       ) : isLoadingErrorDebugFiles ? (
-        <LoadingError onRetry={refetchDebugFiles} />
+        <LoadingError
+          onRetry={refetchDebugFiles}
+          message={t('There was an error loading debug information files.')}
+        />
       ) : (
         <Fragment>
+          <Wrapper>
+            <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
+            <Filters>
+              <Label>
+                <Checkbox
+                  checked={showDetails}
+                  onChange={e => {
+                    setShowDetails((e.target as HTMLInputElement).checked);
+                  }}
+                />
+                {t('show details')}
+              </Label>
+
+              <SearchBar
+                placeholder={t('Search DIFs')}
+                onSearch={handleSearch}
+                query={query}
+              />
+            </Filters>
+          </Wrapper>
+
           <StyledPanelTable
             headers={[
               t('Debug ID'),

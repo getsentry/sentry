@@ -15,10 +15,7 @@ type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
   customRepositories: CustomRepo[];
-  isError: boolean;
-  isLoading: boolean;
   location: Location;
-  onErrorRetry: () => void;
   organization: Organization;
   project: Project;
   router: InjectedRouter;
@@ -33,9 +30,6 @@ function Sources({
   project,
   location,
   router,
-  isLoading,
-  isError,
-  onErrorRetry,
 }: Props) {
   return (
     <Fragment>
@@ -45,9 +39,6 @@ function Sources({
         builtinSymbolSources={builtinSymbolSources}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
         project={project}
-        isLoading={isLoading}
-        isError={isError}
-        onErrorRetry={onErrorRetry}
       />
       <CustomRepositories
         api={api}
@@ -56,9 +47,6 @@ function Sources({
         organization={organization}
         customRepositories={customRepositories}
         project={project}
-        isLoading={isLoading}
-        isError={isError}
-        onErrorRetry={onErrorRetry}
       />
     </Fragment>
   );

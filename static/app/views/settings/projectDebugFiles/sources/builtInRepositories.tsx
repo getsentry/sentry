@@ -4,8 +4,6 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
-import LoadingError from 'sentry/components/loadingError';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
@@ -21,9 +19,6 @@ type Props = {
   api: Client;
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
-  isError: boolean;
-  isLoading: boolean;
-  onErrorRetry: () => void;
   organization: Organization;
   project: Project;
 };
@@ -34,9 +29,6 @@ function BuiltInRepositories({
   builtinSymbolSourceOptions,
   builtinSymbolSources,
   project,
-  isLoading,
-  isError,
-  onErrorRetry,
 }: Props) {
   // If the project details object has an unknown built-in source, this will be filtered here.
   // This prevents the UI from showing the wrong feedback message when updating the field
@@ -89,43 +81,37 @@ function BuiltInRepositories({
     <Panel>
       <PanelHeader>{SECTION_TITLE}</PanelHeader>
       <PanelBody>
-        {isLoading ? (
-          <LoadingIndicator />
-        ) : isError ? (
-          <LoadingError onRetry={onErrorRetry} />
-        ) : (
-          <Access access={['project:write']} project={project}>
-            {({hasAccess}) => (
-              <StyledSelectField
-                disabledReason={
-                  !hasAccess
-                    ? t(
-                        'You do not have permission to edit built-in repositories configurations.'
-                      )
-                    : undefined
-                }
-                disabled={!hasAccess}
-                name="builtinSymbolSources"
-                label={SECTION_TITLE}
-                help={t(
-                  'Configures which built-in repositories Sentry should use to resolve debug files.'
-                )}
-                placeholder={t('Select built-in repository')}
-                value={validBuiltInSymbolSources}
-                onChange={handleChange}
-                options={builtinSymbolSourceOptions
-                  .filter(source => !source.hidden)
-                  .map(source => ({
-                    value: source.sentry_key,
-                    label: source.name,
-                  }))}
-                getValue={value => (value === null ? [] : value)}
-                flexibleControlStateSize
-                multiple
-              />
-            )}
-          </Access>
-        )}
+        <Access access={['project:write']} project={project}>
+          {({hasAccess}) => (
+            <StyledSelectField
+              disabledReason={
+                !hasAccess
+                  ? t(
+                      'You do not have permission to edit built-in repositories configurations.'
+                    )
+                  : undefined
+              }
+              disabled={!hasAccess}
+              name="builtinSymbolSources"
+              label={SECTION_TITLE}
+              help={t(
+                'Configures which built-in repositories Sentry should use to resolve debug files.'
+              )}
+              placeholder={t('Select built-in repository')}
+              value={validBuiltInSymbolSources}
+              onChange={handleChange}
+              options={builtinSymbolSourceOptions
+                .filter(source => !source.hidden)
+                .map(source => ({
+                  value: source.sentry_key,
+                  label: source.name,
+                }))}
+              getValue={value => (value === null ? [] : value)}
+              flexibleControlStateSize
+              multiple
+            />
+          )}
+        </Access>
       </PanelBody>
     </Panel>
   );

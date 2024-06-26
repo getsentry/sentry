@@ -49,8 +49,10 @@ describe('ProjectDebugFiles', function () {
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
 
     // Uploaded debug files content
-    expect(screen.getByText('Uploaded debug information files')).toBeInTheDocument();
-    expect(await screen.findByText('libS.so')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Uploaded debug information files')
+    ).toBeInTheDocument();
+    expect(screen.getByText('libS.so')).toBeInTheDocument();
   });
 
   it('renders empty', async function () {
@@ -87,5 +89,39 @@ describe('ProjectDebugFiles', function () {
     await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
+  });
+
+  it('display error if request for dsyms fails', async function () {
+    MockApiClient.addMockResponse({
+      url: endpoint,
+      body: [DebugFileFixture()],
+      statusCode: 400,
+    });
+
+    render(<ProjectDebugFiles {...props} />);
+
+    expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  it('display error if request for symbol sources fails', async function () {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/builtin-symbol-sources/`,
+      method: 'GET',
+      body: [],
+      statusCode: 400,
+    });
+
+    render(
+      <ProjectDebugFiles
+        {...props}
+        organization={{...organization, features: ['symbol-sources']}}
+      />
+    );
+
+    expect(await screen.findByText(/There was an error/)).toBeInTheDocument();
+
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 });
