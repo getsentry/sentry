@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -19,7 +21,7 @@ class DatasetConfig(abc.ABC):
     missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
 
     @abc.abstractmethod
-    def __init__(self, builder: "BaseQueryBuilder"):
+    def __init__(self, builder: BaseQueryBuilder):
         pass
 
     @property

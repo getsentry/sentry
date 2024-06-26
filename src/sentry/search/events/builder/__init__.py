@@ -1,4 +1,3 @@
-from .base import BaseQueryBuilder
 from .discover import (
     HistogramQueryBuilder,
     QueryBuilder,
@@ -40,7 +39,6 @@ from .spans_metrics import (
 )
 
 __all__ = [
-    "BaseQueryBuilder",
     "HistogramQueryBuilder",
     "QueryBuilder",
     "TimeseriesQueryBuilder",
