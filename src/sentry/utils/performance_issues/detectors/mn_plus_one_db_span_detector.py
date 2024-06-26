@@ -169,11 +169,16 @@ class ContinuingMNPlusOne(MNPlusOneState):
         offender_span_count = len(self.pattern) * times_occurred
         offender_spans = self.spans[:offender_span_count]
 
-        # Only consider `db` spans when evaluating the duration threshold.
+        # Consider all spans when evaluating the duration threshold, however at least 10 percent
+        # of the total duration of offenders should be from db spans.
         total_duration_threshold = self.settings["total_duration_threshold"]
+        total_spans_duration = total_span_time(offender_spans)
+
         offender_db_spans = [span for span in offender_spans if span["op"].startswith("db")]
-        total_duration = total_span_time(offender_db_spans)
-        if total_duration < total_duration_threshold:
+        total_db_spans_duration = total_span_time(offender_db_spans)
+        pct_db_spans = total_db_spans_duration / total_spans_duration if total_spans_duration else 0
+
+        if total_spans_duration < total_duration_threshold or pct_db_spans < 0.1:
             return None
 
         parent_span = self._find_common_parent_span(offender_spans)

@@ -24,13 +24,12 @@ import type {
 } from 'sentry/views/dashboards/metrics/types';
 import {
   expressionsToWidget,
-  filterEquationsByDisplayType,
-  filterQueriesByDisplayType,
   getMetricEquations,
   getMetricQueries,
   getMetricWidgetTitle,
   useGenerateExpressionId,
 } from 'sentry/views/dashboards/metrics/utils';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {MetricDetails} from 'sentry/views/metrics/widgetDetails';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
@@ -50,6 +49,7 @@ function MetricWidgetViewerModal({
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
+  const [userHasModified, setUserHasModified] = useState(false);
   const [displayType, setDisplayType] = useState(widget.displayType);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
     getMetricQueries(widget, dashboardFilters)
@@ -58,22 +58,14 @@ function MetricWidgetViewerModal({
     getMetricEquations(widget)
   );
 
-  const filteredQueries = useMemo(
-    () => filterQueriesByDisplayType(metricQueries, displayType),
-    [metricQueries, displayType]
-  );
-
   const filteredEquations = useMemo(
-    () =>
-      filterEquationsByDisplayType(metricEquations, displayType).filter(
-        equation => equation.formula !== ''
-      ),
-    [metricEquations, displayType]
+    () => metricEquations.filter(equation => equation.formula !== ''),
+    [metricEquations]
   );
 
   const expressions = useMemo(
-    () => [...filteredQueries, ...filteredEquations],
-    [filteredQueries, filteredEquations]
+    () => [...metricQueries, ...filteredEquations],
+    [metricQueries, filteredEquations]
   );
 
   const generateQueryId = useGenerateExpressionId(metricQueries);
@@ -90,6 +82,7 @@ function MetricWidgetViewerModal({
   const handleTitleChange = useCallback(
     (patch: Partial<MetricWidgetTitleState>) => {
       setTitle(curr => ({...curr, ...patch}));
+      setUserHasModified(true);
     },
     [setTitle]
   );
@@ -101,6 +94,7 @@ function MetricWidgetViewerModal({
         updated[index] = {...updated[index], ...data} as DashboardMetricsQuery;
         return updated;
       });
+      setUserHasModified(true);
     },
     [setMetricQueries]
   );
@@ -112,13 +106,16 @@ function MetricWidgetViewerModal({
         updated[index] = {...updated[index], ...data} as DashboardMetricsEquation;
         return updated;
       });
+      setUserHasModified(true);
     },
     [setMetricEquations]
   );
 
   const handleOrderChange = useCallback(
     ({id, order}: {id: number; order: Order}) => {
-      const queryIdx = filteredQueries.findIndex(query => query.id === id);
+      setUserHasModified(true);
+
+      const queryIdx = metricQueries.findIndex(query => query.id === id);
       if (queryIdx > -1) {
         setMetricQueries(curr => {
           return curr.map((query, i) => {
@@ -139,7 +136,7 @@ function MetricWidgetViewerModal({
         });
       }
     },
-    [filteredEquations, filteredQueries]
+    [filteredEquations, metricQueries]
   );
 
   const addQuery = useCallback(
@@ -147,15 +144,18 @@ function MetricWidgetViewerModal({
       setMetricQueries(curr => {
         const query = metricQueries[queryIndex ?? metricQueries.length - 1];
         return [
-          ...curr,
+          ...(displayType === DisplayType.BIG_NUMBER
+            ? curr.map(q => ({...q, isHidden: true}))
+            : curr),
           {
             ...query,
             id: generateQueryId(),
           },
         ];
       });
+      setUserHasModified(true);
     },
-    [generateQueryId, metricQueries]
+    [displayType, generateQueryId, metricQueries]
   );
 
   const addEquation = useCallback(() => {
@@ -171,7 +171,14 @@ function MetricWidgetViewerModal({
         },
       ];
     });
-  }, [generateEquationId]);
+
+    // Hide all queries when adding an equation to a big number widget
+    if (displayType === DisplayType.BIG_NUMBER) {
+      setMetricQueries(curr => curr.map(q => ({...q, isHidden: true})));
+    }
+
+    setUserHasModified(true);
+  }, [displayType, generateEquationId]);
 
   const removeEquation = useCallback(
     (index: number) => {
@@ -180,8 +187,17 @@ function MetricWidgetViewerModal({
         updated.splice(index, 1);
         return updated;
       });
+
+      // Show the last query when removing an equation from a big number widget
+      if (displayType === DisplayType.BIG_NUMBER) {
+        setMetricQueries(curr =>
+          curr.map((q, idx) => (idx === curr.length - 1 ? {...q, isHidden: false} : q))
+        );
+      }
+
+      setUserHasModified(true);
     },
-    [setMetricEquations]
+    [displayType]
   );
 
   const removeQuery = useCallback(
@@ -189,15 +205,21 @@ function MetricWidgetViewerModal({
       setMetricQueries(curr => {
         const updated = [...curr];
         updated.splice(index, 1);
+        // Make sure the last query is visible for big number widgets
+        if (displayType === DisplayType.BIG_NUMBER && filteredEquations.length === 0) {
+          updated[updated.length - 1].isHidden = false;
+        }
         return updated;
       });
+
+      setUserHasModified(true);
     },
-    [setMetricQueries]
+    [displayType, filteredEquations.length]
   );
 
   const handleSubmit = useCallback(() => {
     const convertedWidget = expressionsToWidget(
-      [...filteredQueries, ...filteredEquations],
+      [...metricQueries, ...filteredEquations],
       title.edited,
       toDisplayType(displayType),
       widget.interval
@@ -206,7 +228,7 @@ function MetricWidgetViewerModal({
 
     closeModal();
   }, [
-    filteredQueries,
+    metricQueries,
     filteredEquations,
     title.edited,
     displayType,
@@ -214,6 +236,22 @@ function MetricWidgetViewerModal({
     closeModal,
     widget,
   ]);
+
+  const handleDisplayTypeChange = useCallback((type: DisplayType) => {
+    setDisplayType(type);
+    setUserHasModified(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (
+      userHasModified &&
+      // eslint-disable-next-line no-alert
+      !window.confirm(t('You have unsaved changes, are you sure you want to close?'))
+    ) {
+      return;
+    }
+    closeModal();
+  }, [userHasModified, closeModal]);
 
   return (
     <Fragment>
@@ -225,10 +263,7 @@ function MetricWidgetViewerModal({
             placeholder={widgetMQL}
             description={widget.description}
           />
-          {/* Added a div with onClick because CloseButton overrides passed onClick handler */}
-          <div onClick={handleSubmit}>
-            <CloseButton />
-          </div>
+          <CloseButton onClick={handleClose} />
         </Header>
         <Body>
           <Queries
@@ -245,7 +280,7 @@ function MetricWidgetViewerModal({
           <MetricVisualization
             expressions={expressions}
             displayType={displayType}
-            onDisplayTypeChange={setDisplayType}
+            onDisplayTypeChange={handleDisplayTypeChange}
             onOrderChange={handleOrderChange}
             interval={widget.interval}
           />

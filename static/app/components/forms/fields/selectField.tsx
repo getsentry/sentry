@@ -99,14 +99,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
   };
 
   render() {
-    const {
-      allowClear,
-      confirm,
-      multiple,
-      disabledReason,
-      hideControlState,
-      ...otherProps
-    } = this.props;
+    const {allowClear, confirm, multiple, hideControlState, ...otherProps} = this.props;
 
     return (
       <FormField {...otherProps} hideControlState flexibleControlStateSize>
@@ -117,6 +110,7 @@ export default class SelectField<OptionType extends SelectValue<any>> extends Co
           required: _required,
           children: _children,
           disabled,
+          disabledReason,
           model,
           name,
           ...props

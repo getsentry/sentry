@@ -26,6 +26,9 @@ if TYPE_CHECKING:
     from sentry.models.user import User
 
 
+logger = logging.getLogger(__name__)
+
+
 class RegisteredFeatureManager:
     """
     Feature functions that are built around the need to register feature
@@ -150,6 +153,7 @@ class FeatureManager(RegisteredFeatureManager):
         name: str,
         cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
+        default: bool = False,
     ) -> None:
         """
         Register a feature.
@@ -158,6 +162,8 @@ class FeatureManager(RegisteredFeatureManager):
         to encapsulate the context associated with a feature.
 
         >>> FeatureManager.has('my:feature', actor=request.user)
+
+        Features that use flagpole will have an option automatically registered.
         """
         entity_feature_strategy = self._shim_feature_strategy(entity_feature_strategy)
 
@@ -172,11 +178,22 @@ class FeatureManager(RegisteredFeatureManager):
                 )
             self.option_features.add(name)
 
-        if entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE:
+        is_external_flag = (
+            entity_feature_strategy == FeatureHandlerStrategy.FLAGPOLE
+            or entity_feature_strategy == FeatureHandlerStrategy.REMOTE
+        )
+
+        # Register all remote and flagpole features with options automator,
+        # so long as they haven't already been registered. This will allow
+        # us to backfill and cut over to Flagpole without interruptions.
+        if is_external_flag and name not in self.flagpole_features:
             self.flagpole_features.add(name)
             # Set a default of {} to ensure the feature evaluates to None when checked
             feature_option_name = f"{FLAGPOLE_OPTION_PREFIX}.{name}"
             register(feature_option_name, type=Dict, default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+        if name not in settings.SENTRY_FEATURES:
+            settings.SENTRY_FEATURES[name] = default
 
         self._feature_registry[name] = cls
 
@@ -276,7 +293,7 @@ class FeatureManager(RegisteredFeatureManager):
 
                 return False
         except Exception:
-            logging.exception("Failed to run feature check")
+            logger.exception("Failed to run feature check")
             return False
 
     def batch_has(

@@ -448,6 +448,41 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasMinifiedStackTrace"] is True
 
+    def test_has_insight_module_flags(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+
+        assert result["hasInsightsHttp"] is False
+        assert result["hasInsightsDb"] is False
+        assert result["hasInsightsAssets"] is False
+        assert result["hasInsightsAppStart"] is False
+        assert result["hasInsightsScreenLoad"] is False
+        assert result["hasInsightsVitals"] is False
+        assert result["hasInsightsCaches"] is False
+        assert result["hasInsightsQueues"] is False
+        assert result["hasInsightsLlmMonitoring"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_http))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_db))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_assets))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_app_start))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_screen_load))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_vitals))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_caches))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_queues))
+        self.project.update(flags=F("flags").bitor(Project.flags.has_insights_llm_monitoring))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasInsightsHttp"] is True
+        assert result["hasInsightsDb"] is True
+        assert result["hasInsightsAssets"] is True
+        assert result["hasInsightsAppStart"] is True
+        assert result["hasInsightsScreenLoad"] is True
+        assert result["hasInsightsVitals"] is True
+        assert result["hasInsightsCaches"] is True
+        assert result["hasInsightsQueues"] is True
+        assert result["hasInsightsLlmMonitoring"] is True
+
     def test_no_environments(self):
         # remove environments and related models
         Deploy.objects.all().delete()
@@ -747,6 +782,15 @@ class DetailedProjectSerializerTest(TestCase):
         self.project.update_option("sentry:replay_rage_click_issues", False)
         result = serialize(self.project, self.user, DetailedProjectSerializer())
         assert result["options"]["sentry:replay_rage_click_issues"] is False
+
+    def test_replay_hydration_error_flag(self):
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        # default should be true
+        assert result["options"]["sentry:replay_hydration_error_issues"] is True
+
+        self.project.update_option("sentry:replay_hydration_error_issues", False)
+        result = serialize(self.project, self.user, DetailedProjectSerializer())
+        assert result["options"]["sentry:replay_hydration_error_issues"] is False
 
 
 class BulkFetchProjectLatestReleases(TestCase):

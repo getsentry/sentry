@@ -7,7 +7,8 @@ from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.http import urlencode
 
-from sentry import features, integrations
+from sentry import features
+from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.user.service import user_service

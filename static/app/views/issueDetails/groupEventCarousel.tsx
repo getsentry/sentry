@@ -21,10 +21,13 @@ import {
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event, Group, Organization} from 'sentry/types';
-import {defined, formatBytesBase2} from 'sentry/utils';
+import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {
   getAnalyticsDataForEvent,
@@ -356,6 +359,7 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 }
 
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
+  const organization = useOrganization();
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -371,6 +375,9 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   });
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const isRelatedIssuesEnabled = organization.features.includes(
+    'related-issues-issue-details-page'
+  );
 
   return (
     <CarouselAndButtonsWrapper>
@@ -420,7 +427,10 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        {issueTypeConfig.traceTimeline ? <TraceLink event={event} /> : null}
+        {/* Once trace-related issues are GA, we will remove this */}
+        {issueTypeConfig.traceTimeline && !isRelatedIssuesEnabled ? (
+          <TraceLink event={event} />
+        ) : null}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
@@ -532,7 +542,7 @@ const StyledIconWarning = styled(IconWarning)`
 
 const EventId = styled('span')`
   position: relative;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeLarge};
   &:hover {
     > span {

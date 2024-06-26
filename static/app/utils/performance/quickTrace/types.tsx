@@ -5,6 +5,7 @@ import type {
   DiscoverQueryProps,
   GenericChildrenProps,
 } from 'sentry/utils/discover/genericDiscoverQuery';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 /**
  * `EventLite` represents the type of a simplified event from
@@ -77,7 +78,8 @@ export type TraceFull = Omit<QuickTraceEvent, 'generation' | 'errors'> & {
  * additional information by setting `detailed=1`.
  */
 export type TraceFullDetailed = Omit<TraceFull, 'children'> & {
-  children: TraceFullDetailed[];
+  children: TraceTree.Transaction[];
+  sdk_name: string;
   start_timestamp: number;
   timestamp: number;
   'transaction.op': string;

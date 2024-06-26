@@ -39,7 +39,7 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
             queryset=queryset,
             order_by="-date_added",
             paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(x, request.user, access=request.access),
         )
 
     def post(self, request: Request, organization) -> Response:
@@ -94,4 +94,4 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
                 organization_id=organization.id, slug=slug, notify=True
             ).run(user=request.user, request=request)
 
-        return Response(serialize(install))
+        return Response(serialize(install, access=request.access))

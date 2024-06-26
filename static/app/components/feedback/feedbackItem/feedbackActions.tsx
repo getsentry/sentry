@@ -2,11 +2,11 @@ import type {CSSProperties} from 'react';
 import {Fragment} from 'react';
 
 import Button from 'sentry/components/actions/button';
+import {Flex} from 'sentry/components/container/flex';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackAssignedTo from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
 import useFeedbackActions from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
-import {Flex} from 'sentry/components/profiling/flex';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';

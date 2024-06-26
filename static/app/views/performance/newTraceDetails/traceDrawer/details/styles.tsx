@@ -9,7 +9,9 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
-import * as KeyValueData from 'sentry/components/keyValueData/card';
+import KeyValueData, {
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -21,7 +23,7 @@ import {space} from 'sentry/styles/space';
 import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import getDuration from 'sentry/utils/duration/getDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import type {ColorOrAlias} from 'sentry/utils/theme';
@@ -91,7 +93,7 @@ const Type = styled('div')`
 
 const TitleOp = styled('div')`
   font-size: 15px;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   ${p => p.theme.overflowEllipsis}
 `;
 
@@ -318,7 +320,7 @@ const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
 };
 
 const DurationContainer = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   margin-right: ${space(1)};
 `;
 
@@ -523,13 +525,15 @@ function SectionCard({
   title,
   disableTruncate,
   sortAlphabetically = false,
+  itemProps = {},
 }: {
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
+  itemProps?: Partial<KeyValueDataContentProps>;
   sortAlphabetically?: boolean;
 }) {
-  const contentItems = items.map(item => ({item}));
+  const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
     <KeyValueData.Card
@@ -542,17 +546,19 @@ function SectionCard({
 }
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueData.Group>{children}</KeyValueData.Group>;
+  return <KeyValueData.Container>{children}</KeyValueData.Container>;
 }
 
 function CopyableCardValueWithLink({
   value,
   linkTarget,
   linkText,
+  onClick,
 }: {
   value: React.ReactNode;
   linkTarget?: LocationDescriptor;
   linkText?: string;
+  onClick?: () => void;
 }) {
   return (
     <CardValueContainer>
@@ -567,7 +573,11 @@ function CopyableCardValueWithLink({
           />
         ) : null}
       </CardValueText>
-      {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
+      {linkTarget && linkTarget ? (
+        <Link to={linkTarget} onClick={onClick}>
+          {linkText}
+        </Link>
+      ) : null}
     </CardValueContainer>
   );
 }

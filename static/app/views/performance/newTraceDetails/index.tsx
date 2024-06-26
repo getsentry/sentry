@@ -1,5 +1,6 @@
 import type React from 'react';
 import {
+  Fragment,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -14,7 +15,6 @@ import * as Sentry from '@sentry/react';
 import * as qs from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
@@ -23,27 +23,23 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
-import type {
-  TraceFullDetailed,
-  TraceMeta,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
-import {
-  type DispatchingReducerMiddleware,
-  useDispatchingReducer,
-} from 'sentry/utils/useDispatchingReducer';
+import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -59,20 +55,31 @@ import {
 import {parseTraceSearch} from 'sentry/views/performance/newTraceDetails/traceSearch/traceTokenConverter';
 import {TraceShortcuts} from 'sentry/views/performance/newTraceDetails/traceShortcutsModal';
 import {
-  loadTraceViewPreferences,
-  storeTraceViewPreferences,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+  TraceStateProvider,
+  useTraceState,
+  useTraceStateDispatch,
+  useTraceStateEmitter,
+} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {useTrace} from './traceApi/useTrace';
-import {useTraceMeta} from './traceApi/useTraceMeta';
+import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
-import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
+import {
+  traceNodeAnalyticsName,
+  TraceTree,
+  type TraceTreeNode,
+} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
+import {
+  DEFAULT_TRACE_VIEW_PREFERENCES,
+  loadTraceViewPreferences,
+} from './traceState/tracePreferences';
 import {isTraceNode} from './guards';
 import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
-import {TraceReducer, type TraceReducerState} from './traceState';
+import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
@@ -89,15 +96,20 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
-function logTraceType(type: TraceType, organization: Organization) {
-  switch (type) {
+function logTraceMetadata(
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization
+) {
+  switch (tree.shape) {
     case TraceType.BROKEN_SUBTRACES:
     case TraceType.EMPTY_TRACE:
     case TraceType.MULTIPLE_ROOTS:
     case TraceType.ONE_ROOT:
     case TraceType.NO_ROOT:
     case TraceType.ONLY_ERRORS:
-      traceAnalytics.trackTraceShape(type, organization);
+    case TraceType.BROWSER_MULTIPLE_ROOTS:
+      traceAnalytics.trackTraceMetadata(tree, projects, organization);
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
@@ -108,8 +120,6 @@ function logTraceType(type: TraceType, organization: Organization) {
 export function TraceView() {
   const params = useParams<{traceSlug?: string}>();
   const organization = useOrganization();
-  const hasNewTagsUI = useHasNewTagsUI();
-
   const traceSlug = useMemo(() => {
     const slug = params.traceSlug?.trim() ?? '';
     // null and undefined are not valid trace slugs, but they can be passed
@@ -122,26 +132,6 @@ export function TraceView() {
     }
     return slug;
   }, [params.traceSlug]);
-
-  useLayoutEffect(() => {
-    if (hasNewTagsUI) {
-      return;
-    }
-
-    // Enables the new trace tags/contexts ui for the trace view
-    const queryString = qs.parse(window.location.search);
-    queryString.traceView = '1';
-    browserHistory.replace({
-      pathname: window.location.pathname,
-      query: queryString,
-    });
-  }, [traceSlug, hasNewTagsUI]);
-
-  useEffect(() => {
-    trackAnalytics('performance_views.trace_view_v1_page_load', {
-      organization,
-    });
-  }, [organization]);
 
   const queryParams = useMemo(() => {
     const normalizedParams = normalizeDateTimeParams(qs.parse(location.search), {
@@ -192,23 +182,51 @@ export function TraceView() {
   }, [queryParams, traceSlug]);
 
   const trace = useTrace();
-  const meta = useTraceMeta();
+  const meta = useTraceMeta([traceSlug]);
+  const rootEvent = useTraceRootEvent(trace.data ?? null);
+
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('trace-view-preferences') ||
+      DEFAULT_TRACE_VIEW_PREFERENCES,
+    []
+  );
 
   return (
     <SentryDocumentTitle
-      title={`${t('Trace')} - ${traceSlug}`}
+      title={`${t('Trace Details')} - ${traceSlug}`}
       orgSlug={organization.slug}
     >
-      <NoProjectMessage organization={organization}>
-        <TraceViewContent
-          status={trace.status}
-          trace={trace.data ?? null}
-          traceSlug={traceSlug}
-          organization={organization}
-          traceEventView={traceEventView}
-          metaResults={meta}
-        />
-      </NoProjectMessage>
+      <TraceStateProvider
+        initialPreferences={preferences}
+        preferencesStorageKey="trace-view-preferences"
+      >
+        <NoProjectMessage organization={organization}>
+          <TraceExternalLayout>
+            <TraceUXChangeAlert />
+            <TraceMetadataHeader
+              organization={organization}
+              projectID={rootEvent?.data?.projectID ?? ''}
+              title={rootEvent?.data?.title ?? ''}
+              traceSlug={traceSlug}
+              traceEventView={traceEventView}
+            />
+            <TraceInnerLayout>
+              <TraceViewWaterfall
+                status={trace.status}
+                trace={trace.data ?? null}
+                traceSlug={traceSlug}
+                organization={organization}
+                traceEventView={traceEventView}
+                metaResults={meta}
+                rootEvent={rootEvent}
+                replayRecord={null}
+                source="performance"
+              />
+            </TraceInnerLayout>
+          </TraceExternalLayout>
+        </NoProjectMessage>
+      </TraceStateProvider>
     </SentryDocumentTitle>
   );
 }
@@ -223,28 +241,39 @@ const VITALS_TAB: TraceReducerState['tabs']['tabs'][0] = {
   label: t('Vitals'),
 };
 
-const STATIC_DRAWER_TABS: TraceReducerState['tabs']['tabs'] = [TRACE_TAB];
-
-type TraceViewContentProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
+type TraceViewWaterfallProps = {
+  metaResults: TraceMetaQueryResults;
   organization: Organization;
+  replayRecord: ReplayRecord | null;
+  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
+  source: string;
   status: UseApiQueryResult<any, any>['status'];
-  trace: TraceSplitResults<TraceFullDetailed> | null;
+  trace: TraceSplitResults<TraceTree.Transaction> | null;
   traceEventView: EventView;
   traceSlug: string;
 };
 
-function TraceViewContent(props: TraceViewContentProps) {
+export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const api = useApi();
-  const organization = props.organization;
   const {projects} = useProjects();
-  const rootEvent = useTraceRootEvent(props.trace);
+  const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
+
+  const traceState = useTraceState();
+  const traceDispatch = useTraceStateDispatch();
+  const traceStateEmitter = useTraceStateEmitter();
 
   const forceRerender = useCallback(() => {
     flushSync(rerender);
   }, []);
+
+  useEffect(() => {
+    trackAnalytics('performance_views.trace_view_v1_page_load', {
+      organization: props.organization,
+      source: props.source,
+    });
+  }, [props.organization, props.source]);
 
   const initializedRef = useRef(false);
   const scrollQueueRef = useRef<
@@ -307,50 +336,11 @@ function TraceViewContent(props: TraceViewContentProps) {
     }
 
     if (props.trace) {
-      return TraceTree.FromTrace(props.trace);
+      return TraceTree.FromTrace(props.trace, props.replayRecord);
     }
 
     throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects]);
-
-  const initialQuery = useMemo((): string | undefined => {
-    const query = qs.parse(location.search);
-
-    if (typeof query.search === 'string') {
-      return query.search;
-    }
-    return undefined;
-    // We only want to decode on load
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const preferences = useMemo(() => loadTraceViewPreferences(), []);
-
-  const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
-    TraceReducer,
-    {
-      rovingTabIndex: {
-        index: null,
-        items: null,
-        node: null,
-      },
-      search: {
-        node: null,
-        query: initialQuery,
-        resultIteratorIndex: null,
-        resultIndex: null,
-        results: null,
-        status: undefined,
-        resultsLookup: new Map(),
-      },
-      preferences,
-      tabs: {
-        tabs: STATIC_DRAWER_TABS,
-        current_tab: STATIC_DRAWER_TABS[0] ?? null,
-        last_clicked_tab: null,
-      },
-    }
-  );
+  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -540,6 +530,14 @@ function TraceViewContent(props: TraceViewContentProps) {
       event: React.MouseEvent<HTMLElement>,
       index: number
     ) => {
+      trackAnalytics('trace.trace_layout.span_row_click', {
+        organization,
+        num_children: node.children.length,
+        type: traceNodeAnalyticsName(node),
+        project_platform:
+          projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
+      });
+
       if (traceStateRef.current.preferences.drawer.minimized) {
         traceDispatch({type: 'minimize drawer', payload: false});
       }
@@ -563,7 +561,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         node,
       });
     },
-    [setRowAsFocused, traceDispatch]
+    [setRowAsFocused, traceDispatch, organization, projects]
   );
 
   const scrollRowIntoView = useCallback(
@@ -612,7 +610,7 @@ function TraceViewContent(props: TraceViewContentProps) {
       // visible and may not have been collapsed/hidden by the user
       TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
-        organization,
+        organization: props.organization,
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
@@ -647,7 +645,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     },
     [
       api,
-      organization,
+      props.organization,
       setRowAsFocused,
       scrollRowIntoView,
       tree,
@@ -662,7 +660,7 @@ function TraceViewContent(props: TraceViewContentProps) {
     (node: TraceTreeNode<TraceTree.NodeValue>) => {
       TraceTree.ExpandToPath(tree, node.path, forceRerender, {
         api,
-        organization,
+        organization: props.organization,
       }).then(maybeNode => {
         if (maybeNode) {
           previouslyFocusedNodeRef.current = null;
@@ -688,7 +686,7 @@ function TraceViewContent(props: TraceViewContentProps) {
         }
       });
     },
-    [api, organization, scrollRowIntoView, tree, traceDispatch, forceRerender]
+    [api, props.organization, scrollRowIntoView, tree, traceDispatch, forceRerender]
   );
 
   // Callback that is invoked when the trace loads and reaches its initialied state,
@@ -823,9 +821,6 @@ function TraceViewContent(props: TraceViewContentProps) {
   }, [traceState.search.query]);
 
   useTraceQueryParamStateSync(traceQueryStateSync);
-  useLayoutEffect(() => {
-    storeTraceViewPreferences(traceState.preferences);
-  }, [traceState.preferences]);
 
   const [traceGridRef, setTraceGridRef] = useState<HTMLElement | null>(null);
 
@@ -837,8 +832,8 @@ function TraceViewContent(props: TraceViewContentProps) {
       return;
     }
 
-    logTraceType(shape, organization);
-  }, [tree, shape, organization]);
+    logTraceMetadata(tree, projects, props.organization);
+  }, [tree, projects, props.organization]);
 
   useLayoutEffect(() => {
     if (!tree.root?.space || tree.type !== 'trace') {
@@ -860,67 +855,54 @@ function TraceViewContent(props: TraceViewContentProps) {
   }, [viewManager, tree]);
 
   return (
-    <TraceExternalLayout>
-      <TraceUXChangeAlert />
-      <TraceMetadataHeader
-        organization={props.organization}
-        projectID={rootEvent?.data?.projectID ?? ''}
-        title={rootEvent?.data?.title ?? ''}
-        traceSlug={props.traceSlug}
-        traceEventView={props.traceEventView}
-      />
-      <TraceInnerLayout>
-        <TraceToolbar>
-          <TraceSearchInput
-            trace_state={traceState}
-            trace_dispatch={traceDispatch}
-            onTraceSearch={onTraceSearch}
-          />
-          <TraceResetZoomButton viewManager={viewManager} organization={organization} />
-          <TraceShortcuts />
-        </TraceToolbar>
-        <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
-          <Trace
-            trace={tree}
-            rerender={forceRerender}
-            trace_id={props.traceSlug}
-            trace_state={traceState}
-            trace_dispatch={traceDispatch}
-            scrollQueueRef={scrollQueueRef}
-            initializedRef={initializedRef}
-            onRowClick={onRowClick}
-            onTraceLoad={onTraceLoad}
-            onTraceSearch={onTraceSearch}
-            previouslyFocusedNodeRef={previouslyFocusedNodeRef}
-            manager={viewManager}
-            forceRerender={forceRender}
-          />
+    <Fragment>
+      <TraceToolbar>
+        <TraceSearchInput onTraceSearch={onTraceSearch} organization={organization} />
+        <TraceResetZoomButton
+          viewManager={viewManager}
+          organization={props.organization}
+        />
+        <TraceShortcuts />
+      </TraceToolbar>
+      <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
+        <Trace
+          trace={tree}
+          rerender={rerender}
+          trace_id={props.traceSlug}
+          scrollQueueRef={scrollQueueRef}
+          initializedRef={initializedRef}
+          onRowClick={onRowClick}
+          onTraceLoad={onTraceLoad}
+          onTraceSearch={onTraceSearch}
+          previouslyFocusedNodeRef={previouslyFocusedNodeRef}
+          manager={viewManager}
+          forceRerender={forceRender}
+        />
 
-          {tree.type === 'error' ? (
-            <TraceError />
-          ) : tree.type === 'empty' ? (
-            <TraceEmpty />
-          ) : tree.type === 'loading' || scrollQueueRef.current ? (
-            <TraceLoading />
-          ) : null}
+        {tree.type === 'error' ? (
+          <TraceError />
+        ) : tree.type === 'empty' ? (
+          <TraceEmpty />
+        ) : tree.type === 'loading' ||
+          (scrollQueueRef.current && tree.type !== 'trace') ? (
+          <TraceLoading />
+        ) : null}
 
-          <TraceDrawer
-            metaResults={props.metaResults}
-            traceType={shape}
-            trace={tree}
-            traceGridRef={traceGridRef}
-            traces={props.trace}
-            manager={viewManager}
-            trace_state={traceState}
-            trace_dispatch={traceDispatch}
-            onTabScrollToNode={onTabScrollToNode}
-            onScrollToNode={onScrollToNode}
-            rootEventResults={rootEvent}
-            traceEventView={props.traceEventView}
-          />
-        </TraceGrid>
-      </TraceInnerLayout>
-    </TraceExternalLayout>
+        <TraceDrawer
+          replayRecord={props.replayRecord}
+          metaResults={props.metaResults}
+          traceType={shape}
+          trace={tree}
+          traceGridRef={traceGridRef}
+          traces={props.trace}
+          manager={viewManager}
+          onTabScrollToNode={onTabScrollToNode}
+          onScrollToNode={onScrollToNode}
+          rootEventResults={props.rootEvent}
+          traceEventView={props.traceEventView}
+        />
+      </TraceGrid>
+    </Fragment>
   );
 }
 
@@ -992,7 +974,7 @@ const TraceToolbar = styled('div')`
 const TraceGrid = styled('div')<{
   layout: 'drawer bottom' | 'drawer left' | 'drawer right';
 }>`
-  box-shadow: 0 0 0 1px ${p => p.theme.border};
+  border: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   display: grid;
   border-radius: ${p => p.theme.borderRadius};

@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuItemProps} from 'sentry/components/dropdownMenu';
@@ -7,10 +7,10 @@ import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidg
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import ConfigureReplayCard from 'sentry/components/replays/configureReplayCard';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
 import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
-import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplayMetaData from 'sentry/components/replays/header/replayMetaData';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import TimeSince from 'sentry/components/timeSince';
@@ -28,6 +28,7 @@ type Props = {
   projectSlug: string | null;
   replayErrors: ReplayError[];
   replayRecord: undefined | ReplayRecord;
+  isLoading?: boolean;
   isVideoReplay?: boolean;
 };
 
@@ -38,6 +39,7 @@ export default function Page({
   projectSlug,
   replayErrors,
   isVideoReplay,
+  isLoading,
 }: Props) {
   const title = replayRecord
     ? `${replayRecord.user.display_name ?? t('Anonymous User')} — Session Replay — ${orgSlug}`
@@ -73,15 +75,30 @@ export default function Page({
 
   const header = replayRecord?.is_archived ? (
     <Header>
-      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+      <DetailsPageBreadcrumbs
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        isVideoReplay={isVideoReplay}
+      />
     </Header>
   ) : (
     <Header>
-      <DetailsPageBreadcrumbs orgSlug={orgSlug} replayRecord={replayRecord} />
+      <DetailsPageBreadcrumbs
+        orgSlug={orgSlug}
+        replayRecord={replayRecord}
+        isVideoReplay={isVideoReplay}
+      />
 
       <ButtonActionsWrapper>
-        {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
-        <ConfigureReplayCard />
+        {isLoading ? (
+          <Placeholder height="33px" width="203px" />
+        ) : (
+          <Fragment>
+            {isVideoReplay ? <FeedbackWidgetButton /> : <FeedbackButton />}
+            {isVideoReplay ? null : <ConfigureReplayCard />}
+          </Fragment>
+        )}
+
         <DropdownMenu
           position="bottom-end"
           triggerProps={{
@@ -121,13 +138,14 @@ export default function Page({
           hideEmail
         />
       ) : (
-        <HeaderPlaceholder width="30%" height="45px" />
+        <Placeholder width="30%" height="45px" />
       )}
 
       <ReplayMetaData
         replayRecord={replayRecord}
         replayErrors={replayErrors}
         showDeadRageClicks={!isVideoReplay}
+        isLoading={isLoading}
       />
     </Header>
   );

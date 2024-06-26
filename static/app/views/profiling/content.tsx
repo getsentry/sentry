@@ -188,6 +188,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <SmartSearchBar
                     organization={organization}
                     hasRecentSearches
+                    projectIds={projects.map(p => parseInt(p.id, 10))}
                     searchSource="profile_landing"
                     supportedTags={profileFilters}
                     query={query}
@@ -197,40 +198,43 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                // If user is on m2, show default
-                <ProfilingOnboardingPanel
-                  content={
-                    <ProfilingAM1OrMMXUpgrade
-                      organization={organization}
-                      fallback={
-                        <Fragment>
-                          <h3>{t('Function level insights')}</h3>
-                          <p>
-                            {t(
-                              'Discover slow-to-execute or resource intensive functions within your application'
-                            )}
-                          </p>
-                        </Fragment>
-                      }
-                    />
-                  }
-                >
-                  <ProfilingUpgradeButton
-                    organization={organization}
-                    priority="primary"
-                    onClick={onSetupProfilingClick}
-                    fallback={
-                      <Button onClick={onSetupProfilingClick} priority="primary">
-                        {t('Set Up Profiling')}
-                      </Button>
+                <Fragment>
+                  <ProfilingOnboardingPanel
+                    content={
+                      // If user is on m2, show default
+                      <ProfilingAM1OrMMXUpgrade
+                        organization={organization}
+                        fallback={
+                          <Fragment>
+                            <h3>{t('Function level insights')}</h3>
+                            <p>
+                              {t(
+                                'Discover slow-to-execute or resource intensive functions within your application'
+                              )}
+                            </p>
+                          </Fragment>
+                        }
+                      />
                     }
                   >
-                    {t('Set Up Profiling')}
-                  </ProfilingUpgradeButton>
-                  <Button href="https://docs.sentry.io/product/profiling/" external>
-                    {t('Read Docs')}
-                  </Button>
-                </ProfilingOnboardingPanel>
+                    <ProfilingUpgradeButton
+                      data-test-id="profiling-upgrade"
+                      organization={organization}
+                      priority="primary"
+                      onClick={onSetupProfilingClick}
+                      fallback={
+                        <Button onClick={onSetupProfilingClick} priority="primary">
+                          {t('Set Up Profiling')}
+                        </Button>
+                      }
+                    >
+                      {t('Set Up Profiling')}
+                    </ProfilingUpgradeButton>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                </Fragment>
               ) : (
                 <Fragment>
                   {organization.features.includes(

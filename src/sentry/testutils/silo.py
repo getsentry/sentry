@@ -24,7 +24,7 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.silo.safety import match_fence_query
 from sentry.testutils.region import get_test_env_directory, override_regions
 from sentry.types.region import Region, RegionCategory
-from sentry.utils.snowflake import SnowflakeIdMixin
+from sentry.utils.snowflake import uses_snowflake_id
 
 if typing.TYPE_CHECKING:
     from sentry.db.models.base import BaseModel, ModelSiloLimit
@@ -601,7 +601,7 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 
 def validate_hcfk_has_global_id(model: type[Model], related_model: type[Model]):
     # HybridCloudForeignKey can point to region models if they have snowflake ids
-    if issubclass(related_model, SnowflakeIdMixin):
+    if uses_snowflake_id(related_model):
         return
 
     # but they cannot point to region models otherwise.

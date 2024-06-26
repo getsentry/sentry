@@ -15,7 +15,7 @@ class TestGetDescription(BaseTestCase):
         template, _, metadata = notification.get_description()
 
         assert template == "{author} created <{link}|a {provider} issue {ticket}>"
-        assert metadata["provider"] == provider
+        assert metadata["provider"] == "GitHub"  # This is how Github is officially spelled
         assert metadata["ticket"] == label
         assert metadata["link"] == location
 
@@ -58,5 +58,24 @@ class TestGetDescription(BaseTestCase):
 
         assert template == "{author} created a {provider} issue {ticket}"
         assert metadata["provider"] == provider
+        assert metadata["ticket"] == label
+        assert metadata["link"] == location
+
+    def test_linked_issue(self) -> None:
+        provider = "Github"
+        label = "ABC-123"
+        location = "www.example.com"
+        self.activity.data = {
+            "provider": provider,
+            "label": label,
+            "location": location,
+            "new": False,
+        }
+
+        notification = ExternalIssueCreatedActivityNotification(self.activity)
+        template, _, metadata = notification.get_description()
+
+        assert template == "{author} linked <{link}|a {provider} issue {ticket}>"
+        assert metadata["provider"] == "GitHub"  # This is how Github is officially spelled
         assert metadata["ticket"] == label
         assert metadata["link"] == location

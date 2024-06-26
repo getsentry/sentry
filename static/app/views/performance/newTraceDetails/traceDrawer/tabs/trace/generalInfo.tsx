@@ -2,6 +2,7 @@ import {Fragment, useMemo} from 'react';
 
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tn} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
@@ -11,21 +12,21 @@ import {getShortEventId} from 'sentry/utils/events';
 import type {
   TraceErrorOrIssue,
   TraceFullDetailed,
-  TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {SpanTimeRenderer} from 'sentry/views/performance/traces/fieldRenderers';
+import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
 
 import {isTraceNode} from '../../../guards';
+import type {TraceMetaQueryResults} from '../../../traceApi/useTraceMeta';
 import type {TraceTree, TraceTreeNode} from '../../../traceModels/traceTree';
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details/styles';
 
 type GeneralInfoProps = {
-  metaResults: UseApiQueryResult<TraceMeta | null, any>;
+  metaResults: TraceMetaQueryResults;
   node: TraceTreeNode<TraceTree.NodeValue> | null;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
@@ -35,6 +36,7 @@ type GeneralInfoProps = {
 
 export function GeneralInfo(props: GeneralInfoProps) {
   const params = useParams<{traceSlug?: string}>();
+  const {replay} = useReplayContext();
 
   const traceNode = props.tree.root.children[0];
 
@@ -44,7 +46,6 @@ export function GeneralInfo(props: GeneralInfoProps) {
     }
 
     const unique: TraceErrorOrIssue[] = [];
-
     const seenIssues: Set<number> = new Set();
 
     for (const issue of traceNode.errors) {
@@ -124,12 +125,18 @@ export function GeneralInfo(props: GeneralInfoProps) {
   const replay_id = props.rootEventResults?.data?.contexts?.replay?.replay_id;
   const browser = props.rootEventResults?.data?.contexts?.browser;
 
-  const items: SectionCardKeyValueList = [
-    {
+  const items: SectionCardKeyValueList = [];
+
+  // Hide trace_id inside replays because a replay could be connected to multiple traces.
+  if (!replay) {
+    items.push({
       key: 'trace_id',
       subject: t('Trace ID'),
       value: <TraceDrawerComponents.CopyableCardValueWithLink value={traceSlug} />,
-    },
+    });
+  }
+
+  items.push(
     {
       key: 'events',
       subject: t('Events'),
@@ -201,10 +208,11 @@ export function GeneralInfo(props: GeneralInfoProps) {
       key: 'browser',
       subject: t('Browser'),
       value: browser ? browser.name + ' ' + browser.version : '\u2014',
-    },
-  ];
+    }
+  );
 
-  if (replay_id) {
+  // Hide replay preview if we are already in a replay page.
+  if (replay_id && !replay) {
     items.push({
       key: 'replay_id',
       subject: t('Replay ID'),

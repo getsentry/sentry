@@ -136,6 +136,12 @@ register(
     key="sentry:replay_rage_click_issues",
     default=True,
 )
+
+register(
+    key="sentry:replay_hydration_error_issues",
+    default=True,
+)
+
 register(
     key="sentry:feedback_user_report_notifications",
     epoch_defaults={12: True},

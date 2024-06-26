@@ -94,7 +94,11 @@ function SentryAppExternalInstallationContent({params, ...props}: Props) {
       try {
         const [org, installations]: [Organization, SentryAppInstallation[]] =
           await Promise.all([
-            api.requestPromise(`/organizations/${orgSlug}/`),
+            api.requestPromise(`/organizations/${orgSlug}/`, {
+              query: {
+                include_feature_flags: 1,
+              },
+            }),
             api.requestPromise(`/organizations/${orgSlug}/sentry-app-installations/`),
           ]);
         const installed = installations

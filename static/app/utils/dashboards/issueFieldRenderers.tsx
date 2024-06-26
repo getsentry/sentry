@@ -275,7 +275,7 @@ const WrappedCount = styled(({value, ...p}) => (
   </div>
 ))`
   text-align: right;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-variant-numeric: tabular-nums;
   padding-left: ${space(2)};
   color: ${p => p.theme.subText};

@@ -173,7 +173,7 @@ class ReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
         )
-        response = self.client.get(url, {"project": self.project1.id, "sort": "invalid_sort"})
+        response = self.client.get(url, {"project": str(self.project1.id), "sort": "invalid_sort"})
         assert response.status_code == 400
 
     def test_get_prev_and_next_release_to_current_release_on_date_sort(self):
@@ -329,7 +329,7 @@ class ReleaseDetailsTest(APITestCase):
                 "version": release_3.version,
             },
         )
-        response = self.client.get(url, {"project": self.project1.id, "environment": ["prod"]})
+        response = self.client.get(url, {"project": str(self.project1.id), "environment": ["prod"]})
         assert response.status_code == 200
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.0"
@@ -384,7 +384,7 @@ class ReleaseDetailsTest(APITestCase):
                 "version": release_3.version,
             },
         )
-        response = self.client.get(url, {"project": self.project1.id, "status": "archived"})
+        response = self.client.get(url, {"project": str(self.project1.id), "status": "archived"})
         assert response.status_code == 200
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
@@ -421,7 +421,7 @@ class ReleaseDetailsTest(APITestCase):
                 "version": release_2.version,
             },
         )
-        response = self.client.get(url, {"project": self.project1.id, "query": "foobar@1"})
+        response = self.client.get(url, {"project": str(self.project1.id), "query": "foobar@1"})
         assert response.status_code == 200
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@1.0.0"
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] is None
@@ -461,7 +461,9 @@ class ReleaseDetailsTest(APITestCase):
                 "version": release_1.version,
             },
         )
-        response = self.client.get(url, {"project": self.project1.id, "summaryStatsPeriod": "24h"})
+        response = self.client.get(
+            url, {"project": str(self.project1.id), "summaryStatsPeriod": "24h"}
+        )
         assert response.status_code == 200
         assert response.data["currentProjectMeta"]["nextReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["prevReleaseVersion"] == "foobar@3.0.0"
@@ -581,7 +583,7 @@ class ReleaseDetailsTest(APITestCase):
                 "version": release_3.version,
             },
         )
-        response = self.client.get(url, {"project": self.project1.id, "environment": ["prod"]})
+        response = self.client.get(url, {"project": str(self.project1.id), "environment": ["prod"]})
         assert response.status_code == 200
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] == "foobar@2.0.0"
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] == "foobar@3.0.0"
@@ -607,7 +609,7 @@ class ReleaseDetailsTest(APITestCase):
                 "version": release_1.version,
             },
         )
-        response = self.client.get(url, {"project": self.project1.id, "sort": "sessions"})
+        response = self.client.get(url, {"project": str(self.project1.id), "sort": "sessions"})
         assert response.status_code == 400
         assert response.data["detail"] == "invalid sort"
 
@@ -632,7 +634,7 @@ class ReleaseDetailsTest(APITestCase):
             "sentry-api-0-organization-release-details",
             kwargs={"organization_id_or_slug": self.organization.slug, "version": release.version},
         )
-        response = self.client.get(url, {"project": self.project1.id, "environment": ["test"]})
+        response = self.client.get(url, {"project": str(self.project1.id), "environment": ["test"]})
         assert response.status_code == 200
         assert response.data["currentProjectMeta"]["firstReleaseVersion"] is None
         assert response.data["currentProjectMeta"]["lastReleaseVersion"] is None

@@ -7,6 +7,8 @@ from abc import abstractmethod
 from datetime import datetime
 from typing import Any
 
+from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.integration.model import (
     RpcIntegrationExternalProject,
@@ -14,8 +16,6 @@ from sentry.services.hybrid_cloud.integration.model import (
     RpcOrganizationContext,
     RpcOrganizationContextList,
 )
-from sentry.services.hybrid_cloud.pagination import RpcPaginationArgs, RpcPaginationResult
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 
 
@@ -129,37 +129,6 @@ class IntegrationService(RpcService):
             integration_id=integration_id, organization_id=organization_id, limit=1
         )
         return ois[0] if len(ois) > 0 else None
-
-    @rpc_method
-    @abstractmethod
-    def get_organization_context(
-        self,
-        *,
-        organization_id: int,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, RpcOrganizationIntegration | None]:
-        """
-        Returns a tuple of RpcIntegration and RpcOrganizationIntegration. The integration is selected
-        by either integration_id, or a combination of provider and external_id.
-
-        :deprecated: Use organization_context() instead.
-        """
-
-    @rpc_method
-    @abstractmethod
-    def get_organization_contexts(
-        self,
-        *,
-        organization_id: int | None = None,
-        integration_id: int | None = None,
-        provider: str | None = None,
-        external_id: str | None = None,
-    ) -> tuple[RpcIntegration | None, list[RpcOrganizationIntegration]]:
-        """
-        :deprecated: Use organization_contexts() instead.
-        """
 
     @rpc_method
     @abstractmethod

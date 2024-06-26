@@ -3,7 +3,7 @@ from __future__ import annotations
 import datetime
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from typing import Any, TypedDict, Union
+from typing import Any, NotRequired, TypedDict, Union
 
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
@@ -12,6 +12,7 @@ from django.db.models import Sum
 from sentry import release_health, tagstore
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.deploy import Deploy
@@ -19,6 +20,7 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.releases.release_project import ReleaseProject
+from sentry.release_health.base import ReleaseHealthOverview
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils import metrics
@@ -290,6 +292,17 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, A
     return results
 
 
+class _ProjectDict(TypedDict):
+    id: int
+    slug: str | None
+    name: str
+    new_groups: int | None
+    platform: str | None
+    platforms: list[str]
+    health_data: NotRequired[ReleaseHealthOverview | None]
+    has_health_data: NotRequired[bool]
+
+
 @register(Release)
 class ReleaseSerializer(Serializer):
     def __get_project_id_list(self, item_list):
@@ -490,7 +503,7 @@ class ReleaseSerializer(Serializer):
             has_health_data = {}
 
         for pr in project_releases:
-            pr_rv = {
+            pr_rv: _ProjectDict = {
                 "id": pr["project__id"],
                 "slug": pr["project__slug"],
                 "name": pr["project__name"],
@@ -546,8 +559,8 @@ class ReleaseSerializer(Serializer):
             result[item] = p
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
-        d = {
+    def serialize(self, obj, attrs, user, **kwargs) -> ReleaseSerializerResponse:
+        d: ReleaseSerializerResponse = {
             "id": obj.id,
             "version": obj.version,
             "status": ReleaseStatus.to_string(obj.status),

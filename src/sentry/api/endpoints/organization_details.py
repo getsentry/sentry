@@ -36,11 +36,14 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
     METRIC_ALERTS_THREAD_DEFAULT,
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -190,6 +193,19 @@ ORG_OPTIONS = (
         bool,
         METRIC_ALERTS_THREAD_DEFAULT,
     ),
+    (
+        "metricsActivatePercentiles",
+        "sentry:metrics_activate_percentiles",
+        bool,
+        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+    ),
+    (
+        "metricsActivateLastForGauges",
+        "sentry:metrics_activate_last_for_gauges",
+        bool,
+        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    ),
+    ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -238,6 +254,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubPRBot = serializers.BooleanField(required=False)
     issueAlertsThreadFlag = serializers.BooleanField(required=False)
     metricAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricsActivatePercentiles = serializers.BooleanField(required=False)
+    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -246,6 +264,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -574,8 +593,12 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string detailed: Specify '0' to retrieve details without projects and teams.
+        :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+
         serializer = org_serializers.OrganizationSerializer
 
         if request.access.has_scope("org:read") or is_active_staff(request):
@@ -585,7 +608,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             if is_detailed:
                 serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
 
-        context = serialize(organization, request.user, serializer(), access=request.access)
+        context = serialize(
+            organization,
+            request.user,
+            serializer(),
+            access=request.access,
+            include_feature_flags=include_feature_flags,
+        )
 
         return self.respond(context)
 
@@ -602,9 +631,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         :param string name: an optional new name for the organization.
         :param string slug: an optional new slug for the organization.  Needs
                             to be available and unique.
+        :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
         from sentry import features
+
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
         # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
@@ -672,6 +705,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 request.user,
                 org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
                 access=request.access,
+                include_feature_flags=include_feature_flags,
             )
 
             return self.respond(context)

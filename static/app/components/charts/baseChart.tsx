@@ -686,7 +686,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     ${p.theme.overflowEllipsis};
   }
   .tooltip-label strong {
-    font-weight: normal;
+    font-weight: ${p.theme.fontWeightNormal};
     color: ${p.theme.textColor};
   }
   .tooltip-label-value {
@@ -746,7 +746,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: bold;
+    font-weight: ${p.theme.fontWeightBold};
     font-size: ${p.theme.fontSizeSmall};
     line-height: 1.4;
     font-family: ${p.theme.text.family};

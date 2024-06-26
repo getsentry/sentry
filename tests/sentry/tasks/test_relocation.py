@@ -46,9 +46,9 @@ from sentry.tasks.relocation import (
     ERR_PREPROCESSING_DECRYPTION,
     ERR_PREPROCESSING_INTERNAL,
     ERR_PREPROCESSING_INVALID_JSON,
+    ERR_PREPROCESSING_INVALID_ORG_SLUG,
     ERR_PREPROCESSING_INVALID_TARBALL,
     ERR_PREPROCESSING_MISSING_ORGS,
-    ERR_PREPROCESSING_NO_ORGS,
     ERR_PREPROCESSING_NO_USERS,
     ERR_PREPROCESSING_TOO_MANY_ORGS,
     ERR_PREPROCESSING_TOO_MANY_USERS,
@@ -534,7 +534,7 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_NO_USERS
 
-    @patch("sentry.tasks.relocation.MAX_USERS_PER_RELOCATION", 0)
+    @patch("sentry.tasks.relocation.MAX_USERS_PER_RELOCATION", 1)
     def test_fail_too_many_users(
         self,
         preprocessing_transfer_mock: Mock,
@@ -583,7 +583,9 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
-        assert relocation.failure_reason == ERR_PREPROCESSING_NO_ORGS
+        assert relocation.failure_reason == ERR_PREPROCESSING_MISSING_ORGS.substitute(
+            orgs="testing"
+        )
 
     @patch("sentry.tasks.relocation.MAX_ORGS_PER_RELOCATION", 0)
     def test_fail_too_many_orgs(
@@ -638,6 +640,36 @@ class PreprocessingScanTest(RelocationTaskTestCase):
         assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
         assert relocation.failure_reason == ERR_PREPROCESSING_MISSING_ORGS.substitute(
             orgs=",".join(orgs)
+        )
+
+    def test_fail_invalid_org_slug(
+        self,
+        preprocessing_transfer_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        orgs = ["$$##"]
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        relocation.want_org_slugs = orgs
+        relocation.save()
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        preprocessing_scan(self.uuid)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+
+        assert preprocessing_transfer_mock.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
+        assert relocation.failure_reason == ERR_PREPROCESSING_INVALID_ORG_SLUG.substitute(
+            slug="$$##"
         )
 
 
@@ -1903,14 +1935,11 @@ class NotifyingUsersTest(RelocationTaskTestCase):
             ).inserted_identifiers.values()
         )
         assert len(self.imported_orgs) == 1
-        assert (
-            len(
-                ControlImportChunkReplica.objects.get(
-                    import_uuid=self.uuid, model="sentry.user"
-                ).inserted_map
-            )
-            == 2
-        )
+
+        self.imported_users = ControlImportChunkReplica.objects.get(
+            import_uuid=self.uuid, model="sentry.user"
+        ).inserted_map
+        assert len(self.imported_users) == 2
 
     def test_success(
         self,
@@ -1932,6 +1961,38 @@ class NotifyingUsersTest(RelocationTaskTestCase):
             assert sorted(mock_relocation_email.call_args_list[1][0][2]) == self.imported_orgs
             assert "admin@example.com" in email_targets
             assert "member@example.com" in email_targets
+
+            assert fake_message_builder.call_count == 0
+            assert notifying_owner_mock.call_count == 1
+
+            relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+            assert relocation.latest_unclaimed_emails_sent_at is not None
+
+    def test_success_ignore_manually_claimed_users(
+        self,
+        notifying_owner_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            admin: User = User.objects.get(id=self.imported_users["1"], email="admin@example.com")
+            admin.is_unclaimed = False
+            admin.save()
+
+        self.mock_message_builder(fake_message_builder)
+
+        with patch.object(LostPasswordHash, "send_relocate_account_email") as mock_relocation_email:
+            notifying_users(self.uuid)
+
+            # Called once for each user imported that has not been manually claimed. Since we
+            # imported 2 users in `fresh-install.json`, but then manually claimed one at the top of
+            # this test, only one user remains.
+            assert mock_relocation_email.call_count == 1
+            email_targets = [
+                mock_relocation_email.call_args_list[0][0][0].username,
+            ]
+            assert sorted(mock_relocation_email.call_args_list[0][0][2]) == self.imported_orgs
+            assert "member@example.com" in email_targets
+            assert "admin@example.com" not in email_targets
 
             assert fake_message_builder.call_count == 0
             assert notifying_owner_mock.call_count == 1

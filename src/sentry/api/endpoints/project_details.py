@@ -124,6 +124,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "highlightContext",
         "highlightTags",
+        "extrapolateMetrics",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -209,6 +210,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -662,13 +664,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
-        if features.has("organizations:event-tags-tree-ui", project.organization):
-            if result.get("highlightContext") is not None:
-                if project.update_option("sentry:highlight_context", result["highlightContext"]):
-                    changed_proj_settings["sentry:highlight_context"] = result["highlightContext"]
-            if result.get("highlightTags") is not None:
-                if project.update_option("sentry:highlight_tags", result["highlightTags"]):
-                    changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
+        if result.get("highlightContext") is not None:
+            if project.update_option("sentry:highlight_context", result["highlightContext"]):
+                changed_proj_settings["sentry:highlight_context"] = result["highlightContext"]
+        if result.get("highlightTags") is not None:
+            if project.update_option("sentry:highlight_tags", result["highlightTags"]):
+                changed_proj_settings["sentry:highlight_tags"] = result["highlightTags"]
         if result.get("storeCrashReports") is not None:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
@@ -742,6 +743,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
                 ]
+
+        if "extrapolateMetrics" in result:
+            if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
+                changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
 
         if has_elevated_scopes:
             options = result.get("options", {})
@@ -819,6 +824,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:replay_rage_click_issues",
                     bool(options["sentry:replay_rage_click_issues"]),
                 )
+            if "sentry:replay_hydration_error_issues" in options:
+                project.update_option(
+                    "sentry:replay_hydration_error_issues",
+                    bool(options["sentry:replay_hydration_error_issues"]),
+                )
             if "sentry:feedback_user_report_notifications" in options:
                 project.update_option(
                     "sentry:feedback_user_report_notifications",
@@ -882,6 +892,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 if len(changed_proj_settings) == 1:
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
+
+            if "sentry:extrapolate_metrics" in options:
+                project.update_option(
+                    "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
+                )
 
         self.create_audit_entry(
             request=request,

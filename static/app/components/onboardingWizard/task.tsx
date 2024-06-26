@@ -191,7 +191,7 @@ const IncompleteTitle = styled('div')`
   grid-template-columns: max-content 1fr;
   gap: ${space(1)};
   align-items: center;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const CompleteTitle = styled(IncompleteTitle)`
@@ -230,7 +230,7 @@ const InProgressIndicator = styled(({user, ...props}: InProgressIndicatorProps) 
   </div>
 ))`
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.pink400};
   display: grid;
   grid-template-columns: max-content max-content;
@@ -278,7 +278,7 @@ const completedItemAnimation = {
 const DateCompleted = styled(motion.div)`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 300;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 DateCompleted.defaultProps = {

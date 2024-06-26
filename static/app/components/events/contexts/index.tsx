@@ -1,14 +1,10 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {useCallback, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
 import ContextDataSection from 'sentry/components/events/contexts/contextDataSection';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import type {Event, EventContexts as EventContextValues} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {objectIsEmpty} from 'sentry/utils';
 import useProjects from 'sentry/utils/useProjects';
-
-import {Chunk} from './chunk';
 
 type Props = {
   event: Event;
@@ -73,17 +69,11 @@ export function getOrderedContextItems(event): ContextItem[] {
 }
 
 export function EventContexts({event, group}: Props) {
-  const hasNewTagsUI = useHasNewTagsUI();
   const {projects} = useProjects();
   const project = projects.find(p => p.id === event.projectID);
-  const {user, contexts, sdk} = event;
+  const {contexts, sdk} = event;
 
-  const {feedback, response, ...otherContexts} = contexts ?? {};
-
-  const usingOtel = useCallback(
-    () => otherContexts.otel !== undefined,
-    [otherContexts.otel]
-  );
+  const usingOtel = useCallback(() => contexts.otel !== undefined, [contexts.otel]);
 
   useEffect(() => {
     const span = Sentry.getActiveSpan();
@@ -95,52 +85,5 @@ export function EventContexts({event, group}: Props) {
     }
   }, [usingOtel, sdk]);
 
-  if (hasNewTagsUI) {
-    return <ContextDataSection event={event} group={group} project={project} />;
-  }
-
-  return (
-    <Fragment>
-      {!objectIsEmpty(response) && (
-        <Chunk
-          key="response"
-          type="response"
-          alias="response"
-          group={group}
-          event={event}
-          value={response}
-        />
-      )}
-      {!objectIsEmpty(feedback) && (
-        <Chunk
-          key="feedback"
-          type="feedback"
-          alias="feedback"
-          group={group}
-          event={event}
-          value={feedback}
-        />
-      )}
-      {user && !objectIsEmpty(user) && (
-        <Chunk
-          key="user"
-          type="user"
-          alias="user"
-          group={group}
-          event={event}
-          value={user}
-        />
-      )}
-      {Object.entries(otherContexts).map(([key, value]) => (
-        <Chunk
-          key={key}
-          type={value?.type ?? ''}
-          alias={key}
-          group={group}
-          event={event}
-          value={value}
-        />
-      ))}
-    </Fragment>
-  );
+  return <ContextDataSection event={event} group={group} project={project} />;
 }

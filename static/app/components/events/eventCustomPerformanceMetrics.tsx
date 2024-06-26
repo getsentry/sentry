@@ -332,6 +332,7 @@ const StyledPanel = styled(Panel)`
 `;
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`
+  display: block;
   margin-left: auto;
 `;
 

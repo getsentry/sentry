@@ -47,7 +47,7 @@ class SentryAppInstallationExternalIssuesEndpointTest(APITestCase):
             self.url, data=data, HTTP_AUTHORIZATION=f"Bearer {self.api_token.token}"
         )
 
-        external_issue = PlatformExternalIssue.objects.first()
+        external_issue = PlatformExternalIssue.objects.get()
 
         assert response.status_code == 200
         assert response.data == {

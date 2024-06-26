@@ -25,7 +25,6 @@ import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -175,7 +174,6 @@ function MonitorForm({
       mapFormErrors: mapMonitorFormErrors,
     })
   );
-  const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -227,8 +225,6 @@ function MonitorForm({
     },
     ...envOptions,
   ];
-
-  const hasIssuePlatform = organization.features.includes('issue-platform');
 
   return (
     <Form
@@ -431,38 +427,36 @@ function MonitorForm({
             </PanelBody>
           </Panel>
         </InputGroup>
-        {hasIssuePlatform && (
-          <Fragment>
-            <StyledListItem>{t('Set thresholds')}</StyledListItem>
-            <ListItemSubText>
-              {t('Configure when an issue is created or resolved.')}
-            </ListItemSubText>
-            <InputGroup>
-              <Panel>
-                <PanelBody>
-                  <NumberField
-                    name="config.failureIssueThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
-                    )}
-                    label={t('Failure Tolerance')}
-                  />
-                  <NumberField
-                    name="config.recoveryThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
-                    )}
-                    label={t('Recovery Tolerance')}
-                  />
-                </PanelBody>
-              </Panel>
-            </InputGroup>
-          </Fragment>
-        )}
+        <Fragment>
+          <StyledListItem>{t('Set thresholds')}</StyledListItem>
+          <ListItemSubText>
+            {t('Configure when an issue is created or resolved.')}
+          </ListItemSubText>
+          <InputGroup>
+            <Panel>
+              <PanelBody>
+                <NumberField
+                  name="config.failureIssueThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Create a new issue when this many consecutive missed or error check-ins are processed.'
+                  )}
+                  label={t('Failure Tolerance')}
+                />
+                <NumberField
+                  name="config.recoveryThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                  )}
+                  label={t('Recovery Tolerance')}
+                />
+              </PanelBody>
+            </Panel>
+          </InputGroup>
+        </Fragment>
         <StyledListItem>{t('Set Owner')}</StyledListItem>
         <ListItemSubText>
           {t(
@@ -572,12 +566,12 @@ const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
 
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.3;
 `;
 
 const LabelText = styled(Text)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 
@@ -603,7 +597,7 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;

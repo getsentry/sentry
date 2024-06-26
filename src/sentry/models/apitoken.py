@@ -51,7 +51,7 @@ class NotSupported(Exception):
     pass
 
 
-class ApiTokenManager(ControlOutboxProducingManager):
+class ApiTokenManager(ControlOutboxProducingManager["ApiToken"]):
     def create(self, *args, **kwargs):
         token_type: AuthTokenType | None = kwargs.get("token_type", None)
 

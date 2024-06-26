@@ -100,13 +100,17 @@ class EventPerformanceProblem:
     @classmethod
     def fetch_multi(
         cls, items: Sequence[tuple[Event, str]]
-    ) -> Sequence[EventPerformanceProblem | None]:
+    ) -> list[EventPerformanceProblem | None]:
         ids = [cls.build_identifier(event.event_id, problem_hash) for event, problem_hash in items]
         results = nodestore.backend.get_multi(ids)
-        return [
-            cls(event, PerformanceProblem.from_dict(results[_id])) if results.get(_id) else None
-            for _id, (event, _) in zip(ids, items)
-        ]
+        ret: list[EventPerformanceProblem | None] = []
+        for _id, (event, _) in zip(ids, items):
+            result = results.get(_id)
+            if result:
+                ret.append(cls(event, PerformanceProblem.from_dict(result)))
+            else:
+                ret.append(None)
+        return ret
 
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
@@ -279,7 +283,7 @@ def get_detection_settings(project_id: int | None = None) -> dict[DetectorType, 
             "detection_enabled": settings["n_plus_one_api_calls_detection_enabled"],
         },
         DetectorType.M_N_PLUS_ONE_DB: {
-            "total_duration_threshold": 100.0,  # ms
+            "total_duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
             "detection_enabled": settings["n_plus_one_db_queries_detection_enabled"],

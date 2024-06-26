@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,

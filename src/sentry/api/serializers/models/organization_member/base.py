@@ -50,7 +50,7 @@ class OrganizationMemberSerializer(Serializer):
             }
         )
         inviters_by_id: Mapping[int, RpcUser] = {
-            u.id: u for u in user_service.get_many(filter={"user_ids": inviters_set})
+            u.id: u for u in user_service.get_many_by_id(ids=inviters_set)
         }
 
         external_users_map = defaultdict(list)
@@ -69,12 +69,15 @@ class OrganizationMemberSerializer(Serializer):
 
         attrs: MutableMapping[OrganizationMember, MutableMapping[str, Any]] = {}
         for item in item_list:
-            user = users_by_id.get(str(item.user_id), None)
-            user_id = user["id"] if user else ""
-            inviter = inviters_by_id.get(item.inviter_id, None)
+            user_dct = users_by_id.get(str(item.user_id), None)
+            user_id = user_dct["id"] if user_dct else ""
+            if item.inviter_id is not None:
+                inviter = inviters_by_id.get(item.inviter_id, None)
+            else:
+                inviter = None
             external_users = external_users_map.get(user_id, [])
             attrs[item] = {
-                "user": user,
+                "user": user_dct,
                 "externalUsers": external_users,
                 "inviter": inviter,
                 "email": email_map.get(user_id, item.email),

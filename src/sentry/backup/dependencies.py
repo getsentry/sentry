@@ -7,13 +7,48 @@ from functools import lru_cache
 from typing import NamedTuple
 
 from django.db import models
-from django.db.models import UniqueConstraint
+from django.db.models import Q, UniqueConstraint
 from django.db.models.fields.related import ForeignKey, OneToOneField
 
 from sentry.backup.helpers import EXCLUDED_APPS
 from sentry.backup.scopes import RelocationScope
 from sentry.silo.base import SiloMode
 from sentry.utils import json
+
+# We have to be careful when removing fields from our model schemas, since exports created using
+# the old-but-still-in-the-support-window versions could have those fields set in the data they
+# provide. This dict serves as a map of all fields that have been deleted on HEAD but are still
+# valid in at least one of the versions we support. For example, since our current version
+# support window is two minor versions back, if we delete a field at version 24.5.N, we must
+# include an entry in this map for that field until that version is out of the support window
+# (in this case, we can remove shim once version 24.7.0 is released).
+#
+# NOTE TO FUTURE EDITORS: please keep the `DELETED_FIELDS` dict, and the subsequent `if` clause,
+# around even if the dict is empty, to ensure that there is a ready place to pop shims into. For
+# each entry in this dict, please leave a TODO comment pointed to a github issue for removing
+# the shim, noting in the comment which self-hosted release will trigger the removal.
+DELETED_FIELDS: dict[str, set[str]] = {
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.team": {"actor"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.rule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.alertrule": {"owner"},
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.grouphistory": {"actor"},
+}
+
+# When models are removed from the application, they will continue to be in exports
+# from previous releases. Models in this list are elided from data as imports are processed.
+#
+# NOTE TO FUTURE EDITORS: please keep the `DELETED_MODELS` set, and the subsequent `if` clause,
+# around even if the set is empty, to ensure that there is a ready place to pop shims into. For
+# each entry in this set, please leave a TODO comment pointed to a github issue for removing
+# the shim, noting in the comment which self-hosted release will trigger the removal.
+DELETED_MODELS = {
+    # TODO(mark): Safe to remove after july 2024 after self-hosted 24.6.0 is released
+    "sentry.actor"
+}
 
 
 class NormalizedModelName:
@@ -666,3 +701,28 @@ def get_exportable_sentry_models() -> set[type[models.base.Model]]:
             get_final_derivations_of(BaseModel),
         )
     )
+
+
+def merge_users_for_model_in_org(
+    model: type[models.base.Model], *, organization_id: int, from_user_id: int, to_user_id: int
+) -> None:
+    """
+    All instances of this model in a certain organization that reference both the organization and
+    user in question will be pointed at the new user instead.
+    """
+
+    from sentry.models.organization import Organization
+    from sentry.models.user import User
+
+    model_relations = dependencies()[get_model_name(model)]
+    user_refs = {k for k, v in model_relations.foreign_keys.items() if v.model == User}
+    org_refs = {
+        k if k.endswith("_id") else f"{k}_id"
+        for k, v in model_relations.foreign_keys.items()
+        if v.model == Organization
+    }
+    for_this_org = Q(**{field_name: organization_id for field_name in org_refs})
+    for user_ref in user_refs:
+        q = for_this_org & Q(**{user_ref: from_user_id})
+        obj = model.objects.filter(q)
+        obj.update(**{user_ref: to_user_id})

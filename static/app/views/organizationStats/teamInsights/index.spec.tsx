@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -14,12 +13,10 @@ describe('TeamInsightsContainer', () => {
 
   it('blocks access if org is missing flag', () => {
     const organization = OrganizationFixture();
-    const context = RouterContextFixture([{organization}]);
     render(
       <TeamInsightsContainer organization={organization}>
         <div>test</div>
-      </TeamInsightsContainer>,
-      {context}
+      </TeamInsightsContainer>
     );
 
     expect(screen.queryByText('test')).not.toBeInTheDocument();
@@ -27,12 +24,10 @@ describe('TeamInsightsContainer', () => {
   it('allows access for orgs with flag', () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
     const organization = OrganizationFixture({features: ['team-insights']});
-    const context = RouterContextFixture([{organization}]);
     render(
       <TeamInsightsContainer organization={organization}>
         <div>test</div>
-      </TeamInsightsContainer>,
-      {context}
+      </TeamInsightsContainer>
     );
 
     expect(screen.getByText('test')).toBeInTheDocument();
@@ -40,8 +35,7 @@ describe('TeamInsightsContainer', () => {
   it('shows message for users with no teams', () => {
     ProjectsStore.loadInitialData([]);
     const organization = OrganizationFixture({features: ['team-insights']});
-    const context = RouterContextFixture([{organization}]);
-    render(<TeamInsightsContainer organization={organization} />, {context});
+    render(<TeamInsightsContainer organization={organization} />);
 
     expect(
       screen.getByText('You need at least one project to use this view')

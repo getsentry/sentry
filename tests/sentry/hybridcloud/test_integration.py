@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.types import ExternalProviders
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.services.hybrid_cloud.integration import (
@@ -20,7 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.types.integrations import ExternalProviders
 
 
 class BaseIntegrationServiceTest(TestCase):

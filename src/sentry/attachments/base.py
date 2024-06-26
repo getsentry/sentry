@@ -51,6 +51,7 @@ class CachedAttachment:
         self._data = data
         self.chunks = chunks
         self._cache = cache
+        self._has_initial_data = data is not UNINITIALIZED_DATA
 
     @classmethod
     def from_upload(cls, file, **kwargs):
@@ -74,6 +75,9 @@ class CachedAttachment:
     def chunk_keys(self):
         assert self.key is not None
         assert self.id is not None
+
+        if self._has_initial_data:
+            return
 
         if self.chunks is None:
             yield ATTACHMENT_UNCHUNKED_DATA_KEY.format(key=self.key, id=self.id)

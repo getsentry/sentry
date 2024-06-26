@@ -146,7 +146,6 @@ function RelatedTransactions({
             ) as any,
             renderBodyCell: renderBodyCellWithData(tableData) as any,
           }}
-          location={location}
         />
       )}
     </DiscoverQuery>

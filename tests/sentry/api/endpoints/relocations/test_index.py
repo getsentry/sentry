@@ -124,12 +124,12 @@ class GetRelocationsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
-        assert response.data[0]["creatorId"] == str(self.superuser.id)
-        assert response.data[0]["creatorEmail"] == str(self.superuser.email)
-        assert response.data[0]["creatorUsername"] == str(self.superuser.username)
-        assert response.data[0]["ownerId"] == str(self.owner.id)
-        assert response.data[0]["ownerEmail"] == str(self.owner.email)
-        assert response.data[0]["ownerUsername"] == str(self.owner.username)
+        assert response.data[0]["creator"]["id"] == str(self.superuser.id)
+        assert response.data[0]["creator"]["email"] == str(self.superuser.email)
+        assert response.data[0]["creator"]["username"] == str(self.superuser.username)
+        assert response.data[0]["owner"]["id"] == str(self.owner.id)
+        assert response.data[0]["owner"]["email"] == str(self.owner.email)
+        assert response.data[0]["owner"]["username"] == str(self.owner.username)
 
     def test_good_status_pause(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -328,12 +328,12 @@ class PostRelocationsTest(APITestCase):
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
         assert response.data["scheduledPauseAtStep"] is None
-        assert response.data["creatorId"] == str(self.owner.id)
-        assert response.data["creatorEmail"] == str(self.owner.email)
-        assert response.data["creatorUsername"] == str(self.owner.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.owner.id)
+        assert response.data["creator"]["email"] == str(self.owner.email)
+        assert response.data["creator"]["username"] == str(self.owner.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -346,8 +346,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -391,12 +391,12 @@ class PostRelocationsTest(APITestCase):
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
         assert response.data["scheduledPauseAtStep"] is None
-        assert response.data["creatorId"] == str(self.owner.id)
-        assert response.data["creatorEmail"] == str(self.owner.email)
-        assert response.data["creatorUsername"] == str(self.owner.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.owner.id)
+        assert response.data["creator"]["email"] == str(self.owner.email)
+        assert response.data["creator"]["username"] == str(self.owner.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -409,8 +409,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -463,8 +463,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -516,8 +516,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -561,12 +561,12 @@ class PostRelocationsTest(APITestCase):
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
-        assert response.data["creatorId"] == str(self.staff_user.id)
-        assert response.data["creatorEmail"] == str(self.staff_user.email)
-        assert response.data["creatorUsername"] == str(self.staff_user.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.staff_user.id)
+        assert response.data["creator"]["email"] == str(self.staff_user.email)
+        assert response.data["creator"]["username"] == str(self.staff_user.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -579,8 +579,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -622,12 +622,12 @@ class PostRelocationsTest(APITestCase):
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
-        assert response.data["creatorId"] == str(self.superuser.id)
-        assert response.data["creatorEmail"] == str(self.superuser.email)
-        assert response.data["creatorUsername"] == str(self.superuser.username)
-        assert response.data["ownerId"] == str(self.owner.id)
-        assert response.data["ownerEmail"] == str(self.owner.email)
-        assert response.data["ownerUsername"] == str(self.owner.username)
+        assert response.data["creator"]["id"] == str(self.superuser.id)
+        assert response.data["creator"]["email"] == str(self.superuser.email)
+        assert response.data["creator"]["username"] == str(self.superuser.username)
+        assert response.data["owner"]["id"] == str(self.owner.id)
+        assert response.data["owner"]["email"] == str(self.owner.email)
+        assert response.data["owner"]["username"] == str(self.owner.username)
 
         relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
@@ -640,8 +640,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -755,8 +755,8 @@ class PostRelocationsTest(APITestCase):
             assert analytics_record_mock.call_count == 1
             analytics_record_mock.assert_called_with(
                 "relocation.created",
-                creator_id=int(response.data["creatorId"]),
-                owner_id=int(response.data["ownerId"]),
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
                 uuid=response.data["uuid"],
             )
 
@@ -862,8 +862,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(response.data["creatorId"]),
-            owner_id=int(response.data["ownerId"]),
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
             uuid=response.data["uuid"],
         )
 
@@ -1139,8 +1139,8 @@ class PostRelocationsTest(APITestCase):
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
-            creator_id=int(initial_response.data["creatorId"]),
-            owner_id=int(initial_response.data["ownerId"]),
+            creator_id=int(initial_response.data["creator"]["id"]),
+            owner_id=int(initial_response.data["owner"]["id"]),
             uuid=initial_response.data["uuid"],
         )
 
@@ -1207,14 +1207,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]
@@ -1290,14 +1290,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]
@@ -1380,14 +1380,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]
@@ -1468,14 +1468,14 @@ class PostRelocationsTest(APITestCase):
             [
                 call(
                     "relocation.created",
-                    creator_id=int(initial_response.data["creatorId"]),
-                    owner_id=int(initial_response.data["ownerId"]),
+                    creator_id=int(initial_response.data["creator"]["id"]),
+                    owner_id=int(initial_response.data["owner"]["id"]),
                     uuid=initial_response.data["uuid"],
                 ),
                 call(
                     "relocation.created",
-                    creator_id=int(unthrottled_response.data["creatorId"]),
-                    owner_id=int(unthrottled_response.data["ownerId"]),
+                    creator_id=int(unthrottled_response.data["creator"]["id"]),
+                    owner_id=int(unthrottled_response.data["owner"]["id"]),
                     uuid=unthrottled_response.data["uuid"],
                 ),
             ]

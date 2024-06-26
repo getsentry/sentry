@@ -78,7 +78,9 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
-  const hasAggregateWaterfall = organization.features.includes('spans-first-ui');
+  const hasAggregateWaterfall = organization.features.includes(
+    'insights-initial-modules'
+  );
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {

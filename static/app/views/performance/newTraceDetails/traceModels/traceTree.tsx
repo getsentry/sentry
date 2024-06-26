@@ -10,7 +10,7 @@ import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
-  TracePerformanceIssue,
+  TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -22,7 +22,9 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {getStylingSliceName} from '../../../traces/utils';
 import {isRootTransaction} from '../../traceDetails/utils';
 import {
   isAutogroupedNode,
@@ -90,7 +92,7 @@ import {TraceType} from '../traceType';
  *      |- other span
  *
  * When the autogrouped node is expanded the UI needs to show the entire collapsed chain, so we swap the tail children to point
- * back to the tail, and have autogrouped node point to it's head as the children.
+ * back to the tail, and have autogrouped node point to its head as the children.
  *
  * - root                                                             - root
  *  - trace                                                            - trace
@@ -112,7 +114,9 @@ import {TraceType} from '../traceType';
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
-  type Transaction = TraceFullDetailed;
+  interface Transaction extends TraceFullDetailed {
+    sdk_name: string;
+  }
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
     event: EventTransaction;
@@ -120,6 +124,7 @@ export declare namespace TraceTree {
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+  type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string; space: [number, number]};
 
   interface MissingInstrumentationSpan {
@@ -201,6 +206,12 @@ function fetchTransactionSpans(
   );
 }
 
+function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean {
+  return /javascript|angular|astro|backbone|ember|gatsby|nextjs|react|remix|svelte|vue/.test(
+    transaction.sdk_name
+  );
+}
+
 function measurementToTimestamp(
   start_timestamp: number,
   measurement: number,
@@ -254,12 +265,18 @@ export function makeTraceNodeBarColor(
   node: TraceTreeNode<TraceTree.NodeValue>
 ): string {
   if (isTransactionNode(node)) {
-    return pickBarColor(node.value['transaction.op']);
+    return pickBarColor(
+      getStylingSliceName(node.value.project_slug, node.value.sdk_name) ??
+        node.value['transaction.op']
+    );
   }
   if (isSpanNode(node)) {
     return pickBarColor(node.value.op);
   }
   if (isAutogroupedNode(node)) {
+    if (node.errors.size > 0) {
+      return theme.red300;
+    }
     return theme.blue300;
   }
   if (isMissingInstrumentationNode(node)) {
@@ -431,7 +448,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, replayRecord: ReplayRecord | null): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -446,7 +463,7 @@ export class TraceTree {
 
     function visit(
       parent: TraceTreeNode<TraceTree.NodeValue | null>,
-      value: TraceFullDetailed | TraceTree.TraceError
+      value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
         project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
@@ -554,6 +571,18 @@ export class TraceTree {
       }
     }
 
+    // The sum of all durations of traces that exist under a replay is not always
+    // equal to the duration of the replay. We need to adjust the traceview bounds
+    // to ensure that we can see the max of the replay duration and the sum(trace durations). This way, we
+    // can ensure that the replay timestamp indicators are always visible in the traceview along with all spans from the traces.
+    if (replayRecord) {
+      const replayStart = replayRecord.started_at.getTime() / 1000;
+      const replayEnd = replayRecord.finished_at.getTime() / 1000;
+
+      traceStart = Math.min(traceStart, replayStart);
+      traceEnd = Math.max(traceEnd, replayEnd);
+    }
+
     traceNode.space = [
       traceStart * traceNode.multiplier,
       (traceEnd - traceStart) * traceNode.multiplier,
@@ -578,20 +607,28 @@ export class TraceTree {
     }
 
     const {transactions, orphan_errors} = trace.value;
-    const {roots, orphans} = (transactions ?? []).reduce(
-      (counts, transaction) => {
+    const traceStats = transactions?.reduce<{
+      javascriptRootTransactions: TraceTree.Transaction[];
+      orphans: number;
+      roots: number;
+    }>(
+      (stats, transaction) => {
         if (isRootTransaction(transaction)) {
-          counts.roots++;
-        } else {
-          counts.orphans++;
-        }
-        return counts;
-      },
-      {roots: 0, orphans: 0}
-    );
+          stats.roots++;
 
-    if (roots === 0) {
-      if (orphans > 0) {
+          if (isJavascriptSDKTransaction(transaction)) {
+            stats.javascriptRootTransactions.push(transaction);
+          }
+        } else {
+          stats.orphans++;
+        }
+        return stats;
+      },
+      {roots: 0, orphans: 0, javascriptRootTransactions: []}
+    ) ?? {roots: 0, orphans: 0, javascriptRootTransactions: []};
+
+    if (traceStats.roots === 0) {
+      if (traceStats.orphans > 0) {
         return TraceType.NO_ROOT;
       }
 
@@ -602,15 +639,19 @@ export class TraceTree {
       return TraceType.EMPTY_TRACE;
     }
 
-    if (roots === 1) {
-      if (orphans > 0) {
+    if (traceStats.roots === 1) {
+      if (traceStats.orphans > 0) {
         return TraceType.BROKEN_SUBTRACES;
       }
 
       return TraceType.ONE_ROOT;
     }
 
-    if (roots > 1) {
+    if (traceStats.roots > 1) {
+      if (traceStats.javascriptRootTransactions.length > 0) {
+        return TraceType.BROWSER_MULTIPLE_ROOTS;
+      }
+
       return TraceType.MULTIPLE_ROOTS;
     }
 
@@ -795,7 +836,7 @@ export class TraceTree {
       let groupMatchCount = 0;
 
       const errors: TraceErrorType[] = [];
-      const performance_issues: TracePerformanceIssue[] = [];
+      const performance_issues: TraceTree.TracePerformanceIssue[] = [];
 
       let start = head.value.start_timestamp;
       let end = head.value.timestamp;
@@ -1484,7 +1525,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   };
 
   errors: Set<TraceErrorType> = new Set<TraceErrorType>();
-  performance_issues: Set<TracePerformanceIssue> = new Set<TracePerformanceIssue>();
+  performance_issues: Set<TraceTree.TracePerformanceIssue> =
+    new Set<TraceTree.TracePerformanceIssue>();
   profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
@@ -2220,7 +2262,7 @@ function getRelatedSpanErrorsFromTransaction(
 function getRelatedPerformanceIssuesFromTransaction(
   span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
-): TracePerformanceIssue[] {
+): TraceTree.TracePerformanceIssue[] {
   if (!node || !node.value || !isTransactionNode(node)) {
     return [];
   }
@@ -2229,7 +2271,7 @@ function getRelatedPerformanceIssuesFromTransaction(
     return [];
   }
 
-  const performanceIssues: TracePerformanceIssue[] = [];
+  const performanceIssues: TraceTree.TracePerformanceIssue[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
     for (const s of perfIssue.span) {
@@ -2387,6 +2429,20 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   return 'unknown node';
 }
 
+export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>): string {
+  if (isAutogroupedNode(node)) {
+    return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
+  }
+  if (isSpanNode(node)) return 'span';
+  if (isTransactionNode(node)) return 'transaction';
+  if (isMissingInstrumentationNode(node)) return 'missing instrumentation';
+  if (isRootNode(node)) return 'root';
+  if (isTraceNode(node)) return 'trace';
+  if (isNoDataNode(node)) return 'no data';
+  if (isTraceErrorNode(node)) return 'error';
+  return 'unknown';
+}
+
 // Creates an example trace response that we use to render the loading placeholder
 function partialTransaction(
   partial: Partial<TraceTree.Transaction>
@@ -2400,6 +2456,7 @@ function partialTransaction(
     span_id: '',
     parent_event_id: '',
     project_id: 0,
+    sdk_name: '',
     'transaction.duration': 0,
     'transaction.op': 'loading-transaction',
     'transaction.status': 'loading-status',
@@ -2466,7 +2523,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace);
+  const tree = TraceTree.FromTrace(trace, null);
 
   return tree;
 }

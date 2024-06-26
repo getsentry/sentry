@@ -1,4 +1,4 @@
-import {formatSecondsToClock} from 'sentry/utils/formatters';
+import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import type {ReplayFrame, SpanFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;

@@ -12,7 +12,7 @@ import Context, {getLineCoverage} from './context';
 
 describe('Frame - Context', function () {
   const org = OrganizationFixture();
-  const project = ProjectFixture({});
+  const project = ProjectFixture();
   const event = EventFixture({projectID: project.id});
   const frame = {filename: '/sentry/app.py', lineNo: 233} as Frame;
 

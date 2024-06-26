@@ -83,24 +83,8 @@ class MockAccess:
 @region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
-        response = self.get_success_response(self.organization.slug)
-
-        assert response.data["slug"] == self.organization.slug
-        assert response.data["links"] == {
-            "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": generate_region_url(),
-        }
-        assert response.data["id"] == str(self.organization.id)
-        assert response.data["role"] == "owner"
-        assert response.data["orgRole"] == "owner"
-        assert len(response.data["teams"]) == 0
-        assert len(response.data["projects"]) == 0
-        assert "customer-domains" not in response.data["features"]
-
-    def test_simple_customer_domain(self):
-        HTTP_HOST = f"{self.organization.slug}.testserver"
         response = self.get_success_response(
-            self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+            self.organization.slug, qs_params={"include_feature_flags": 1}
         )
 
         assert response.data["slug"] == self.organization.slug
@@ -113,14 +97,42 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" in response.data["features"]
 
-        with self.feature({"organizations:customer-domains": False}):
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
+
+    def test_simple_customer_domain(self):
+        HTTP_HOST = f"{self.organization.slug}.testserver"
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers={"HTTP_HOST": HTTP_HOST},
+            qs_params={"include_feature_flags": 1},
+        )
+
+        assert response.data["slug"] == self.organization.slug
+        assert response.data["links"] == {
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
+            "regionUrl": generate_region_url(),
+        }
+        assert response.data["id"] == str(self.organization.id)
+        assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
+        assert len(response.data["teams"]) == 0
+        assert len(response.data["projects"]) == 0
+
+        with self.feature({"system:multi-region": False}):
             HTTP_HOST = f"{self.organization.slug}.testserver"
             response = self.get_success_response(
-                self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+                self.organization.slug,
+                extra_headers={"HTTP_HOST": HTTP_HOST},
+                qs_params={"include_feature_flags": 1},
             )
-            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
@@ -344,6 +356,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert org.name == "hello world"
         assert org.slug == "foobar"
 
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
+
     def test_dupe_slug(self):
         org = self.create_organization(owner=self.user, slug="duplicate")
 
@@ -428,6 +449,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "genAIConsent": True,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
+            "metricsActivatePercentiles": True,
+            "metricsActivateLastForGauges": True,
+            "extrapolateMetrics": True,
         }
 
         # needed to set require2FA
@@ -461,6 +485,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:metrics_activate_percentiles") is True
+        assert options.get("sentry:metrics_activate_last_for_gauges") is True
+        assert options.get("sentry:extrapolate_metrics") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -493,6 +520,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
         assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
         assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
+        assert (
+            "to {}".format(data["metricsActivatePercentiles"])
+            in log.data["metricsActivatePercentiles"]
+        )
+        assert (
+            "to {}".format(data["metricsActivateLastForGauges"])
+            in log.data["metricsActivateLastForGauges"]
+        )
+        assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
 
     @responses.activate
     @patch(

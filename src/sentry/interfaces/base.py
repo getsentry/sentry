@@ -45,7 +45,7 @@ def get_interfaces(event: Mapping[str, Any]) -> dict[str, Interface]:
         except ValueError:
             continue
 
-        value = safe_execute(cls.to_python, data, datapath=[key], _with_transaction=False)
+        value = safe_execute(cls.to_python, data, datapath=[key])
         if not value:
             continue
 

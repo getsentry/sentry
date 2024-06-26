@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Callable, Mapping
 from typing import Any
 
@@ -7,6 +8,7 @@ from django.db.models import Q, QuerySet
 
 from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
+from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.mediators import alert_rule_actions
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
@@ -22,6 +24,7 @@ from sentry.services.hybrid_cloud.app import (
     RpcAlertRuleActionResult,
     RpcSentryApp,
     RpcSentryAppComponent,
+    RpcSentryAppComponentContext,
     RpcSentryAppEventData,
     RpcSentryAppInstallation,
     RpcSentryAppService,
@@ -33,10 +36,6 @@ from sentry.services.hybrid_cloud.app.serial import (
     serialize_sentry_app_installation,
 )
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import (
-    FilterQueryDatabaseImpl,
-    OpaqueSerializedResponse,
-)
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
@@ -72,18 +71,6 @@ class DatabaseBackedAppService(AppService):
         try:
             install = SentryAppInstallation.objects.select_related("sentry_app").get(
                 id=id, status=SentryAppInstallationStatus.INSTALLED
-            )
-            return serialize_sentry_app_installation(install)
-        except SentryAppInstallation.DoesNotExist:
-            return None
-
-    def get_installation(
-        self, *, sentry_app_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        try:
-            install = SentryAppInstallation.objects.get(
-                organization_id=organization_id,
-                sentry_app_id=sentry_app_id,
             )
             return serialize_sentry_app_installation(install)
         except SentryAppInstallation.DoesNotExist:
@@ -145,23 +132,29 @@ class DatabaseBackedAppService(AppService):
 
         return action_list
 
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: list[int],
-        sentry_app_ids: list[int],
-        type: str,
-        group_by: str = "sentry_app_id",
-    ) -> Mapping[str, Any]:
-        return {
-            str(k): v
-            for k, v in SentryAppInstallation.objects.get_related_sentry_app_components(
-                organization_ids=organization_ids,
-                sentry_app_ids=sentry_app_ids,
-                type=type,
-                group_by=group_by,
-            ).items()
-        }
+    def get_component_contexts(
+        self, *, filter: SentryAppInstallationFilterArgs, component_type: str
+    ) -> list[RpcSentryAppComponentContext]:
+        install_query = self._FQ.query_many(filter=filter)
+        install_query = install_query.select_related("sentry_app", "sentry_app__application")
+        install_map: dict[int, list[SentryAppInstallation]] = defaultdict(list)
+        for install in install_query:
+            install_map[install.sentry_app_id].append(install)
+        component_query = SentryAppComponent.objects.filter(
+            type=component_type, sentry_app_id__in=list(install_map.keys())
+        )
+        output = []
+        for component in component_query:
+            installs = install_map[component.sentry_app_id]
+            for install in installs:
+                context_item = RpcSentryAppComponentContext(
+                    installation=serialize_sentry_app_installation(
+                        installation=install, app=install.sentry_app
+                    ),
+                    component=serialize_sentry_app_component(component),
+                )
+                output.append(context_item)
+        return output
 
     class _AppServiceFilterQuery(
         FilterQueryDatabaseImpl[
@@ -170,7 +163,7 @@ class DatabaseBackedAppService(AppService):
     ):
         def base_query(self, select_related: bool = True) -> QuerySet[SentryAppInstallation]:
             if not select_related:
-                return SentryAppInstallation.objects
+                return SentryAppInstallation.objects.all()
             return SentryAppInstallation.objects.select_related("sentry_app")
 
         def filter_arg_validator(

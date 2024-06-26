@@ -39,7 +39,7 @@ const Wrapper = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Header = styled('div')`

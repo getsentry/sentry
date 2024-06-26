@@ -38,5 +38,5 @@ export default function ReleaseFeedbackBanner() {
 
 const Blue = styled('span')`
   color: ${p => p.theme.blue400};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

@@ -1,9 +1,9 @@
 import {
   createContext,
-  memo,
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
 } from 'react';
@@ -32,6 +32,40 @@ type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
+
+type ReplayPlayerTimestampChangeEvent = {
+  currentHoverTime: number | undefined;
+  currentTime: number;
+};
+type ReplayPlayerListener = (arg: ReplayPlayerTimestampChangeEvent) => void;
+
+class ReplayPlayerTimestampEmitter {
+  private listeners: {[key: string]: Set<ReplayPlayerListener>} = {};
+
+  on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
+    if (!this.listeners[event]) {
+      this.listeners[event] = new Set();
+    }
+    this.listeners[event].add(handler);
+  }
+
+  emit(event: 'replay timestamp change', arg: ReplayPlayerTimestampChangeEvent): void {
+    const handlers = this.listeners[event] || [];
+    handlers.forEach(handler => handler(arg));
+  }
+
+  off(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
+    const handlers = this.listeners[event];
+
+    if (!handlers) {
+      return;
+    }
+
+    handlers.delete?.(handler);
+  }
+}
+
+export const replayPlayerTimestampEmitter = new ReplayPlayerTimestampEmitter();
 
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
@@ -238,7 +272,7 @@ function useCurrentTime(callback: () => number) {
   return currentTime;
 }
 
-function ProviderNonMemo({
+export function Provider({
   analyticsContext,
   children,
   initialTimeOffsetMs,
@@ -382,6 +416,12 @@ function ProviderNonMemo({
           addHighlight(highlightArgs);
         });
       }
+      if (autoStart) {
+        setTimeout(() => {
+          replayerRef.current?.play(offsetMs);
+          setIsPlaying(true);
+        });
+      }
       didApplyInitialOffset.current = true;
     }
   }, [
@@ -391,6 +431,7 @@ function ProviderNonMemo({
     initialTimeOffsetMs,
     privateSetCurrentTime,
     startTimeOffsetMs,
+    autoStart,
   ]);
 
   useEffect(clearAllHighlights, [clearAllHighlights, isPlaying]);
@@ -449,10 +490,6 @@ function ProviderNonMemo({
       replayerRef.current = inst;
 
       applyInitialOffset();
-      if (autoStart) {
-        inst.play(startTimeOffsetMs);
-        setIsPlaying(true);
-      }
     },
     [
       applyInitialOffset,
@@ -462,8 +499,6 @@ function ProviderNonMemo({
       organization.features,
       setReplayFinished,
       theme.purple200,
-      startTimeOffsetMs,
-      autoStart,
       onFastForwardStart,
     ]
   );
@@ -516,15 +551,10 @@ function ProviderNonMemo({
       // @ts-expect-error
       replayerRef.current = inst;
       applyInitialOffset();
-      if (autoStart) {
-        inst.play(startTimeOffsetMs);
-        setIsPlaying(true);
-      }
       return inst;
     },
     [
       applyInitialOffset,
-      autoStart,
       isFetching,
       isVideoReplay,
       videoEvents,
@@ -534,7 +564,6 @@ function ProviderNonMemo({
       replay,
       setReplayFinished,
       startTimestampMs,
-      startTimeOffsetMs,
       clipWindow,
       durationMs,
       theme,
@@ -687,6 +716,13 @@ function ProviderNonMemo({
     }
   }, [isBuffering, events, applyInitialOffset]);
 
+  useLayoutEffect(() => {
+    replayPlayerTimestampEmitter.emit('replay timestamp change', {
+      currentTime,
+      currentHoverTime,
+    });
+  }, [currentTime, currentHoverTime]);
+
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
       setBufferTime({target: -1, previous: -1});
@@ -731,5 +767,3 @@ function ProviderNonMemo({
 }
 
 export const useReplayContext = () => useContext(ReplayPlayerContext);
-
-export const Provider = memo(ProviderNonMemo);

@@ -118,7 +118,7 @@ class DeprecatedAsyncComponent<
       return;
     }
 
-    // Take a measurement from when this component is initially created until it finishes it's first
+    // Take a measurement from when this component is initially created until it finishes its first
     // set of API requests
     if (
       !this._measurement.hasMeasured &&

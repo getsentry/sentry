@@ -6,6 +6,7 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import SelectType
 
 
@@ -13,7 +14,14 @@ class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
-    free_text_key = "span.description"
+    config_class = SpansMetricsDatasetConfig
+
+    column_remapping = {
+        # We want to remap `message` to `span.description` for the free
+        # text search use case so that it searches the `span.description`
+        # when the user performs a free text search
+        "message": "span.description",
+    }
 
     @property
     def use_default_tags(self) -> bool:

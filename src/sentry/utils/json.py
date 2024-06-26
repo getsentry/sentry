@@ -7,10 +7,11 @@ import decimal
 import uuid
 from collections.abc import Callable, Collection, Generator, Mapping
 from enum import Enum
-from typing import IO, TYPE_CHECKING, Any, NoReturn, TypeVar, overload
+from typing import IO, Any, NoReturn, TypeVar, overload
 
 import orjson
 import rapidjson
+from django.db.models.query import QuerySet
 from django.utils.encoding import force_str
 from django.utils.functional import Promise
 from django.utils.safestring import SafeString, mark_safe
@@ -19,17 +20,6 @@ from simplejson import _default_decoder  # type: ignore[attr-defined]  # noqa: S
 from simplejson import JSONDecodeError, JSONEncoder  # noqa: S003
 
 from bitfield.types import BitHandler
-
-# A more traditional raw import from django_stubs_ext.aliases here breaks monkeypatching,
-# So we jump through hoops to get only the exact types
-if TYPE_CHECKING:
-    from django.db.models.query import _QuerySetAny
-
-    QuerySetAny = _QuerySetAny
-else:
-    from django.db.models.query import QuerySet
-
-    QuerySetAny = QuerySet
 
 TKey = TypeVar("TKey")
 TValue = TypeVar("TValue")
@@ -64,7 +54,7 @@ def better_default_encoder(o: object) -> object:
         return int(o)
     elif callable(o):
         return "<function>"
-    elif isinstance(o, QuerySetAny):
+    elif isinstance(o, QuerySet):
         return list(o)
     # serialization for certain Django objects here: https://docs.djangoproject.com/en/1.8/topics/serialization/
     elif isinstance(o, Promise):

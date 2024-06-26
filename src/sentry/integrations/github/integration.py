@@ -17,7 +17,7 @@ from sentry.api.utils import generate_organization_url
 from sentry.constants import ObjectStatus
 from sentry.http import safe_urlopen, safe_urlread
 from sentry.identity.github import GitHubIdentityProvider, get_user_info
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -147,7 +147,7 @@ def error(
 
 
 def get_document_origin(org) -> str:
-    if org and features.has("organizations:customer-domains", org.organization):
+    if org and features.has("system:multi-region"):
         return f'"{generate_organization_url(org.organization.slug)}"'
     return "document.origin"
 

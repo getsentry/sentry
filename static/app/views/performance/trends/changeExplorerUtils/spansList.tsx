@@ -11,9 +11,9 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import SuspectSpansQuery from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import type {
   SuspectSpan,

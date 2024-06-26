@@ -11,18 +11,19 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
+import {formatTimeSeriesResultsToChartData} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {
   Badge,
   PerformanceBadge,
-} from 'sentry/views/performance/browser/webVitals/components/performanceBadge';
-import {formatTimeSeriesResultsToChartData} from 'sentry/views/performance/browser/webVitals/components/performanceScoreBreakdownChart';
-import {ORDER_WITH_INP_WITHOUT_FID} from 'sentry/views/performance/browser/webVitals/performanceScoreChart';
-import {MODULE_DOC_LINK} from 'sentry/views/performance/browser/webVitals/settings';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useProjectWebVitalsTimeseriesQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/performance/browser/webVitals/utils/queries/useTransactionWebVitalsQuery';
-import type {RowWithScoreAndOpportunity} from 'sentry/views/performance/browser/webVitals/utils/types';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
+} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
+import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/useProjectWebVitalsTimeseriesQuery';
+import {useTransactionWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionWebVitalsQuery';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {Accordion} from '../components/accordion';
 import {GenericPerformanceWidget} from '../components/performanceWidget';
@@ -44,7 +45,7 @@ type DataType = {
 export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const location = useLocation();
   const [selectedListIndex, setSelectListIndex] = useState<number>(0);
-  const {ContainerActions, organization, InteractiveTitle} = props;
+  const {ContainerActions, InteractiveTitle} = props;
   const theme = useTheme();
 
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
@@ -59,10 +60,10 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
 
-  const order = ORDER_WITH_INP_WITHOUT_FID;
+  const order = ORDER;
 
   const getAreaChart = _ => {
-    const segmentColors = theme.charts.getColorPalette(3);
+    const segmentColors = theme.charts.getColorPalette(3).slice(0, 5);
     return (
       <Chart
         stacked
@@ -84,9 +85,12 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         }}
         dataMax={100}
         chartColors={segmentColors}
+        hideYAxisSplitLine
       />
     );
   };
+
+  const moduleURL = useModuleURL('vital');
 
   const getHeaders = _ =>
     transactionWebVitals.map((listItem, i) => {
@@ -101,7 +105,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         <Fragment key={i}>
           <GrowLink
             to={{
-              pathname: '/performance/browser/pageloads/overview/',
+              pathname: `${moduleURL}/overview/`,
               query: {...location.query, transaction},
             }}
           >
@@ -157,10 +161,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
     return (
       <Fragment>
         <div>
-          <LinkButton
-            to={`/organizations/${organization.slug}/performance/browser/pageloads/`}
-            size="sm"
-          >
+          <LinkButton to={`${moduleURL}/`} size="sm">
             {t('View All')}
           </LinkButton>
         </div>

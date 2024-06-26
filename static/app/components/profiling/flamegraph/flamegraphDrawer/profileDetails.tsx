@@ -15,7 +15,6 @@ import type {Organization, Project} from 'sentry/types';
 import type {EventTransaction} from 'sentry/types/event';
 import {DeviceContextKey} from 'sentry/types/event';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {formatVersion} from 'sentry/utils/formatters';
 import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -25,6 +24,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import type {UseResizableDrawerOptions} from 'sentry/utils/useResizableDrawer';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 

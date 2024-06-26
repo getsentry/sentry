@@ -7,6 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
 import omit from 'lodash/omit';
 
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import {
   getDisabledOptions,
@@ -76,6 +77,7 @@ function ComboBox<Value extends string>({
   const state = useComboBoxState({
     // Mapping our disabled prop to react-aria's isDisabled
     isDisabled: disabled,
+    allowsCustomValue: false,
     onOpenChange: (isOpen, ...otherArgs) => {
       onOpenChange?.(isOpen, ...otherArgs);
       if (isOpen) {
@@ -216,6 +218,8 @@ function ControlledComboBox<Value extends string>({
   sizeLimit,
   value,
   onOpenChange,
+  onInputChange,
+  filterOption,
   ...props
 }: Omit<
   ComboBoxProps<Value>,
@@ -223,6 +227,7 @@ function ControlledComboBox<Value extends string>({
 > & {
   options: ComboBoxOptionOrSection<Value>[];
   defaultValue?: Value;
+  filterOption?: (option: ComboBoxOption<Value>, inputValue: string) => boolean;
   onChange?: (value: ComboBoxOption<Value>) => void;
   value?: Value;
 }) {
@@ -252,8 +257,16 @@ function ControlledComboBox<Value extends string>({
   }, [options]);
 
   const hiddenOptions = useMemo(
-    () => getHiddenOptions(items, isFiltering ? inputValue : '', sizeLimit),
-    [items, isFiltering, inputValue, sizeLimit]
+    () =>
+      getHiddenOptions(
+        items,
+        isFiltering ? inputValue : '',
+        sizeLimit,
+        isFiltering
+          ? (filterOption as (opt: SelectOption<Value>, search: string) => boolean)
+          : undefined
+      ),
+    [items, isFiltering, inputValue, sizeLimit, filterOption]
   );
 
   const disabledKeys = useMemo(
@@ -290,10 +303,14 @@ function ControlledComboBox<Value extends string>({
     [items, props]
   );
 
-  const handleInputChange = useCallback((newInputValue: string) => {
-    setIsFiltering(true);
-    setInputValue(newInputValue);
-  }, []);
+  const handleInputChange = useCallback(
+    (newInputValue: string) => {
+      setIsFiltering(true);
+      setInputValue(newInputValue);
+      onInputChange?.(newInputValue);
+    },
+    [onInputChange]
+  );
 
   const handleOpenChange = useCallback(
     (isOpen: boolean) => {
@@ -301,9 +318,17 @@ function ControlledComboBox<Value extends string>({
       if (isOpen) {
         setIsFiltering(false);
       }
+      if (!isOpen) {
+        // Reset input value to the selected value
+        setInputValue(
+          options
+            .flatMap(item => ('options' in item ? item.options : [item]))
+            .find(option => option.value === value)?.label ?? ''
+        );
+      }
       onOpenChange?.(isOpen);
     },
-    [onOpenChange]
+    [onOpenChange, options, value]
   );
 
   return (
@@ -345,6 +370,7 @@ function ControlledComboBox<Value extends string>({
 const ControlWrapper = styled('div')`
   position: relative;
   width: max-content;
+  height: max-content;
   min-width: 150px;
   max-width: 100%;
   cursor: pointer;
@@ -427,7 +453,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;

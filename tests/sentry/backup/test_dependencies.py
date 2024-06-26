@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from difflib import unified_diff
 
+import orjson
+
 from sentry.backup.dependencies import (
     DependenciesJSONEncoder,
     dependencies,
@@ -9,7 +11,6 @@ from sentry.backup.dependencies import (
     sorted_dependencies,
 )
 from sentry.testutils.factories import get_fixture_path
-from sentry.utils import json
 
 encoder = DependenciesJSONEncoder(
     sort_keys=True,
@@ -46,8 +47,8 @@ def assert_model_dependencies(expect: object, actual: object) -> None:
 
 def test_detailed():
     fixture_path = get_fixture_path("backup", "model_dependencies", "detailed.json")
-    with open(fixture_path) as fixture:
-        expect = json.load(fixture)
+    with open(fixture_path, "rb") as fixture:
+        expect = orjson.loads(fixture.read())
 
     actual = {str(k): v for k, v in dependencies().items()}
     assert_model_dependencies(expect, actual)
@@ -55,8 +56,8 @@ def test_detailed():
 
 def test_flat():
     fixture_path = get_fixture_path("backup", "model_dependencies", "flat.json")
-    with open(fixture_path) as fixture:
-        expect = json.load(fixture)
+    with open(fixture_path, "rb") as fixture:
+        expect = orjson.loads(fixture.read())
 
     actual = {str(k): v.flatten() for k, v in dependencies().items()}
     assert_model_dependencies(expect, actual)
@@ -64,8 +65,8 @@ def test_flat():
 
 def test_sorted():
     fixture_path = get_fixture_path("backup", "model_dependencies", "sorted.json")
-    with open(fixture_path) as fixture:
-        expect = json.load(fixture)
+    with open(fixture_path, "rb") as fixture:
+        expect = orjson.loads(fixture.read())
 
     actual = sorted_dependencies()
     assert_model_dependencies(expect, actual)
@@ -73,8 +74,8 @@ def test_sorted():
 
 def test_truncate():
     fixture_path = get_fixture_path("backup", "model_dependencies", "truncate.json")
-    with open(fixture_path) as fixture:
-        expect = json.load(fixture)
+    with open(fixture_path, "rb") as fixture:
+        expect = orjson.loads(fixture.read())
 
     actual = [dependencies()[get_model_name(m)].table_name for m in sorted_dependencies()]
     assert_model_dependencies(expect, actual)

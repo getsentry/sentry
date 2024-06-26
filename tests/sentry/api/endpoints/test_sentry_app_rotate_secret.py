@@ -55,6 +55,7 @@ class SentryAppRotateSecretTest(APITestCase):
 
     def test_valid_call(self):
         self.login_as(self.user)
+        assert self.sentry_app.application is not None
         old_secret = self.sentry_app.application.client_secret
         response = self.client.post(self.url)
         new_secret = response.data["clientSecret"]
@@ -64,6 +65,7 @@ class SentryAppRotateSecretTest(APITestCase):
     def test_superuser_has_access(self):
         superuser = self.create_user(is_superuser=True)
         self.login_as(user=superuser, superuser=True)
+        assert self.sentry_app.application is not None
         old_secret = self.sentry_app.application.client_secret
         response = self.client.post(self.url)
         new_secret = response.data["clientSecret"]

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from collections.abc import Sequence
+from collections.abc import MutableMapping, Sequence
 from datetime import datetime, timedelta
 from time import time
 from typing import TYPE_CHECKING, Any, TypedDict
@@ -26,6 +26,7 @@ from sentry.signals import event_processed, issue_unignored, transaction_process
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
+from sentry.uptime.detectors.detector import detect_base_url_for_project
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -512,7 +513,8 @@ def post_process_group(
     cache_key,
     group_id=None,
     occurrence_id: str | None = None,
-    project_id: int | None = None,
+    *,
+    project_id: int,
     **kwargs,
 ):
     """
@@ -748,7 +750,7 @@ def run_post_process_job(job: PostProcessJob) -> None:
             )
 
 
-def process_event(data: dict, group_id: int | None) -> Event:
+def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
     from sentry.eventstore.models import Event
     from sentry.models.event import EventDict
 
@@ -1017,7 +1019,7 @@ def process_rules(job: PostProcessJob) -> None:
         # objects back and forth isn't super efficient
         for callback, futures in rp.apply():
             has_alert = True
-            safe_execute(callback, group_event, futures, _with_transaction=False)
+            safe_execute(callback, group_event, futures)
 
     job["has_alert"] = has_alert
     return
@@ -1234,7 +1236,7 @@ def process_similarity(job: PostProcessJob) -> None:
     event = job["event"]
 
     with sentry_sdk.start_span(op="tasks.post_process_group.similarity"):
-        safe_execute(similarity.record, event.project, [event], _with_transaction=False)
+        safe_execute(similarity.record, event.project, [event])
 
 
 def fire_error_processed(job: PostProcessJob):
@@ -1280,14 +1282,16 @@ def plugin_post_process_group(plugin_slug, event, **kwargs):
     from sentry.plugins.base import plugins
 
     plugin = plugins.get(plugin_slug)
-    safe_execute(
-        plugin.post_process,
-        event=event,
-        group=event.group,
-        expected_errors=(PluginError,),
-        _with_transaction=False,
-        **kwargs,
-    )
+    try:
+        plugin.post_process(
+            event=event,
+            group=event.group,
+            **kwargs,
+        )
+    except PluginError as e:
+        logger.info("post_process.process_error_ignored", extra={"exception": e})
+    except Exception as e:
+        logger.exception("post_process.process_error", extra={"exception": e})
 
 
 def feedback_filter_decorator(func):
@@ -1509,6 +1513,11 @@ def detect_new_escalation(job: PostProcessJob):
         return
 
 
+def detect_base_urls_for_uptime(job: PostProcessJob):
+    url = get_path(job["event"].data, "request", "url")
+    detect_base_url_for_project(job["event"].project, url)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1530,6 +1539,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         sdk_crash_monitoring,
         process_replay_link,
         link_event_to_user_report,
+        detect_base_urls_for_uptime,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

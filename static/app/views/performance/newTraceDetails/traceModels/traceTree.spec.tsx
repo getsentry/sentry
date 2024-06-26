@@ -3,9 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event, type EventTransaction} from 'sentry/types';
+import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {
-  TraceFullDetailed,
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
@@ -31,18 +30,21 @@ const EVENT_REQUEST_URL =
   '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time&averageColumn=span.duration';
 
 function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceFullDetailed>>
-): TraceSplitResults<TraceFullDetailed> {
+  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
+): TraceSplitResults<TraceTree.Transaction> {
   return {
     transactions: [],
     orphan_errors: [],
     ...overrides,
-  } as TraceSplitResults<TraceFullDetailed>;
+  } as TraceSplitResults<TraceTree.Transaction>;
 }
 
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
+function makeTransaction(
+  overrides: Partial<TraceTree.Transaction> = {}
+): TraceTree.Transaction {
   return {
     children: [],
+    sdk_name: '',
     start_timestamp: 0,
     timestamp: 1,
     transaction: 'transaction',
@@ -51,7 +53,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     performance_issues: [],
     errors: [],
     ...overrides,
-  } as TraceFullDetailed;
+  } as TraceTree.Transaction;
 }
 
 function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
@@ -257,7 +259,8 @@ describe('TreeNode', () => {
               measurements: {ttfb: {value: 0, unit: 'millisecond'}},
             }),
           ],
-        })
+        }),
+        null
       );
 
       expect(tree.indicators.length).toBe(1);
@@ -278,7 +281,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        null
       );
 
       expect(tree.indicators[0].start).toBe(500);
@@ -298,7 +302,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        null
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -316,7 +321,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        null
       );
 
       expect(tree.root.space).toEqual([0, 2000]);
@@ -336,7 +342,8 @@ describe('TreeNode', () => {
               },
             }),
           ],
-        })
+        }),
+        null
       );
 
       expect(tree.indicators[0].start).toBe(1000);
@@ -542,7 +549,8 @@ describe('TreeNode', () => {
         makeTrace({
           transactions: [],
           orphan_errors: [makeTraceError({event_id: 'error_id'})],
-        })
+        }),
+        null
       );
 
       expect(tree.list[1].path).toEqual(['error-error_id']);
@@ -558,7 +566,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -613,7 +622,8 @@ describe('TreeNode', () => {
             }),
           ],
           orphan_errors: [],
-        })
+        }),
+        null
       );
 
       expect(adjusted.root.space).toEqual([1000, 2000]);
@@ -638,7 +648,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -666,7 +677,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -714,7 +726,8 @@ describe('TreeNode', () => {
                 event_id: 'event_id',
               }),
             ],
-          })
+          }),
+          null
         );
 
         MockApiClient.addMockResponse({
@@ -761,7 +774,8 @@ describe('TreeNode', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -813,7 +827,8 @@ describe('TraceTree', () => {
             children: [],
           }),
         ],
-      })
+      }),
+      null
     );
 
     expect(tree.list).toHaveLength(3);
@@ -831,7 +846,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [makeTraceError()],
-      })
+      }),
+      null
     );
 
     expect(tree.list).toHaveLength(4);
@@ -852,7 +868,8 @@ describe('TraceTree', () => {
             event_type: 'error',
           } as TraceTree.TraceError,
         ],
-      })
+      }),
+      null
     );
 
     expect(tree.list).toHaveLength(3);
@@ -872,7 +889,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [makeTraceError({timestamp: 1, level: 'error'})],
-      })
+      }),
+      null
     );
 
     expect(tree.list).toHaveLength(4);
@@ -898,7 +916,8 @@ describe('TraceTree', () => {
           makeTraceError({timestamp: 0.05}),
           makeTraceError({timestamp: 0.3}),
         ],
-      })
+      }),
+      null
     );
 
     expect(tree.list).toHaveLength(5);
@@ -913,7 +932,8 @@ describe('TraceTree', () => {
       makeTrace({
         transactions: [],
         orphan_errors: [],
-      })
+      }),
+      null
     );
 
     expect(tree.shape).toBe(TraceType.EMPTY_TRACE);
@@ -929,7 +949,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      null
     );
 
     expect(tree.shape).toBe(TraceType.NO_ROOT);
@@ -943,7 +964,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      null
     );
 
     expect(tree.shape).toBe(TraceType.ONE_ROOT);
@@ -960,7 +982,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      null
     );
 
     expect(tree.shape).toBe(TraceType.BROKEN_SUBTRACES);
@@ -978,7 +1001,8 @@ describe('TraceTree', () => {
           }),
         ],
         orphan_errors: [],
-      })
+      }),
+      null
     );
 
     expect(tree.shape).toBe(TraceType.MULTIPLE_ROOTS);
@@ -987,10 +1011,26 @@ describe('TraceTree', () => {
       makeTrace({
         transactions: [],
         orphan_errors: [makeTraceError()],
-      })
+      }),
+      null
     );
 
     expect(tree.shape).toBe(TraceType.ONLY_ERRORS);
+  });
+
+  it('browser multiple roots shape', () => {
+    const tree = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({sdk_name: 'javascript', parent_span_id: null}),
+          makeTransaction({sdk_name: 'javascript', parent_span_id: null}),
+        ],
+        orphan_errors: [],
+      }),
+      null
+    );
+
+    expect(tree.shape).toBe(TraceType.BROWSER_MULTIPLE_ROOTS);
   });
 
   it('builds from spans when root is a transaction node', () => {
@@ -1215,7 +1255,8 @@ describe('TraceTree', () => {
             children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
           }),
         ],
-      })
+      }),
+      null
     );
 
     tree.expand(tree.list[0], true);
@@ -1285,7 +1326,8 @@ describe('TraceTree', () => {
             timestamp: 4,
           }),
         ],
-      })
+      }),
+      null
     );
 
     expect(tree.list).toHaveLength(5);
@@ -1312,7 +1354,8 @@ describe('TraceTree', () => {
             timestamp: 4,
           }),
         ],
-      })
+      }),
+      null
     );
 
     expect(tree.list).toHaveLength(4);
@@ -1327,7 +1370,8 @@ describe('TraceTree', () => {
             children: [makeTransaction()],
           }),
         ],
-      })
+      }),
+      null
     );
 
     expect(tree.root.children).toHaveLength(1);
@@ -1344,7 +1388,8 @@ describe('TraceTree', () => {
           makeTransaction(),
         ],
         orphan_errors: [],
-      })
+      }),
+      null
     );
 
     tree.expand(tree.list[1], true);
@@ -1370,7 +1415,8 @@ describe('TraceTree', () => {
             }),
             makeTransaction({transaction: 'sibling'}),
           ],
-        })
+        }),
+        null
       );
 
       // -1  root
@@ -1410,7 +1456,8 @@ describe('TraceTree', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       // root
@@ -1447,7 +1494,8 @@ describe('TraceTree', () => {
   describe('expanding', () => {
     it('expands a node and updates the list', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null
       );
 
       const node = tree.list[1];
@@ -1465,7 +1513,8 @@ describe('TraceTree', () => {
 
     it('collapses a node and updates the list', () => {
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null
       );
 
       const node = tree.list[1];
@@ -1490,7 +1539,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       expect(tree.expand(tree.list[2], false)).toBe(true);
@@ -1509,7 +1559,8 @@ describe('TraceTree', () => {
       const api = new MockApiClient();
 
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null
       );
 
       const node = tree.list[0];
@@ -1533,7 +1584,8 @@ describe('TraceTree', () => {
       const api = new MockApiClient();
 
       const tree = TraceTree.FromTrace(
-        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]})
+        makeTrace({transactions: [makeTransaction({children: [makeTransaction()]})]}),
+        null
       );
 
       const node = tree.list[0];
@@ -1561,7 +1613,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -1641,7 +1694,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        null
       );
 
       const request = MockApiClient.addMockResponse({
@@ -1670,7 +1724,8 @@ describe('TraceTree', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        null
       );
 
       const request = MockApiClient.addMockResponse({
@@ -1718,7 +1773,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -1761,7 +1817,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       const first_request = MockApiClient.addMockResponse({
@@ -1811,7 +1868,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -1848,7 +1906,8 @@ describe('TraceTree', () => {
           transactions: [
             makeTransaction({project_slug: 'project', event_id: 'event_id'}),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -1903,7 +1962,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       const request = MockApiClient.addMockResponse({
@@ -1951,7 +2011,8 @@ describe('TraceTree', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -2430,7 +2491,8 @@ describe('TraceTree', () => {
               event_id: 'event_id',
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({

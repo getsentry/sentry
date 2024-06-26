@@ -42,7 +42,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ProguardArtifactRelease.objects.count() == 1
 
-        proguard_artifact_release = ProguardArtifactRelease.objects.first()
+        proguard_artifact_release = ProguardArtifactRelease.objects.get()
         assert proguard_artifact_release.organization_id == project.organization.id
         assert proguard_artifact_release.project_id == project.id
 

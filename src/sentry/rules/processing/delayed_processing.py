@@ -15,6 +15,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
+    DEFAULT_COMPARISON_INTERVAL,
     BaseEventFrequencyCondition,
     ComparisonType,
     EventFrequencyConditionData,
@@ -48,7 +49,7 @@ class UniqueCondition(NamedTuple):
 
 
 class DataAndGroups(NamedTuple):
-    data: EventFrequencyConditionData | None
+    data: EventFrequencyConditionData
     group_ids: set[int]
 
     def __repr__(self):
@@ -77,24 +78,25 @@ def get_rules_to_groups(rulegroup_to_event_data: dict[str, str]) -> DefaultDict[
     return rules_to_groups
 
 
-def get_rule_to_slow_conditions(
+def get_rules_to_slow_conditions(
     alert_rules: list[Rule],
 ) -> DefaultDict[Rule, list[EventFrequencyConditionData]]:
-    rule_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]] = defaultdict(
+    rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]] = defaultdict(
         list
     )
     for rule in alert_rules:
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
-            rule_to_slow_conditions[rule].append(condition_data)
+            rules_to_slow_conditions[rule].append(condition_data)
 
-    return rule_to_slow_conditions
+    return rules_to_slow_conditions
 
 
 def get_condition_groups(
     alert_rules: list[Rule], rules_to_groups: DefaultDict[int, set[int]]
 ) -> dict[UniqueCondition, DataAndGroups]:
-    """Map unique conditions to the group IDs that need to checked for that
+    """
+    Map unique conditions to the group IDs that need to checked for that
     condition. We also store a pointer to that condition's JSON so we can
     instantiate the class later
     """
@@ -116,7 +118,7 @@ def get_condition_groups(
                 # set of group_ids that apply to the unique condition
                 else:
                     condition_groups[unique_condition] = DataAndGroups(
-                        condition_data, rules_to_groups[rule.id]
+                        condition_data, set(rules_to_groups[rule.id])
                     )
     return condition_groups
 
@@ -141,7 +143,9 @@ def get_condition_group_results(
             return None
 
         _, duration = condition_inst.intervals[unique_condition.interval]
-        comparison_interval = condition_inst.intervals[unique_condition.interval][1]
+        comparison_interval = condition_inst.intervals[
+            condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
+        ][1]
         comparison_type = (
             condition_data.get("comparisonType", ComparisonType.COUNT)
             if condition_data
@@ -155,17 +159,17 @@ def get_condition_group_results(
             unique_condition.environment_id,
             comparison_type,
         )
-        condition_group_results[unique_condition] = result
+        condition_group_results[unique_condition] = result or {}
     return condition_group_results
 
 
 def get_rules_to_fire(
     condition_group_results: dict[UniqueCondition, dict[int, int]],
-    rule_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
+    rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
-    for alert_rule, slow_conditions in rule_to_slow_conditions.items():
+    for alert_rule, slow_conditions in rules_to_slow_conditions.items():
         action_match = alert_rule.data.get("action_match", "any")
         for group_id in rules_to_groups[alert_rule.id]:
             conditions_matched = 0
@@ -177,7 +181,7 @@ def get_rules_to_fire(
                 )
                 results = condition_group_results.get(unique_condition, {})
                 if results:
-                    target_value = int(str(slow_condition.get("value")))
+                    target_value = float(str(slow_condition.get("value")))
                     if results[group_id] > target_value:
                         if action_match == "any":
                             rules_to_fire[alert_rule].add(group_id)
@@ -231,6 +235,7 @@ def build_group_to_groupevent(
     bulk_event_id_to_events: dict[str, Event],
     bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
     group_id_to_group: dict[int, Group],
+    project_id: int,
 ) -> dict[Group, GroupEvent]:
     group_to_groupevent: dict[Group, GroupEvent] = {}
 
@@ -242,13 +247,22 @@ def build_group_to_groupevent(
         if event_id:
             event = bulk_event_id_to_events.get(event_id)
         else:
-            logger.info("delayed_processing.missing_event_id", extra={"rule": rule_group[0]})
+            logger.info(
+                "delayed_processing.missing_event_id",
+                extra={"rule": rule_group[0], "project_id": project_id},
+            )
         group = group_id_to_group.get(int(rule_group[1]))
         if not group or not event:
             if not group:
-                logger.info("delayed_processing.missing_group", extra={"rule": rule_group[0]})
+                logger.info(
+                    "delayed_processing.missing_group",
+                    extra={"rule": rule_group[0], "project_id": project_id},
+                )
             if not event:
-                logger.info("delayed_processing.missing_event", extra={"rule": rule_group[0]})
+                logger.info(
+                    "delayed_processing.missing_event",
+                    extra={"rule": rule_group[0], "project_id": project_id, "group_id": group.id},  # type: ignore[union-attr]
+                )
             continue
 
         group_event = event.for_group(group)
@@ -288,6 +302,7 @@ def get_group_to_groupevent(
         bulk_event_id_to_events,
         bulk_occurrence_id_to_occurrence,
         group_id_to_group,
+        project_id,
     )
     return group_to_groupevent
 
@@ -329,42 +344,54 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     )
     logger.info(
         "delayed_processing.rulegroupeventdata",
-        extra={"rulegroupdata": rulegroup_to_event_data},
+        extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
     )
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
     # STEP 3: Fetch the Rule models we need to check
-    alert_rules = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
+    alert_rules_qs = Rule.objects.filter(id__in=list(rules_to_groups.keys()))
     snoozed_rules = set(
-        RuleSnooze.objects.filter(rule__in=alert_rules, user_id=None).values_list("rule", flat=True)
+        RuleSnooze.objects.filter(rule__in=alert_rules_qs, user_id=None).values_list(
+            "rule", flat=True
+        )
     )
-    alert_rules = [rule for rule in alert_rules if rule.id not in snoozed_rules]
+    alert_rules = [rule for rule in alert_rules_qs if rule.id not in snoozed_rules]
+
     # STEP 4: Create a map of unique conditions to a tuple containing the JSON
     # information needed to instantiate that condition class and the group_ids that
     # must be checked for that condition. We don't query per rule condition because
     # condition of the same class, interval, and environment can share a single scan.
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
+    logger.info(
+        "delayed_processing.condition_groups",
+        extra={"condition_groups": condition_groups, "project_id": project_id},
+    )
+
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
     with metrics.timer("delayed_processing.get_condition_group_results.duration"):
         condition_group_results = get_condition_group_results(condition_groups, project)
+
     # Step 6: For each rule and group applying to that rule, check if the group
     # meets the conditions of the rule (basically doing BaseEventFrequencyCondition.passes)
-    rule_to_slow_conditions = get_rule_to_slow_conditions(alert_rules)
+    rules_to_slow_conditions = get_rules_to_slow_conditions(alert_rules)
     rules_to_fire = defaultdict(set)
     if condition_group_results:
         rules_to_fire = get_rules_to_fire(
-            condition_group_results, rule_to_slow_conditions, rules_to_groups
+            condition_group_results, rules_to_slow_conditions, rules_to_groups
         )
         log_str = ""
         for rule in rules_to_fire.keys():
             log_str += f"{str(rule.id)}, "
-        logger.info("delayed_processing.rule_to_fire", extra={"rules_to_fire": log_str})
+        logger.info(
+            "delayed_processing.rule_to_fire",
+            extra={"rules_to_fire": log_str, "project_id": project_id},
+        )
+
     # Step 7: Fire the rule's actions
     now = datetime.now(tz=timezone.utc)
     parsed_rulegroup_to_event_data = parse_rulegroup_to_event_data(rulegroup_to_event_data)
-
     with metrics.timer("delayed_processing.fire_rules.duration"):
         for rule, group_ids in rules_to_fire.items():
             frequency = rule.data.get("frequency") or Rule.DEFAULT_FREQUENCY
@@ -378,7 +405,12 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 if status.last_active and status.last_active > freq_offset:
                     logger.info(
                         "delayed_processing.last_active",
-                        extra={"last_active": status.last_active, "freq_offset": freq_offset},
+                        extra={
+                            "last_active": status.last_active,
+                            "freq_offset": freq_offset,
+                            "project_id": project_id,
+                            "group_id": group.id,
+                        },
                     )
                     break
 
@@ -389,7 +421,14 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 )
 
                 if not updated:
-                    logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
+                    logger.info(
+                        "delayed_processing.not_updated",
+                        extra={
+                            "status_id": status.id,
+                            "project_id": project_id,
+                            "group_id": group.id,
+                        },
+                    )
                     break
 
                 notification_uuid = str(uuid.uuid4())
@@ -400,7 +439,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 for callback, futures in activate_downstream_actions(
                     rule, groupevent, notification_uuid, rule_fire_history
                 ).values():
-                    safe_execute(callback, groupevent, futures, _with_transaction=False)
+                    safe_execute(callback, groupevent, futures)
 
     # Step 8: Clean up Redis buffer data
     hashes_to_delete = [

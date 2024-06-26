@@ -469,7 +469,7 @@ const Container = styled('div')`
 `;
 
 const Title = styled('div')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeLarge};
   color: ${p => p.theme.gray400};
   display: flex;

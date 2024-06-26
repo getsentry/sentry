@@ -138,6 +138,7 @@ FullResponse = TypedDict(
         "parent_span_id": Optional[str],
         "parent_event_id": Optional[str],
         "profile_id": Optional[str],
+        "sdk_name": Optional[str],
         "generation": Optional[int],
         "errors": list[TraceError],
         "performance_issues": list[TracePerformanceIssue],
@@ -380,12 +381,14 @@ class TraceEvent:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
             result["profile_id"] = self.event["profile.id"]
+            result["sdk_name"] = self.event["sdk.name"]
             # TODO: once we're defaulting measurements we don't need this check
             if "measurements" in self.event:
                 result["measurements"] = self.event["measurements"]
         if self.nodestore_event:
             result["timestamp"] = self.nodestore_event.data.get("timestamp")
             result["start_timestamp"] = self.nodestore_event.data.get("start_timestamp")
+            result["sdk_name"] = self.event["sdk.name"]
 
             contexts = self.nodestore_event.data.get("contexts", {})
             profile_id = contexts.get("profile", {}).get("profile_id")
@@ -553,6 +556,7 @@ def query_trace_data(
         "project",
         "project.id",
         "profile.id",
+        "sdk.name",
         "trace.span",
         "trace.parent_span",
         'to_other(trace.parent_span, "", 0, 1) AS root',

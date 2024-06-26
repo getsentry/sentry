@@ -66,6 +66,7 @@ class _TeamRole(TypedDict):
 
 class OrganizationMemberResponseOptional(TypedDict, total=False):
     externalUsers: list[ExternalActorResponse]
+    user: UserSerializerResponse
     role: str  # Deprecated: use orgRole
     roleName: str  # Deprecated
 
@@ -74,7 +75,6 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     id: str
     email: str
     name: str
-    user: UserSerializerResponse
     orgRole: str
     pending: bool
     expired: bool

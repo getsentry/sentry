@@ -61,6 +61,6 @@ class ProjectRuleActionsEndpoint(ProjectEndpoint):
         )
 
         for callback, futures in activate_downstream_actions(rule, test_event).values():
-            safe_execute(callback, test_event, futures, _with_transaction=False)
+            safe_execute(callback, test_event, futures)
 
         return Response()

@@ -99,7 +99,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 slug=self.organization.slug,
                 status=self.organization.status,
                 region_name="us",
-                customer_id=("128",),
+                customer_id=CustomerId(value="128"),
             ),
         )
         assert_matching_organization_mapping(org=self.organization, customer_id="128")
@@ -112,7 +112,7 @@ class OrganizationMappingServiceControlProvisioningEnabledTest(TransactionTestCa
                 slug=self.organization.slug,
                 status=self.organization.status,
                 region_name="us",
-                customer_id=(None,),
+                customer_id=CustomerId(value=None),
             ),
         )
         assert_matching_organization_mapping(org=self.organization, customer_id=None)

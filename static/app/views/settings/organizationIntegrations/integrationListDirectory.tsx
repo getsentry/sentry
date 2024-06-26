@@ -598,7 +598,7 @@ const EmptyResultsBody = styled('div')`
 `;
 
 const EmptyResultsBodyBold = styled(EmptyResultsBody)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 export default withOrganization(IntegrationListDirectory);

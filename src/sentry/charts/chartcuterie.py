@@ -3,6 +3,7 @@ from typing import Any
 from urllib.parse import urljoin
 from uuid import uuid4
 
+import orjson
 import requests
 import sentry_sdk
 from django.conf import settings
@@ -10,7 +11,6 @@ from django.conf import settings
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.models.file import get_storage
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 from .base import ChartRenderer, logger
@@ -52,9 +52,7 @@ class Chartcuterie(ChartRenderer):
         if not self.service_url:
             raise InvalidConfiguration("`chart-rendering.chartcuterie.url` is not configured")
 
-    def generate_chart(
-        self, style: ChartType, data: Any, upload: bool = True, size: ChartSize | None = None
-    ) -> str | bytes:
+    def generate_chart(self, style: ChartType, data: Any, size: ChartSize | None = None) -> str:
         request_id = uuid4().hex
 
         payload = {
@@ -76,7 +74,7 @@ class Chartcuterie(ChartRenderer):
             assert self.service_url is not None
             resp = requests.post(
                 url=urljoin(self.service_url, "render"),
-                data=json.dumps(payload),
+                data=orjson.dumps(payload, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS),
                 headers={"Content-Type": "application/json"},
             )
 
@@ -87,9 +85,6 @@ class Chartcuterie(ChartRenderer):
 
             if resp.status_code != 200:
                 raise RuntimeError(f"Chartcuterie responded with {resp.status_code}: {resp.text}")
-
-        if not upload:
-            return resp.content
 
         file_name = f"{request_id}.png"
 

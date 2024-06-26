@@ -13,8 +13,10 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import type {Config} from 'sentry/types/system';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
@@ -24,6 +26,7 @@ jest.mock('sentry/utils/analytics');
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';
   const {organization, router} = initializeOrg();
+  let configState: Config;
 
   const defaultProps = {
     organization,
@@ -36,6 +39,7 @@ describe('OrganizationGeneralSettings', function () {
   };
 
   beforeEach(function () {
+    configState = ConfigStore.getState();
     OrganizationsStore.addOrReplace(organization);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/auth-provider/`,
@@ -45,6 +49,12 @@ describe('OrganizationGeneralSettings', function () {
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
       body: [GitHubIntegrationFixture()],
+    });
+  });
+
+  afterEach(function () {
+    act(function () {
+      ConfigStore.loadInitialData(configState);
     });
   });
 
@@ -121,7 +131,9 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('changes org slug and redirects to new customer-domain', async function () {
-    const org = OrganizationFixture({features: ['customer-domains']});
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
+    const org = OrganizationFixture();
     const updateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',

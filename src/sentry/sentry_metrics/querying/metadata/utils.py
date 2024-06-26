@@ -2,14 +2,14 @@ from sentry.snuba.metrics import get_mri
 from sentry.snuba.metrics.naming_layer.mri import is_mri
 
 METRICS_API_HIDDEN_OPERATIONS = {
-    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs": [
+    "sentry:metrics_activate_percentiles": [
         "p50",
         "p75",
         "p90",
         "p95",
         "p99",
     ],
-    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs": ["last"],
+    "sentry:metrics_activate_last_for_gauges": ["last"],
 }
 
 

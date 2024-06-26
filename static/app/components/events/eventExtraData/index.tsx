@@ -5,7 +5,8 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {defined, objectIsEmpty} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 import {getKnownData, getKnownStructuredData} from '../contexts/utils';
 
@@ -20,7 +21,7 @@ export const EventExtraData = memo(
   ({event}: Props) => {
     const [raw, setRaw] = useState(false);
 
-    if (objectIsEmpty(event.context)) {
+    if (isEmptyObject(event.context)) {
       return null;
     }
     let contextBlock: React.ReactNode = null;

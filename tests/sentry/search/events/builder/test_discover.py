@@ -43,6 +43,7 @@ class QueryBuilderTest(TestCase):
             Condition(Column("project_id"), Op.IN, self.projects),
         ]
 
+    @pytest.mark.querybuilder
     def test_simple_query(self):
         query = QueryBuilder(
             Dataset.Discover,
@@ -67,6 +68,26 @@ class QueryBuilderTest(TestCase):
             ],
         )
         query.get_snql_query().validate()
+
+    def test_free_text_search(self):
+        query = QueryBuilder(
+            Dataset.Discover,
+            self.params,
+            query="foo",
+            selected_columns=["count()"],
+        )
+
+        self.assertCountEqual(
+            query.where,
+            [
+                Condition(
+                    Function("positionCaseInsensitive", [Column("message"), "foo"]),
+                    Op.NEQ,
+                    0,
+                ),
+                *self.default_conditions,
+            ],
+        )
 
     def test_query_without_project_ids(self):
         params: ParamsType = {

@@ -27,11 +27,11 @@ import type {
   SessionApiResponse,
 } from 'sentry/types';
 import {SessionFieldWithOperation} from 'sentry/types';
-import {formatVersion} from 'sentry/utils/formatters';
 import type {WithRouteAnalyticsProps} from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import withRouteAnalytics from 'sentry/utils/routeAnalytics/withRouteAnalytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import {getCount} from 'sentry/utils/sessions';
+import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

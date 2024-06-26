@@ -19,21 +19,21 @@ class ErrorsQueryBuilderTest(TestCase):
     def setUp(self):
         self.projects = [self.project.id]
 
+    @pytest.mark.querybuilder
     def test_simple_query(self):
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            query = ErrorsQueryBuilder(
-                dataset=Dataset.Events,
-                query="status:unresolved",
-                selected_columns=["count_unique(user)"],
-                params={
-                    "project_id": self.projects,
-                },
-                offset=None,
-                limit=None,
-                config=QueryBuilderConfig(
-                    skip_time_conditions=True,
-                ),
-            ).get_snql_query()
+        query = ErrorsQueryBuilder(
+            dataset=Dataset.Events,
+            query="status:unresolved",
+            selected_columns=["count_unique(user)"],
+            params={
+                "project_id": self.projects,
+            },
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+            ),
+        ).get_snql_query()
         query.validate()
         e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         g_entity = Entity("group_attributes", alias="ga")
@@ -61,21 +61,20 @@ class ErrorsQueryBuilderTest(TestCase):
         ]
 
     def test_is_status_simple_query(self):
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            query = ErrorsQueryBuilder(
-                dataset=Dataset.Events,
-                query="is:unresolved",
-                selected_columns=["count_unique(user)"],
-                params={
-                    "project_id": self.projects,
-                },
-                offset=None,
-                limit=None,
-                config=QueryBuilderConfig(
-                    skip_time_conditions=True,
-                    parser_config_overrides=PARSER_CONFIG_OVERRIDES,
-                ),
-            ).get_snql_query()
+        query = ErrorsQueryBuilder(
+            dataset=Dataset.Events,
+            query="is:unresolved",
+            selected_columns=["count_unique(user)"],
+            params={
+                "project_id": self.projects,
+            },
+            offset=None,
+            limit=None,
+            config=QueryBuilderConfig(
+                skip_time_conditions=True,
+                parser_config_overrides=PARSER_CONFIG_OVERRIDES,
+            ),
+        ).get_snql_query()
         query.validate()
         e_entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         g_entity = Entity("group_attributes", alias="ga")

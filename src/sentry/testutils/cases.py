@@ -7,11 +7,12 @@ import os.path
 import random
 import re
 import time
+import uuid
 from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, Literal, Union
+from typing import Any, Literal, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -41,7 +42,15 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUSREASONTYPE_TIMEOUT,
+    REQUESTTYPE_HEAD,
+    CheckResult,
+)
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
+from slack_sdk.web import SlackResponse
 from snuba_sdk import Granularity, Limit, Offset
 from snuba_sdk.conditions import BooleanCondition, Condition, ConditionGroup
 
@@ -146,11 +155,11 @@ from sentry.utils.snuba import _snuba_pool
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
@@ -676,7 +685,7 @@ class PerformanceIssueTestCase(BaseTestCase):
             return event
 
 
-class APITestCase(BaseTestCase, BaseAPITestCase):
+class APITestCaseMixin:
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -686,11 +695,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     The class must set the string `endpoint`.
     If your endpoint requires kwargs implement the `reverse_url` method.
     """
-
-    # We need Django to flush all databases.
-    databases: set[str] | str = "__all__"
-
-    method = "get"
 
     @property
     def endpoint(self):
@@ -843,6 +847,20 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
         ):
             yield
+
+
+class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
+
+
+class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -1493,6 +1511,8 @@ class BaseSpansTestCase(SnubaTestCase):
         timestamp: datetime | None = None,
         store_metrics_summary: Mapping[str, Sequence[Mapping[str, Any]]] | None = None,
         sdk_name: str | None = None,
+        op: str | None = None,
+        status: str | None = None,
     ):
         if span_id is None:
             span_id = self._random_span_id()
@@ -1528,6 +1548,10 @@ class BaseSpansTestCase(SnubaTestCase):
             payload["parent_span_id"] = parent_span_id
         if sdk_name is not None:
             payload["sentry_tags"]["sdk.name"] = sdk_name
+        if op is not None:
+            payload["sentry_tags"]["op"] = op
+        if status is not None:
+            payload["sentry_tags"]["status"] = status
 
         self.store_span(payload)
 
@@ -2014,7 +2038,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             {"statsPeriod": before_now, "interval": granularity}
         )
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
             select=select,
@@ -2446,10 +2470,10 @@ class ReplaysAcceptanceTestCase(AcceptanceTestCase, SnubaTestCase):
     def store_replay_segments(
         self,
         replay_id: str,
-        project_id: str,
+        project_id: int,
         segment_id: int,
         segment,
-    ):
+    ) -> None:
         f = File.objects.create(name="rr:{segment_id}", type="replay.recording")
         f.putfile(BytesIO(compress(dumps_htmlsafe(segment).encode())))
         ReplayRecordingSegment.objects.create(
@@ -2570,6 +2594,15 @@ class SetRefsTestCase(APITestCase):
         assert commit.key == key
 
 
+class _QueryDict(TypedDict):
+    name: str
+    fields: list[str]
+    aggregates: list[str]
+    columns: list[str]
+    fieldAliases: list[str]
+    conditions: str
+
+
 class OrganizationDashboardWidgetTestCase(APITestCase):
     def setUp(self):
         super().setUp()
@@ -2577,7 +2610,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         self.dashboard = Dashboard.objects.create(
             title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
-        self.anon_users_query = {
+        self.anon_users_query: _QueryDict = {
             "name": "Anonymous Users",
             "fields": ["count()"],
             "aggregates": ["count()"],
@@ -2585,7 +2618,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": ["Count Alias"],
             "conditions": "!has:user.email",
         }
-        self.known_users_query = {
+        self.known_users_query: _QueryDict = {
             "name": "Known Users",
             "fields": ["count_unique(user.email)"],
             "aggregates": ["count_unique(user.email)"],
@@ -2593,7 +2626,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
             "fieldAliases": [],
             "conditions": "has:user.email",
         }
-        self.geo_errors_query = {
+        self.geo_errors_query: _QueryDict = {
             "name": "Errors by Geo",
             "fields": ["count()", "geo.country_code"],
             "aggregates": ["count()"],
@@ -2873,6 +2906,22 @@ class SlackActivityNotificationTest(ActivityTestCase):
     @pytest.fixture(autouse=True)
     def responses_context(self):
         with responses.mock:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with mock.patch(
+            "slack_sdk.web.client.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
             yield
 
     def assert_performance_issue_attachments(
@@ -3189,6 +3238,23 @@ class MonitorIngestTestCase(MonitorTestCase):
         self.token = self.create_internal_integration_token(install=app, user=self.user)
 
 
+class UptimeTestCase(TestCase):
+    def create_uptime_result(self, subscription_id: str | None = None) -> CheckResult:
+        if subscription_id is None:
+            subscription_id = uuid.uuid4().hex
+        return {
+            "guid": uuid.uuid4().hex,
+            "subscription_id": subscription_id,
+            "status": CHECKSTATUS_FAILURE,
+            "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
+            "trace_id": uuid.uuid4().hex,
+            "scheduled_check_time": datetime.now().timestamp(),
+            "actual_check_time": datetime.now().timestamp(),
+            "duration_ms": 100,
+            "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
+        }
+
+
 class IntegratedApiTestCase(BaseTestCase):
     def should_call_api_without_proxying(self) -> bool:
         return not IntegrationProxyClient.determine_whether_should_proxy_to_control()
@@ -3318,6 +3384,7 @@ class TraceTestCase(SpanTestCase):
         data["transaction"] = transaction
         data["contexts"]["trace"]["parent_span_id"] = parent_span_id
         data["contexts"]["profile"] = {"profile_id": uuid4().hex}
+        data["sdk"] = {"name": "sentry.test.sdk", "version": "1.0"}
         if span_id:
             data["contexts"]["trace"]["span_id"] = span_id
         if measurements:
@@ -3392,6 +3459,7 @@ class TraceTestCase(SpanTestCase):
                 "segment_id": uuid4().hex[:16],
                 "group_raw": uuid4().hex[:16],
                 "profile_id": uuid4().hex,
+                "is_segment": True,
                 # Multiply by 1000 cause it needs to be ms
                 "start_timestamp_ms": int(start_ts * 1000),
                 "timestamp": int(start_ts * 1000),

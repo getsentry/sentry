@@ -20,15 +20,13 @@ def disable_auto_on_commit():
 
 @pytest.fixture
 def call_endpoint(client, relay, private_key, default_projectkey):
-    def inner(full_config, public_keys=None, global_=False):
+    def inner(public_keys=None, global_=False):
         path = reverse("sentry-api-0-relay-projectconfigs") + "?version=3"
 
         if public_keys is None:
             public_keys = [str(default_projectkey.public_key)]
 
         body = {"publicKeys": public_keys, "no_cache": False}
-        if full_config is not None:
-            body.update({"fullConfig": full_config})
         if global_ is not None:
             body.update({"global": global_})
         raw_json, signature = private_key.pack(body)
@@ -84,7 +82,7 @@ def project_config_get_mock(monkeypatch):
 def test_return_full_config_if_in_cache(
     call_endpoint, default_projectkey, projectconfig_cache_get_mock_config
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
     assert status_code < 400
     assert result == {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},
@@ -93,33 +91,10 @@ def test_return_full_config_if_in_cache(
 
 
 @django_db_all
-def test_return_partial_config_if_in_cache(
-    monkeypatch,
-    call_endpoint,
-    default_projectkey,
-    default_project,
-):
-    # Partial configs are handled as ``v2``, even if the param is ``v3``
-    monkeypatch.setattr(
-        "sentry.relay.config.get_project_config",
-        lambda *args, **kwargs: ProjectConfig(default_project, is_mock_config=True),
-    )
-
-    result, status_code = call_endpoint(full_config=False)
-    assert status_code < 400
-    expected = {
-        "configs": {default_projectkey.public_key: {"is_mock_config": True}},
-    }
-    assert result == expected
-
-
-@django_db_all
 def test_proj_in_cache_and_another_pending(
     call_endpoint, default_projectkey, single_mock_proj_cached
 ):
-    result, status_code = call_endpoint(
-        full_config=True, public_keys=["must_exist", default_projectkey.public_key]
-    )
+    result, status_code = call_endpoint(public_keys=["must_exist", default_projectkey.public_key])
     assert status_code < 400
     assert result == {
         "configs": {"must_exist": {"is_mock_config": True}},
@@ -134,7 +109,7 @@ def test_enqueue_task_if_config_not_cached_not_queued(
     call_endpoint,
     default_projectkey,
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
     assert status_code < 400
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert schedule_mock.call_count == 1
@@ -148,7 +123,7 @@ def test_debounce_task_if_proj_config_not_cached_already_enqueued(
     default_projectkey,
     projectconfig_debounced_cache,
 ):
-    result, status_code = call_endpoint(full_config=True)
+    result, status_code = call_endpoint()
     assert status_code < 400
     assert result == {"configs": {}, "pending": [default_projectkey.public_key]}
     assert task_mock.call_count == 0
@@ -183,7 +158,7 @@ def test_return_project_and_global_config(
     default_projectkey,
     projectconfig_cache_get_mock_config,
 ):
-    result, status_code = call_endpoint(full_config=True, global_=True)
+    result, status_code = call_endpoint(global_=True)
     assert status_code == 200
     assert result == {
         "configs": {default_projectkey.public_key: {"is_mock_config": True}},

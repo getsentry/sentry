@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {
   type ContextItem,
   getOrderedContextItems,
@@ -24,6 +26,8 @@ interface ContextData extends ContextItem {
 }
 
 export const EMPTY_HIGHLIGHT_DEFAULT = '--';
+export const HIGHLIGHT_DOCS_LINK =
+  'https://docs.sentry.io/product/issues/issue-details/#event-highlights';
 
 /**
  * Helper function to use try HighlightContext saved values on multiple fields improve match rate.
@@ -77,9 +81,11 @@ export function getHighlightContextData({
   highlightContext,
   project,
   organization,
+  location,
 }: {
   event: Event;
   highlightContext: HighlightContext;
+  location: Location;
   organization: Organization;
   project: Project;
 }) {
@@ -110,6 +116,7 @@ export function getHighlightContextData({
         contextValue: value,
         organization,
         project,
+        location,
       }),
     })
   );
@@ -158,7 +165,9 @@ export function getHighlightTagData({
   return highlightTags.map(tagKey => ({
     subtree: {},
     meta: tagMap[tagKey]?.meta ?? {},
-    value: tagMap[tagKey]?.tag?.value ?? EMPTY_HIGHLIGHT_DEFAULT,
+    value: tagMap[tagKey]?.tag?.hasOwnProperty('value')
+      ? tagMap[tagKey]?.tag.value
+      : EMPTY_HIGHLIGHT_DEFAULT,
     originalTag: tagMap[tagKey]?.tag ?? {key: tagKey, value: EMPTY_HIGHLIGHT_DEFAULT},
   }));
 }

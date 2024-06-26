@@ -1,8 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
+import {Flex} from 'sentry/components/container/flex';
 import {Hovercard} from 'sentry/components/hovercard';
-import {Flex} from 'sentry/components/profiling/flex';
 import {
   FunctionsMiniGrid,
   FunctionsMiniGridEmptyState,
@@ -237,7 +237,7 @@ function ContextDetail(props: ContextDetailProps) {
 const UppercaseTitle = styled('span')`
   text-transform: uppercase;
   font-size: ${p => p.theme.fontSizeExtraSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 

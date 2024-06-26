@@ -67,10 +67,7 @@ function AlertWizard({organization, params, location, projectId}: AlertWizardPro
       metricRuleTemplate = {...metricRuleTemplate, dataset: Dataset.METRICS};
     }
 
-    if (
-      organization.features.includes('metric-alert-ignore-archived') &&
-      metricRuleTemplate?.dataset === Dataset.ERRORS
-    ) {
+    if (metricRuleTemplate?.dataset === Dataset.ERRORS) {
       // Pre-fill is:unresolved for error metric alerts
       // Filters out events in issues that are archived or resolved
       metricRuleTemplate = {...metricRuleTemplate, query: 'is:unresolved'};
@@ -210,7 +207,7 @@ const StyledHeaderContent = styled(Layout.HeaderContent)`
 `;
 
 const CategoryTitle = styled('h2')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraLarge};
   margin-bottom: ${space(1)} !important;
 `;

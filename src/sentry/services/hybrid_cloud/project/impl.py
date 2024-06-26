@@ -4,12 +4,12 @@ from django.db import router, transaction
 
 from sentry.api.serializers import ProjectSerializer
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.services.hybrid_cloud import OptionValue
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.project import (
     ProjectFilterArgs,
     ProjectService,
@@ -24,7 +24,9 @@ from sentry.signals import project_created
 class DatabaseBackedProjectService(ProjectService):
     def get_by_id(self, *, organization_id: int, id: int) -> RpcProject | None:
         try:
-            project = Project.objects.get_from_cache(id=id, organization=organization_id)
+            project: Project | None = Project.objects.get_from_cache(
+                id=id, organization=organization_id
+            )
         except ValueError:
             project = Project.objects.filter(id=id, organization=organization_id).first()
         except Project.DoesNotExist:

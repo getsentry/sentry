@@ -9,7 +9,7 @@ import RuleNode from 'sentry/views/alerts/rules/issue/ruleNode';
 
 describe('RuleNode', () => {
   const project = ProjectFixture();
-  const organization = OrganizationFixture({projects: [project]});
+  const organization = OrganizationFixture();
   const index = 0;
   const onDelete = jest.fn();
   const onReset = jest.fn();

@@ -32,6 +32,7 @@ from snuba_sdk import (
 )
 
 from sentry.api import event_search
+from sentry.api.event_search import SearchValue
 from sentry.discover.arithmetic import (
     OperandType,
     Operation,
@@ -50,14 +51,6 @@ from sentry.search.events import constants, fields
 from sentry.search.events import filter as event_filter
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-from sentry.search.events.datasets.metrics import MetricsDatasetConfig
-from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
-from sentry.search.events.datasets.metrics_summaries import MetricsSummariesDatasetConfig
-from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
-from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
-from sentry.search.events.datasets.sessions import SessionsDatasetConfig
-from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
-from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
 from sentry.search.events.types import (
     EventsResponse,
     HistogramParams,
@@ -90,11 +83,12 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
-    free_text_key = "message"
     uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
+    profile_functions_metrics_builder = False
     entity: Entity | None = None
+    config_class: type[DatasetConfig] | None
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -207,7 +201,6 @@ class BaseQueryBuilder:
             self.builder_config = config
         if self.builder_config.parser_config_overrides is None:
             self.builder_config.parser_config_overrides = {}
-        self.builder_config.parser_config_overrides["free_text_key"] = self.free_text_key
 
         self.dataset = dataset
 
@@ -271,12 +264,8 @@ class BaseQueryBuilder:
         self.turbo = turbo
         self.sample_rate = sample_rate
 
-        (
-            self.field_alias_converter,
-            self.function_converter,
-            self.search_filter_converter,
-            self.orderby_converter,
-        ) = self.load_config()
+        self.config = self.load_config()
+        self.parse_config()
 
         self.start: datetime | None = None
         self.end: datetime | None = None
@@ -341,52 +330,16 @@ class BaseQueryBuilder:
             with sentry_sdk.start_span(op="QueryBuilder", description="resolve_groupby"):
                 self.groupby = self.resolve_groupby(groupby_columns)
 
-    def load_config(
-        self,
-    ) -> tuple[
-        Mapping[str, Callable[[str], SelectType]],
-        Mapping[str, fields.SnQLFunction],
-        Mapping[str, Callable[[event_search.SearchFilter], WhereType | None]],
-        Mapping[str, Callable[[Direction], OrderBy]],
-    ]:
-        self.config: DatasetConfig
-        if self.dataset in [
-            Dataset.Discover,
-            Dataset.Transactions,
-            Dataset.Events,
-            Dataset.IssuePlatform,
-        ]:
-            self.config = DiscoverDatasetConfig(self)
-        elif self.dataset == Dataset.Sessions:
-            self.config = SessionsDatasetConfig(self)
-        elif self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if self.spans_metrics_builder:
-                # For now, we won't support the metrics layer for spans since it needs some work,
-                # but once the work will be done, we will have to add:
-                # if self.builder_config.use_metrics_layer:
-                #     self.config = SpansMetricsLayerDatasetConfig(self)
-                self.config = SpansMetricsDatasetConfig(self)
-            elif self.builder_config.use_metrics_layer:
-                self.config = MetricsLayerDatasetConfig(self)
-            else:
-                self.config = MetricsDatasetConfig(self)
-        elif self.dataset == Dataset.Profiles:
-            self.config = ProfilesDatasetConfig(self)
-        elif self.dataset == Dataset.Functions:
-            self.config = ProfileFunctionsDatasetConfig(self)
-        elif self.dataset == Dataset.SpansIndexed:
-            self.config = SpansIndexedDatasetConfig(self)
-        elif self.dataset == Dataset.MetricsSummaries:
-            self.config = MetricsSummariesDatasetConfig(self)
-        else:
-            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
+    def parse_config(self) -> None:
+        if not hasattr(self, "config") or self.config is None:
+            raise Exception("Setup failed, dataset config was not loaded")
+        self.field_alias_converter = self.config.field_alias_converter
+        self.function_converter = self.config.function_converter
+        self.search_filter_converter = self.config.search_filter_converter
+        self.orderby_converter = self.config.orderby_converter
 
-        field_alias_converter = self.config.field_alias_converter
-        function_converter = self.config.function_converter
-        search_filter_converter = self.config.search_filter_converter
-        orderby_converter = self.config.orderby_converter
-
-        return field_alias_converter, function_converter, search_filter_converter, orderby_converter
+    def load_config(self) -> DatasetConfig:
+        return self.config_class(self)
 
     def resolve_limit(self, limit: int | None) -> Limit | None:
         return None if limit is None else Limit(limit)
@@ -537,6 +490,7 @@ class BaseQueryBuilder:
             # Chained or statements become field:a OR (field:b OR (...))
             operator == Or
             and is_where_condition(lhs_where)
+            and rhs_where
             and isinstance(rhs_where[0], Or)
             # Even in a long chain the first condition would be the next field
             and isinstance(rhs_where[0].conditions[0], Condition)
@@ -1316,11 +1270,27 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            condition = Condition(
-                Function("match", [lhs, f"(?i){value}"]),
-                Op(search_filter.operator),
-                1,
-            )
+            raw_value = search_filter.value.raw_value
+            new_value = SearchValue(raw_value[1:-1])
+            if (
+                raw_value.startswith("*")
+                and raw_value.endswith("*")
+                and not new_value.is_wildcard()
+            ):
+                # This is an optimization to avoid using regular expressions
+                # for wild card searches if it can be avoided.
+                # Here, we're just interested if the substring exists.
+                condition = Condition(
+                    Function("positionCaseInsensitive", [lhs, new_value.value]),
+                    Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+                    0,
+                )
+            else:
+                condition = Condition(
+                    Function("match", [lhs, f"(?i){value}"]),
+                    Op(search_filter.operator),
+                    1,
+                )
         else:
             # pull out the aliased expression if it exists
             if isinstance(lhs, AliasedExpression):
@@ -1460,10 +1430,12 @@ class BaseQueryBuilder:
                     for column, function_details in self.function_alias_map.items()
                 }
 
-                self.function_alias_map = {
-                    translated_columns.get(column, column): function_details
-                    for column, function_details in self.function_alias_map.items()
-                }
+                for column in list(self.function_alias_map):
+                    translated_column = translated_columns.get(column, column)
+                    if translated_column in self.function_alias_map:
+                        continue
+                    self.function_alias_map[translated_column] = self.function_alias_map.get(column)
+
                 if self.raw_equations:
                     for index, equation in enumerate(self.raw_equations):
                         translated_columns[f"equation[{index}]"] = f"equation|{equation}"
@@ -1524,6 +1496,24 @@ class BaseQueryBuilder:
 
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
+
+    def load_config(
+        self,
+    ) -> DatasetConfig:
+        # Necessary until more classes inherit from BaseQueryBuilder instead
+        if hasattr(self, "config_class") and self.config_class is not None:
+            return super().load_config()
+
+        self.config: DatasetConfig
+        if self.dataset in [
+            Dataset.Discover,
+            Dataset.Transactions,
+            Dataset.Events,
+            Dataset.IssuePlatform,
+        ]:
+            return DiscoverDatasetConfig(self)
+        else:
+            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
     def resolve_field(self, raw_field: str, alias: bool = False) -> Column:
         tag_match = constants.TAG_KEY_RE.search(raw_field)

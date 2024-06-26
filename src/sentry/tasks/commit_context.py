@@ -109,6 +109,7 @@ def queue_comment_task_if_needed(
         return
 
     pr = pr_query.first()
+    assert pr is not None
     # need to query explicitly for merged PR comments since we can have multiple comments per PR
     merged_pr_comment_query = PullRequestComment.objects.filter(
         pull_request_id=pr.id, comment_type=CommentType.MERGED_PR
