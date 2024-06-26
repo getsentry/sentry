@@ -44,18 +44,6 @@ function SharedGroupHeader({group}: Props) {
           {event && (event.dateCreated ?? event.dateReceived) && (
             <TimeStamp data-test-id="sgh-timestamp">
               {t('Last seen ')}
-
-              <EventTimeLabel>
-                <Tooltip
-                  isHoverable
-                  showUnderline
-                  title={<EventCreatedTooltip event={event} />}
-                  overlayStyle={{maxWidth: 300}}
-                >
-                  <DateTime date={date.toLocaleString()} />
-                </Tooltip>
-              </EventTimeLabel>
-              {'Last seen '}
               <EventTimeLabel>
                 <Tooltip
                   isHoverable
