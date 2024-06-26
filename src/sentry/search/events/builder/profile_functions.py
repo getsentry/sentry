@@ -45,12 +45,14 @@ class ProfileFunctionsQueryBuilderMixin:
 
 class ProfileFunctionsQueryBuilder(ProfileFunctionsQueryBuilderMixin, QueryBuilder):
     function_alias_prefix = "sentry_"
+    config_class = ProfileFunctionsDatasetConfig
 
 
 class ProfileFunctionsTimeseriesQueryBuilder(
     ProfileFunctionsQueryBuilderMixin, TimeseriesQueryBuilder
 ):
     function_alias_prefix = "sentry_"
+    config_class = ProfileFunctionsDatasetConfig
 
     def strip_alias_prefix(self, result):
         alias_mappings = {
@@ -75,6 +77,8 @@ class ProfileFunctionsTimeseriesQueryBuilder(
 
 
 class ProfileTopFunctionsTimeseriesQueryBuilder(ProfileFunctionsTimeseriesQueryBuilder):
+    config_class = ProfileFunctionsDatasetConfig
+
     def __init__(
         self,
         dataset: Dataset,

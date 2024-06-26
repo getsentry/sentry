@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import random
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
 from django.conf import settings
@@ -19,6 +19,7 @@ PROJECT_FLUSH_FREQUENCY = timedelta(days=1)
 # How often do we want to run our task to flush the buckets?
 # XXX: This might actually belong in the task when we have that?
 BUCKET_FLUSH_FREQUENCY = timedelta(minutes=1)
+NUMBER_OF_BUCKETS = int(PROJECT_FLUSH_FREQUENCY / BUCKET_FLUSH_FREQUENCY)
 # How often should we trim the ranked list?
 RANKED_TRIM_CHANCE = 0.01
 # How many urls should we trim the ranked list to?
@@ -53,7 +54,7 @@ def add_base_url_to_rank(project: Project, base_url: str):
     bucket_key = get_project_bucket_key(project)
     pipeline = cluster.pipeline()
     pipeline.hincrby(bucket_key, str(project.id), 1)
-    rank_key = get_project_hostname_rank_key(project)
+    rank_key = get_project_base_url_rank_key(project)
     pipeline.zincrby(rank_key, 1, base_url)
     if random.random() < RANKED_TRIM_CHANCE:
         pipeline.zremrangebyrank(rank_key, 0, -(RANKED_MAX_SIZE + 1))
@@ -69,10 +70,59 @@ def add_base_url_to_rank(project: Project, base_url: str):
         pipeline.execute()
 
 
-def get_project_bucket_key(project: Project) -> str:
-    project_bucket = project.id % (PROJECT_FLUSH_FREQUENCY / BUCKET_FLUSH_FREQUENCY)
-    return f"p:{project_bucket}"
+def get_candidate_urls_for_project(project: Project) -> list[tuple[str, int]]:
+    """
+    Gets all the candidate urls for a project. Returns a tuple of (url, times_url_seen). Urls are sorted by
+    `times_url_seen` desc.
+    """
+    key = get_project_base_url_rank_key(project)
+    cluster = _get_cluster()
+    return cluster.zrange(key, 0, -1, desc=True, withscores=True, score_cast_func=int)
 
 
-def get_project_hostname_rank_key(project: Project) -> str:
+def delete_candidate_urls_for_project(project: Project) -> None:
+    """
+    Deletes all current candidate rules for a project.
+    """
+    key = get_project_base_url_rank_key(project)
+    cluster = _get_cluster()
+    cluster.delete(key)
+
+
+def get_project_base_url_rank_key(project: Project) -> str:
     return f"p:r:{project.id}"
+
+
+def build_project_bucket_key(bucket: int):
+    return f"p:{bucket}"
+
+
+def get_project_bucket_key(project: Project) -> str:
+    project_bucket = int(project.id % NUMBER_OF_BUCKETS)
+    return build_project_bucket_key(project_bucket)
+
+
+def get_project_bucket_key_for_datetime(bucket_datetime: datetime) -> str:
+    date_bucket = int(
+        bucket_datetime.replace(second=0, microsecond=0).timestamp() % NUMBER_OF_BUCKETS
+    )
+    return build_project_bucket_key(date_bucket)
+
+
+def get_project_bucket(bucket: datetime) -> dict[int, int]:
+    """
+    Fetch all projects from a specific datetime bucket. Returns a dict keyed by project id with the value as
+    the total count of seen valid urls
+    """
+    key = get_project_bucket_key_for_datetime(bucket)
+    cluster = _get_cluster()
+    return {int(key): int(val) for key, val in cluster.hgetall(key).items()}
+
+
+def delete_project_bucket(bucket: datetime) -> None:
+    """
+    Delete all projects from a specific datetime bucket.
+    """
+    key = get_project_bucket_key_for_datetime(bucket)
+    cluster = _get_cluster()
+    cluster.delete(key)

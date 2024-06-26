@@ -5,7 +5,7 @@
 
 from typing import Any
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 
 
 class RpcRepository(RpcModel):

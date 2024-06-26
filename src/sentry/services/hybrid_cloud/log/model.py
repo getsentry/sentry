@@ -7,7 +7,7 @@ import datetime
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
+from sentry.hybridcloud.rpc import DEFAULT_DATE, RpcModel
 
 
 class UserIpEvent(RpcModel):
