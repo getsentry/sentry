@@ -2425,13 +2425,6 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
 
         crash_free_rate = 1 - (count('e:session/crashed') / count('e:session/all'))
         """
-
-        # ingesting 'e:session/all' and 'e:session/ok'
-        self.build_and_store_session(
-            project_id=self.project.id,
-            minutes_before_now=1,
-            status="ok",
-        )
         # ingesting 'e:session/all' and 'e:session/crashed'
         self.build_and_store_session(
             project_id=self.project.id,
@@ -2471,6 +2464,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         )
 
         group = response.data["groups"][0]
-        assert group["totals"]["session.all"] == 2.0
+        assert group["totals"]["session.all"] == 1.0
         assert group["totals"]["session.crashed"] == 3.0
         assert group["totals"]["session.crash_free_rate"] == 0.0
+        for value in group["series"]["session.crash_free_rate"]:
+            assert value is None or value >= 0
