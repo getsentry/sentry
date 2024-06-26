@@ -124,6 +124,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "highlightContext",
         "highlightTags",
+        "extrapolateMetrics",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -209,6 +210,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -742,6 +744,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
+        if "extrapolateMetrics" in result:
+            if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
+                changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
+
         if has_elevated_scopes:
             options = result.get("options", {})
             if "sentry:origins" in options:
@@ -886,6 +892,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 if len(changed_proj_settings) == 1:
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
+
+            if "sentry:extrapolate_metrics" in options:
+                project.update_option(
+                    "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
+                )
 
         self.create_audit_entry(
             request=request,

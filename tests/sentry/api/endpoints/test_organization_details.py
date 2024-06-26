@@ -451,6 +451,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "metricAlertsThreadFlag": False,
             "metricsActivatePercentiles": True,
             "metricsActivateLastForGauges": True,
+            "extrapolateMetrics": True,
         }
 
         # needed to set require2FA
@@ -486,6 +487,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:events_member_admin") is False
         assert options.get("sentry:metrics_activate_percentiles") is True
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
+        assert options.get("sentry:extrapolate_metrics") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -526,6 +528,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "to {}".format(data["metricsActivateLastForGauges"])
             in log.data["metricsActivateLastForGauges"]
         )
+        assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
 
     @responses.activate
     @patch(
