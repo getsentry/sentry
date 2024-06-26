@@ -583,11 +583,13 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
                     )
                 ),
-                "extrapolateMetrics": bool(
-                    obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
-                ),
             }
         )
+
+        if features.has("organizations:metrics-extrapolation", obj):
+            context["extrapolateMetrics"] = bool(
+                obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
+            )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
         # serialize trusted relays info into their external form

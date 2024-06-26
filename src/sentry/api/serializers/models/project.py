@@ -1004,11 +1004,18 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "eventProcessing": {
                     "symbolicationDegraded": False,
                 },
-                "extrapolateMetrics": bool(
-                    attrs["options"].get("sentry:extrapolate_metrics", False)
-                ),
             }
         )
+
+        if features.has("organizations:metrics-extrapolation", obj.organization):
+            data.update(
+                {
+                    "extrapolateMetrics": bool(
+                        attrs["options"].get("sentry:extrapolate_metrics", False)
+                    )
+                }
+            )
+
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
             sources = parse_sources(custom_symbol_sources_json, False)
