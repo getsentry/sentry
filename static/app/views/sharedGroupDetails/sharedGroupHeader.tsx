@@ -8,10 +8,8 @@ import ShortId from 'sentry/components/shortId';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import getDynamicText from 'sentry/utils/getDynamicText';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {
@@ -19,9 +17,11 @@ type Props = {
 };
 
 function SharedGroupHeader({group}: Props) {
-  const date = group.latestEvent?.dateReceived ?? group.latestEvent?.dateCreated;
-  const date_obj = new Date(date as string);
-  const event = group.latestEvent as Event;
+  const date = new Date(
+    (group.latestEvent?.dateCreated ?? group.latestEvent?.dateReceived) as string
+  );
+  const event = group.latestEvent;
+
   return (
     <Wrapper>
       <Details>
@@ -41,27 +41,22 @@ function SharedGroupHeader({group}: Props) {
               />
             )}
           </ShortIdWrapper>
+          {event && (event.dateCreated ?? event.dateReceived) && (
+            <TimeStamp data-test-id="sgh-timestamp">
+              {t('Last seen ')}
 
-          <TimeStamp data-test-id="sgh-timestamp">
-            {t('Last seen ')}
-            {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
-                {getDynamicText({
-                  fixed: 'Jan 1, 12:00 AM',
-                  value: (
-                    <Tooltip
-                      isHoverable
-                      showUnderline
-                      title={<EventCreatedTooltip event={event} />}
-                      overlayStyle={{maxWidth: 300}}
-                    >
-                      <DateTime date={date_obj.toLocaleString()} />
-                    </Tooltip>
-                  ),
-                })}
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
+                  <DateTime date={date.toLocaleString()} />
+                </Tooltip>
               </EventTimeLabel>
-            )}
-          </TimeStamp>
+            </TimeStamp>
+          )}
         </TitleWrap>
         <EventMessage
           showUnhandled={group.isUnhandled}
