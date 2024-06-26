@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {modalCss} from 'sentry/components/featureFeedback/feedbackModal';
@@ -15,7 +14,6 @@ import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types/project';
-import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricsExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {
@@ -138,17 +136,8 @@ function RulesTable({
           <IconArrow size="xs" direction="down" />
           {t('Span attribute')}
         </Cell>,
-        <Cell right key="type">
-          {t('Type')}
-        </Cell>,
-        <Cell right key="unit">
-          {t('Unit')}
-        </Cell>,
         <Cell right key="filters">
           {t('Filters')}
-        </Cell>,
-        <Cell right key="tags">
-          {t('Tags')}
         </Cell>,
         <Cell right key="actions">
           {t('Actions')}
@@ -168,24 +157,9 @@ function RulesTable({
           <Fragment key={rule.spanAttribute + rule.type + rule.unit}>
             <Cell>{rule.spanAttribute}</Cell>
             <Cell right>
-              <Tag>{getReadableMetricType(rule.type)}</Tag>
-            </Cell>
-            <Cell right>
-              <Tag>{rule.unit}</Tag>
-            </Cell>
-            <Cell right>
               {rule.conditions.length ? (
                 <Button priority="link" onClick={() => onEdit(rule)}>
                   {rule.conditions.length}
-                </Button>
-              ) : (
-                <NoValue>{t('(none)')}</NoValue>
-              )}
-            </Cell>
-            <Cell right>
-              {rule.tags.length ? (
-                <Button priority="link" onClick={() => onEdit(rule)}>
-                  {rule.tags.length}
                 </Button>
               ) : (
                 <NoValue>{t('(none)')}</NoValue>
@@ -230,7 +204,7 @@ const FlexSpacer = styled('div')`
 `;
 
 const ExtractionRulesPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr repeat(5, min-content);
+  grid-template-columns: 1fr repeat(2, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
