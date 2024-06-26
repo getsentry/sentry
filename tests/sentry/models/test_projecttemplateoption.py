@@ -51,6 +51,18 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
         assert result == {self.project_template: "bar"}
 
+    def test_update_value(self):
+        result = ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
+        assert result.value == "bar"
+
+        ProjectTemplateOption.objects.set_value(self.project_template, key="foo", value="baz")
+        result = ProjectTemplateOption.objects.get(
+            project_template=self.project_template, key="foo"
+        )
+        assert result.value == "baz"
+
 
 class ProjectTemplateOptionTest(TestCase):
     def setUp(self):

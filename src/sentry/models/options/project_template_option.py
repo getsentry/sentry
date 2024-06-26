@@ -55,10 +55,6 @@ class ProjectTemplateOptionManager(OptionManager["ProjectTemplateOption"]):
 
         return created or inst > 0
 
-    def update_value(self, project_template_id: int, key: str, value: Value) -> None:
-        self.update_value(project_template_id=project_template_id, key=key, value=value)
-        self.reload_cache(project_template_id, "projecttemplateoption.update_value")
-
     def get_all_values(self, project_template: ProjectTemplate | int) -> Mapping[str, Value]:
         if isinstance(project_template, models.Model):
             project_template_id = project_template.id
