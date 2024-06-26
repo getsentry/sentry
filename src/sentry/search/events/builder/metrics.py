@@ -27,7 +27,6 @@ from snuba_sdk import (
     Request,
 )
 
-from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
@@ -40,9 +39,6 @@ from sentry.search.events.builder.utils import (
     remove_hours,
     remove_minutes,
 )
-from sentry.search.events.datasets.base import DatasetConfig
-from sentry.search.events.datasets.metrics import MetricsDatasetConfig
-from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
@@ -81,6 +77,7 @@ from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
+    valid_tags: Sequence[str] = constants.DEFAULT_METRIC_TAGS
 
     organization_column: str = "organization_id"
 
@@ -117,7 +114,6 @@ class MetricsQueryBuilder(QueryBuilder):
         self.metrics_layer_functions: list[CurriedFunction] = []
         self.metric_ids: set[int] = set()
         self._indexer_cache: dict[str, int | None] = {}
-        self._use_default_tags: bool | None = None
         self._has_nullable: bool = False
         # always true if this is being called
         config.has_metrics = True
@@ -143,29 +139,6 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
-
-    def load_config(self) -> DatasetConfig:
-        if hasattr(self, "config_class") and self.config_class is not None:
-            return super().load_config()
-
-        if self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
-            if self.builder_config.use_metrics_layer:
-                return MetricsLayerDatasetConfig(self)
-            else:
-                return MetricsDatasetConfig(self)
-        else:
-            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
-
-    @property
-    def use_default_tags(self) -> bool:
-        if self._use_default_tags is None:
-            if self.params.organization is not None:
-                self._use_default_tags = features.has(
-                    "organizations:mep-use-default-tags", self.params.organization, actor=None
-                )
-            else:
-                self._use_default_tags = False
-        return self._use_default_tags
 
     def are_columns_resolved(self) -> bool:
         # If we have an on demand spec, we want to mark the columns as resolved, since we are not running the
@@ -693,13 +666,17 @@ class MetricsQueryBuilder(QueryBuilder):
         # prior to resolving it via the indexer
         value = self.column_remapping.get(value, value)
 
-        if self.use_default_tags:
-            if value in self.default_metric_tags:
-                return self.resolve_metric_index(value)
-            else:
-                raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
-        else:
+        # Attempt to resolve tag keys, for the metrics preformance datasets we use an allowlist so ondemand keys don't
+        # overlap. If you don't want this functionality for your dataset set valid_tags to an empty sequence
+        # Ondemand should always resolve the metric_index
+        if (
+            (len(self.valid_tags) > 0 and value in self.valid_tags)
+            or len(self.valid_tags) == 0
+            or self.use_on_demand
+        ):
             return self.resolve_metric_index(value)
+        else:
+            raise IncompatibleMetricsQuery(f"{value} is not a tag in the metrics dataset")
 
     def default_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name
