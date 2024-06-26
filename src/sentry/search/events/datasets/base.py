@@ -20,7 +20,6 @@ class DatasetConfig(abc.ABC):
     non_nullable_keys: set[str] = set()
     missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
 
-    @abc.abstractmethod
     def __init__(self, builder: BaseQueryBuilder):
         pass
 

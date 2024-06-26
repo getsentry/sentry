@@ -224,7 +224,7 @@ class BaseQueryBuilder:
         self.tenant_ids: dict[str, str | None | int] | None = dict()
         if org_id is not None:
             self.tenant_ids["organization_id"] = org_id
-        if "use_case_id" in params:
+        if "use_case_id" in params and params.get("use_case_id") is not None:
             self.tenant_ids["use_case_id"] = params.get("use_case_id")
         if not self.tenant_ids:
             self.tenant_ids = None
@@ -993,7 +993,7 @@ class BaseQueryBuilder:
         unit = measurement["unit"]
         if unit in constants.SIZE_UNITS or unit in constants.DURATION_UNITS:
             return unit
-        elif unit is None:
+        elif unit == "none":
             return "integer"
         elif unit in constants.PERCENT_UNITS:
             return "percentage"
