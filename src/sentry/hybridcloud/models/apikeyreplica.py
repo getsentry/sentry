@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -38,15 +40,15 @@ class ApiKeyReplica(Model, HasApiScopes):
         return self.apikey_id
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ApiKeyStatus.ACTIVE
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if not self.allowed_origins:
             return []
         return list(filter(bool, self.allowed_origins.split("\n")))
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "label": self.label,
             "key": self.key,

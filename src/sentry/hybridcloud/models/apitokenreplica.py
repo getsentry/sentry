@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -33,23 +35,23 @@ class ApiTokenReplica(Model, HasApiScopes):
 
     __repr__ = sane_repr("user_id", "token", "application_id")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return force_str(self.token)
 
     @property
     def entity_id(self) -> int:
         return self.apitoken_id
 
-    def is_expired(self):
+    def is_expired(self) -> bool:
         if not self.expires_at:
             return False
 
         return timezone.now() >= self.expires_at
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         if not self.allowed_origins:
             return []
         return [origin for origin in self.allowed_origins.split()]
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"scopes": self.get_scopes()}
