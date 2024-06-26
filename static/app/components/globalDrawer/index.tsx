@@ -35,11 +35,9 @@ export interface DrawerRenderProps {
   closeDrawer: () => void;
 }
 
-interface GlobalDrawerProps {
-  onClose: () => void;
-}
+interface GlobalDrawerProps {}
 
-export default function GlobalDrawer({onClose}: GlobalDrawerProps) {
+export default function GlobalDrawer(_props: GlobalDrawerProps) {
   const location = useLocation();
   const {config, closeDrawer: ctxCloseDrawer} = useContext(DrawerContext);
   const {renderer, options = {}} = config;
@@ -50,9 +48,7 @@ export default function GlobalDrawer({onClose}: GlobalDrawerProps) {
     options?.onClose?.();
     // Actually close the drawer component
     ctxCloseDrawer();
-    // From GlobalDrawer usage, refocus main content
-    onClose?.();
-  }, [onClose, options, ctxCloseDrawer]);
+  }, [options, ctxCloseDrawer]);
 
   // Close the drawer when the browser history changes.
   useEffect(() => ctxCloseDrawer(), [location.pathname, ctxCloseDrawer]);

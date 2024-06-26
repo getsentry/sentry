@@ -1,6 +1,7 @@
 import {createContext, useCallback, useContext, useState} from 'react';
 
 import type {DrawerOptions, DrawerRenderProps} from 'sentry/components/globalDrawer';
+import GlobalDrawer from 'sentry/components/globalDrawer';
 
 type DrawerRenderer = (renderProps: DrawerRenderProps) => React.ReactNode;
 
@@ -55,7 +56,12 @@ export function DrawerContextProvider({children}: DrawerContextProviderProps) {
     openDrawer,
   };
 
-  return <DrawerContext.Provider value={ctx}>{children}</DrawerContext.Provider>;
+  return (
+    <DrawerContext.Provider value={ctx}>
+      <GlobalDrawer />
+      {children}
+    </DrawerContext.Provider>
+  );
 }
 
 export default function useDrawer() {

@@ -11,7 +11,6 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import GlobalDrawer from 'sentry/components/globalDrawer';
 import {DrawerContextProvider} from 'sentry/components/globalDrawer/context';
 import GlobalModal from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
@@ -230,7 +229,7 @@ function App({children, params}: Props) {
 
   // Used to restore focus to the container after closing the modal
   const mainContainerRef = useRef<HTMLDivElement>(null);
-  const focusMainContainer = useCallback(() => mainContainerRef.current?.focus?.(), []);
+  const handleModalClose = useCallback(() => mainContainerRef.current?.focus?.(), []);
 
   return (
     <Profiler id="App" onRender={onRenderCallback}>
@@ -238,8 +237,7 @@ function App({children, params}: Props) {
         <AsyncSDKIntegrationContextProvider>
           <DrawerContextProvider>
             <MainContainer tabIndex={-1} ref={mainContainerRef}>
-              <GlobalModal onClose={focusMainContainer} />
-              <GlobalDrawer onClose={focusMainContainer} />
+              <GlobalModal onClose={handleModalClose} />
               <SystemAlerts className="messages-container" />
               <Indicators className="indicators-container" />
               <ErrorBoundary>{renderBody()}</ErrorBoundary>

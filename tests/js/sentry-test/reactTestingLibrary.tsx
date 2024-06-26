@@ -7,7 +7,6 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
-import GlobalDrawer from 'sentry/components/globalDrawer';
 import {DrawerContextProvider} from 'sentry/components/globalDrawer/context';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
@@ -63,21 +62,18 @@ function makeAllTheProviders(providers: ProviderOptions) {
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeTestQueryClient()}>
-              <DrawerContextProvider>
-                <RouteContext.Provider
-                  value={{
-                    router,
-                    location: router.location,
-                    params: router.params,
-                    routes: router.routes,
-                  }}
-                >
-                  <OrganizationContext.Provider value={optionalOrganization}>
-                    <GlobalDrawer onClose={() => {}} />
-                    {children}
-                  </OrganizationContext.Provider>
-                </RouteContext.Provider>
-              </DrawerContextProvider>
+              <RouteContext.Provider
+                value={{
+                  router,
+                  location: router.location,
+                  params: router.params,
+                  routes: router.routes,
+                }}
+              >
+                <OrganizationContext.Provider value={optionalOrganization}>
+                  <DrawerContextProvider>{children}</DrawerContextProvider>
+                </OrganizationContext.Provider>
+              </RouteContext.Provider>
             </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>
