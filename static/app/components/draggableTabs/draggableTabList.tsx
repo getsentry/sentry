@@ -276,21 +276,19 @@ export function DraggableTabList({
       await dropItem.getText('tab')
     );
     const draggedTab = tabs.find(tab => tab.key === eventTab.key);
-    if (draggedTab) {
-      const updatedTabs = tabs.filter(tab => tab.key !== draggedTab.key);
-      const targetTab = tabs.find(tab => tab.key === e.target.key);
-      if (targetTab) {
-        if (e.target.key === draggedTab.key) {
-          return; // Do nothing if the dragged tab is dropped on itself
-        }
-        const targetIdx = updatedTabs.indexOf(targetTab);
-        if (e.target.dropPosition === 'before') {
-          updatedTabs.splice(targetIdx, 0, draggedTab);
-        } else if (e.target.dropPosition === 'after') {
-          updatedTabs.splice(targetIdx + 1, 0, draggedTab);
-        }
-        setTabs(updatedTabs);
+    if (!draggedTab || e.target.key === draggedTab.key) {
+      return; // Do nothing if the dragged tab is dropped on itself
+    }
+
+    const updatedTabs = tabs.filter(tab => tab.key !== draggedTab.key);
+    const targetIdx = updatedTabs.findIndex(tab => tab.key === e.target.key);
+    if (targetIdx > -1) {
+      if (e.target.dropPosition === 'before') {
+        updatedTabs.splice(targetIdx, 0, draggedTab);
+      } else if (e.target.dropPosition === 'after') {
+        updatedTabs.splice(targetIdx + 1, 0, draggedTab);
       }
+      setTabs(updatedTabs);
     }
   };
 
