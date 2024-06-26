@@ -55,6 +55,18 @@ function SharedGroupHeader({group}: Props) {
                   <DateTime date={date.toLocaleString()} />
                 </Tooltip>
               </EventTimeLabel>
+              {'Last seen '}
+
+              <EventTimeLabel>
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
+                  <DateTime date={date.toLocaleString()} />
+                </Tooltip>
+              </EventTimeLabel>
             </TimeStamp>
           )}
         </TitleWrap>
