@@ -83,6 +83,12 @@ export function CustomMetricsTable({project}: Props) {
       unit.includes(query)
   );
 
+  // If we have custom metrics extraction rules,
+  // we only show the custom metrics table if the project has custom metrics
+  if (hasCustomMetricsExtractionRules(organization) && metricsMeta.data.length === 0) {
+    return null;
+  }
+
   return (
     <Fragment>
       <SearchWrapper>
