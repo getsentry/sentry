@@ -240,6 +240,36 @@ class GetChannelIdTest(TestCase):
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @with_feature("organizations:slack-sdk-get-channel-id")
+    def test_user_list_multi_pagination_sdk_client(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(self.response_json).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps(
+                    {
+                        "ok": True,
+                        "members": [
+                            {
+                                "id": "UXXXXXXX5",
+                                "name": "red-john",
+                            },
+                        ],
+                        "response_metadata": {"next_cursor": ""},
+                    }
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        self.run_valid_test("@red-john", MEMBER_PREFIX, "UXXXXXXX5", False)
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-get-channel-id")
     def test_user_list_pagination_failure_sdk_client(self, mock_api_call):
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
