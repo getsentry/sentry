@@ -6,8 +6,8 @@
 from abc import abstractmethod
 from datetime import datetime
 
+from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud import silo_mode_delegation
 from sentry.silo.base import SiloMode
 
 

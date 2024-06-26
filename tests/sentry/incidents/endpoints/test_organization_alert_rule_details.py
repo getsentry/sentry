@@ -27,6 +27,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.services.hybrid_cloud.app import app_service
@@ -856,7 +857,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
 
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        return_value=SlackChannelIdData("#", None, True),
     )
     @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
@@ -1007,8 +1008,12 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == {"uuid": "abc123"}
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        side_effect=[
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "20", False),
+        ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):

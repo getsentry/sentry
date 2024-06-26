@@ -18,8 +18,8 @@ import {
   PerformanceBadge,
 } from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/useProjectWebVitalsTimeseriesQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionWebVitalsQuery';
+import {useProjectWebVitalsScoresTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -52,10 +52,10 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
     useProjectWebVitalsScoresQuery();
 
   const {data: transactionWebVitals, isLoading: isTransactionWebVitalsQueryLoading} =
-    useTransactionWebVitalsQuery({limit: 4});
+    useTransactionWebVitalsScoresQuery({limit: 4});
 
   const {data: timeseriesData, isLoading: isTimeseriesQueryLoading} =
-    useProjectWebVitalsTimeseriesQuery({});
+    useProjectWebVitalsScoresTimeseriesQuery({});
 
   const assembleAccordionItems = provided =>
     getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
