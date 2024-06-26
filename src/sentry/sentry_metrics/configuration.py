@@ -172,3 +172,18 @@ def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
     global_tag_map = {"pipeline": config.internal_metrics_tag or ""}
 
     add_global_tags(_all_threads=True, **global_tag_map)
+
+
+HARD_CODED_UNITS = {"span.duration": "millisecond"}
+ALLOWED_TYPES = {"c", "d", "s", "g"}
+METRICS_AGGREGATES = {
+    "c": ["count"],
+    "g": ["avg", "min", "max", "sum"],
+    "d": ["p50", "p75", "p90", "p95", "p99"],
+    "s": ["count_unique"],
+}
+AGGREGATES_TO_METRICS = {
+    aggregate: metric_type
+    for metric_type, aggregate_list in METRICS_AGGREGATES.items()
+    for aggregate in aggregate_list
+}

@@ -33,7 +33,6 @@ from sentry.relay.config.experimental import TimeChecker
 from sentry.search.events import fields
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
-from sentry.sentry_metrics.extraction_rules import MetricsExtractionRuleState
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     WIDGET_QUERY_CACHE_MAX_CHUNKS,
@@ -826,7 +825,7 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
     ):
         return []
 
-    extraction_rules_state = MetricsExtractionRuleState.load_from_project(project)
+    extraction_rules_state = []
     version = SpecVersion(version=_METRIC_EXTRACTION_VERSION)
 
     specs = []

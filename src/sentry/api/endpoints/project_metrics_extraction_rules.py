@@ -1,6 +1,4 @@
-from collections.abc import Sequence
-from typing import Any
-
+from django.db import IntegrityError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -11,14 +9,14 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.metrics_extraction_rules import MetricsExtractionRuleSerializer
+from sentry.api.serializers.models.metrics_extraction_rules import (
+    SpanAttributeExtractionRuleConfigSerializer,
+)
 from sentry.models.project import Project
-from sentry.sentry_metrics.extraction_rules import (
-    MetricsExtractionRule,
-    create_metrics_extraction_rules,
-    delete_metrics_extraction_rules,
-    get_metrics_extraction_rules,
-    update_metrics_extraction_rules,
+from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
 )
 
 
@@ -42,13 +40,18 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
-        rules_update = request.data.get("metricsExtractionRules") or []
-        if len(rules_update) == 0:
+        config_update = request.data.get("metricsExtractionRules") or []
+        if len(config_update) == 0:
             return Response(status=204)
 
         try:
-            state_update = self._generate_deleted_rule_objects(rules_update)
-            delete_metrics_extraction_rules(project, state_update)
+            for obj in config_update:
+                configs = SpanAttributeExtractionRuleConfig.objects.filter(
+                    project=project, span_attribute=obj["spanAttribute"]
+                )
+                for config in configs:
+                    config.conditions.all().delete()
+                    config.delete()
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
@@ -60,16 +63,17 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         try:
-            extraction_rules = get_metrics_extraction_rules(project)
+            configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
+
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
         return self.paginate(
             request,
-            queryset=extraction_rules,
+            queryset=list(configs),
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
-                x, user=request.user, serializer=MetricsExtractionRuleSerializer()
+                x, user=request.user, serializer=SpanAttributeExtractionRuleConfigSerializer()
             ),
             default_per_page=1000,
             max_per_page=1000,
@@ -81,62 +85,100 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
-        rules_update = request.data.get("metricsExtractionRules")
+        config_update = request.data.get("metricsExtractionRules")
 
-        if not rules_update or len(rules_update) == 0:
+        if not config_update or len(config_update) == 0:
+            return Response(
+                status=400,
+                data={"detail": "Please specify the metric extraction rule to be created."},
+            )
+        try:
+            configs = []
+            for obj in config_update:
+                config = SpanAttributeExtractionRuleConfig()
+                config.created_by_id = request.user.id
+                config.project = project
+                config.span_attribute = obj["spanAttribute"]
+                config.aggregates = obj["aggregates"]
+                config.unit = HARD_CODED_UNITS.get(obj["spanAttribute"], obj["unit"])
+                config.tags = obj["tags"]
+                config.save()
+                configs.append(config)
+
+                for condition in obj["conditions"]:
+                    condition_obj = SpanAttributeExtractionRuleCondition.objects.create(
+                        created_by_id=request.user.id,
+                        project=project,
+                        value=condition["value"],
+                        config=config,
+                    )
+                    condition_obj.save()
+
+        except IntegrityError:
             return Response(
                 status=400,
                 data={"detail": "Please specify the metric extraction rule to be created."},
             )
 
-        try:
-            state_update = self._generate_updated_rule_objects(rules_update)
-            persisted_rules = create_metrics_extraction_rules(project, state_update)
-            updated_rules = serialize(
-                persisted_rules, request.user, MetricsExtractionRuleSerializer()
-            )
-        except Exception as e:
-            return Response(status=400, data={"detail": str(e)})
-
-        return Response(status=200, data=updated_rules)
+        persisted_config = serialize(
+            configs,
+            request.user,
+            SpanAttributeExtractionRuleConfigSerializer(),
+        )
+        return Response(data=persisted_config, status=200)
 
     def put(self, request: Request, project: Project) -> Response:
         """PUT to modify an existing extraction rule."""
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
-        rules_update = request.data.get("metricsExtractionRules")
-
-        if not rules_update or len(rules_update) == 0:
+        config_update = request.data.get("metricsExtractionRules")
+        if not config_update or len(config_update) == 0:
             return Response(status=200)
 
-        try:
-            state_update = self._generate_updated_rule_objects(rules_update)
-            persisted_rules = update_metrics_extraction_rules(project, state_update)
-            updated_rules = serialize(
-                persisted_rules, request.user, MetricsExtractionRuleSerializer()
+        configs = []
+        for obj in config_update:
+            config = SpanAttributeExtractionRuleConfig.objects.get(
+                project=project, span_attribute=obj["spanAttribute"]
             )
-        except Exception as e:
-            return Response(status=400, data={"detail": str(e)})
+            config.aggregates = obj["aggregates"]
+            config.unit = HARD_CODED_UNITS.get(obj["spanAttribute"], obj["unit"])
+            config.tags = obj["tags"]
+            config.save()
+            config.refresh_from_db()
+            configs.append(config)
 
-        return Response(status=200, data=updated_rules)
+            # delete conditions not present in update
+            included_conditions = [x["id"] for x in obj["conditions"]]
+            SpanAttributeExtractionRuleCondition.objects.exclude(
+                id__in=included_conditions
+            ).delete()
 
-    def _generate_updated_rule_objects(
-        self, updated_rules: list[dict[str, Any]]
-    ) -> dict[str, MetricsExtractionRule]:
-        state_update = {}
-        for updated_rule in updated_rules:
-            rule = MetricsExtractionRule.from_dict(updated_rule)
-            mri = rule.generate_mri()
-            state_update[mri] = rule
+            for condition in obj["conditions"]:
+                condition_exists = SpanAttributeExtractionRuleCondition.objects.filter(
+                    id=condition["id"], project=project
+                ).exists()
 
-        return state_update
+                # update existing conditions
+                if condition_exists:
+                    SpanAttributeExtractionRuleCondition.objects.filter(
+                        id=condition["id"], project=project
+                    ).update(value=condition["value"])
 
-    def _generate_deleted_rule_objects(
-        self, updated_rules: list[dict[str, Any]]
-    ) -> Sequence[MetricsExtractionRule]:
-        state_update = []
-        for updated_rule in updated_rules:
-            state_update.append(MetricsExtractionRule.from_dict(updated_rule))
+                # create new conditions
+                else:
+                    condition_obj = SpanAttributeExtractionRuleCondition.objects.create(
+                        created_by_id=request.user.id,
+                        project=project,
+                        value=condition["value"],
+                        config=config,
+                    )
+                    condition_obj.save()
 
-        return state_update
+        persisted_config = serialize(
+            configs,
+            request.user,
+            SpanAttributeExtractionRuleConfigSerializer(),
+        )
+
+        return Response(data=persisted_config, status=200)
