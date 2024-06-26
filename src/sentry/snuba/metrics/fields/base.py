@@ -47,6 +47,7 @@ from sentry.snuba.metrics.fields.snql import (
     max_timestamp,
     min_timestamp,
     miserable_users,
+    non_negative_crash_free_rate,
     on_demand_apdex_snql_factory,
     on_demand_count_unique_snql_factory,
     on_demand_count_web_vitals_snql_factory,
@@ -1474,7 +1475,7 @@ DERIVED_METRICS = {
             metric_mri=SessionMRI.CRASH_FREE_RATE.value,
             metrics=[SessionMRI.CRASH_RATE.value],
             unit="percentage",
-            snql=lambda crash_rate_value, project_ids, org_id, metric_ids, alias=None: complement(
+            snql=lambda crash_rate_value, project_ids, org_id, metric_ids, alias=None: non_negative_crash_free_rate(
                 crash_rate_value, alias=alias
             ),
         ),
