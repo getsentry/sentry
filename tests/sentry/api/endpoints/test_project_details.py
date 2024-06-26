@@ -1327,9 +1327,14 @@ class ProjectUpdateTest(APITestCase):
 
     @with_feature("organizations:metrics-extrapolation")
     def test_extrapolate_metrics(self):
+        # test when the value is set to False
         resp = self.get_success_response(self.org_slug, self.proj_slug, extrapolateMetrics=False)
         assert self.project.get_option("sentry:extrapolate_metrics") is False
         assert resp.data["extrapolateMetrics"] is False
+        # test when the value is set to True
+        resp = self.get_success_response(self.org_slug, self.proj_slug, extrapolateMetrics=True)
+        assert self.project.get_option("sentry:extrapolate_metrics") is True
+        assert resp.data["extrapolateMetrics"] is True
 
 
 class CopyProjectSettingsTest(APITestCase):
