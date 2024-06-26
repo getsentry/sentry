@@ -266,6 +266,10 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
 
     const series = provided.widgetData.chart.data;
     if (defined(series)) {
+      // Semantic versions may overlap, in which case we need to append the package name to ensure a unique series name
+      const versionNamesOverlap =
+        new Set(series.map(({seriesName}) => formatVersion(seriesName))).size <
+        series.length;
       series.forEach(({seriesName: release, data}) => {
         const isPrimary = release === primaryRelease;
 
@@ -280,7 +284,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
 
         const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
         transformedReleaseSeries[release] = {
-          seriesName: formatVersion(label),
+          seriesName: formatVersion(label, versionNamesOverlap),
           color,
           data: seriesData,
         };
