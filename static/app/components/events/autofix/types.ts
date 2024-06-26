@@ -1,5 +1,6 @@
 import type {EventMetadata} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 
 export enum DiffFileType {
   ADDED = 'A',
@@ -17,6 +18,7 @@ export enum AutofixStepType {
   DEFAULT = 'default',
   ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
   CHANGES = 'changes',
+  USER_RESPONSE = 'user_response',
 }
 
 export enum AutofixCodebaseIndexingStatus {
@@ -32,6 +34,10 @@ export type AutofixPullRequestDetails = {
   pr_url: string;
 };
 
+export type AutofixOptions = {
+  iterative_feedback?: boolean;
+};
+
 export type AutofixData = {
   created_at: string;
   run_id: string;
@@ -42,12 +48,15 @@ export type AutofixData = {
     | 'NOFIX'
     | 'ERROR'
     | 'NEED_MORE_INFORMATION';
+  actor_ids?: number[];
   codebase_indexing?: {
     status: 'COMPLETED';
   };
   completed_at?: string | null;
   error_message?: string;
+  options?: AutofixOptions;
   steps?: AutofixStep[];
+  users?: Record<number, User>;
 };
 
 export type AutofixProgressItem = {
@@ -57,7 +66,11 @@ export type AutofixProgressItem = {
   data?: any;
 };
 
-export type AutofixStep = AutofixDefaultStep | AutofixRootCauseStep | AutofixChangesStep;
+export type AutofixStep =
+  | AutofixDefaultStep
+  | AutofixRootCauseStep
+  | AutofixChangesStep
+  | AutofixUserResponseStep;
 
 interface BaseStep {
   id: string;
@@ -100,6 +113,12 @@ export type AutofixCodebaseChange = {
 export interface AutofixChangesStep extends BaseStep {
   changes: AutofixCodebaseChange[];
   type: AutofixStepType.CHANGES;
+}
+
+export interface AutofixUserResponseStep extends BaseStep {
+  text: string;
+  type: AutofixStepType.USER_RESPONSE;
+  user_id: number;
 }
 
 export type AutofixRootCauseSuggestedFixSnippet = {
