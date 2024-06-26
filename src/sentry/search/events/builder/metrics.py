@@ -80,7 +80,6 @@ from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
-    is_alerts_query = False
 
     organization_column: str = "organization_id"
 
@@ -1214,7 +1213,7 @@ class MetricsQueryBuilder(QueryBuilder):
                                     self.get_metrics_layer_snql_query(
                                         query_details, extra_conditions
                                     ),
-                                    self.is_alerts_query,
+                                    isinstance(self, AlertMetricsQueryBuilder),
                                 )
                             )
                     metrics_data = []
@@ -1421,8 +1420,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
 
 class AlertMetricsQueryBuilder(MetricsQueryBuilder):
-    is_alerts_query = True
-
     def __init__(
         self,
         *args: Any,
@@ -1463,7 +1460,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             else:
                 intermediate_query = self.get_metrics_layer_snql_query()
                 metrics_query = transform_mqb_query_to_metrics_query(
-                    intermediate_query, is_alerts_query=self.is_alerts_query
+                    intermediate_query, is_alerts_query=isinstance(self, AlertMetricsQueryBuilder)
                 )
 
             snuba_queries, _ = SnubaQueryBuilder(
@@ -1724,7 +1721,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
                         metrics_queries.append(
-                            transform_mqb_query_to_metrics_query(snuba_query, self.is_alerts_query)
+                            transform_mqb_query_to_metrics_query(
+                                snuba_query, isinstance(self, AlertMetricsQueryBuilder)
+                            )
                         )
                 metrics_data = []
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
@@ -1995,7 +1994,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                     elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
                         metrics_queries.append(
-                            transform_mqb_query_to_metrics_query(snuba_query, self.is_alerts_query)
+                            transform_mqb_query_to_metrics_query(
+                                snuba_query, isinstance(self, AlertMetricsQueryBuilder)
+                            )
                         )
                 metrics_data = []
                 for metrics_query in metrics_queries:
