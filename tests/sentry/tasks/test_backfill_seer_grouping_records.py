@@ -196,6 +196,35 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
         )
 
+    @patch("sentry.tasks.embeddings_grouping.utils.metrics")
+    @override_options({"similarity.backfill_nodestore_use_multithread": True})
+    def test_lookup_group_data_stacktrace_bulk_success_multithread(self, mock_metrics):
+        """Test successful bulk group data and stacktrace lookup"""
+        rows, events = self.bulk_rows, self.bulk_events
+        nodestore_results, _ = get_events_from_nodestore(
+            self.project, rows, self.group_hashes.keys()
+        )
+
+        expected_group_data = [
+            CreateGroupingRecordData(
+                group_id=event.group.id,
+                hash=self.group_hashes[event.group.id],
+                project_id=self.project.id,
+                message=event.title,
+                exception_type=get_path(event.data, "exception", "values", -1, "type"),
+            )
+            for event in events
+        ]
+        expected_stacktraces = [
+            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            for i in range(5)
+        ]
+        assert nodestore_results["data"] == expected_group_data
+        assert nodestore_results["stacktrace_list"] == expected_stacktraces
+        mock_metrics.gauge.assert_called_with(
+            "backfill_grouping_records._lookup_event_bulk.hit_ratio", 100, sample_rate=1.0
+        )
+
     @patch("time.sleep", return_value=None)
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
     @patch("sentry.nodestore.backend.get_multi")
