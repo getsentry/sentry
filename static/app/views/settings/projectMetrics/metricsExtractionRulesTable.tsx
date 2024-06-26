@@ -154,7 +154,7 @@ function RulesTable({
       {extractionRules
         .toSorted((a, b) => a?.spanAttribute?.localeCompare(b?.spanAttribute))
         .map(rule => (
-          <Fragment key={rule.spanAttribute + rule.type + rule.unit}>
+          <Fragment key={rule.spanAttribute + rule.unit}>
             <Cell>{rule.spanAttribute}</Cell>
             <Cell right>
               {rule.conditions.length ? (
