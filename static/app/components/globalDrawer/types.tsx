@@ -44,7 +44,3 @@ export interface DrawerContext {
     options?: DrawerConfig['options']
   ) => void;
 }
-
-export interface DrawerContextProps extends DrawerContext {
-  config: DrawerConfig;
-}

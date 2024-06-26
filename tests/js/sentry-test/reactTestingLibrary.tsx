@@ -7,7 +7,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
-import {DrawerContextProvider} from 'sentry/components/globalDrawer';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types/organization';
@@ -21,11 +21,6 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 import {initializeOrg} from './initializeOrg';
 
 interface ProviderOptions {
-  /**
-   * Mounts the GlobalDrawer, and its provider.
-   * Must be specified excplitly since .toBeEmptyDOMElement assertions will fail otherwise
-   */
-  includeDrawer?: boolean;
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
@@ -76,11 +71,7 @@ function makeAllTheProviders(providers: ProviderOptions) {
                 }}
               >
                 <OrganizationContext.Provider value={optionalOrganization}>
-                  {providers?.includeDrawer ? (
-                    <DrawerContextProvider>{children}</DrawerContextProvider>
-                  ) : (
-                    children
-                  )}
+                  <GlobalDrawer>{children}</GlobalDrawer>
                 </OrganizationContext.Provider>
               </RouteContext.Provider>
             </QueryClientProvider>
@@ -102,12 +93,11 @@ function makeAllTheProviders(providers: ProviderOptions) {
  */
 function render(
   ui: React.ReactElement,
-  {router, organization, includeDrawer, ...rtlOptions}: Options = {}
+  {router, organization, ...rtlOptions}: Options = {}
 ) {
   const AllTheProviders = makeAllTheProviders({
     organization,
     router,
-    includeDrawer,
   });
 
   return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
@@ -142,7 +132,9 @@ function renderGlobalModal(options?: Options) {
  */
 function waitForDrawerToHide() {
   return rtl.waitFor(() => {
-    expect(rtl.screen.queryByRole('complimentary')).not.toBeInTheDocument();
+    expect(
+      rtl.screen.queryByRole('complementary', {name: 'slide-out-drawer'})
+    ).not.toBeInTheDocument();
   });
 }
 

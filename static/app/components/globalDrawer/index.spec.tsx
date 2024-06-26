@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import type {DrawerConfig} from 'sentry/components/globalDrawer/types';
@@ -13,12 +8,12 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   return (
     <div>
       <button
-        data-test-id="test-open-drawer"
+        data-test-id="drawer-test-open"
         onClick={() => openDrawer(config.renderer, config.options)}
       >
         Open
       </button>
-      <button data-test-id="test-close-drawer" onClick={closeDrawer}>
+      <button data-test-id="drawer-test-close" onClick={closeDrawer}>
         Close
       </button>
     </div>
@@ -34,24 +29,29 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body}) => <Body data-test-id="drawer-test">useDrawer hook</Body>,
+          renderer: ({Body}) => (
+            <Body data-test-id="drawer-test-content">useDrawer hook</Body>
+          ),
         }}
-      />,
-      {includeDrawer: true}
+      />
     );
 
-    // It is present, but ignored when `aria-hidden` is set to True
+    expect(
+      screen.queryByRole('complementary', {name: 'slide-out-drawer'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    expect(screen.getByRole('complementary', {name: 'slide-out-drawer'})).toBeVisible();
+
+    await userEvent.click(screen.getByTestId('drawer-test-close'));
+
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByTestId('test-open-drawer'));
-
-    expect(await screen.findByTestId('drawer-test')).toBeInTheDocument();
-    expect(screen.getByRole('complementary')).toBeVisible();
-
-    await userEvent.click(screen.getByTestId('test-close-drawer'));
-
-    waitForElementToBeRemoved(screen.getByTestId('drawer-test'));
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('complementary', {name: 'slide-out-drawer'})
+    ).not.toBeInTheDocument();
   });
 
   it('calls onClose handler when close button is clicked', async function () {
@@ -60,21 +60,22 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body}) => <Body data-test-id="drawer-test">onClose button</Body>,
+          renderer: ({Body}) => (
+            <Body data-test-id="drawer-test-content">onClose button</Body>
+          ),
           options: {onClose: closeSpy},
         }}
-      />,
-      {includeDrawer: true}
+      />
     );
 
-    await userEvent.click(screen.getByTestId('test-open-drawer'));
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
 
-    expect(await screen.findByTestId('drawer-test')).toBeInTheDocument();
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('close-drawer-control'));
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
 
     expect(closeSpy).toHaveBeenCalled();
-    await waitForElementToBeRemoved(screen.getByTestId('drawer-test'));
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
 
   it('calls onClose handler when clicking outside the drawer', async function () {
@@ -84,22 +85,21 @@ describe('GlobalDrawer', function () {
       <GlobalDrawerTestComponent
         config={{
           renderer: ({Body}) => (
-            <Body data-test-id="drawer-test">onClose outside click</Body>
+            <Body data-test-id="drawer-test-content">onClose outside click</Body>
           ),
           options: {onClose: closeSpy},
         }}
-      />,
-      {includeDrawer: true}
+      />
     );
 
-    await userEvent.click(screen.getByTestId('test-open-drawer'));
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
 
-    expect(await screen.findByTestId('drawer-test')).toBeInTheDocument();
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-container'));
 
     expect(closeSpy).toHaveBeenCalled();
-    await waitForElementToBeRemoved(screen.getByTestId('drawer-test'));
+    expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
   });
 
   it('calls onClose handler when escape key is pressed', async function () {
@@ -108,22 +108,23 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body}) => <Body data-test-id="drawer-test">onClose escape</Body>,
+          renderer: ({Body}) => (
+            <Body data-test-id="drawer-test-content">onClose escape</Body>
+          ),
           options: {onClose: closeSpy},
         }}
-      />,
-      {includeDrawer: true}
+      />
     );
 
-    await userEvent.click(screen.getByTestId('test-open-drawer'));
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
 
-    const content = screen.getByTestId('drawer-test');
+    const content = screen.getByTestId('drawer-test-content');
     expect(content).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
 
     expect(closeSpy).toHaveBeenCalled();
-    await waitForElementToBeRemoved(content);
+    expect(content).not.toBeInTheDocument();
   });
 
   it('calls onClose handler when closeDrawer prop is called', async function () {
@@ -133,19 +134,18 @@ describe('GlobalDrawer', function () {
       <GlobalDrawerTestComponent
         config={{
           renderer: ({closeDrawer: cd}) => (
-            <button data-test-id="drawer-test" onClick={cd}>
+            <button data-test-id="drawer-test-content" onClick={cd}>
               onClose prop
             </button>
           ),
           options: {onClose: closeSpy},
         }}
-      />,
-      {includeDrawer: true}
+      />
     );
 
-    await userEvent.click(screen.getByTestId('test-open-drawer'));
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
 
-    const button = screen.getByTestId('drawer-test');
+    const button = screen.getByTestId('drawer-test-content');
     expect(button).toBeInTheDocument();
 
     await userEvent.click(button);
@@ -161,7 +161,7 @@ describe('GlobalDrawer', function () {
       <GlobalDrawerTestComponent
         config={{
           renderer: ({Body}) => (
-            <Body data-test-id="drawer-test">ignore close events</Body>
+            <Body data-test-id="drawer-test-content">ignore close events</Body>
           ),
           options: {
             onClose: closeSpy,
@@ -169,13 +169,12 @@ describe('GlobalDrawer', function () {
             closeOnOutsideClick: false,
           },
         }}
-      />,
-      {includeDrawer: true}
+      />
     );
 
-    await userEvent.click(screen.getByTestId('test-open-drawer'));
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
 
-    const content = screen.getByTestId('drawer-test');
+    const content = screen.getByTestId('drawer-test-content');
 
     await userEvent.keyboard('{Escape}');
 
@@ -187,9 +186,9 @@ describe('GlobalDrawer', function () {
     expect(closeSpy).not.toHaveBeenCalled();
     expect(content).toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('close-drawer-control'));
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
 
     expect(closeSpy).toHaveBeenCalled();
-    await waitForElementToBeRemoved(content);
+    expect(content).not.toBeInTheDocument();
   });
 });

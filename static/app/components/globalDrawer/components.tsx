@@ -26,13 +26,12 @@ export function DrawerPanel({
   const [isDrawerOpen, setIsDrawerOpen] = useState(isOpen);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useOnClickOutside(panelRef, () => {
+  const handleClickOutside = useCallback(() => {
     if (isOpen && closeOnOutsideClick) {
       onClose();
       setIsDrawerOpen(false);
     }
-  });
-
+  }, [isOpen, closeOnOutsideClick, onClose]);
   const handleEscapePress = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen && closeOnEscapeKeypress) {
@@ -43,17 +42,17 @@ export function DrawerPanel({
     [isOpen, closeOnEscapeKeypress, onClose]
   );
 
+  useOnClickOutside(panelRef, handleClickOutside);
   useEffect(() => {
     document.addEventListener('keydown', handleEscapePress);
     return () => document.removeEventListener('keydown', handleEscapePress);
   }, [handleEscapePress]);
-
   useEffect(() => {
     setIsDrawerOpen(isOpen);
   }, [isOpen]);
 
   return (
-    <div role="complementary" aria-hidden={!isDrawerOpen} data-test-id="drawer-content">
+    <div role="complementary" aria-hidden={!isDrawerOpen} aria-label="slide-out-drawer">
       <SlideOverPanel
         slidePosition="right"
         collapsed={!isDrawerOpen}
@@ -65,9 +64,8 @@ export function DrawerPanel({
             priority="link"
             size="zero"
             borderless
-            data-test-id="close-drawer-control"
             aria-label={t('Close Drawer')}
-            icon={<IconClose size="sm" />}
+            icon={<IconClose />}
             onClick={() => {
               setIsDrawerOpen(false);
               onClose?.();

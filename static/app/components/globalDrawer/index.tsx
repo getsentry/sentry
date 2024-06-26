@@ -7,40 +7,34 @@ import {
 } from 'sentry/components/globalDrawer/components';
 import type {
   DrawerConfig,
-  DrawerContext as DrawerUsageContext,
-  DrawerContextProps,
+  DrawerContext as TDrawerContext,
 } from 'sentry/components/globalDrawer/types';
 import {useLocation} from 'sentry/utils/useLocation';
 
-const DEFAULT_DRAWER_CONTEXT: DrawerContextProps = {
-  config: {
-    renderer: null,
-    options: {
-      closeOnEscapeKeypress: true,
-      closeOnOutsideClick: true,
-    },
+const DEFAULT_DRAWER_CONFIG: DrawerConfig = {
+  renderer: null,
+  options: {
+    closeOnEscapeKeypress: true,
+    closeOnOutsideClick: true,
   },
+};
+
+const DEFAULT_DRAWER_CONTEXT: TDrawerContext = {
   openDrawer: () => {},
   closeDrawer: () => {},
 };
 
-const DrawerContext = createContext<DrawerContextProps>(DEFAULT_DRAWER_CONTEXT);
+const DrawerContext = createContext<TDrawerContext>(DEFAULT_DRAWER_CONTEXT);
 
-export function DrawerContextProvider({children}) {
+export function GlobalDrawer({children}) {
   const location = useLocation();
-  const [drawerConfig, setDrawerConfig] = useState<DrawerConfig>(
-    DEFAULT_DRAWER_CONTEXT.config
-  );
+  const [drawerConfig, setDrawerConfig] = useState<DrawerConfig>(DEFAULT_DRAWER_CONFIG);
   const openDrawer = useCallback(
     (renderer, options = {}) => setDrawerConfig({renderer, options}),
-    [setDrawerConfig]
+    []
   );
-  const closeDrawer = useCallback(
-    () => setDrawerConfig(DEFAULT_DRAWER_CONTEXT.config),
-    [setDrawerConfig]
-  );
-  const drawerContextValue: DrawerContextProps = {
-    config: drawerConfig,
+  const closeDrawer = useCallback(() => setDrawerConfig(DEFAULT_DRAWER_CONFIG), []);
+  const drawerContextValue: TDrawerContext = {
     closeDrawer,
     openDrawer,
   };
@@ -65,23 +59,24 @@ export function DrawerContextProvider({children}) {
 
   return (
     <DrawerContext.Provider value={drawerContextValue}>
-      <DrawerContainer data-test-id="drawer-container">
-        <DrawerPanel
-          isOpen={isDrawerOpen}
-          onClose={handleClose}
-          onOpen={options?.onOpen}
-          closeOnOutsideClick={closeOnOutsideClick}
-          closeOnEscapeKeypress={closeOnEscapeKeypress}
-        >
-          {renderedChild}
-        </DrawerPanel>
-      </DrawerContainer>
+      {renderer !== null && (
+        <DrawerContainer data-test-id="drawer-container">
+          <DrawerPanel
+            isOpen={isDrawerOpen}
+            onClose={handleClose}
+            onOpen={options?.onOpen}
+            closeOnOutsideClick={closeOnOutsideClick}
+            closeOnEscapeKeypress={closeOnEscapeKeypress}
+          >
+            {renderedChild}
+          </DrawerPanel>
+        </DrawerContainer>
+      )}
       {children}
     </DrawerContext.Provider>
   );
 }
 
-export default function useDrawer(): DrawerUsageContext {
-  const {openDrawer, closeDrawer} = useContext(DrawerContext);
-  return {openDrawer, closeDrawer};
+export default function useDrawer() {
+  return useContext(DrawerContext);
 }
