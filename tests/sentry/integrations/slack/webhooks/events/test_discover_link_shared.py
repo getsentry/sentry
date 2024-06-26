@@ -5,8 +5,8 @@ from urllib.parse import parse_qsl
 import orjson
 import pytest
 import responses
+from slack_sdk.web import SlackResponse
 
-from sentry.integrations.slack.sdk_client import SlackResponse
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.silo.base import SiloMode
