@@ -174,9 +174,14 @@ def check_user_with_timeout(
         "exclude_members": True,
         "types": "public_channel,private_channel",
     }
-    users = get_slack_user_data(integration, organization=None, kwargs=payload)
 
-    for user in users:
+    # Get each user from a page from the Slack API
+    page_generator = (
+        user
+        for page in get_slack_user_data(integration, organization=None, kwargs=payload)
+        for user in page
+    )
+    for user in page_generator:
         # The "name" field is unique (this is the username for users)
         # so we return immediately if we find a match.
         # convert to lower case since all names in Slack are lowercase
