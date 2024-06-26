@@ -1,6 +1,6 @@
 import 'intersection-observer'; // polyfill
 
-import {createContext, useState} from 'react';
+import {createContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import type {TabListState, TabListStateOptions} from '@react-stately/tabs';
@@ -90,6 +90,10 @@ export interface DragAndDropTabBarProps {
 
 export function DraggableTabBar(props: DragAndDropTabBarProps) {
   const [tabs, setTabs] = useState<Tab[]>(props.tabs);
+
+  useEffect(() => {
+    setTabs(props.tabs);
+  }, [props.tabs]);
 
   return (
     <DraggableTabs>
