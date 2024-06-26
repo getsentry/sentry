@@ -4,6 +4,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import type {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import SelectField from 'sentry/components/forms/fields/selectField';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -20,7 +21,9 @@ type Props = {
   api: Client;
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
   builtinSymbolSources: string[];
+  isError: boolean;
   isLoading: boolean;
+  onErrorRetry: () => void;
   organization: Organization;
   project: Project;
 };
@@ -32,6 +35,8 @@ function BuiltInRepositories({
   builtinSymbolSources,
   project,
   isLoading,
+  isError,
+  onErrorRetry,
 }: Props) {
   // If the project details object has an unknown built-in source, this will be filtered here.
   // This prevents the UI from showing the wrong feedback message when updating the field
@@ -86,6 +91,8 @@ function BuiltInRepositories({
       <PanelBody>
         {isLoading ? (
           <LoadingIndicator />
+        ) : isError ? (
+          <LoadingError onRetry={onErrorRetry} />
         ) : (
           <Access access={['project:write']} project={project}>
             {({hasAccess}) => (

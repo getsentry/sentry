@@ -11,6 +11,7 @@ import Feature from 'sentry/components/acl/feature';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
 import Panel from 'sentry/components/panels/panel';
@@ -35,8 +36,10 @@ const SECTION_TITLE = t('Custom Repositories');
 type Props = {
   api: Client;
   customRepositories: CustomRepo[];
+  isError: boolean;
   isLoading: boolean;
   location: Location;
+  onErrorRetry: () => void;
   organization: Organization;
   project: Project;
   router: InjectedRouter;
@@ -50,6 +53,8 @@ function CustomRepositories({
   router,
   location,
   isLoading,
+  isError,
+  onErrorRetry,
 }: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
@@ -260,6 +265,8 @@ function CustomRepositories({
                 <PanelBody>
                   {isLoading ? (
                     <LoadingIndicator />
+                  ) : isError ? (
+                    <LoadingError onRetry={onErrorRetry} />
                   ) : !repositories.length ? (
                     <EmptyStateWarning>
                       <p>{t('No custom repositories configured')}</p>
