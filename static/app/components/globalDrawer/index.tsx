@@ -22,20 +22,19 @@ const DEFAULT_DRAWER_CONTEXT: TDrawerContext = {
   closeDrawer: () => {},
 };
 
-const DrawerContext = createContext<TDrawerContext>(DEFAULT_DRAWER_CONTEXT);
+const DrawerContext = createContext(DEFAULT_DRAWER_CONTEXT);
 
 export function GlobalDrawer({children}) {
   const location = useLocation();
   const [drawerConfig, setDrawerConfig] = useState<DrawerConfig>(DEFAULT_DRAWER_CONFIG);
-  const openDrawer = useCallback(
+  const openDrawer = useCallback<TDrawerContext['openDrawer']>(
     (renderer, options = {}) => setDrawerConfig({renderer, options}),
     []
   );
-  const closeDrawer = useCallback(() => setDrawerConfig(DEFAULT_DRAWER_CONFIG), []);
-  const drawerContextValue: TDrawerContext = {
-    closeDrawer,
-    openDrawer,
-  };
+  const closeDrawer = useCallback<TDrawerContext['closeDrawer']>(
+    () => setDrawerConfig(DEFAULT_DRAWER_CONFIG),
+    []
+  );
   const {renderer, options = {}} = drawerConfig;
   const {closeOnEscapeKeypress = true, closeOnOutsideClick = true} = options;
 
@@ -47,7 +46,7 @@ export function GlobalDrawer({children}) {
   }, [options, closeDrawer]);
 
   // Close the drawer when the browser history changes.
-  useEffect(() => closeDrawer(), [location.pathname, closeDrawer]);
+  useEffect(() => handleClose(), [location?.pathname, handleClose]);
 
   // Close the drawer when clicking outside the panel and options allow it.
   const panelRef = useRef<HTMLDivElement>(null);
@@ -74,14 +73,9 @@ export function GlobalDrawer({children}) {
     }) ?? null;
 
   return (
-    <DrawerContext.Provider value={drawerContextValue}>
+    <DrawerContext.Provider value={{openDrawer, closeDrawer}}>
       {isDrawerOpen && (
-        <DrawerPanel
-          onClose={handleClose}
-          onOpen={options?.onOpen}
-          closeOnOutsideClick={closeOnOutsideClick}
-          closeOnEscapeKeypress={closeOnEscapeKeypress}
-        >
+        <DrawerPanel onClose={handleClose} ref={panelRef}>
           {renderedChild}
         </DrawerPanel>
       )}

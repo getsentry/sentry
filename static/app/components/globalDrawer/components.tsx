@@ -1,3 +1,4 @@
+import {type ForwardedRef, forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,15 +8,18 @@ import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface DrawerPanelProps extends Required<Omit<DrawerOptions, 'onOpen'>> {
+export interface DrawerPanelProps {
   children: React.ReactNode;
-  onOpen?: () => void;
+  onClose: DrawerOptions['onClose'];
 }
 
-export function DrawerPanel({children, onClose, onOpen}: DrawerPanelProps) {
+export const DrawerPanel = forwardRef(function _DrawerPanel(
+  {children, onClose}: DrawerPanelProps,
+  ref: ForwardedRef<HTMLDivElement>
+) {
   return (
     <DrawerContainer>
-      <SlideOverPanel slidePosition="right" collapsed={false} onOpen={onOpen}>
+      <SlideOverPanel slidePosition="right" collapsed={false} ref={ref}>
         <DrawerHeader>
           <CloseButton
             priority="link"
@@ -32,7 +36,7 @@ export function DrawerPanel({children, onClose, onOpen}: DrawerPanelProps) {
       </SlideOverPanel>
     </DrawerContainer>
   );
-}
+});
 
 const CloseButton = styled(Button)`
   color: ${p => p.theme.subText};
