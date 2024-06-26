@@ -70,6 +70,27 @@ class ProjectTemplateOptionManagerTest(TestCase):
         result = ProjectTemplateOption.objects.get_value_bulk([self.project_template], "foo")
         assert result == {self.project_template: "bar"}
 
+    def test_get_value_actually_bulk(self):
+        second_template = ProjectTemplate.objects.create(
+            name="second_test_project_template", organization=self.org
+        )
+
+        result = ProjectTemplateOption.objects.get_value_bulk(
+            [self.project_template, second_template], "foo"
+        )
+        assert result == {}
+
+        ProjectTemplateOption.objects.create(
+            project_template=self.project_template, key="foo", value="bar"
+        )
+        ProjectTemplateOption.objects.create(
+            project_template=second_template, key="foo", value="baz"
+        )
+        result = ProjectTemplateOption.objects.get_value_bulk(
+            [self.project_template, second_template], "foo"
+        )
+        assert result == {self.project_template: "bar", second_template: "baz"}
+
     def test_update_value(self):
         result = ProjectTemplateOption.objects.create(
             project_template=self.project_template, key="foo", value="bar"
