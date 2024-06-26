@@ -318,7 +318,8 @@ export function generateOperatorEntryMap(tag: string) {
 }
 
 export function getValidOps(
-  filterToken: TokenResult<Token.FILTER>
+  filterToken: TokenResult<Token.FILTER>,
+  disallowNegation: boolean
 ): readonly TermOperator[] {
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
@@ -335,6 +336,10 @@ export function getValidOps(
   const validOps = new Set<TermOperator>(
     allValidTypes.flatMap(type => filterTypeConfig[type].validOps)
   );
+
+  if (disallowNegation) {
+    validOps.delete(TermOperator.NOT_EQUAL);
+  }
 
   return [...validOps];
 }

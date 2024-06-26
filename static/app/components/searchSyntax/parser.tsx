@@ -259,6 +259,7 @@ export enum InvalidReason {
   WILDCARD_NOT_ALLOWED = 'wildcard-not-allowed',
   LOGICAL_OR_NOT_ALLOWED = 'logic-or-not-allowed',
   LOGICAL_AND_NOT_ALLOWED = 'logic-and-not-allowed',
+  NEGATION_NOT_ALLOWED = 'negation-not-allowed',
   MUST_BE_QUOTED = 'must-be-quoted',
   FILTER_MUST_HAVE_VALUE = 'filter-must-have-value',
   INVALID_BOOLEAN = 'invalid-boolean',
@@ -407,7 +408,7 @@ export class TokenConverter {
       value,
       negated,
       operator: operator ?? TermOperator.DEFAULT,
-      invalid: this.checkInvalidFilter(filter, key, value),
+      invalid: this.checkInvalidFilter(filter, key, value, negated),
       warning: this.checkFilterWarning(key),
     } as FilterResult;
 
@@ -756,7 +757,8 @@ export class TokenConverter {
   checkInvalidFilter = <T extends FilterType>(
     filter: T,
     key: FilterMap[T]['key'],
-    value: FilterMap[T]['value']
+    value: FilterMap[T]['value'],
+    negated: FilterMap[T]['negated']
   ) => {
     // Text filter is the "fall through" filter that will match when other
     // filter predicates fail.
@@ -768,6 +770,13 @@ export class TokenConverter {
       return {
         type: InvalidReason.INVALID_KEY,
         reason: t('Invalid key. "%s" is not a supported search key.', key.text),
+      };
+    }
+
+    if (this.config.disallowNegation && negated) {
+      return {
+        type: InvalidReason.NEGATION_NOT_ALLOWED,
+        reason: this.config.invalidMessages[InvalidReason.NEGATION_NOT_ALLOWED],
       };
     }
 
@@ -1173,6 +1182,10 @@ export type SearchConfig = {
    */
   disallowFreeText: boolean;
   /**
+   * Disallow negation for filters
+   */
+  disallowNegation: boolean;
+  /**
    * Disallow wildcards in free text search AND in tag values
    */
   disallowWildcard: boolean;
@@ -1268,6 +1281,7 @@ export const defaultConfig: SearchConfig = {
   disallowedLogicalOperators: new Set(),
   disallowFreeText: false,
   disallowWildcard: false,
+  disallowNegation: false,
   invalidMessages: {
     [InvalidReason.FREE_TEXT_NOT_ALLOWED]: t('Free text is not supported in this search'),
     [InvalidReason.WILDCARD_NOT_ALLOWED]: t('Wildcards not supported in search'),
@@ -1278,6 +1292,7 @@ export const defaultConfig: SearchConfig = {
       'The AND operator is not allowed in this search'
     ),
     [InvalidReason.MUST_BE_QUOTED]: t('Quotes must enclose text or be escaped'),
+    [InvalidReason.NEGATION_NOT_ALLOWED]: t('Negation is not allowed in this search.'),
     [InvalidReason.FILTER_MUST_HAVE_VALUE]: t('Filter must have a value'),
     [InvalidReason.INVALID_BOOLEAN]: t('Invalid boolean. Expected true, 1, false, or 0.'),
     [InvalidReason.INVALID_FILE_SIZE]: t(
