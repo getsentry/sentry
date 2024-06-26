@@ -59,6 +59,9 @@ function SlideOverPanel(
             stiffness: 500,
             damping: 50,
           }}
+          role="complementary"
+          aria-hidden={collapsed}
+          aria-label="slide-out-drawer"
         >
           {children}
         </_SlideOverPanel>

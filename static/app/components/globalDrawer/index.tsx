@@ -1,10 +1,6 @@
 import {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
-import {
-  DrawerBody,
-  DrawerContainer,
-  DrawerPanel,
-} from 'sentry/components/globalDrawer/components';
+import {DrawerBody, DrawerPanel} from 'sentry/components/globalDrawer/components';
 import type {
   DrawerConfig,
   DrawerContext as TDrawerContext,
@@ -60,17 +56,15 @@ export function GlobalDrawer({children}) {
   return (
     <DrawerContext.Provider value={drawerContextValue}>
       {renderer !== null && (
-        <DrawerContainer data-test-id="drawer-container">
-          <DrawerPanel
-            isOpen={isDrawerOpen}
-            onClose={handleClose}
-            onOpen={options?.onOpen}
-            closeOnOutsideClick={closeOnOutsideClick}
-            closeOnEscapeKeypress={closeOnEscapeKeypress}
-          >
-            {renderedChild}
-          </DrawerPanel>
-        </DrawerContainer>
+        <DrawerPanel
+          isOpen={isDrawerOpen}
+          onClose={handleClose}
+          onOpen={options?.onOpen}
+          closeOnOutsideClick={closeOnOutsideClick}
+          closeOnEscapeKeypress={closeOnEscapeKeypress}
+        >
+          {renderedChild}
+        </DrawerPanel>
       )}
       {children}
     </DrawerContext.Provider>

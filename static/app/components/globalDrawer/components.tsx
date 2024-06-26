@@ -52,7 +52,7 @@ export function DrawerPanel({
   }, [isOpen]);
 
   return (
-    <div role="complementary" aria-hidden={!isDrawerOpen} aria-label="slide-out-drawer">
+    <DrawerContainer>
       <SlideOverPanel
         slidePosition="right"
         collapsed={!isDrawerOpen}
@@ -76,7 +76,7 @@ export function DrawerPanel({
         </DrawerHeader>
         {children}
       </SlideOverPanel>
-    </div>
+    </DrawerContainer>
   );
 }
 

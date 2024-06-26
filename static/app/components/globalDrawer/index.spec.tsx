@@ -6,7 +6,7 @@ import type {DrawerConfig} from 'sentry/components/globalDrawer/types';
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
   return (
-    <div>
+    <div data-test-id="drawer-test-outside">
       <button
         data-test-id="drawer-test-open"
         onClick={() => openDrawer(config.renderer, config.options)}
@@ -43,7 +43,9 @@ describe('GlobalDrawer', function () {
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(screen.getByRole('complementary', {name: 'slide-out-drawer'})).toBeVisible();
+    expect(
+      screen.getByRole('complementary', {name: 'slide-out-drawer'})
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
 
@@ -96,7 +98,7 @@ describe('GlobalDrawer', function () {
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('drawer-container'));
+    await userEvent.click(screen.getByTestId('drawer-test-outside'));
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -181,7 +183,7 @@ describe('GlobalDrawer', function () {
     expect(closeSpy).not.toHaveBeenCalled();
     expect(content).toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('drawer-container'));
+    await userEvent.click(screen.getByTestId('drawer-test-outside'));
 
     expect(closeSpy).not.toHaveBeenCalled();
     expect(content).toBeInTheDocument();
