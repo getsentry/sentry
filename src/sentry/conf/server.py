@@ -806,6 +806,7 @@ CELERY_IMPORTS = (
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
     "sentry.integrations.slack.tasks",
+    "sentry.uptime.detectors.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -930,6 +931,7 @@ CELERY_QUEUES_REGION = [
     Queue("subscriptions", routing_key="subscriptions"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
+    Queue("uptime", routing_key="uptime"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
@@ -1236,6 +1238,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
+    },
+    "uptime-detection-scheduler": {
+        "task": "sentry.uptime.detectors.tasks.schedule_detections",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
     },
 }
 

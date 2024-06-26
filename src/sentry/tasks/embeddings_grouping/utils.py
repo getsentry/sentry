@@ -378,6 +378,7 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
 
 
 @metrics.wraps(f"{BACKFILL_NAME}.lookup_event_bulk", sample_rate=1.0)
+@sentry_sdk.tracing.trace
 def lookup_group_data_stacktrace_bulk(
     project: Project, rows: list[GroupEventRow]
 ) -> dict[int, Event]:
