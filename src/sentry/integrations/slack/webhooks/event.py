@@ -8,6 +8,7 @@ from typing import Any
 import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
+from slack_sdk.errors import SlackApiError
 
 from sentry import analytics, features, options
 from sentry.api.api_owners import ApiOwner
@@ -22,7 +23,7 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
-from sentry.integrations.slack.sdk_client import SlackApiError, SlackSdkClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.services.hybrid_cloud.integration import integration_service
