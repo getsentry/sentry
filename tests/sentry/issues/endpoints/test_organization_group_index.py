@@ -2539,7 +2539,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
-        response = self.get_success_response(useGroupSnubaDataset=1, qs_params={"query": ""})
+        response = self.get_success_response(useGroupSnubaDataset=1, query="")
         assert len(response.data) == 1
         assert mock_query.call_count == 1
 
@@ -2568,7 +2568,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="new",
             statsPeriod="1h",
             useGroupSnubaDataset=1,
-            qs_params={"query": ""},
+            query="",
         )
 
         assert len(response.data) == 2
@@ -2600,7 +2600,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="freq",
             statsPeriod="1h",
             useGroupSnubaDataset=1,
-            qs_params={"query": ""},
+            query="",
         )
 
         assert len(response.data) == 2
@@ -2673,7 +2673,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(
             sort="user",
             useGroupSnubaDataset=1,
-            qs_params={"query": ""},
+            query="",
         )
 
         assert len(response.data) == 2
@@ -5341,7 +5341,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
+        response = self.get_response(query="")
         assert response.status_code == 204
 
         for group in groups:
@@ -5353,7 +5353,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         )
 
         with self.tasks():
-            response = self.get_response(qs_params={"query": ""})
+            response = self.get_response(query="")
 
         assert response.status_code == 204
 
@@ -5381,7 +5381,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
+        response = self.get_response(query="")
         assert response.status_code == 400
 
         for group in groups:
