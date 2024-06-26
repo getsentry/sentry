@@ -3,7 +3,8 @@ import {createContext, useCallback, useContext, useState} from 'react';
 import type {DrawerOptions, DrawerRenderProps} from 'sentry/components/globalDrawer';
 
 type DrawerRenderer = (renderProps: DrawerRenderProps) => React.ReactNode;
-interface DrawerConfig {
+
+export interface DrawerConfig {
   renderer: DrawerRenderer | null;
   options?: DrawerOptions;
 }
@@ -36,14 +37,9 @@ interface DrawerContextProviderProps {
 }
 
 export function DrawerContextProvider({children}: DrawerContextProviderProps) {
-  const drawerContext = useDrawerProvider();
-  return (
-    <DrawerContext.Provider value={drawerContext}>{children}</DrawerContext.Provider>
+  const [drawerConfig, setDrawerConfig] = useState<DrawerConfig>(
+    DEFAULT_DRAWER_CONTEXT.config
   );
-}
-
-function useDrawerProvider(): DrawerContextProps {
-  const [drawerConfig, setDrawerConfig] = useState(DEFAULT_DRAWER_CONTEXT.config);
   const openDrawer = useCallback(
     (renderer, options = {}) => setDrawerConfig({renderer, options}),
     [setDrawerConfig]
@@ -53,7 +49,13 @@ function useDrawerProvider(): DrawerContextProps {
     [setDrawerConfig]
   );
 
-  return {config: drawerConfig, openDrawer, closeDrawer};
+  const ctx: DrawerContextProps = {
+    config: drawerConfig,
+    closeDrawer,
+    openDrawer,
+  };
+
+  return <DrawerContext.Provider value={ctx}>{children}</DrawerContext.Provider>;
 }
 
 export default function useDrawer() {

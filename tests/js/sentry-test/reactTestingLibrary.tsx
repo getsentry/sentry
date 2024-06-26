@@ -8,6 +8,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalDrawer from 'sentry/components/globalDrawer';
+import {DrawerContextProvider} from 'sentry/components/globalDrawer/context';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types/organization';
@@ -62,18 +63,21 @@ function makeAllTheProviders(providers: ProviderOptions) {
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeTestQueryClient()}>
-              <RouteContext.Provider
-                value={{
-                  router,
-                  location: router.location,
-                  params: router.params,
-                  routes: router.routes,
-                }}
-              >
-                <OrganizationContext.Provider value={optionalOrganization}>
-                  {children}
-                </OrganizationContext.Provider>
-              </RouteContext.Provider>
+              <DrawerContextProvider>
+                <RouteContext.Provider
+                  value={{
+                    router,
+                    location: router.location,
+                    params: router.params,
+                    routes: router.routes,
+                  }}
+                >
+                  <OrganizationContext.Provider value={optionalOrganization}>
+                    <GlobalDrawer onClose={() => {}} />
+                    {children}
+                  </OrganizationContext.Provider>
+                </RouteContext.Provider>
+              </DrawerContextProvider>
             </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>
@@ -126,20 +130,14 @@ function renderGlobalModal(options?: Options) {
   return {...result, waitForModalToHide};
 }
 
-function renderGlobalDrawer(options?: Options) {
-  const result = render(<GlobalDrawer />, options);
-
-  /**
-   * Helper that waits for the drawer to be hidden from the DOM. You may need to
-   * wait for the drawer to be removed to avoid any act warnings.
-   */
-  function waitForDrawerToHide() {
-    return rtl.waitFor(() => {
-      expect(rtl.screen.queryByRole('complimentary')).not.toBeInTheDocument();
-    });
-  }
-
-  return {...result, waitForDrawerToHide};
+/**
+ * Helper that waits for the drawer to be hidden from the DOM. You may need to
+ * wait for the drawer to be removed to avoid any act warnings.
+ */
+function waitForDrawerToHide() {
+  return rtl.waitFor(() => {
+    expect(rtl.screen.queryByRole('complimentary')).not.toBeInTheDocument();
+  });
 }
 
 /**
@@ -153,4 +151,4 @@ instrumentUserEvent();
 export * from '@testing-library/react';
 
 // eslint-disable-next-line import/export
-export {render, renderGlobalModal, userEvent, fireEvent, renderGlobalDrawer};
+export {render, renderGlobalModal, userEvent, fireEvent, waitForDrawerToHide};

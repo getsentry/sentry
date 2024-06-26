@@ -53,7 +53,7 @@ export function DrawerPanel({
   }, [isOpen]);
 
   return (
-    <div role="complementary" aria-hidden={!isDrawerOpen}>
+    <div role="complementary" aria-hidden={!isDrawerOpen} data-test-id="drawer-content">
       <SlideOverPanel
         slidePosition="right"
         collapsed={!isDrawerOpen}
@@ -65,6 +65,7 @@ export function DrawerPanel({
             priority="link"
             size="zero"
             borderless
+            data-test-id="close-drawer-control"
             aria-label={t('Close Drawer')}
             icon={<IconClose size="sm" />}
             onClick={() => {
