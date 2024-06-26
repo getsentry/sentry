@@ -277,7 +277,9 @@ class TraceEvent:
                         selected_columns=["occurrence_id"],
                     )
                     occurrence_ids = occurrence_query.process_results(
-                        occurrence_query.run_query("api.trace-view.get-occurrence-ids")
+                        occurrence_query.run_query(
+                            referrer=Referrer.API_TRACE_VIEW_GET_OCCURRENCE_IDS.value
+                        )
                     )["data"]
 
                     issue_occurrences = IssueOccurrence.fetch_multi(
@@ -470,7 +472,9 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
         limit=MAX_TRACE_SIZE,
     )
     transaction_query.columns.append(Function("count()", alias="total_groups"))
-    count = transaction_query.run_query("api.trace-view.count-performance-issues")
+    count = transaction_query.run_query(
+        referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value
+    )
     return count["data"][0].get("total_groups", 0)
 
 
@@ -627,7 +631,7 @@ def query_trace_data(
             error_query.get_snql_query(),
             occurrence_query.get_snql_query(),
         ],
-        referrer="api.trace-view.get-events",
+        referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
     )
 
     transformed_results = [
@@ -837,7 +841,7 @@ def augment_transactions_with_spans(
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
         )
         parents_results = results[0]
-        for (result, query) in zip(results, queries):
+        for result, query in zip(results, queries):
             if len(result["data"]) == query.limit.limit:
                 hit_limit = True
         for result in results[1:]:
@@ -887,6 +891,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
         """The trace endpoint always wants to get all projects regardless of what's passed into the API
@@ -1601,7 +1606,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
                 params=params,
                 query=f"trace:{trace_id}",
                 limit=1,
-                referrer="api.trace-view.get-meta",
+                referrer=Referrer.API_TRACE_VIEW_GET_META.value,
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
