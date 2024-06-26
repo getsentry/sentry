@@ -23,6 +23,7 @@ from sentry.models.user import User
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import apply_dataset_query_conditions
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import build_query_strings
 
 CRASH_FREE_SESSIONS = "percentage(sessions_crashed, sessions) AS _crash_rate_alert_aggregate"
@@ -100,7 +101,7 @@ def fetch_metric_alert_events_timeseries(
             path=f"/organizations/{organization.slug}/events-stats/",
             params={
                 "yAxis": rule_aggregate,
-                "referrer": "api.alerts.chartcuterie",
+                "referrer": Referrer.API_ALERTS_CHARTCUTERIE.value,
                 **query_params,
             },
         )
