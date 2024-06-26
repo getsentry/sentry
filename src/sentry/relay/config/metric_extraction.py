@@ -159,6 +159,13 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
         if features.has(feature, organization=organization):
             enabled_features.add(feature)
 
+    if ("organizations:on-demand-metrics-extraction" not in enabled_features) and (
+        "organizations:on-demand-metrics-prefill" in enabled_features
+    ):
+        sentry_sdk.metrics.incr(
+            "on_demand_metrics.prefill_without_extraction", tags={"org": organization.slug}
+        )
+
     return enabled_features
 
 

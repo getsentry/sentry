@@ -1400,9 +1400,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(
-            organization, integration, name, use_async_lookup
-        )
+        channel_data = get_channel_id(organization, integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1411,18 +1409,18 @@ def get_alert_rule_trigger_action_slack_channel_id(
             % (e, domain)
         )
 
-    if timed_out:
+    if channel_data.timed_out:
         raise ChannelLookupTimeoutError(
             "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
-    if channel_id is None:
+    if channel_data.channel_id is None:
         raise InvalidTriggerActionError(
             "Could not find channel %s. Channel may not exist, or Sentry may not "
             "have been granted permission to access it" % name
         )
 
-    return channel_id
+    return channel_data.channel_id
 
 
 def get_alert_rule_trigger_action_discord_channel_id(

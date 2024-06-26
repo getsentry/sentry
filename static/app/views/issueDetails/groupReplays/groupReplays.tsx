@@ -4,10 +4,11 @@ import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconPlay, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -63,8 +64,17 @@ function GroupReplays({group}: Props) {
   }, []);
 
   if (!eventView) {
+    // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding>
+        <ReplayCountHeader>
+          <IconUser size="sm" />
+          {isFetching ? (
+            <Placeholder height="18px" width="400px" />
+          ) : (
+            t('No replay data available.')
+          )}
+        </ReplayCountHeader>
         <ReplayTable
           fetchError={fetchError}
           isFetching={isFetching}
@@ -242,11 +252,11 @@ function GroupReplaysTable({
   return (
     <StyledLayoutPage withPadding>
       <ReplayCountHeader>
-        <StyledIconUser size="sm" />
+        <IconUser size="sm" />
         {t(
-          'Replay captured %s users experiencing this issue across %s events.',
-          replayCount,
-          group.count
+          'Replay captured %s experiencing this issue across %s.',
+          tn('%s user', '%s users', replayCount ?? 0),
+          tn('%s event', '%s events', group.count)
         )}
       </ReplayCountHeader>
       {inner}
@@ -264,12 +274,6 @@ const ReplayCountHeader = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledIconUser = styled(IconUser)`
-  margin-right: ${p => p.theme.grid}px;
-  height: 16px;
-  width: 16px;
 `;
 
 const OverlayText = styled('div')`
