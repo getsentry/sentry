@@ -8,7 +8,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -141,25 +141,25 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[1]["triggers"] == []
 
     def test_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         other_alert_rule = self.create_alert_rule()
         activations = self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
         )
         result = serialize([alert_rule, other_alert_rule])
         assert result[0]["activations"] == serialize(activations)
         assert result[1]["activations"] == []
 
     def test_truncated_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         for i in range(11):
             self.create_alert_rule_activation(
-                alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
             )
             if i % 2 == 0:
                 self.create_alert_rule_activation(
-                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
                 )
         result = serialize([alert_rule, alert_rule2])
         assert len(result[0]["activations"]) == 10
@@ -167,7 +167,9 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
     def test_projects(self):
         regular_alert_rule = self.create_alert_rule()
-        activated_alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        activated_alert_rule = self.create_alert_rule(
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
+        )
         alert_rule_no_projects = self.create_alert_rule()
 
         AlertRuleProjects.objects.filter(alert_rule_id=alert_rule_no_projects.id).delete()
