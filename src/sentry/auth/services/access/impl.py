@@ -1,11 +1,11 @@
 from sentry import roles
+from sentry.auth.services.access.service import AccessService
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authidentityreplica import AuthIdentityReplica
 from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud.access.service import AccessService
 from sentry.services.hybrid_cloud.auth import RpcAuthIdentity, RpcAuthProvider
 from sentry.services.hybrid_cloud.auth.serial import (
     serialize_auth_identity,

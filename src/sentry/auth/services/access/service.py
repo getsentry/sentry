@@ -126,13 +126,13 @@ class AccessService(abc.ABC):
 
 
 def impl_by_region_resources() -> AccessService:
-    from sentry.services.hybrid_cloud.access.impl import RegionAccessService
+    from sentry.auth.services.access.impl import RegionAccessService
 
     return RegionAccessService()
 
 
 def impl_by_control_resources() -> AccessService:
-    from sentry.services.hybrid_cloud.access.impl import ControlAccessService
+    from sentry.auth.services.access.impl import ControlAccessService
 
     return ControlAccessService()
 
