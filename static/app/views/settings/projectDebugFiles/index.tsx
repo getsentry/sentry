@@ -1,20 +1,35 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useState} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import Checkbox from 'sentry/components/checkbox';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {
+  type ApiQueryKey,
+  useApiQuery,
+  useMutation,
+  useQueryClient,
+} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import useApi from 'sentry/utils/useApi';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -27,158 +42,140 @@ type Props = RouteComponentProps<{projectId: string}, {}> & {
   project: Project;
 };
 
-type State = DeprecatedAsyncView['state'] & {
-  debugFiles: DebugFile[] | null;
-  project: Project;
-  showDetails: boolean;
-  builtinSymbolSources?: BuiltinSymbolSource[] | null;
-};
+function makeDebugFilesQueryKey({
+  orgSlug,
+  projectSlug,
+  query,
+}: {
+  orgSlug: string;
+  projectSlug: string;
+  query: string;
+}): ApiQueryKey {
+  return [
+    `/projects/${orgSlug}/${projectSlug}/files/dsyms/`,
+    {
+      query: {query},
+    },
+  ];
+}
 
-class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
-  getTitle() {
-    const {projectId} = this.props.params;
+function makeSymbolSourcesQueryKey({orgSlug}: {orgSlug: string}): ApiQueryKey {
+  return [`/organizations/${orgSlug}/builtin-symbol-sources/`];
+}
 
-    return routeTitleGen(t('Debug Files'), projectId, false);
-  }
+function ProjectDebugSymbols({organization, project, location, router, params}: Props) {
+  const navigate = useNavigate();
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const [showDetails, setShowDetails] = useState(false);
 
-  getDefaultState() {
-    return {
-      ...super.getDefaultState(),
-      project: this.props.project,
-      showDetails: false,
-    };
-  }
+  const query = decodeScalar(location.query.query, '');
+  const hasSymbolSourcesFeatureFlag = organization.features.includes('symbol-sources');
 
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    const {organization, params, location} = this.props;
-    const {builtinSymbolSources} = this.state || {};
-    const {query} = location.query;
+  const {
+    data: debugFiles,
+    getResponseHeader: getDebugFilesResponseHeader,
+    isLoading: isLoadingDebugFiles,
+    isLoadingError: isLoadingErrorDebugFiles,
+    refetch: refetchDebugFiles,
+  } = useApiQuery<DebugFile[] | null>(
+    makeDebugFilesQueryKey({
+      projectSlug: params.projectId,
+      orgSlug: organization.slug,
+      query,
+    }),
+    {
+      staleTime: 0,
+      retry: false,
+    }
+  );
 
-    const endpoints: ReturnType<DeprecatedAsyncView['getEndpoints']> = [
-      [
-        'debugFiles',
-        `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,
+  const {
+    data: builtinSymbolSources,
+    isLoading: isLoadingSymbolSources,
+    isError: isErrorSymbolSources,
+    refetch: refetchSymbolSources,
+  } = useApiQuery<BuiltinSymbolSource[] | null>(
+    makeSymbolSourcesQueryKey({orgSlug: organization.slug}),
+    {
+      staleTime: 0,
+      enabled: hasSymbolSourcesFeatureFlag,
+      retry: 0,
+    }
+  );
+
+  const handleSearch = useCallback(
+    (value: string) => {
+      navigate({
+        ...location,
+        query: {...location.query, cursor: undefined, query: !value ? undefined : value},
+      });
+    },
+    [navigate, location]
+  );
+
+  const {mutate: handleDeleteDebugFile} = useMutation<unknown, RequestError, string>({
+    mutationFn: (id: string) => {
+      return api.requestPromise(
+        `/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${id}`,
         {
-          query: {query},
-        },
-      ],
-    ];
-
-    if (!builtinSymbolSources && organization.features.includes('symbol-sources')) {
-      endpoints.push([
-        'builtinSymbolSources',
-        `/organizations/${organization.slug}/builtin-symbol-sources/`,
-        {},
-      ]);
-    }
-
-    return endpoints;
-  }
-
-  handleDelete = (id: string) => {
-    const {organization, params} = this.props;
-
-    this.setState({
-      loading: true,
-    });
-
-    this.api.request(
-      `/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${id}`,
-      {
-        method: 'DELETE',
-        complete: () => this.fetchData(),
-      }
-    );
-  };
-
-  handleSearch = (query: string) => {
-    const {location, router} = this.props;
-
-    router.push({
-      ...location,
-      query: {...location.query, cursor: undefined, query},
-    });
-  };
-
-  async fetchProject() {
-    const {organization, params} = this.props;
-    try {
-      const updatedProject = await this.api.requestPromise(
-        `/projects/${organization.slug}/${params.projectId}/`
+          method: 'DELETE',
+        }
       );
-      ProjectsStore.onUpdateSuccess(updatedProject);
-    } catch {
-      addErrorMessage(t('An error occurred while fetching project data'));
-    }
-  }
+    },
+    onMutate: () => {
+      addLoadingMessage('Deleting debug file');
+    },
+    onSuccess: () => {
+      addSuccessMessage('Successfully deleted debug file');
 
-  getQuery() {
-    const {query} = this.props.location.query;
-
-    return typeof query === 'string' ? query : undefined;
-  }
-
-  getEmptyMessage() {
-    if (this.getQuery()) {
-      return t('There are no debug symbols that match your search.');
-    }
-
-    return t('There are no debug symbols for this project.');
-  }
-
-  renderLoading() {
-    return this.renderBody();
-  }
-
-  renderDebugFiles() {
-    const {debugFiles, showDetails} = this.state;
-    const {organization, params, project} = this.props;
-
-    if (!debugFiles?.length) {
-      return null;
-    }
-
-    return debugFiles.map(debugFile => {
-      const downloadUrl = `${this.api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
-
-      return (
-        <DebugFileRow
-          debugFile={debugFile}
-          showDetails={showDetails}
-          downloadUrl={downloadUrl}
-          downloadRole={organization.debugFilesRole}
-          onDelete={this.handleDelete}
-          key={debugFile.id}
-          orgSlug={organization.slug}
-          project={project}
-        />
+      // invalidate debug files query
+      queryClient.invalidateQueries(
+        makeDebugFilesQueryKey({
+          projectSlug: params.projectId,
+          orgSlug: organization.slug,
+          query,
+        })
       );
-    });
-  }
 
-  renderBody() {
-    const {organization, project, router, location} = this.props;
-    const {loading, showDetails, builtinSymbolSources, debugFiles, debugFilesPageLinks} =
-      this.state;
+      // invalidate symbol sources query
+      queryClient.invalidateQueries(
+        makeSymbolSourcesQueryKey({
+          orgSlug: organization.slug,
+        })
+      );
+    },
+    onError: () => {
+      addErrorMessage('Failed to delete debug file');
+    },
+  });
 
-    return (
-      <Fragment>
-        <SettingsPageHeader title={t('Debug Information Files')} />
+  return (
+    <SentryDocumentTitle title={routeTitleGen(t('Debug Files'), params.projectId, false)}>
+      <SettingsPageHeader title={t('Debug Information Files')} />
 
-        <TextBlock>
-          {t(`
-            Debug information files are used to convert addresses and minified
-            function names from native crash reports into function names and
-            locations.
-          `)}
-        </TextBlock>
+      <TextBlock>
+        {t(`
+          Debug information files are used to convert addresses and minified
+          function names from native crash reports into function names and
+          locations.
+        `)}
+      </TextBlock>
 
-        {organization.features.includes('symbol-sources') && (
-          <Fragment>
-            <PermissionAlert project={project} />
+      {organization.features.includes('symbol-sources') && (
+        <Fragment>
+          <PermissionAlert project={project} />
 
+          {isLoadingSymbolSources ? (
+            <LoadingIndicator />
+          ) : isErrorSymbolSources ? (
+            <LoadingError
+              onRetry={refetchSymbolSources}
+              message={t('There was an error loading repositories.')}
+            />
+          ) : (
             <Sources
-              api={this.api}
+              api={api}
               location={location}
               router={router}
               project={project}
@@ -190,48 +187,79 @@ class ProjectDebugSymbols extends DeprecatedAsyncView<Props, State> {
               }
               builtinSymbolSources={project.builtinSymbolSources ?? []}
               builtinSymbolSourceOptions={builtinSymbolSources ?? []}
-              isLoading={loading}
             />
-          </Fragment>
-        )}
+          )}
+        </Fragment>
+      )}
 
-        <Wrapper>
-          <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
-          <Filters>
-            <Label>
-              <Checkbox
-                checked={showDetails}
-                onChange={e => {
-                  this.setState({showDetails: (e.target as HTMLInputElement).checked});
-                }}
+      {isLoadingDebugFiles ? (
+        <LoadingIndicator />
+      ) : isLoadingErrorDebugFiles ? (
+        <LoadingError
+          onRetry={refetchDebugFiles}
+          message={t('There was an error loading debug information files.')}
+        />
+      ) : (
+        <Fragment>
+          <Wrapper>
+            <TextBlock noMargin>{t('Uploaded debug information files')}</TextBlock>
+            <Filters>
+              <Label>
+                <Checkbox
+                  checked={showDetails}
+                  onChange={e => {
+                    setShowDetails((e.target as HTMLInputElement).checked);
+                  }}
+                />
+                {t('show details')}
+              </Label>
+
+              <SearchBar
+                placeholder={t('Search DIFs')}
+                onSearch={handleSearch}
+                query={query}
               />
-              {t('show details')}
-            </Label>
+            </Filters>
+          </Wrapper>
 
-            <SearchBar
-              placeholder={t('Search DIFs')}
-              onSearch={this.handleSearch}
-              query={this.getQuery()}
-            />
-          </Filters>
-        </Wrapper>
+          <StyledPanelTable
+            headers={[
+              t('Debug ID'),
+              t('Information'),
+              <Actions key="actions">{t('Actions')}</Actions>,
+            ]}
+            emptyMessage={
+              query
+                ? t('There are no debug symbols that match your search.')
+                : t('There are no debug symbols for this project.')
+            }
+            isEmpty={debugFiles?.length === 0}
+            isLoading={isLoadingDebugFiles}
+          >
+            {!debugFiles?.length
+              ? null
+              : debugFiles.map(debugFile => {
+                  const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
 
-        <StyledPanelTable
-          headers={[
-            t('Debug ID'),
-            t('Information'),
-            <Actions key="actions">{t('Actions')}</Actions>,
-          ]}
-          emptyMessage={this.getEmptyMessage()}
-          isEmpty={debugFiles?.length === 0}
-          isLoading={loading}
-        >
-          {this.renderDebugFiles()}
-        </StyledPanelTable>
-        <Pagination pageLinks={debugFilesPageLinks} />
-      </Fragment>
-    );
-  }
+                  return (
+                    <DebugFileRow
+                      debugFile={debugFile}
+                      showDetails={showDetails}
+                      downloadUrl={downloadUrl}
+                      downloadRole={organization.debugFilesRole}
+                      onDelete={handleDeleteDebugFile}
+                      key={debugFile.id}
+                      orgSlug={organization.slug}
+                      project={project}
+                    />
+                  );
+                })}
+          </StyledPanelTable>
+          <Pagination pageLinks={getDebugFilesResponseHeader?.('Link')} />
+        </Fragment>
+      )}
+    </SentryDocumentTitle>
+  );
 }
 
 const StyledPanelTable = styled(PanelTable)`
