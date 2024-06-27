@@ -48,7 +48,7 @@ class SpanAttributeExtractionRuleConfig(Model):
 
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
+    created_by_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False)
 
     span_attribute = models.CharField(max_length=1000)
