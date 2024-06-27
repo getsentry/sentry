@@ -4,28 +4,28 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {decodeScalar} from 'sentry/utils/queryString';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
+import {getDataset} from 'sentry/views/discover/savedQuery/utils';
 
 export const DATASET_PARAM = 'queryDataset';
 
 type Props = {
   isHomepage: boolean | undefined;
   savedQuery: SavedQuery | undefined;
+  splitDecision?: SavedQueryDatasets;
 };
 
 export function DatasetSelector(props: Props) {
-  const {savedQuery, isHomepage} = props;
+  const {savedQuery, isHomepage, splitDecision} = props;
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
-  const value =
-    decodeScalar(location.query[DATASET_PARAM]) ??
-    savedQuery?.queryDataset ??
-    'error-events';
+
+  const value = getDataset(location, savedQuery, splitDecision);
 
   const options = [
     {value: 'error-events', label: t('Errors')},

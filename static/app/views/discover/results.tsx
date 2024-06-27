@@ -53,7 +53,7 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
+import {getDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
@@ -89,6 +89,7 @@ type State = {
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
   showUnparameterizedBanner?: boolean;
+  splitDecision?: SavedQueryDatasets;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
@@ -293,7 +294,7 @@ export class Results extends Component<Props, State> {
   }
 
   checkEventView() {
-    const {eventView} = this.state;
+    const {eventView, splitDecision} = this.state;
     const {loading} = this.props;
     if (eventView.isValid() || loading) {
       return;
@@ -305,9 +306,7 @@ export class Results extends Component<Props, State> {
     const hasDatasetSelector = organization.features.includes(
       'performance-discover-dataset-selector'
     );
-    const value = (decodeScalar(location.query[DATASET_PARAM]) ??
-      savedQuery?.queryDataset ??
-      'error-events') as SavedQueryDatasets;
+    const value = getDataset(location, savedQuery, splitDecision);
     const defaultEventView = hasDatasetSelector
       ? DEFAULT_EVENT_VIEW_MAP[value]
       : DEFAULT_EVENT_VIEW;
@@ -587,6 +586,7 @@ export class Results extends Component<Props, State> {
       showTags,
       confirmedQuery,
       savedQuery,
+      splitDecision,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
@@ -612,6 +612,7 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
+            splitDecision={splitDecision}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -672,6 +673,9 @@ export class Results extends Component<Props, State> {
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
                   setTips={this.setTips}
+                  setSplitDecision={(value?: string) => {
+                    this.setState({splitDecision: value as SavedQueryDatasets});
+                  }}
                 />
               </Layout.Main>
               {showTags ? this.renderTagsTable() : null}
