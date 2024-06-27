@@ -75,10 +75,11 @@ jobs:
           python-version: '3.12'
 
       - name: Setup pre-commit
-        # We don't use make setup-git because we're only interested in installing
-        # requirements-dev.txt as a fast path.
         run: |
-          npm install --prefix pre-commit-node-env
+          mv pre-commit-node-env/package.json package.json
+          npm install
+          echo "${PWD}/node_modules/.bin" >> $GITHUB_PATH
+
           pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
           pre-commit install-hooks
 
