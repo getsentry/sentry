@@ -1,12 +1,8 @@
-import {useEffect, useState} from 'react';
-
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import type {
-  ConfigType,
-  Docs,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ConfigType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import useLoadGettingStarted from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
@@ -33,10 +29,6 @@ export function SdkDocumentation({
   projectId,
   configType,
 }: SdkDocumentationProps) {
-  const [module, setModule] = useState<null | {
-    default: Docs<any>;
-  }>(null);
-
   const platformPath = getPlatformPath(platform);
 
   const {
@@ -48,19 +40,16 @@ export function SdkDocumentation({
     staleTime: Infinity,
   });
 
-  useEffect(() => {
-    async function getGettingStartedDoc() {
-      const mod = await import(
-        /* webpackExclude: /.spec/ */
-        `sentry/gettingStartedDocs/${platformPath}`
-      );
-      setModule(mod);
-    }
-    getGettingStartedDoc();
-    return () => {
-      setModule(null);
+  const module = useLoadGettingStarted({
+    platformId: platform.id,
+    platformPath,
+  });
+
+  if (module === 'none') {
+    return {
+      docs: null,
     };
-  }, [platformPath]);
+  }
 
   if (!module || projectKeysIsLoading) {
     return <LoadingIndicator />;
@@ -69,7 +58,6 @@ export function SdkDocumentation({
   if (projectKeysIsError) {
     return <LoadingError onRetry={refetchProjectKeys} />;
   }
-
   const {default: docs} = module;
 
   return (

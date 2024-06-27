@@ -1,8 +1,4 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
-
-import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {replayPlatforms} from 'sentry/data/platformCategories';
+import useLoadGettingStarted from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -16,14 +12,6 @@ function useLoadOnboardingDoc({
   platform: PlatformIntegration;
   projectSlug: string;
 }) {
-  const [module, setModule] = useState<
-    | null
-    | {
-        default: Docs<any>;
-      }
-    | 'none'
-  >(null);
-
   const platformPath =
     platform?.type === 'framework'
       ? platform?.id === 'capacitor'
@@ -39,27 +27,11 @@ function useLoadOnboardingDoc({
     staleTime: Infinity,
   });
 
-  useEffect(() => {
-    async function getGettingStartedDoc() {
-      if (!replayPlatforms.includes(platform.id)) {
-        setModule('none');
-        return;
-      }
-      try {
-        const mod = await import(
-          /* webpackExclude: /.spec/ */
-          `sentry/gettingStartedDocs/${platformPath}`
-        );
-        setModule(mod);
-      } catch (err) {
-        Sentry.captureException(err);
-      }
-    }
-    getGettingStartedDoc();
-    return () => {
-      setModule(null);
-    };
-  }, [platformPath, platform.id]);
+  const module = useLoadGettingStarted({
+    platformId: platform.id,
+    platformPath,
+    replayPlatformCheck: true,
+  });
 
   if (module === 'none') {
     return {
