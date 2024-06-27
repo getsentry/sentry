@@ -5,18 +5,18 @@ from datetime import datetime, timezone
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.pagerduty.utils import add_service
-from sentry.integrations.types import ExternalProviders
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.integration import (
+from sentry.integrations.services.integration import (
     RpcIntegration,
     RpcOrganizationIntegration,
     integration_service,
 )
-from sentry.services.hybrid_cloud.integration.serial import (
+from sentry.integrations.services.integration.serial import (
     serialize_integration,
     serialize_organization_integration,
 )
+from sentry.integrations.types import ExternalProviders
+from sentry.models.integrations.integration import Integration
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time

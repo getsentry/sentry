@@ -77,7 +77,7 @@ class DiscordIntegration(IntegrationInstallation):
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove
         # the bot from the server.
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         installations = integration_service.get_organization_integrations(
             integration_id=self.model.id,

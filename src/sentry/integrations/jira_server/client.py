@@ -11,9 +11,9 @@ from requests import PreparedRequest
 from requests_oauthlib import OAuth1
 
 from sentry.integrations.client import ApiClient
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
 from sentry.utils import jwt

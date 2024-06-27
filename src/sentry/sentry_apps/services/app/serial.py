@@ -4,7 +4,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.integrations import SentryAppComponent
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.services.hybrid_cloud.app import (
+from sentry.sentry_apps.services.app import (
     RpcApiApplication,
     RpcSentryApp,
     RpcSentryAppComponent,

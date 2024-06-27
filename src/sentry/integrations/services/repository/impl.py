@@ -7,12 +7,12 @@ from django.db import IntegrityError, router, transaction
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.integrations.services.repository import RepositoryService, RpcRepository
+from sentry.integrations.services.repository.model import RpcCreateRepository
+from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.repository import RepositoryService, RpcRepository
-from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
-from sentry.services.hybrid_cloud.repository.serial import serialize_repository
 from sentry.services.hybrid_cloud.user.model import RpcUser
 
 

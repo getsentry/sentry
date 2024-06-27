@@ -8,8 +8,8 @@ from typing import Any
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.repository import RpcRepository
-from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
+from sentry.integrations.services.repository import RpcRepository
+from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo.base import SiloMode
 
@@ -20,7 +20,7 @@ class RepositoryService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.repository.impl import DatabaseBackedRepositoryService
+        from sentry.integrations.services.repository.impl import DatabaseBackedRepositoryService
 
         return DatabaseBackedRepositoryService()
 

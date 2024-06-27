@@ -20,6 +20,7 @@ from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -35,7 +36,6 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 

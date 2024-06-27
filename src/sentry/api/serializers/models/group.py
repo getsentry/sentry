@@ -20,6 +20,7 @@ from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.commit import Commit
@@ -46,7 +47,6 @@ from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
