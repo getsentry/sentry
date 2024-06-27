@@ -44,6 +44,7 @@ import {
   DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
 import marked from 'sentry/utils/marked';
@@ -92,7 +93,7 @@ type State = {
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
   showUnparameterizedBanner?: boolean;
-  splitDecision?: string;
+  splitDecision?: SavedQueryDatasets;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
@@ -681,7 +682,7 @@ export class Results extends Component<Props, State> {
                   isHomepage={isHomepage}
                   setTips={this.setTips}
                   setSplitDecision={(value?: string) => {
-                    this.setState({splitDecision: value});
+                    this.setState({splitDecision: value as SavedQueryDatasets});
                   }}
                   dataset={
                     organization.features.includes(

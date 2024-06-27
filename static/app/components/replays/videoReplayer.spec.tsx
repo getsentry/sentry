@@ -88,6 +88,7 @@ describe('VideoReplayer - no starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 40000,
+      config: {skipInactive: false, speed: 1.0},
     });
     // @ts-expect-error private
     expect(inst._currentIndex).toEqual(0);
@@ -114,6 +115,7 @@ describe('VideoReplayer - no starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 40000,
+      config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(18100);
     // @ts-expect-error private
@@ -143,6 +145,7 @@ describe('VideoReplayer - no starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 40000,
+      config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
@@ -166,6 +169,7 @@ describe('VideoReplayer - no starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 40000,
+      config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(0);
     jest.advanceTimersByTime(2500);
@@ -186,6 +190,7 @@ describe('VideoReplayer - no starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 50000,
+      config: {skipInactive: false, speed: 1.0},
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
@@ -221,6 +226,7 @@ describe('VideoReplayer - no starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 55000,
+      config: {skipInactive: false, speed: 1.0},
     });
     // play at segment 7
     const playPromise = inst.play(45_003);
@@ -295,6 +301,7 @@ describe('VideoReplayer - with starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 40000,
+      config: {skipInactive: false, speed: 1.0},
     });
     // @ts-expect-error private
     expect(inst._currentIndex).toEqual(0);
@@ -319,6 +326,7 @@ describe('VideoReplayer - with starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 40000,
+      config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(18100);
     // @ts-expect-error private
@@ -348,6 +356,7 @@ describe('VideoReplayer - with starting gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 40000,
+      config: {skipInactive: false, speed: 1.0},
     });
     const playPromise = inst.play(50000);
     // 15000 -> 20000 is a gap, so player should start playing @ index 3, from
@@ -413,6 +422,7 @@ describe('VideoReplayer - with ending gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 50000,
+      config: {skipInactive: false, speed: 1.0},
     });
     // actual length of the segments is 40s
     // 10s gap at the end
@@ -451,6 +461,7 @@ describe('VideoReplayer - with ending gap', () => {
       onLoaded: jest.fn(),
       onBuffer: jest.fn(),
       durationMs: 50000,
+      config: {skipInactive: false, speed: 1.0},
     });
     // actual length of the segments is 40s
     // 10s gap at the end

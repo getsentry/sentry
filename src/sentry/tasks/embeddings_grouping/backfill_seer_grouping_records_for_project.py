@@ -245,6 +245,7 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )
     else:
         # TODO: delete project redis key here if needed?
@@ -290,4 +291,5 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )

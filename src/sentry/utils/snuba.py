@@ -16,11 +16,11 @@ from typing import Any, Union
 from urllib.parse import urlparse
 
 import sentry_sdk
+import sentry_sdk.scope
 import urllib3
 from dateutil.parser import parse as parse_datetime
 from django.conf import settings
 from django.core.cache import cache
-from sentry_sdk import Hub
 from snuba_sdk import MetricsQuery, Request
 from snuba_sdk.legacy import json_to_snql
 
@@ -35,6 +35,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
@@ -857,6 +858,9 @@ def raw_snql_query(
     request: Request,
     referrer: str | None = None,
     use_cache: bool = False,
+    query_source: (
+        QuerySource | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> Mapping[str, Any]:
     """
     Alias for `bulk_snuba_queries`, kept for backwards compatibility.
@@ -864,13 +868,18 @@ def raw_snql_query(
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
-    return bulk_snuba_queries([request], referrer, use_cache)[0]
+    return bulk_snuba_queries(
+        requests=[request], referrer=referrer, query_source=query_source, use_cache=use_cache
+    )[0]
 
 
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
     use_cache: bool = False,
+    query_source: (
+        QuerySource | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> ResultSet:
     """
     The main entrypoint to running queries in Snuba. This function accepts
@@ -883,9 +892,12 @@ def bulk_snuba_queries(
             request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
 
     for request in requests:
-        if referrer:
+        if referrer or query_source:
             request.tenant_ids = request.tenant_ids or dict()
-            request.tenant_ids["referrer"] = referrer
+            if referrer:
+                request.tenant_ids["referrer"] = referrer
+            if query_source:
+                request.tenant_ids["query_source"] = query_source.value
 
     params = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
@@ -929,6 +941,7 @@ def _apply_cache_and_build_results(
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
+
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
@@ -991,7 +1004,7 @@ def _bulk_snuba_query(
                 _query_thread_pool.map(
                     _snuba_query,
                     [
-                        (params, Hub(Hub.current), headers, parent_api)
+                        (params, sentry_sdk.Scope.get_isolation_scope().fork(), headers, parent_api)
                         for params in snuba_param_list
                     ],
                 )
@@ -999,7 +1012,14 @@ def _bulk_snuba_query(
         else:
             # No need to submit to the thread pool if we're just performing a single query
             query_results = [
-                _snuba_query((snuba_param_list[0], Hub(Hub.current), headers, parent_api))
+                _snuba_query(
+                    (
+                        snuba_param_list[0],
+                        sentry_sdk.Scope.get_isolation_scope().fork(),
+                        headers,
+                        parent_api,
+                    )
+                )
             ]
 
     results = []
@@ -1024,6 +1044,14 @@ def _bulk_snuba_query(
                 logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
                 raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
+
+        if "quota_allowance" in body and body["quota_allowance"]:
+            quota_allowance_summary = body["quota_allowance"]["summary"]
+            span.set_tag("threads_used", quota_allowance_summary["threads_used"])
+            for k, v in quota_allowance_summary["throttled_by"].items():
+                span.set_tag(k, v)
+            for k, v in quota_allowance_summary["rejected_by"].items():
+                span.set_tag(k, v)
 
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
@@ -1073,14 +1101,14 @@ RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[
 def _snuba_query(
     params: tuple[
         RequestQueryBody,
-        Hub,
+        sentry_sdk.Scope,
         Mapping[str, str],
         str,
     ],
 ) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
-    query_body, thread_hub, headers, parent_api = params
+    query_body, thread_isolation_scope, headers, parent_api = params
     request, forward, reverse = query_body
     request.parent_api = parent_api
     try:
@@ -1092,26 +1120,30 @@ def _snuba_query(
             request.flags.debug = True
 
         if isinstance(request.query, MetricsQuery):
-            return _raw_mql_query(request, thread_hub, headers), forward, reverse
+            return _raw_mql_query(request, thread_isolation_scope, headers), forward, reverse
 
-        return _raw_snql_query(request, thread_hub, headers), forward, reverse
+        return _raw_snql_query(request, thread_isolation_scope, headers), forward, reverse
     except urllib3.exceptions.HTTPError as err:
         raise SnubaError(err)
 
 
 def _raw_mql_query(
-    request: Request, thread_hub: Hub, headers: Mapping[str, str]
+    request: Request, thread_isolation_scope: sentry_sdk.Scope, headers: Mapping[str, str]
 ) -> urllib3.response.HTTPResponse:
     # Enter hub such that http spans are properly nested
-    with thread_hub, timer("mql_query"):
+    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope), timer("mql_query"):
         referrer = headers.get("referer", "unknown")
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
         serialized_req = request.serialize()
-        with thread_hub.start_span(op="snuba_mql.validation", description=referrer) as span:
+        with thread_isolation_scope.start_span(
+            op="snuba_mql.validation", description=referrer
+        ) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with thread_hub.start_span(op="snuba_mql.run", description=serialized_req) as span:
+        with thread_isolation_scope.start_span(
+            op="snuba_mql.run", description=serialized_req
+        ) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/mql", body=body, headers=headers
@@ -1119,17 +1151,21 @@ def _raw_mql_query(
 
 
 def _raw_snql_query(
-    request: Request, thread_hub: Hub, headers: Mapping[str, str]
+    request: Request, thread_isolation_scope: sentry_sdk.Scope, headers: Mapping[str, str]
 ) -> urllib3.response.HTTPResponse:
     # Enter hub such that http spans are properly nested
-    with thread_hub, timer("snql_query"):
+    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope), timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
         serialized_req = request.serialize()
-        with thread_hub.start_span(op="snuba_snql.validation", description=referrer) as span:
+        with thread_isolation_scope.start_span(
+            op="snuba_snql.validation", description=referrer
+        ) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with thread_hub.start_span(op="snuba_snql.run", description=serialized_req) as span:
+        with thread_isolation_scope.start_span(
+            op="snuba_snql.run", description=serialized_req
+        ) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/snql", body=body, headers=headers

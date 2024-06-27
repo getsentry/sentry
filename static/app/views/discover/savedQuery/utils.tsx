@@ -254,16 +254,16 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
 export function getSavedQueryDataset(
   location: Location,
   savedQuery: SavedQuery | undefined,
-  splitDecision?: string
+  splitDecision?: SavedQueryDatasets
 ): SavedQueryDatasets {
   const dataset = decodeScalar(location.query[DATASET_PARAM]);
   if (dataset) {
     return dataset as SavedQueryDatasets;
   }
-  if (savedQuery?.queryDataset === 'discover' && splitDecision) {
-    return splitDecision as SavedQueryDatasets;
+  if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
+    return splitDecision;
   }
-  return (savedQuery?.queryDataset ?? 'error-events') as SavedQueryDatasets;
+  return (savedQuery?.queryDataset ?? SavedQueryDatasets.ERRORS) as SavedQueryDatasets;
 }
 
 export function getDatasetFromSavedQueryDataset(

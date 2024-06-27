@@ -27,6 +27,7 @@ import type {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
@@ -143,7 +144,7 @@ type Props = DefaultProps & {
   yAxis: string[];
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
-  splitDecision?: string;
+  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {

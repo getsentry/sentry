@@ -4,6 +4,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -15,7 +16,7 @@ export const DATASET_PARAM = 'queryDataset';
 type Props = {
   isHomepage: boolean | undefined;
   savedQuery: SavedQuery | undefined;
-  splitDecision?: string;
+  splitDecision?: SavedQueryDatasets;
 };
 
 export function DatasetSelector(props: Props) {

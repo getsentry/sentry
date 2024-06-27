@@ -113,13 +113,18 @@ def format_slack_data_by_user(
     return slack_data_by_user
 
 
-def get_slack_user_data(
+def get_slack_user_list(
     integration: Integration | RpcIntegration,
-    organization: Organization | RpcOrganization,
+    organization: Organization | RpcOrganization | None = None,
+    kwargs: dict[str, Any] | None = None,
 ) -> Iterable[dict[str, Any]]:
     sdk_client = SlackSdkClient(integration_id=integration.id)
     try:
-        users_list = sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
+        users_list = (
+            sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE, **kwargs)
+            if kwargs
+            else sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE)
+        )
 
         for page in users_list:
             users: dict[str, Any] = page.get("members")
@@ -130,7 +135,7 @@ def get_slack_user_data(
             "slack.post_install.get_users.error",
             extra={
                 "error": str(e),
-                "organization": organization.slug,
+                "organization": organization.slug if organization else None,
                 "integration_id": integration.id,
             },
         )
@@ -141,5 +146,5 @@ def get_slack_data_by_user_via_sdk(
     organization: Organization | RpcOrganization,
     emails_by_user: Mapping[User, Sequence[str]],
 ) -> Iterable[Mapping[User, SlackUserData]]:
-    all_users = get_slack_user_data(integration, organization)
+    all_users = get_slack_user_list(integration, organization)
     yield from (format_slack_data_by_user(emails_by_user, users) for users in all_users)

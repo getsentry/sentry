@@ -34,6 +34,10 @@ filterwarnings = [
   # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
   "ignore:Type google\\._upb.*",
 
+  # TODO: we should fix these, but for now there's a lot
+  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
+  "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
+
   # The following warning filters are for pytest only.
   "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
@@ -43,7 +47,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
   "pydantic.mypy",
@@ -376,7 +380,6 @@ module = [
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
-    "sentry.search.events.builder.discover",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.discover",
@@ -528,10 +531,7 @@ module = [
     "sentry.grouping.component",
     "sentry.grouping.fingerprinting",
     "sentry.grouping.parameterization",
-    "sentry.hybridcloud",
-    "sentry.hybridcloud.migrations.*",
-    "sentry.hybridcloud.options",
-    "sentry.hybridcloud.rpc_services.*",
+    "sentry.hybridcloud.*",
     "sentry.issues",
     "sentry.issues.analytics",
     "sentry.issues.apps",
@@ -596,14 +596,11 @@ module = [
     "sentry.services.hybrid_cloud.orgauthtoken.*",
     "sentry.services.hybrid_cloud.project.*",
     "sentry.services.hybrid_cloud.project_key.*",
-    "sentry.services.hybrid_cloud.region",
     "sentry.services.hybrid_cloud.replica.*",
     "sentry.services.hybrid_cloud.repository.*",
-    "sentry.services.hybrid_cloud.rpcmetrics",
     "sentry.services.hybrid_cloud.tombstone.*",
     "sentry.services.hybrid_cloud.user.*",
     "sentry.services.hybrid_cloud.user_option.*",
-    "sentry.services.hybrid_cloud.util",
     "sentry.snuba.metrics.extraction",
     "sentry.stacktraces.platform",
     "sentry.tasks.beacon",

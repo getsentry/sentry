@@ -46,6 +46,7 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 
     project = FlexibleForeignKey("sentry.Project")
+    # TODO: Change this to Models.PROTECT
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription")
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
