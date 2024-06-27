@@ -1047,7 +1047,7 @@ def _bulk_snuba_query(
                     raise SnubaError("Failed to parse snuba error response")
                 raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
 
-            if "quota_allowance" in body and body["quota_allowance"]:
+            if "quota_allowance" in body and "summary" in body["quota_allowance"]:
                 quota_allowance_summary = body["quota_allowance"]["summary"]
                 span.set_tag("threads_used", quota_allowance_summary["threads_used"])
                 sentry_sdk.set_tag("threads_used", quota_allowance_summary["threads_used"])
