@@ -17,6 +17,7 @@ from sentry.hybridcloud.models import (
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
+from sentry.hybridcloud.services.replica.service import ControlReplicaService, RegionReplicaService
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
@@ -43,7 +44,6 @@ from sentry.services.hybrid_cloud.auth import (
 )
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
-from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
 def get_foreign_key_columns(

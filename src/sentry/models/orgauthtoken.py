@@ -115,8 +115,8 @@ class OrgAuthToken(ReplicatedControlModel):
         return old_pk
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.replica import region_replica_service
         from sentry.services.hybrid_cloud.orgauthtoken.serial import serialize_org_auth_token
-        from sentry.services.hybrid_cloud.replica import region_replica_service
 
         region_replica_service.upsert_replicated_org_auth_token(
             token=serialize_org_auth_token(self),
