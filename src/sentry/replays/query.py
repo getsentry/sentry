@@ -25,6 +25,7 @@ from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
 from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
+    PREFERRED_SOURCE,
     Paginators,
     execute_query,
     make_full_aggregation_query,
@@ -54,6 +55,7 @@ def query_replays_collection_paginated(
     limit: int,
     offset: int,
     search_filters: Sequence[SearchFilter],
+    preferred_source: PREFERRED_SOURCE,
     organization: Organization | None = None,
     actor: Any | None = None,
 ):
@@ -71,6 +73,7 @@ def query_replays_collection_paginated(
         period_start=start,
         period_stop=end,
         request_user_id=actor.id if actor else None,
+        preferred_source=preferred_source,
     )
 
 

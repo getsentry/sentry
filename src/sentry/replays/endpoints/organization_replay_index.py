@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -20,7 +21,7 @@ from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
 from sentry.replays.usecases.errors import handled_snuba_exceptions
-from sentry.replays.usecases.query import QueryResponse
+from sentry.replays.usecases.query import PREFERRED_SOURCE, QueryResponse
 from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -64,6 +65,23 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             if key not in filter_params:
                 filter_params[key] = value  # type: ignore[literal-required]
 
+        # We allow the requester to make their own decision about where to source the data.
+        # Because this is a stateless, isolated interaction its okay for the user to decide where
+        # to source the data. At worst they receive an exception and stop manually specifying the
+        # header. This allows us to quickly test and compare multiple data sources without
+        # interacting with a feature flagging system.
+        preferred_source = request.headers.get("X-Preferred-Data-Source")
+        if preferred_source in ("scalar", "aggregated", "materialized-view"):
+            preferred_source = cast(PREFERRED_SOURCE, preferred_source)
+        else:
+            # If the feature flag has been enabled we'll default to the materialized-view data
+            # source if none was provided. This would be the common path for users using the
+            # Javascript web application.
+            if features.has("organizations:session-replay-materialized-view", organization):
+                preferred_source = "materialized-view"
+            else:
+                preferred_source = "scalar"
+
         headers = {}
 
         def data_fn(offset: int, limit: int):
@@ -96,6 +114,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
+                preferred_source=preferred_source,
                 organization=organization,
                 actor=request.user,
             )

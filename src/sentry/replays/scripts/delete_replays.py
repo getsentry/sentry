@@ -41,6 +41,7 @@ def delete_replays(
             search_filters=search_filters,
             sort="started_at",
             organization=Organization.objects.filter(project__id=project_id).get(),
+            preferred_source="scalar",
         )
         replays = list(generate_normalized_output(query_results))
 

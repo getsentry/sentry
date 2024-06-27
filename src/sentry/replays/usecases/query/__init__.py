@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 from rest_framework.exceptions import ParseError
 from snuba_sdk import (
@@ -36,7 +36,6 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
-from sentry import features
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
@@ -47,6 +46,8 @@ from sentry.utils.snuba import raw_snql_query
 VIEWED_BY_ME_KEY_ALIASES = ["viewed_by_me", "seen_by_me"]
 NULL_VIEWED_BY_ID_VALUE = 0  # default value in clickhouse
 DEFAULT_SORT_FIELD = "started_at"
+
+PREFERRED_SOURCE = Literal["aggregated", "materialized-view", "scalar"]
 
 
 def handle_viewed_by_me_filters(
@@ -204,6 +205,7 @@ def query_using_optimized_search(
     period_start: datetime,
     period_stop: datetime,
     request_user_id: int | None = None,
+    preferred_source: PREFERRED_SOURCE = "scalar",
 ):
     tenant_id = _make_tenant_id(organization)
 
@@ -218,43 +220,30 @@ def query_using_optimized_search(
     # Translate "viewed_by_me" filters, which are aliases for "viewed_by_id"
     search_filters = handle_viewed_by_me_filters(search_filters, request_user_id)
 
-    can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
-    can_scalar_search = can_scalar_search_subquery(search_filters)
-
-    if (
-        features.has("organizations:session-replay-materialized-view", organization)
-        and mv.can_search(search_filters)
-        and mv.can_sort(sort or DEFAULT_SORT_FIELD)
-    ):
-        query = make_materialized_view_search_conditions_query(
-            search_filters=search_filters,
-            sort=sort,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_stop=period_stop,
+    if preferred_source == "materialized-view":
+        query, referrer, source = _query_using_materialized_view_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
         )
-        referrer = "replays.query.browse_materialized_view_conditions_subquery"
-        source = "materialized-view"
-    elif can_scalar_sort and can_scalar_search:
-        query = make_scalar_search_conditions_query(
-            search_filters=search_filters,
-            sort=sort,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_stop=period_stop,
+    elif preferred_source == "aggregated":
+        query, referrer, source = _query_using_aggregated_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
         )
-        referrer = "replays.query.browse_scalar_conditions_subquery"
-        source = "scalar-subquery"
     else:
-        query = make_aggregate_search_conditions_query(
-            search_filters=search_filters,
-            sort=sort,
-            project_ids=project_ids,
-            period_start=period_start,
-            period_stop=period_stop,
+        query, referrer, source = _query_using_scalar_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
         )
-        referrer = "replays.query.browse_aggregated_conditions_subquery"
-        source = "aggregated-subquery"
 
     query = query.set_limit(pagination.limit)
     query = query.set_offset(pagination.offset)
@@ -301,19 +290,28 @@ def query_using_optimized_search(
     )
 
 
-def make_materialized_view_search_conditions_query(
+def _query_using_materialized_view_strategy(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-) -> Query:
-    orderby = handle_ordering(mv.sort_config, sort or "-started_at")
+):
+    if not mv.can_search(search_filters) or not mv.can_sort(sort or DEFAULT_SORT_FIELD):
+        return _query_using_scalar_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
+
+    orderby = handle_ordering(mv.sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
     having: list[Condition] = handle_search_filters(mv.search_config, search_filters)
     having.append(Condition(Function("minMerge", parameters=[Column("min_segment_id")]), Op.EQ, 0))
 
-    return Query(
+    query = Query(
         match=Entity("replays_aggregated"),
         select=[Column("replay_id")],
         where=[
@@ -326,14 +324,31 @@ def make_materialized_view_search_conditions_query(
         groupby=[Column("replay_id")],
     )
 
+    return (
+        query,
+        "replays.query.browse_materialized_view_conditions_subquery",
+        "materialized-view",
+    )
 
-def make_scalar_search_conditions_query(
+
+def _query_using_scalar_strategy(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-) -> Query:
+):
+    if not can_scalar_search_subquery(search_filters) or not sort_is_scalar_compatible(
+        sort or DEFAULT_SORT_FIELD
+    ):
+        return _query_using_aggregated_strategy(
+            search_filters,
+            sort,
+            project_ids,
+            period_start,
+            period_stop,
+        )
+
     # NOTE: This query may return replay-ids which do not have a segment_id 0 row. These replays
     # will be removed from the final output and could lead to pagination peculiarities. In
     # practice, this is not expected to be noticable by the end-user.
@@ -344,7 +359,7 @@ def make_scalar_search_conditions_query(
     where = handle_search_filters(scalar_search_config, search_filters)
     orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
-    return Query(
+    query = Query(
         match=Entity("replays"),
         select=[Column("replay_id")],
         where=[
@@ -358,20 +373,22 @@ def make_scalar_search_conditions_query(
         granularity=Granularity(3600),
     )
 
+    return (query, "replays.query.browse_scalar_conditions_subquery", "scalar-subquery")
 
-def make_aggregate_search_conditions_query(
+
+def _query_using_aggregated_strategy(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
     period_start: datetime,
     period_stop: datetime,
-) -> Query:
+):
     orderby = handle_ordering(agg_sort_config, sort or "-" + DEFAULT_SORT_FIELD)
 
     having: list[Condition] = handle_search_filters(agg_search_config, search_filters)
     having.append(Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0))
 
-    return Query(
+    query = Query(
         match=Entity("replays"),
         select=[Column("replay_id")],
         where=[
@@ -384,6 +401,8 @@ def make_aggregate_search_conditions_query(
         groupby=[Column("replay_id")],
         granularity=Granularity(3600),
     )
+
+    return (query, "replays.query.browse_aggregated_conditions_subquery", "aggregated-subquery")
 
 
 def make_full_aggregation_query(
