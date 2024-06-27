@@ -5,7 +5,7 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.hybridcloud.rpc_services.control_organization_provisioning.model import (
+from sentry.hybridcloud.services.control_organization_provisioning.model import (
     RpcOrganizationSlugReservation,
 )
 from sentry.services.organization.model import OrganizationProvisioningOptions
@@ -96,7 +96,7 @@ class ControlOrganizationProvisioningRpcService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.hybridcloud.rpc_services.control_organization_provisioning.impl import (
+        from sentry.hybridcloud.services.control_organization_provisioning.impl import (
             DatabaseBackedControlOrganizationProvisioningService,
         )
 

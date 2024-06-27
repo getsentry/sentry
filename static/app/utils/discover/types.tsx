@@ -20,6 +20,7 @@ export enum DiscoverDatasets {
   ISSUE_PLATFORM = 'issuePlatform',
   SPANS_INDEXED = 'spansIndexed',
   SPANS_METRICS = 'spansMetrics',
+  TRANSACTIONS = 'transactions',
 }
 
 export enum SavedQueryDatasets {

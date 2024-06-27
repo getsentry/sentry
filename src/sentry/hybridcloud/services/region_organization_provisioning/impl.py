@@ -4,10 +4,10 @@ from sentry_sdk import capture_exception
 
 from sentry import roles
 from sentry.db.postgres.transactions import enforce_constraints
-from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
+from sentry.hybridcloud.services.region_organization_provisioning import (
     RegionOrganizationProvisioningRpcService,
 )
 from sentry.models.organization import Organization
