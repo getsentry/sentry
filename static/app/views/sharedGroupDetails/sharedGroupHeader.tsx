@@ -109,8 +109,10 @@ const TimeStamp = styled('div')`
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: ${p => p.theme.text.lineHeightHeading};
+  margin-top: ${space(0.25)};
 `;
 
 const EventTimeLabel = styled('span')`
   color: ${p => p.theme.subText};
+  margin-left: ${space(0.25)};
 `;
