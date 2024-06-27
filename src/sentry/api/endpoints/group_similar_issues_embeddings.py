@@ -79,7 +79,7 @@ class GroupSimilarIssuesEmbeddingsEndpoint(GroupEndpoint):
             "hash": latest_event.get_primary_hash(),
             "project_id": group.project.id,
             "stacktrace": stacktrace_string,
-            "message": group.message,
+            "message": latest_event.title,
             "exception_type": get_path(latest_event.data, "exception", "values", -1, "type"),
             "read_only": True,
             "referrer": "similar_issues",
