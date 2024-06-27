@@ -244,9 +244,9 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const {trace, isIncrementallyFetching, isLoading, errors, hasMultipleTraces} = useTrace(
-    {traceDataRows: props.traceDataRows}
-  );
+  const {trace, isIncrementallyFetching, isLoading, errors} = useTrace({
+    traceDataRows: props.traceDataRows,
+  });
   const rootEvent = useTraceRootEvent(trace);
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
@@ -339,7 +339,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         return newTree;
       }
 
-      if (hasMultipleTraces) {
+      if (props.traceDataRows && props.traceDataRows.length > 1) {
         treeRef.current.appendTree(TraceTree.FromTrace(trace, props.replayRecord));
       }
 
@@ -353,7 +353,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     projects,
     props.replayRecord,
     isIncrementallyFetching,
-    hasMultipleTraces,
     errors,
     isLoading,
   ]);
@@ -968,16 +967,6 @@ const TraceInnerLayout = styled('div')`
   padding: ${space(2)};
 
   background-color: ${p => p.theme.background};
-
-  --info: ${p => p.theme.purple400};
-  --warning: ${p => p.theme.yellow300};
-  --error: ${p => p.theme.error};
-  --fatal: ${p => p.theme.error};
-  --default: ${p => p.theme.gray300};
-  --unknown: ${p => p.theme.gray300};
-  --profile: ${p => p.theme.purple300};
-  --autogrouped: ${p => p.theme.blue300};
-  --performance-issue: ${p => p.theme.blue300};
 `;
 
 const TraceToolbar = styled('div')`

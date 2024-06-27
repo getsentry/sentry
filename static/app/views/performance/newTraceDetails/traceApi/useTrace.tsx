@@ -188,7 +188,6 @@ type UseTraceParams = {
 
 type TraceQueryResults = {
   errors: Error[];
-  hasMultipleTraces: boolean;
   isIncrementallyFetching: boolean;
   isLoading: boolean;
   trace: TraceSplitResults<TraceTree.Transaction> | undefined;
@@ -211,7 +210,6 @@ export function useTrace(options: UseTraceParams = DEFAULT_OPTIONS): TraceQueryR
 
   const [traceData, setTraceData] = useState<{
     errors: Error[];
-    hasMultipleTraces: boolean;
     isIncrementallyFetching: boolean;
     isLoading: boolean;
     trace: TraceSplitResults<TraceTree.Transaction> | undefined;
@@ -219,7 +217,6 @@ export function useTrace(options: UseTraceParams = DEFAULT_OPTIONS): TraceQueryR
     trace: undefined,
     isLoading: true,
     isIncrementallyFetching: false,
-    hasMultipleTraces: options.traceDataRows ? options.traceDataRows.length > 1 : false,
     errors: [],
   });
 
@@ -301,7 +298,6 @@ export function useTrace(options: UseTraceParams = DEFAULT_OPTIONS): TraceQueryR
         isLoading: demoTrace.isLoading,
         isIncrementallyFetching: false,
         errors: demoTrace.error ? [demoTrace.error] : [],
-        hasMultipleTraces: false,
       }
     : traceData;
 }

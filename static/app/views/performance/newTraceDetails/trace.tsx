@@ -270,6 +270,12 @@ export function Trace({
     organization,
   ]);
 
+  useEffect(() => {
+    if (!isIncrementallyFetching) {
+      rerender();
+    }
+  }, [isIncrementallyFetching, rerender]);
+
   const onNodeZoomIn = useCallback(
     (
       event: React.MouseEvent<Element> | React.KeyboardEvent<Element>,
@@ -409,6 +415,7 @@ export function Trace({
           onZoomIn={onNodeZoomIn}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
+          isIncrementallyFetching={isIncrementallyFetching}
         />
       );
     },
@@ -521,7 +528,6 @@ export function Trace({
         data-test-id="trace-virtualized-list-scroll-container"
       >
         <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
-        {isIncrementallyFetching ? <div> 'Fetching...' </div> : null}
         <div className="TraceRow Hidden">
           <div
             className="TraceLeftColumn"
@@ -539,6 +545,7 @@ export function Trace({
 
 function RenderRow(props: {
   index: number;
+  isIncrementallyFetching: boolean;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -933,8 +940,13 @@ function RenderRow(props: {
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} manager={props.manager} />
               {props.node.children.length > 0 || props.node.canFetch ? (
-                <ChildrenButton icon={''} status={'idle'} expanded onClick={() => void 0}>
-                  {props.node.children.length > 0
+                <ChildrenButton
+                  icon={''}
+                  status={props.isIncrementallyFetching ? 'loading' : 'idle'}
+                  expanded
+                  onClick={() => void 0}
+                >
+                  {props.node.children.length > 0 && !props.isIncrementallyFetching
                     ? COUNT_FORMATTER.format(props.node.children.length)
                     : null}
                 </ChildrenButton>
@@ -1204,7 +1216,7 @@ function ChildrenButton(props: {
 }) {
   return (
     <button className={`TraceChildrenCount`} onClick={props.onClick}>
-      <div className="TraceChildrenCountContent">{props.children}</div>
+      {<div className="TraceChildrenCountContent">{props.children}</div>}
       <div className="TraceChildrenCountAction">
         {props.icon}
         {props.status === 'loading' ? (
@@ -1735,6 +1747,16 @@ const TraceStylingWrapper = styled('div')`
   height: 100%;
   grid-area: trace;
   padding-top: 26px;
+
+  --info: ${p => p.theme.purple400};
+  --warning: ${p => p.theme.yellow300};
+  --error: ${p => p.theme.error};
+  --fatal: ${p => p.theme.error};
+  --default: ${p => p.theme.gray300};
+  --unknown: ${p => p.theme.gray300};
+  --profile: ${p => p.theme.purple300};
+  --autogrouped: ${p => p.theme.blue300};
+  --performance-issue: ${p => p.theme.blue300};
 
   &.WithIndicators {
     padding-top: 44px;
