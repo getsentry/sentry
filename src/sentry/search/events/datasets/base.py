@@ -19,6 +19,7 @@ class DatasetConfig(abc.ABC):
     custom_threshold_columns: set[str] = set()
     non_nullable_keys: set[str] = set()
     missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
+    optimize_wildcard_searches = False
 
     def __init__(self, builder: BaseQueryBuilder):
         pass
