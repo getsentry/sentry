@@ -10,7 +10,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 
 type Props = {
@@ -18,6 +17,15 @@ type Props = {
   tag?: Tag;
   transaction?: string | null;
   weighted?: boolean;
+};
+
+export type WebVitalsScoreBreakdown = {
+  cls: SeriesDataUnit[];
+  fcp: SeriesDataUnit[];
+  inp: SeriesDataUnit[];
+  lcp: SeriesDataUnit[];
+  total: SeriesDataUnit[];
+  ttfb: SeriesDataUnit[];
 };
 
 export type UnweightedWebVitalsScoreBreakdown = {

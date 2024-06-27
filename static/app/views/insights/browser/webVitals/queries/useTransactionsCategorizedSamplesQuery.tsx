@@ -1,12 +1,12 @@
-import {
-  PERFORMANCE_SCORE_MEDIANS,
-  PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
 import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {
+  PERFORMANCE_SCORE_MEDIANS,
+  PERFORMANCE_SCORE_P90S,
+} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 type Props = {
   enabled: boolean;

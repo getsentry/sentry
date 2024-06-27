@@ -1,9 +1,9 @@
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 export const calculatePerformanceScoreFromStoredTableDataRow = (
   data?: TableDataRow

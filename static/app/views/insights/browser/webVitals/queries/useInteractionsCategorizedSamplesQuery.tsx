@@ -1,9 +1,9 @@
+import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useInpSpanSamplesWebVitalsQuery';
+import type {InteractionSpanSampleRowWithScore} from 'sentry/views/insights/browser/webVitals/types';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useInpSpanSamplesWebVitalsQuery';
-import type {InteractionSpanSampleRowWithScore} from 'sentry/views/insights/browser/webVitals/types';
+} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 type Props = {
   enabled: boolean;
