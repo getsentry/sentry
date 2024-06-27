@@ -81,7 +81,8 @@ jobs:
           which node || true
           which npm || true
           mv pre-commit-node-env/package.json package.json
-          npm install -g
+          npm install
+          echo "${PWD}/node_modules/.bin" >> $GITHUB_PATH
           which eslint || true
           pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
           pre-commit install-hooks
@@ -91,6 +92,7 @@ jobs:
 
       - name: Run pre-commit on PR commits
         run: |
+          which eslint || true
           jq '.[]' --raw-output <<< '${{steps.changes.outputs.all_files}}' |
             # Run pre-commit to lint and format check files that were changed (but not deleted) compared to master.
             xargs pre-commit run --files
