@@ -1,8 +1,9 @@
 from unittest.mock import patch
 
 from sentry.models.grouphash import GroupHash
-from sentry.tasks.delete_seer_grouping_records_by_hash import (
+from sentry.tasks.delete_seer_grouping_records import (
     call_delete_seer_grouping_records_by_hash,
+    call_seer_delete_project_grouping_records,
     delete_seer_grouping_records_by_hash,
 )
 from sentry.testutils.cases import TestCase
@@ -12,9 +13,9 @@ from sentry.testutils.pytest.fixtures import django_db_all
 
 @django_db_all
 class TestDeleteSeerGroupingRecordsByHash(TestCase):
-    @patch("sentry.tasks.delete_seer_grouping_records_by_hash.delete_grouping_records_by_hash")
+    @patch("sentry.tasks.delete_seer_grouping_records.delete_grouping_records_by_hash")
     @patch(
-        "sentry.tasks.delete_seer_grouping_records_by_hash.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_seer_grouping_records_by_hash_batches(
         self,
@@ -33,7 +34,7 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
         }
 
     @with_feature("projects:similarity-embeddings-delete-by-hash")
-    @patch("sentry.tasks.delete_seer_grouping_records_by_hash.logger")
+    @patch("sentry.tasks.delete_seer_grouping_records.logger")
     def test_call_delete_seer_grouping_records_by_hash_simple(self, mock_logger):
         group_ids, hashes = [], []
         for i in range(5):
@@ -49,7 +50,14 @@ class TestDeleteSeerGroupingRecordsByHash(TestCase):
             extra={"project_id": self.project.id, "hashes": hashes},
         )
 
-    @patch("sentry.tasks.delete_seer_grouping_records_by_hash.logger")
+    @patch("sentry.tasks.delete_seer_grouping_records.logger")
     def test_call_delete_seer_grouping_records_by_hash_no_group_ids(self, mock_logger):
         call_delete_seer_grouping_records_by_hash([])
         mock_logger.info.assert_not_called()
+
+    @patch("sentry.tasks.delete_seer_grouping_records.delete_project_grouping_records")
+    def test_call_delete_project_and_delete_grouping_records(
+        self, mock_delete_project_grouping_records
+    ):
+        call_seer_delete_project_grouping_records(self.project.id)
+        mock_delete_project_grouping_records.assert_called_once()

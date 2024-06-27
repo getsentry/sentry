@@ -4,7 +4,10 @@ from typing import Any
 from sentry import features, options
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
-from sentry.seer.similarity.grouping_records import delete_grouping_records_by_hash
+from sentry.seer.similarity.grouping_records import (
+    delete_grouping_records_by_hash,
+    delete_project_grouping_records,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
@@ -16,13 +19,13 @@ logger = logging.getLogger(__name__)
     queue="delete_seer_grouping_records_by_hash",
     max_retries=0,
     silo_mode=SiloMode.REGION,
+    soft_time_limit=60 * 15,
+    time_limit=60 * (15 + 5),
 )
 def delete_seer_grouping_records_by_hash(
     project_id: int,
     hashes: list[str],
     last_deleted_index: int = 0,
-    soft_time_limit=60 * 15,
-    time_limit=60 * (15 + 5),
     *args: Any,
     **kwargs: Any,
 ) -> None:
@@ -56,3 +59,20 @@ def call_delete_seer_grouping_records_by_hash(
             extra={"project_id": project.id, "hashes": group_hashes},
         )
         delete_seer_grouping_records_by_hash.apply_async(args=[project.id, group_hashes, 0])
+
+
+@instrumented_task(
+    name="sentry.tasks.call_seer_delete_project_grouping_records",
+    queue="delete_seer_grouping_records_by_hash",
+    max_retries=0,
+    silo_mode=SiloMode.REGION,
+    soft_time_limit=60 * 15,
+    time_limit=60 * (15 + 5),
+)
+def call_seer_delete_project_grouping_records(
+    project_id: int,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    logger.info("calling seer delete records by project", extra={"project_id": project_id})
+    delete_project_grouping_records(project_id)

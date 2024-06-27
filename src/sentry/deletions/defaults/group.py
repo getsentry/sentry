@@ -6,9 +6,7 @@ from collections import defaultdict
 from sentry import eventstore, eventstream, models, nodestore
 from sentry.eventstore.models import Event
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.tasks.delete_seer_grouping_records_by_hash import (
-    call_delete_seer_grouping_records_by_hash,
-)
+from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 
 from ..base import BaseDeletionTask, BaseRelation, ModelDeletionTask, ModelRelation
 

@@ -138,7 +138,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
     @with_feature("projects:similarity-embeddings-delete-by-hash")
     @mock.patch(
-        "sentry.tasks.delete_seer_grouping_records_by_hash.delete_seer_grouping_records_by_hash.apply_async"
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )
     def test_delete_groups_delete_grouping_records_by_hash(
         self, mock_delete_seer_grouping_records_by_hash_apply_async

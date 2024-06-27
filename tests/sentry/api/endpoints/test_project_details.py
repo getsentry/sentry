@@ -1592,16 +1592,14 @@ class ProjectDeleteTest(APITestCase):
         ).exists()
 
     @with_feature("projects:similarity-embeddings-delete-by-hash")
-    @mock.patch("sentry.api.endpoints.project_details.delete_project_grouping_records")
-    @mock.patch("sentry.api.endpoints.project_details.logger")
+    @mock.patch(
+        "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
+    )
     def test_delete_project_and_delete_grouping_records(
-        self, mock_logger, mock_delete_project_grouping_records
+        self, mock_call_seer_delete_project_grouping_records
     ):
         self._delete_project_and_assert_deleted()
-        mock_delete_project_grouping_records.assert_called_with(self.project.id)
-        mock_logger.info.assert_called_with(
-            "calling seer delete records by project", extra={"project_id": self.project.id}
-        )
+        mock_call_seer_delete_project_grouping_records.assert_called_with(args=[self.project.id])
 
 
 class TestProjectDetailsDynamicSamplingBase(APITestCase, ABC):
