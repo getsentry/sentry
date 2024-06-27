@@ -31,34 +31,33 @@ describe('GlobalDrawer', function () {
   });
 
   it('useDrawer hook can open and close the Drawer', async function () {
+    const ariaLabel = 'drawer-test-aria-label';
     render(
       <GlobalDrawerTestComponent
         config={{
           renderer: ({Body}) => (
             <Body data-test-id="drawer-test-content">useDrawer hook</Body>
           ),
+          options: {ariaLabel},
         }}
       />
     );
 
     expect(
-      screen.queryByRole('complementary', {name: 'slide out drawer'})
+      screen.queryByRole('complementary', {name: ariaLabel})
     ).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(
-      screen.getByRole('complementary', {name: 'slide out drawer'})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('complementary', {name: ariaLabel})).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
-    expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('complementary', {name: 'slide out drawer'})
+      screen.queryByRole('complementary', {name: ariaLabel})
     ).not.toBeInTheDocument();
   });
 

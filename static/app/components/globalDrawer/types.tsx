@@ -2,6 +2,10 @@ import type {DrawerBody} from 'sentry/components/globalDrawer/components';
 
 export interface DrawerOptions {
   /**
+   * Accessbility label for the drawer
+   */
+  ariaLabel?: string;
+  /**
    * If true (default), closes the drawer when an escape key is pressed
    */
   closeOnEscapeKeypress?: boolean;

@@ -71,7 +71,11 @@ export function GlobalDrawer({children}) {
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
-            <DrawerPanel onClose={handleClose} ref={panelRef}>
+            <DrawerPanel
+              ariaLabel={drawerConfig?.options?.ariaLabel}
+              onClose={handleClose}
+              ref={panelRef}
+            >
               {renderedChild}
             </DrawerPanel>
           )}

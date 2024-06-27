@@ -130,10 +130,10 @@ function renderGlobalModal(options?: Options) {
  * Helper that waits for the drawer to be hidden from the DOM. You may need to
  * wait for the drawer to be removed to avoid any act warnings.
  */
-function waitForDrawerToHide() {
+function waitForDrawerToHide(ariaLabel = 'slide out drawer') {
   return rtl.waitFor(() => {
     expect(
-      rtl.screen.queryByRole('complementary', {name: 'slide out drawer'})
+      rtl.screen.queryByRole('complementary', {name: ariaLabel})
     ).not.toBeInTheDocument();
   });
 }

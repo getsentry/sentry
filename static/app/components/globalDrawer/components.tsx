@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer/types';
-import SlideOverPanel from 'sentry/components/slideOverPanel';
+import SlideOverPanel, {type SlideOverPanelProps} from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -11,15 +11,21 @@ import {space} from 'sentry/styles/space';
 export interface DrawerPanelProps {
   children: React.ReactNode;
   onClose: DrawerOptions['onClose'];
+  ariaLabel?: SlideOverPanelProps['ariaLabel'];
 }
 
 export const DrawerPanel = forwardRef(function _DrawerPanel(
-  {children, onClose}: DrawerPanelProps,
+  {ariaLabel, children, onClose}: DrawerPanelProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   return (
     <DrawerContainer>
-      <SlideOverPanel slidePosition="right" collapsed={false} ref={ref}>
+      <SlideOverPanel
+        ariaLabel={ariaLabel}
+        slidePosition="right"
+        collapsed={false}
+        ref={ref}
+      >
         <DrawerHeader>
           <CloseButton
             priority="link"

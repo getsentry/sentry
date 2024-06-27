@@ -20,9 +20,10 @@ const COLLAPSED_STYLES = {
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
 };
 
-type SlideOverPanelProps = {
+export type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
+  ariaLabel?: string;
   onOpen?: () => void;
   slidePosition?: 'right' | 'bottom';
 };
@@ -30,7 +31,7 @@ type SlideOverPanelProps = {
 export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
-  {collapsed, children, onOpen, slidePosition}: SlideOverPanelProps,
+  {ariaLabel, collapsed, children, onOpen, slidePosition}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   useEffect(() => {
@@ -59,7 +60,7 @@ function SlideOverPanel(
       }}
       role="complementary"
       aria-hidden={collapsed}
-      aria-label="slide out drawer"
+      aria-label={ariaLabel ?? 'slide out drawer'}
     >
       {children}
     </_SlideOverPanel>
