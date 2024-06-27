@@ -108,7 +108,21 @@ function getDefaultAbsoluteDateValue(token: TokenResult<Token.FILTER>) {
 }
 
 function getRelativeDateSign(token: TokenResult<Token.FILTER>) {
-  return token.value.type === Token.VALUE_RELATIVE_DATE ? token.value.sign : '-';
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    switch (token.operator) {
+      case TermOperator.LESS_THAN:
+      case TermOperator.LESS_THAN_EQUAL:
+        return '+';
+      default:
+        return '-';
+    }
+  }
+
+  if (token.value.type === Token.VALUE_RELATIVE_DATE) {
+    return token.value.sign;
+  }
+
+  return '-';
 }
 
 function makeRelativeDateDescription(value: number, unit: string) {
