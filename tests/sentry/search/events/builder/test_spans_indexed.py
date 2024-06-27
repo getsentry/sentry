@@ -72,11 +72,18 @@ def test_field_alias(params, field, expected):
     assert expected in builder.columns
 
 
+def tags(key, column="tags"):
+    return Function("ifNull", [Column(f"{column}[{key}]"), ""])
+
+
 @pytest.mark.parametrize(
     ["condition", "expected"],
     [
         pytest.param(
-            "span.duration:1s", Condition(span_duration, Op.EQ, 1000), id="span.duration:1s"
+            "span.duration:1s",
+            Condition(span_duration, Op.EQ, 1000),
+            id="span.duration:1s",
+            marks=pytest.mark.querybuilder,
         ),
         pytest.param(
             "span.duration:>1s", Condition(span_duration, Op.GT, 1000), id="span.duration:>1s"
@@ -112,6 +119,56 @@ def test_field_alias(params, field, expected):
             "span.status:[invalid_argument,not_found]",
             Condition(Column("span_status"), Op.IN, [3, 5]),
             id="span.status:[invalid_argument,not_found]",
+        ),
+        pytest.param(
+            "foo:*bar*",
+            Condition(Function("positionCaseInsensitive", [tags("foo"), "bar"]), Op.NEQ, 0),
+            id="foo:*bar*",
+        ),
+        pytest.param(
+            "!foo:*bar*",
+            Condition(Function("positionCaseInsensitive", [tags("foo"), "bar"]), Op.EQ, 0),
+            id="!foo:*bar*",
+        ),
+        pytest.param(
+            r"foo:Bar*",
+            Condition(Function("startsWith", [Function("lower", [tags("foo")]), "bar"]), Op.EQ, 1),
+            id=r"foo:Bar*",
+        ),
+        pytest.param(
+            r"!foo:Bar*",
+            Condition(Function("startsWith", [Function("lower", [tags("foo")]), "bar"]), Op.NEQ, 1),
+            id=r"!foo:Bar*",
+        ),
+        pytest.param(
+            r"foo:*Bar",
+            Condition(Function("endsWith", [Function("lower", [tags("foo")]), "bar"]), Op.EQ, 1),
+            id=r"foo:*Bar",
+        ),
+        pytest.param(
+            r"!foo:*Bar",
+            Condition(Function("endsWith", [Function("lower", [tags("foo")]), "bar"]), Op.NEQ, 1),
+            id=r"!foo:*Bar",
+        ),
+        pytest.param(
+            r"foo:*Bar\*",
+            Condition(Function("endsWith", [Function("lower", [tags("foo")]), "bar*"]), Op.EQ, 1),
+            id=r"foo:*Bar\*",
+        ),
+        pytest.param(
+            r"!foo:*Bar\*",
+            Condition(Function("endsWith", [Function("lower", [tags("foo")]), "bar*"]), Op.NEQ, 1),
+            id=r"!foo:*Bar\*",
+        ),
+        pytest.param(
+            r"foo:*b*a*r*",
+            Condition(Function("match", [tags("foo"), "(?i)^.*b.*a.*r.*$"]), Op.EQ, 1),
+            id=r"foo:*b*a*r*",
+        ),
+        pytest.param(
+            r"!foo:*b*a*r*",
+            Condition(Function("match", [tags("foo"), "(?i)^.*b.*a.*r.*$"]), Op.NEQ, 1),
+            id=r"!foo:*b*a*r*",
         ),
     ],
 )

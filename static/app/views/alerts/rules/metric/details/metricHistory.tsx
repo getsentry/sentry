@@ -7,7 +7,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ActivationTriggerActivity, AlertRuleActivation} from 'sentry/types/alerts';
-import {ActivationTrigger} from 'sentry/types/alerts';
+// import {ActivationTrigger} from 'sentry/types/alerts';
 import useOrganization from 'sentry/utils/useOrganization';
 import MetricAlertActivity from 'sentry/views/alerts/rules/metric/details/metricActivity';
 import MetricHistoryActivation from 'sentry/views/alerts/rules/metric/details/metricHistoryActivation';
@@ -20,34 +20,37 @@ type Props = {
   incidents?: Incident[];
 };
 
-function MetricHistory({incidents, activations}: Props) {
+function MetricHistory({incidents}: Props) {
   const organization = useOrganization();
   const sortedActivity = useMemo(() => {
     const filteredIncidents = (incidents ?? []).filter(
       incident => incident.activities?.length
     );
     const activationTriggers: ActivationTriggerActivity[] = [];
-    activations?.forEach(activation => {
-      activationTriggers.push({
-        type: ActivationTrigger.ACTIVATED,
-        activator: activation.activator,
-        conditionType: activation.conditionType,
-        dateCreated: activation.dateCreated,
-      });
-      if (activation.isComplete) {
-        activationTriggers.push({
-          type: ActivationTrigger.FINISHED,
-          activator: activation.activator,
-          conditionType: activation.conditionType,
-          dateCreated: activation.finishedAt,
-        });
-      }
-    });
+    // NOTE: disabling start/finish trigger rows for now until we've determined whether its
+    // valuable during EA
+
+    // activations?.forEach(activation => {
+    //   activationTriggers.push({
+    //     type: ActivationTrigger.ACTIVATED,
+    //     activator: activation.activator,
+    //     conditionType: activation.conditionType,
+    //     dateCreated: activation.dateCreated,
+    //   });
+    //   if (activation.isComplete) {
+    //     activationTriggers.push({
+    //       type: ActivationTrigger.FINISHED,
+    //       activator: activation.activator,
+    //       conditionType: activation.conditionType,
+    //       dateCreated: activation.finishedAt,
+    //     });
+    //   }
+    // });
 
     return [...filteredIncidents, ...activationTriggers].sort((a, b) =>
       a.dateCreated > b.dateCreated ? -1 : 1
     );
-  }, [incidents, activations]);
+  }, [incidents]);
 
   const numOfActivities = sortedActivity.length;
 

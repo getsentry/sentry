@@ -503,7 +503,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
             "(column 1). This is commonly caused by unmatched parentheses. Enclose any text in double quotes."
         )
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_handling_snuba_errors(self, mock_query):
         mock_query.side_effect = ParseError("test")
         with self.feature(self.features):
@@ -935,7 +935,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 23
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_dont_turbo_trace_queries(self, mock_run):
         # Need to create more projects so we'll even want to turbo in the first place
         for _ in range(3):
@@ -946,7 +946,7 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         mock_run.assert_called_once
         assert not mock_run.mock_calls[0].args[0].flags.turbo
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_use_turbo_without_trace(self, mock_run):
         # Need to create more projects so we'll even want to turbo in the first place
         for _ in range(3):

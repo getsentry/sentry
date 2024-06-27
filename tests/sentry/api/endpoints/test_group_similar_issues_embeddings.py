@@ -223,7 +223,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
             "hash": NonNone(self.event.get_primary_hash()),
             "project_id": self.project.id,
             "stacktrace": EXPECTED_STACKTRACE_STRING,
-            "message": self.group.message,
+            "message": self.group.get_latest_event().title,
             "exception_type": "ZeroDivisionError",
             "read_only": True,
             "referrer": "similar_issues",
@@ -340,7 +340,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.message,
+                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
@@ -527,7 +527,10 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
         mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value))
 
         # Include no optional parameters
-        response = self.client.get(self.path)
+        response = self.client.get(
+            self.path,
+            # optional params would be here
+        )
         assert response.data == self.get_expected_response(
             [NonNone(self.similar_event.group_id)], [0.95], [0.99], ["Yes"]
         )
@@ -542,7 +545,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.message,
+                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
@@ -570,7 +573,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.message,
+                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
@@ -599,7 +602,7 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "hash": NonNone(self.event.get_primary_hash()),
                     "project_id": self.project.id,
                     "stacktrace": EXPECTED_STACKTRACE_STRING,
-                    "message": self.group.message,
+                    "message": self.group.get_latest_event().title,
                     "exception_type": "ZeroDivisionError",
                     "read_only": True,
                     "referrer": "similar_issues",
