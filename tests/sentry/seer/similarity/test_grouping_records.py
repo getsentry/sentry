@@ -11,7 +11,6 @@ from urllib3.response import HTTPResponse
 from sentry import options
 from sentry.conf.server import SEER_HASH_GROUPING_RECORDS_DELETE_URL
 from sentry.seer.similarity.grouping_records import (
-    DELETE_BULK_GROUPING_RECORDS_TIMEOUT,
     CreateGroupingRecordsRequest,
     delete_grouping_records_by_hash,
     post_bulk_grouping_records,
@@ -82,7 +81,9 @@ def test_post_bulk_grouping_records_timeout(mock_seer_request: MagicMock, mock_l
             "group_ids": json.dumps(CREATE_GROUPING_RECORDS_REQUEST_PARAMS["group_id_list"]),
             "project_id": 1,
             "reason": "ReadTimeoutError",
-            "timeout": options.get("embeddings-grouping.seer.embeddings-record-delete-timeout"),
+            "timeout": options.get(
+                "embeddings-grouping.seer.embeddings-bulk-record-update-timeout"
+            ),
             "stacktrace_length_sum": 24,
         },
     )
@@ -126,6 +127,7 @@ def test_post_bulk_grouping_records_empty_data(mock_seer_request: MagicMock):
     assert response == expected_return_value
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_success(
@@ -147,6 +149,7 @@ def test_delete_grouping_records_by_hash_success(
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_timeout(
@@ -164,11 +167,12 @@ def test_delete_grouping_records_by_hash_timeout(
             "hashes": hashes,
             "project_id": project_id,
             "reason": "ReadTimeoutError",
-            "timeout": DELETE_BULK_GROUPING_RECORDS_TIMEOUT,
+            "timeout": options.get("embeddings-grouping.seer.embeddings-record-delete-timeout"),
         },
     )
 
 
+@pytest.mark.django_db
 @mock.patch("sentry.seer.similarity.grouping_records.logger")
 @mock.patch("sentry.seer.similarity.grouping_records.seer_grouping_connection_pool.urlopen")
 def test_delete_grouping_records_by_hash_failure(
