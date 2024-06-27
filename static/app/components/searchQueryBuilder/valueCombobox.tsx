@@ -774,14 +774,6 @@ export function SearchQueryBuilderValueCombobox({
     [canSelectMultipleValues, dispatch, token]
   );
 
-  const onKeyUp = useCallback(() => {
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
-
-  const onClick = useCallback(() => {
-    updateSelectionIndex();
-  }, [updateSelectionIndex]);
-
   // Ensure that the menu stays open when clicking on the selected items
   const shouldCloseOnInteractOutside = useCallback(
     (el: Element) => {
@@ -840,8 +832,8 @@ export function SearchQueryBuilderValueCombobox({
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
         onKeyDown={onKeyDown}
-        onKeyUp={onKeyUp}
-        onClick={onClick}
+        onKeyUp={updateSelectionIndex}
+        onClick={updateSelectionIndex}
         autoFocus
         maxOptions={50}
         openOnFocus
