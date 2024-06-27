@@ -146,11 +146,7 @@ export function CacheLandingPage() {
   const onboardingProject = useOnboardingProject();
   const hasData = useHasFirstSpan(ModuleName.CACHE);
 
-  useHasDataTrackAnalytics(
-    MutableSearch.fromQueryObject(BASE_FILTERS),
-    Referrer.LANDING_CACHE_ONBOARDING,
-    'insight.page_loads.cache'
-  );
+  useHasDataTrackAnalytics(ModuleName.CACHE, 'insight.page_loads.cache');
 
   useEffect(() => {
     const hasMissingDataError =

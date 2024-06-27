@@ -1,10 +1,10 @@
 import logging
 
+from sentry.integrations.services.integration import integration_service
 from sentry.plugins.providers.integration_repository import (
     RepoExistsError,
     get_integration_repository_provider,
 )
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode

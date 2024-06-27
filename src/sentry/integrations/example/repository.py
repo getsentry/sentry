@@ -1,5 +1,5 @@
+from sentry.integrations.services.integration import integration_service
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 

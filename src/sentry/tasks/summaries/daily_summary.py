@@ -19,7 +19,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.notifications.notifications.daily_summary import DailySummaryNotification
-from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.notifications.services import notifications_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo.base import SiloMode
