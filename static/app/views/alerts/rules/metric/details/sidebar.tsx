@@ -224,7 +224,7 @@ export function MetricDetailsSidebar({
           {rule.monitorType === MonitorType.ACTIVATED &&
             rule.activationCondition !== undefined && (
               <KeyValueTableRow
-                keyName={t('Activated By')}
+                keyName={t('Activated by')}
                 value={<OverflowTableValue>{conditionType}</OverflowTableValue>}
               />
             )}
@@ -250,7 +250,7 @@ export function MetricDetailsSidebar({
           )}
           {rule.dateModified && (
             <KeyValueTableRow
-              keyName={t('Last Modified')}
+              keyName={t('Last modified')}
               value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
             />
           )}
