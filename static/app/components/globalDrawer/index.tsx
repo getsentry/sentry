@@ -5,46 +5,36 @@ import type {
   DrawerConfig,
   DrawerContext as TDrawerContext,
 } from 'sentry/components/globalDrawer/types';
+import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
-const DEFAULT_DRAWER_CONFIG: DrawerConfig = {
-  renderer: null,
-  options: {
-    closeOnEscapeKeypress: true,
-    closeOnOutsideClick: true,
-  },
-};
-
-const DEFAULT_DRAWER_CONTEXT: TDrawerContext = {
+const DrawerContext = createContext<TDrawerContext>({
   openDrawer: () => {},
   closeDrawer: () => {},
-};
-
-const DrawerContext = createContext(DEFAULT_DRAWER_CONTEXT);
+});
 
 export function GlobalDrawer({children}) {
   const location = useLocation();
-  const [drawerConfig, setDrawerConfig] = useState<DrawerConfig>(DEFAULT_DRAWER_CONFIG);
+  const [drawerConfig, setDrawerConfig] = useState<DrawerConfig | undefined>();
+  // If no 'drawerConfig' is set, the global drawer is closed.
+  const isDrawerOpen = defined(drawerConfig);
   const openDrawer = useCallback<TDrawerContext['openDrawer']>(
     (renderer, options = {}) => setDrawerConfig({renderer, options}),
     []
   );
   const closeDrawer = useCallback<TDrawerContext['closeDrawer']>(
-    () => setDrawerConfig(DEFAULT_DRAWER_CONFIG),
+    () => setDrawerConfig(undefined),
     []
   );
-  const {renderer, options = {}} = drawerConfig;
-  const {closeOnEscapeKeypress = true, closeOnOutsideClick = true} = options;
-  const isDrawerOpen = renderer !== null;
 
   const handleClose = useCallback(() => {
     // Callsite callback when closing the drawer
-    options?.onClose?.();
+    drawerConfig?.options?.onClose?.();
     // Actually close the drawer component
     closeDrawer();
-  }, [options, closeDrawer]);
+  }, [drawerConfig, closeDrawer]);
 
   // Close the drawer when the browser history changes.
   useEffect(() => closeDrawer(), [location?.pathname, closeDrawer]);
@@ -52,22 +42,24 @@ export function GlobalDrawer({children}) {
   // Close the drawer when clicking outside the panel and options allow it.
   const panelRef = useRef<HTMLDivElement>(null);
   const handleClickOutside = useCallback(() => {
-    if (isDrawerOpen && closeOnOutsideClick) {
+    const allowOutsideClick = drawerConfig?.options?.closeOnOutsideClick ?? true;
+    if (isDrawerOpen && allowOutsideClick) {
       handleClose();
     }
-  }, [isDrawerOpen, closeOnOutsideClick, handleClose]);
+  }, [drawerConfig, isDrawerOpen, handleClose]);
   useOnClickOutside(panelRef, handleClickOutside);
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
-    if (isDrawerOpen && closeOnEscapeKeypress) {
+    const allowEscapeKeypress = drawerConfig?.options?.closeOnOutsideClick ?? true;
+    if (isDrawerOpen && allowEscapeKeypress) {
       handleClose();
     }
-  }, [isDrawerOpen, closeOnEscapeKeypress, handleClose]);
+  }, [drawerConfig, isDrawerOpen, handleClose]);
   useHotkeys([{match: 'Escape', callback: handleEscapePress}], [handleEscapePress]);
 
   const renderedChild =
-    renderer?.({
+    drawerConfig?.renderer?.({
       Body: DrawerBody,
       closeDrawer: handleClose,
     }) ?? null;
