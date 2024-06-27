@@ -614,7 +614,7 @@ class EventContentIsSeerEligibleTest(TestCase):
             "platform": "python",
         }
 
-    def test_no_stacktrace_no_title(self):
+    def test_no_stacktrace(self):
         good_event_data = self.get_eligible_event_data()
         good_event = Event(
             project_id=self.project.id,
@@ -623,7 +623,6 @@ class EventContentIsSeerEligibleTest(TestCase):
         )
 
         bad_event_data = self.get_eligible_event_data()
-        bad_event_data["title"] = "<untitled>"
         del bad_event_data["exception"]
         bad_event = Event(
             project_id=self.project.id,
