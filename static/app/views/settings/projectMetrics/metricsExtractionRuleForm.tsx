@@ -247,7 +247,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => (
-                      <Fragment key={index}>
+                      <Fragment key={condition.id}>
                         <SearchWrapper hasPrefix={index !== 0}>
                           {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
                           <SearchBar
