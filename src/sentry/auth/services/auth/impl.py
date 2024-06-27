@@ -7,6 +7,13 @@ from django.db import router, transaction
 from django.db.models import Count, F
 
 from sentry import audit_log
+from sentry.auth.services.auth import (
+    AuthService,
+    RpcApiKey,
+    RpcAuthProvider,
+    RpcOrganizationAuthConfig,
+)
+from sentry.auth.services.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models.apikey import ApiKey
 from sentry.models.auditlogentry import AuditLogEntry
@@ -15,13 +22,6 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import (
-    AuthService,
-    RpcApiKey,
-    RpcAuthProvider,
-    RpcOrganizationAuthConfig,
-)
-from sentry.services.hybrid_cloud.auth.serial import serialize_api_key, serialize_auth_provider
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.signals import sso_enabled
 from sentry.silo.safety import unguarded_write

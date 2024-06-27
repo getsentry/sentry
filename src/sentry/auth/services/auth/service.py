@@ -7,8 +7,8 @@ import abc
 from collections.abc import Mapping
 from typing import Any
 
+from sentry.auth.services.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.auth import RpcApiKey, RpcAuthProvider, RpcOrganizationAuthConfig
 from sentry.silo.base import SiloMode
 
 
@@ -18,7 +18,7 @@ class AuthService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
+        from sentry.auth.services.auth.impl import DatabaseBackedAuthService
 
         return DatabaseBackedAuthService()
 

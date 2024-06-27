@@ -248,7 +248,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
         return list(find_all_region_names())
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.auth.serial import serialize_api_token
+        from sentry.auth.services.auth.serial import serialize_api_token
         from sentry.services.hybrid_cloud.replica import region_replica_service
 
         region_replica_service.upsert_replicated_api_token(
@@ -377,8 +377,8 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
 def is_api_token_auth(auth: object) -> bool:
     """:returns True when an API token is hitting the API."""
+    from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apitokenreplica import ApiTokenReplica
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "api_token"

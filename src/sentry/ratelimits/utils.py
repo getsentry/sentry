@@ -9,10 +9,10 @@ from django.http.request import HttpRequest
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.constants import SentryAppInstallationStatus
 from sentry.ratelimits.concurrent import ConcurrentRateLimiter
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.types.ratelimit import RateLimit, RateLimitCategory, RateLimitMeta, RateLimitType
 from sentry.utils.hashlib import md5_text
 

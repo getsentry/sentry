@@ -126,8 +126,8 @@ class OrgAuthToken(ReplicatedControlModel):
 
 def is_org_auth_token_auth(auth: object) -> bool:
     """:returns True when an API token is hitting the API."""
+    from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.orgauthtokenreplica import OrgAuthTokenReplica
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "org_auth_token"
@@ -135,7 +135,7 @@ def is_org_auth_token_auth(auth: object) -> bool:
 
 
 def get_org_auth_token_id_from_auth(auth: object) -> int | None:
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
     if isinstance(auth, OrgAuthToken):
         return auth.id
