@@ -11,6 +11,7 @@ from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricException, QueryDefinition, get_series
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -59,6 +60,9 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
                     use_case_id=get_use_case_id(request),
                     tenant_ids={"organization_id": organization.id},
                 )
+                # due to possible data corruption crash_free_rate value can be less than 0,
+                # which is not valid behavior, so those values have to be bottom capped at 0
+                metrics.ensure_non_negative_crash_free_rate_value(data, request, organization)
                 data["query"] = query.query
             except (
                 InvalidParams,

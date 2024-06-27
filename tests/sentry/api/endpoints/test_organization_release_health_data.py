@@ -2413,3 +2413,59 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "totals": {"p50(session.duration)": 6.0},
             "series": {"p50(session.duration)": [6.0]},
         }
+
+    def test_do_not_return_negative_crash_free_rate_value_to_the_customer(self):
+        """
+        Bug: https://github.com/getsentry/sentry/issues/73172
+        Assert that negative value is never returned to the user, even
+        in case when there is a problem with the data, instead of negative value we return 0.
+        This problem happens during ingestion when 'e:session/crashed' metric is
+        ingested, but 'e:session/all' for some reason is not. That would cause
+        crash_free_rate value to be negative since it is calculated as:
+
+        crash_free_rate = 1 - (count('e:session/crashed') / count('e:session/all'))
+        """
+        # ingesting 'e:session/all' and 'e:session/crashed'
+        self.build_and_store_session(
+            project_id=self.project.id,
+            minutes_before_now=1,
+            status="crashed",
+        )
+
+        # manually ingesting only 'e:session/crashed' metric
+        # to make sure that there are more 'e:session/crashed' metrics ingested
+        # than 'e:session/all'
+        for i in range(2):
+            session = self.build_session(
+                started=self.adjust_timestamp(
+                    self.now
+                    - timedelta(
+                        minutes=i,
+                    )
+                ).timestamp()
+            )
+            # ingesting only 'e:session/crashed'
+            self.store_metric(
+                self.organization.id,
+                self.project.id,
+                "counter",
+                SessionMRI.RAW_SESSION.value,
+                {"session.status": "crashed"},
+                int(session["started"]),
+                +1,
+                use_case_id=UseCaseID.SESSIONS,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_free_rate", "session.all", "session.crashed"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+
+        group = response.data["groups"][0]
+        assert group["totals"]["session.all"] == 1.0
+        assert group["totals"]["session.crashed"] == 3.0
+        assert group["totals"]["session.crash_free_rate"] == 0.0
+        for value in group["series"]["session.crash_free_rate"]:
+            assert value is None or value >= 0
