@@ -51,22 +51,11 @@ class MetricsExtractionRule:
 
     @classmethod
     def infer_types(self, aggregates: set[str]) -> set[str]:
-        types = set()
+        types: set[str] = set()
         for aggregate in aggregates:
-            types.update(AGGREGATES_TO_METRICS.get(aggregate))
+            types.add(AGGREGATES_TO_METRICS.get(aggregate))
 
         return types
-
-    @classmethod
-    def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
-        return MetricsExtractionRule(
-            span_attribute=dictionary["spanAttribute"],
-            type=dictionary["type"],
-            unit=dictionary["unit"],
-            tags=set(dictionary.get("tags") or set()),
-            condition=dictionary.get("condition"),
-            id=dictionary.get("id"),
-        )
 
     def to_dict(self) -> Mapping[str, Any]:
         return {

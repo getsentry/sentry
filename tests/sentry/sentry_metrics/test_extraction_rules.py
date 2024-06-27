@@ -10,32 +10,30 @@ def _new_id():
 
 
 def test_generate_mri():
-    rule = MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}, [])
+    rule = MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}, "", 12378)
     mri = rule.generate_mri()
-    assert mri == "c:custom/count_clicks@none"
+    assert mri == "c:custom/internal_12378@none"
 
 
 def test_type_validation():
     rules = [
-        MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}, []),
+        MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}, "", 7423),
         MetricsExtractionRule(
-            "process_latency",
-            "d",
-            "none",
-            {"tag_3"},
-            ["first:value second:value", "foo:bar", "greetings:['hello', 'goodbye']"],
+            "process_latency", "d", "none", {"tag_3"}, "first:value second:value", 239478
         ),
-        MetricsExtractionRule("unique_ids", "s", "none", set(), ["foo:bar"]),
+        MetricsExtractionRule("unique_ids", "s", "none", set(), "foo:bar", 278934),
     ]
 
     mris = [rule.generate_mri() for rule in rules]
     assert mris == [
-        "c:custom/count_clicks@none",
-        "d:custom/process_latency@none",
-        "s:custom/unique_ids@none",
+        "c:custom/internal_7423@none",
+        "d:custom/internal_239478@none",
+        "s:custom/internal_278934@none",
     ]
 
     with pytest.raises(ValueError):
-        MetricsExtractionRule("count_clicks", "f", "none", {"tag_1", "tag_2"}, [])
+        MetricsExtractionRule("count_clicks", "f", "none", {"tag_1", "tag_2"}, "", 128903)
     with pytest.raises(ValueError):
-        MetricsExtractionRule("count_clicks", "distribution", "none", {"tag_1", "tag_2"}, [])
+        MetricsExtractionRule(
+            "count_clicks", "distribution", "none", {"tag_1", "tag_2"}, "", 123678
+        )

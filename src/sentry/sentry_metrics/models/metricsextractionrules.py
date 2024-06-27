@@ -97,7 +97,7 @@ class SpanAttributeExtractionRuleConfig(Model):
                     type=metric_type,
                     unit=self.unit,
                     tags=self.tags,
-                    condition=condition.value,
+                    condition=condition.value or "",
                     id=condition.id,
                 )
                 rules.append(rule)
