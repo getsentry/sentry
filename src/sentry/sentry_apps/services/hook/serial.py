@@ -1,5 +1,5 @@
 from sentry.models.servicehook import ServiceHook
-from sentry.services.hybrid_cloud.hook import RpcServiceHook
+from sentry.sentry_apps.services.hook import RpcServiceHook
 
 
 def serialize_service_hook(hook: ServiceHook) -> RpcServiceHook:
