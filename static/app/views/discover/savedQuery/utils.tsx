@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {
   deleteHomepageQuery,
   updateHomepageQuery,
@@ -14,8 +16,14 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 export function handleCreateQuery(
   api: Client,
@@ -240,5 +248,33 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
       return DisplayType.TOP_N;
     default:
       return DisplayType.LINE;
+  }
+}
+
+export function getSavedQueryDataset(
+  location: Location,
+  savedQuery: SavedQuery | undefined,
+  splitDecision?: SavedQueryDatasets
+): SavedQueryDatasets {
+  const dataset = decodeScalar(location.query[DATASET_PARAM]);
+  if (dataset) {
+    return dataset as SavedQueryDatasets;
+  }
+  if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
+    return splitDecision;
+  }
+  return (savedQuery?.queryDataset ?? SavedQueryDatasets.ERRORS) as SavedQueryDatasets;
+}
+
+export function getDatasetFromSavedQueryDataset(
+  queryDataset: SavedQueryDatasets
+): DiscoverDatasets {
+  switch (queryDataset) {
+    case SavedQueryDatasets.ERRORS:
+      return DiscoverDatasets.ERRORS;
+    case SavedQueryDatasets.TRANSACTIONS:
+      return DiscoverDatasets.TRANSACTIONS;
+    default:
+      return DiscoverDatasets.DISCOVER;
   }
 }

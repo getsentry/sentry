@@ -14,11 +14,11 @@ from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.models.incident import Incident
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 

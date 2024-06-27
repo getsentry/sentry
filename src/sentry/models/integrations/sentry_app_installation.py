@@ -15,7 +15,7 @@ from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, co
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
-from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.types.region import find_regions_for_orgs
@@ -196,7 +196,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.rpc.caching import region_caching_service
-        from sentry.services.hybrid_cloud.app.service import get_installation
+        from sentry.sentry_apps.services.app.service import get_installation
 
         if self.api_token is not None:
             # ApiTokens replicate the organization_id they are associated with.

@@ -336,7 +336,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    "sentry.middleware.api_gateway.ApiGatewayMiddleware",
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -3188,6 +3188,7 @@ ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
+SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
@@ -3196,6 +3197,7 @@ MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
 MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
+MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
@@ -3433,8 +3435,11 @@ SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this r
 SEER_GROUPING_RECORDS_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
 )
-SEER_GROUPING_RECORDS_DELETE_URL = (
+SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
+)
+SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
 
 # TODO: Remove this soon, just a way to configure a project for this before we implement properly

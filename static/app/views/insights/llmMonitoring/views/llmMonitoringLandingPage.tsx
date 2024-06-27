@@ -1,5 +1,7 @@
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -27,17 +29,14 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
 
-  useHasDataTrackAnalytics(
-    new MutableSearch('span.category:"ai"'),
-    'api.performance.ai.llm-monitoring-landing',
-    'insight.page_loads.ai'
-  );
+  useHasDataTrackAnalytics(ModuleName.AI, 'insight.page_loads.ai');
 
   return (
     <Layout.Page>
@@ -54,6 +53,11 @@ export function LLMMonitoringPage() {
               <FeatureBadge type={RELEASE_LEVEL} />
             </Layout.Title>
           </Layout.HeaderContent>
+          <Layout.HeaderActions>
+            <ButtonBar gap={1}>
+              <FeedbackWidgetButton />
+            </ButtonBar>
+          </Layout.HeaderActions>
         </Layout.Header>
         <Layout.Body>
           <Layout.Main fullWidth>

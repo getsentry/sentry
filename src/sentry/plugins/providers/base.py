@@ -6,7 +6,7 @@ from django.urls import reverse
 from rest_framework.response import Response
 
 from sentry.exceptions import InvalidIdentity, PluginError
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.integrations.services.integration import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth

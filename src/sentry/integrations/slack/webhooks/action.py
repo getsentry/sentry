@@ -20,6 +20,7 @@ from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -33,9 +34,8 @@ from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
+from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -396,17 +396,6 @@ class SlackActionEndpoint(Endpoint):
             callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = orjson.dumps(callback_id).decode()
 
-        dialog = {
-            "callback_id": callback_id,
-            "title": "Resolve Issue",
-            "submit_label": "Resolve",
-            "elements": [RESOLVE_SELECTOR],
-        }
-
-        payload = {
-            "dialog": orjson.dumps(dialog).decode(),
-            "trigger_id": slack_request.data["trigger_id"],
-        }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
@@ -571,6 +560,8 @@ class SlackActionEndpoint(Endpoint):
             slack_request.type == "dialog_submission"
             and "resolve_type" in slack_request.data["submission"]
         ):
+            logger.info("slack.action.dialog_submission", extra={"data": slack_request.data})
+
             # Masquerade a status action
             action = MessageAction(
                 name="status",
@@ -580,7 +571,9 @@ class SlackActionEndpoint(Endpoint):
             try:
                 self.on_status(request, identity_user, group, action)
             except client.ApiError as error:
-                return self.api_error(slack_request, group, identity_user, error, "status_dialog")
+                return self.api_error(
+                    slack_request, group, identity_user, error, "dialog_submission"
+                )
 
             attachment = SlackIssuesMessageBuilder(
                 group,

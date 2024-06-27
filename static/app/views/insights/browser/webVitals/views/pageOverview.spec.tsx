@@ -131,7 +131,7 @@ describe('PageOverview', function () {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
-      query: {useStoredScores: 'true', transaction: '/', type: 'interactions'},
+      query: {transaction: '/', type: 'interactions'},
       hash: '',
       state: undefined,
       action: 'PUSH',
@@ -176,7 +176,6 @@ describe('PageOverview', function () {
       pathname: '',
       search: '',
       query: {
-        useStoredScores: 'true',
         transaction: '/page-with-a-*/',
         type: 'interactions',
       },
