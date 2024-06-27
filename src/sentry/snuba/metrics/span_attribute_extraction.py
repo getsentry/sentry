@@ -147,10 +147,8 @@ def _map_span_attribute_name(span_attribute: str) -> str:
         return span_attribute
 
     if span_attribute in _SENTRY_TAGS:
-        prefix = "span.sentry_tags"
-    else:
-        prefix = "span.data"
+        return f"span.sentry_tags.{span_attribute}"
 
     sanitized_span_attr = span_attribute.replace(".", "\\.")
 
-    return f"{prefix}.{sanitized_span_attr}"
+    return f"span.data.{sanitized_span_attr}"
