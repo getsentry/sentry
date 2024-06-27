@@ -47,11 +47,11 @@ class SubscriptionCallback(Protocol):
         ...
 
 
-alert_subscription_callback_registry: dict[AlertRuleMonitorType, SubscriptionCallback] = {}
+alert_subscription_callback_registry: dict[AlertRuleMonitorTypeInt, SubscriptionCallback] = {}
 
 
 def register_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorType,
+    monitor_type: AlertRuleMonitorTypeInt,
 ) -> Callable[[Callable], Callable]:
     def decorator(func: Callable) -> Callable:
         alert_subscription_callback_registry[monitor_type] = func
@@ -61,7 +61,7 @@ def register_alert_subscription_callback(
 
 
 def invoke_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorType, subscription: QuerySubscription, **kwargs: Any
+    monitor_type: AlertRuleMonitorTypeInt, subscription: QuerySubscription, **kwargs: Any
 ) -> bool:
     try:
         callback = alert_subscription_callback_registry[monitor_type]
@@ -148,7 +148,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         try:
             project_alert_rules: QuerySet[AlertRule] = self.filter(
                 projects=project,
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             )
             created_subscriptions = []
             for alert_rule in project_alert_rules:
@@ -169,7 +169,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     created_subscriptions.extend(
                         alert_rule.subscribe_projects(
                             projects=[project],
-                            monitor_type=AlertRuleMonitorType.ACTIVATED,
+                            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
                             query_extra=query_extra,
                             activation_condition=activation_condition,
                             activator=activator,
@@ -225,7 +225,7 @@ class AlertRuleProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
-class AlertRuleMonitorType(IntEnum):
+class AlertRuleMonitorTypeInt(IntEnum):
     CONTINUOUS = 0
     ACTIVATED = 1
 
@@ -267,7 +267,7 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS)
+    monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
     description = models.CharField(max_length=1000, null=True)
 
     class Meta:
@@ -310,7 +310,7 @@ class AlertRule(Model):
     def subscribe_projects(
         self,
         projects: list[Project],
-        monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+        monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
         query_extra: str | None = None,
         activation_condition: AlertRuleActivationConditionType | None = None,
         activator: str | None = None,
@@ -328,7 +328,7 @@ class AlertRule(Model):
                 "query_extra": query_extra,
             },
         )
-        # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
+        # NOTE: AlertRuleMonitorTypeInt.ACTIVATED will be conditionally subscribed given activation triggers
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
         created_subscriptions = []
         if self.monitor_type == monitor_type:
@@ -339,7 +339,7 @@ class AlertRule(Model):
                 self.snuba_query,
                 query_extra=query_extra,
             )
-            if self.monitor_type == AlertRuleMonitorType.ACTIVATED:
+            if self.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
                 # NOTE: Activated Alert Rules are conditionally subscribed
                 # Meaning at time of subscription, the rule must have been activated
                 if not activator or activation_condition is None:
@@ -603,7 +603,7 @@ class AlertRuleActivity(Model):
         db_table = "sentry_alertruleactivity"
 
 
-@register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
+@register_alert_subscription_callback(AlertRuleMonitorTypeInt.ACTIVATED)
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:

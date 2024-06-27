@@ -19,7 +19,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -215,7 +215,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            monitor_type=AlertRuleMonitorType.CONTINUOUS,
+            monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
                 SnubaQueryEventType.EventType.DEFAULT,
@@ -242,7 +242,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
             threshold_type=AlertRuleThresholdType.ABOVE,
             resolve_threshold=10,
             threshold_period=1,
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
             event_types=[
                 SnubaQueryEventType.EventType.ERROR,
@@ -251,7 +251,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         )
         rule.subscribe_projects(
             projects=[self.project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
             activator="testing",
         )
@@ -2348,7 +2348,7 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
 
     def test_invoke_alert_subscription_callback(self):
         mock = Mock()
-        alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] = mock
+        alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS] = mock
 
         self.send_update(self.rule, 1, subscription=self.sub)
 

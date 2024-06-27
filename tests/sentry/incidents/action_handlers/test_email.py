@@ -15,7 +15,7 @@ from sentry.incidents.action_handlers import (
 from sentry.incidents.charts import fetch_metric_alert_events_timeseries
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
 from sentry.incidents.models.alert_rule import (
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -286,10 +286,10 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
 
     def test_with_activated_alert(self):
         trigger_status = TriggerStatus.ACTIVE
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
         alert_rule.subscribe_projects(
             projects=[self.project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
             activator="testing",
         )
@@ -330,7 +330,7 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
-            "monitor_type": AlertRuleMonitorType.ACTIVATED,
+            "monitor_type": AlertRuleMonitorTypeInt.ACTIVATED,
             "activator": "testing",
             "condition_type": AlertRuleActivationConditionType.DEPLOY_CREATION.value,
         }
