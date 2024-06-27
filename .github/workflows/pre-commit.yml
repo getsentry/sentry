@@ -70,9 +70,9 @@ jobs:
       #  if: steps.dependencies.outcome == 'success'
       #  run: yarn tsc -p config/tsconfig.ci.json
 
-      #- uses: actions/setup-python@v5
-      #  with:
-      #    python-version: '3.12'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       - name: Setup pre-commit
         # We don't use make setup-git because we're only interested in installing
@@ -81,10 +81,8 @@ jobs:
           which node || true
           which npm || true
           mv pre-commit-node-env/package.json package.json
-          npm install
+          npm install -g
           which eslint || true
-          ls -lah node_modules
-          ls -lah node_modules/.bin
           pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
           pre-commit install-hooks
 
