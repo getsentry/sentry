@@ -27,6 +27,7 @@ import type {Organization, Project, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import useOverlay from 'sentry/utils/useOverlay';
 import withApi from 'sentry/utils/withApi';
@@ -143,6 +144,7 @@ type Props = DefaultProps & {
   yAxis: string[];
   homepageQuery?: SavedQuery;
   isHomepage?: boolean;
+  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {
@@ -522,8 +524,16 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
   }
 
   render() {
-    const {organization, eventView, savedQuery, yAxis, router, location, isHomepage} =
-      this.props;
+    const {
+      organization,
+      eventView,
+      savedQuery,
+      yAxis,
+      router,
+      location,
+      isHomepage,
+      splitDecision,
+    } = this.props;
 
     const contextMenuItems: MenuItemProps[] = [];
 
@@ -582,7 +592,11 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
         >
           {({hasFeature}) =>
             hasFeature && (
-              <DatasetSelector isHomepage={isHomepage} savedQuery={savedQuery} />
+              <DatasetSelector
+                isHomepage={isHomepage}
+                savedQuery={savedQuery}
+                splitDecision={splitDecision}
+              />
             )
           }
         </Feature>

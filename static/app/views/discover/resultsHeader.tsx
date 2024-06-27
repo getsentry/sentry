@@ -16,6 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import withApi from 'sentry/utils/withApi';
 
 import Banner from './banner';
@@ -34,6 +35,7 @@ type Props = {
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
+  splitDecision?: SavedQueryDatasets;
 };
 
 type State = {
@@ -138,6 +140,7 @@ class ResultsHeader extends Component<Props, State> {
       router,
       setSavedQuery,
       isHomepage,
+      splitDecision,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
 
@@ -189,6 +192,7 @@ class ResultsHeader extends Component<Props, State> {
             yAxis={yAxis}
             router={router}
             isHomepage={isHomepage}
+            splitDecision={splitDecision}
             setHomepageQuery={updatedHomepageQuery => {
               this.setState({homepageQuery: updatedHomepageQuery});
               if (isHomepage) {
