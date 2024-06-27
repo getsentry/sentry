@@ -9,7 +9,8 @@ from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.release import Release
 from sentry.models.releases.util import SemverFilter
-from sentry.search.events import builder, constants
+from sentry.search.events import constants
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.filter import (
     _flip_field_sort,
     handle_operator_negation,
@@ -23,7 +24,7 @@ from sentry.utils.strings import oxfordize_list
 
 
 def team_key_transaction_filter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType:
     value = search_filter.value.value
     key_transaction_expr = builder.resolve_field_alias(constants.TEAM_KEY_TRANSACTION_ALIAS)
@@ -43,7 +44,7 @@ def team_key_transaction_filter(
 
 
 def release_filter_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """Parse releases for potential aliases like `latest`"""
     if search_filter.value.is_wildcard():
@@ -72,7 +73,7 @@ def release_filter_converter(
 
 
 def project_slug_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """Convert project slugs to ids and create a filter based on those.
     This is cause we only store project ids in clickhouse.
@@ -129,7 +130,7 @@ def span_is_segment_converter(search_filter: SearchFilter) -> WhereType | None:
 
 
 def release_stage_filter_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """
     Parses a release stage search and returns a snuba condition to filter to the
@@ -165,7 +166,7 @@ def release_stage_filter_converter(
 
 
 def semver_filter_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """
     Parses a semver query search and returns a snuba condition to filter to the
@@ -240,7 +241,7 @@ def semver_filter_converter(
 
 
 def semver_package_filter_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """
     Applies a semver package filter to the search. Note that if the query returns more than
@@ -271,7 +272,7 @@ def semver_package_filter_converter(
 
 
 def semver_build_filter_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     """
     Applies a semver build filter to the search. Note that if the query returns more than
@@ -309,7 +310,7 @@ def semver_build_filter_converter(
 
 
 def device_class_converter(
-    builder: builder.QueryBuilder,
+    builder: BaseQueryBuilder,
     search_filter: SearchFilter,
     device_class_map: Mapping[str, set[str]] | None = None,
 ) -> WhereType | None:
@@ -322,9 +323,7 @@ def device_class_converter(
     return Condition(builder.column("device.class"), Op.IN, list(device_class_map[value]))
 
 
-def lowercase_search(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
-) -> WhereType | None:
+def lowercase_search(builder: BaseQueryBuilder, search_filter: SearchFilter) -> WhereType | None:
     """Convert the search value to lower case"""
     raw_value = search_filter.value.raw_value
     if isinstance(raw_value, list):
@@ -337,7 +336,7 @@ def lowercase_search(
 
 
 def span_status_filter_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     # Handle "has" queries
     if search_filter.value.raw_value == "":
@@ -358,7 +357,7 @@ def span_status_filter_converter(
 
 
 def message_filter_converter(
-    builder: builder.QueryBuilder, search_filter: SearchFilter
+    builder: BaseQueryBuilder, search_filter: SearchFilter
 ) -> WhereType | None:
     value = search_filter.value.value
     if search_filter.value.is_wildcard():

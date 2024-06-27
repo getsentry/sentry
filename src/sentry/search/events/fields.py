@@ -647,7 +647,7 @@ def parse_function(field, match=None, err_msg=None):
     )
 
 
-def is_function(field: str) -> Match[str] | None:
+def is_function(field: NormalizedArg) -> Match[str] | None:
     function_match = FUNCTION_PATTERN.search(field)
     if function_match:
         return function_match
@@ -1365,7 +1365,7 @@ class DiscoverFunction:
         columns: list[str],
         params: ParamsType,
         combinator: Combinator | None = None,
-    ) -> Mapping[str, NormalizedArg]:
+    ) -> dict[str, NormalizedArg]:
         columns = self.add_default_arguments(field, columns, params)
 
         arguments = {}

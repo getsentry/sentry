@@ -89,6 +89,7 @@ function renderMockRequests() {
           timestamp: 'date',
           'user.id': 'string',
         },
+        discoverSplitDecision: 'transaction-like',
       },
       data: [
         {
@@ -181,6 +182,7 @@ function renderMockRequests() {
       widths: ['-1', '-1', '-1', '-1', '-1'],
       range: '24h',
       orderby: '-user.display',
+      queryDataset: 'discover',
     },
   });
 
@@ -204,6 +206,7 @@ function renderMockRequests() {
       widths: ['-1', '-1', '-1', '-1', '-1'],
       range: '24h',
       orderby: '-user.display',
+      queryDataset: 'discover',
     },
   });
 
@@ -645,12 +648,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=-timestamp&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'project'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=-project&statsPeriod=24h&topEvents=5'
       );
 
       // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -661,12 +664,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=user.display&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'title'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
+        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=-title&statsPeriod=24h&topEvents=5'
       );
     });
 
@@ -711,7 +714,7 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
+        'undefined?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&queryDataset=discover&sort=-timestamp&statsPeriod=7d&topEvents=5'
       );
     });
 
@@ -1230,6 +1233,7 @@ describe('Results', function () {
           widths: ['-1', '-1', '-1', '-1', '-1'],
           range: '24h',
           orderby: '-user.display',
+          queryDataset: 'discover',
         },
       });
       const organization = OrganizationFixture({
@@ -1499,6 +1503,50 @@ describe('Results', function () {
       });
 
       expect(screen.queryByText(/Based on your search criteria/)).not.toBeInTheDocument();
+    });
+
+    it('uses split decision to populate dataset selector', async function () {
+      const organization = OrganizationFixture({
+        features: [
+          'discover-basic',
+          'discover-query',
+          'performance-discover-dataset-selector',
+        ],
+      });
+
+      const {router} = initializeOrg({
+        organization,
+        router: {
+          location: {query: {id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const mockRequests = renderMockRequests();
+
+      render(
+        <Results
+          organization={organization}
+          location={router.location}
+          router={router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          router: router,
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
+
+      expect(
+        screen.getByRole('button', {name: 'Dataset Transactions'})
+      ).toBeInTheDocument();
     });
   });
 });

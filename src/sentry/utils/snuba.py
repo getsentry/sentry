@@ -35,6 +35,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
@@ -857,6 +858,9 @@ def raw_snql_query(
     request: Request,
     referrer: str | None = None,
     use_cache: bool = False,
+    query_source: (
+        QuerySource | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> Mapping[str, Any]:
     """
     Alias for `bulk_snuba_queries`, kept for backwards compatibility.
@@ -864,13 +868,18 @@ def raw_snql_query(
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
-    return bulk_snuba_queries([request], referrer, use_cache)[0]
+    return bulk_snuba_queries(
+        requests=[request], referrer=referrer, query_source=query_source, use_cache=use_cache
+    )[0]
 
 
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
     use_cache: bool = False,
+    query_source: (
+        QuerySource | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> ResultSet:
     """
     The main entrypoint to running queries in Snuba. This function accepts
@@ -883,9 +892,12 @@ def bulk_snuba_queries(
             request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
 
     for request in requests:
-        if referrer:
+        if referrer or query_source:
             request.tenant_ids = request.tenant_ids or dict()
-            request.tenant_ids["referrer"] = referrer
+            if referrer:
+                request.tenant_ids["referrer"] = referrer
+            if query_source:
+                request.tenant_ids["query_source"] = query_source.value
 
     params = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
@@ -929,6 +941,7 @@ def _apply_cache_and_build_results(
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
+
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
@@ -1009,65 +1022,70 @@ def _bulk_snuba_query(
                 )
             ]
 
-    results = []
-    for index, item in enumerate(query_results):
-        response, _, reverse = item
-        try:
-            body = json.loads(response.data)
-            if SNUBA_INFO:
-                if "sql" in body:
-                    log_snuba_info(
-                        "{}.sql:\n {}".format(
-                            headers.get("referer", "<unknown>"),
-                            sqlparse.format(body["sql"], reindent_aligned=True),
+        results = []
+        for index, item in enumerate(query_results):
+            response, _, reverse = item
+            try:
+                body = json.loads(response.data)
+                if SNUBA_INFO:
+                    if "sql" in body:
+                        log_snuba_info(
+                            "{}.sql:\n {}".format(
+                                headers.get("referer", "<unknown>"),
+                                sqlparse.format(body["sql"], reindent_aligned=True),
+                            )
                         )
+                    if "error" in body:
+                        log_snuba_info(
+                            "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
+                        )
+            except ValueError:
+                if response.status != 200:
+                    logger.exception(
+                        "snuba.query.invalid-json", extra={"response.data": response.data}
                     )
-                if "error" in body:
-                    log_snuba_info(
-                        "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
-                    )
-        except ValueError:
+                    raise SnubaError("Failed to parse snuba error response")
+                raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
+
+            if "quota_allowance" in body and "summary" in body["quota_allowance"]:
+                quota_allowance_summary = body["quota_allowance"]["summary"]
+                span.set_tag("threads_used", quota_allowance_summary["threads_used"])
+                sentry_sdk.set_tag("threads_used", quota_allowance_summary["threads_used"])
+                for k, v in quota_allowance_summary["throttled_by"].items():
+                    span.set_tag(k, v)
+                    sentry_sdk.set_tag(k, v)
+                for k, v in quota_allowance_summary["rejected_by"].items():
+                    span.set_tag(k, v)
+                    sentry_sdk.set_tag(k, v)
+
             if response.status != 200:
-                logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
-                raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
-
-        if "quota_allowance" in body and body["quota_allowance"]:
-            quota_allowance_summary = body["quota_allowance"]["summary"]
-            span.set_tag("threads_used", quota_allowance_summary["threads_used"])
-            for k, v in quota_allowance_summary["throttled_by"].items():
-                span.set_tag(k, v)
-            for k, v in quota_allowance_summary["rejected_by"].items():
-                span.set_tag(k, v)
-
-        if response.status != 200:
-            _log_request_query(snuba_param_list[index][0])
-            metrics.incr(
-                "snuba.client.api.error",
-                tags={"status_code": response.status, "referrer": query_referrer},
-            )
-            if body.get("error"):
-                error = body["error"]
-                if response.status == 429:
-                    raise RateLimitExceeded(error["message"])
-                elif error["type"] == "schema":
-                    raise SchemaValidationError(error["message"])
-                elif error["type"] == "invalid_query":
-                    raise UnqualifiedQueryError(error["message"])
-                elif error["type"] == "clickhouse":
-                    raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
-                        error["message"]
-                    )
+                _log_request_query(snuba_param_list[index][0])
+                metrics.incr(
+                    "snuba.client.api.error",
+                    tags={"status_code": response.status, "referrer": query_referrer},
+                )
+                if body.get("error"):
+                    error = body["error"]
+                    if response.status == 429:
+                        raise RateLimitExceeded(error["message"])
+                    elif error["type"] == "schema":
+                        raise SchemaValidationError(error["message"])
+                    elif error["type"] == "invalid_query":
+                        raise UnqualifiedQueryError(error["message"])
+                    elif error["type"] == "clickhouse":
+                        raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
+                            error["message"]
+                        )
+                    else:
+                        raise SnubaError(error["message"])
                 else:
-                    raise SnubaError(error["message"])
-            else:
-                raise SnubaError(f"HTTP {response.status}")
+                    raise SnubaError(f"HTTP {response.status}")
 
-        # Forward and reverse translation maps from model ids to snuba keys, per column
-        body["data"] = [reverse(d) for d in body["data"]]
-        results.append(body)
+            # Forward and reverse translation maps from model ids to snuba keys, per column
+            body["data"] = [reverse(d) for d in body["data"]]
+            results.append(body)
 
-    return results
+        return results
 
 
 def _log_request_query(req: Request) -> None:

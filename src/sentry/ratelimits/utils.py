@@ -134,7 +134,7 @@ def get_rate_limit_key(
 
 
 def get_organization_id_from_token(token_id: int) -> int | None:
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     installations = app_service.get_many(
         filter={

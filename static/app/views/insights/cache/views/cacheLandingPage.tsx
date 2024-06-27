@@ -52,7 +52,7 @@ import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHa
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
+import {ModuleName, SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {CACHE_MISS_RATE} = SpanFunction;
 const {CACHE_ITEM_SIZE} = SpanMetricsField;
@@ -149,11 +149,7 @@ export function CacheLandingPage() {
     Referrer.LANDING_CACHE_ONBOARDING
   );
 
-  useHasDataTrackAnalytics(
-    MutableSearch.fromQueryObject(BASE_FILTERS),
-    Referrer.LANDING_CACHE_ONBOARDING,
-    'insight.page_loads.cache'
-  );
+  useHasDataTrackAnalytics(ModuleName.CACHE, 'insight.page_loads.cache');
 
   useEffect(() => {
     const hasMissingDataError =
