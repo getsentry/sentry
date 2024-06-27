@@ -37,6 +37,7 @@ export function GlobalDrawer({children}) {
   );
   const {renderer, options = {}} = drawerConfig;
   const {closeOnEscapeKeypress = true, closeOnOutsideClick = true} = options;
+  const isDrawerOpen = renderer !== null;
 
   const handleClose = useCallback(() => {
     // Callsite callback when closing the drawer
@@ -51,21 +52,20 @@ export function GlobalDrawer({children}) {
   // Close the drawer when clicking outside the panel and options allow it.
   const panelRef = useRef<HTMLDivElement>(null);
   const handleClickOutside = useCallback(() => {
-    if (closeOnOutsideClick) {
+    if (isDrawerOpen && closeOnOutsideClick) {
       handleClose();
     }
-  }, [closeOnOutsideClick, handleClose]);
+  }, [isDrawerOpen, closeOnOutsideClick, handleClose]);
   useOnClickOutside(panelRef, handleClickOutside);
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
-    if (closeOnEscapeKeypress) {
+    if (isDrawerOpen && closeOnEscapeKeypress) {
       handleClose();
     }
-  }, [closeOnEscapeKeypress, handleClose]);
+  }, [isDrawerOpen, closeOnEscapeKeypress, handleClose]);
   useHotkeys([{match: 'Escape', callback: handleEscapePress}], [handleEscapePress]);
 
-  const isDrawerOpen = renderer !== null;
   const renderedChild =
     renderer?.({
       Body: DrawerBody,
