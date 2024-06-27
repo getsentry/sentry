@@ -29,6 +29,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -91,7 +92,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             ],
         }
 
-    def get_block_kit_unfurl_data(self, blocks):
+    def get_unfurl_data(self, blocks):
         return {
             "container": {
                 "type": "message_attachment",
@@ -149,7 +150,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "action_ts": "1702502122.304116",
         }
 
-    def archive_issue_block_kit(self, original_message, selected_option, payload_data=None):
+    def archive_issue(self, original_message, selected_option, payload_data=None):
         assert selected_option in ARCHIVE_OPTIONS.values()
         status_action = self.get_archive_status_action()
 
@@ -195,7 +196,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         return resp
 
-    def assign_issue_block_kit(self, original_message, selected_option, payload_data=None):
+    def assign_issue(self, original_message, selected_option, payload_data=None):
         if isinstance(selected_option, Team):
             status_action = self.get_assign_status_action(
                 "team", selected_option.slug, selected_option.id
@@ -214,7 +215,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # resp so that the tests can assert the response blocks looked as expected
         return resp
 
-    def resolve_issue_block_kit(self, original_message, selected_option, payload_data=None):
+    def resolve_issue(self, original_message, selected_option, payload_data=None):
         status_action = self.get_resolve_status_action()
         # Expect request to open dialog on slack
         responses.add(
@@ -297,7 +298,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     def test_archive_issue_until_escalating(self):
         original_message = self.get_original_message(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:archived_until_escalating")
+        self.archive_issue(original_message, "ignored:archived_until_escalating")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -314,10 +315,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     def test_archive_issue_until_escalating_through_unfurl(self):
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(
-            original_message, "ignored:archived_until_escalating", payload_data
-        )
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.archive_issue(original_message, "ignored:archived_until_escalating", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -332,7 +331,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     def test_archive_issue_until_condition_met(self):
         original_message = self.get_original_message(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:archived_until_condition_met:10")
+        self.archive_issue(original_message, "ignored:archived_until_condition_met:10")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -349,8 +348,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     def test_archive_issue_until_condition_met_through_unfurl(self):
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.archive_issue(
             original_message, "ignored:archived_until_condition_met:100", payload_data
         )
 
@@ -369,7 +368,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     def test_archive_issue_forever(self):
         original_message = self.get_original_message(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+        self.archive_issue(original_message, "ignored:archived_forever")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -382,11 +381,27 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
+    @with_feature("organizations:slack-sdk-webhook-handling")
+    def test_archive_issue_forever_with_sdk(self):
+        original_message = self.get_original_message(self.group.id)
+        self.archive_issue(original_message, "ignored:archived_forever")
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.IGNORED
+        assert self.group.substatus == GroupSubStatus.FOREVER
+
+        updated_blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+
+        expect_status = f"*Issue archived by <@{self.external_id}>*"
+        assert self.notification_text in updated_blocks[1]["text"]["text"]
+        assert updated_blocks[2]["text"]["text"].endswith(expect_status)
+
+    @responses.activate
     @patch("sentry.models.organization.Organization.has_access", return_value=False)
     def test_archive_issue_forever_error(self, mock_access):
         original_message = self.get_original_message(self.group.id)
 
-        resp = self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+        resp = self.archive_issue(original_message, "ignored:archived_forever")
         expected_text = f"Looks like this Slack identity is linked to the Sentry user *{self.user.email}* who is not a member of organization *{self.organization.slug}* used with this Slack integration. "
         assert expected_text in resp.data["text"]
         assert resp.data["response_type"] == "ephemeral"
@@ -399,8 +414,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     def test_archive_issue_forever_through_unfurl(self):
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(original_message, "ignored:archived_forever", payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.archive_issue(original_message, "ignored:archived_forever", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -424,7 +439,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         original_message = self.get_original_message(self.group.id)
-        self.archive_issue_block_kit(original_message, "ignored:archived_forever")
+        self.archive_issue(original_message, "ignored:archived_forever")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -447,8 +462,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             )
             AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.archive_issue_block_kit(original_message, "ignored:archived_forever", payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.archive_issue(original_message, "ignored:archived_forever", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.IGNORED
@@ -488,7 +503,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         status_action = self.get_mark_ongoing_action()
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        payload_data = self.get_unfurl_data(original_message["blocks"])
 
         resp = self.post_webhook_block_kit(
             action_data=[status_action], original_message=original_message, data=payload_data
@@ -509,7 +524,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         original_message = self.get_original_message(self.group.id)
 
         # Assign to user
-        resp = self.assign_issue_block_kit(original_message, user2)
+        resp = self.assign_issue(original_message, user2)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
@@ -517,7 +532,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
 
         # Assign to team
-        resp = self.assign_issue_block_kit(original_message, self.team)
+        resp = self.assign_issue(original_message, self.team)
         assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
@@ -543,17 +558,17 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        payload_data = self.get_unfurl_data(original_message["blocks"])
 
         # Assign to user
-        resp = self.assign_issue_block_kit(original_message, user2, payload_data)
+        resp = self.assign_issue(original_message, user2, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
         # Assign to team
-        resp = self.assign_issue_block_kit(original_message, self.team, payload_data)
+        resp = self.assign_issue(original_message, self.team, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
         expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
         assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
@@ -583,7 +598,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.create_project(name="hellboy", organization=self.organization, teams=[team2])
         # Assign to team
         original_message = self.get_original_message(self.group.id)
-        resp = self.assign_issue_block_kit(original_message, team2)
+        resp = self.assign_issue(original_message, team2)
         assert resp.data["text"].endswith("Cannot assign to a team without access to the project")
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
@@ -596,8 +611,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         self.create_project(name="hellboy", organization=self.organization, teams=[team2])
         # Assign to team
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        resp = self.assign_issue_block_kit(original_message, team2, payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        resp = self.assign_issue(original_message, team2, payload_data)
         assert resp.data["text"].endswith("Cannot assign to a team without access to the project")
         assert not GroupAssignee.objects.filter(group=self.group).exists()
 
@@ -610,7 +625,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             user=user2,
         )
         original_message = self.get_original_message(self.group.id)
-        resp = self.assign_issue_block_kit(original_message, user2)
+        resp = self.assign_issue(original_message, user2)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = (
@@ -629,8 +644,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             user=user2,
         )
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        resp = self.assign_issue_block_kit(original_message, user2, payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        resp = self.assign_issue(original_message, user2, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = (
@@ -654,7 +669,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             user=self.user,
         )
         original_message = self.get_original_message(self.group.id)
-        resp = self.assign_issue_block_kit(original_message, self.user)
+        resp = self.assign_issue(original_message, self.user)
         assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
 
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
@@ -678,8 +693,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             user=self.user,
         )
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        resp = self.assign_issue_block_kit(original_message, self.user, payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        resp = self.assign_issue(original_message, self.user, payload_data)
         assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
 
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
@@ -689,20 +704,21 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
 
     @responses.activate
+    @with_feature("organizations:slack-sdk-webhook-handling")
     def test_resolve_issue(self):
         original_message = self.get_original_message(self.group.id)
-        self.resolve_issue_block_kit(original_message, "resolved")
+        self.resolve_issue(original_message, "resolved")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        update_data = orjson.loads(responses.calls[1].request.body)
+        updated_blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"] == expect_status
-        assert ":white_circle:" in update_data["blocks"][0]["text"]["text"]
+        assert self.notification_text in updated_blocks[1]["text"]["text"]
+        assert updated_blocks[2]["text"]["text"] == expect_status
+        assert ":white_circle:" in updated_blocks[0]["text"]["text"]
 
     @responses.activate
     def test_resolve_perf_issue(self):
@@ -720,7 +736,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group
 
         original_message = self.get_original_message(self.group.id)
-        self.resolve_issue_block_kit(original_message, "resolved")
+        self.resolve_issue(original_message, "resolved")
 
         self.group.refresh_from_db()
         assert self.group.get_status() == GroupStatus.RESOLVED
@@ -741,8 +757,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     @responses.activate
     def test_resolve_issue_through_unfurl(self):
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.resolve_issue_block_kit(original_message, "resolved", payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.resolve_issue(original_message, "resolved", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
@@ -763,7 +779,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         release.add_project(self.project)
 
         original_message = self.get_original_message(self.group.id)
-        self.resolve_issue_block_kit(original_message, "resolved:inCurrentRelease")
+        self.resolve_issue(original_message, "resolved:inCurrentRelease")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
@@ -786,8 +802,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         release.add_project(self.project)
 
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.resolve_issue_block_kit(original_message, "resolved:inCurrentRelease", payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.resolve_issue(original_message, "resolved:inCurrentRelease", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
@@ -809,7 +825,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         release.add_project(self.project)
         original_message = self.get_original_message(self.group.id)
-        self.resolve_issue_block_kit(original_message, "resolved:inNextRelease")
+        self.resolve_issue(original_message, "resolved:inNextRelease")
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
@@ -831,8 +847,8 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
         release.add_project(self.project)
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
-        self.resolve_issue_block_kit(original_message, "resolved:inNextRelease", payload_data)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.resolve_issue(original_message, "resolved:inNextRelease", payload_data)
 
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.RESOLVED
@@ -992,7 +1008,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             content_type="application/json",
         )
 
-        data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        data = self.get_unfurl_data(original_message["blocks"])
         resp = self.post_webhook_block_kit(
             action_data=[status_action],
             data=data,
@@ -1132,7 +1148,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
     def test_handle_submission_fail_through_unfurl(self, mock_open_view):
         status_action = self.get_resolve_status_action()
         original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_block_kit_unfurl_data(original_message["blocks"])
+        payload_data = self.get_unfurl_data(original_message["blocks"])
         # Expect request to open dialog on slack
         responses.add(
             method=responses.POST,
