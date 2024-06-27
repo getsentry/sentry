@@ -78,7 +78,11 @@ jobs:
         # We don't use make setup-git because we're only interested in installing
         # requirements-dev.txt as a fast path.
         run: |
+          which npm || true
+          which volta || true
+          which eslint || true
           npm --prefix pre-commit-node-env install
+          which eslint
           pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
           pre-commit install-hooks
 
