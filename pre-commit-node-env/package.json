@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "dependencies": {
-        "eslint": "8.57.0"
+        "eslint": "8.57.0",
+        "eslint-config-sentry-app": "2.7.0"
     }
 }
