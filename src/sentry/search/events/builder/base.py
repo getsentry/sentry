@@ -1287,7 +1287,11 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            kind = search_filter.value.classify_wildcard()
+            kind = (
+                search_filter.value.classify_wildcard()
+                if self.config.optimize_wildcard_searches
+                else "other"
+            )
             if kind == "prefix":
                 condition = Condition(
                     Function(
