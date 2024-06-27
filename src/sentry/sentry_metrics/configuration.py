@@ -176,6 +176,11 @@ def initialize_main_process_state(config: MetricsIngestConfiguration) -> None:
 
 HARD_CODED_UNITS = {"span.duration": "millisecond"}
 ALLOWED_TYPES = {"c", "d", "s", "g"}
+
+# METRICS_AGGREGATES specifies the aggregates that are available for a metric type - AGGREGATES_TO_METRICS reverses this,
+# and provides a map from the aggregate to the metric type in the form {'count': 'c', 'avg':'g', ...}. This is needed
+# when the UI lets the user select the aggregate, and the backend infers the metric_type from it. It is programmatic
+# and not hard-coded, so that in case of a change, the two mappings are aligned.
 METRICS_AGGREGATES = {
     "c": ["count"],
     "g": ["avg", "min", "max", "sum"],
