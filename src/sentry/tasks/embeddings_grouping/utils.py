@@ -411,7 +411,7 @@ def make_nodestore_call_multithreaded(project, node_keys):
     chunks = [node_keys[i : i + chunk_size] for i in range(0, len(node_keys), chunk_size)]
 
     bulk_data = {}
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=6) as executor:
         future_to_chunk = {executor.submit(process_chunk, chunk): chunk for chunk in chunks}
         for future in as_completed(future_to_chunk):
             bulk_data.update(future.result())
