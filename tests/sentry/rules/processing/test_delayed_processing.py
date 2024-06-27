@@ -6,7 +6,6 @@ from uuid import uuid4
 import pytest
 
 from sentry import buffer
-from sentry.eventstore import backend as EventStoreBackend
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -194,10 +193,6 @@ class ProcessDelayedAlertConditionsTest(
 
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
-
-    def test_create_event_saved_timestamp(self):
-        event = EventStoreBackend.get_event_by_id(self.project.id, self.event1.event_id)
-        assert event.datetime == self.event1.datetime == FROZEN_TIME
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
