@@ -35,12 +35,13 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.utils.snuba import is_duration_measurement, is_span_op_breakdown
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 class QueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
+
+    duration_fields = {"transaction.duration"}
 
     def load_config(
         self,
@@ -87,16 +88,6 @@ class QueryBuilder(BaseQueryBuilder):
             return constants.TREND_FUNCTION_TYPE_MAP.get(function)
 
         return super().get_function_result_type(function)
-
-    def get_field_type(self, field: str) -> str | None:
-        if (
-            field == "transaction.duration"
-            or is_duration_measurement(field)
-            or is_span_op_breakdown(field)
-        ):
-            return "duration"
-
-        return super().get_field_type(field)
 
     def format_search_filter(self, term: event_search.SearchFilter) -> WhereType | None:
         """For now this function seems a bit redundant inside QueryFilter but

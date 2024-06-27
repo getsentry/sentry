@@ -33,7 +33,7 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
 from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.utils import (
     adjust_datetime_to_granularity,
     optimal_granularity_for_date_range,
@@ -79,9 +79,10 @@ from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 
-class MetricsQueryBuilder(QueryBuilder):
+class MetricsQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
 
+    duration_fields = {"transaction.duration"}
     organization_column: str = "organization_id"
 
     column_remapping = {

@@ -64,9 +64,11 @@ from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
     QueryOutsideRetentionError,
     UnqualifiedQueryError,
+    is_duration_measurement,
     is_measurement,
     is_numeric_measurement,
     is_percentage_measurement,
+    is_span_op_breakdown,
     raw_snql_query,
     resolve_column,
 )
@@ -81,6 +83,7 @@ class BaseQueryBuilder:
     profile_functions_metrics_builder = False
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None
+    duration_fields: set[str] = set()
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -984,6 +987,13 @@ class BaseQueryBuilder:
             return "percentage"
         elif is_numeric_measurement(field):
             return "number"
+
+        if (
+            field in self.duration_fields
+            or is_duration_measurement(field)
+            or is_span_op_breakdown(field)
+        ):
+            return "duration"
 
         measurement = self.get_measurement_by_name(field)
         # let the caller decide what to do
