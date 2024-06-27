@@ -1277,18 +1277,36 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            raw_value = str(search_filter.value.raw_value)
-            new_value = event_search.SearchValue(raw_value[1:-1])
-            if (
-                raw_value.startswith("*")
-                and raw_value.endswith("*")
-                and not new_value.is_wildcard()
-            ):
-                # This is an optimization to avoid using regular expressions
-                # for wild card searches if it can be avoided.
-                # Here, we're just interested if the substring exists.
+            kind = search_filter.value.classify_wildcard()
+            if kind == "prefix":
                 condition = Condition(
-                    Function("positionCaseInsensitive", [lhs, new_value.value]),
+                    Function(
+                        "startsWith",
+                        [
+                            Function("lower", [lhs]),
+                            search_filter.value.format_wildcard(kind).lower(),
+                        ],
+                    ),
+                    Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
+                    1,
+                )
+            elif kind == "suffix":
+                condition = Condition(
+                    Function(
+                        "endsWith",
+                        [
+                            Function("lower", [lhs]),
+                            search_filter.value.format_wildcard(kind).lower(),
+                        ],
+                    ),
+                    Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
+                    1,
+                )
+            elif kind == "infix":
+                condition = Condition(
+                    Function(
+                        "positionCaseInsensitive", [lhs, search_filter.value.format_wildcard(kind)]
+                    ),
                     Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
                     0,
                 )
