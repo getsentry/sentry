@@ -6,6 +6,7 @@ from collections.abc import Mapping
 from django.http import HttpRequest
 from django.urls import reverse
 from rest_framework import status
+from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -104,6 +105,7 @@ class AcceptOrganizationInvite(Endpoint):
         "POST": ApiPublishStatus.UNKNOWN,
     }
     # Disable authentication and permission requirements.
+    authentication_classes = (SessionAuthentication,)
     permission_classes = ()
 
     @staticmethod
@@ -166,6 +168,20 @@ class AcceptOrganizationInvite(Endpoint):
 
         response = Response(None)
 
+        # if the user is already authenticated, let's make sure
+        # they have the email that the invite was sent to as a
+        # verified email on their account
+        if self.request.user.is_authenticated:
+            user_verified_emails = {e.email for e in self.request.user.get_verified_emails()}
+
+            if organization_member.email not in user_verified_emails:
+                return Response(
+                    status=403,
+                    data={
+                        "details": "Your account must have a verified email matching the email the invite was sent to."
+                    },
+                )
+
         # Allow users to register an account when accepting an invite
         if not helper.user_authenticated:
             request.session["can_register"] = True
@@ -227,6 +243,7 @@ class AcceptOrganizationInvite(Endpoint):
             user_id=request.user.id,
             request=request,
         )
+
         if invite_context is None:
             return self.respond_invalid()
 
@@ -242,6 +259,17 @@ class AcceptOrganizationInvite(Endpoint):
                 data={"details": "unable to accept organization invite"},
             )
         else:
+            if self.request.user.is_authenticated:
+                user_verified_emails = {e.email for e in self.request.user.get_verified_emails()}
+
+                if invite_context.member.email not in user_verified_emails:
+                    return Response(
+                        status=403,
+                        data={
+                            "details": "Your account must have a verified email matching the email the invite was sent to."
+                        },
+                    )
+
             response = Response(status=status.HTTP_204_NO_CONTENT)
 
         helper.accept_invite()
