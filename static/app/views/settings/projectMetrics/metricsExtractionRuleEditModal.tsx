@@ -4,18 +4,17 @@ import {css} from '@emotion/react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   aggregatesToGroups,
+  createCondition as createExtractionCondition,
   explodeAggregateGroup,
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
-import {
-  type MetricsExtractionRule,
-  useUpdateMetricsExtractionRules,
-} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
 
 interface Props extends ModalRenderProps {
   metricExtractionRule: MetricsExtractionRule;
@@ -43,7 +42,7 @@ export function MetricsExtractionRuleEditModal({
       tags: metricExtractionRule.tags,
       conditions: metricExtractionRule.conditions.length
         ? metricExtractionRule.conditions
-        : [''],
+        : [createExtractionCondition()],
     };
   }, [metricExtractionRule]);
 
@@ -58,7 +57,7 @@ export function MetricsExtractionRuleEditModal({
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
-        conditions: data.conditions.filter(Boolean),
+        conditions: data.conditions.filter(condition => !!condition.query),
       };
 
       updateExtractionRuleMutation.mutate(

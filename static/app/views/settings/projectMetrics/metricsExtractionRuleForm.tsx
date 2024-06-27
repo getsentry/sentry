@@ -11,16 +11,17 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsAggregate} from 'sentry/types/metrics';
+import type {MetricsAggregate, MetricsExtractionCondition} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
 export interface FormData {
   aggregates: AggregateGroup[];
-  conditions: string[];
+  conditions: MetricsExtractionCondition[];
   spanAttribute: string | null;
   tags: string[];
 }
@@ -92,6 +93,16 @@ export function aggregatesToGroups(aggregates: MetricsAggregate[]): AggregateGro
   }
   return groups;
 }
+
+export function createCondition(): MetricsExtractionCondition {
+  return {
+    query: '',
+    // id and mris will be set by the backend after creation
+    id: uniqueId(),
+    mris: [],
+  };
+}
+
 const EMPTY_SET = new Set<never>();
 const SPAN_SEARCH_CONFIG = {
   booleanKeys: EMPTY_SET,
@@ -218,20 +229,33 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             flexibleControlStateSize
           >
             {({onChange, initialData, value}) => {
-              const conditions = (value || initialData) as string[];
+              const conditions = (value ||
+                initialData ||
+                []) as MetricsExtractionCondition[];
+
+              const handleChange = (queryString: string, index: number) => {
+                onChange(
+                  conditions.toSpliced(index, 1, {
+                    ...conditions[index],
+                    query: queryString,
+                  }),
+                  {}
+                );
+              };
+
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
-                    {conditions.map((query, index) => (
+                    {conditions.map((condition, index) => (
                       <Fragment key={index}>
                         <SearchWrapper hasPrefix={index !== 0}>
                           {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
                           <SearchBar
                             {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
-                            query={query}
+                            query={condition.query}
                             onSearch={(queryString: string) =>
-                              onChange(conditions.toSpliced(index, 1, queryString), {})
+                              handleChange(queryString, index)
                             }
                             placeholder={t('Search for span attributes')}
                             organization={organization}
@@ -241,7 +265,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                             projectIds={[parseInt(project.id, 10)]}
                             hasRecentSearches={false}
                             onBlur={(queryString: string) =>
-                              onChange(conditions.toSpliced(index, 1, queryString), {})
+                              handleChange(queryString, index)
                             }
                           />
                         </SearchWrapper>
@@ -257,8 +281,8 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   </ConditionsWrapper>
                   <ConditionsButtonBar>
                     <Button
-                      disabled={conditions.some(query => !query)}
-                      onClick={() => onChange([...conditions, ''], {})}
+                      disabled={conditions.some(condition => !condition.query)}
+                      onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
                       {t('Add Query')}

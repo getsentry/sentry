@@ -1,5 +1,4 @@
-import type {MetricsAggregate} from 'sentry/types/metrics';
-import type {FormattingSupportedMetricUnit} from 'sentry/utils/metrics/formatters';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import {
   type ApiQueryKey,
   getApiQueryData,
@@ -14,14 +13,6 @@ import useApi from 'sentry/utils/useApi';
 
 const getMetricsExtractionRulesEndpoint = (orgSlug: string, projectSlug: string) =>
   [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
-
-export interface MetricsExtractionRule {
-  aggregates: MetricsAggregate[];
-  conditions: string[];
-  spanAttribute: string;
-  tags: string[];
-  unit: FormattingSupportedMetricUnit;
-}
 
 export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   return useApiQuery<MetricsExtractionRule[]>(
