@@ -8,7 +8,6 @@ import {VideoReplayer} from './videoReplayer';
 // replays.
 //
 // advancing by 2000ms ~== 20000s in Timer, but this may depend on hardware, TBD
-// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 jest.spyOn(window.HTMLMediaElement.prototype, 'pause').mockImplementation(() => {});
 
