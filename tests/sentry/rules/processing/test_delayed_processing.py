@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 
 from sentry import buffer
+from sentry.eventstore import backend as EventStoreBackend
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
@@ -18,17 +19,22 @@ from sentry.rules.processing.delayed_processing import (
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
 from sentry.testutils.factories import EventType
-from sentry.testutils.helpers.datetime import iso_format
+from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
 
+FROZEN_TIME = before_now(days=1).replace(hour=1, minute=15, second=0, microsecond=0)
 
+
+@freeze_time(FROZEN_TIME)
 class ProcessDelayedAlertConditionsTest(
     TestCase, APITestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
 ):
+    buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
+
     def create_event(
         self,
         project_id,
@@ -117,15 +123,16 @@ class ProcessDelayedAlertConditionsTest(
         event_frequency_percent_condition = self.create_event_frequency_condition(
             interval="5m", id="EventFrequencyPercentCondition", value=1.0
         )
-        self.now = datetime.now(UTC)
 
         self.rule1 = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition],
             environment_id=self.environment.id,
         )
-        self.event1 = self.create_event(self.project.id, self.now, "group-1", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-1", self.environment.name)
+        self.event1 = self.create_event(
+            self.project.id, FROZEN_TIME, "group-1", self.environment.name
+        )
+        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
 
         self.group1 = self.event1.group
         assert self.group1
@@ -133,8 +140,8 @@ class ProcessDelayedAlertConditionsTest(
         self.rule2 = self.create_project_rule(
             project=self.project, condition_match=[self.user_frequency_condition]
         )
-        self.event2 = self.create_event(self.project, self.now, "group-2", self.environment.name)
-        self.create_event(self.project, self.now, "group-2", self.environment.name)
+        self.event2 = self.create_event(self.project, FROZEN_TIME, "group-2", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-2", self.environment.name)
         self.group2 = self.event2.group
         assert self.group2
 
@@ -152,19 +159,19 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=self.environment2.id,
         )
         self.event3 = self.create_event(
-            self.project_two, self.now, "group-3", self.environment2.name
+            self.project_two, FROZEN_TIME, "group-3", self.environment2.name
         )
-        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
-        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
-        self.create_event(self.project_two, self.now, "group-3", self.environment2.name)
+        self.create_event(self.project_two, FROZEN_TIME, "group-3", self.environment2.name)
+        self.create_event(self.project_two, FROZEN_TIME, "group-3", self.environment2.name)
+        self.create_event(self.project_two, FROZEN_TIME, "group-3", self.environment2.name)
         self.group3 = self.event3.group
         assert self.group3
 
         self.rule4 = self.create_project_rule(
             project=self.project_two, condition_match=[event_frequency_percent_condition]
         )
-        self.event4 = self.create_event(self.project_two, self.now, "group-4")
-        self.create_event(self.project_two, self.now, "group-4")
+        self.event4 = self.create_event(self.project_two, FROZEN_TIME, "group-4")
+        self.create_event(self.project_two, FROZEN_TIME, "group-4")
         self._make_sessions(60, project=self.project_two)
         self.group4 = self.event4.group
         assert self.group4
@@ -187,6 +194,10 @@ class ProcessDelayedAlertConditionsTest(
 
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
+
+    def test_create_event_saved_timestamp(self):
+        event = EventStoreBackend.get_event_by_id(self.project.id, self.event1.event_id)
+        assert event.datetime == self.event1.datetime == FROZEN_TIME
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
@@ -313,9 +324,9 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=self.environment.id,
         )
         self.snooze_rule(owner_id=self.user.id, rule=rule5)
-        event5 = self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
@@ -343,9 +354,9 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition2],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
-        self.create_event(self.project, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
@@ -375,8 +386,8 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition3],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
@@ -407,8 +418,8 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition],
             environment_id=environment3.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", environment3.name)
-        self.create_event(self.project.id, self.now, "group-5", environment3.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", environment3.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", environment3.name)
         group5 = event5.group
         assert group5
         assert self.group1
@@ -444,8 +455,8 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[high_event_frequency_condition],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         assert self.group1
@@ -474,14 +485,16 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[self.event_frequency_condition, self.user_frequency_condition],
             environment_id=self.environment.id,
         )
-        event5 = self.create_event(self.project.id, self.now, "group-5", self.environment.name)
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name)
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
         assert group5
         event6 = self.create_event(
-            self.project.id, self.now, "group-6", self.environment.name, user=False
+            self.project.id, FROZEN_TIME, "group-6", self.environment.name, user=False
         )
-        self.create_event(self.project.id, self.now, "group-5", self.environment.name, user=False)
+        self.create_event(
+            self.project.id, FROZEN_TIME, "group-5", self.environment.name, user=False
+        )
         group6 = event6.group
         assert group6
         assert self.group1
@@ -525,14 +538,16 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=env3.id,
         )
         event1 = self.create_event(
-            project_three.id, self.now, "group-5", env3.name, tags=[["foo", "bar"]]
+            project_three.id, FROZEN_TIME, "group-5", env3.name, tags=[["foo", "bar"]]
         )
-        self.create_event(project_three.id, self.now, "group-5", env3.name, tags=[["foo", "bar"]])
+        self.create_event(
+            project_three.id, FROZEN_TIME, "group-5", env3.name, tags=[["foo", "bar"]]
+        )
         group1 = event1.group
         assert group1
 
-        event2 = self.create_event(project_three.id, self.now, "group-6", env3.name)
-        self.create_event(project_three.id, self.now, "group-6", env3.name)
+        event2 = self.create_event(project_three.id, FROZEN_TIME, "group-6", env3.name)
+        self.create_event(project_three.id, FROZEN_TIME, "group-6", env3.name)
         group2 = event2.group
         assert group2
 
@@ -555,7 +570,7 @@ class ProcessDelayedAlertConditionsTest(
         assert (rule_2.id, group2.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=project_three.id)
 
-    def test_apply_delayed_percent_condition_comparison_interval(self):
+    def test_apply_delayed_percent_comparison_condition_interval(self):
         """
         Test that a rule with a percent condition is querying backwards against
         the correct comparison interval, e.g. # events is ... compared to 1 hr ago
@@ -570,11 +585,11 @@ class ProcessDelayedAlertConditionsTest(
             project=self.project,
             condition_match=[percent_condition],
         )
-        incorrect_interval_time = self.now - timedelta(minutes=7)
-        correct_interval_time = self.now - timedelta(hours=1)
+        incorrect_interval_time = FROZEN_TIME - timedelta(minutes=7)
+        correct_interval_time = FROZEN_TIME - timedelta(hours=1)
 
-        event5 = self.create_event(self.project.id, self.now, "group-5")
-        self.create_event(self.project.id, self.now, "group-5")
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5")
+        self.create_event(self.project.id, FROZEN_TIME, "group-5")
         # Create events for the incorrect interval that will not trigger the rule
         self.create_event(self.project.id, incorrect_interval_time, "group-5")
         self.create_event(self.project.id, incorrect_interval_time, "group-5")
