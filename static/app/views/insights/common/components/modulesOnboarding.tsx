@@ -5,33 +5,31 @@ import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {space} from 'sentry/styles/space';
-import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {useHasData} from 'sentry/views/insights/common/queries/useHasData';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import type {ModuleName} from 'sentry/views/insights/types';
 
 export function ModulesOnboarding({
   children,
-  moduleQueryFilter,
+  moduleName,
   onboardingContent,
-  referrer,
 }: {
   children: React.ReactNode;
-  moduleQueryFilter: MutableSearch;
+  moduleName: ModuleName;
   onboardingContent: React.ReactNode;
-  referrer: string;
 }) {
   const onboardingProject = useOnboardingProject();
-  const {hasData, isLoading} = useHasData(moduleQueryFilter, referrer);
+  const hasData = useHasFirstSpan(moduleName);
 
-  if (onboardingProject || (!hasData && !isLoading)) {
+  if (onboardingProject || !hasData) {
     return (
       <ModuleLayout.Full>
         <ModulesOnboardingPanel>{onboardingContent}</ModulesOnboardingPanel>
       </ModuleLayout.Full>
     );
   }
-  if (!onboardingProject && hasData && !isLoading) {
+  if (!onboardingProject && hasData) {
     return children;
   }
   // TODO: Add an error state?

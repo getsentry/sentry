@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -15,6 +16,9 @@ describe('queuesLandingPage', () => {
   const organization = OrganizationFixture({
     features: ['insights-addon-modules'],
   });
+  const project = ProjectFixture();
+  project.firstTransactionEvent = true;
+  project.hasInsightsQueues = true;
 
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
@@ -44,7 +48,7 @@ describe('queuesLandingPage', () => {
   });
 
   jest.mocked(useProjects).mockReturnValue({
-    projects: [],
+    projects: [project],
     onSearch: jest.fn(),
     placeholders: [],
     fetching: false,
@@ -72,7 +76,6 @@ describe('queuesLandingPage', () => {
   it('renders', async () => {
     render(<QueuesLandingPage />, {organization});
     await screen.findByRole('table', {name: 'Queues'});
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     screen.getByPlaceholderText('Search for more destinations');
     screen.getByText('Avg Latency');
     screen.getByText('Published vs Processed');
