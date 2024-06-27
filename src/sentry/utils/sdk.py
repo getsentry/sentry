@@ -76,7 +76,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
@@ -222,13 +222,6 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         and event.get("transaction_info", {}).get("source") == "url"
     ):
         return None
-
-    # This code is added only for debugging purposes, as such, it should be removed once the investigation is done.
-    if event.get("transaction") in {
-        "sentry.dynamic_sampling.boost_low_volume_projects_of_org",
-        "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    }:
-        logger.info("transaction_logged", extra=event)
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])

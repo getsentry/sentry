@@ -126,9 +126,8 @@ def test_sentry_tags():
             span_attribute=tag, type="d", unit="none", tags=set(), conditions=[]
         )
         metric_spec = convert_to_metric_spec(rule)
-        sanitized_tag = tag.replace(".", "\\.")
 
-        assert metric_spec["field"] == f"span.sentry_tags.{sanitized_tag}"
+        assert metric_spec["field"] == f"span.sentry_tags.{tag}"
         assert metric_spec["mri"] == f"d:custom/{tag}@none"
 
 

@@ -34,6 +34,7 @@ type TableProps = {
   showTags: boolean;
   title: string;
   isHomepage?: boolean;
+  setSplitDecision?: (value: string) => void;
   setTips?: (tips: string[]) => void;
 };
 
@@ -100,8 +101,15 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, setError, confirmedQuery, setTips} =
-      this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      setError,
+      confirmedQuery,
+      setTips,
+      setSplitDecision,
+    } = this.props;
 
     if (!eventView.isValid() || !confirmedQuery) {
       return;
@@ -142,6 +150,13 @@ class Table extends PureComponent<TableProps, TableState> {
       !apiPayload.field.includes('timestamp')
     ) {
       apiPayload.field.push('timestamp');
+    }
+
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      eventView.id
+    ) {
+      apiPayload.discoverSavedQueryId = eventView.id;
     }
 
     apiPayload.referrer = 'api.discover.query-table';
@@ -203,6 +218,10 @@ class Table extends PureComponent<TableProps, TableState> {
           tips.push(columns);
         }
         setTips?.(tips);
+        const splitDecision = tableData?.meta?.discoverSplitDecision;
+        if (splitDecision) {
+          setSplitDecision?.(splitDecision);
+        }
       })
       .catch(err => {
         metric.measure({

@@ -2604,3 +2604,9 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "similarity.backfill_nodestore_use_multithread",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
