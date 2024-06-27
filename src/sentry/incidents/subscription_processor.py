@@ -659,13 +659,13 @@ class SubscriptionProcessor:
             # NOTE: `incident_triggers` is derived from `self.active_incident`
             incident_trigger = self.incident_trigger_map.get(trigger.id)
             if incident_trigger:
-                incident_trigger.status = TriggerStatus.ACTIVE
+                incident_trigger.status = TriggerStatus.ACTIVE.value
                 incident_trigger.save()
             else:
                 incident_trigger = IncidentTrigger.objects.create(
                     incident=self.active_incident,
                     alert_rule_trigger=trigger,
-                    status=TriggerStatus.ACTIVE,
+                    status=TriggerStatus.ACTIVE.value,
                 )
             self.handle_incident_severity_update()
             self.incident_trigger_map[trigger.id] = incident_trigger
