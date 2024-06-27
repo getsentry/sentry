@@ -21,13 +21,9 @@ import type {
 } from '@react-types/shared';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
 import type {Tab} from 'sentry/components/draggableTabs';
-import DropdownButton from 'sentry/components/dropdownButton';
 import {TabsContext} from 'sentry/components/tabs';
-import {useOverflowTabs} from 'sentry/components/tabs/tabList';
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
@@ -161,27 +157,11 @@ function BaseDraggableTabList({
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <TabListOverflowWrap>
-          <CompactSelect
-            options={overflowMenuItems}
-            value={[...state.selectionManager.selectedKeys][0]}
-            onChange={opt => state.setSelectedKey(opt.value)}
-            disabled={disabled}
-            position="bottom-end"
-            size="sm"
-            offset={4}
-            trigger={triggerProps => (
-              <OverflowMenuTrigger
-                {...triggerProps}
-                size="sm"
-                borderless
-                showChevron={false}
-                icon={<IconEllipsis />}
-                aria-label={t('More tabs')}
-              />
-            )}
-          />
-        </TabListOverflowWrap>
+        <OverflowMenu
+          state={state}
+          overflowMenuItems={overflowMenuItems}
+          disabled={disabled}
+        />
       )}
     </TabListOuterWrap>
   );
@@ -295,14 +275,4 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
         padding-right: ${space(2)};
         ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
       `};
-`;
-
-const TabListOverflowWrap = styled('div')`
-  position: absolute;
-  right: 0;
-  bottom: ${space(0.75)};
-`;
-const OverflowMenuTrigger = styled(DropdownButton)`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
 `;
