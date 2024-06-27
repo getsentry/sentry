@@ -134,6 +134,9 @@ __all__ = (
     "generate_bottom_up_dependency_tree_for_metrics",
     "org_id_from_projects",
     "COMPOSITE_ENTITY_CONSTITUENT_ALIAS",
+    "get_derived_metrics",
+    "get_derived_ops",
+    "get_derived_aliases",
 )
 
 COMPOSITE_ENTITY_CONSTITUENT_ALIAS = "__CHILD_OF__"
@@ -2051,6 +2054,7 @@ _DERIVED_METRICS_V2 = {
         ),
     ]
 }
+
 _DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
     derived_alias.metric_mri: derived_alias
     for derived_alias in [
@@ -2617,11 +2621,11 @@ def get_derived_metrics(
 
 def get_derived_ops(
     use_metrics_v2: bool | None = None,
-) -> Mapping[str, DerivedMetricExpression]:
+) -> Mapping[str, DerivedOp]:
     return _DERIVED_OPS_V2 if use_metrics_v2 else _DERIVED_OPS
 
 
 def get_derived_aliases(
     use_metrics_v2: bool | None = None,
-) -> Mapping[str, DerivedMetricExpression]:
+) -> Mapping[str, AliasedDerivedMetric]:
     return _DERIVED_ALIASES_V2 if use_metrics_v2 else _DERIVED_ALIASES
