@@ -52,7 +52,7 @@ function ExtractMetric({project}: {project: Project}) {
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
-        conditions: data.conditions.filter(condition => !!condition.query),
+        conditions: data.conditions,
       };
 
       createExtractionRuleMutation.mutate(

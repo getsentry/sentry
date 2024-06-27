@@ -118,7 +118,7 @@ export type BlockingStatus = {
 export type MetricsMetaCollection = Record<string, MetricMeta>;
 
 export interface MetricsExtractionCondition {
-  id: string;
+  id: number;
   mris: MRI[];
   query: string;
 }

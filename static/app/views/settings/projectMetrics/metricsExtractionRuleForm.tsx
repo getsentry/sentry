@@ -14,7 +14,6 @@ import {space} from 'sentry/styles/space';
 import type {MetricsAggregate, MetricsExtractionCondition} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
@@ -94,11 +93,17 @@ export function aggregatesToGroups(aggregates: MetricsAggregate[]): AggregateGro
   return groups;
 }
 
+let currentTempId = 0;
+function createTempId(): number {
+  currentTempId -= 1;
+  return currentTempId;
+}
+
 export function createCondition(): MetricsExtractionCondition {
   return {
     query: '',
     // id and mris will be set by the backend after creation
-    id: uniqueId(),
+    id: createTempId(),
     mris: [],
   };
 }
@@ -267,6 +272,8 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                             onBlur={(queryString: string) =>
                               handleChange(queryString, index)
                             }
+                            savedSearchType={undefined}
+                            useFormWrapper={false}
                           />
                         </SearchWrapper>
                         {value.length > 1 && (
@@ -281,7 +288,6 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   </ConditionsWrapper>
                   <ConditionsButtonBar>
                     <Button
-                      disabled={conditions.some(condition => !condition.query)}
                       onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >

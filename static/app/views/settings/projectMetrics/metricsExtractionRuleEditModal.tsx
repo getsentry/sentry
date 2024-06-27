@@ -57,7 +57,7 @@ export function MetricsExtractionRuleEditModal({
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
-        conditions: data.conditions.filter(condition => !!condition.query),
+        conditions: data.conditions,
       };
 
       updateExtractionRuleMutation.mutate(
