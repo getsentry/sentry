@@ -658,6 +658,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
+                                "measurements.score.total",
                             ],
                             allow_custom_measurements=False,
                         )
@@ -1462,8 +1463,12 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
+            "measurements.score.total",
         ]:
             raise InvalidSearchQuery("performance_score only supports measurements")
+
+        if column == "measurements.score.total":
+            return self._resolve_total_performance_score_function(args, alias)
 
         weight_metric_id = self.resolve_metric(column.replace("score", "score.weight"))
 
@@ -1878,6 +1883,83 @@ class MetricsDatasetConfig(DatasetConfig):
             [
                 Column("value"),
                 Function("equals", [Column("metric_id"), metric_id]),
+            ],
+            alias,
+        )
+
+    def _resolve_total_performance_score_function(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        lcp_metric_id = self.resolve_metric("measurements.score.lcp")
+        fcp_metric_id = self.resolve_metric("measurements.score.fcp")
+        cls_metric_id = self.resolve_metric("measurements.score.cls")
+        ttfb_metric_id = self.resolve_metric("measurements.score.ttfb")
+        inp_metric_id = self.resolve_metric("measurements.score.inp")
+
+        lcp = self._resolve_web_vital_score_function(
+            {"column": "measurements.score.lcp", "metric_id": lcp_metric_id}, None
+        )
+        fcp = self._resolve_web_vital_score_function(
+            {"column": "measurements.score.fcp", "metric_id": fcp_metric_id}, None
+        )
+        cls = self._resolve_web_vital_score_function(
+            {"column": "measurements.score.cls", "metric_id": cls_metric_id}, None
+        )
+        ttfb = self._resolve_web_vital_score_function(
+            {"column": "measurements.score.ttfb", "metric_id": ttfb_metric_id}, None
+        )
+        inp = self._resolve_web_vital_score_function(
+            {"column": "measurements.score.inp", "metric_id": inp_metric_id}, None
+        )
+
+        # TODO: Is there a way to sum more than 2 values at once?
+        return Function(
+            "plus",
+            [
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                Function(
+                                    "plus",
+                                    [
+                                        Function(
+                                            "multiply",
+                                            [
+                                                lcp,
+                                                constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[
+                                                    "lcp"
+                                                ],
+                                            ],
+                                        ),
+                                        Function(
+                                            "multiply",
+                                            [
+                                                fcp,
+                                                constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[
+                                                    "fcp"
+                                                ],
+                                            ],
+                                        ),
+                                    ],
+                                ),
+                                Function(
+                                    "multiply",
+                                    [cls, constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["cls"]],
+                                ),
+                            ],
+                        ),
+                        Function(
+                            "multiply",
+                            [ttfb, constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["ttfb"]],
+                        ),
+                    ],
+                ),
+                Function("multiply", [inp, constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["inp"]]),
             ],
             alias,
         )

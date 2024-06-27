@@ -3077,6 +3077,85 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
 
         assert meta["isMetricsData"]
 
+    def test_total_performance_score(self):
+        self.store_transaction_metric(
+            0.03,
+            metric="measurements.score.lcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.30,
+            metric="measurements.score.weight.lcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.15,
+            metric="measurements.score.fcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.15,
+            metric="measurements.score.weight.fcp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.10,
+            metric="measurements.score.cls",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.15,
+            metric="measurements.score.weight.cls",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.05,
+            metric="measurements.score.ttfb",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.10,
+            metric="measurements.score.weight.ttfb",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.05,
+            metric="measurements.score.inp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        self.store_transaction_metric(
+            0.10,
+            metric="measurements.score.weight.inp",
+            tags={"transaction": "foo_transaction", "transaction.op": "pageload"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "performance_score(measurements.score.total)",
+                ],
+                "query": "",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 1
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert data[0]["performance_score(measurements.score.total)"] == 0.48
+        assert meta["isMetricsData"]
+
     def test_count_scores(self):
         self.store_transaction_metric(
             0.1,
@@ -3546,7 +3625,11 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_performance_score_boundaries(self):
-        super().test_performance_score()
+        super().test_performance_score_boundaries()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_total_performance_score(self):
+        super().test_total_performance_score()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_weighted_performance_score(self):
