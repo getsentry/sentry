@@ -33,13 +33,16 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
 from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.utils import (
     adjust_datetime_to_granularity,
     optimal_granularity_for_date_range,
     remove_hours,
     remove_minutes,
 )
+from sentry.search.events.datasets.base import DatasetConfig
+from sentry.search.events.datasets.metrics import MetricsDatasetConfig
+from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
@@ -66,19 +69,20 @@ from sentry.snuba.metrics.extraction import (
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 
-class MetricsQueryBuilder(QueryBuilder):
+class MetricsQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
-    is_alerts_query = False
 
+    duration_fields = {"transaction.duration"}
     organization_column: str = "organization_id"
 
     column_remapping = {
@@ -140,6 +144,18 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
+
+    def load_config(self) -> DatasetConfig:
+        if hasattr(self, "config_class") and self.config_class is not None:
+            return super().load_config()
+
+        if self.dataset in [Dataset.Metrics, Dataset.PerformanceMetrics]:
+            if self.builder_config.use_metrics_layer:
+                return MetricsLayerDatasetConfig(self)
+            else:
+                return MetricsDatasetConfig(self)
+        else:
+            raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
     @property
     def use_default_tags(self) -> bool:
@@ -244,14 +260,13 @@ class MetricsQueryBuilder(QueryBuilder):
         if not self.builder_config.on_demand_metrics_enabled:
             return None
 
-        aggregate_columns = self.selected_columns
-        map = {
-            col: self._get_on_demand_metric_spec(col)
-            for col in aggregate_columns
-            # Replace with proper table code later
-            if fields.is_function(col) and self._get_on_demand_metric_spec(col)
-        }
-        return map
+        spec_map = {}
+        for col in self.selected_columns:
+            spec = self._get_on_demand_metric_spec(col)
+            if fields.is_function(col) and spec:
+                spec_map[col] = spec
+
+        return spec_map
 
     def convert_spec_to_metric_field(self, spec: OnDemandMetricSpec) -> MetricField:
         if isinstance(self, (TopMetricsQueryBuilder, TimeseriesMetricQueryBuilder)):
@@ -271,7 +286,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # Where normally isn't accepted for on-demand since it should only encoded into the metric
         # but in the case of top events, etc. there is need for another where condition dynamically for top N groups.
         additional_where: Sequence[Condition] | None = None,
-    ) -> MetricsQuery:
+    ) -> DeprecatingMetricsQuery:
         if self.params.organization is None:
             raise InvalidSearchQuery("An on demand metrics query requires an organization")
 
@@ -337,7 +352,7 @@ class MetricsQueryBuilder(QueryBuilder):
         if additional_where:
             where.extend(additional_where)
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             select=[self.convert_spec_to_metric_field(spec)],
             where=where,
             limit=limit,
@@ -1029,7 +1044,7 @@ class MetricsQueryBuilder(QueryBuilder):
 
         return metric_layer_result
 
-    def use_case_id_from_metrics_query(self, metrics_query: MetricsQuery) -> UseCaseID:
+    def use_case_id_from_metrics_query(self, metrics_query: DeprecatingMetricsQuery) -> UseCaseID:
         """
         Extracts the use case from the `MetricsQuery` which has to be executed in the metrics layer.
 
@@ -1097,7 +1112,9 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
         return result
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
@@ -1200,7 +1217,7 @@ class MetricsQueryBuilder(QueryBuilder):
                                     self.get_metrics_layer_snql_query(
                                         query_details, extra_conditions
                                     ),
-                                    self.is_alerts_query,
+                                    isinstance(self, AlertMetricsQueryBuilder),
                                 )
                             )
                     metrics_data = []
@@ -1302,9 +1319,10 @@ class MetricsQueryBuilder(QueryBuilder):
                     tenant_ids=self.tenant_ids,
                 )
                 current_result = raw_snql_query(
-                    request,
-                    f"{referrer}.{referrer_suffix}",
-                    use_cache,
+                    request=request,
+                    referrer=f"{referrer}.{referrer_suffix}",
+                    query_source=query_source,
+                    use_cache=use_cache,
                 )
                 for meta in current_result["meta"]:
                     meta_dict[meta["name"]] = meta["type"]
@@ -1407,8 +1425,6 @@ class MetricsQueryBuilder(QueryBuilder):
 
 
 class AlertMetricsQueryBuilder(MetricsQueryBuilder):
-    is_alerts_query = True
-
     def __init__(
         self,
         *args: Any,
@@ -1449,7 +1465,7 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             else:
                 intermediate_query = self.get_metrics_layer_snql_query()
                 metrics_query = transform_mqb_query_to_metrics_query(
-                    intermediate_query, is_alerts_query=self.is_alerts_query
+                    intermediate_query, is_alerts_query=isinstance(self, AlertMetricsQueryBuilder)
                 )
 
             snuba_queries, _ = SnubaQueryBuilder(
@@ -1710,7 +1726,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
                         metrics_queries.append(
-                            transform_mqb_query_to_metrics_query(snuba_query, self.is_alerts_query)
+                            transform_mqb_query_to_metrics_query(
+                                snuba_query, isinstance(self, AlertMetricsQueryBuilder)
+                            )
                         )
                 metrics_data = []
                 with sentry_sdk.start_span(op="metric_layer", description="run_query"):
@@ -1981,7 +1999,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
                     elif self.use_metrics_layer:
                         snuba_query = self.get_snql_query()[0].query
                         metrics_queries.append(
-                            transform_mqb_query_to_metrics_query(snuba_query, self.is_alerts_query)
+                            transform_mqb_query_to_metrics_query(
+                                snuba_query, isinstance(self, AlertMetricsQueryBuilder)
+                            )
                         )
                 metrics_data = []
                 for metrics_query in metrics_queries:

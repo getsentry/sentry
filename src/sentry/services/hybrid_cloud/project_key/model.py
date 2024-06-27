@@ -6,8 +6,8 @@
 from enum import Enum
 from typing import Any
 
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.models.projectkey import ProjectKeyStatus
-from sentry.services.hybrid_cloud import RpcModel
 
 
 class ProjectKeyRole(Enum):

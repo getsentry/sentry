@@ -6,7 +6,7 @@ from typing import Any
 
 from django.conf import settings
 
-from sentry.services.hybrid_cloud import ArgumentDict
+from sentry.hybridcloud.rpc import ArgumentDict
 from sentry.types.region import (
     Region,
     RegionMappingNotFound,

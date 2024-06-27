@@ -109,18 +109,9 @@ def get_metric_extraction_config(
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
     sentry_sdk.set_tag("organization_id", project.organization_id)
-    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
-        enabled_features = on_demand_metrics_feature_flags(project.organization)
-    timeout.check()
 
-    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    with sentry_sdk.start_span(op="get_alert_metric_specs"):
-        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
-    timeout.check()
-    with sentry_sdk.start_span(op="get_widget_metric_specs"):
-        widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
-    timeout.check()
+    with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
+        alert_specs, widget_specs = get_on_demand_metric_specs(timeout, project)
     with sentry_sdk.start_span(op="generate_span_attribute_specs"):
         span_attr_specs = _generate_span_attribute_specs(project)
     with sentry_sdk.start_span(op="merge_metric_specs"):
@@ -134,6 +125,25 @@ def get_metric_extraction_config(
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
     }
+
+
+def get_on_demand_metric_specs(
+    timeout: TimeChecker, project: Project
+) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
+    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
+        enabled_features = on_demand_metrics_feature_flags(project.organization)
+    timeout.check()
+
+    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+
+    with sentry_sdk.start_span(op="get_alert_metric_specs"):
+        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
+    with sentry_sdk.start_span(op="get_widget_metric_specs"):
+        widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
+
+    return (alert_specs, widget_specs)
 
 
 def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:

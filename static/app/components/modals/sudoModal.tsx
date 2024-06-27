@@ -1,16 +1,15 @@
 import {Fragment, useContext, useEffect, useState} from 'react';
-import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
@@ -20,9 +19,6 @@ import type {Authenticator} from 'sentry/types/auth';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useRouter from 'sentry/utils/useRouter';
-import withApi from 'sentry/utils/withApi';
-// eslint-disable-next-line no-restricted-imports
-import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {OrganizationLoaderContext} from 'sentry/views/organizationContext';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -36,15 +32,14 @@ type State = {
   authenticators: Array<Authenticator>;
   error: boolean;
   errorType: string;
+  isLoading: boolean;
   showAccessForms: boolean;
   superuserAccessCategory: string;
   superuserReason: string;
 };
 
-type Props = WithRouterProps &
-  DefaultProps &
+type Props = DefaultProps &
   Pick<ModalRenderProps, 'Body' | 'Header'> & {
-    api: Client;
     closeModal: () => void;
     /**
      * User is a superuser without an active su session
@@ -66,6 +61,8 @@ function SudoModal({
   Body,
   closeButton,
 }: Props) {
+  const router = useRouter();
+  const api = useApi();
   const [state, setState] = useState<State>({
     authenticators: [] as Authenticator[],
     error: false,
@@ -73,6 +70,7 @@ function SudoModal({
     showAccessForms: true,
     superuserAccessCategory: '',
     superuserReason: '',
+    isLoading: true,
   });
 
   const {
@@ -84,29 +82,39 @@ function SudoModal({
     superuserReason,
   } = state;
 
-  const {loadOrganization} = useContext(OrganizationLoaderContext) || {};
-  const router = useRouter();
-  const api = useApi();
+  const {organizationPromise} = useContext(OrganizationLoaderContext);
   const location = useLocation();
 
   useEffect(() => {
-    const getAuthenticators = () => {
-      if (!loadOrganization) return;
+    const getAuthenticators = async () => {
       try {
-        loadOrganization().finally(async () => {
-          const fetchedAuthenticators = await api.requestPromise('/authenticators/');
-          setState(prevState => ({
-            ...prevState,
-            authenticators: fetchedAuthenticators ?? [],
-          }));
-        });
+        // Await all preload requests
+        await Promise.allSettled([
+          organizationPromise,
+          ...Object.values(window.__sentry_preload),
+        ]);
       } catch {
         // ignore errors
+      }
+
+      // Fetch authenticators after preload requests to avoid overwriting session cookie
+      try {
+        const fetchedAuthenticators = await api.requestPromise('/authenticators/');
+        setState(prevState => ({
+          ...prevState,
+          authenticators: fetchedAuthenticators ?? [],
+          isLoading: false,
+        }));
+      } catch {
+        setState(prevState => ({
+          ...prevState,
+          isLoading: false,
+        }));
       }
     };
 
     getAuthenticators();
-  }, [api, loadOrganization]);
+  }, [api, organizationPromise]);
 
   const handleSubmitCOPS = () => {
     setState(prevState => ({
@@ -233,6 +241,10 @@ function SudoModal({
       return null;
     }
 
+    if (state.isLoading) {
+      return <LoadingIndicator />;
+    }
+
     if (
       (!user.hasPasswordAuth && authenticators.length === 0) ||
       (isSuperuser && !isSelfHosted && validateSUForm)
@@ -343,8 +355,7 @@ function SudoModal({
   );
 }
 
-export default withSentryRouter(withApi(SudoModal));
-export {SudoModal};
+export default SudoModal;
 
 const StyledTextBlock = styled(TextBlock)`
   margin-bottom: ${space(1)};

@@ -754,7 +754,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
 
 
 @django_db_all
-def test_performance_calculate_score(default_project):
+def test_desktop_performance_calculate_score(default_project):
     config = get_project_config(default_project).to_dict()["config"]
 
     # Set a version field that is returned even though it's optional.
@@ -871,6 +871,181 @@ def test_performance_calculate_score(default_project):
             "op": "eq",
             "name": "event.contexts.browser.name",
             "value": "Opera",
+        },
+        "version": "1",
+    }
+
+    assert performance_score[5] == {
+        "name": "Chrome INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200, "p50": 500, "optional": False},
+        ],
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome",
+                },
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Google Chrome",
+                },
+            ],
+        },
+        "version": "1",
+    }
+
+    assert performance_score[6] == {
+        "name": "Edge INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {"op": "eq", "name": "event.contexts.browser.name", "value": "Edge"},
+        "version": "1",
+    }
+
+    assert performance_score[7] == {
+        "name": "Opera INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Opera",
+        },
+        "version": "1",
+    }
+
+
+@django_db_all
+def test_mobile_performance_calculate_score(default_project):
+    config = get_project_config(default_project).to_dict()["config"]
+
+    # Set a version field that is returned even though it's optional.
+    for profile in config["performanceScore"]["profiles"]:
+        profile["version"] = "1"
+
+    assert normalize_project_config(config) == config
+    performance_score = config["performanceScore"]["profiles"]
+
+    assert performance_score[8] == {
+        "name": "Chrome Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Chrome Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[9] == {
+        "name": "Firefox Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Firefox Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[10] == {
+        "name": "Safari Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "lcp", "weight": 0.0, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Mobile Safari",
+        },
+        "version": "1",
+    }
+    assert performance_score[11] == {
+        "name": "Edge Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Edge Mobile",
+        },
+        "version": "1",
+    }
+
+    assert performance_score[12] == {
+        "name": "Opera Mobile",
+        "scoreComponents": [
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Opera Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[13] == {
+        "name": "Chrome Mobile INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {
+            "op": "or",
+            "inner": [
+                {
+                    "op": "eq",
+                    "name": "event.contexts.browser.name",
+                    "value": "Chrome Mobile",
+                },
+            ],
+        },
+        "version": "1",
+    }
+    assert performance_score[14] == {
+        "name": "Edge Mobile INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False},
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Edge Mobile",
+        },
+        "version": "1",
+    }
+    assert performance_score[15] == {
+        "name": "Opera Mobile INP",
+        "scoreComponents": [
+            {"measurement": "inp", "weight": 1.0, "p10": 200.0, "p50": 500.0, "optional": False}
+        ],
+        "condition": {
+            "op": "eq",
+            "name": "event.contexts.browser.name",
+            "value": "Opera Mobile",
         },
         "version": "1",
     }

@@ -16,6 +16,7 @@ from sentry.api.serializers import (
 )
 from sentry.api.serializers.base import Serializer, serialize
 from sentry.db.models.query import in_iexact
+from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.avatars import UserAvatar
 from sentry.models.organization import OrganizationStatus
@@ -24,10 +25,6 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import (
-    FilterQueryDatabaseImpl,
-    OpaqueSerializedResponse,
-)
 from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user import (
