@@ -9,14 +9,14 @@ import type {ModuleName} from 'sentry/views/insights/types';
 export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent: string) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const hasData = useHasFirstSpan(module);
+  const hasEverSentData = useHasFirstSpan(module);
 
   const projects = JSON.stringify(pageFilters.selection.projects);
 
   useEffect(() => {
     trackAnalytics(analyticEvent, {
       organization,
-      has_data: hasData,
+      has_ever_sent_data: hasEverSentData,
     });
-  }, [organization, hasData, analyticEvent, projects]);
+  }, [organization, hasEverSentData, analyticEvent, projects]);
 }
