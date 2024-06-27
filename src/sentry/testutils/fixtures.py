@@ -415,6 +415,7 @@ class Fixtures:
             )
         if not query_subscriptions:
             projects = [project] if project else [self.project]
+            # subscribing an activated alert rule will create an activation
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
                 monitor_type=monitor_type,
