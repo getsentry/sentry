@@ -6,6 +6,7 @@ import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {usePrefersReducedMotion} from 'sentry/utils/usePrefersReducedMotion';
 
 // Content may have margins which can't be measured by our refs, but will affect
 // the total content height. We add this to the max-height to ensure the animation
@@ -72,10 +73,12 @@ function revealAndDisconnectObserver({
   revealRef,
   wrapperRef,
   clipHeight,
+  prefersReducedMotion,
 }: {
   clipHeight: number;
   contentRef: React.MutableRefObject<HTMLElement | null>;
   observerRef: React.MutableRefObject<ResizeObserver | null>;
+  prefersReducedMotion: boolean;
   revealRef: React.MutableRefObject<boolean>;
   wrapperRef: React.MutableRefObject<HTMLElement | null>;
 }) {
@@ -87,7 +90,7 @@ function revealAndDisconnectObserver({
     (contentRef.current?.clientHeight || 9999) + calculateAddedHeight({wrapperRef});
 
   // Only animate if the revealed height is greater than the clip height
-  if (revealedWrapperHeight > clipHeight) {
+  if (revealedWrapperHeight > clipHeight && !prefersReducedMotion) {
     wrapperRef.current.addEventListener('transitionend', onTransitionEnd);
     wrapperRef.current.style.maxHeight = `${revealedWrapperHeight}px`;
   } else {
@@ -138,6 +141,8 @@ function ClippedBox(props: ClippedBoxProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
+  const prefersReducedMotion = usePrefersReducedMotion();
+
   const [clipped, setClipped] = useState(!!props.defaultClipped);
 
   const onReveal = props.onReveal;
@@ -160,6 +165,7 @@ function ClippedBox(props: ClippedBoxProps) {
         revealRef,
         observerRef,
         clipHeight,
+        prefersReducedMotion,
       });
       if (typeof onReveal === 'function') {
         onReveal();
@@ -167,7 +173,7 @@ function ClippedBox(props: ClippedBoxProps) {
 
       setClipped(false);
     },
-    [clipHeight, onReveal]
+    [clipHeight, onReveal, prefersReducedMotion]
   );
 
   const onWrapperRef = useCallback(
@@ -235,6 +241,7 @@ function ClippedBox(props: ClippedBoxProps) {
             revealRef,
             observerRef,
             clipHeight,
+            prefersReducedMotion,
           });
         }
 
@@ -259,7 +266,7 @@ function ClippedBox(props: ClippedBoxProps) {
       };
       onResize([entry]);
     },
-    [clipFlex, clipHeight, onSetRenderHeight]
+    [clipFlex, clipHeight, onSetRenderHeight, prefersReducedMotion]
   );
 
   const showMoreButton = (

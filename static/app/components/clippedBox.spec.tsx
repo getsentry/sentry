@@ -120,7 +120,7 @@ describe('clipped box', () => {
       await userEvent.click(button);
 
       expect(onReveal).toHaveBeenCalledTimes(1);
-      expect(container.firstChild).toHaveStyle('max-height: 9999px');
+      expect(container.firstChild).toHaveStyle('max-height: none');
       expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
     });
 
@@ -163,7 +163,7 @@ describe('clipped box', () => {
       const resizeButton = screen.getByText(/resize/);
       await userEvent.click(resizeButton);
 
-      expect(container.firstChild).toHaveStyle('max-height: 9999px');
+      expect(container.firstChild).toHaveStyle('max-height: none');
       expect(screen.queryByText(/show more/i)).not.toBeInTheDocument();
     });
   });
