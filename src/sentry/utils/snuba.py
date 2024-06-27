@@ -897,12 +897,10 @@ def bulk_snuba_queries(
             if referrer:
                 request.tenant_ids["referrer"] = referrer
             if query_source:
-                request.tenant_ids["query_source"] = query_source
+                request.tenant_ids["query_source"] = query_source.value
 
     params = [(request, lambda x: x, lambda x: x) for request in requests]
-    return _apply_cache_and_build_results(
-        snuba_param_list=params, referrer=referrer, use_cache=use_cache
-    )
+    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
 # TODO: This is the endpoint that accepts legacy (non-SnQL/MQL queries)
