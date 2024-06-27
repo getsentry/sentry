@@ -8,10 +8,10 @@ import type {Node} from '@react-types/shared';
 import {DateTime} from 'sentry/components/dateTime';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {FilterOperator} from 'sentry/components/searchQueryBuilder/filterOperator';
+import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/filterKeyOperator';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/useFilterButtonProps';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {formatFilterValue, getKeyLabel} from 'sentry/components/searchQueryBuilder/utils';
+import {formatFilterValue} from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   type ParseResultToken,
@@ -28,15 +28,6 @@ type SearchQueryTokenProps = {
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FILTER>;
 };
-
-function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
-  const {keys} = useSearchQueryBuilder();
-  const key = token.key.text;
-  const tag = keys[key];
-  const label = tag ? getKeyLabel(tag) : key;
-
-  return <KeyLabel>{label}</KeyLabel>;
-}
 
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   switch (token.value.type) {
@@ -173,11 +164,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       ref={ref}
       {...modifiedRowProps}
     >
-      <BaseTokenPart>
-        <FilterKey token={token} />
-      </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
-        <FilterOperator token={token} state={state} item={item} />
+        <FilterKeyOperator token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
         <FilterValue token={token} state={state} item={item} />
@@ -226,21 +214,8 @@ const UnstyledButton = styled('button')`
   }
 `;
 
-const KeyLabel = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: 0 ${space(0.5)} 0 ${space(0.75)};
-  border-radius: 3px 0 0 3px;
-  border-right: 1px solid transparent;
-
-  :focus-within {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -253,7 +228,7 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
