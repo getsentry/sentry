@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
-function useLoadOnboardingDoc({
+function useLoadReplayOnboardingDoc({
   platform,
   organization,
   projectSlug,
@@ -88,4 +88,4 @@ function useLoadOnboardingDoc({
   };
 }
 
-export default useLoadOnboardingDoc;
+export default useLoadReplayOnboardingDoc;
