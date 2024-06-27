@@ -1,7 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from django.conf import settings
 from django.db.models.signals import pre_save
@@ -274,13 +273,8 @@ def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
     return evaluator.find_duplicate()
 
 
-class AlertConditionKind(StrEnum):
-    SLOW = "slow"
-    FAST = "fast"
-
-
-def get_max_alerts(project, kind: AlertConditionKind) -> int:
-    if kind == AlertConditionKind.SLOW:
+def get_max_alerts(project, kind: Literal["slow", "fast"]) -> int:
+    if kind == "slow":
         if features.has("organizations:more-slow-alerts", project.organization):
             return settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
 
@@ -792,7 +786,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     break
 
         if new_rule_is_slow:
-            max_slow_alerts = get_max_alerts(project, AlertConditionKind.SLOW)
+            max_slow_alerts = get_max_alerts(project, "slow")
             if slow_rules >= max_slow_alerts:
                 return Response(
                     {
@@ -803,9 +797,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        if not new_rule_is_slow and (len(rules) - slow_rules) >= get_max_alerts(
-            project, AlertConditionKind.FAST
-        ):
+        if not new_rule_is_slow and (len(rules) - slow_rules) >= get_max_alerts(project, "fast"):
             return Response(
                 {
                     "conditions": [
