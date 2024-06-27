@@ -22,7 +22,7 @@ from snuba_sdk import (
 )
 
 from sentry.eventstore.base import EventStorage
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import Event
 from sentry.models.group import Group
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
@@ -305,7 +305,7 @@ class SnubaEventStorage(EventStorage):
         skip_transaction_groupevent=False,
         tenant_ids=None,
         occurrence_id: str | None = None,
-    ) -> GroupEvent | Event | None:
+    ):
         """
         Get an event given a project ID and event ID
         Returns None if an event cannot be found
