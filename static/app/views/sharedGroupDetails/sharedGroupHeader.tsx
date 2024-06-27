@@ -51,7 +51,7 @@ function SharedGroupHeader({group}: Props) {
                   title={<EventCreatedTooltip event={event} />}
                   overlayStyle={{maxWidth: 300}}
                 >
-                  <DateTime date={date.toLocaleString()} />
+                  <DateTime date={date} />
                 </Tooltip>
               </EventTimeLabel>
             </TimeStamp>
