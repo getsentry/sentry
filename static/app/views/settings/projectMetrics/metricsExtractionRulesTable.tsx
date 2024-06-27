@@ -13,11 +13,11 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricsExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {
-  type MetricsExtractionRule,
   useDeleteMetricsExtractionRules,
   useMetricsExtractionRules,
 } from 'sentry/views/settings/projectMetrics/utils/api';
