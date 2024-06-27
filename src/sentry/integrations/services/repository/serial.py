@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+from sentry.integrations.services.repository import RpcRepository
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.repository import RpcRepository
 
 
 def serialize_repository(repository: Repository) -> RpcRepository:

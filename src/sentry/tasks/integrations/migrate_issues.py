@@ -1,12 +1,12 @@
 from django.db import IntegrityError, router, transaction
 
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
 from sentry.plugins.base import plugins
-from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger
 

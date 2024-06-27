@@ -52,8 +52,8 @@ from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -132,7 +132,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         # This can be moved into the integration service once OrgMemberMapping is completed.
         # We are forced to do an ORM -> service -> ORM call to reduce query size while avoiding
         # cross silo queries until we have a control silo side to map users through.
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if organization_id is not None:
             if (

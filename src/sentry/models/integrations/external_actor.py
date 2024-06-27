@@ -64,7 +64,7 @@ class ExternalActor(ReplicatedRegionModel):
         ]
 
     def delete(self, **kwargs):
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         # TODO: Extract this out of the delete method into the endpoint / controller instead.
         if self.team_id is not None:

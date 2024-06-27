@@ -1109,7 +1109,7 @@ def process_commits(job: PostProcessJob) -> None:
                 )
                 has_integrations = cache.get(integration_cache_key)
                 if has_integrations is None:
-                    from sentry.services.hybrid_cloud.integration import integration_service
+                    from sentry.integrations.services.integration import integration_service
 
                     org_integrations = integration_service.get_organization_integrations(
                         organization_id=event.project.organization_id,

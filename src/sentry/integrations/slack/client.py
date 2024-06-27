@@ -9,8 +9,8 @@ from requests import PreparedRequest, Response
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.client import ApiClient
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.client import BaseApiResponse
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics

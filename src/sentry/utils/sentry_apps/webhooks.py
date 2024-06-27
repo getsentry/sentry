@@ -22,7 +22,7 @@ from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 if TYPE_CHECKING:
     from sentry.api.serializers import AppPlatformEvent
-    from sentry.services.hybrid_cloud.app.model import RpcSentryApp
+    from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 
 TIMEOUT_STATUS_CODE = 0
@@ -51,7 +51,7 @@ def ignore_unpublished_app_errors(
 
 
 def check_broken(sentryapp: SentryApp | RpcSentryApp, org_id: str) -> None:
-    from sentry.services.hybrid_cloud.app.service import app_service
+    from sentry.sentry_apps.services.app.service import app_service
 
     redis_key = get_redis_key(sentryapp, org_id)
     buffer = IntegrationRequestBuffer(redis_key)

@@ -15,27 +15,27 @@ from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationRe
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.msteams import MsTeamsClient
-from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.models.integrations.sentry_app import SentryApp
-from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
-from sentry.services.hybrid_cloud.integration import (
+from sentry.integrations.services.integration import (
     IntegrationService,
     RpcIntegration,
     RpcOrganizationIntegration,
 )
-from sentry.services.hybrid_cloud.integration.model import (
+from sentry.integrations.services.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
     RpcOrganizationContextList,
 )
-from sentry.services.hybrid_cloud.integration.serial import (
+from sentry.integrations.services.integration.serial import (
     serialize_integration,
     serialize_integration_external_project,
     serialize_organization_integration,
 )
+from sentry.models.integrations import Integration, OrganizationIntegration
+from sentry.models.integrations.integration_external_project import IntegrationExternalProject
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.rules.actions.notify_event_service import find_alert_rule_action_ui_component
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import json, metrics
 from sentry.utils.sentry_apps import send_and_save_webhook_request

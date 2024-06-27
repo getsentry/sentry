@@ -4,9 +4,9 @@ import logging
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.integration.service import integration_service
 
 if TYPE_CHECKING:
     from sentry.models.integrations.integration import Integration

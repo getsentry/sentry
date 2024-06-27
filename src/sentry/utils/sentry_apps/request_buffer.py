@@ -15,7 +15,7 @@ from sentry.utils import json, redis
 
 if TYPE_CHECKING:
     from sentry.models.integrations.sentry_app import SentryApp
-    from sentry.services.hybrid_cloud.app.model import RpcSentryApp
+    from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days

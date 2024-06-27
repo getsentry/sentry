@@ -47,8 +47,8 @@ from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration
-    from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+    from sentry.integrations.services.integration import RpcOrganizationIntegration
+    from sentry.integrations.services.integration.model import RpcIntegration
 
 logger = logging.getLogger(__name__)
 
@@ -313,7 +313,7 @@ class IntegrationInstallation:
 
     @property
     def org_integration(self) -> RpcOrganizationIntegration | None:
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if not hasattr(self, "_org_integration"):
             self._org_integration = integration_service.get_organization_integration(
@@ -347,7 +347,7 @@ class IntegrationInstallation:
         """
         Update the configuration field for an organization integration.
         """
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if not self.org_integration:
             return
@@ -485,7 +485,7 @@ def is_response_error(resp: Any) -> bool:
 def disable_integration(
     buffer: IntegrationRequestBuffer, redis_key: str, integration_id: int | None = None
 ) -> None:
-    from sentry.services.hybrid_cloud.integration import integration_service
+    from sentry.integrations.services.integration import integration_service
 
     result = integration_service.organization_contexts(integration_id=integration_id)
     rpc_integration = result.integration

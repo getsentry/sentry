@@ -21,7 +21,7 @@ from sentry.coreapi import APIError
 from sentry.middleware.stats import add_request_metric_tags
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud.app import RpcSentryApp, app_service
+from sentry.sentry_apps.services.app import RpcSentryApp, app_service
 from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,

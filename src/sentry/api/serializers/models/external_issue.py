@@ -4,9 +4,9 @@ from collections.abc import Sequence
 from typing import Any
 
 from sentry.api.serializers.base import Serializer
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration.service import integration_service
 
 
 # Serializer for External Issues Model

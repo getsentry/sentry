@@ -6,10 +6,10 @@ from typing import Any
 
 from sentry_sdk import configure_scope
 
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.utils.sdk import (

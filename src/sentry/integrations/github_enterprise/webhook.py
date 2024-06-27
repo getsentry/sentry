@@ -27,8 +27,8 @@ from .repository import GitHubEnterpriseRepositoryProvider
 
 logger = logging.getLogger("sentry.webhooks")
 from sentry.api.base import Endpoint, region_silo_endpoint
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 
 
 def get_host(request: HttpRequest) -> str | None:

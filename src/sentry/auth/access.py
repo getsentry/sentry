@@ -1070,7 +1070,7 @@ def _from_sentry_app(
 
 
 def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     if not context or context.user_id is None:
         return NoAccess()

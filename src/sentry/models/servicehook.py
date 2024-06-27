@@ -23,8 +23,8 @@ from sentry.db.models import (
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.app.model import RpcSentryApp
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",

@@ -21,9 +21,9 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 
 FILTERED_EMAILS = {
     "%%@gmail.com",

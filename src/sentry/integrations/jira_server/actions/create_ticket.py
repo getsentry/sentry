@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.rules.actions import TicketEventAction
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils.http import absolute_uri
 
 

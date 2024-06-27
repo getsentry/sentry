@@ -7,7 +7,7 @@ import abc
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.hook import RpcServiceHook
+from sentry.sentry_apps.services.hook import RpcServiceHook
 from sentry.silo.base import SiloMode
 
 
@@ -17,7 +17,7 @@ class HookService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.hook.impl import DatabaseBackedHookService
+        from sentry.sentry_apps.services.hook.impl import DatabaseBackedHookService
 
         return DatabaseBackedHookService()
 

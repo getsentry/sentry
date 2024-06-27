@@ -14,7 +14,7 @@ from sentry.mediators.external_requests.util import send_and_save_sentry_app_req
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.group import Group
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils import json
 

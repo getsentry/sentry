@@ -3,7 +3,7 @@ import datetime
 import time
 
 from sentry import options
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.utils import jwt
 from sentry_plugins.client import ApiClient, AuthApiClient
 

@@ -25,6 +25,8 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.services.integration import RpcOrganizationIntegration, integration_service
+from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.vsts.issues import VstsIssueSync
 from sentry.models.apitoken import generate_token
 from sentry.models.integrations.integration import Integration as IntegrationModel
@@ -33,9 +35,7 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
 from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,

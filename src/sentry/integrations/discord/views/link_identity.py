@@ -5,10 +5,10 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
 from sentry import analytics
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.types.actor import ActorType
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign

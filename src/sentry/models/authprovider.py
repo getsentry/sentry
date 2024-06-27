@@ -237,7 +237,7 @@ class AuthProvider(ReplicatedControlModel):
 
 
 def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     if scim_enabled:
         return app_service.get_installation_token(

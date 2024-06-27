@@ -1,5 +1,5 @@
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import Group
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
