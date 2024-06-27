@@ -6,7 +6,6 @@ import type {
   DrawerConfig,
   DrawerContext as TDrawerContext,
 } from 'sentry/components/globalDrawer/types';
-import {defined} from 'sentry/utils';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -20,7 +19,7 @@ export function GlobalDrawer({children}) {
   const location = useLocation();
   const [drawerConfig, setDrawerConfig] = useState<DrawerConfig | undefined>();
   // If no 'drawerConfig' is set, the global drawer is closed.
-  const isDrawerOpen = defined(drawerConfig);
+  const isDrawerOpen = drawerConfig !== undefined;
   const openDrawer = useCallback<TDrawerContext['openDrawer']>(
     (renderer, options = {}) => setDrawerConfig({renderer, options}),
     []
@@ -79,6 +78,25 @@ export function GlobalDrawer({children}) {
   );
 }
 
+/**
+ * Returns helper functions to control the slide out drawer above the page content. For example:
+ * ```
+ * const {openDrawer, closeDrawer} = useDrawer()
+ * ```
+ *
+ * The `openDrawer` function accepts a renderer, and options. By default, the drawer will close
+ * on outside clicks, and 'Escape' key presses. For example:
+ * ```
+ * openDrawer((Body) => <Body><MyComponent /></Body>, {closeOnOutsideClick: false})
+ * ```
+ *
+ * The `closeDrawer` function accepts no parameters and closes the drawer, unmounting its contents.
+ * For example:
+ * ```
+ * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
+ * ```
+ *
+ */
 export default function useDrawer() {
   return useContext(DrawerContext);
 }

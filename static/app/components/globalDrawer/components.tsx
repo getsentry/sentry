@@ -1,4 +1,4 @@
-import {type ForwardedRef, forwardRef} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -15,7 +15,7 @@ export interface DrawerPanelProps {
 
 export const DrawerPanel = forwardRef(function _DrawerPanel(
   {children, onClose}: DrawerPanelProps,
-  ref: ForwardedRef<HTMLDivElement>
+  ref: React.ForwardedRef<HTMLDivElement>
 ) {
   return (
     <DrawerContainer>
