@@ -378,6 +378,7 @@ def update_groups(project, seer_response, group_id_batch_filtered, group_hashes_
     )
 
 
+@sentry_sdk.tracing.trace
 def _make_nodestore_call(project, node_keys):
     try:
         bulk_data = _retry_operation(
@@ -402,6 +403,7 @@ def _make_nodestore_call(project, node_keys):
     return bulk_data
 
 
+@sentry_sdk.tracing.trace
 def make_nodestore_call_multithreaded(project, node_keys):
     def process_chunk(chunk):
         return _make_nodestore_call(project, chunk)
