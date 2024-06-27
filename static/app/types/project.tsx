@@ -23,6 +23,7 @@ export type Project = {
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
+  extrapolateMetrics: boolean;
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -52,8 +53,8 @@ export type Project = {
   isMember: boolean;
   name: string;
   organization: Organization;
-  plugins: Plugin[];
 
+  plugins: Plugin[];
   processingIssues: number;
   relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
