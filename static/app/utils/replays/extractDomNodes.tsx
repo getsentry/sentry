@@ -14,8 +14,19 @@ export type Extraction = {
 };
 
 type Args = {
+  /**
+   * frames where we should stop and extract html for a given dom node
+   */
   frames: ReplayFrame[] | undefined;
+
+  /**
+   * The rrweb events that constitute the replay
+   */
   rrwebEvents: RecordingFrame[] | undefined;
+
+  /**
+   * The replay startTimestampMs
+   */
   startTimestampMs: number;
 };
 
