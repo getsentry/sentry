@@ -16,35 +16,6 @@ class MetricsExtractionRuleValidationError(ValueError):
     pass
 
 
-# Plan
-# 1. Interface
-#       - JSON: type -> aggregates and used to create multiple metrics extraction rules
-#       - everything else stays the same
-#       - the condition or the  MetricsExtractionRule should have an ID (?)
-#
-# 2. Metrics Extraction Rule class
-#       - type
-#       - tags
-#       - unit
-#       - span attribute
-#       - id of the rule ?
-#       - what is the MRI?
-#
-# 3. Project Option Content
-#       - add versioning to invalidate older verison & add ability to migrate
-#
-# 4. Serialization to Project Config
-#       - keep serializing the sequence of metrics extraction rule class to the project config
-
-# planning
-# - extraction rules without conditions need to be possible !
-# - date created for each filter/condition (& modified?)
-# - allow units
-# - what happens to the span attribute extraction rules if the unit is changed?
-#       - how do we persist the filters that have been updated or deleted?
-# - django model?
-
-
 @dataclass
 class MetricsExtractionRule:
     def __init__(
