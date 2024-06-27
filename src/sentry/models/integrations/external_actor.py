@@ -11,7 +11,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.integrations.types import ExternalProviders
 from sentry.models.outbox import OutboxCategory
-from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.notifications.services import notifications_service
 from sentry.services.hybrid_cloud.replica import control_replica_service
 
 logger = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ class ExternalActor(ReplicatedRegionModel):
         return super().delete(**kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.notifications.serial import serialize_external_actor
+        from sentry.notifications.services.serial import serialize_external_actor
 
         control_replica_service.upsert_external_actor_replica(
             external_actor=serialize_external_actor(self)
