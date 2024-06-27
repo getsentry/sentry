@@ -47,6 +47,7 @@ import type {
   Series,
 } from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
+import {lightTheme as theme} from 'sentry/utils/theme';
 
 import Grid from './components/grid';
 import Legend from './components/legend';
@@ -645,8 +646,11 @@ function BaseChartUnwrapped({
   }, [style, autoHeightResize, height, width]);
 
   return (
-    <ChartContainer autoHeightResize={autoHeightResize} data-test-id={dataTestId}>
-      {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
+    <ChartContainer
+      style={autoHeightResize ? {height: '100%'} : {}}
+      data-test-id={dataTestId}
+    >
+      {isTooltipPortalled && <Global styles={getPortalledTooltipStyles} />}
       <ReactEchartsCore
         ref={forwardedRef}
         echarts={echarts}
@@ -664,33 +668,33 @@ function BaseChartUnwrapped({
 }
 
 // Tooltip styles shared for regular and portalled tooltips
-const getTooltipStyles = (p: {theme: Theme}) => css`
+const getTooltipStyles = css`
   /* Tooltip styling */
   .tooltip-series,
   .tooltip-footer {
-    color: ${p.theme.subText};
-    font-family: ${p.theme.text.family};
+    color: ${theme.subText};
+    font-family: ${theme.text.family};
     font-variant-numeric: tabular-nums;
     padding: ${space(1)} ${space(2)};
-    border-radius: ${p.theme.borderRadius} ${p.theme.borderRadius} 0 0;
+    border-radius: ${theme.borderRadius} ${theme.borderRadius} 0 0;
   }
   .tooltip-series {
     border-bottom: none;
     max-width: calc(100vw - 2 * ${CHART_TOOLTIP_VIEWPORT_OFFSET}px);
   }
   .tooltip-series-solo {
-    border-radius: ${p.theme.borderRadius};
+    border-radius: ${theme.borderRadius};
   }
   .tooltip-label {
     margin-right: ${space(1)};
-    ${p.theme.overflowEllipsis};
+    ${theme.overflowEllipsis};
   }
   .tooltip-label strong {
-    font-weight: ${p.theme.fontWeightNormal};
-    color: ${p.theme.textColor};
+    font-weight: ${theme.fontWeightNormal};
+    color: ${theme.textColor};
   }
   .tooltip-label-value {
-    color: ${p.theme.textColor};
+    color: ${theme.textColor};
   }
   .tooltip-label-indent {
     margin-left: 18px;
@@ -701,11 +705,11 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     align-items: baseline;
   }
   .tooltip-footer {
-    border-top: solid 1px ${p.theme.innerBorder};
+    border-top: solid 1px ${theme.innerBorder};
     text-align: center;
     position: relative;
     width: auto;
-    border-radius: ${p.theme.borderRadiusBottom};
+    border-radius: ${theme.borderRadiusBottom};
     display: flex;
     justify-content: space-between;
     gap: ${space(3)};
@@ -723,12 +727,12 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
     pointer-events: none;
     border-left: 8px solid transparent;
     border-right: 8px solid transparent;
-    border-top: 8px solid ${p.theme.backgroundElevated};
+    border-top: 8px solid ${theme.backgroundElevated};
     margin-left: -8px;
     &:before {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid ${p.theme.translucentBorder};
+      border-top: 8px solid ${theme.translucentBorder};
       content: '';
       display: block;
       position: absolute;
@@ -740,16 +744,16 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
 
   /* Tooltip description styling */
   .tooltip-description {
-    color: ${p.theme.white};
-    border-radius: ${p.theme.borderRadius};
+    color: ${theme.white};
+    border-radius: ${theme.borderRadius};
     background: #000;
     opacity: 0.9;
     padding: 5px 10px;
     position: relative;
-    font-weight: ${p.theme.fontWeightBold};
-    font-size: ${p.theme.fontSizeSmall};
+    font-weight: ${theme.fontWeightBold};
+    font-size: ${theme.fontSizeSmall};
     line-height: 1.4;
-    font-family: ${p.theme.text.family};
+    font-family: ${theme.text.family};
     max-width: 230px;
     min-width: 230px;
     white-space: normal;
@@ -771,9 +775,7 @@ const getTooltipStyles = (p: {theme: Theme}) => css`
 
 // Contains styling for chart elements as we can't easily style those
 // elements directly
-const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
-  ${p => p.autoHeightResize && 'height: 100%;'}
-
+const ChartContainer = styled('div')`
   .echarts-for-react div:first-of-type {
     width: 100% !important;
   }
@@ -782,12 +784,12 @@ const ChartContainer = styled('div')<{autoHeightResize: boolean}>`
     font-variant-numeric: tabular-nums !important;
   }
 
-  ${p => getTooltipStyles(p)}
+  ${getTooltipStyles}
 `;
 
-const getPortalledTooltipStyles = (p: {theme: Theme}) => css`
+const getPortalledTooltipStyles = css`
   .chart-tooltip-portal {
-    ${getTooltipStyles(p)};
+    ${getTooltipStyles};
   }
 `;
 
