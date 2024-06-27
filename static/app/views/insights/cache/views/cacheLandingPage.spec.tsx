@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  waitFor,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -220,7 +225,7 @@ describe('CacheLandingPage', function () {
     expect(timeSpentCell).toBeInTheDocument();
   });
 
-  it('shows module onboarding', function () {
+  it('shows module onboarding', async function () {
     jest.mocked(useProjects).mockReturnValue({
       projects: [
         ProjectFixture({
@@ -240,10 +245,13 @@ describe('CacheLandingPage', function () {
       initiallyLoaded: false,
     });
 
-    render(<CacheLandingPage />, {organization});
-    expect(
-      screen.getByText('Make sure your application’s caching is behaving properly')
-    ).toBeInTheDocument();
+    render(<CacheLandingPage />);
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Make sure your application’s caching is behaving properly')
+      ).toBeInTheDocument();
+    });
   });
 });
 
