@@ -1,12 +1,12 @@
 import uuid
 
-import pytest
 from django.urls import reverse
 
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -21,6 +21,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         url = reverse(endpoint, args=(self.project.organization.slug, self.project.slug))
         return self.client.put(url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json")
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_permissions(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -35,6 +36,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         response = self.send_put_request(token, self.endpoint)
         assert response.status_code != 403
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule(self):
         new_rule = {
@@ -83,7 +85,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             assert conditions[0]["mris"] == ["c:custom/internal_1@none"]
             assert conditions[1]["mris"] == ["c:custom/internal_2@none"]
 
-    @pytest.mark.django_db(transaction=True, reset_sequences=True)
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule_hardcoded_units(self):
         new_rule = {
@@ -116,6 +118,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert conditions[0]["mris"][0].endswith("millisecond")
         assert conditions[0]["mris"][1].endswith("millisecond")
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_update_existing_extraction_rule(self):
         original_rule = {
@@ -175,6 +178,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert len(conditions) == 2
         assert {c["value"] for c in conditions} == {"baz:farzara", "new:condition"}
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_delete_existing_extraction_rule(self):
         new_rule = {
@@ -246,6 +250,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_idempotent_update(self):
         rule = {
@@ -282,6 +287,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert len(data) == 1
         assert data[0]["spanAttribute"] == "process_latency"
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_idempotent_create(self):
         rule = {
@@ -315,6 +321,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         )
         assert response.status_code == 400
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_delete_non_existing_extraction_rule(self):
         non_existing_rule = {
@@ -331,6 +338,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         )
         assert response.status_code == 204
 
+    @django_db_all
     def test_option_hides_endpoints(self):
         rule = {
             "metricsExtractionRules": [
@@ -369,6 +377,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         )
         assert response.status_code == 404
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_get_pagination(self):
         json_payload = {
@@ -425,18 +434,18 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert max(span_attributes) == "count_clicks_2049"
         assert len(set(span_attributes)) == len(span_attributes)
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_null_validation(self):
         new_rule = {
-            "metricsExtractionRules": [
-                {
-                    "spanAttribute": None,
-                    "type": "c",
-                    "unit": "none",
-                    "tags": ["tag1", "tag2", "tag3"],
-                    "conditions": ["foo:bar", "baz:faz"],
-                }
-            ]
+            "spanAttribute": None,
+            "aggregates": ["count"],
+            "unit": "none",
+            "tags": ["tag1", "tag2", "tag3"],
+            "conditions": [
+                {"id": str(uuid.uuid4()), "value": "foo:bar"},
+                {"id": str(uuid.uuid4()), "value": "baz:faz"},
+            ],
         }
 
         response = self.get_response(
@@ -449,15 +458,14 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert response.status_code == 400
 
         new_rule = {
-            "metricsExtractionRules": [
-                {
-                    "spanAttribute": "count_stuff",
-                    "type": None,
-                    "unit": "none",
-                    "tags": ["tag1", "tag2", "tag3"],
-                    "conditions": ["foo:bar", "baz:faz"],
-                }
-            ]
+            "spanAttribute": "count_stuff",
+            "aggregates": None,
+            "unit": "none",
+            "tags": ["tag1", "tag2", "tag3"],
+            "conditions": [
+                {"id": str(uuid.uuid4()), "value": "foo:bar"},
+                {"id": str(uuid.uuid4()), "value": "baz:faz"},
+            ],
         }
 
         response = self.get_response(
@@ -469,6 +477,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
         assert response.status_code == 400
 
+    @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_post_without_unit(self):
         new_rule = {

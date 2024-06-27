@@ -70,7 +70,9 @@ class SpanAttributeExtractionRuleConfig(Model):
         config.project = project
         config.span_attribute = dictionary["spanAttribute"]
         config.aggregates = dictionary["aggregates"]
-        config.unit = HARD_CODED_UNITS.get(dictionary["spanAttribute"], dictionary["unit"])
+        config.unit = (
+            HARD_CODED_UNITS.get(dictionary["spanAttribute"], dictionary["unit"]) or "none"
+        )
         config.tags = dictionary["tags"]
         config.save()
 
