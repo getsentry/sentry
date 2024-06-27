@@ -49,6 +49,7 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
+from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 
 logger = logging.getLogger(__name__)
 
@@ -967,6 +968,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
 
             project.rename_on_pending_deletion()
+
+            # Tell seer to delete all the project's grouping records
+            if features.has("projects:similarity-embeddings-delete-by-hash", project):
+                call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)
 
