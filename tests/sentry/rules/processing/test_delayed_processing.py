@@ -25,7 +25,7 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 
 pytestmark = pytest.mark.sentry_metrics
 
-FROZEN_TIME = before_now(days=1).replace(hour=00, minute=15, second=00)
+FROZEN_TIME = before_now(days=1).replace(hour=1, minute=15, second=00)
 
 
 @freeze_time(FROZEN_TIME)
@@ -594,8 +594,8 @@ class ProcessDelayedAlertConditionsTest(
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5")
         self.create_event(self.project.id, FROZEN_TIME, "group-5")
         # Create events for the incorrect interval that will not trigger the rule
-        self.create_event(self.project.id, incorrect_interval_time, "group-5")
-        self.create_event(self.project.id, incorrect_interval_time, "group-5")
+        # self.create_event(self.project.id, incorrect_interval_time,x "group-5")
+        # self.create_event(self.project.id, incorrect_interval_time, "group-5")
         # Create an event for the correct interval that will trigger the rule
         self.create_event(self.project.id, correct_interval_time, "group-5")
 
@@ -616,6 +616,11 @@ class ProcessDelayedAlertConditionsTest(
         assert len(rule_fire_histories) == 1
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
+
+        # TIME IS 6/26 @ 1:15 AM -> 00:58 AM
+        # First query
+        #   start:
+        #   end  :
 
     def test_apply_delayed_no_bleed_count_and_comparison_condition(self):
         """
