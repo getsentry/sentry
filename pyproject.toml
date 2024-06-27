@@ -584,7 +584,6 @@ module = [
     "sentry.services.hybrid_cloud.organization_actions.*",
     "sentry.services.hybrid_cloud.organization_mapping.*",
     "sentry.services.hybrid_cloud.organizationmember_mapping.*",
-    "sentry.services.hybrid_cloud.orgauthtoken.*",
     "sentry.services.hybrid_cloud.project.*",
     "sentry.services.hybrid_cloud.project_key.*",
     "sentry.services.hybrid_cloud.replica.*",

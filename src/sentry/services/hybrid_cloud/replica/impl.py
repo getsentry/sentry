@@ -5,6 +5,7 @@ from django.db import router, transaction
 from django.db.models import Q
 
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
+from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
@@ -37,7 +38,6 @@ from sentry.models.teamreplica import TeamReplica
 from sentry.models.user import User
 from sentry.notifications.services import RpcExternalActor
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
-from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 

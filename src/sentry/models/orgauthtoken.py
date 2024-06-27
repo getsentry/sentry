@@ -8,6 +8,7 @@ from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
 
+from sentry.auth.services.orgauthtoken import orgauthtoken_service
 from sentry.backup.dependencies import PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -18,7 +19,6 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedControlModel
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory
-from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_service
 
 MAX_NAME_LENGTH = 255
 
@@ -115,7 +115,7 @@ class OrgAuthToken(ReplicatedControlModel):
         return old_pk
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.orgauthtoken.serial import serialize_org_auth_token
+        from sentry.auth.services.orgauthtoken.serial import serialize_org_auth_token
         from sentry.services.hybrid_cloud.replica import region_replica_service
 
         region_replica_service.upsert_replicated_org_auth_token(

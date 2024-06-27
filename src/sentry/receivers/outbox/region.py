@@ -12,6 +12,7 @@ from typing import Any
 from django.dispatch import receiver
 
 from sentry.auth.services.auth import auth_service
+from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory, process_region_outbox
@@ -23,7 +24,6 @@ from sentry.services.hybrid_cloud.organization_mapping.model import CustomerId
 from sentry.services.hybrid_cloud.organization_mapping.serial import (
     update_organization_mapping_from_instance,
 )
-from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_rpc_service
 from sentry.types.region import get_local_region
 
 

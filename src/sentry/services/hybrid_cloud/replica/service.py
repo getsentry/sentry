@@ -1,6 +1,7 @@
 import abc
 
 from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
+from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
 from sentry.hybridcloud.services.control_organization_provisioning import (
@@ -8,7 +9,6 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
 )
 from sentry.notifications.services import RpcExternalActor
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
-from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 from sentry.silo.base import SiloMode
 
 
