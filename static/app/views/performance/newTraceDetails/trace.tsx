@@ -270,6 +270,7 @@ export function Trace({
     organization,
   ]);
 
+  // Rerender when we finish incrementally fetching, so that we can stop showing the loading state
   useEffect(() => {
     if (!isIncrementallyFetching) {
       rerender();

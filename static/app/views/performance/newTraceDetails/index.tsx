@@ -59,6 +59,7 @@ import {
 import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {useIncrementalTraces} from './traceApi/useIncrementalTraces';
 import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
@@ -244,10 +245,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const {trace, isIncrementallyFetching, isLoading, errors} = useTrace({
-    traceDataRows: props.traceDataRows,
-  });
-  const rootEvent = useTraceRootEvent(trace);
+  const {isLoading, data: traceData, error} = useTrace(props.traceDataRows?.[0]);
+  const rootEvent = useTraceRootEvent(traceData);
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
@@ -289,9 +288,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     null
   );
 
-  const treeRef = useRef<TraceTree | null>(null);
   const tree = useMemo(() => {
-    if (errors.length > 0) {
+    if (error) {
       const errorTree = TraceTree.Error(
         {
           project_slug: projects?.[0]?.slug ?? '',
@@ -302,13 +300,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return errorTree;
     }
 
-    if (
-      isLoading ||
-      (isIncrementallyFetching &&
-        treeRef.current &&
-        treeRef.current.type === 'trace' &&
-        treeRef.current.list.length <= 1)
-    ) {
+    if (traceData?.transactions.length === 0 && traceData?.orphan_errors.length === 0) {
+      return TraceTree.Empty();
+    }
+
+    if (isLoading) {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(
@@ -323,39 +319,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return loadingTrace;
     }
 
-    if (
-      !isIncrementallyFetching &&
-      treeRef.current &&
-      treeRef.current.type === 'trace' &&
-      treeRef.current.list.length <= 1
-    ) {
-      return TraceTree.Empty();
-    }
-
-    if (trace) {
-      if (!treeRef.current) {
-        const newTree = TraceTree.FromTrace(trace, props.replayRecord);
-        treeRef.current = newTree;
-        return newTree;
-      }
-
-      if (props.traceDataRows && props.traceDataRows.length > 1) {
-        treeRef.current.appendTree(TraceTree.FromTrace(trace, props.replayRecord));
-      }
-
-      return treeRef.current;
+    if (traceData) {
+      return TraceTree.FromTrace(traceData, props.replayRecord);
     }
 
     throw new Error('Invalid trace state');
-  }, [
-    props.traceDataRows,
-    trace,
-    projects,
-    props.replayRecord,
-    isIncrementallyFetching,
-    errors,
-    isLoading,
-  ]);
+  }, [props.traceDataRows, traceData, isLoading, error, projects, props.replayRecord]);
+  const {isIncrementallyFetching} = useIncrementalTraces(tree, props.traceDataRows);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -880,7 +850,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <Trace
-          isIncrementallyFetching={isIncrementallyFetching}
+          isIncrementallyFetching={isLoading || isIncrementallyFetching}
           trace={tree}
           rerender={rerender}
           traceLabel={props.traceLabel}
@@ -909,7 +879,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceType={shape}
           trace={tree}
           traceGridRef={traceGridRef}
-          traces={trace ?? null}
+          traces={traceData ?? null}
           manager={viewManager}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}

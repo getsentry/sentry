@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo} from 'react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
@@ -12,7 +12,6 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
@@ -38,16 +37,25 @@ const DEFAULT_LIMIT = 1_000;
 export function getTraceQueryParams(
   query: Location['query'],
   filters: Partial<PageFilters> = {},
-  options: {limit?: number} = {},
-  traceDataRow: TraceDataRow
-): string {
+  traceLimit: number | undefined,
+  traceDataRow: TraceDataRow | undefined
+): {
+  eventId: string | undefined;
+  limit: number;
+  timestamp: string | undefined;
+  useSpans: number;
+  demo?: string | undefined;
+  pageEnd?: string | undefined;
+  pageStart?: string | undefined;
+  statsPeriod?: string | undefined;
+} {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
   let decodedLimit: string | number | undefined =
-    options.limit ?? decodeScalar(normalizedParams.limit);
+    traceLimit ?? decodeScalar(normalizedParams.limit);
 
   if (typeof decodedLimit === 'string') {
     decodedLimit = parseInt(decodedLimit, 10);
@@ -93,7 +101,7 @@ export function getTraceQueryParams(
     }
   }
 
-  return qs.stringify(queryParams);
+  return queryParams;
 }
 
 function parseDemoEventSlug(
@@ -181,123 +189,29 @@ function useDemoTrace(
   >;
 }
 
-type UseTraceParams = {
-  traceDataRows: TraceDataRow[] | undefined;
-  limit?: number;
-};
-
-type TraceQueryResults = {
-  errors: Error[];
-  isIncrementallyFetching: boolean;
-  isLoading: boolean;
-  trace: TraceSplitResults<TraceTree.Transaction> | undefined;
-};
-
-const DEFAULT_OPTIONS = {
-  traceDataRows: [],
-};
-export function useTrace(options: UseTraceParams = DEFAULT_OPTIONS): TraceQueryResults {
+export function useTrace(
+  traceDataRow: TraceDataRow | undefined,
+  limit?: number
+): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
   const filters = usePageFilters();
-  const api = useApi();
   const organization = useOrganization();
-  const urlParams = useMemo(() => {
-    return qs.parse(location.search);
+  const queryParams = useMemo(() => {
+    const query = qs.parse(location.search);
+    return getTraceQueryParams(query, filters.selection, limit, traceDataRow);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const mode = decodeScalar(urlParams.demo);
-  const demoTrace = useDemoTrace(decodeScalar(urlParams.demo), organization);
-
-  const [traceData, setTraceData] = useState<{
-    errors: Error[];
-    isIncrementallyFetching: boolean;
-    isLoading: boolean;
-    trace: TraceSplitResults<TraceTree.Transaction> | undefined;
-  }>({
-    trace: undefined,
-    isLoading: true,
-    isIncrementallyFetching: false,
-    errors: [],
-  });
-
-  useEffect(() => {
-    async function fetchTracesInBatches(traceDataRows: TraceDataRow[] | undefined) {
-      if (!traceDataRows || traceDataRows.length === 0) {
-        return;
-      }
-
-      const clonedTraceIds = [...traceDataRows];
-      const apiErrors: Error[] = [];
-
-      while (clonedTraceIds.length > 0) {
-        const batch = clonedTraceIds.splice(0, 3);
-        const results = await Promise.allSettled(
-          batch.map(batchTraceData => {
-            return fetchTrace(api, {
-              orgSlug: organization.slug,
-              query: getTraceQueryParams(
-                urlParams,
-                filters.selection,
-                options,
-                batchTraceData
-              ),
-              traceId: batchTraceData.traceSlug,
-            });
-          })
-        );
-
-        const updatedData = results.reduce(
-          (acc, result) => {
-            if (result.status === 'fulfilled') {
-              const {transactions, orphan_errors} = result.value;
-              acc.transactions.push(...transactions);
-              acc.orphan_errors.push(...orphan_errors);
-            } else {
-              apiErrors.push(new Error(result.reason));
-            }
-            return acc;
-          },
-          {
-            transactions: [],
-            orphan_errors: [],
-          } as TraceSplitResults<TraceTree.Transaction>
-        );
-
-        setTraceData(prev => {
-          return {
-            ...prev,
-            trace: updatedData,
-            isLoading: false,
-            isIncrementallyFetching: true,
-          };
-        });
-      }
-
-      setTraceData(prev => {
-        return {
-          ...prev,
-          isIncrementallyFetching: false,
-          errors: apiErrors,
-        };
-      });
+  }, [limit]);
+  const mode = queryParams.demo ? 'demo' : undefined;
+  const demoTrace = useDemoTrace(queryParams.demo, organization);
+  const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
+    [
+      `/organizations/${organization.slug}/events-trace/${traceDataRow?.traceSlug ?? ''}/`,
+      {query: queryParams},
+    ],
+    {
+      staleTime: Infinity,
+      enabled: !!traceDataRow?.traceSlug && !!organization.slug && mode !== 'demo',
     }
+  );
 
-    if (mode !== 'demo') {
-      fetchTracesInBatches(options.traceDataRows);
-    }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  return mode === 'demo'
-    ? {
-        trace: demoTrace.data ?? {
-          transactions: [],
-          orphan_errors: [],
-        },
-        isLoading: demoTrace.isLoading,
-        isIncrementallyFetching: false,
-        errors: demoTrace.error ? [demoTrace.error] : [],
-      }
-    : traceData;
+  return mode === 'demo' ? demoTrace : traceQuery;
 }
