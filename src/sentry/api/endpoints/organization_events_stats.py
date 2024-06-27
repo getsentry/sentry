@@ -1,3 +1,4 @@
+import time
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -454,20 +455,30 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
         get_event_stats = get_event_stats_factory(dataset)
 
         try:
-            return Response(
-                self.get_event_stats_data(
-                    request,
-                    organization,
-                    get_event_stats,
-                    top_events,
-                    allow_partial_buckets=allow_partial_buckets,
-                    zerofill_results=not (
-                        request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
-                    ),
-                    comparison_delta=comparison_delta,
-                    dataset=dataset,
+            response_data = self.get_event_stats_data(
+                request,
+                organization,
+                get_event_stats,
+                top_events,
+                allow_partial_buckets=allow_partial_buckets,
+                zerofill_results=not (
+                    request.GET.get("withoutZerofill") == "1" and has_chart_interpolation
                 ),
+                comparison_delta=comparison_delta,
+                dataset=dataset,
+            )
+            resp = Response(
+                response_data,
                 status=200,
             )
+            if (
+                response_data.get("end")
+                and request.GET.get("end")
+                and request.GET.get("project")  # only works if projects are explicitly specified
+                and time.time() - response_data.get("end") > 7200
+            ):
+                # this is a request for an absolute time range that ended over two hours ago, it won't change
+                resp.headers["Cache-Control"] = "max-age=86400, private, immutable"
+            return resp
         except ValidationError:
             return Response({"detail": "Comparison period is outside retention window"}, status=400)
