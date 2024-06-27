@@ -135,14 +135,14 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             <GuidedSteps.Step stepKey="install-sentry" title={t('Install Sentry')}>
               <div>
                 <div>
-                  {configDescription}
-                  {installDescription}
+                  <DescriptionWrapper>{installDescription}</DescriptionWrapper>
+                  <DescriptionWrapper>{configDescription}</DescriptionWrapper>
                   {Array.isArray(code) ? (
-                    <StyledTabbedCodeSnippet tabs={code} />
+                    <TabbedCodeSnippet tabs={code} />
                   ) : (
-                    <StyledCodeSnippet language={language}>
+                    <OnboardingCodeSnippet language={language}>
                       {code ?? ''}
-                    </StyledCodeSnippet>
+                    </OnboardingCodeSnippet>
                   )}
                   {verify.length === 0 && (
                     <FirstEventIndicator
@@ -172,18 +172,20 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
                 <div>
                   <div>
-                    {configureDescription}
+                    <DescriptionWrapper>{configureDescription}</DescriptionWrapper>
                     {configurations?.map((configuration, index) => (
-                      <div key={index}>
-                        {configuration.description}
+                      <CodeSnippetWrapper key={index}>
+                        <DescriptionWrapper>
+                          {configuration.description}
+                        </DescriptionWrapper>
                         {Array.isArray(configuration.code) ? (
-                          <StyledTabbedCodeSnippet tabs={configuration.code} />
+                          <TabbedCodeSnippet tabs={configuration.code} />
                         ) : (
-                          <StyledCodeSnippet language={configuration.language}>
+                          <OnboardingCodeSnippet language={configuration.language}>
                             {configuration.code ?? ''}
-                          </StyledCodeSnippet>
+                          </OnboardingCodeSnippet>
                         )}
-                      </div>
+                      </CodeSnippetWrapper>
                     ))}
                   </div>
                   <GuidedSteps.ButtonWrapper>
@@ -202,18 +204,20 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               >
                 <div>
                   <div>
-                    {sourcemapDescription}
+                    <DescriptionWrapper>{sourcemapDescription}</DescriptionWrapper>
                     {sourceMapConfigurations?.map((configuration, index) => (
-                      <div key={index}>
-                        {configuration.description}
+                      <CodeSnippetWrapper key={index}>
+                        <DescriptionWrapper>
+                          {configuration.description}
+                        </DescriptionWrapper>
                         {Array.isArray(configuration.code) ? (
-                          <StyledTabbedCodeSnippet tabs={configuration.code} />
+                          <TabbedCodeSnippet tabs={configuration.code} />
                         ) : (
-                          <StyledCodeSnippet language={configuration.language}>
+                          <OnboardingCodeSnippet language={configuration.language}>
                             {configuration.code ?? ''}
-                          </StyledCodeSnippet>
+                          </OnboardingCodeSnippet>
                         )}
-                      </div>
+                      </CodeSnippetWrapper>
                     ))}
                   </div>
                   <GuidedSteps.ButtonWrapper>
@@ -228,18 +232,18 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             {verifyDescription ? (
               <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                 <div>
-                  {verifyDescription}
+                  <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
                   {verifyConfigutations?.map((configuration, index) => (
-                    <div key={index}>
-                      {configuration.description}
+                    <CodeSnippetWrapper key={index}>
+                      <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
                       {Array.isArray(configuration.code) ? (
-                        <StyledTabbedCodeSnippet tabs={configuration.code} />
+                        <TabbedCodeSnippet tabs={configuration.code} />
                       ) : (
-                        <StyledCodeSnippet language={configuration.language}>
+                        <OnboardingCodeSnippet language={configuration.language}>
                           {configuration.code ?? ''}
-                        </StyledCodeSnippet>
+                        </OnboardingCodeSnippet>
                       )}
-                    </div>
+                    </CodeSnippetWrapper>
                   ))}
                   <FirstEventIndicator
                     organization={organization}
@@ -369,12 +373,10 @@ const IndicatorWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const StyledCodeSnippet = styled(OnboardingCodeSnippet)`
-  margin-top: ${space(1)};
-  margin-bottom: ${space(1)};
+const CodeSnippetWrapper = styled('div')`
+  margin-bottom: ${space(2)};
 `;
 
-const StyledTabbedCodeSnippet = styled(TabbedCodeSnippet)`
-  margin-top: ${space(1)};
+const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
 `;
