@@ -161,7 +161,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], self.referrer)
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         self.create_project()
 

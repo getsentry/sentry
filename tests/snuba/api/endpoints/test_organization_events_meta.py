@@ -201,7 +201,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
                 )
         assert response.status_code == 400
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         mock_snql_query.side_effect = ParseError("test")
         with self.feature(self.features):
@@ -424,7 +424,7 @@ class OrganizationEventsRelatedIssuesEndpoint(APITestCase, SnubaTestCase):
 class OrganizationSpansSamplesEndpoint(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-samples"
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_is_segment_properly_converted_in_filter(self, mock_raw_snql_query):
         self.login_as(user=self.user)
         project = self.create_project()
