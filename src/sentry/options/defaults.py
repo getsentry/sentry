@@ -2619,3 +2619,20 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "similarity.backfill_nodestore_chunk_size",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_threads",
+    default=6,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_snuba_concurrent_requests",
+    default=20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
